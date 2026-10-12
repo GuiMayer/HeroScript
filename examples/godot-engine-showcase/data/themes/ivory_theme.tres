@@ -52,6 +52,15 @@ colors = {
 "surface.high_contrast": "#ffffff",
 "surface.high_contrast_panel": "#ffffff",
 "surface.modal_scrim": "#20201cbb",
+"surface.menu": "#faf5eb",
+"surface.settings_navigation": "#eee4d1",
+"surface.settings_content": "#faf5eb",
+"surface.settings_row": "#f2ebdd",
+"stroke.settings_row": "#b9ae9d",
+"surface.toast": "#faf5eb",
+"surface.primary_action": "#b83e25",
+"surface.primary_hover": "#98311d",
+"surface.primary_pressed": "#7f2919",
 "surface.effects": "#20201c",
 "text.inverse": "#faf5eb"
 }

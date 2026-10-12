@@ -54,7 +54,7 @@ func setup(owner, data: Dictionary) -> void:
 	editor.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	scenario.add_child(editor)
 	var launch_row := HBoxContainer.new()
-	launch_row.add_child(AppTheme.muted("Seed"))
+	launch_row.add_child(AppTheme.title(I18n.text("Seed"), 15))
 	seed_input = SpinBox.new()
 	seed_input.min_value = 1
 	seed_input.max_value = 99999999
@@ -65,9 +65,12 @@ func setup(owner, data: Dictionary) -> void:
 	stretch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	launch_row.add_child(stretch)
 	launch_button = _button(I18n.text("START SCENARIO"), _launch, 210)
+	if visual_context.profile.printed_surfaces: launch_button.theme_type_variation = "PrimaryAction"
 	launch_row.add_child(launch_button)
 	scenario.add_child(launch_row)
-	columns.add_child(AppTheme.panel(scenario))
+	var scenario_panel := AppTheme.panel(scenario)
+	scenario_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	columns.add_child(scenario_panel)
 
 func _select_mode(mode_id: String) -> void:
 	selected_mode = mode_id

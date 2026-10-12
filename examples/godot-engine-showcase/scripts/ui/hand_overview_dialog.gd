@@ -1,15 +1,16 @@
 extends AcceptDialog
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 signal card_chosen(instance_id: String)
 var hand
 func setup(models: Array, scope: String, selected: String) -> void:
 	title = visual_context.translator.text("Hand overview")
-	theme = AppTheme.build(visual_context.high_contrast)
-	theme.set_stylebox("panel", "AcceptDialog", AppTheme.box(AppTheme.NIGHT, 10, AppTheme.GOLD, 1))
-	var border := AppTheme.box(AppTheme.PANEL, 10, AppTheme.GOLD, 1)
+	theme = visual_context.styles.build(visual_context.high_contrast)
+	theme.set_stylebox("panel", "AcceptDialog", visual_context.styles.box(visual_context.styles.NIGHT, 10, visual_context.styles.GOLD, 1))
+	var border := visual_context.styles.box(visual_context.styles.PANEL, 10, visual_context.styles.GOLD, 1)
 	border.expand_margin_top = 30
 	theme.set_stylebox("embedded_border", "Window", border)
-	theme.set_color("title_color", "Window", AppTheme.INK)
+	theme.set_color("title_color", "Window", visual_context.styles.INK)
 	theme.set_constant("title_height", "Window", 30)
 	min_size = Vector2i(850, 560)
 	hand = load("res://scripts/ui/card_hand_view.gd").new(visual_context)

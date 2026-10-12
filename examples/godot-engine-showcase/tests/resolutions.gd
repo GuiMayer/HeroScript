@@ -26,7 +26,8 @@ func _run() -> void:
 	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(router.host).is_empty(), "main menu has no vertical text")
 	var empty_hand_host := HBoxContainer.new()
 	empty_hand_host.size = Vector2(1280, 284)
-	var combat_screen = load("res://scripts/ui/combat_screen.gd").new()
+	var combat_screen = load("res://scripts/ui/combat_view.gd").new()
+	combat_screen.visual_context = router.visual_context
 	var empty_hand_state: Control = combat_screen._empty_hand_state()
 	combat_screen.free()
 	empty_hand_host.add_child(empty_hand_state)

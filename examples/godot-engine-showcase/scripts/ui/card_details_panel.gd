@@ -1,5 +1,6 @@
 extends PanelContainer
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 ## Shared visual policy with explicit passive-summary and persistent-inspection modes.
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 enum DisplayMode { INSPECTION, TOOLTIP }
@@ -7,12 +8,13 @@ var visual_style: Resource
 var display_mode := DisplayMode.INSPECTION
 
 func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTION) -> void:
+	theme = visual_context.theme
 	visual_style = style
 	display_mode = mode
 	name = "CardTooltip" if mode == DisplayMode.TOOLTIP else "CardDetails"
 	var border: Color = style.rarity_color(str(model.get("rarityId", "")))
 	set_meta("semantic_border_color", border)
-	add_theme_stylebox_override("panel", AppTheme.box(AppTheme.PANEL, style.face_radius if style.printed_face else 10, border, 2))
+	add_theme_stylebox_override("panel", visual_context.styles.box(visual_context.styles.PANEL, style.face_radius if style.printed_face else 10, border, 2))
 	custom_minimum_size = Vector2(style.tooltip_width, 0 if mode == DisplayMode.TOOLTIP else style.inspection_height)
 	var body := VBoxContainer.new()
 	body.name = "CardDetailContent"
@@ -31,8 +33,8 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		scroll.follow_focus = true
 		add_child(scroll)
 		scroll.add_child(body)
-	body.add_child(AppTheme.title(str(model.get("name", "")), 22) if style.printed_face else AppTheme.caption(str(model.get("name", "")), 20, 260))
-	body.add_child(AppTheme.caption(" · ".join([str(model.get("cardType", "")), str(model.get("rarity", ""))]), 13, 260))
+	body.add_child(visual_context.styles.title(str(model.get("name", "")), 22) if style.printed_face else visual_context.styles.caption(str(model.get("name", "")), 20, 260))
+	body.add_child(visual_context.styles.caption(" · ".join([str(model.get("cardType", "")), str(model.get("rarity", ""))]), 13, 260))
 	var options: Array = model.get("costOptions", [])
 	if options.is_empty(): options = [model.get("costs", [])]
 	var payments: Array[String] = []
@@ -40,11 +42,11 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		var parts: Array[String] = []
 		for cost in option: parts.append("%s %s" % [visual_context.translator.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
 		payments.append(" + ".join(parts) if not parts.is_empty() else (str(model.get("cost", "0")) if model.get("costsKnown", true) else str(model.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect")))))
-	body.add_child(AppTheme.caption(visual_context.translator.text("Cost: %s") % (" " + visual_context.translator.text("OR") + " ").join(payments), 14, 260))
-	if not model.get("costsKnown", true): body.add_child(AppTheme.caption(str(model.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 14, 260))
+	body.add_child(visual_context.styles.caption(visual_context.translator.text("Cost: %s") % (" " + visual_context.translator.text("OR") + " ").join(payments), 14, 260))
+	if not model.get("costsKnown", true): body.add_child(visual_context.styles.caption(str(model.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 14, 260))
 	var requirements: Array = model.get("requirements", [])
 	if mode == DisplayMode.TOOLTIP: requirements = requirements.slice(0, 1)
-	for requirement in requirements: body.add_child(AppTheme.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
+	for requirement in requirements: body.add_child(visual_context.styles.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
 	var rules := EffectText.new(visual_context)
 	rules.name = "DetailedEffects"
 	rules.fit_content = mode == DisplayMode.INSPECTION
@@ -58,7 +60,7 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		var effect_panel := PanelContainer.new()
 		effect_panel.name = "EffectPanel"
 		effect_panel.set_meta("contrast_surface_role", "surface.effects")
-		effect_panel.add_theme_stylebox_override("panel", AppTheme.box(style.effect_surface, 1))
+		effect_panel.add_theme_stylebox_override("panel", visual_context.styles.box(style.effect_surface, 1))
 		effect_panel.add_child(rules)
 		body.add_child(effect_panel)
 	else: body.add_child(rules)
@@ -68,36 +70,36 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	for row in rows:
 		for segment in row.get("segments", []):
 			if (segment.get("value") is float or segment.get("value") is int) and (segment.get("baseValue") is float or segment.get("baseValue") is int):
-				body.add_child(AppTheme.caption(visual_context.translator.text("Base: %s → Current: %s") % [visual_context.translator.number(float(segment.baseValue)), visual_context.translator.number(float(segment.value))], 12, 260))
-	for behavior in model.get("behaviors", []): body.add_child(AppTheme.caption(str(behavior), 13, 260))
+				body.add_child(visual_context.styles.caption(visual_context.translator.text("Base: %s → Current: %s") % [visual_context.translator.number(float(segment.baseValue)), visual_context.translator.number(float(segment.value))], 12, 260))
+	for behavior in model.get("behaviors", []): body.add_child(visual_context.styles.caption(str(behavior), 13, 260))
 	for badge in model.get("changeBadges", []):
-		body.add_child(AppTheme.caption(str(badge.get("label", "")) + ": " + ", ".join(badge.get("sources", [])), 13, 260))
+		body.add_child(visual_context.styles.caption(str(badge.get("label", "")) + ": " + ", ".join(badge.get("sources", [])), 13, 260))
 	for field in ["previewNote", "availability", "inspectionText"]:
-		if not str(model.get(field, "")).is_empty(): body.add_child(AppTheme.caption(str(model[field]), 13, 260))
+		if not str(model.get(field, "")).is_empty(): body.add_child(visual_context.styles.caption(str(model[field]), 13, 260))
 	# Detailed inspection must wrap rather than silently ellipsize descriptions.
 	for child in body.get_children():
-		if child is Label: AppTheme.wrap(child, 260)
-	AppTheme.apply_view_preferences(self)
+		if child is Label: visual_context.styles.wrap(child, 260)
+	visual_context.styles.apply_view_preferences(self)
 
 func _build_tooltip_summary(body: VBoxContainer, rules: RichTextLabel, model: Dictionary) -> void:
 	# Logs, contribution sources, comparisons and technical data belong only to
 	# the persistent inspector. Large content cannot make this tooltip grow forever.
-	if not model.get("behaviors", []).is_empty(): body.add_child(AppTheme.caption(" · ".join(model.behaviors), 13, 260))
+	if not model.get("behaviors", []).is_empty(): body.add_child(visual_context.styles.caption(" · ".join(model.behaviors), 13, 260))
 	var changes: Array[String] = []
 	for badge in model.get("changeBadges", []).slice(0, maxi(0, visual_style.visible_change_badges)):
 		changes.append(str(badge.get("label", "")))
-	if not changes.is_empty(): body.add_child(AppTheme.caption(" · ".join(changes), 13, 260))
+	if not changes.is_empty(): body.add_child(visual_context.styles.caption(" · ".join(changes), 13, 260))
 	for field in ["previewNote", "availability"]:
-		if not str(model.get(field, "")).is_empty(): body.add_child(AppTheme.caption(str(model[field]), 13, 260))
-	var hint := AppTheme.caption(visual_context.translator.text("Summary — open card inspection for full details."), 12, 260)
+		if not str(model.get(field, "")).is_empty(): body.add_child(visual_context.styles.caption(str(model[field]), 13, 260))
+	var hint := visual_context.styles.caption(visual_context.translator.text("Summary — open card inspection for full details."), 12, 260)
 	hint.name = "InspectionHint"
 	body.add_child(hint)
 	for child in body.get_children():
 		if child is Label:
-			AppTheme.wrap(child, 260)
+			visual_context.styles.wrap(child, 260)
 			child.max_lines_visible = maxi(1, visual_style.tooltip_label_lines)
 			child.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	AppTheme.apply_view_preferences(self)
+	visual_context.styles.apply_view_preferences(self)
 	var font := rules.get_theme_font("normal_font")
 	var font_size := rules.get_theme_font_size("normal_font_size")
 	rules.custom_minimum_size.y = ceilf(font.get_height(font_size)) * maxi(1, visual_style.tooltip_effect_lines)

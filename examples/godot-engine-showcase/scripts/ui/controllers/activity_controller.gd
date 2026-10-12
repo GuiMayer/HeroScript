@@ -18,7 +18,7 @@ func bind(run: Dictionary, choices: Array) -> void:
 	_scope = scope
 	_choices = choices.duplicate(true)
 static func option_reference(choice: Dictionary) -> String:
-	return JSON.stringify([choice.get("type", ""), choice.get("subjectId", ""), choice.get("payload", choice.get("validPayload", {}))]).sha256_text()
+	return preload("res://scripts/presentation/activity_presenter.gd").option_reference(choice)
 func choice_for(reference_id: String) -> Dictionary:
 	var matches := _choices.filter(func(choice): return option_reference(choice) == reference_id)
 	return matches[0].duplicate(true) if matches.size() == 1 else {}

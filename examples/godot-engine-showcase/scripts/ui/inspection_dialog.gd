@@ -1,9 +1,11 @@
 extends AcceptDialog
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
 ## Read-only inspection overlay. No engine service access.
 func setup(title_text: String, summary: String, data: Dictionary = {}, card_model: Dictionary = {}, style: Resource = null) -> void:
+	theme = visual_context.theme.duplicate()
 	title = title_text
 	min_size = Vector2i(650, 420)
 	var body := VBoxContainer.new()

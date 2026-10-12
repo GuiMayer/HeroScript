@@ -21,6 +21,9 @@ extends Resource
 @export var face_radius := 12
 @export var effect_surface := Color.TRANSPARENT
 @export var effect_ink := Color("#f5ecd8")
+@export_group("Printed cost symbols")
+@export var cost_symbol_size := Vector2(40, 40)
+@export var cost_symbol_font_size := 16
 @export_group("Tooltip summary")
 @export var tooltip_width := 410.0
 @export_range(1, 8) var tooltip_effect_rows := 3

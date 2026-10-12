@@ -1,4 +1,6 @@
 extends ConfirmationDialog
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType = ContextType.new()
 ## A generic zone-flow form. The engine owns validity and transaction semantics.
 
 const Zones = preload("res://scripts/presentation/card_zone_presenter.gd")
@@ -12,9 +14,10 @@ var _instances: LineEdit
 var _actor: LineEdit
 
 func setup(flows: Array, selected_instance_id := "") -> void:
+	theme = visual_context.theme
 	_flows = flows.duplicate(true)
-	title = I18n.text("Card zone tools")
-	ok_button_text = I18n.text("Run flow")
+	title = visual_context.translator.text("Card zone tools")
+	ok_button_text = visual_context.translator.text("Run flow")
 	min_size = Vector2i(600, 320)
 	var form := VBoxContainer.new()
 	form.add_theme_constant_override("separation", 10)
@@ -72,5 +75,5 @@ func _submit() -> void:
 
 func _label(value: String) -> Label:
 	var label := Label.new()
-	label.text = I18n.text(value)
+	label.text = visual_context.translator.text(value)
 	return label

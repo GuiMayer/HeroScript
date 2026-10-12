@@ -1,8 +1,10 @@
 param(
-    [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation'),
+    [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation','settings_contracts','settings_interaction','settings_recovery','connection_epoch','run_graphics_updates','run_visual_contexts','combat_collaborators','map_geometry','map_graph_view','run_graphics_architecture','activity_reconciliation'),
     [string]$ApiUrl = '',
     [string]$VisualTest = '',
     [string]$VisualOutputDirectory = '',
+    [string]$VisualPhase = '',
+    [string]$ReuseProject = '',
     [int]$TimeoutSeconds = 180,
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
@@ -11,6 +13,16 @@ $workspace = Split-Path $PSScriptRoot -Parent
 $source = Join-Path $workspace 'examples/godot-engine-showcase'
 $taskId = [Guid]::NewGuid().ToString('N')
 $project = Join-Path $workspace ".runtime/ui-refactor/$taskId"
+if ($ReuseProject) {
+    $project = [IO.Path]::GetFullPath($ReuseProject)
+    $isolatedRoot = [IO.Path]::GetFullPath((Join-Path $workspace '.runtime/ui-refactor')) + [IO.Path]::DirectorySeparatorChar
+    if (-not $project.StartsWith($isolatedRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        -not (Test-Path -LiteralPath (Join-Path $project '.godot/global_script_class_cache.cfg')) -or
+        -not ([IO.File]::ReadAllText((Join-Path $project 'project.godot')).Contains('HeroScript-ui-refactor-'))) {
+        throw 'ReuseProject must identify an already-imported isolated UI test copy.'
+    }
+    $taskId = Split-Path $project -Leaf
+}
 New-Item -ItemType Directory -Path $project -Force | Out-Null
 Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object {
     $_.FullName -notmatch '[\\/]\.godot[\\/]|[\\/]\.runtime[\\/]|[\\/]tests[\\/]output[\\/]'
@@ -30,13 +42,15 @@ if ($VisualTest) {
     New-Item -ItemType Directory -Path $VisualOutputDirectory -Force | Out-Null
 }
 $testNames = @('import') + $Tests
+if ($ReuseProject) { $testNames = $Tests }
 if ($VisualTest) { $testNames += $VisualTest }
 foreach ($test in $testNames) {
     $stdout = Join-Path $project "$test.stdout.log"
     $stderr = Join-Path $project "$test.stderr.log"
     $arguments = @('--headless','--path',"`"$project`"")
     if ($test -eq $VisualTest) {
-        $arguments = @('--path',"`"$project`"",'--audio-driver','Dummy','--script',"res://tests/$test.gd",'--',"`"--lab-output=$VisualOutputDirectory`"")
+        $arguments = @('--path',"`"$project`"",'--audio-driver','Dummy','--script',"res://tests/$test.gd",'--','--layout-smoke',"`"--lab-output=$VisualOutputDirectory`"")
+        if ($VisualPhase) { $arguments += "--capture-phase=$VisualPhase" }
     }
     elseif ($test -eq 'import') { $arguments += @('--editor','--import','--quit') }
     else { $arguments += @('--script',"res://tests/$test.gd",'--','--layout-smoke') }

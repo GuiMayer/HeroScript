@@ -1,14 +1,14 @@
 extends HBoxContainer
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType = ContextType.new()
 signal next_requested
 signal cancel_requested
 signal end_requested
-signal reconnect_requested
 signal system_requested(candidate: Dictionary)
 var next_frame_button: Button
 var selection_actions: HBoxContainer
-var reconnect_button: Button
 var buttons: Array[Button] = []
-func mount(translator, labels: Dictionary, pass_option: Dictionary, overlay_host: Control) -> void:
+func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	name = "TurnControls"
 	add_theme_constant_override("separation", 8)
 	var context_slot := CenterContainer.new()
@@ -47,14 +47,9 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary, overlay_host
 	end.set_meta("requires_end", true)
 	buttons.append(end)
 	add_child(end)
-	reconnect_button = _button(translator.text("RECONNECT"), reconnect_requested.emit, 130)
-	overlay_host.add_child(reconnect_button)
-	reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	reconnect_button.offset_right = 150
-	reconnect_button.offset_bottom = 44
 
 func _button(text: String, action: Callable, width := 0) -> Button:
-	var button := AppTheme.button(text, width)
+	var button := visual_context.styles.button(text, width)
 	button.custom_minimum_size.y = 44
 	button.pressed.connect(action)
 	return button

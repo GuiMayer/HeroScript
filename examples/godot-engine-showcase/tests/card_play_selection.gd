@@ -40,9 +40,9 @@ func check(ok: bool, label: String) -> void:
 func settle() -> void:
 	for _i in 10: await process_frame
 func check_neutral(screen, label: String) -> void:
-	check(screen.selected_card.is_empty() and screen.selected_target.is_empty() and screen.hand.interaction.selected.is_empty(), label + ": no selected card/target")
-	check(screen.hand.interaction.active_id().is_empty() and screen.hand.active_card_id().is_empty(), label + ": no automatic hover, focus or inspection anchor")
-	check(screen.hand.cards().values().all(func(card): return not card.chosen and not card.button_pressed and not card.has_focus()), label + ": no raised/focused/pressed card")
+	check(screen.selected_card.is_empty() and screen.selected_target.is_empty() and screen.view.hand.interaction.selected.is_empty(), label + ": no selected card/target")
+	check(screen.view.hand.interaction.active_id().is_empty() and screen.view.hand.active_card_id().is_empty(), label + ": no automatic hover, focus or inspection anchor")
+	check(screen.view.hand.cards().values().all(func(card): return not card.chosen and not card.button_pressed and not card.has_focus()), label + ": no raised/focused/pressed card")
 func _run() -> void:
 	var session = root.get_node("GameSession")
 	var prefs = root.get_node("Preferences")
@@ -65,7 +65,7 @@ func _run() -> void:
 	router.show_combat()
 	await settle()
 	var screen = router.host.get_child(0)
-	var hand = screen.hand
+	var hand = screen.view.hand
 	check_neutral(screen, "combat entry")
 	var survivor = hand.card_for("first")
 	prefs.reduced_motion = false
@@ -79,9 +79,9 @@ func _run() -> void:
 		event.position = point; event.global_position = point
 		root.push_input(event, true)
 	check(screen.selected_card == "second", "explicit card input still selects a card")
-	await screen._play_candidate(screen._candidate_for_card("second"))
+	await screen._play_candidate(screen.view._candidate_for_card("second"))
 	await settle()
-	check(screen.hand == hand and hand.card_for("first") == survivor and "second" not in hand.order, "accepted use reconciles instances without rebuilding survivors")
+	check(screen.view.hand == hand and hand.card_for("first") == survivor and "second" not in hand.order, "accepted use reconciles instances without rebuilding survivors")
 	check_neutral(screen, "consumed card")
 	check(playback.has_frames(), "manual presentation queue still waits for confirmation independently of selection")
 	screen._next_frame()
@@ -102,7 +102,7 @@ func _run() -> void:
 	gateway.consume = false
 	hand.card_for("first").grab_focus()
 	screen._choose_card("first")
-	await screen._play_candidate(screen._candidate_for_card("first"))
+	await screen._play_candidate(screen.view._candidate_for_card("first"))
 	await settle()
 	check(hand.card_for("first") == survivor, "engine-retained card keeps its shared component")
 	check_neutral(screen, "retained card")
@@ -119,7 +119,7 @@ func _run() -> void:
 	gateway.reject = true
 	hand.card_for("first").grab_focus()
 	screen._choose_card("first")
-	await screen._play_candidate(screen._candidate_for_card("first"))
+	await screen._play_candidate(screen.view._candidate_for_card("first"))
 	await settle()
 	check(screen.selected_card == "first" and hand.card_for("first").chosen, "rejected play preserves its explicit selection for recovery")
 	router.queue_free()

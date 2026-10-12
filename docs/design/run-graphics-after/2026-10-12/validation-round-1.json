@@ -1,0 +1,156 @@
+[
+  {
+    "test": "ui_contracts",
+    "exit_code": 0,
+    "checks": 20,
+    "elapsed_ms": 1175,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "layers",
+    "exit_code": 0,
+    "checks": 67,
+    "elapsed_ms": 1452,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "card_presentation",
+    "exit_code": 0,
+    "checks": 55,
+    "elapsed_ms": 2282,
+    "diagnostics": []
+  },
+  {
+    "test": "card_preview_separation",
+    "exit_code": 0,
+    "checks": 35,
+    "elapsed_ms": 1572,
+    "diagnostics": []
+  },
+  {
+    "test": "settings_contracts",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 1391,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "settings_interaction",
+    "exit_code": 0,
+    "checks": 82,
+    "elapsed_ms": 15505,
+    "diagnostics": []
+  },
+  {
+    "test": "settings_recovery",
+    "exit_code": 0,
+    "checks": 65,
+    "elapsed_ms": 6130,
+    "diagnostics": []
+  },
+  {
+    "test": "connection_epoch",
+    "exit_code": 0,
+    "checks": 6,
+    "elapsed_ms": 833,
+    "diagnostics": []
+  },
+  {
+    "test": "setting_progression",
+    "exit_code": 0,
+    "checks": 30,
+    "elapsed_ms": 4285,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab",
+    "exit_code": 0,
+    "checks": 68,
+    "elapsed_ms": 43081,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_menu",
+    "exit_code": 0,
+    "checks": 40,
+    "elapsed_ms": 6594,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_menus",
+    "exit_code": 0,
+    "checks": 90,
+    "elapsed_ms": 11989,
+    "diagnostics": []
+  },
+  {
+    "test": "run_graphics_updates",
+    "exit_code": 0,
+    "checks": 12,
+    "elapsed_ms": 1488,
+    "diagnostics": []
+  },
+  {
+    "test": "run_visual_contexts",
+    "exit_code": 0,
+    "checks": 8,
+    "elapsed_ms": 1213,
+    "diagnostics": []
+  },
+  {
+    "test": "combat_collaborators",
+    "exit_code": 0,
+    "checks": 12,
+    "elapsed_ms": 787,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "map_geometry",
+    "exit_code": 0,
+    "checks": 9,
+    "elapsed_ms": 783,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "run_graphics_architecture",
+    "exit_code": 0,
+    "checks": 18,
+    "elapsed_ms": 4671,
+    "diagnostics": [
+      "WARNING: Combat composition requires a Control root and CombatGameplay slot."
+    ]
+  },
+  {
+    "test": "activity_reconciliation",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 4125,
+    "diagnostics": []
+  },
+  {
+    "test": "combat_stage_layout",
+    "exit_code": 0,
+    "checks": 441,
+    "elapsed_ms": 21493,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "run_graphics_baseline",
+    "exit_code": 0,
+    "checks": 146,
+    "elapsed_ms": 29195,
+    "diagnostics": []
+  }
+]

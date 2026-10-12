@@ -1,10 +1,19 @@
 class_name CardView
 extends Button
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 
 var motion: Tween
 var chosen := false
 var model: Dictionary = {}
+
+func reconcile_from(other) -> void:
+	if visual_context != other.visual_context: _configuration_key = ""
+	visual_context = other.visual_context
+	configure(other.model)
+	disabled = other.disabled
+	for key in other.get_meta_list():
+		if key in ["activity_choice", "initial_focus"]: set_meta(key, other.get_meta(key))
 var animate_entry := true
 var hand_managed := false
 var configuration_count := 0
@@ -12,8 +21,10 @@ var _configuration_key := ""
 var _context_card_style: CardVisualStyle
 @export var visual_style: CardVisualStyle = preload("res://data/default_card_visual_style.tres")
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
+const CostSymbol = preload("res://scripts/ui/card_cost_symbol.gd")
 
 func configure(data: Dictionary) -> void:
+	theme = visual_context.theme
 	# Follow profile changes unless the consumer explicitly injected another policy.
 	if visual_style == _context_card_style:
 		_context_card_style = visual_context.card_style
@@ -29,20 +40,20 @@ func configure(data: Dictionary) -> void:
 		remove_child(child)
 		child.queue_free()
 	custom_minimum_size = visual_style.effective_size(visual_context.text_scale)
-	var tone: Color = {"attack": AppTheme.BLOOD, "power": AppTheme.color("accent.power")}.get(str(data.get("tone", "skill")), AppTheme.TEAL)
+	var tone: Color = {"attack": visual_context.styles.BLOOD, "power": visual_context.styles.color("accent.power")}.get(str(data.get("tone", "skill")), visual_context.styles.TEAL)
 	var border: Color = visual_style.rarity_color(str(data.get("rarityId", "")))
 	set_meta("semantic_border_color", border)
 	for key in get_meta_list():
 		if str(key).begins_with("base_style_"): remove_meta(key)
 	for state in ["normal", "disabled", "pressed"]:
-		var fill: Color = AppTheme.PANEL if visual_style.printed_face else tone.darkened(.76 if state != "pressed" else .62)
-		add_theme_stylebox_override(state, AppTheme.box(fill, visual_style.face_radius, border, 2))
-	add_theme_stylebox_override("hover", AppTheme.box(AppTheme.PANEL if visual_style.printed_face else tone.darkened(.62), visual_style.face_radius, border, 2))
-	add_theme_stylebox_override("focus", AppTheme.box(Color.TRANSPARENT, visual_style.face_radius, border, 4))
+		var fill: Color = visual_context.styles.PANEL if visual_style.printed_face else tone.darkened(.76 if state != "pressed" else .62)
+		add_theme_stylebox_override(state, visual_context.styles.box(fill, visual_style.face_radius, border, 2))
+	add_theme_stylebox_override("hover", visual_context.styles.box(visual_context.styles.PANEL if visual_style.printed_face else tone.darkened(.62), visual_style.face_radius, border, 2))
+	add_theme_stylebox_override("focus", visual_context.styles.box(Color.TRANSPARENT, visual_style.face_radius, border, 4))
 	if visual_style.printed_face:
 		var keyline := InkKeyline.new()
 		keyline.name = "PrintedKeyline"
-		keyline.ink = AppTheme.INK
+		keyline.ink = visual_context.styles.INK
 		keyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(keyline)
 	var margin := MarginContainer.new()
@@ -54,20 +65,20 @@ func configure(data: Dictionary) -> void:
 	margin.add_child(column)
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
-	var title := AppTheme.title(str(data.get("name", "")), 17)
+	var title := visual_context.styles.title(str(data.get("name", "")), 17)
 	title.name = "CardName"
 	if visual_style.printed_face and visual_context.profile.title_font: title.add_theme_font_override("font", visual_context.profile.title_font)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(title)
-	if data.get("upgraded", false): header.add_child(AppTheme.title("↑", 15, AppTheme.INK))
+	if data.get("upgraded", false): header.add_child(visual_context.styles.title("↑", 15, visual_context.styles.INK))
 	column.add_child(header)
 	column.add_child(_cost_zone(data))
 	var art_frame := PanelContainer.new()
 	art_frame.name = "Art"
 	art_frame.custom_minimum_size.y = visual_style.art_height
 	art_frame.clip_contents = true
-	art_frame.add_theme_stylebox_override("panel", _compact_box(AppTheme.color("surface.card_art"), tone.darkened(.28), 5, 1))
+	art_frame.add_theme_stylebox_override("panel", _compact_box(visual_context.styles.color("surface.card_art"), tone.darkened(.28), 5, 1))
 	var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 	art.setup("cards", str(data.get("definitionId", "")))
 	art_frame.add_child(art)
@@ -80,9 +91,9 @@ func configure(data: Dictionary) -> void:
 		art_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		art_name.max_lines_visible = 2
 		art_name.add_theme_font_size_override("font_size", 11 if visual_style.printed_face else 15)
-		art_name.add_theme_color_override("font_color", AppTheme.INK if visual_style.printed_face else Color.WHITE)
+		art_name.add_theme_color_override("font_color", visual_context.styles.INK if visual_style.printed_face else Color.WHITE)
 		art_name.add_theme_constant_override("outline_size", 0 if visual_style.printed_face else 4)
-		art_name.add_theme_color_override("font_outline_color", AppTheme.color("stroke.art_text"))
+		art_name.add_theme_color_override("font_outline_color", visual_context.styles.color("stroke.art_text"))
 		if visual_style.printed_face: placeholder_name = art_name
 		else: art_frame.add_child(art_name)
 	column.add_child(art_frame)
@@ -92,27 +103,27 @@ func configure(data: Dictionary) -> void:
 		placeholder_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		column.add_child(placeholder_name)
 	var type_line := HBoxContainer.new()
-	var card_type := AppTheme.muted(str(data.get("cardType", str(data.get("tone", "skill")).to_upper())), 10)
+	var card_type := visual_context.styles.muted(str(data.get("cardType", str(data.get("tone", "skill")).to_upper())), 10)
 	card_type.autowrap_mode = TextServer.AUTOWRAP_OFF
 	card_type.add_theme_color_override("font_color", tone.darkened(.15) if visual_style.printed_face else tone.lightened(.28))
 	type_line.add_child(card_type)
 	var type_push := Control.new()
 	type_push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	type_line.add_child(type_push)
-	var rarity := AppTheme.muted(str(data.get("rarity", "")), 10)
+	var rarity := visual_context.styles.muted(str(data.get("rarity", "")), 10)
 	rarity.autowrap_mode = TextServer.AUTOWRAP_OFF
 	rarity.visible = not rarity.text.is_empty()
 	type_line.add_child(rarity)
 	column.add_child(type_line)
 	if not data.get("identityTags", []).is_empty():
-		column.add_child(AppTheme.caption(" · ".join(data.identityTags), 11, 160))
+		column.add_child(visual_context.styles.caption(" · ".join(data.identityTags), 11, 160))
 	for requirement in data.get("requirements", []):
-		var requirement_label := AppTheme.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 11, 160)
-		requirement_label.add_theme_color_override("font_color", AppTheme.BLOOD if requirement.get("passed") == false else AppTheme.INK)
+		var requirement_label := visual_context.styles.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 11, 160)
+		requirement_label.add_theme_color_override("font_color", visual_context.styles.BLOOD if requirement.get("passed") == false else visual_context.styles.INK)
 		column.add_child(requirement_label)
-	var effects_title := AppTheme.muted(visual_context.translator.text("EFFECTS"), 10)
+	var effects_title := visual_context.styles.muted(visual_context.translator.text("EFFECTS"), 10)
 	effects_title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	effects_title.add_theme_color_override("font_color", AppTheme.MUTED.darkened(.05))
+	effects_title.add_theme_color_override("font_color", visual_context.styles.MUTED.darkened(.05))
 	column.add_child(effects_title)
 	var rules := EffectText.new(visual_context)
 	rules.name = "Rules"
@@ -132,15 +143,15 @@ func configure(data: Dictionary) -> void:
 		column.add_child(effect_panel)
 	else: column.add_child(rules)
 	if not data.get("behaviors", []).is_empty():
-		column.add_child(AppTheme.caption(" · ".join(data.behaviors), 11, 160))
+		column.add_child(visual_context.styles.caption(" · ".join(data.behaviors), 11, 160))
 	var badges := _change_badges(data.get("changeBadges", []))
 	if badges != null:
 		column.add_child(badges)
-	var more := AppTheme.muted(visual_context.translator.text("Full text in details"), 10)
+	var more := visual_context.styles.muted(visual_context.translator.text("Full text in details"), 10)
 	more.name = "DetailsHint"
 	more.autowrap_mode = TextServer.AUTOWRAP_OFF
 	column.add_child(more)
-	var availability := AppTheme.muted(str(data.get("availability", "")), 11)
+	var availability := visual_context.styles.muted(str(data.get("availability", "")), 11)
 	availability.autowrap_mode = TextServer.AUTOWRAP_OFF
 	availability.name = "Availability"
 	availability.add_theme_color_override("font_color", tone.darkened(.15) if visual_style.printed_face else tone.lightened(.2))
@@ -158,7 +169,7 @@ func configure(data: Dictionary) -> void:
 	# the replacement subtree before configure returns so no frame is drawn with
 	# the unscaled base fonts.
 	for child in get_children():
-		AppTheme.apply_view_preferences(child, visual_context.text_scale, visual_context.high_contrast)
+		visual_context.styles.apply_view_preferences(child, visual_context.text_scale, visual_context.high_contrast)
 
 func _cost_zone(data: Dictionary) -> Control:
 	var zone := HFlowContainer.new()
@@ -168,39 +179,40 @@ func _cost_zone(data: Dictionary) -> Control:
 	var options: Array = data.get("costOptions", [])
 	if options.size() > 1:
 		for index in options.size():
-			if index > 0: zone.add_child(AppTheme.title(visual_context.translator.text("OR"), 11))
+			if index > 0: zone.add_child(visual_context.styles.title(visual_context.translator.text("OR"), 11))
 			for j in options[index].size():
-				if j > 0: zone.add_child(AppTheme.title("+", 11))
+				if j > 0: zone.add_child(visual_context.styles.title("+", 11))
 				zone.add_child(_cost_chip(options[index][j]))
-			if options[index].is_empty(): zone.add_child(AppTheme.title("0", 12))
+			if options[index].is_empty(): zone.add_child(visual_context.styles.title("0", 12))
 		return zone
 	var costs: Array = data.get("costs", []) if data.get("costs") is Array else []
 	for index in costs.size():
-		if index > 0: zone.add_child(AppTheme.title("+", 11))
+		if index > 0: zone.add_child(visual_context.styles.title("+", 11))
 		zone.add_child(_cost_chip(costs[index]))
 	if not bool(data.get("costsKnown", true)):
-		zone.add_child(AppTheme.title(str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 11))
+		zone.add_child(visual_context.styles.title(str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 11))
 		return zone
 	if costs.is_empty():
 		var fallback := str(data.get("cost", ""))
 		if fallback.is_empty(): fallback = "0"
 		var neutral := PanelContainer.new()
-		neutral.add_theme_stylebox_override("panel", _compact_box(AppTheme.color("surface.cost_unknown"), AppTheme.color("stroke.cost_unknown"), 12, 1))
-		var label := AppTheme.muted(fallback, 11)
+		neutral.add_theme_stylebox_override("panel", _compact_box(visual_context.styles.color("surface.cost_unknown"), visual_context.styles.color("stroke.cost_unknown"), 12, 1))
+		var label := visual_context.styles.muted(fallback, 11)
 		label.autowrap_mode = TextServer.AUTOWRAP_OFF
-		label.add_theme_color_override("font_color", AppTheme.INK)
+		label.add_theme_color_override("font_color", visual_context.styles.INK)
 		neutral.add_child(label)
 		zone.add_child(neutral)
 	return zone
 
 func _cost_chip(cost: Dictionary) -> Control:
 	var appearance: Dictionary = visual_context.resource_style(str(cost.get("resourceId", "")))
-	var color := Color.from_string(str(appearance.get("cost_color", "")), AppTheme.color("resource.unknown"))
+	if visual_style.printed_face:
+		return CostSymbol.new(cost, appearance, visual_context, visual_style)
+	var color := Color.from_string(str(appearance.get("cost_color", "")), visual_context.styles.color("resource.unknown"))
 	var chip := PanelContainer.new()
-	if visual_style.printed_face: chip.set_meta("contrast_preserve_colors", true)
 	chip.add_theme_stylebox_override("panel", _compact_box(color.darkened(.58), color.lightened(.18), 12, 2))
 	var amount: String = visual_context.translator.number(float(cost.get("amount", 0)))
-	var label := AppTheme.muted("%s %s" % [cost.get("symbol", "•"), amount], 12)
+	var label := visual_context.styles.muted("%s %s" % [cost.get("symbol", "•"), amount], 12)
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.add_theme_color_override("font_color", Color.WHITE)
 	chip.tooltip_text = "%s: %s" % [str(cost.get("name", cost.get("resourceId", ""))), amount]
@@ -217,20 +229,20 @@ func _change_badges(items) -> Control:
 		var item: Dictionary = items[index]
 		var kind := str(item.get("kind", "modified"))
 		var color: Color = {
-			"upgrade": AppTheme.color("change.upgrade"), "buff": AppTheme.color("change.buff"),
-			"debuff": AppTheme.color("change.debuff"), "modified": AppTheme.color("change.modified")
-		}.get(kind, AppTheme.color("change.modified"))
+			"upgrade": visual_context.styles.color("change.upgrade"), "buff": visual_context.styles.color("change.buff"),
+			"debuff": visual_context.styles.color("change.debuff"), "modified": visual_context.styles.color("change.modified")
+		}.get(kind, visual_context.styles.color("change.modified"))
 		var badge := PanelContainer.new()
 		if visual_style.printed_face: badge.set_meta("contrast_preserve_colors", true)
 		badge.add_theme_stylebox_override("panel", _compact_box(color.darkened(.72), color, 4, 1))
-		var label := AppTheme.muted("%s %s" % [item.get("symbol", "~"), item.get("label", "")], 9)
+		var label := visual_context.styles.muted("%s %s" % [item.get("symbol", "~"), item.get("label", "")], 9)
 		label.autowrap_mode = TextServer.AUTOWRAP_OFF
 		label.add_theme_color_override("font_color", color.lightened(.25))
 		badge.tooltip_text = ", ".join(item.get("sources", []))
 		badge.add_child(label)
 		row.add_child(badge)
 	if items.size() > visual_style.visible_change_badges:
-		var remaining := AppTheme.muted("+%s" % (items.size() - visual_style.visible_change_badges), 10)
+		var remaining := visual_context.styles.muted("+%s" % (items.size() - visual_style.visible_change_badges), 10)
 		remaining.autowrap_mode = TextServer.AUTOWRAP_OFF
 		row.add_child(remaining)
 	return row
@@ -251,7 +263,7 @@ func _cost_accessible_text(data: Dictionary) -> String:
 	return visual_context.translator.text("Cost: %s") % " + ".join(parts)
 
 func _compact_box(color: Color, border: Color, radius: int, width: int) -> StyleBoxFlat:
-	var style := AppTheme.box(color, radius, border, width)
+	var style := visual_context.styles.box(color, radius, border, width)
 	style.content_margin_left = 6
 	style.content_margin_right = 6
 	style.content_margin_top = 2

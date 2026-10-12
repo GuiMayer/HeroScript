@@ -152,6 +152,8 @@ func _menu_test(transport) -> void:
 	root.add_child(router)
 	await settle()
 	check(not router.host.find_child("ContinueButton", true, false).disabled and router.continuation_run_id == "a-story", "main menu resolves A's Continue, not the last global run")
+	var new_journey: Button = router.host.find_child("NewJourneyButton", true, false)
+	check(new_journey.get_node(new_journey.focus_next) == router.host.find_child("ContinueButton", true, false), "resolved Continue is included in keyboard navigation without stealing initial focus")
 	var selector: OptionButton = router.host.find_child("SettingSelector", true, false)
 	session._operation = "opening"
 	selector.select(1)

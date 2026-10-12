@@ -11,13 +11,17 @@ static func children(parent: Node, desired: Node) -> void:
 		var incoming: Node = incoming_nodes[i]
 		var current: Node = null
 		for node in existing:
-			if node.name == incoming.name and not str(incoming.name).begins_with("@"):
+			if node.name == incoming.name and _semantic_name(incoming):
 				current = node
 				break
-		if current == null and i < original.size() and original[i] in existing:
+		if current == null and not _interactive(incoming) and i < original.size() and original[i] in existing:
 			if str(incoming.name).begins_with("@") or original[i].name == incoming.name:
 				current = original[i]
 		if current != null and (current.get_class() != incoming.get_class() or current.get_script() != incoming.get_script()):
+			current = null
+		if current != null and current.get_script() != null and not current.has_method("reconcile_from"):
+			# Scripted components must update their own model; generic property copying
+			# cannot synchronize their private state or callback identities.
 			current = null
 		if current == null:
 			desired.remove_child(incoming)
@@ -34,17 +38,19 @@ static func children(parent: Node, desired: Node) -> void:
 		node.queue_free()
 
 static func patch(current: Node, incoming: Node) -> void:
-	if current.get_script() == preload("res://scripts/ui/dialogue_panel.gd"):
-		current.apply_model(incoming.model)
+	if current.has_method("reconcile_from"):
+		current.reconcile_from(incoming)
 		return
-	if current is CardView and incoming is CardView:
-		current.visual_context = incoming.visual_context
-		current.configure(incoming.model)
-		current.disabled = incoming.disabled
-		return
-	if current.get_script() == preload("res://scripts/ui/route_view.gd"):
-		current.setup(incoming.nodes)
-		return
+	patch_contents(current, incoming)
+
+static func _interactive(node: Node) -> bool:
+	return node is BaseButton or (node is Control and node.focus_mode != Control.FOCUS_NONE)
+
+static func _semantic_name(node: Node) -> bool:
+	return not str(node.name).begins_with("@") and str(node.name) != node.get_class()
+
+## Only a component itself can reconcile its passive implementation subtree.
+static func patch_contents(current: Node, incoming: Node) -> void:
 	if current is Control and incoming is Control:
 		if current.has_meta("visual_preferences_revision"): current.remove_meta("visual_preferences_revision")
 		for property in ["custom_minimum_size", "size_flags_horizontal", "size_flags_vertical", "mouse_filter",
@@ -71,8 +77,6 @@ static func patch(current: Node, incoming: Node) -> void:
 	if current is TextureRect:
 		current.texture = incoming.texture
 		current.stretch_mode = incoming.stretch_mode
-		for key in ["slot_key", "is_placeholder"]:
-			if key in current: current.set(key, incoming.get(key))
 	for key in incoming.get_meta_list():
 		if not str(key).begins_with("base_") and key != "visual_preferences_revision": current.set_meta(key, incoming.get_meta(key))
 	children(current, incoming)

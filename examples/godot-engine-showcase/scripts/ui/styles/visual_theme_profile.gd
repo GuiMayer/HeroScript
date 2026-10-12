@@ -15,6 +15,7 @@ extends Resource
 const DEFAULTS := {
 	"text.primary": "#f5ecd8",
 	"text.secondary": "#a9a0a8",
+	"text.inverse": "#ffffff",
 	"accent.warm": "#ee8653",
 	"accent.primary": "#e7b75d",
 	"accent.positive": "#53c9b5",
@@ -55,6 +56,8 @@ const DEFAULTS := {
 	"resource.block": "#7e9fbd",
 	"resource.mana": "#8c75dc",
 	"surface.primary_action": "#705033",
+	"surface.primary_hover": "#8a6241",
+	"surface.primary_pressed": "#4e3522",
 	"surface.toast": "#281e2be8",
 	"surface.menu": "#171929e8",
 	"surface.modal_scrim": "#080912dd",

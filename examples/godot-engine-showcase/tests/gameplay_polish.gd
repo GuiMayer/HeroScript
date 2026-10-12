@@ -53,7 +53,7 @@ func _run() -> void:
 	check(router.host.get_child(0) == initial_activity, "journey refresh preserves the activity screen")
 	check(initial_activity.find_child("RouteScroll", true, false).scroll_vertical == route_scroll_before_refresh,
 		"journey refresh preserves the map scroll position")
-	check(initial_activity.choice_buttons.all(func(button): return not button.has_method("configure") or not button.animate_entry),
+	check(initial_activity.view.choice_buttons.all(func(button): return not button.has_method("configure") or not button.animate_entry),
 		"journey refresh does not replay offer-card entrance animations")
 	prefs.fullscreen = false
 	prefs.set_resolution(Vector2i(1280, 720), false)
@@ -99,16 +99,16 @@ func _run() -> void:
 				var screen = router.host.get_child(0)
 				if not inspection_checked:
 					for _attempt in 120:
-						if screen.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()): break
+						if screen.view.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()): break
 						await create_timer(.025).timeout
-					check(screen.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()),
+					check(screen.view.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()),
 						"REST inspection enriches every visible card with engine rarity")
-					check(screen.card_buttons.values().all(func(card): return not card.model.get("effectRows", []).is_empty() and not card.find_child("Rules", true, false).numeric_colors.is_empty()),
+					check(screen.view.card_buttons.values().all(func(card): return not card.model.get("effectRows", []).is_empty() and not card.find_child("Rules", true, false).numeric_colors.is_empty()),
 						"real inspection renders typed numeric effects through the shared palette")
 					var published_match := false
-					for card_id in screen.card_buttons:
+					for card_id in screen.view.card_buttons:
 						var inspected: Dictionary = screen.presenter.inspection_data(str(card_id))
-						for row in screen.card_buttons[card_id].model.get("effectRows", []):
+						for row in screen.view.card_buttons[card_id].model.get("effectRows", []):
 							for segment in row.get("segments", []):
 								if not segment.has("value"): continue
 								for step in inspected.get("previewSteps", []):
@@ -124,10 +124,10 @@ func _run() -> void:
 				check(preload("res://tests/layout_inspector.gd").vertical_text_issues(screen).is_empty(), "combat has no vertical text: " + label)
 				var costs_visible := true
 				var rules_fit := true
-				for button in screen.action_buttons:
+				for button in screen.view.action_buttons:
 					if button.visible: check(button.get_global_rect().end.y <= router.size.y + 1 and button.get_global_rect().end.x <= router.size.x + 1, "turn control fits: " + label)
-				for id in screen.card_buttons:
-					var card = screen.card_buttons[id]
+				for id in screen.view.card_buttons:
+					var card = screen.view.card_buttons[id]
 					var cost: Control = card.find_child("Cost", true, false)
 					costs_visible = costs_visible and cost.size.y > 5 and cost.get_child_count() > 0
 					rules_fit = rules_fit and card.find_child("Rules", true, false).get_global_rect().end.y <= card.find_child("Availability", true, false).get_global_rect().position.y

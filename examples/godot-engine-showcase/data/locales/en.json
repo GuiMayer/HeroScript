@@ -1,4 +1,8 @@
 {
+  "NEUTRAL": "NEUTRAL",
+  "High risk": "High risk",
+  "●  ENGINE OFFLINE": "●  ENGINE OFFLINE",
+  "The engine connection changed during the request.": "The engine connection changed during the request.",
   "Text %s%%": "Text %s%%",
   "IVORY / CARD LAB": "IVORY / CARD LAB",
   "Shared game components. Visual samples only — no rules or API calls.": "Shared game components. Visual samples only — no rules or API calls.",
@@ -574,5 +578,7 @@
   "Critical/draw sidegrade unlocked after reaching world-one completion.": "Critical/draw sidegrade unlocked after reaching world-one completion.",
   "Lasting Renewal": "Lasting Renewal",
   "A second limited recovery option; unlock, not permanent stats.": "A second limited recovery option; unlock, not permanent stats.",
-  "Action preview: %s": "Action preview: %s"
+  "Action preview: %s": "Action preview: %s",
+  "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.": "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.",
+  "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.": "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes."
 }

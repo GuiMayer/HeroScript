@@ -305,7 +305,7 @@ func _add_option(title_text: String, description_text: String, control: Control)
 	control.tooltip_text = description_text
 	row.add_child(control)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", AppTheme.box(AppTheme.color("surface.settings_row"), 9, AppTheme.color("stroke.settings_row"), 1))
+	panel.add_theme_stylebox_override("panel", AppTheme.box(AppTheme.color("surface.settings_row"), AppTheme.profile.corner_radius if AppTheme.profile.printed_surfaces else 9, AppTheme.color("stroke.settings_row"), 1))
 	panel.add_child(row)
 	page_content.add_child(panel)
 

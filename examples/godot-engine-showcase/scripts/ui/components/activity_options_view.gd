@@ -1,0 +1,174 @@
+extends VBoxContainer
+## Focused offer/choice renderer; unknown published choices retain a generic action.
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
+signal intent_requested(action: String, arguments: Array)
+var presenter
+var _run_snapshot: Dictionary
+var _choices_snapshot: Array
+var choice_buttons: Array[Button] = []
+var action_panel: VBoxContainer
+var animate_card_entry := false
+var _key: Array = []
+func _build_actions() -> void:
+	var choices := _choices_snapshot
+	var dialogue: Dictionary = preload("res://scripts/presentation/dialogue_presenter.gd").build(_run_snapshot, choices, visual_context.translator)
+	if not dialogue.is_empty():
+		var panel := preload("res://scripts/ui/dialogue_panel.gd").new(visual_context)
+		panel.setup(dialogue)
+		panel.choice_requested.connect(_execute)
+		choice_buttons.append_array(panel.choice_buttons)
+		action_panel.add_child(panel)
+	if choices.is_empty():
+		action_panel.add_child(visual_context.styles.muted(visual_context.translator.text("Waiting for the next available action.")))
+		var retry := _button(visual_context.translator.text("REFRESH ACTIONS"), _recover_actions)
+		retry.name = "RefreshActionsButton"
+		action_panel.add_child(retry)
+		choice_buttons.append(retry)
+		retry.set_meta("activity_choice", true)
+		return
+	var primary := HFlowContainer.new()
+	primary.add_theme_constant_override("h_separation", 14)
+	primary.add_theme_constant_override("v_separation", 14)
+	action_panel.add_child(primary)
+	var secondary := VBoxContainer.new()
+	secondary.add_theme_constant_override("separation", 8)
+	for choice in choices:
+		var type := str(choice.type)
+		if type == "CHOOSE_DIALOGUE_OPTION": continue
+		if type == "ABANDON_RUN": continue # Run exit belongs to the pause menu.
+		if type == "ADVANCE_NODE": continue # The route itself is the navigation control.
+		var reference_id: String = presenter.option_reference(choice)
+		var model: Dictionary = presenter.offer(choice)
+		var label := _choice_label(choice, model)
+		if choice.secondary or type in ["RESOLVE_NODE", "RESOLVE_COMBAT"]:
+			var display_label := label + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
+			var button := _button(display_label, func(): _confirm_ref(reference_id))
+			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.add_theme_font_size_override("font_size", 14)
+			button.name = "Choice_" + reference_id
+			button.set_meta("activity_choice", true)
+			choice_buttons.append(button)
+			secondary.add_child(button)
+		elif str(model.category) == "cards":
+			var card := CardView.new(visual_context)
+			card.animate_entry = animate_card_entry
+			model["availability"] = label
+			# Offer price is not a card's play cost. This projection has no engine
+			# inspection of the offered container, so report unknown instead of zero.
+			var price := str(model.cost)
+			model["cost"] = ""
+			model["costsKnown"] = false
+			model["costUnknownLabel"] = visual_context.translator.text("Cost unavailable")
+			card.configure(model)
+			if primary.get_child_count() == 0: card.set_meta("initial_focus", true)
+			card.pressed.connect(func(): _confirm_ref(reference_id))
+			card.name = "Choice_" + reference_id
+			card.set_meta("activity_choice", true)
+			choice_buttons.append(card)
+			var offer := VBoxContainer.new()
+			offer.name = "Offer_" + reference_id
+			offer.add_child(card)
+			if not price.is_empty():
+				var price_label := visual_context.styles.caption(visual_context.translator.text("Acquisition price: %s") % price, 14, 200)
+				price_label.name = "AcquisitionPrice"
+				offer.add_child(price_label)
+			primary.add_child(offer)
+		else:
+			var column := VBoxContainer.new()
+			column.name = "Offer_" + reference_id
+			column.custom_minimum_size.x = 236
+			var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
+			art.setup("activities", str(_current_node().get("activity", {}).get("type", "")))
+			art.custom_minimum_size.y = 100
+			column.add_child(art)
+			if not str(choice.get("subjectId", "")).is_empty():
+				var title := visual_context.styles.wrap(visual_context.styles.title(str(model.name), 19), 180)
+				column.add_child(title)
+			if not str(model.cost).is_empty(): column.add_child(visual_context.styles.title(str(model.cost), 17, visual_context.styles.GOLD))
+			var button := _button(label, func(): _confirm_ref(reference_id))
+			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			button.name = "Choice_" + reference_id
+			button.set_meta("activity_choice", true)
+			choice_buttons.append(button)
+			column.add_child(button)
+			primary.add_child(visual_context.styles.panel(column))
+	if secondary.get_child_count() > 0:
+		action_panel.add_child(visual_context.styles.muted(visual_context.translator.text("OTHER OPTIONS"), 13))
+		action_panel.add_child(secondary)
+	else: secondary.free()
+
+
+
+func _collect_choices(node: Node) -> void:
+	if node is Button and node.get_meta("activity_choice", false): choice_buttons.append(node)
+	for child in node.get_children(): _collect_choices(child)
+
+
+
+func _choice_label(choice: Dictionary, model: Dictionary) -> String:
+	var templates := {
+		"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
+		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
+		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
+		"REMOVE_CARD_TRANSFORMATION": "REMOVE  •  %s", "REPLACE_CARD_TRANSFORMATION": "REPLACE  •  %s"
+	}
+	var type := str(choice.type)
+	if templates.has(type): return visual_context.translator.text(templates[type]) % str(model.name)
+	if type == "REROLL_CARD_REWARD": return visual_context.translator.text("NEW OPTIONS")
+	if type == "REROLL_SHOP": return visual_context.translator.text("REFRESH STOCK")
+	if type == "START_DIALOGUE": return visual_context.translator.text("TALK")
+	return _friendly_command(type)
+
+
+
+func _current_node() -> Dictionary:
+	return presenter.current_node()
+
+
+
+func _friendly_command(type: String) -> String:
+	return {
+		"START_ENCOUNTER": visual_context.translator.text("ENTER COMBAT"),
+		"RESOLVE_COMBAT": visual_context.translator.text("CONFIRM RESULT"),
+		"RESOLVE_NODE": visual_context.translator.text("COMPLETE STAGE"),
+			"ACQUIRE_RELIC": visual_context.translator.text("CLAIM RELIC"),
+			"CREATE_CARD_SELECTION": visual_context.translator.text("REVEAL REWARD"),
+		"CREATE_SHOP": visual_context.translator.text("ENTER SHOP"),
+		"CREATE_PREPARATION": visual_context.translator.text("LIGHT CAMPFIRE")
+	}.get(type, type.replace("_", " "))
+
+
+
+func _button(text: String, action: Callable, width := 0) -> Button:
+	var value := visual_context.styles.button(text, width)
+	value.name = "ActivityAction_" + str(action.get_method()).validate_node_name()
+	value.pressed.connect(action)
+	return value
+
+
+
+
+func _execute(choice: Dictionary) -> void:
+	intent_requested.emit("execute", [presenter.option_reference(choice)])
+
+func _confirm_ref(reference_id: String) -> void: intent_requested.emit("confirm", [reference_id])
+
+func _recover_actions() -> void: intent_requested.emit("recover", [])
+
+func apply_projection(run: Dictionary, choices: Array, projection, context) -> void:
+	visual_context = context; theme = context.theme
+	presenter = projection; _run_snapshot = run.duplicate(true); _choices_snapshot = choices.duplicate(true)
+	var display_run := _run_snapshot.duplicate(true); display_run.erase("sequence")
+	var key: Array = [display_run, choices, context.presentation_key()]
+	if key == _key: return
+	_key = key.duplicate(true)
+	action_panel = VBoxContainer.new()
+	action_panel.add_theme_constant_override("separation", 14)
+	_build_actions()
+	preload("res://scripts/ui/view_reconciler.gd").children(self, action_panel)
+	action_panel.free(); action_panel = null
+	choice_buttons.clear(); _collect_choices(self)
+	context.styles.apply_view_preferences(self)
+func reconcile_from(other) -> void:
+	apply_projection(other._run_snapshot, other._choices_snapshot, other.presenter, other.visual_context)

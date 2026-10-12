@@ -2,7 +2,7 @@
 
 Implementação: 2026-10-11. Cliente: `examples/godot-engine-showcase`.
 
-Este guia descreve a infraestrutura entregue pelo [plano de arquitetura](../plans/GODOT_UI_ARCHITECTURE_REFACTOR_PLAN.md). O tema de produção continua preservado. O perfil claro e a composição lateral são fixtures de teste, não o redesign Marfim concluído nem um seletor público de skins.
+Este guia descreve a infraestrutura entregue pelo [plano de arquitetura](../plans/GODOT_UI_ARCHITECTURE_REFACTOR_PLAN.md). O [menu principal](IVORY_MAIN_MENU.md), os [menus secundários e a pausa](IVORY_MENUS_AND_PAUSE.md) já usam Marfim; as telas de gameplay conservam o perfil anterior. O laboratório de cartas usa os mesmos componentes no Marfim. A composição lateral permanece uma fixture de teste; não existe seletor público de skins nem redesign global concluído.
 
 ## Donos e fronteiras
 
@@ -30,6 +30,8 @@ Os modelos fazem cópias defensivas e preservam extensões desconhecidas. `Card`
 `AppTheme` é a fachada única do perfil ativo da aplicação. `PrimaryAction`, `SecondaryAction`, `DangerAction`, `ScreenTitle`, `SectionTitle` e `Caption` usam variações nativas de Theme. Estilos locais duplicam StyleBox antes de alterá-lo. Escala é calculada sobre valores canônicos, evitando multiplicação sucessiva e restauração de cores de um perfil anterior.
 
 A aplicação tem um perfil global ativo; este contrato não promete duas skins simultâneas independentes na mesma árvore. Os componentes recebem explicitamente preferências/tradução/artes pelo contexto, sem acesso à sessão.
+
+Na migração incremental, o router aplica Marfim nas rotas de menu/configurações/histórico/códice/laboratório e no replay vindo do histórico; restaura o perfil de gameplay nas rotas da run. `Main.apply_visual_profile()` também define o perfil de gameplay usado nas próximas navegações. A pausa usa contexto derivado e Theme nativo próprio, construídos/reaplicados por `AppTheme.scoped_profile()` síncrono, sem mudar o perfil global ou a geração do gameplay. A composição do menu principal está em `MainMenuView`, com geometria em `MenuVisualStyle`, sem callbacks REST ou referências à sessão dentro da view.
 
 ### Políticas especializadas
 
@@ -64,13 +66,19 @@ O controller usa candidatos atuais publicados. Pagamentos e alvos alternativos c
 
 ## Atualização sem reconstrução geral
 
-Combat/Journey leem um conjunto coerente de cópias por render. Projeções iguais são ignoradas. Atores são reconciliados por instance ID; escolhas por referência do payload; mapa, mão e controles estáveis conservam identidade, foco e scroll.
+CombatScreen e ActivityScreen adaptam a sessão; CombatView, JourneyView e ActivityOptionsView desenham projeções passivas. Projeções iguais são ignoradas. Atores são reconciliados por instance ID; escolhas por referência contextual/payload; mapa, mão e controles estáveis conservam identidade, foco e scroll.
 
 `ViewReconciler` mantém os sinais no node vivo. Para subtrees alteradas, algumas views montam uma árvore desejada fora da tela e aplicam somente diferenças; isso ainda aloca nodes temporários, mas não faz uma árvore viva vazia nem duplica autoridade. Não é uma promessa de zero alocações para qualquer mudança.
 
-Callbacks de novas opções devem capturar o coordenador vivo, nunca a view temporária. Diálogo lê o comando atual do botão retido e recompõe suas opções por ID. Remover uma opção realmente ausente é uma atualização legítima, não uma regressão visual.
+Views emitem referências de intenção, resolvidas contra o controller atual. ActivityScreen não é mais clonada para montar uma árvore desejada: cabeçalho, resumo e opções possuem regiões independentes. Diálogo lê o comando atual do botão retido e recompõe suas opções por ID. Remover uma opção realmente ausente é uma atualização legítima, não uma regressão visual.
 
 ## Artes e ciclo de vida
+
+RunSceneryHost pertence ao shell e possui ambiente e CombatSceneryView. BattlefieldView possui HUD/superfícies de alvo, não as artes. Equipes e relações não são reduzidas a hostile. O renderer Control usa anchors públicos no espaço da viewport para alinhar arte e alvo, sem dar input à arte. SceneryVisualProfile/mappings JSON e perfil da UI são independentes.
+
+VisualContext possui factory de estilo/Theme locais, usando a mesma implementação da fachada AppTheme. MapLayoutProfile controla o grafo; MapLayout calcula posições e traçados sem sessão ou permissões. RouteView só habilita as escolhas publicadas, com scroll/foco em grafos largos e fallback para ciclos/desconexões.
+
+CombatInspectionCoordinator limita/coalesce leituras por contexto, revisão e alvos. CombatPresentationDriver controla o intervalo sobre o Playback existente; render/tema não reiniciam o ritmo nem criam outra fila. FloatingHUD possui slots explícitos para preview, sidebar, alternativas e reconexão.
 
 O manifesto associa IDs a slots estáveis; ilustração e hitbox continuam independentes. `ArtCatalog` mantém manifests por caminho e usa o cache nativo de ResourceLoader para texturas vivas. `invalidate(path)` invalida um manifesto, `clear()` invalida todos. Para substituir um arquivo na mesma rota, reimporte/recarregue a textura ou reinicie o cliente; invalidar só o JSON não força reimportação de arte.
 
@@ -95,5 +103,7 @@ Novas cores arbitrárias repetidas fora desses donos devem virar papéis; não t
 `tools/test-godot-ui.ps1` importa/testa uma cópia com user directory exclusivo. `-ApiUrl` aponta testes online para um servidor de QA; não use o servidor das partidas pessoais para testes que criam runs. Erros de script, asserts e RID interrompem o runner. Diagnósticos de recursos residentes ao encerrar continuam no relatório e exigem revisão independente do código de saída.
 
 A certificação e as novas capturas estão em [interface-refactor/2026-10-11](interface-refactor/2026-10-11/README.md). A [baseline original](interface-baseline/2026-10-11/README.md) permanece intocada. Medidas de refresh síncrono não medem rede/GPU nem tempo clique→resultado.
+
+A continuação específica de combate/jornada está nos [contratos da run](GODOT_RUN_GRAPHICS_CONTRACTS.md) e na [comparação de 2026-10-12](run-graphics-after/2026-10-12/README.md). A verificação offline/visual passou; certificação REST com QA isolado permanece pendente, conforme o [progresso de implementação](../plans/GODOT_RUN_GRAPHICS_IMPLEMENTATION_PROGRESS.md).
 
 Referências nativas: [Theme e variantes](https://docs.godotengine.org/en/stable/tutorials/ui/gui_skinning.html), [organização de cenas](https://docs.godotengine.org/en/stable/tutorials/best_practices/scene_organization.html) e [retenção de static variables](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html#static-variables).

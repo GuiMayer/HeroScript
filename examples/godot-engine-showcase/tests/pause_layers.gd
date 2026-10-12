@@ -69,7 +69,7 @@ func _run() -> void:
 		check(not router.host.can_process() and router.pause_layer.can_process(), "gameplay stops while pause remains interactive")
 		var focus = root.gui_get_focus_owner()
 		check(is_instance_valid(focus) and router.pause_layer.is_ancestor_of(focus), "pause owns keyboard/controller focus")
-		check(router.pause_layer.theme == router.theme, "modal keeps the shared theme across the canvas boundary")
+		check(router.pause_layer.theme.default_font == router.MenuProfile.body_font and router.shell.pause_context.profile == router.MenuProfile, "modal carries its isolated ivory theme across the canvas boundary")
 		var resume: Button = router.pause_layer.find_child("ResumeButton", true, false)
 		var closing_canvas = router.pause_canvas
 		click(resume.get_global_rect().get_center(), true)
@@ -93,7 +93,7 @@ func _run() -> void:
 		var image := root.get_texture().get_image()
 		var point_in_image := marker.get_global_rect().get_center() * Vector2(image.get_size()) / root.get_visible_rect().size
 		var pixel := image.get_pixelv(Vector2i(point_in_image))
-		check(pixel.r < 0.3, "rendered scrim dims even the maximum-z gameplay marker")
+		check(pixel.r < marker.color.r * .5, "rendered scrim dims even the maximum-z gameplay marker")
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--pause-screenshot="):
 				check(image.save_png(argument.trim_prefix("--pause-screenshot=")) == OK, "pause screenshot saved")
@@ -108,4 +108,5 @@ func _run() -> void:
 	await settle()
 	root.get_node("GameAudio").shutdown()
 	print("PAUSE LAYERS: ", failures, " failure(s)")
+	await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

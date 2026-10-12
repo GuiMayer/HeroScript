@@ -3,12 +3,14 @@ extends Node
 signal frame_presented(frame: Dictionary, index: int, total: int)
 var _frames: Array = []
 var index := 0
+var generation := 0
 var total: int:
 	get: return _frames.size()
 var frames: Array:
 	get: return _frames.duplicate(true)
 
 func load_receipt(receipt: Dictionary) -> void:
+	generation += 1
 	var resolution = receipt.get("state", {}).get("resolution", {})
 	_frames = presentation_frames(resolution.get("frames", [])) if resolution is Dictionary else []
 	index = 0
@@ -43,6 +45,7 @@ static func presentation_frames(engine_frames: Array) -> Array:
 	return result
 
 func clear(_run_id := "") -> void:
+	generation += 1
 	_frames = []
 	index = 0
 

@@ -194,9 +194,12 @@ func _toggle_play() -> void:
 	while playing and is_inside_tree() and selected_index < entries.size() - 1:
 		await _select(selected_index + 1)
 		playback_ticket = request_epoch
-		await get_tree().create_timer(.18 if Preferences.reduced_motion else .7).timeout
+		await get_tree().create_timer(playback_delay()).timeout
 		if not is_inside_tree() or playback_ticket != request_epoch: return
 	_stop()
+
+func playback_delay() -> float:
+	return (.18 if Preferences.reduced_motion else .7) / maxf(Preferences.animation_speed, .25)
 
 func _stop() -> void:
 	playing = false

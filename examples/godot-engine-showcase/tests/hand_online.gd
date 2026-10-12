@@ -37,13 +37,13 @@ func _run() -> void:
 			_finish(prior, router)
 			return
 		var screen = router.host.get_child(0)
-		var hand = screen.hand
+		var hand = screen.view.hand
 		var id: String = hand.order[0]
 		var card = hand.card_for(id)
 		card.grab_focus()
 		screen.refresh_state(screen.presentation)
 		await settle()
-		check(screen.hand == hand and hand.card_for(id) == card and card.has_focus(), "identical combat refresh preserves hand, instance and focus: " + setting)
+		check(screen.view.hand == hand and hand.card_for(id) == card and card.has_focus(), "identical combat refresh preserves hand, instance and focus: " + setting)
 		for resolution in [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1920, 1080), Vector2i(2560, 1080)]:
 			prefs.set_resolution(resolution, false)
 			for locale in ["en", "pt_BR"]:
@@ -54,7 +54,7 @@ func _run() -> void:
 					screen.refresh_state(screen.presentation)
 					await settle()
 					var turn: Rect2 = screen.find_child("EndTurnButton", true, false).get_global_rect()
-					check(turn.end.y <= router.get_global_rect().end.y - 23 and turn.end.x <= screen.gameplay_column.get_global_rect().end.x + 1,
+					check(turn.end.y <= router.get_global_rect().end.y - 23 and turn.end.x <= screen.view.gameplay_column.get_global_rect().end.x + 1,
 						"turn control fits: %s / %s / %s / %s" % [setting, resolution, locale, scale])
 					check(preload("res://tests/layout_inspector.gd").vertical_text_issues(screen).is_empty(), "combat text never collapses vertically")
 					check(screen.find_child("CombatBody", true, false).get_global_rect().end.x <= router.get_global_rect().end.x - 47, "translated hand toolbar does not widen the screen")
@@ -74,7 +74,7 @@ func _run() -> void:
 								check(root.get_texture().get_image().save_png(argument.trim_prefix("--hand-screenshot=")) == OK, "capture real authored combat")
 						screen._toggle_character_sidebar()
 						await settle()
-						check(screen.hand == hand and screen.find_child("EndTurnButton", true, false).get_global_rect().end.y <= router.get_global_rect().end.y - 23,
+						check(screen.view.hand == hand and screen.find_child("EndTurnButton", true, false).get_global_rect().end.y <= router.get_global_rect().end.y - 23,
 							"closing sidebar preserves hand and visible turn controls")
 						screen._toggle_character_sidebar()
 						await settle()
@@ -83,7 +83,7 @@ func _run() -> void:
 		var survivors: Dictionary = hand.cards()
 		await screen._play_candidate(candidate)
 		await settle()
-		check(router.host.get_child(0) == screen and screen.hand == hand, "accepted command preserves the actual hand container: " + setting)
+		check(router.host.get_child(0) == screen and screen.view.hand == hand, "accepted command preserves the actual hand container: " + setting)
 		for survivor in hand.order:
 			if survivor in ids: check(hand.card_for(survivor) == survivors[survivor], "surviving instance keeps its control after a real play")
 		while root.get_node("Playback").has_frames(): screen._next_frame()

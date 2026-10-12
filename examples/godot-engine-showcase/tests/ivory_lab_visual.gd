@@ -13,6 +13,13 @@ func settle() -> void:
 func capture(state: String, locale: String) -> void:
 	await settle()
 	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(lab).is_empty(), "readable capture: " + state)
+	if state == "hand" or state == "scaling":
+		var contained := true
+		for card in lab.card_controls:
+			var availability: Label = card.find_child("Availability", true, false)
+			var local_end: Vector2 = card.get_global_transform().affine_inverse() * (availability.get_global_transform() * availability.size)
+			contained = contained and local_end.y <= card.size.y - 4
+		check(contained, "cost symbols and enlarged text leave card footers inside the face: " + state)
 	await RenderingServer.frame_post_draw
 	var name := "%s-%s-%sx%s.png" % [state, locale, root.size.x, root.size.y]
 	check(root.get_texture().get_image().save_png(output_dir.path_join(name)) == OK, "saved " + name)

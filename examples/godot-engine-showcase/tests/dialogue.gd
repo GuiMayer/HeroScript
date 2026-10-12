@@ -105,7 +105,7 @@ func _run() -> void:
 func click_start() -> void:
 	var screen = router.host.get_child(0)
 	var button: Button
-	for item in screen.choice_buttons:
+	for item in screen.view.choice_buttons:
 		if item.text == translator.text("TALK"): button = item
 	check(is_instance_valid(button), "TALK action is available")
 	if is_instance_valid(button):

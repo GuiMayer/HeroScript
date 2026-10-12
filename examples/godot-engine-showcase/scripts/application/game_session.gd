@@ -327,6 +327,7 @@ func invalidate() -> void:
 	_operation = "idle"
 	_run = {}
 	_combat = {}
+	_card_zones = {}
 	_legal_actions = []
 	_available_commands = []
 	_tool_capabilities = {}
@@ -334,6 +335,7 @@ func invalidate() -> void:
 	content_revision = ""
 	_settings = []
 	synchronized = false
+	set_available(false)
 	operation_changed.emit(_operation)
 	changed.emit()
 

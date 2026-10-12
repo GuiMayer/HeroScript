@@ -2,7 +2,7 @@
 
 Data: 2026-10-11.
 
-Status: etapa 0 executada; primeiro marco Marfim implementado no laboratório, usando recursos/tratamentos das etapas 1–5. Aprovação visual pendente antes de expandir. Migração global de controles/artes e etapas 6–10 ainda pendentes. Registro da base em [interface-baseline/2026-10-11](../design/interface-baseline/2026-10-11/README.md); [entrega do laboratório](../design/IVORY_CARD_LAB.md).
+Status: etapa 0 executada; primeiro marco Marfim implementado no laboratório, usando recursos/tratamentos das etapas 1–5. Por solicitação do autor, a expansão veio primeiro para o [menu principal](../design/IVORY_MAIN_MENU.md) e depois para [menus secundários e pausa](../design/IVORY_MENUS_AND_PAUSE.md), antes do combate. A etapa 8 está implementada no escopo dos menus/pausa; histórico, replay via histórico e códice receberam a apresentação Marfim, sem representar todas as ferramentas da etapa 9. Migração do gameplay/artes e auditoria global continuam pendentes. Registro da base em [interface-baseline/2026-10-11](../design/interface-baseline/2026-10-11/README.md); [entrega do laboratório](../design/IVORY_CARD_LAB.md).
 
 Direção escolhida pelo autor: [conceito 02 — Marfim](../design/interface-concepts/2026-10-11/02-ivory.png). Os conceitos e seus prompts permanecem como referência; o mockup não é uma especificação literal de regras ou layout.
 

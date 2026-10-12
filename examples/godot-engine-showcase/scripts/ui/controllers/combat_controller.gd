@@ -23,6 +23,15 @@ func bind(projection, scope: String, card_ids: Array) -> void:
 func locked() -> bool:
 	return not _alive or State.phase(state.submitting or _session.busy, _session.synchronized,
 		_playback.has_frames(), _paused.call(), state.selected_card) not in [State.InputState.READY, State.InputState.SELECTING]
+
+func interaction_model():
+	return preload("res://scripts/presentation/view_models.gd").Hud.new({
+		"selected_card": state.selected_card, "selected_target": state.selected_target,
+		"submitting": state.submitting, "busy": _session.busy, "synchronized": _session.synchronized,
+		"locked": locked(), "has_frames": _playback.has_frames(),
+		"remaining_frames": maxi(_playback.total - _playback.index, 0),
+		"phase": State.phase(state.submitting or _session.busy, _session.synchronized,
+			_playback.has_frames(), _paused.call(), state.selected_card)})
 func select_card(id: String) -> bool:
 	if locked(): return false
 	state.selected_card = id

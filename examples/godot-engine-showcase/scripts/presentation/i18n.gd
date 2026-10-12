@@ -26,8 +26,14 @@ func _read_catalog(path: String) -> Dictionary:
 	return parsed if parsed is Dictionary else {}
 
 func set_locale(code: String) -> void:
-	locale = code if code in LOCALES else FALLBACK_LOCALE
-	TranslationServer.set_locale(locale)
+	var next_locale := code if code in LOCALES else FALLBACK_LOCALE
+	# Initialize the native translator even when the initial locale is English.
+	if TranslationServer.get_locale() != next_locale:
+		TranslationServer.set_locale(next_locale)
+	# Saving unrelated preferences must not rebuild localized screens or interrupt input.
+	if locale == next_locale:
+		return
+	locale = next_locale
 	locale_changed.emit()
 
 func text(key: String) -> String:

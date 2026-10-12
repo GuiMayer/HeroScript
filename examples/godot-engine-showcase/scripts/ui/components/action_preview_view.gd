@@ -1,4 +1,6 @@
 extends VBoxContainer
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType = ContextType.new()
 var detail_label: RichTextLabel
 var selection_label: Label
 var queue_label: Label
@@ -12,10 +14,10 @@ func mount(hint: String) -> void:
 	detail_label.add_theme_font_size_override("normal_font_size", 14)
 	detail_label.text = hint
 	add_child(detail_label)
-	selection_label = AppTheme.caption("", 13, 80)
+	selection_label = visual_context.styles.caption("", 13, 80)
 	add_child(selection_label)
 	selection_label.hide()
-	queue_label = AppTheme.caption("", 13, 80)
-	queue_label.add_theme_color_override("font_color", AppTheme.TEAL)
+	queue_label = visual_context.styles.caption("", 13, 80)
+	queue_label.add_theme_color_override("font_color", visual_context.styles.TEAL)
 	queue_label.custom_minimum_size.y = 18
 	add_child(queue_label)

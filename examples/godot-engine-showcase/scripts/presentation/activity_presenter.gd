@@ -1,4 +1,7 @@
 extends RefCounted
+
+static func option_reference(choice: Dictionary) -> String:
+	return JSON.stringify([choice.get("type", ""), choice.get("subjectId", ""), choice.get("payload", choice.get("validPayload", {}))]).sha256_text()
 ## View models join advertised commands with their published offers. No price/rule evaluation.
 var _run: Dictionary
 var _choices: Array

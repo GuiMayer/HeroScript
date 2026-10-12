@@ -16,6 +16,10 @@ class Card extends Record:
 class Actor extends Record:
 	var instance_id: String:
 		get: return str(_data.get("instanceId", ""))
+	var relationship: String:
+		get: return str(_data.get("relationship", "Neutral"))
+	var side_id: String:
+		get: return str(_data.get("sideId", ""))
 class ResourceValue extends Record:
 	var current: float:
 		get: return float(_data.get("current", 0))
@@ -27,3 +31,10 @@ class ActionOption extends Record:
 class Combat extends Record:
 	var context: String:
 		get: return str(_data.get("context", ""))
+class Header extends Record: pass
+class Hud extends Record: pass
+
+class Map extends Record: pass
+class Activity extends Record: pass
+class Offer extends Record: pass
+class Scenery extends Record: pass

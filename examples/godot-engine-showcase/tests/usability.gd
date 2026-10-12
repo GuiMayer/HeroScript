@@ -139,7 +139,7 @@ func _run() -> void:
 		"character panel renders every engine-defined resource without hardcoded resource rules")
 	screen._toggle_character_sidebar()
 	await get_tree().process_frame
-	check(not character_sidebar.visible and screen.character_sidebar_reopen.visible,
+	check(not character_sidebar.visible and screen.view.character_sidebar_reopen.visible,
 		"character panel collapses to a floating arrow without reserving a column")
 	screen.refresh_state(screen.presentation)
 	await get_tree().process_frame
@@ -149,7 +149,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	check(screen.find_child("CharacterSidebarContent", true, false).visible,
 		"character panel can be expanded again")
-	for button in screen.action_buttons:
+	for button in screen.view.action_buttons:
 		check(button.get_global_rect().end.y <= router.get_global_rect().end.y, "action button remains inside viewport")
 	var candidate: Dictionary = {}
 	for item in GameSession.legal_actions:
@@ -161,7 +161,7 @@ func _run() -> void:
 		finish()
 		return
 	var card_id := str(candidate.command.cardInstanceId)
-	check(screen.target_buttons.size() == GameSession.combat.get("actors", []).size(), "every participant is represented on the battlefield")
+	check(screen.view.target_buttons.size() == GameSession.combat.get("actors", []).size(), "every participant is represented on the battlefield")
 	var inspection := await GameSession.inspect_hand()
 	check(inspection.ok and not inspection.data.get("cards", []).is_empty(), "bulk card inspection is exposed by the engine")
 	if inspection.ok:
@@ -184,9 +184,9 @@ func _run() -> void:
 	check(screen.selected_card == card_id and router.host.get_child(0) == screen, "selection keeps the current combat screen")
 	check(end_turn_button.global_position.is_equal_approx(end_turn_position),
 		"contextual combat controls preserve footer geometry")
-	var targets: Array = screen._targets(candidate)
+	var targets: Array = screen.presenter.targets(candidate)
 	if not targets.is_empty():
-		check(not screen.target_buttons[targets[0]].disabled, "legal target highlighted")
+		check(not screen.view.target_buttons[targets[0]].disabled, "legal target highlighted")
 	check(JSON.stringify(GameSession.run).sha256_text() == hash_before, "selection does not mutate authoritative data")
 	screen._cancel_selection()
 	I18n.set_locale("pt_BR")
@@ -206,7 +206,7 @@ func _run() -> void:
 		if int(GameSession.run.sequence) > sequence_before_card and not screen.submitting:
 			break
 	check(router.host.get_child(0) == screen, "card input refreshes the persistent combat screen")
-	check(screen.card_buttons.values().all(func(card): return not card.animate_entry),
+	check(screen.view.card_buttons.values().all(func(card): return not card.animate_entry),
 		"snapshot refresh does not replay every card entrance animation")
 	check(not Playback.frames.is_empty(), "receipt exposes actual animation frames")
 	check(Playback.index == 0, "manual animation mode waits for the player")

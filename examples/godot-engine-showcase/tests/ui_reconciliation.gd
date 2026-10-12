@@ -24,8 +24,8 @@ func _run() -> void:
 	router.show_combat()
 	await settle()
 	var screen = router.host.get_child(0)
-	var ids: Array = [screen.header_view.get_instance_id(), screen.battlefield_view.get_instance_id(), screen.turn_view.get_instance_id(),
-		screen.character_sidebar.get_instance_id(), screen.hand.get_instance_id(), screen.target_buttons.hero.get_instance_id()]
+	var ids: Array = [screen.view.header_view.get_instance_id(), screen.view.battlefield_view.get_instance_id(), screen.view.turn_view.get_instance_id(),
+		screen.view.character_sidebar.get_instance_id(), screen.view.hand.get_instance_id(), screen.view.target_buttons.hero.get_instance_id()]
 	var reconciler = load("res://scripts/ui/view_reconciler.gd")
 	var before: int = reconciler.replaced
 	screen.refresh_state(router.presentation)
@@ -35,10 +35,10 @@ func _run() -> void:
 	session._run.sequence = 2
 	screen.refresh_state(router.presentation)
 	await settle()
-	var after: Array = [screen.header_view.get_instance_id(), screen.battlefield_view.get_instance_id(), screen.turn_view.get_instance_id(),
-		screen.character_sidebar.get_instance_id(), screen.hand.get_instance_id(), screen.target_buttons.hero.get_instance_id()]
+	var after: Array = [screen.view.header_view.get_instance_id(), screen.view.battlefield_view.get_instance_id(), screen.view.turn_view.get_instance_id(),
+		screen.view.character_sidebar.get_instance_id(), screen.view.hand.get_instance_id(), screen.view.target_buttons.hero.get_instance_id()]
 	check(ids == after, "resource update retains header battlefield footer sidebar hand and target identity")
-	var label: Array = screen.battlefield_view.panels.hero.find_children("*", "Label", true, false).filter(func(node): return node.text == "7/20")
+	var label: Array = screen.view.battlefield_view.panels.hero.find_children("*", "Label", true, false).filter(func(node): return node.text == "7/20")
 	check(not label.is_empty(), "retained actor renders the current resource")
 	var inspection_count := fixture.inspections
 	root.get_node("I18n").set_locale("pt_BR")

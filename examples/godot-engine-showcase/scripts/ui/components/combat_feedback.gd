@@ -1,6 +1,7 @@
 extends Node
 ## Consumes frames from the existing cursor. Never owns a second playback queue.
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 var effects := Control.new()
 func _init(context) -> void:
 	visual_context = context
@@ -29,7 +30,7 @@ func _float_application(application: Dictionary, portrait: Control) -> void:
 	label.text = "%s%s %s" % ["+" if delta > 0 else "", visual_context.translator.number(delta),
 		visual_context.translator.content_name(str(application.get("resourceId", "")))]
 	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", AppTheme.TEAL if delta > 0 else AppTheme.GOLD)
+	label.add_theme_color_override("font_color", visual_context.styles.TEAL if delta > 0 else visual_context.styles.GOLD)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.process_mode = Node.PROCESS_MODE_PAUSABLE
 	effects.add_child(label)

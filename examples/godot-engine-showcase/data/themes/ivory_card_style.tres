@@ -4,7 +4,7 @@
 script = ExtResource("1")
 printed_face = true
 face_radius = 2
-card_size = Vector2(248, 376)
+card_size = Vector2(248, 404)
 art_height = 108.0
 rules_font_size = 16
 effect_surface = Color(0.12549, 0.12549, 0.109804, 1)

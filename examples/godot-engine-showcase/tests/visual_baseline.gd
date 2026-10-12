@@ -126,10 +126,10 @@ func _run() -> void:
 		router.show_combat()
 		var combat = router.host.get_child(0)
 		await capture("combat-hand")
-		var hand_top: float = combat.hand.scroll.global_position.y + combat.hand.visual_style.padding
-		check(combat.target_buttons.values().all(func(button): return button.get_parent().get_global_rect().end.y <= hand_top), "actor information remains above hand")
+		var hand_top: float = combat.view.hand.scroll.global_position.y + combat.view.hand.visual_style.padding
+		check(combat.view.target_buttons.values().all(func(button): return button.get_parent().get_global_rect().end.y <= hand_top), "actor information remains above hand")
 		combat._choose_card("baseline-0")
-		combat._show_target_preview("wisp")
+		combat.view._show_target_preview("wisp")
 		await capture("combat-preview")
 		combat._cancel_selection()
 		combat._toggle_character_sidebar()

@@ -1,5 +1,6 @@
 extends PanelContainer
-var visual_context = preload("res://scripts/ui/visual_context.gd").new()
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType = ContextType.new()
 signal collapse_requested
 var content_scroll: ScrollContainer
 var title_label: Label
@@ -14,10 +15,17 @@ var _input_actor: String
 var _setting: Dictionary
 var _setting_id: String
 var _projection := {}
+var _model: Dictionary = {}
+func presentation_model() -> Dictionary: return _model.duplicate(true)
+func reconcile_from(other) -> void:
+	visual_context = other.visual_context
+	apply_model(other.presentation_model(), other.visual_context.translator)
 func apply_model(model: Dictionary, i18n) -> void:
+	theme = visual_context.theme
+	_model = model.duplicate(true)
 	# Compare only facts rendered by this passive panel; a command sequence or
 	# unrelated timeline field does not change any character information.
-	var projection := {"locale": i18n.locale, "profile": visual_context.profile.presentation_key(),
+	var projection := {"locale": i18n.locale, "profile": visual_context.profile.presentation_key(), "context": visual_context.get_instance_id(),
 		"presentation": model.presentation, "actors": model.actors, "input_actor": model.input_actor,
 		"zones": model.zones, "setting": model.setting, "setting_id": model.setting_id,
 		"resources": model.run.get("characterResources", {}), "relics": model.run.get("relics", []),
@@ -29,7 +37,7 @@ func apply_model(model: Dictionary, i18n) -> void:
 		var desired = get_script().new()
 		desired.visual_context = visual_context
 		desired.apply_model(model, i18n)
-		preload("res://scripts/ui/view_reconciler.gd").patch(self, desired)
+		preload("res://scripts/ui/view_reconciler.gd").patch_contents(self, desired)
 		desired.free()
 		return
 	translator = i18n
@@ -40,15 +48,15 @@ func apply_model(model: Dictionary, i18n) -> void:
 	_zones = preload("res://scripts/presentation/card_zone_presenter.gd").new(model.zones, translator)
 	name = "CharacterSidebar"
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_theme_stylebox_override("panel", AppTheme.box(AppTheme.PANEL, 12, AppTheme.MUTED.darkened(.4), 1))
+	add_theme_stylebox_override("panel", visual_context.styles.box(visual_context.styles.PANEL, 12, visual_context.styles.MUTED.darkened(.4), 1))
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	add_child(column)
 	var toolbar := HBoxContainer.new()
-	title_label = AppTheme.title(translator.text("CHARACTER"), 16, AppTheme.GOLD)
+	title_label = visual_context.styles.title(translator.text("CHARACTER"), 16, visual_context.styles.GOLD)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	toolbar.add_child(title_label)
-	toggle_button = AppTheme.button("›", 36)
+	toggle_button = visual_context.styles.button("›", 36)
 	toggle_button.name = "CharacterSidebarToggle"
 	toggle_button.custom_minimum_size = Vector2(36, 36)
 	toggle_button.pressed.connect(func(): collapse_requested.emit())
@@ -71,16 +79,16 @@ func apply_model(model: Dictionary, i18n) -> void:
 func _populate_character_sidebar(details: VBoxContainer) -> void:
 	var actor := _player_actor()
 	if actor.is_empty():
-		details.add_child(AppTheme.muted(translator.text("Character data is unavailable."), 13, 260))
+		details.add_child(visual_context.styles.muted(translator.text("Character data is unavailable."), 13, 260))
 		return
 	var definition_id := str(actor.get("definitionId", ""))
 	var actor_name: String = translator.content_name(definition_id, str(actor.get("name", actor.get("instanceId", ""))))
-	var name_label := AppTheme.title(actor_name, 20)
+	var name_label := visual_context.styles.title(actor_name, 20)
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.custom_minimum_size.x = 260
 	details.add_child(name_label)
 	if not definition_id.is_empty():
-		details.add_child(AppTheme.caption(definition_id, 11, 260))
+		details.add_child(visual_context.styles.caption(definition_id, 11, 260))
 	_add_sidebar_section(details, translator.text("Resources"))
 	var resources: Dictionary = actor.get("resources", {}) if actor.get("resources", {}) is Dictionary else {}
 	var resource_projection: Dictionary = _run.get("characterResources", {})
@@ -102,26 +110,26 @@ func _populate_character_sidebar(details: VBoxContainer) -> void:
 	_add_sidebar_section(details, translator.text("Statuses"))
 	var statuses: Array = actor.get("statuses", []).filter(func(status): return status is Dictionary and bool(status.get("isActive", true)))
 	if statuses.is_empty():
-		details.add_child(AppTheme.muted(translator.text("No active statuses"), 12, 260))
+		details.add_child(visual_context.styles.muted(translator.text("No active statuses"), 12, 260))
 	else:
 		for status in statuses:
 			var status_text := "%s ×%s" % [translator.content_name(str(status.get("statusId", "status"))), int(status.get("stacks", 1))]
 			var duration := int(status.get("duration", -1))
 			if duration >= 0:
 				status_text += "  ·  " + translator.text("Duration: %s") % duration
-			details.add_child(_sidebar_item(status_text, AppTheme.EMBER))
+			details.add_child(_sidebar_item(status_text, visual_context.styles.EMBER))
 	_add_sidebar_section(details, translator.text("Relics"))
 	var relics: Array = _run.get("relics", []) if _run.get("relics", []) is Array else []
 	if relics.is_empty():
-		details.add_child(AppTheme.muted(translator.text("No relics"), 12, 260))
+		details.add_child(visual_context.styles.muted(translator.text("No relics"), 12, 260))
 	else:
 		for relic in relics:
-			details.add_child(_sidebar_item(_owned_content_label(relic, ["definitionId", "relicId", "id"]), AppTheme.GOLD))
+			details.add_child(_sidebar_item(_owned_content_label(relic, ["definitionId", "relicId", "id"]), visual_context.styles.GOLD))
 	var modifiers: Array = _run.get("modifiers", []) if _run.get("modifiers", []) is Array else []
 	if not modifiers.is_empty():
 		_add_sidebar_section(details, translator.text("Modifiers"))
 		for modifier in modifiers:
-			details.add_child(_sidebar_item(_owned_content_label(modifier, ["modifierId", "definitionId", "id"]), AppTheme.TEAL))
+			details.add_child(_sidebar_item(_owned_content_label(modifier, ["modifierId", "definitionId", "id"]), visual_context.styles.TEAL))
 	_add_sidebar_section(details, translator.text("RUN INFO"))
 	var activation: Dictionary = _combat.get("activation", {}) if _combat.get("activation", {}) is Dictionary else {}
 	_add_sidebar_value(details, translator.text("Round"), str(int(activation.get("round", _combat.get("currentTurn", 1)))))
@@ -143,13 +151,13 @@ func _player_actor() -> Dictionary:
 	return actors[0] if not actors.is_empty() else {}
 
 func _add_sidebar_section(parent: VBoxContainer, text: String) -> void:
-	var title := AppTheme.title(text.to_upper(), 12, AppTheme.GOLD)
+	var title := visual_context.styles.title(text.to_upper(), 12, visual_context.styles.GOLD)
 	title.custom_minimum_size = Vector2(260, 24)
 	title.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	parent.add_child(title)
 
 func _sidebar_item(text: String, color: Color) -> Label:
-	var label := AppTheme.muted(text, 12, 260)
+	var label := visual_context.styles.muted(text, 12, 260)
 	label.add_theme_color_override("font_color", color)
 	label.tooltip_text = text
 	return label
@@ -171,10 +179,10 @@ func _owned_content_label(item, id_keys: Array) -> String:
 func _add_sidebar_value(parent: VBoxContainer, label_text: String, value_text: String) -> void:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.x = 260
-	var label := AppTheme.muted(label_text, 12, 112)
+	var label := visual_context.styles.muted(label_text, 12, 112)
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	row.add_child(label)
-	var value := AppTheme.caption(value_text, 12, 140)
+	var value := visual_context.styles.caption(value_text, 12, 140)
 	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value.tooltip_text = value_text

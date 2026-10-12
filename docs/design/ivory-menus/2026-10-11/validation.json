@@ -1,0 +1,73 @@
+[
+  {
+    "test": "pause_layers",
+    "exit_code": 0,
+    "checks": 24,
+    "elapsed_ms": 3687,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_menus",
+    "exit_code": 0,
+    "checks": 90,
+    "elapsed_ms": 9798,
+    "diagnostics": []
+  },
+  {
+    "test": "settings_contracts",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 394,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "resolutions",
+    "exit_code": 0,
+    "checks": 88,
+    "elapsed_ms": 3668,
+    "diagnostics": []
+  },
+  {
+    "test": "setting_progression",
+    "exit_code": 0,
+    "checks": 30,
+    "elapsed_ms": 2714,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "view_replacement",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 2892,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "theme_contracts",
+    "exit_code": 0,
+    "checks": 10,
+    "elapsed_ms": 485,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "ivory_menu",
+    "exit_code": 0,
+    "checks": 40,
+    "elapsed_ms": 4693,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_menus_visual",
+    "exit_code": 0,
+    "checks": 126,
+    "elapsed_ms": 17543,
+    "diagnostics": []
+  }
+]

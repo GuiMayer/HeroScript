@@ -37,8 +37,8 @@ func _exit_tree() -> void:
 	shutdown()
 
 func _apply() -> void:
-	_music.volume_db = linear_to_db(maxf(Preferences.music_volume, 0.001))
-	_sfx.volume_db = linear_to_db(maxf(Preferences.sfx_volume, 0.001))
+	_music.volume_db = linear_to_db(Preferences.music_volume)
+	_sfx.volume_db = linear_to_db(Preferences.sfx_volume)
 
 func _play(frequency: float, duration: float, amplitude: float) -> void:
 	_sfx.stream = _tone(frequency, duration, amplitude)

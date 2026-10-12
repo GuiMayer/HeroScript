@@ -32,7 +32,9 @@ func resolution_options() -> Array[Vector2i]:
 	return values
 func set_resolution(value: Vector2i) -> void: _preferences.set_resolution(value)
 func save_connection(value: String) -> String:
-	if value.strip_edges().trim_suffix("/") == _preferences.api_url: return ""
+	value = _preferences.normalize_api_url(value)
+	if value.is_empty(): return "Use an HTTP or HTTPS address."
+	if value == _preferences.api_url: return ""
 	if _session.busy or _session.has_pending_command: return "Finish or recover the current operation before changing the connection."
 	if not _preferences.set_api_url(value): return "Use an HTTP or HTTPS address."
 	return ""

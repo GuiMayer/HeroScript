@@ -1,0 +1,55 @@
+[
+  {
+    "test": "import",
+    "exit_code": 0,
+    "checks": 0,
+    "elapsed_ms": 17853,
+    "diagnostics": []
+  },
+  {
+    "test": "card_cost_symbols",
+    "exit_code": 0,
+    "checks": 35,
+    "elapsed_ms": 2021,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab",
+    "exit_code": 0,
+    "checks": 68,
+    "elapsed_ms": 47741,
+    "diagnostics": []
+  },
+  {
+    "test": "card_presentation",
+    "exit_code": 0,
+    "checks": 55,
+    "elapsed_ms": 2310,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "component_context",
+    "exit_code": 0,
+    "checks": 14,
+    "elapsed_ms": 1134,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "hand_ux",
+    "exit_code": 0,
+    "checks": 37,
+    "elapsed_ms": 7360,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab_visual",
+    "exit_code": 0,
+    "checks": 47,
+    "elapsed_ms": 13468,
+    "diagnostics": []
+  }
+]

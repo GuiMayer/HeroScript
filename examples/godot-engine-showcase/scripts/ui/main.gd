@@ -8,6 +8,8 @@ const CombatScreen = preload("res://scripts/ui/combat_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
 const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
+const MainMenuView = preload("res://scripts/ui/main_menu_view.gd")
+const MenuProfile = preload("res://data/themes/ivory_theme.tres")
 
 var visual_context
 var shell
@@ -24,8 +26,16 @@ var current_screen := "menu"
 var navigation_epoch := 0
 var settings_return_to_gameplay := false
 var continuation_run_id := ""
+var replay_from_history := false
+var _probing_engine := false
+const MENU_ROUTES := ["menu", "settings", "history", "sandbox", "codex"]
+var _entry_profile: Resource
+var _gameplay_profile: Resource
+var _menu_paper: ColorRect
 
 func _ready() -> void:
+	_entry_profile = AppTheme.profile
+	_gameplay_profile = _entry_profile
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -35,9 +45,11 @@ func _ready() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
 	_load_presentation()
 	visual_context.setting_id = GameSession.selected_setting_id
-	var background := EmberBackground.new()
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	_menu_paper = ColorRect.new()
+	_menu_paper.name = "MenuPaper"
+	_menu_paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_menu_paper)
 	shell = preload("res://scenes/ui/application_shell.tscn").instantiate()
 	add_child(shell)
 	shell.mount(visual_context)
@@ -90,10 +102,14 @@ func _load_presentation() -> void:
 	visual_context.set_resource_styles(presentation.get("resources", {}))
 
 func _probe_engine() -> void:
+	if _probing_engine or GameSession.busy or GameSession.has_pending_command: return
+	_probing_engine = true
+	if current_screen == "menu": _show_main_menu()
 	if await GameSession.connect_engine(Preferences.selected_setting_id):
 		Preferences.selected_setting_id = GameSession.selected_setting_id
 		visual_context.setting_id = GameSession.selected_setting_id
 		Preferences.save_session()
+	_probing_engine = false
 	if current_screen == "menu":
 		_show_main_menu()
 
@@ -117,74 +133,52 @@ func _clear_host() -> void:
 		if child.has_method("dispose"): child.dispose()
 		host.remove_child(child)
 		child.queue_free()
+	_apply_route_profile()
+
+func _apply_route_profile() -> void:
+	var menu_route := _is_menu_route()
+	var desired: Resource = MenuProfile if menu_route else _gameplay_profile
+	if AppTheme.profile != desired:
+		AppTheme.set_profile(desired)
+		_apply_preferences()
+	shell.run_scenery.set_active(not menu_route)
+	_menu_paper.visible = menu_route
+	_menu_paper.color = AppTheme.NIGHT
+
+func _is_menu_route() -> bool:
+	return current_screen in MENU_ROUTES or (current_screen == "run_replay" and replay_from_history)
 
 func _show_main_menu() -> void:
 	current_screen = "menu"
 	continuation_run_id = ""
-	var root := _screen()
-	var status_row := HBoxContainer.new()
-	status_row.alignment = BoxContainer.ALIGNMENT_END
-	var status := Label.new()
-	status.text = I18n.text("●  ENGINE ONLINE") if GameSession.available else I18n.text("●  CONNECTING")
-	status.add_theme_color_override("font_color", AppTheme.TEAL if GameSession.available else AppTheme.GOLD)
-	status.add_theme_font_size_override("font_size", 13)
-	status_row.add_child(status)
-	root.add_child(status_row)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(spacer)
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(center)
-	var card_content := VBoxContainer.new()
-	card_content.custom_minimum_size = Vector2(540, 0)
-	card_content.add_theme_constant_override("separation", 12)
-	var eyebrow := AppTheme.muted(I18n.text("A DATA-DRIVEN SHOWCASE"), 14)
-	eyebrow.add_theme_color_override("font_color", AppTheme.EMBER)
-	card_content.add_child(eyebrow)
+	_clear_host()
+	var view = MainMenuView.new()
+	view.mount(visual_context)
 	var chosen_setting := GameSession.selected_setting
 	var setting_name := I18n.text(str(chosen_setting.get("displayName", "Ember Archive")))
 	var setting_description := str(chosen_setting.get("description",
 		"A short ascent powered by HeroScript. Cards, enemies, resources, map and flow live in JSON; Godot brings each decision to life."))
-	card_content.add_child(AppTheme.title(setting_name.to_upper(), 52, AppTheme.INK))
-	card_content.add_child(AppTheme.muted(I18n.text(setting_description), 17))
-	var line := HSeparator.new()
-	card_content.add_child(line)
-	card_content.add_child(AppTheme.muted(I18n.text("GAME SETTING"), 13))
-	var setting_selector := OptionButton.new()
-	setting_selector.name = "SettingSelector"
-	setting_selector.custom_minimum_size = Vector2(420, 46)
-	for setting in GameSession.settings:
-		setting_selector.add_item(I18n.text(str(setting.get("displayName", setting.get("settingId", "Setting")))))
-		setting_selector.set_item_metadata(setting_selector.item_count - 1, str(setting.get("settingId", "")))
-		if str(setting.get("settingId", "")) == GameSession.selected_setting_id:
-			setting_selector.select(setting_selector.item_count - 1)
-	setting_selector.disabled = not GameSession.available or setting_selector.item_count < 2
-	setting_selector.item_selected.connect(_select_setting_from_menu.bind(setting_selector))
-	card_content.add_child(setting_selector)
-	card_content.add_child(AppTheme.muted(I18n.text("A setting swaps the complete rules and content package used by a new journey."), 13))
-	card_content.add_child(_button(I18n.text("NEW JOURNEY"), _new_campaign, 420))
-	var continue_button := _button(I18n.text("CONTINUE"), _continue_campaign, 420)
-	continue_button.name = "ContinueButton"
-	continue_button.disabled = true
-	continue_button.tooltip_text = I18n.text("Continue the selected setting's journey.")
-	card_content.add_child(continue_button)
-	if GameSession.has_pending_command:
-		card_content.add_child(_button(I18n.text("RECONNECT"), _recover_session, 420))
-	var history_button := _button(I18n.text("JOURNEY HISTORY"), show_history, 420)
-	history_button.name = "HistoryButton"
-	history_button.disabled = not GameSession.available
-	card_content.add_child(history_button)
-	card_content.add_child(_button(I18n.text("RULES LAB"), show_sandbox, 420))
-	card_content.add_child(_button(I18n.text("CONTENT CODEX"), show_codex, 420))
-	card_content.add_child(_button(I18n.text("SETTINGS"), show_settings, 420))
-	card_content.add_child(_button(I18n.text("QUIT"), get_tree().quit, 420))
-	center.add_child(AppTheme.panel(card_content, AppTheme.color("surface.menu")))
-	var bottom := AppTheme.muted(I18n.text("HeroScript decides  •  REST connects  •  Godot presents"), 13)
-	bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(bottom)
+	view.apply_model({"settingName": setting_name, "description": I18n.text(setting_description),
+		"settings": GameSession.settings, "selectedSettingId": GameSession.selected_setting_id,
+		"available": GameSession.available, "pending": GameSession.has_pending_command, "connecting": _probing_engine})
+	view.setting_requested.connect(_select_setting_from_menu.bind(view.setting_selector))
+	view.action_requested.connect(_menu_action)
+	AppTheme.apply_view_preferences(view, visual_context.text_scale, visual_context.high_contrast)
+	host.add_child(view)
 	if GameSession.available:
-		_resolve_menu_resume.call_deferred(weakref(continue_button), navigation_epoch)
+		_resolve_menu_resume.call_deferred(weakref(view.continue_button), navigation_epoch)
+
+func _menu_action(action: String) -> void:
+	GameAudio.ui()
+	match action:
+		"new": _new_campaign()
+		"continue": _continue_campaign()
+		"reconnect": _recover_session()
+		"history": show_history()
+		"sandbox": show_sandbox()
+		"codex": show_codex()
+		"settings": show_settings()
+		"quit": get_tree().quit()
 
 func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
 	var before := JSON.stringify(Preferences.resume_index.runs)
@@ -201,6 +195,7 @@ func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
 	continuation_run_id = str(result.get("runId", ""))
 	button.disabled = continuation_run_id.is_empty()
 	if button.disabled: button.tooltip_text = I18n.text("No active journey in this setting. Start a new journey.")
+	preload("res://scripts/ui/focus_navigation.gd").queue(host)
 
 func _select_setting_from_menu(index: int, selector: OptionButton) -> void:
 	var setting_id := str(selector.get_item_metadata(index))
@@ -237,6 +232,10 @@ func _continue_campaign() -> void:
 		_show_main_menu()
 
 func _recover_session() -> void:
+	if GameSession.busy: return
+	if GameSession.run.is_empty() and not GameSession.has_pending_command:
+		await _probe_engine()
+		return
 	var epoch := navigation_epoch
 	var accepted := await GameSession.refresh()
 	if accepted and epoch == navigation_epoch: open_game()
@@ -294,6 +293,7 @@ func show_history() -> void:
 func show_run_replay(run_id: String, from_history := false) -> void:
 	if GameSession.busy or run_id.is_empty(): return
 	current_screen = "run_replay"
+	replay_from_history = from_history
 	_clear_host()
 	var screen = RunReplayScreen.new()
 	screen.setup(self, run_id, from_history)
@@ -379,10 +379,14 @@ func _apply_preferences() -> void:
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
 	shell.theme = theme
+	shell.apply_visual_profile()
 	AppTheme.apply_view_preferences(host)
+	if _is_menu_route():
+		_menu_paper.color = AppTheme.NIGHT
+		for screen in host.get_children():
+			if screen.has_method("apply_visual_profile"): screen.apply_visual_profile(AppTheme.profile)
 	if is_instance_valid(pause_layer):
-		pause_layer.theme = theme
-		AppTheme.apply_view_preferences(pause_layer)
+		shell.refresh_pause_visuals()
 
 func _on_locale_changed() -> void:
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
@@ -421,11 +425,14 @@ func _exit_tree() -> void:
 	if Preferences.changed.is_connected(_apply_preferences): Preferences.changed.disconnect(_apply_preferences)
 	if I18n.locale_changed.is_connected(_on_locale_changed): I18n.locale_changed.disconnect(_on_locale_changed)
 	if get_tree(): get_tree().paused = false
+	if _entry_profile:
+		AppTheme.set_profile(_entry_profile)
+		AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 
 
 func apply_visual_profile(profile: Resource) -> void:
+	_gameplay_profile = profile
 	AppTheme.set_profile(profile)
 	_apply_preferences()
 	for screen in host.get_children():
 		if screen.has_method("apply_visual_profile"): screen.apply_visual_profile(profile)
-	if is_instance_valid(pause_layer): pause_layer.color = AppTheme.color("surface.modal_scrim")

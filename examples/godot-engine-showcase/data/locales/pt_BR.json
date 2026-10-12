@@ -1,4 +1,8 @@
 {
+  "NEUTRAL": "NEUTRO",
+  "High risk": "Risco alto",
+  "●  ENGINE OFFLINE": "●  ENGINE DESCONECTADA",
+  "The engine connection changed during the request.": "A conexão com a engine mudou durante a requisição.",
   "Text %s%%": "Texto %s%%",
   "IVORY / CARD LAB": "MARFIM / LABORATÓRIO DE CARTAS",
   "Shared game components. Visual samples only — no rules or API calls.": "Componentes do jogo. Apenas amostras visuais — sem regras ou chamadas à API.",
@@ -574,5 +578,7 @@
   "Critical/draw sidegrade unlocked after reaching world-one completion.": "Alternativa de crítico/compra desbloqueada ao concluir o ato, sem bônus permanente.",
   "Lasting Renewal": "Renovação duradoura",
   "A second limited recovery option; unlock, not permanent stats.": "Outra opção limitada de cura; desbloqueio de conteúdo, não atributos.",
-  "Action preview: %s": "Previsão da ação: %s"
+  "Action preview: %s": "Previsão da ação: %s",
+  "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.": "Mundo 1: rotas ramificadas, apenas energia, vida persistente, transformação de cartas, cinco famílias de builds e um chefe com dois estados.",
+  "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.": "Transforme a identidade das cartas, armazene potência e libere uma única ativação. Afinidades, múltiplos acertos, excedente e atributos persistentes."
 }

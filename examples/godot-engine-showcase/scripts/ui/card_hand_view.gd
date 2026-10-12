@@ -1,5 +1,6 @@
 extends VBoxContainer
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 ## Shared hand. Instance identities and intents only; no REST or game rules.
 signal card_activated(instance_id: String)
 signal card_previewed(instance_id: String)
@@ -40,12 +41,13 @@ var _inspection_anchor := ""
 
 func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
+	theme = visual_context.theme
 	name = "CardHandView"
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 2)
 	var tools := toolbar
 	tools.custom_minimum_size.y = 28
-	counter = AppTheme.caption("", 12, 56)
+	counter = visual_context.styles.caption("", 12, 56)
 	counter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools.add_child(counter)
 	previous = _tool("‹", func(): page(-1))
@@ -86,18 +88,19 @@ func _ready() -> void:
 	request_layout()
 
 func _tool(label: String, action: Callable) -> Button:
-	var button := AppTheme.button(label)
+	var button := visual_context.styles.button(label)
 	button.custom_minimum_size = Vector2(30, 28)
 	button.add_theme_font_size_override("font_size", 12)
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
-		var border := AppTheme.GOLD if state in ["hover", "focus"] else AppTheme.MUTED.darkened(.4)
-		var box := AppTheme.box(AppTheme.PANEL_LIGHT, 6, border, 2 if state == "focus" else 1)
+		var border := visual_context.styles.GOLD if state in ["hover", "focus"] else visual_context.styles.MUTED.darkened(.4)
+		var box := visual_context.styles.box(visual_context.styles.PANEL_LIGHT, 6, border, 2 if state == "focus" else 1)
 		box.content_margin_top = 4; box.content_margin_bottom = 4
 		button.add_theme_stylebox_override(state, box)
 	button.pressed.connect(action)
 	return button
 
 func _preferences_changed() -> void:
+	theme = visual_context.theme
 	interaction.cancel_pointer()
 	_clear_ghost()
 	toolbar.get_node("HandInspectButton").text = visual_context.translator.text("Inspect card")
@@ -177,7 +180,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	if interaction.pressed not in order: interaction.cancel_pointer(); _clear_ghost()
 	if not order.is_empty() and is_instance_valid(empty): surface.remove_child(empty); empty.queue_free(); empty = null
 	if order.is_empty():
-		if not is_instance_valid(empty): empty = empty_state(empty_message); surface.add_child(empty)
+		if not is_instance_valid(empty): empty = empty_state(empty_message, visual_context); surface.add_child(empty)
 		else: empty.find_child("EmptyHandMessage", true, false).text = empty_message
 	if old_order != order or geometry_changed or _layout.is_empty(): request_layout()
 	if not anchor.is_empty() and anchor in order: reveal.call_deferred(anchor)
@@ -446,12 +449,13 @@ func wire_focus() -> void:
 		var direction := "focus_neighbor_top" if toolbar.get_index() > scroll.get_index() else "focus_neighbor_bottom"
 		for tool in [previous, next, find_child("HandInspectButton", true, false), find_child("HandOverviewButton", true, false)]:
 			tool.set(direction, tool.get_path_to(destination))
-static func empty_state(message: String) -> Control:
+static func empty_state(message: String, context: ContextType = null) -> Control:
+	if context == null: context = ContextType.new()
 	var state := CenterContainer.new()
 	state.name = "EmptyHandState"
 	state.custom_minimum_size = Vector2(320, 180)
 	state.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := AppTheme.muted(message, 15, 280)
+	var label := context.styles.muted(message, 15, 280)
 	label.name = "EmptyHandMessage"
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

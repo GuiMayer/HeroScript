@@ -1,0 +1,71 @@
+[
+  {
+    "test": "import",
+    "exit_code": 0,
+    "checks": 0,
+    "elapsed_ms": 17815,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_menu",
+    "exit_code": 0,
+    "checks": 40,
+    "elapsed_ms": 7114,
+    "diagnostics": []
+  },
+  {
+    "test": "theme_contracts",
+    "exit_code": 0,
+    "checks": 10,
+    "elapsed_ms": 904,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "setting_progression",
+    "exit_code": 0,
+    "checks": 30,
+    "elapsed_ms": 5278,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "view_replacement",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 5982,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "pause_layers",
+    "exit_code": 0,
+    "checks": 24,
+    "elapsed_ms": 5438,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab",
+    "exit_code": 0,
+    "checks": 68,
+    "elapsed_ms": 42817,
+    "diagnostics": []
+  },
+  {
+    "test": "card_cost_symbols",
+    "exit_code": 0,
+    "checks": 35,
+    "elapsed_ms": 1874,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_menu_visual",
+    "exit_code": 0,
+    "checks": 51,
+    "elapsed_ms": 11341,
+    "diagnostics": []
+  }
+]

@@ -1,6 +1,7 @@
 extends VBoxContainer
 ## Small view contract. Context contains only visual services, never a session.
-var visual_context
+const ContextType = preload("res://scripts/ui/visual_context.gd")
+var visual_context: ContextType
 func mount(context) -> void: visual_context = context
 func apply_model(_model) -> void: pass
 func apply_interaction(_state) -> void: pass

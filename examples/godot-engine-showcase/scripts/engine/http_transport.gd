@@ -2,11 +2,18 @@ extends Node
 
 signal availability_changed(available: bool)
 
-var base_url := "http://127.0.0.1:5271"
 var available := false
 var last_error := ""
 var timings: Array[Dictionary] = []
 var default_timeout_seconds := 30.0
+var _endpoint_epoch := 0
+var base_url := "http://127.0.0.1:5271":
+	set(value):
+		if base_url == value: return
+		base_url = value
+		_endpoint_epoch += 1
+		_set_available(false)
+		last_error = ""
 
 class RequestBatch extends RefCounted:
 	signal completed
@@ -30,6 +37,7 @@ func _request_part(batch: RequestBatch, key: String, path: String) -> void:
 
 func request(method: HTTPClient.Method, path: String, body = null, timeout_seconds := -1.0) -> Dictionary:
 	var started := Time.get_ticks_msec()
+	var endpoint_ticket := _endpoint_epoch
 	var node := HTTPRequest.new()
 	var resolved_timeout := default_timeout_seconds if timeout_seconds <= 0.0 else timeout_seconds
 	node.timeout = maxf(resolved_timeout, 1.0)
@@ -44,6 +52,11 @@ func request(method: HTTPClient.Method, path: String, body = null, timeout_secon
 		node.queue_free()
 		return _failure("Could not start the request (%s).", 0, null, [error])
 	var completed: Array = await node.request_completed
+	if endpoint_ticket != _endpoint_epoch:
+		node.queue_free()
+		# Late responses from the previous host cannot change the new host's status.
+		return {"ok": false, "status": 0, "error": "The engine connection changed during the request.",
+			"errorKey": "The engine connection changed during the request.", "errorArgs": [], "data": null}
 	var operation := str(body.get("type", "")) if body is Dictionary else ""
 	timings.append({
 		"method": method,

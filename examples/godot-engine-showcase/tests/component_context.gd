@@ -24,7 +24,7 @@ func _run() -> void:
 	var custom: Dictionary = Catalog.resolve("cards", "basic_attack", "res://data/labs/art_manifest_context_test.json")
 	check(base.get("path") != custom.get("path"), "same content ID uses explicit manifest-specific resolution")
 	check(Catalog.resolve("cards", "basic_attack").get("path") == base.get("path"), "alternate manifest never pollutes default cache")
-	for file in ["card_view", "card_hand_view", "resource_view", "card_details_panel", "card_effect_text", "art_slot", "actor_panel"]:
+	for file in ["card_view", "card_hand_view", "resource_view", "card_details_panel", "card_effect_text", "card_cost_symbol", "art_slot", "actor_panel"]:
 		var code := FileAccess.get_file_as_string("res://scripts/ui/" + file + ".gd")
 		check(not code.contains("Preferences.") and not code.contains("I18n.") and not code.contains("GameSession."), "explicit component dependencies: " + file)
 	root.get_node("GameAudio").shutdown()

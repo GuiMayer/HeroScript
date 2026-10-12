@@ -363,6 +363,20 @@ func action_options(instance_id: String) -> Array:
 				"reference": context_key() + "/" + str(index), "candidate": candidate}))
 	return result
 func combat_model(viewpoint: String):
-	var items: Array = actors().map(func(actor): return {"actor": actor,
-		"hostile": relationship(actor, viewpoint) == "Enemy", "intent": intent_for(str(actor.get("instanceId", "")))})
+	var items: Array = actors().map(func(actor):
+		var relation := relationship(actor, viewpoint)
+		actor["relationship"] = relation
+		actor["isInputActor"] = str(actor.get("instanceId", "")) == viewpoint
+		return {"actor": actor, "relationship": relation, "sideId": str(actor.get("sideId", "")),
+			"intent": intent_for(str(actor.get("instanceId", "")))})
 	return preload("res://scripts/presentation/view_models.gd").Combat.new({"context": context_key(), "actors": items})
+
+func header_model(labels: Dictionary):
+	var activation: Dictionary = _combat.get("activation", {})
+	return preload("res://scripts/presentation/view_models.gd").Header.new({
+		"title": _i18n.text("COMBAT"), "context": str(_combat.get("runNodeId", "")) + " · " + str(_combat.get("stateHash", "")),
+		"round": _i18n.text("ROUND %s") % int(activation.get("round", _combat.get("currentTurn", 1))),
+		"timeline": _i18n.text("TIMELINE  [%s]") % str(labels.get("open_timeline", "open_timeline")),
+		"tools": _i18n.text("ZONE TOOLS"),
+		"allow_tools": not preload("res://scripts/presentation/card_zone_presenter.gd").tool_flows(_run).is_empty(),
+		"pause": _i18n.text("PAUSE")})

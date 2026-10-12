@@ -1,0 +1,93 @@
+[
+  {
+    "test": "run_graphics_architecture",
+    "exit_code": 0,
+    "checks": 19,
+    "elapsed_ms": 5340,
+    "diagnostics": [
+      "WARNING: Combat composition requires a Control root and CombatGameplay slot."
+    ]
+  },
+  {
+    "test": "combat_collaborators",
+    "exit_code": 0,
+    "checks": 12,
+    "elapsed_ms": 751,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "map_geometry",
+    "exit_code": 0,
+    "checks": 9,
+    "elapsed_ms": 773,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "run_graphics_updates",
+    "exit_code": 0,
+    "checks": 12,
+    "elapsed_ms": 1416,
+    "diagnostics": []
+  },
+  {
+    "test": "activity_reconciliation",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 4254,
+    "diagnostics": []
+  },
+  {
+    "test": "ui_reconciliation",
+    "exit_code": 0,
+    "checks": 4,
+    "elapsed_ms": 3721,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "view_replacement",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 4920,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "card_play_selection",
+    "exit_code": 0,
+    "checks": 22,
+    "elapsed_ms": 4644,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "combat_stage_layout",
+    "exit_code": 0,
+    "checks": 441,
+    "elapsed_ms": 20974,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "ivory_menus",
+    "exit_code": 0,
+    "checks": 90,
+    "elapsed_ms": 10832,
+    "diagnostics": []
+  },
+  {
+    "test": "run_graphics_baseline",
+    "exit_code": 0,
+    "checks": 146,
+    "elapsed_ms": 28808,
+    "diagnostics": []
+  }
+]
