@@ -1,4 +1,5 @@
 {
+  "intent_icons": {"Attack": "attack", "Guard": "guard", "Poison Spit": "unknown"},
   "card_tag_labels": {"fire": "Fire", "poison": "Poison", "frost": "Frost", "ember": "Ember", "volatile": "Volatile"},
   "card_flow_labels": {"run.draw": "Draw", "run.discard": "Discard", "run.exhaust": "Exhaust", "card.played.to-discard": "Discard after play", "card.played.to-exhaust": "Exhaust after play"},
   "resource_order": [

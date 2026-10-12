@@ -14,6 +14,7 @@ script = ExtResource("1")
 profile_id = "ivory_run"
 printed_surfaces = true
 actor_art_max_height = 420.0
+compact_actor_hud = true
 resource_color_overrides = { "energy": "#7e4b15", "mana": "#445c8f", "health": "#9e343d", "block": "#5b574f", "gold": "#7e4b15" }
 corner_radius = 2
 body_font = SubResource("Body")

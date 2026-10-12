@@ -50,9 +50,19 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	intention.max_lines_visible = 2 if compact or battlefield else 3
 	intention.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	intention.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intention.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	intention.add_theme_font_size_override("font_size", 14)
 	intention.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
-	content.add_child(intention)
+	if battlefield and visual_context.profile.compact_actor_hud:
+		var intent_row := HBoxContainer.new(); intent_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		if hostile:
+			var symbol := TextureRect.new(); symbol.texture = preload("res://scripts/ui/combat_chrome.gd").texture(str(actor.get("intentIconId", "unknown")))
+			symbol.custom_minimum_size = Vector2(24, 24); symbol.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			symbol.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; symbol.modulate = visual_context.styles.GOLD
+			symbol.mouse_filter = Control.MOUSE_FILTER_IGNORE; intent_row.add_child(symbol)
+		intent_row.add_child(intention); intent_row.visible = hostile or relation == "Neutral" or not intent.is_empty()
+		content.add_child(intent_row)
+	else: content.add_child(intention)
 	target_button = Button.new()
 	target_button.name = "ActorTarget"
 	target_button.custom_minimum_size = Vector2(76, 112) if compact else Vector2(0, 136)
@@ -61,7 +71,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		target_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	target_button.toggle_mode = true
-	target_button.tooltip_text = visual_context.translator.text("Choose a highlighted target.")
+	target_button.tooltip_text = visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", ""))) + "\n" + intention.text + "\n" + visual_context.translator.text("Choose a highlighted target.")
 	for state in ["normal", "disabled"]: target_button.add_theme_stylebox_override(state, visual_context.styles.box(Color.TRANSPARENT, 12))
 	for state in ["hover", "focus", "pressed"]: target_button.add_theme_stylebox_override(state, visual_context.styles.box(visual_context.styles.color("surface.target_hover"), 12, visual_context.styles.GOLD, 2))
 	target_button.pressed.connect(func(): target_selected.emit(str(actor.get("instanceId", ""))))
@@ -83,6 +93,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.add_theme_color_override("font_color", visual_context.styles.INK)
 	content.add_child(title)
+	if battlefield and visual_context.profile.compact_actor_hud: title.hide()
 	if compact: content.move_child(title, 0)
 	var counters := HFlowContainer.new()
 	counters.alignment = FlowContainer.ALIGNMENT_CENTER
@@ -115,6 +126,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status.add_theme_color_override("font_color", visual_context.styles.EMBER if not statuses.is_empty() else visual_context.styles.MUTED)
 	content.add_child(status)
+	if battlefield and visual_context.profile.compact_actor_hud and statuses.is_empty(): status.hide()
 	var panel_style := visual_context.styles.box(visual_context.styles.color("surface.actor"), 16)
 	if battlefield:
 		panel_style = visual_context.styles.box(Color.TRANSPARENT, 0)
@@ -134,7 +146,7 @@ func fit_battlefield_height(available: float) -> void:
 	var fixed := panel_style.get_minimum_size().y
 	fixed += _battlefield_content.get_theme_constant("separation") * (_battlefield_content.get_child_count() - 1)
 	for child in _battlefield_content.get_children():
-		if child != target_button and child is Control: fixed += child.get_combined_minimum_size().y
+		if child != target_button and child is Control and child.visible: fixed += child.get_combined_minimum_size().y
 	target_button.custom_minimum_size.y = clampf(available - fixed - 1, 60, visual_context.profile.actor_art_max_height)
 
 
