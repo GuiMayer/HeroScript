@@ -34,7 +34,7 @@ func _build_actions() -> void:
 		var reference_id: String = presenter.option_reference(choice)
 		var model: Dictionary = presenter.offer(choice)
 		var label := _choice_label(choice, model)
-		if choice.secondary or type in ["RESOLVE_NODE", "RESOLVE_COMBAT"]:
+		if bool(choice.get("secondary", false)) or type in ["RESOLVE_NODE", "RESOLVE_COMBAT"]:
 			var display_label := label + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
 			var button := _button(display_label, func(): _confirm_ref(reference_id))
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -100,36 +100,12 @@ func _collect_choices(node: Node) -> void:
 
 
 func _choice_label(choice: Dictionary, model: Dictionary) -> String:
-	var templates := {
-		"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
-		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
-		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
-		"REMOVE_CARD_TRANSFORMATION": "REMOVE  •  %s", "REPLACE_CARD_TRANSFORMATION": "REPLACE  •  %s"
-	}
-	var type := str(choice.type)
-	if templates.has(type): return visual_context.translator.text(templates[type]) % str(model.name)
-	if type == "REROLL_CARD_REWARD": return visual_context.translator.text("NEW OPTIONS")
-	if type == "REROLL_SHOP": return visual_context.translator.text("REFRESH STOCK")
-	if type == "START_DIALOGUE": return visual_context.translator.text("TALK")
-	return _friendly_command(type)
+	return presenter.choice_label(choice, model)
 
 
 
 func _current_node() -> Dictionary:
 	return presenter.current_node()
-
-
-
-func _friendly_command(type: String) -> String:
-	return {
-		"START_ENCOUNTER": visual_context.translator.text("ENTER COMBAT"),
-		"RESOLVE_COMBAT": visual_context.translator.text("CONFIRM RESULT"),
-		"RESOLVE_NODE": visual_context.translator.text("COMPLETE STAGE"),
-			"ACQUIRE_RELIC": visual_context.translator.text("CLAIM RELIC"),
-			"CREATE_CARD_SELECTION": visual_context.translator.text("REVEAL REWARD"),
-		"CREATE_SHOP": visual_context.translator.text("ENTER SHOP"),
-		"CREATE_PREPARATION": visual_context.translator.text("LIGHT CAMPFIRE")
-	}.get(type, type.replace("_", " "))
 
 
 

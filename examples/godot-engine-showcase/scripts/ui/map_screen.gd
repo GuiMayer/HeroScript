@@ -5,6 +5,8 @@ var controller
 var view
 var presentation: Dictionary
 var _scope := ""
+var _workflow_key: Array = []
+var _alive := true
 func setup(owner, data: Dictionary) -> void:
 	router = owner; mount(owner.visual_context)
 	controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(GameSession)
@@ -19,11 +21,15 @@ func refresh_state(data: Dictionary) -> void:
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	var run: Dictionary = GameSession.run
 	var choices: Array = GameSession.activity_choices()
-	_scope = JSON.stringify([run.get("runId", ""), run.get("branchId", "")])
+	_scope = JSON.stringify([visual_context.setting_id, run.get("runId", ""), run.get("branchId", "")])
 	controller.bind(run, choices)
 	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n)
 	view.apply_projection(run, choices, presenter, visual_context)
 	view.set_read_only(GameSession.busy or not GameSession.synchronized)
+	var workflow: Array = [run.get("runId"), run.get("branchId"), run.get("sequence"), choices]
+	if workflow != _workflow_key:
+		_workflow_key = workflow.duplicate(true)
+		_auto_advance.call_deferred(workflow)
 func _intent(action: String, arguments: Array) -> void:
 	match action:
 		"pause": router.toggle_pause()
@@ -33,13 +39,26 @@ func _intent(action: String, arguments: Array) -> void:
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if choice.is_empty(): return
 			view.set_read_only(true)
-			if await controller.execute(choice) and is_inside_tree(): router.open_game()
+			if await controller.execute(choice) and _alive:
+				if str(choice.get("type", "")) == "ADVANCE_NODE":
+					var choices: Array = GameSession.activity_choices()
+					controller.bind(GameSession.run, choices)
+					var entry: Dictionary = preload("res://scripts/application/activity_choices.gd").single_entry(choices)
+					if not entry.is_empty():
+						await controller.execute(entry)
+				if _alive: router.open_game()
 			elif is_inside_tree(): view.set_read_only(not GameSession.synchronized)
 func capture_local_state() -> Dictionary: return view.capture_local_state()
 func apply_interaction(_state) -> void: view.set_read_only(GameSession.busy or not GameSession.synchronized)
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
+	_alive = false
 	if is_instance_valid(view):
 		if router.map_reading_states.size() >= 16 and not router.map_reading_states.has(_scope): router.map_reading_states.erase(router.map_reading_states.keys()[0])
 		router.map_reading_states[_scope] = view.capture_local_state()
 	if controller: controller.dispose()
+func _auto_advance(ticket: Array) -> void:
+	if not _alive or ticket != _workflow_key or router.dialogue_return_barrier or router.current_screen != "map" or get_tree().paused or GameSession.busy: return
+	var choice: Dictionary = controller.forced_advance()
+	if choice.is_empty(): return
+	_intent("command", [controller.option_reference(choice)])

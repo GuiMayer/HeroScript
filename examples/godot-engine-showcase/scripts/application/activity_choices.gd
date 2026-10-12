@@ -53,5 +53,12 @@ static func only_forced_advance(choices: Array) -> Dictionary:
 		return {}
 	return gameplay[0].duplicate(true)
 
+static func single_entry(choices: Array) -> Dictionary:
+	# Presentation ingress following an explicit travel, never a reward/price choice.
+	var gameplay: Array = choices.filter(func(choice): return str(choice.get("type", "")) != "ABANDON_RUN")
+	if gameplay.size() != 1: return {}
+	if str(gameplay[0].get("type", "")) not in ["START_ENCOUNTER", "CREATE_CARD_SELECTION", "CREATE_SHOP", "CREATE_PREPARATION"]: return {}
+	return gameplay[0].duplicate(true)
+
 static func _choice(type: String, payload: Dictionary, subject := "", subject_type := "", secondary := false) -> Dictionary:
 	return {"type": type, "payload": payload.duplicate(true), "subjectId": subject, "subjectType": subject_type, "secondary": secondary}

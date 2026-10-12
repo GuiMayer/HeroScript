@@ -19,6 +19,18 @@ func current_node() -> Dictionary:
 		if str(node.get("nodeId", "")) == str(_run.get("currentNodeId", "")): return node.duplicate(true)
 	return {}
 
+func choice_label(choice: Dictionary, model: Dictionary = {}) -> String:
+	var type := str(choice.get("type", ""))
+	var templates := {"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
+		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
+		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
+		"REMOVE_CARD_TRANSFORMATION": "REMOVE  •  %s", "REPLACE_CARD_TRANSFORMATION": "REPLACE  •  %s"}
+	if templates.has(type): return _i18n.text(templates[type]) % str(model.get("name", node_name(str(choice.get("subjectId", "")))))
+	return _i18n.text({"START_ENCOUNTER": "ENTER COMBAT", "START_DIALOGUE": "TALK", "RESOLVE_COMBAT": "CONFIRM RESULT",
+		"RESOLVE_NODE": "COMPLETE STAGE", "ACQUIRE_RELIC": "CLAIM RELIC", "CREATE_CARD_SELECTION": "REVEAL REWARD",
+		"CREATE_SHOP": "ENTER SHOP", "CREATE_PREPARATION": "LIGHT CAMPFIRE", "REROLL_CARD_REWARD": "NEW OPTIONS",
+		"REROLL_SHOP": "REFRESH STOCK"}.get(type, type.replace("_", " ")))
+
 func node_name(id: String) -> String:
 	for node in _run.get("map", {}).get("nodes", []):
 		if str(node.get("nodeId", "")) == id:

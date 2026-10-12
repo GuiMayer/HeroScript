@@ -103,8 +103,7 @@ func _inspect(id: String) -> void:
 			var type := str(choice.get("type", ""))
 			if type in ["ADVANCE_NODE", "ABANDON_RUN"]: continue
 			if type == "CHOOSE_DIALOGUE_OPTION": continue
-			var label: String = {"START_ENCOUNTER": "ENTER COMBAT", "START_DIALOGUE": "TALK", "RESOLVE_NODE": "COMPLETE STAGE"}.get(type, type.replace("_", " "))
-			_action(visual_context.translator.text(label), choice)
+			_action(_presenter.choice_label(choice), choice)
 		if str(node.kind) == "Dialogue" and not node.resolved and not _run.get("dialogues", []).is_empty():
 			var resume := visual_context.styles.button(visual_context.translator.text("Resume conversation"))
 			resume.pressed.connect(func(): intent_requested.emit("resume_dialogue", [])); _inspector.add_child(resume)

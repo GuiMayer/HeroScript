@@ -62,6 +62,7 @@ func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> vo
 		_execute(choice)
 		return
 	var dialog := ConfirmationDialog.new()
+	dialog.theme = visual_context.theme
 	dialog.title = I18n.text("Confirm choice")
 	dialog.dialog_text = label + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")
 	if transformation:

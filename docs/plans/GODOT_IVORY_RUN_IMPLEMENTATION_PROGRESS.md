@@ -15,6 +15,7 @@ Snapshot anterior: `bce6921`, enviado para `origin/main` antes da implementaçã
 | 6 | Implementada: pan com limiar, centralização, próximas escolhas, visão compacta, destaque por tipo sem ocultar nós e legenda somente de leitura. Seleção/scroll/overview/filtro são locais e restauráveis; testes de seleção e câmera adicionados. |
 | 7 | Implementada: composição dedicada com retrato/ambiente superior e fala/opções inferiores, histórico em modal somente leitura, paginação e revelação opcional local (instantâneo por padrão). Confirmar revela/avança leitura, nunca escolhe. Estado por setting/run/branch/instância/nó; 7 checks de leitura e diálogo REST 32 aprovados em EN/PT e duas resoluções. |
 | 8 | Implementada: paleta de recursos por perfil (sem semântica de regras), contraste no HUD/sidebar/custos e arte com máximo configurável maior, preservando geometria mínima e mão flutuante. Contratos incluem recursos desconhecidos; validar novamente matriz de combate na estabilização. |
-| 9–10 | Pendentes; registrar evidências e commits por entrega. |
+| 9 | Implementada: ofertas existentes usam perfil Marfim e rótulos centralizados; preço permanece fora do custo de jogar; confirmação usa contexto próprio. Entrada após travel só executa um comando de abertura único publicado, nunca compra/prêmio/escolha; avanço forçado preserva a barreira de retorno do diálogo e não depende de refresh visual. |
+| 10 | Em estabilização; registrar evidências finais antes da ativação e push. |
 
 Os testes usam cópia da Godot com user directory próprio e persistência da API em `.runtime/ivory-run-qa`. Não foi utilizado o servidor das partidas pessoais.
