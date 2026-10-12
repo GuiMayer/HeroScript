@@ -595,5 +595,18 @@
   "All node types": "Todos os tipos",
   "Unavailable": "Indisponível",
   "Risk: %s": "Risco: %s",
-  "Selecting a node only inspects it. Travel requires a published option.": "Selecionar um local apenas mostra seus detalhes. Viajar exige uma opção publicada pela engine."
+  "Selecting a node only inspects it. Travel requires a published option.": "Selecionar um local apenas mostra seus detalhes. Viajar exige uma opção publicada pela engine.",
+  "Search cards": "Buscar cartas",
+  "Published order": "Ordem publicada",
+  "By name": "Por nome",
+  "Contents hidden": "Conteúdo oculto",
+  "Order hidden — sorted catalog": "Ordem oculta — catálogo ordenado",
+  "Loading details…": "Carregando detalhes…",
+  "Published definition; contextual play cost unavailable.": "Definição publicada; custo contextual de uso indisponível.",
+  "More cards — scroll to browse.": "Mais cartas — use a rolagem para navegar.",
+  "Previous cards": "Cartas anteriores",
+  "Next cards": "Próximas cartas",
+  "Draw": "Compra",
+  "Discard": "Descarte",
+  "CLOSE": "FECHAR"
 }

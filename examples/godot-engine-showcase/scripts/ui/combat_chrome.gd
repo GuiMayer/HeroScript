@@ -6,6 +6,10 @@ static func texture(id: String) -> Texture2D:
 	return load(path if ResourceLoader.exists(path) else "res://assets/ui-icons/unknown.svg")
 static func apply(button: Button, id: String, label: String, context, primary := false, compact := false) -> void:
 	var style := STYLE.new()
+	# Replace canonical style overrides, but retain canonical font sizes.
+	for key in button.get_meta_list():
+		if str(key).begins_with("base_style_") or key == "visual_preferences_revision": button.remove_meta(key)
+	button.set_meta("semantic_border_color", context.styles.INK)
 	button.icon = texture(id); button.expand_icon = true
 	button.add_theme_constant_override("icon_max_width", style.icon_size)
 	button.tooltip_text = label; button.accessibility_name = label
@@ -27,6 +31,7 @@ static func apply(button: Button, id: String, label: String, context, primary :=
 		line = Keyline.new(); line.name = "CircuitKeyline"; button.add_child(line)
 		line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	line.ink = ink; line.focus_ink = context.styles.GOLD; line.cut = style.corner_cut; line.width = style.stroke_width; line.queue_redraw()
+	context.styles.apply_view_preferences(button)
 class Keyline extends Control:
 	var ink := Color.BLACK
 	var cut := 8.0

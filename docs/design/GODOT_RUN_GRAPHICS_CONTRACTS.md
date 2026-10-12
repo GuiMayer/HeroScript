@@ -61,6 +61,16 @@ DialogueReading controla exclusivamente páginas e revelação opcional (instant
 
 ## Inspeção e apresentação
 
+### Combate de referência e coleções
+
+CombatLayoutProfile possui largura proporcional/limite da mão e área segura. CombatLayoutMetrics calcula somente geometria. Adaptive fan mantém inclinação com duas cartas; a altura reservada não depende da quantidade, evitando mover HUD/dock quando a mão esvazia. HandVisualStyle possui sua chave de apresentação para mudanças em runtime.
+
+O dock usa ícones SVG e keylines angulares com Button nativo, tooltip/nome acessível e remaps existentes. Hand overview foi removido do combate e das ações remapeáveis; o laboratório conserva seu consumidor local. Pilhas usam endereços zoneId/ownerId/scopeId e presentation.iconId/dock opcionais; desconhecidas possuem fallback visual, sem semântica na engine.
+
+CardCollectionPresenter/CardCollectionView/CardZoneDialog renderizam instâncias com CardView, sem seleção de combate. ContentsVisible=false não vira Empty; OrderVisible=false não revela próxima compra. Busca/ordenação são locais. Clicar uma carta solicita a avaliação individual REST existente; abrir a grade não faz uma request por carta. O coordenador limita concorrência, compartilha/cacha leituras e descarta callbacks fora do contexto. Custo ausente não é interpretado como zero. Páginas/pilhas não têm outro playback nem enviam comandos.
+
+A certificação desta composição e as capturas estão em [reference-combat/2026-10-12](reference-combat/2026-10-12/README.md).
+
 A chave de inspeção contém run/branch/combate/ator/zonas de jogo, sequência, step, revisão de conteúdo e os alvos efetivamente enviados. Há até 16 respostas cacheadas; requests iguais simultâneos compartilham uma leitura. Dispose libera esperas e descarta respostas atrasadas. Arrays/dictionaries retornam por cópia.
 
 O driver controla apenas o intervalo entre avanços. Uma nova geração de receipt reinicia o intervalo; refresh/tema não o reinicia. Pause bloqueia avanço manual e automático. Frames, journal e resultados continuam pertencendo à engine/Playback existente.

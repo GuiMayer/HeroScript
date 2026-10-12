@@ -16,14 +16,16 @@ func apply_model(zones: Array, context) -> void:
 		if button == null:
 			button = Button.new(); button.name = "Pile_" + key.sha256_text().substr(0, 12)
 			button.custom_minimum_size = Vector2(120, 60)
+			button.add_theme_font_size_override("font_size", 17)
 			button.pressed.connect(func(): zone_requested.emit(button.get_meta("zone_address").duplicate(true)))
 			_row.add_child(button); _buttons[key] = button
 		button.set_meta("zone_address", address)
 		var label: String = context.translator.text(str(zone.get("presentation", {}).get("labelKey", address.zoneId)))
 		var icon_id: String = str(zone.get("presentation", {}).get("iconId", {"draw": "draw", "discard": "discard", "exile": "exile"}.get(address.zoneId, "pile")))
-		preload("res://scripts/ui/combat_chrome.gd").apply(button, icon_id, "%s\n%s" % [label, zone.get("count", 0)], context)
+		var short_label: String = context.translator.text(str(zone.get("presentation", {}).get("shortLabelKey", {"draw": "Draw", "discard": "Discard", "exile": "Exile"}.get(address.zoneId, label))))
+		preload("res://scripts/ui/combat_chrome.gd").apply(button, icon_id, "%s\n%s" % [short_label, zone.get("count", 0)], context)
+		button.tooltip_text = "%s · %s" % [label, zone.get("count", 0)]; button.accessibility_name = button.tooltip_text
 		button.expand_icon = false; button.clip_text = true; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		button.add_theme_font_size_override("font_size", 17)
 	for key in _buttons.keys():
 		if key not in live:
 			_row.remove_child(_buttons[key]); _buttons[key].queue_free(); _buttons.erase(key)

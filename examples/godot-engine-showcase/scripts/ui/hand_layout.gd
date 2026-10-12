@@ -2,7 +2,8 @@ extends RefCounted
 ## Pure presentation geometry, not an engine calculation.
 static func calculate(count: int, available: float, card: Vector2, style: Resource, mode: String) -> Dictionary:
 	var angle := deg_to_rad(maxf(style.minimum_fan_angle_degrees, style.maximum_angle_degrees * minf(1., (count - 1) / 3.))) if mode == "adaptive" and count > 1 else 0.0
-	var inset: float = style.padding + card.y * absf(sin(angle))
+	var reserved_angle := deg_to_rad(style.maximum_angle_degrees) if mode == "adaptive" else 0.0
+	var inset: float = style.padding + card.y * absf(sin(reserved_angle))
 	var usable := maxf(0.0, available - 2.0 * inset)
 	var preferred: float = card.x * style.preferred_step_ratio if mode == "adaptive" else card.x + style.gap
 	var step := preferred
@@ -25,4 +26,4 @@ static func calculate(count: int, available: float, card: Vector2, style: Resour
 		hit_rects.append(Rect2(left, style.padding, right - left, card.y + style.lift + style.arc_height))
 	return {"positions": positions, "rotations": rotations, "hitRects": hit_rects,
 		"extent": extent, "step": step, "overflow": extent > available + 1,
-		"height": card.y + top + style.arc_height + card.x * absf(sin(angle)) * .5 + style.padding}
+		"height": card.y + top + style.arc_height + card.x * absf(sin(reserved_angle)) * .5 + style.padding}

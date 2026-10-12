@@ -12,3 +12,8 @@ extends Resource
 @export var pointer_hysteresis := 4.0
 @export var drag_threshold := 16.0
 @export var padding := 6.0
+func presentation_key() -> String:
+	var values := {}
+	for property in get_property_list():
+		if int(property.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE: values[str(property.name)] = get(property.name)
+	return JSON.stringify(values)

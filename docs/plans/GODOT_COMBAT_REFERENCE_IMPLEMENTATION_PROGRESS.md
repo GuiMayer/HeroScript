@@ -9,6 +9,8 @@ Guia: [plano](GODOT_COMBAT_REFERENCE_LAYOUT_HAND_AND_PILES_PLAN.md). Início: 20
 5. Remoção de overview/dock: overview removido do combate/atalhos públicos; permanece somente o consumidor real do laboratório. Pilhas e ferramentas ficam no dock independente da geometria da mão, com identidade por endereço.
 6. Browser de pilhas: grade compartilhada de CardView, busca/ordenação local, visibilidade/ordem explícitas e endereço completo; avaliações individuais sob demanda com cache/contexto e concorrência limitada.
 7. Feedback: HUD de atores compacto sem remover recursos/estados ativos, silhuetas maiores, ícones de intenção configuráveis com fallback e preview independente; foco desenhado sem reflow. Modais bloqueiam atalhos de combate.
-8. Certificação: pendente.
+8. Certificação: suíte offline padrão aprovada; geometria 21, coleções offline 9/online 25, mão online 150, combate 441, seleção 22 e configurações 82 checks aprovados. Matriz visual 42 capturas/85 checks, EN/PT e três resoluções. Regras da engine não foram alteradas.
 
 Regras, cartas e pilhas permanecem autoritativas na engine. QA não usa runs pessoais.
+
+[Certificação e capturas](../design/reference-combat/2026-10-12/README.md). Foram corrigidos o reset de fonte do contador de pilha e o crescimento inicial do popup que ocultava sua ação de fechar. Métodos de leitura preservaram snapshots/seleção/replay nos três settings. Avisos residuais de encerramento são documentados separadamente.

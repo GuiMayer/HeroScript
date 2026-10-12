@@ -244,8 +244,9 @@ func _relayout() -> void:
 	relayout_count += 1
 	var default_style = visual_context.card_style
 	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
-	var policy_key: String = default_style.presentation_key()
-	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key: _reserved_card_size = Vector2.ZERO
+	var policy_key: String = default_style.presentation_key() + visual_style.presentation_key() + layout_mode()
+	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key:
+		_reserved_card_size = Vector2.ZERO; custom_minimum_size.y = 0
 	_layout_card_style_key = policy_key
 	_layout_text_scale = visual_context.text_scale
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
@@ -254,6 +255,11 @@ func _relayout() -> void:
 	_layout = Layout.calculate(order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
 	scroll.custom_minimum_size.y = _layout.height + 12
 	surface.custom_minimum_size = Vector2(_layout.extent, _layout.height)
+	# Reserve the scroll chrome even when the native bar toggles during layout.
+	# Read-only panels/focus changes must not move the dock by the bar's height.
+	var reserved: float = ceilf(_layout.height + 12 + scroll.get_h_scroll_bar().get_combined_minimum_size().y)
+	if not toolbar_external: reserved += toolbar.get_combined_minimum_size().y + get_theme_constant("separation")
+	custom_minimum_size.y = reserved
 	for i in order.size():
 		var id := order[i]
 		var card: CardView = _cards[id]

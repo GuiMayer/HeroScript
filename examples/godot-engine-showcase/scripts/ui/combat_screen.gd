@@ -144,13 +144,14 @@ func _inspect_collection_card(dialog, id: String) -> void:
 		detail.content.add_child(retry); return
 	presenter.accept_evaluations([response.data])
 	model = presenter.card_view_model(id); model.availability = visual_context.translator.text("Inspect card")
-	if not bool(response.data.get("isInPlayableZone", false)): model.costsKnown = false
+	model["collectionTags"] = response.data.get("baseContainer", {}).get("tags", []).duplicate()
+	if not bool(response.data.get("isInPlayableZone", false)) and response.data.get("evaluation", {}).get("costs", []).is_empty(): model.costsKnown = false
 	detail.find_child("CollectionInspectionStatus", true, false).text = visual_context.translator.text("Published definition; contextual play cost unavailable.") if not model.costsKnown else ""
 	var panel = detail.find_child("CardDetails", true, false)
 	if panel:
 		for child in panel.get_children(): panel.remove_child(child); child.queue_free()
 		panel.configure(model, visual_context.card_style)
-	dialog.collection.cards[id].configure(model)
+	dialog.collection.update_card(id, model)
 
 func _locked() -> bool: return controller.locked()
 func _resolve_scenery() -> Dictionary:

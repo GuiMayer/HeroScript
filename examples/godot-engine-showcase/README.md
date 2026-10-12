@@ -152,7 +152,7 @@ recorrem ao inglês. Os nomes de conteúdo também priorizam o fallback inglês.
   recalculados na Godot.
 - Por padrão, **E** encerra turno, **T** abre a timeline, **Esc** pausa e
   **F** avança um frame no modo manual. Os atalhos são remapeáveis.
-- **I** abre a inspeção da carta ativa e **H** abre a visão geral da mão.
+- **I** abre a inspeção da carta ativa. A mão usa leque adaptativo mesmo com duas cartas; a visão geral foi retirada do combate.
   No controle, os padrões são **X** e **LB**. Setas/direcional percorrem a ordem
   recebida da engine, revelando cartas fora da área; fechar os detalhes devolve
   o foco. Tooltip é resumo passivo, não um painel com rolagem.
@@ -283,6 +283,8 @@ Veja [como substituir a interface](ARCHITECTURE.md).
 Para trocar apenas aparência/layout, use o [guia de perfis visuais](../../docs/design/GODOT_VISUAL_PROFILES.md): tema semântico, fontes, composição e manifestos de arte. Mão, controllers e playback são compartilhados. Marfim é o padrão da run, com perfis separados de UI/cenário; o laboratório mantém sua variante de carta mais alta. O perfil contrastante/lateral permanece uma prova de teste.
 
 O mapa é uma tela própria: clique ou foco inspeciona; **Viajar** confirma uma opção publicada. Pan, centralização, próximas escolhas, visão geral e destaque por tipo alteram somente a leitura. Diálogos abrem outra cena, com retrato, caixa de fala, opções/custos e histórico de leitura. O texto aparece instantaneamente por padrão; a revelação gradual é opcional. O atalho de confirmação revela/avança páginas, mas nunca escolhe uma consequência. Ao concluir a conversa, o cliente volta ao mapa antes de viajar.
+
+O combate usa silhuetas maiores, mão central em adaptive fan e dock de ícones. Draw/discard/exile e zonas customizadas abrem uma grade das mesmas cartas, com busca e detalhes de leitura. Visibilidade e ordem respeitam o contrato da engine; consultar a coleção não joga cartas nem altera a run. [Capturas e contratos da composição](../../docs/design/reference-combat/2026-10-12/README.md).
 
 Regressões da arquitetura visual podem ser executadas isoladamente com
 `tools/test-godot-ui.ps1`. As [capturas e certificação da refatoração](../../docs/design/interface-refactor/2026-10-11/README.md) registram limites, métricas e diagnósticos de encerramento, separadamente da baseline original.

@@ -68,7 +68,7 @@ func _run() -> void:
 				check(screen.view.gameplay_column.get_global_rect() == screen.find_child("CombatBody", true, false).get_global_rect(), "expanded character panel reserves zero battlefield width")
 				check(screen.view.floating_hud.host.get_global_rect() == screen.view.gameplay_column.get_global_rect(), "floating panels follow gameplay bounds after resize")
 				check(screen.view.character_sidebar.get_global_rect().end.y < screen.view.bottom_hud.get_global_rect().end.y - 60, "reading panel never covers bottom turn controls")
-				check(hand.toolbar.get_index() > hand.scroll.get_index(), "tools are below the cards, not a hand section heading")
+				check(hand.toolbar.get_parent() == screen.view.turn_view and not hand.overview_enabled, "tools are in the independent dock without hand overview")
 				check(footer.get_global_rect().end.y <= router.get_global_rect().end.y - 23 and screen.view.bottom_hud.get_global_rect().end.x <= screen.view.gameplay_column.get_global_rect().end.x + 1, "bottom controls stay in bounds")
 				check(preload("res://tests/layout_inspector.gd").vertical_text_issues(screen).is_empty(), "translated combat text never collapses vertically")
 				check(screen.view.actor_portraits.values().all(func(portrait): return portrait.size.x >= 180 and portrait.size.y >= 60), "actor artwork is expanded and adapts to accessible fonts")
@@ -134,6 +134,7 @@ func _run() -> void:
 				await settle()
 				check(screen.view.character_sidebar.visible and not screen.view.character_sidebar_reopen.visible, "real pointer reopens the complete sidebar")
 				check(screen.view.bottom_hud.get_global_rect() == before, "opening character details does not move the hand or turn controls")
+				if screen.view.bottom_hud.get_global_rect() != before: print("[DOCK_DELTA] ", before, " -> ", screen.view.bottom_hud.get_global_rect(), " hand=", hand.scroll.size, " bar=", hand.scroll.get_h_scroll_bar().visible, " layout=", hand._layout.height, " min=", hand.scroll.get_combined_minimum_size())
 	# A high-z gameplay button must not receive clicks through the reading overlay.
 	var clicks := [0]
 	var probe := Button.new()

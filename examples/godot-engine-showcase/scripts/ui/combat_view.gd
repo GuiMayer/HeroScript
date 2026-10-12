@@ -264,6 +264,7 @@ func _build_footer() -> void:
 	hand.toolbar_external = true; hand._update_counter()
 	next_frame_button = row.next_frame_button; selection_actions = row.selection_actions
 	reconnect_button = _button(visual_context.translator.text("RECONNECT"), _reconnect, 130)
+	preload("res://scripts/ui/combat_chrome.gd").apply(reconnect_button, "tools", reconnect_button.text, visual_context)
 	floating_hud.replace_slot("reconnect", reconnect_button)
 	reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	reconnect_button.offset_right = 150

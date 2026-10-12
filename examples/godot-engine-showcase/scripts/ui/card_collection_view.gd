@@ -10,6 +10,7 @@ var _sort := OptionButton.new()
 var _scroll := ScrollContainer.new()
 var _grid := GridContainer.new()
 var _message: Label
+var _back := TextureRect.new()
 func _init(context = null) -> void:
 	visual_context = context if context != null else ContextType.new()
 	theme = visual_context.theme; add_theme_constant_override("separation", 12)
@@ -19,13 +20,20 @@ func _init(context = null) -> void:
 	_sort.add_item(visual_context.translator.text("Published order")); _sort.add_item(visual_context.translator.text("By name"))
 	_sort.item_selected.connect(func(_index): _filter()); tools.add_child(_sort); add_child(tools)
 	_message = visual_context.styles.muted("", 16); add_child(_message)
+	_back.texture = preload("res://scripts/ui/combat_chrome.gd").texture("pile")
+	_back.modulate = visual_context.styles.INK; _back.custom_minimum_size = Vector2(64, 90)
+	_back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_back.mouse_filter = Control.MOUSE_FILTER_IGNORE; _back.hide(); add_child(_back)
 	_scroll.custom_minimum_size = Vector2(600, 430); _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.follow_focus = true
 	_grid.add_theme_constant_override("h_separation", 16); _grid.add_theme_constant_override("v_separation", 16)
+	_grid.columns = 2 # Match the minimum viewport before the native popup measures us.
 	_scroll.add_child(_grid); add_child(_scroll); _scroll.resized.connect(_columns)
 func apply_model(data: Dictionary) -> void:
 	model = data.duplicate(true)
 	_search.editable = bool(model.visible)
+	_sort.disabled = not bool(model.visible); _scroll.visible = bool(model.visible)
+	_back.visible = not bool(model.visible) and int(model.count) > 0
 	_sort.set_item_disabled(0, not bool(model.ordered)); _sort.select(0 if model.ordered else 1)
 	_message.text = visual_context.translator.text("Contents hidden") if not model.visible else (visual_context.translator.text("Empty") if model.count == 0 else visual_context.translator.text("Published order" if model.ordered else "Order hidden — sorted catalog"))
 	var live: Array = []
@@ -39,11 +47,11 @@ func apply_model(data: Dictionary) -> void:
 		card.configure(item); card.disabled = false
 	for id in cards.keys():
 		if id not in live: _grid.remove_child(cards[id]); cards[id].queue_free(); cards.erase(id)
-	_filter(); _columns.call_deferred()
+	_filter(); _columns(); _columns.call_deferred()
 	visual_context.styles.apply_view_preferences(self)
 func _columns() -> void:
 	var width: float = visual_context.card_style.effective_size(visual_context.text_scale).x
-	_grid.columns = maxi(1, floori((_scroll.size.x - 20.) / (width + 16.)))
+	_grid.columns = maxi(1, floori((maxf(_scroll.size.x, _scroll.custom_minimum_size.x) - 20.) / (width + 16.)))
 func _filter() -> void:
 	var query := _search.text.strip_edges().to_lower()
 	var order: Array = model.get("cards", []).duplicate()
@@ -53,6 +61,12 @@ func _filter() -> void:
 		_grid.move_child(card, index)
 		card.visible = query.is_empty() or (str(item.name) + " " + " ".join(item.get("collectionTags", []))).to_lower().contains(query)
 func capture_local_state() -> Dictionary: return {"query": _search.text, "sort": _sort.selected, "scroll": _scroll.scroll_vertical}
+func update_card(id: String, data: Dictionary) -> void:
+	if not cards.has(id): return
+	cards[id].configure(data)
+	for index in model.cards.size():
+		if str(model.cards[index].cardInstanceId) == id: model.cards[index] = data.duplicate(true); break
+	_filter()
 func restore_local_state(state: Dictionary) -> void:
 	_search.text = str(state.get("query", ""))
 	_sort.select(1 if not model.get("ordered", false) else int(state.get("sort", 0)))

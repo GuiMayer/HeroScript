@@ -595,5 +595,18 @@
   "All node types": "All node types",
   "Unavailable": "Unavailable",
   "Risk: %s": "Risk: %s",
-  "Selecting a node only inspects it. Travel requires a published option.": "Selecting a node only inspects it. Travel requires a published option."
+  "Selecting a node only inspects it. Travel requires a published option.": "Selecting a node only inspects it. Travel requires a published option.",
+  "Search cards": "Search cards",
+  "Published order": "Published order",
+  "By name": "By name",
+  "Contents hidden": "Contents hidden",
+  "Order hidden — sorted catalog": "Order hidden — sorted catalog",
+  "Loading details…": "Loading details…",
+  "Published definition; contextual play cost unavailable.": "Published definition; contextual play cost unavailable.",
+  "More cards — scroll to browse.": "More cards — scroll to browse.",
+  "Previous cards": "Previous cards",
+  "Next cards": "Next cards",
+  "Draw": "Draw",
+  "Discard": "Discard",
+  "CLOSE": "CLOSE"
 }

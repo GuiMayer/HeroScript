@@ -21,6 +21,7 @@ func _run() -> void:
 	var dialog = load("res://scripts/ui/card_zone_dialog.gd").new(context); root.add_child(dialog); dialog.setup(model)
 	dialog.popup_centered_clamped(Vector2i(1000, 700), .9)
 	for _i in 10: await process_frame
+	check(dialog.size.y >= dialog.get_contents_minimum_size().y and dialog.size.y <= root.get_visible_rect().size.y, "collection and close action fit the viewport without popup auto-growth")
 	var requests: Array = []; dialog.card_requested.connect(func(id): requests.append(id))
 	dialog.collection.cards.a.pressed.emit()
 	check(requests == ["a"] and dialog.collection.cards.size() == 2, "shared card faces emit only a read request")
