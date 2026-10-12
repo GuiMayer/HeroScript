@@ -5,7 +5,10 @@
 Feedback curto, discreto e não contínuo: clique seco nos menus, textura de atrito
 no uso/movimento de cartas, impacto mais encorpado no dano, madeira na proteção
 e vidro suave na recuperação. Confirmação de recompensa e erro têm identidade
-separada. Hover, reconstrução de interface e fases vazias não produzem som.
+separada. Hover na mão usa um tick leve ao entrar em outra carta, com três
+variantes, intervalo de 65 ms e máximo de duas vozes. Movimento dentro da mesma
+carta, foco programático, drag, pausa e modal não repetem o tick.
+Reconstrução de interface e fases vazias não produzem som.
 
 Foram removidos todos os tons sintetizados anteriores, inclusive o drone de
 fundo. Não há música substituta aprovada: o catálogo deixa `music` vazio.
@@ -16,7 +19,7 @@ o volume Music continua independente. Não se mantém o som ruim como fallback.
 
 - `data/audio_manifest.json`: eventos, variantes, ganhos, cooldown, máximo de
   instâncias por evento e associações visuais opcionais para ganhos de recursos.
-- `GameAudio`: carrega 20 samples no início, usa oito players prealocados e
+- `GameAudio`: carrega 23 samples no início, usa oito players prealocados e
   encaminha música/efeitos para buses separados. Limiter protege o bus SFX.
 - `CombatAudioPresenter`: converte aplicações publicadas em cues. Não calcula
   dano, não assume que health é o recurso de dano e não confunde custo com ataque.
@@ -61,3 +64,7 @@ Certificação em 2026-10-12: importação sem erros; áudio 59, recuperação d
 configurações 64, configurações interativas 82, seleção após play 22, pausa 24,
 arquitetura gráfica 27, colaboradores de combate 12 e camadas 67 verificações
 aprovadas. QA usa cópia e preferências isoladas; não altera partidas pessoais.
+
+Após incluir hover na mão e no laboratório: áudio 70, arquitetura 27,
+seleção após play 22 e pausa 24 verificações aprovadas, incluindo ausência de
+repetição dentro da mesma carta, foco, drag e modal.

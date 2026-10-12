@@ -24,6 +24,16 @@
       "cooldown_ms": 90,
       "max_instances": 2
     },
+    "card_hover": {
+      "clips": [
+        "res://assets/audio/kenney-interface/scroll_001.ogg",
+        "res://assets/audio/kenney-interface/scroll_002.ogg",
+        "res://assets/audio/kenney-interface/scroll_003.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 65,
+      "max_instances": 2
+    },
     "card_play": {
       "clips": [
         "res://assets/audio/kenney-interface/scratch_001.ogg",

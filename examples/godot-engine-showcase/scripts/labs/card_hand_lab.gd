@@ -144,6 +144,7 @@ func _build() -> void:
 	hand.selection_requested.connect(select_card)
 	hand.inspection_requested.connect(func(id): select_card(id); inspect_selected())
 	hand.card_previewed.connect(func(_id): pass)
+	hand.card_hovered.connect(func(_id): if not get_tree().paused: GameAudio.play_event("card_hover"))
 	outer.add_child(hand)
 	layout_picker = OptionButton.new()
 	layout_picker.name = "LabHandLayout"

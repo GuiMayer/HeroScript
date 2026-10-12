@@ -192,6 +192,7 @@ func _build_hand() -> void:
 		hand.counter.hide(); hand.toolbar.custom_minimum_size = Vector2(144, 44)
 		hand.card_activated.connect(_choose_card)
 		hand.card_previewed.connect(_show_preview)
+		hand.card_hovered.connect(func(id): intent_requested.emit("card_hover", [id]))
 		hand.inspection_requested.connect(_inspect_instance)
 		hand.selection_requested.connect(func(id):
 			if _locked() or id not in card_buttons: return

@@ -4,6 +4,7 @@ var visual_context: ContextType
 ## Shared hand. Instance identities and intents only; no REST or game rules.
 signal card_activated(instance_id: String)
 signal card_previewed(instance_id: String)
+signal card_hovered(instance_id: String)
 signal inspection_requested(instance_id: String)
 signal selection_requested(instance_id: String)
 signal drop_requested(instance_id: String, global_point: Vector2)
@@ -395,6 +396,7 @@ func pointer_input(event: InputEvent) -> void:
 		if id != interaction.hovered:
 			interaction.hovered = id
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
+			if not id.is_empty() and not reading_modal and not interaction.dragging: card_hovered.emit(id)
 		_apply_emphasis()
 		if not read_only and not interaction.pressed.is_empty() and (visual_context.hand_drag_enabled if drag_override == null else drag_override):
 			if event.global_position.distance_to(interaction.press_position) >= visual_style.drag_threshold:

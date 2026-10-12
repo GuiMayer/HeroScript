@@ -83,7 +83,9 @@ func _hand_scope() -> String:
 
 
 func _on_intent(action: String, arguments: Array) -> void:
-	if action == "inspect_zone": _open_collection(arguments[0])
+	if action == "card_hover":
+		if is_inside_tree() and not get_tree().paused and not view.hand.reading_modal: GameAudio.play_event("card_hover")
+	elif action == "inspect_zone": _open_collection(arguments[0])
 	elif action == "timeline": router.show_timeline()
 	elif action == "pause": router.toggle_pause()
 	elif action == "select_card":
