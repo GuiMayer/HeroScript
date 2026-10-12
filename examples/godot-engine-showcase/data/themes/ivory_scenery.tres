@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/ui/styles/scenery_visual_profile.gd" id="1"]
+[resource]
+script = ExtResource("1")
+profile_id = "ivory_scenery"
+ambient_style = "paper"
+art_manifest = "res://data/ivory_run_art_manifest.json"
+colors = { "scenery.base": "#f2ebdd", "scenery.far": "#827b70", "scenery.near": "#20201c" }

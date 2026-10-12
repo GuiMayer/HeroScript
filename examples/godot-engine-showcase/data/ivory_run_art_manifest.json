@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "defaults": {
+    "cards": "card_unknown",
+    "effects": "effect_unknown",
+    "behaviors": "behavior_unknown",
+    "actors": "actor_unknown",
+    "portraits": "actor_unknown",
+    "activities": "activity_unknown",
+    "backgrounds": "battlefield"
+  },
+  "categories": {
+    "effects": {
+      "core_charge": "core_charge_effect",
+      "core_ember_damage": "core_scorch_effect",
+      "core_ember_heal": "core_afterglow_effect"
+    },
+    "behaviors": {
+      "core_multihit": "core_multihit_behavior",
+      "core_cascade": "core_cascade_behavior"
+    },
+    "portraits": {
+      "ember_keeper": "actor_adept"
+    },
+    "cards": {
+      "core_strike": "core_strike",
+      "core_guard": "core_guard",
+      "core_heal": "core_heal",
+      "core_charge_card": "core_charge_card",
+      "core_release": "core_release",
+      "core_recover": "core_recover",
+      "core_empower_card": "core_empower_card",
+      "basic_attack": "card_strike",
+      "defend": "card_defend",
+      "fireball": "card_fire",
+      "heal": "card_heal",
+      "arcane_bolt": "card_fire"
+    },
+    "actors": {
+      "spire_adept": "actor_adept",
+      "player_warrior": "actor_adept",
+      "spire_wisp": "actor_wisp",
+      "enemy_goblin": "actor_wisp",
+      "spire_sentinel": "actor_sentinel",
+      "enemy_orc_warrior": "actor_sentinel"
+    },
+    "activities": {
+      "Encounter": "activity_encounter",
+      "RelicReward": "activity_relic",
+      "CardSelection": "activity_reward",
+      "Shop": "activity_shop",
+      "Preparation": "activity_camp",
+      "CardUpgrade": "activity_forge",
+      "Dialogue": "activity_camp",
+      "Victory": "activity_victory"
+    },
+    "backgrounds": {
+      "combat": "battlefield"
+    }
+  },
+  "slots": {
+    "effect_unknown": {
+      "path": "res://assets/ivory/spark.svg",
+      "placeholder": true
+    },
+    "behavior_unknown": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_charge_effect": {
+      "path": "res://assets/ivory/spark.svg",
+      "placeholder": true
+    },
+    "core_scorch_effect": {
+      "path": "res://assets/ivory/flame.svg",
+      "placeholder": true
+    },
+    "core_afterglow_effect": {
+      "path": "res://assets/ivory/spark.svg",
+      "placeholder": true
+    },
+    "core_multihit_behavior": {
+      "path": "res://assets/ivory/strike.svg",
+      "placeholder": true
+    },
+    "core_cascade_behavior": {
+      "path": "res://assets/ivory/strike.svg",
+      "placeholder": true
+    },
+    "core_strike": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_guard": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_heal": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_charge_card": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_release": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_recover": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "core_empower_card": {
+      "path": "res://assets/ivory/unknown.svg",
+      "placeholder": true
+    },
+    "card_unknown": {
+      "path": "res://assets/ivory/unknown.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_strike": {
+      "path": "res://assets/ivory/strike.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_defend": {
+      "path": "res://assets/ivory/guard.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_fire": {
+      "path": "res://assets/ivory/flame.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_heal": {
+      "path": "res://assets/ivory/spark.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_unknown": {
+      "path": "res://assets/ivory/actor-wisp.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_adept": {
+      "path": "res://assets/ivory/actor-adept.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_wisp": {
+      "path": "res://assets/ivory/actor-wisp.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_sentinel": {
+      "path": "res://assets/ivory/actor-sentinel.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_unknown": {
+      "path": "res://assets/ivory/unknown.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_encounter": {
+      "path": "res://assets/ivory/strike.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_relic": {
+      "path": "res://assets/ivory/flame.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_reward": {
+      "path": "res://assets/ivory/unknown.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_shop": {
+      "path": "res://assets/ivory/unknown.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_camp": {
+      "path": "res://assets/ivory/flame.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_forge": {
+      "path": "res://assets/ivory/guard.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_victory": {
+      "path": "res://assets/ivory/spark.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "battlefield": {
+      "path": "res://assets/ivory/battlefield.svg",
+      "fit": "cover",
+      "placeholder": true
+    }
+  }
+}

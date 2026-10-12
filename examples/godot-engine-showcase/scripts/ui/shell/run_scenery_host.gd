@@ -27,5 +27,5 @@ func mount(context) -> void:
 func set_active(value: bool) -> void:
 	visible = value
 	background.visible = value
-	background.set_process(value)
+	background.set_process(value and background.visual_context.scenery_profile.ambient_style != "paper")
 	if value: background.queue_redraw()

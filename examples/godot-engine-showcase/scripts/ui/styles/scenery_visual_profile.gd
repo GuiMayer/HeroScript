@@ -1,6 +1,7 @@
 extends Resource
 ## Independent visual configuration. Never contains game rules or command state.
 @export var profile_id := "preserved-scenery"
+@export var ambient_style := "ember"
 @export var art_manifest := "res://data/art_manifest.json"
 @export var setting_art_manifests: Dictionary = {}
 @export var mappings := "res://data/scenery.json"
@@ -14,4 +15,4 @@ func color(role: String) -> Color:
 func manifest_for(setting: String) -> String:
 	return str(setting_art_manifests.get(setting, art_manifest))
 func presentation_key() -> String:
-	return JSON.stringify([profile_id, art_manifest, setting_art_manifests, mappings, colors])
+	return JSON.stringify([profile_id, ambient_style, art_manifest, setting_art_manifests, mappings, colors])

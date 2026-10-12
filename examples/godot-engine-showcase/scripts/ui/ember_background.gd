@@ -10,7 +10,7 @@ func _ready() -> void:
 	set_process(true)
 
 func _process(delta: float) -> void:
-	if visual_context.reduced_motion or get_tree().paused:
+	if visual_context.scenery_profile.ambient_style == "paper" or visual_context.reduced_motion or get_tree().paused:
 		return
 	drift += delta * 0.22
 	queue_redraw()
@@ -18,6 +18,12 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var size := get_rect().size
 	draw_rect(Rect2(Vector2.ZERO, size), visual_context.scenery_profile.color("scenery.base"))
+	if visual_context.scenery_profile.ambient_style == "paper":
+		var ink: Color = visual_context.scenery_profile.color("scenery.far"); ink.a = .16
+		for i in 5:
+			var y := size.y * .8 + i * 5
+			draw_polyline(PackedVector2Array([Vector2(0, y), Vector2(80, y), Vector2(150, y - 70), Vector2(230, y - 70)]), ink, 1., true)
+		return
 	for i in 9:
 		var ratio := float(i) / 8.0
 		var tint: Color = visual_context.scenery_profile.color("scenery.gradient_start").lerp(visual_context.scenery_profile.color("scenery.gradient_end"), ratio)
