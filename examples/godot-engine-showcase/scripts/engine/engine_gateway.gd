@@ -143,6 +143,8 @@ func inspect_hand(combat_id: String, actor_id: String, target_ids := []) -> Dict
 	for target_id in target_ids:
 		path += "&targetIds=%s" % str(target_id).uri_encode()
 	return await _transport.request(HTTPClient.METHOD_GET, path)
+func inspect_card(combat_id: String, actor_id: String, instance_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/combats/%s/cards/%s/evaluation?actorId=%s" % [combat_id.uri_encode(), instance_id.uri_encode(), actor_id.uri_encode()])
 
 func transformation_preview(run_id: String, card_id: String, operation: String, upgrade_id := "", transformation_id = null) -> Dictionary:
 	var path := "/api/v1/runs/%s/cards/%s/transformation-preview?operation=%s" % [run_id.uri_encode(), card_id.uri_encode(), operation.uri_encode()]

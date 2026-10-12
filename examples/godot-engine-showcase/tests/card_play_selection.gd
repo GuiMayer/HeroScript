@@ -89,7 +89,7 @@ func _run() -> void:
 	check_neutral(screen, "after animation confirmation")
 	# Focus is valid and outside the cards; controller Up can deliberately return.
 	var neutral = root.gui_get_focus_owner()
-	check(is_instance_valid(neutral) and neutral.name == "HandOverviewButton", "post-play focus is on a neutral hand tool")
+	check(is_instance_valid(neutral) and neutral.name == "HandInspectButton", "post-play focus is on the neutral inspect tool, not removed overview")
 	var up := InputEventKey.new()
 	up.keycode = KEY_UP; up.physical_keycode = KEY_UP; up.pressed = true
 	root.push_input(up, true)

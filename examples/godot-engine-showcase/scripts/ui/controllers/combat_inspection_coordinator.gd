@@ -50,6 +50,26 @@ func invalidate() -> void:
 	_pending.clear()
 	for cell in cells: cell.finish({"ok": false, "canceled": true})
 
+func inspect_card(revision: Array, id: String) -> Dictionary:
+	if not _alive: return {"ok": false, "canceled": true}
+	var key := JSON.stringify(["collection", revision, id])
+	if _cache.has(key): return _cache[key].duplicate(true)
+	if _pending.has(key):
+		var waiting: RequestCell = _pending[key]
+		if not waiting.done: await waiting.completed
+		return waiting.response.duplicate(true)
+	# Reading a collection cannot fan out into an unbounded request storm.
+	if _pending.size() >= 2: return {"ok": false, "error": "Inspection busy; retry shortly."}
+	var ticket := _epoch; var cell := RequestCell.new(); _pending[key] = cell
+	var response: Dictionary = await _controller.inspect_card(id)
+	if not _alive or ticket != _epoch:
+		cell.finish({"ok": false, "canceled": true}); return cell.response.duplicate(true)
+	_pending.erase(key)
+	if response.get("ok", false):
+		if _cache.size() >= MAX_CACHE_ENTRIES: _cache.erase(_cache.keys()[0])
+		_cache[key] = response.duplicate(true)
+	cell.finish(response); return cell.response.duplicate(true)
+
 func dispose() -> void:
 	_alive = false
 	invalidate()

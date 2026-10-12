@@ -7,8 +7,8 @@ Guia: [plano](GODOT_COMBAT_REFERENCE_LAYOUT_HAND_AND_PILES_PLAN.md). Início: 20
 3. Adaptive fan: curvatura independente de compressão, mínimo de 4° com duas cartas, máximo de 8° e passo proporcional. Reading mantém cartas retas; hitboxes/reserva permanecem no layout compartilhado.
 4. Ícones/chrome: catálogo SVG monocromático e keylines angulares em controles nativos; header/turn controls usam a família sem perder labels acessíveis ou comandos.
 5. Remoção de overview/dock: overview removido do combate/atalhos públicos; permanece somente o consumidor real do laboratório. Pilhas e ferramentas ficam no dock independente da geometria da mão, com identidade por endereço.
-6. Browser de pilhas: pendente.
-7. Feedback: pendente.
+6. Browser de pilhas: grade compartilhada de CardView, busca/ordenação local, visibilidade/ordem explícitas e endereço completo; avaliações individuais sob demanda com cache/contexto e concorrência limitada.
+7. Feedback: HUD de atores compacto sem remover recursos/estados ativos, silhuetas maiores, ícones de intenção configuráveis com fallback e preview independente; foco desenhado sem reflow. Modais bloqueiam atalhos de combate.
 8. Certificação: pendente.
 
 Regras, cartas e pilhas permanecem autoritativas na engine. QA não usa runs pessoais.

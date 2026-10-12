@@ -497,6 +497,8 @@ func submit_activity(choice: Dictionary) -> bool:
 
 func inspect_hand(target_ids := []) -> Dictionary:
 	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id(), target_ids)
+func inspect_card(instance_id: String) -> Dictionary:
+	return await _gateway.inspect_card(str(_combat.get("combatId", "")), input_actor_id(), instance_id)
 
 func historical_state(sequence: int) -> Dictionary:
 	if not allows_tool("timeline.inspect_state"):

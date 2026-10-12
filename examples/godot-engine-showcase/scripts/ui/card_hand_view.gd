@@ -374,8 +374,8 @@ func _update_counter() -> void:
 		preload("res://scripts/ui/combat_chrome.gd").apply(previous, "left", visual_context.translator.text("Previous cards"), visual_context, false, true)
 		preload("res://scripts/ui/combat_chrome.gd").apply(next, "arrow", visual_context.translator.text("Next cards"), visual_context, false, true)
 	counter.tooltip_text = visual_context.translator.text("More cards — scroll to browse.") if overflow else ""
-	var inspect: Button = find_child("HandInspectButton", true, false)
-	var overview: Button = find_child("HandOverviewButton", true, false)
+	var inspect: Button = toolbar.get_node_or_null("HandInspectButton")
+	var overview: Button = toolbar.get_node_or_null("HandOverviewButton")
 	if is_instance_valid(inspect):
 		if toolbar_external: preload("res://scripts/ui/combat_chrome.gd").apply(inspect, "inspect", "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")], visual_context, false, true)
 		else: inspect.text = "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]
@@ -461,7 +461,7 @@ func wire_focus() -> void:
 		var id := active_card_id()
 		var destination: Control = _cards[id if id in order else order[0]]
 		var direction := "focus_neighbor_top" if toolbar_external or toolbar.get_index() > scroll.get_index() else "focus_neighbor_bottom"
-		for tool in [previous, next, find_child("HandInspectButton", true, false), find_child("HandOverviewButton", true, false)]:
+		for tool in [previous, next, toolbar.get_node_or_null("HandInspectButton"), toolbar.get_node_or_null("HandOverviewButton")]:
 			if is_instance_valid(tool): tool.set(direction, tool.get_path_to(destination))
 static func empty_state(message: String, context: ContextType = null) -> Control:
 	if context == null: context = ContextType.new()

@@ -119,7 +119,7 @@ func card_view_model(instance_id: String) -> Dictionary:
 	var inspected_evaluation: Dictionary = inspection.get("evaluation", {}) if inspection.get("evaluation") is Dictionary else {}
 	var published_costs: Array = candidate.get("costs", []) if not candidate.is_empty() else inspected_evaluation.get("costs", [])
 	var requires_alternative: bool = inspection.get("effectiveBase", {}).get("components", []).any(func(component): return component.get("type") == "cost" and not component.get("costs", {}).get("alternativeCosts", []).is_empty())
-	var costs_known := not requires_alternative or not candidate.is_empty() or published_costs.any(func(cost): return cost.get("optionId") != null)
+	var costs_known := (not inspection.is_empty() or not candidate.is_empty()) and (not requires_alternative or not candidate.is_empty() or published_costs.any(func(cost): return cost.get("optionId") != null))
 	var sections: Dictionary = _sections.sections(inspection, appearance)
 	if not sections.get("effectRows", []).is_empty():
 		summary = "\n".join(sections.effectRows.map(func(row):
@@ -140,6 +140,7 @@ func card_view_model(instance_id: String) -> Dictionary:
 		"effects": summary.split("\n", false),
 		"costs": _cost_tokens(published_costs),
 		"costsKnown": costs_known,
+		"costUnknownLabel": _i18n.text("Cost unavailable"),
 		"cost": "" if not candidate.is_empty() or not inspection.is_empty() else _i18n.text("Cost — inspect"),
 		"costOptions": cost_options,
 		"availability": _i18n.text("SELECT TO PLAY") if not candidate.is_empty() else unavailable_reason(instance_id),
@@ -367,6 +368,9 @@ func combat_model(viewpoint: String):
 		var relation := relationship(actor, viewpoint)
 		actor["relationship"] = relation
 		actor["isInputActor"] = str(actor.get("instanceId", "")) == viewpoint
+		for intent in _combat.get("activation", {}).get("intents", []):
+			if str(intent.get("actorId", "")) == str(actor.get("instanceId", "")):
+				actor["intentIconId"] = str(_appearance.get("intent_icons", {}).get(str(intent.get("actionId", "")), "unknown"))
 		return {"actor": actor, "relationship": relation, "sideId": str(actor.get("sideId", "")),
 			"intent": intent_for(str(actor.get("instanceId", "")))})
 	return preload("res://scripts/presentation/view_models.gd").Combat.new({"context": context_key(), "actors": items})

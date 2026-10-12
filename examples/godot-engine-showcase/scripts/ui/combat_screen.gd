@@ -18,6 +18,8 @@ var _combat_snapshot: Dictionary
 var _action_snapshot: Array
 var _zone_snapshot: Dictionary
 var _scenery_key := ""
+var _zone_reading_states: Dictionary = {}
+var _collection_dialog: Window
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -81,7 +83,8 @@ func _hand_scope() -> String:
 
 
 func _on_intent(action: String, arguments: Array) -> void:
-	if action == "timeline": router.show_timeline()
+	if action == "inspect_zone": _open_collection(arguments[0])
+	elif action == "timeline": router.show_timeline()
 	elif action == "pause": router.toggle_pause()
 	elif action == "select_card":
 		if controller.select_card(str(arguments[0])):
@@ -98,6 +101,56 @@ func _on_intent(action: String, arguments: Array) -> void:
 func _update_controls() -> void:
 	if not is_instance_valid(view): return
 	view.apply_interaction(controller.interaction_model().to_dictionary())
+	if is_instance_valid(_collection_dialog):
+		var address: Dictionary = _collection_dialog.collection.model.address
+		var zone: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").find(GameSession.card_zones, address)
+		if zone.is_empty() or str(_collection_dialog.get_meta("context")) != presenter.context_key(): _collection_dialog.queue_free()
+		elif zone != _collection_dialog.get_meta("zone_snapshot"):
+			var state: Dictionary = _collection_dialog.collection.capture_local_state()
+			_collection_dialog.collection.apply_model(preload("res://scripts/presentation/card_collection_presenter.gd").build(zone, presenter, visual_context.translator))
+			_collection_dialog.collection.restore_local_state(state)
+			_collection_dialog.set_meta("zone_snapshot", zone)
+
+func _open_collection(address: Dictionary) -> void:
+	if not is_inside_tree() or get_tree().paused or view.hand.reading_modal: return
+	var zone: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").find(_zone_snapshot, address)
+	if zone.is_empty(): return
+	var model: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").build(zone, presenter, visual_context.translator)
+	var scope := JSON.stringify([GameSession.selected_setting_id, _run_snapshot.get("runId"), _run_snapshot.get("branchId"), _combat_snapshot.get("combatId"), address])
+	var dialog = preload("res://scripts/ui/card_zone_dialog.gd").new(visual_context)
+	_collection_dialog = dialog; dialog.setup(model); add_child(dialog)
+	dialog.set_meta("context", presenter.context_key()); dialog.set_meta("zone_snapshot", zone)
+	dialog.collection.restore_local_state(_zone_reading_states.get(scope, {}))
+	dialog.card_requested.connect(func(id): _inspect_collection_card(dialog, id))
+	dialog.tree_exiting.connect(func():
+		if _zone_reading_states.size() >= 16: _zone_reading_states.erase(_zone_reading_states.keys()[0])
+		_zone_reading_states[scope] = dialog.capture_local_state()
+		for button in view.find_children("Pile_*", "Button", true, false):
+			if button.get_meta("zone_address") == address and button.is_inside_tree(): button.grab_focus())
+	view.hand.track_reading_modal(dialog); dialog.popup_centered_clamped(Vector2i(1100, 720), .9)
+func _inspect_collection_card(dialog, id: String) -> void:
+	if not is_instance_valid(dialog) or not dialog.collection.cards.has(id): return
+	var scope := presenter.context_key()
+	var model: Dictionary = dialog.collection.cards[id].model.duplicate(true)
+	dialog.show_detail(id, model, {}, visual_context.translator.text("Loading details…"))
+	var detail: Window = dialog.detail
+	var key: Array = [GameSession.selected_setting_id, scope, _run_snapshot.get("contentRevision", ""), GameSession.input_actor_id()]
+	var response: Dictionary = await inspection_coordinator.inspect_card(key, id)
+	if not is_inside_tree() or not is_instance_valid(dialog) or not is_instance_valid(detail) or dialog.detail != detail or not detail.visible or scope != presenter.context_key(): return
+	if not response.get("ok", false):
+		detail.find_child("CollectionInspectionStatus", true, false).text = visual_context.translator.text("Detailed inspection is unavailable.")
+		var retry := visual_context.styles.button(visual_context.translator.text("RECONNECT"))
+		retry.pressed.connect(func(): if is_instance_valid(dialog): _inspect_collection_card(dialog, id))
+		detail.content.add_child(retry); return
+	presenter.accept_evaluations([response.data])
+	model = presenter.card_view_model(id); model.availability = visual_context.translator.text("Inspect card")
+	if not bool(response.data.get("isInPlayableZone", false)): model.costsKnown = false
+	detail.find_child("CollectionInspectionStatus", true, false).text = visual_context.translator.text("Published definition; contextual play cost unavailable.") if not model.costsKnown else ""
+	var panel = detail.find_child("CardDetails", true, false)
+	if panel:
+		for child in panel.get_children(): panel.remove_child(child); child.queue_free()
+		panel.configure(model, visual_context.card_style)
+	dialog.collection.cards[id].configure(model)
 
 func _locked() -> bool: return controller.locked()
 func _resolve_scenery() -> Dictionary:
@@ -117,6 +170,7 @@ func apply_interaction(_state) -> void: _update_controls()
 func capture_local_state() -> Dictionary: return view.capture_local_state()
 func restore_local_state(state: Dictionary) -> void: view.restore_local_state(state)
 func dispose() -> void:
+	if is_instance_valid(_collection_dialog): _collection_dialog.queue_free()
 	if controller: controller.dispose()
 	if inspection_coordinator: inspection_coordinator.dispose()
 	if presentation_driver: presentation_driver.dispose()

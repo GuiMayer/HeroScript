@@ -63,6 +63,7 @@ var character_sidebar_title: Label
 var character_sidebar_reopen: Button
 var character_sidebar_expanded := false
 var pile_controls
+var right_pile_controls
 
 func _ready() -> void:
 	visibility_changed.connect(func():
@@ -201,7 +202,15 @@ func _build_hand() -> void:
 		pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
 		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 		add_child(pile_controls)
-	pile_controls.apply_model(zone_presenter.auxiliary_zones(), visual_context)
+	if not is_instance_valid(right_pile_controls):
+		right_pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
+		right_pile_controls.name = "RightPileControls"
+		right_pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
+		add_child(right_pile_controls)
+	var zones: Array = zone_presenter.auxiliary_zones()
+	var right: Array = zones.filter(func(zone): return str(zone.get("presentation", {}).get("dock", "right" if str(zone.get("zoneId", "")) in ["discard", "exile"] else "left")) == "right")
+	pile_controls.apply_model(zones.filter(func(zone): return zone not in right), visual_context)
+	right_pile_controls.apply_model(right, visual_context); right_pile_controls.visible = not right.is_empty()
 	_sync_hand_models()
 
 
@@ -229,6 +238,7 @@ func _build_footer() -> void:
 	if is_instance_valid(turn_view):
 		if hand.toolbar.get_parent() == turn_view: hand.toolbar.reparent(hand, false)
 		if is_instance_valid(pile_controls) and pile_controls.get_parent() == turn_view: pile_controls.reparent(self, false)
+		if is_instance_valid(right_pile_controls) and right_pile_controls.get_parent() == turn_view: right_pile_controls.reparent(self, false)
 		for button in turn_view.buttons: action_buttons.erase(button)
 		if is_instance_valid(_feedback_column) and _feedback_column.get_parent() != turn_view:
 			floating_hud.release_slot("preview")
@@ -250,6 +260,7 @@ func _build_footer() -> void:
 		_system_candidate(["PASS", "PASS_PRIORITY"]))
 	pile_controls.reparent(row, false); row.move_child(pile_controls, 0)
 	hand.toolbar.reparent(row, false); row.move_child(hand.toolbar, 1)
+	right_pile_controls.reparent(row, false); row.move_child(right_pile_controls, row.get_child_count() - 2)
 	hand.toolbar_external = true; hand._update_counter()
 	next_frame_button = row.next_frame_button; selection_actions = row.selection_actions
 	reconnect_button = _button(visual_context.translator.text("RECONNECT"), _reconnect, 130)
@@ -337,13 +348,13 @@ func _apply_character_sidebar_state() -> void:
 
 func _input(event: InputEvent) -> void:
 	# Consume cancel before the router handles pause; the first Escape cancels targeting.
-	if not get_tree().paused and not selected_card.is_empty() and event.is_action_pressed("ui_cancel"):
+	if not get_tree().paused and not hand.reading_modal and not selected_card.is_empty() and event.is_action_pressed("ui_cancel"):
 		_cancel_selection()
 		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if get_tree().paused or not is_visible_in_tree():
+	if get_tree().paused or not is_visible_in_tree() or hand.reading_modal:
 		return
 	if event.is_action_pressed("inspect_card") and not event.is_echo():
 		_inspect_instance(hand.active_card_id())
@@ -486,15 +497,11 @@ func _inspect_instance(id: String) -> void:
 	dialog.popup_centered()
 
 
-func _inspect_pile(label: String, zone: String, _address: Dictionary = {}) -> void:
-	var lines: Array[String] = []
-	for card in presenter.pile_cards(zone):
-		lines.append(visual_context.translator.content_name(str(card.get("definitionId", ""))) + (" +" if not card.get("upgrades", []).is_empty() else ""))
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
-	dialog.setup(visual_context.translator.text(label), "\n".join(lines) if not lines.is_empty() else visual_context.translator.text("Empty"))
-	add_child(dialog)
-	hand.track_reading_modal(dialog)
-	dialog.popup_centered()
+func _inspect_pile(_label: String, zone: String, address: Dictionary = {}) -> void:
+	if address.is_empty():
+		for item in zone_presenter.auxiliary_zones():
+			if str(item.get("zoneId", "")) == zone: address = preload("res://scripts/presentation/card_collection_presenter.gd").address(item); break
+	if not address.is_empty(): intent_requested.emit("inspect_zone", [address])
 
 
 func _open_zone_tools() -> void:
@@ -572,7 +579,7 @@ func _apply_preview_composition() -> void:
 		if _feedback_column.get_parent() != parent: _feedback_column.reparent(parent, false)
 	if parent == turn_view:
 		_feedback_column.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		turn_view.move_child(_feedback_column, 0)
+		turn_view.move_child(_feedback_column, 2)
 
 
 func _drop_card(id: String, point: Vector2) -> void:

@@ -78,6 +78,7 @@ func execute_zone_flow(payload: Dictionary) -> bool:
 	return accepted
 func reconnect() -> bool: return await _session.refresh()
 func inspect_hand(targets: Array) -> Dictionary: return await _session.inspect_hand(targets)
+func inspect_card(id: String) -> Dictionary: return await _session.inspect_card(id)
 func dispose() -> void:
 	_alive = false
 	_epoch += 1

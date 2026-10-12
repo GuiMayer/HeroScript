@@ -4,7 +4,7 @@ var _row := HBoxContainer.new()
 var _buttons := {}
 func _init() -> void:
 	name = "PileControls"; horizontal_scroll_mode = SCROLL_MODE_AUTO; vertical_scroll_mode = SCROLL_MODE_DISABLED
-	custom_minimum_size = Vector2(300, 64); size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	custom_minimum_size = Vector2(140, 64); size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_row.add_theme_constant_override("separation", 8); add_child(_row)
 func apply_model(zones: Array, context) -> void:
 	theme = context.theme
@@ -22,6 +22,7 @@ func apply_model(zones: Array, context) -> void:
 		var label: String = context.translator.text(str(zone.get("presentation", {}).get("labelKey", address.zoneId)))
 		var icon_id: String = str(zone.get("presentation", {}).get("iconId", {"draw": "draw", "discard": "discard", "exile": "exile"}.get(address.zoneId, "pile")))
 		preload("res://scripts/ui/combat_chrome.gd").apply(button, icon_id, "%s\n%s" % [label, zone.get("count", 0)], context)
+		button.expand_icon = false; button.clip_text = true; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		button.add_theme_font_size_override("font_size", 17)
 	for key in _buttons.keys():
 		if key not in live:
