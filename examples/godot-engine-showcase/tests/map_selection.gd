@@ -25,6 +25,18 @@ func _run() -> void:
 	view.route.buttons.a.pressed.emit(); view.restore_local_state(state)
 	check(view._selected == "b", "map reading selection restores independently of engine progress")
 	check(run.currentNodeId == "a", "inspection/restoration do not change current node")
+	var before := intents.size()
+	view._next_choices(); view._toggle_overview()
+	check(intents.size() == before and view._selected == "b", "next choices and overview only change reading state")
+	state = view.capture_local_state(); view._toggle_overview(); view.restore_local_state(state)
+	check(view._overview and view.route.nodes.size() == 3, "overview restores without hiding unavailable nodes")
+	view.camera.begin(Vector2(100, 100), Vector2(40, 50))
+	view.camera.motion(Vector2(102, 101))
+	check(not view.camera.dragged, "small pointer movement is not a pan")
+	var target: Vector2 = view.camera.motion(Vector2(120, 130))
+	check(view.camera.dragged and target == Vector2(20, 20), "camera pan is independent from gameplay and uses a threshold")
+	view.camera.cancel()
+	check(not view.camera.pressed, "camera releases its gesture")
 	view.queue_free(); for _i in 8: await process_frame
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

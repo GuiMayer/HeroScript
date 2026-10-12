@@ -7,6 +7,7 @@ var _layout = preload("res://scripts/presentation/map_layout.gd").new()
 var _geometry: Dictionary = {}
 signal inspection_requested(node_id: String)
 var _selected := ""
+var _highlight_kind := ""
 var nodes: Array = []
 var markers := {}
 var buttons := {}
@@ -43,6 +44,7 @@ func setup(route: Array) -> void:
 		if str(node.get("risk", "")) == "High": button.text += " · " + visual_context.translator.text("High risk")
 		button.add_theme_font_size_override("font_size", 14)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		button.clip_text = true
 		button.disabled = false # Published visibility permits reading, not travel.
 		button.toggle_mode = true
 		button.set_pressed_no_signal(id == _selected)
@@ -76,6 +78,10 @@ func set_selection(id: String) -> void:
 	_selected = id
 	for key in buttons: buttons[key].set_pressed_no_signal(str(key) == id)
 
+func highlight_kind(kind: String) -> void:
+	_highlight_kind = kind
+	queue_redraw()
+
 func _draw() -> void:
 	for edge in _geometry.get("edges", []):
 		var source: Array = nodes.filter(func(node): return str(node.get("id", "")) == str(edge.from))
@@ -92,3 +98,5 @@ func _draw() -> void:
 		if not markers.has(str(node.get("id", ""))): continue
 		var point: Vector2 = markers[str(node.get("id", ""))]
 		draw_circle(point, 7, visual_context.styles.GOLD if node.current else (visual_context.styles.TEAL if node.resolved else visual_context.styles.color("stroke.route")))
+		if not _highlight_kind.is_empty() and str(node.get("kind", "")) == _highlight_kind:
+			draw_arc(point, 11, 0, TAU, 24, visual_context.styles.color("text.primary"), 2, true)
