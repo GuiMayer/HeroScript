@@ -14,6 +14,24 @@ namespace Core.Tests.Run;
 public sealed class DialogueTests
 {
     [Fact]
+    public void PresentationMetadata_IsExplicit_AndDoesNotBypassCostsOrAlterLegacyDefaultSerialization()
+    {
+        var definition = Definition();
+        var first = definition.Nodes[0];
+        var choices = first.Choices.SetItem(0, first.Choices[0] with { InteractionKind = DialogueInteractionKind.Continue });
+        var configured = definition with { Nodes = definition.Nodes.SetItem(0, first with { SpeakerId = "keeper", Choices = choices }) };
+        var started = DialogueTransitions.Start(State(), configured, null).Value;
+        var view = DialogueTransitions.View(started, started.Dialogues[0]);
+        Assert.Equal("keeper", view.SpeakerId);
+        Assert.Equal(DialogueInteractionKind.Continue, view.Choices[0].InteractionKind);
+        Assert.Equal(choices[0].Costs, view.Choices[0].Costs);
+        Assert.DoesNotContain("interactionKind", CanonicalJson.Serialize(new DialogueChoiceDefinition { ChoiceId = "plain" }));
+        Assert.DoesNotContain("speakerId", CanonicalJson.Serialize(new DialogueNodeDefinition { NodeId = "plain" }));
+        var invalid = configured with { Nodes = configured.Nodes.SetItem(0, first with { Choices = choices.SetItem(0, choices[0] with { InteractionKind = (DialogueInteractionKind)99 }) }) };
+        Assert.Contains(DialogueDefinitionValidator.Validate(invalid), error => error.Contains("interaction kind"));
+    }
+
+    [Fact]
     public void UnstartedNarrativeIsAbsentFromCanonicalSnapshots_AndPastDialoguesExposeNoLegalChoices()
     {
         var state = State();

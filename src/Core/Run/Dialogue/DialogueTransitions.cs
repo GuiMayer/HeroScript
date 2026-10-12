@@ -40,7 +40,7 @@ public static class DialogueTransitions
             return (choice, available);
         }).Where(item => item.available || !item.choice.HideWhenUnavailable)
             .Select(item => new DialogueChoiceView(item.choice.ChoiceId, item.choice.Text, item.available,
-                item.available ? null : item.choice.UnavailableText, item.choice.Costs)).ToImmutableArray();
+                item.available ? null : item.choice.UnavailableText, item.choice.Costs, item.choice.InteractionKind)).ToImmutableArray();
         return new(dialogue.DialogueInstanceId, dialogue.Definition.DialogueId, dialogue.ActivityNodeId,
             dialogue.ContentRevision, dialogue.Definition.Title, node.NodeId, node.Speaker, node.Text,
             node.PortraitId, dialogue.Completed, choices, dialogue.History, dialogue.History.Select(visit =>
@@ -49,7 +49,7 @@ public static class DialogueTransitions
                 return new DialogueTranscriptLine(visit.NodeId, visit.ChoiceId,
                     visit.ChoiceId == null ? visited.Speaker : new DialogueText(),
                     visit.ChoiceId == null ? visited.Text : visited.Choices.Single(item => item.ChoiceId == visit.ChoiceId).Text);
-            }).ToImmutableArray());
+            }).ToImmutableArray(), node.SpeakerId);
     }
 
     public static Result<RunState> Start(RunState run, DialogueDefinition definition, IRunActivityEffectExecutor? effects)

@@ -20,6 +20,7 @@ public static class DialogueDefinitionValidator
             foreach (var choice in node.Choices)
             {
                 var path = $"{node.NodeId}/{choice.ChoiceId}";
+                if (!Enum.IsDefined(choice.InteractionKind)) errors.Add($"{path}: invalid dialogue interaction kind");
                 if (!Enum.IsDefined(choice.EffectOwner)) errors.Add($"{path}: invalid effect owner binding");
                 if (string.IsNullOrWhiteSpace(choice.ChoiceId)) errors.Add($"{path}: choiceId is required");
                 Text(choice.Text, path, errors);

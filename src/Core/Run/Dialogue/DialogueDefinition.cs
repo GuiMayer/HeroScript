@@ -26,6 +26,8 @@ public sealed record DialogueNodeDefinition
     public DialogueText Speaker { get; init; } = new();
     public DialogueText Text { get; init; } = new();
     public string? PortraitId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SpeakerId { get; init; }
     public ImmutableArray<EffectDefinition> EntryEffects { get; init; } = [];
     public RunActivityEffectOwner EntryEffectOwner { get; init; }
     public ImmutableArray<DialogueChoiceDefinition> Choices { get; init; } = [];
@@ -34,6 +36,8 @@ public sealed record DialogueNodeDefinition
 public sealed record DialogueChoiceDefinition
 {
     public string ChoiceId { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public DialogueInteractionKind InteractionKind { get; init; }
     public DialogueText Text { get; init; } = new();
     /// <summary>Null closes the conversation; a single choice also represents a linear Continue.</summary>
     public string? NextNodeId { get; init; }
@@ -46,6 +50,9 @@ public sealed record DialogueChoiceDefinition
     public RunActivityEffectOwner EffectOwner { get; init; }
     public ImmutableDictionary<string, string> SetFlags { get; init; } = ImmutableDictionary<string, string>.Empty;
 }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum DialogueInteractionKind { Choice, Continue }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DialogueConditionKind { All, Any, Not, Flag, ResourceAtLeast, HasCard, HasRelic, VisitedNode, ResolvedNode }
@@ -81,9 +88,11 @@ public sealed record DialogueState
 public sealed record StartDialogueCommand(string DialogueId);
 public sealed record ChooseDialogueOptionCommand(Guid DialogueInstanceId, string NodeId, string ChoiceId);
 public sealed record DialogueChoiceView(string ChoiceId, DialogueText Text, bool Available,
-    DialogueText? UnavailableText, ImmutableArray<ResourceAmount> Costs);
+    DialogueText? UnavailableText, ImmutableArray<ResourceAmount> Costs,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] DialogueInteractionKind InteractionKind = DialogueInteractionKind.Choice);
 public sealed record DialogueTranscriptLine(string NodeId, string? ChoiceId, DialogueText Speaker, DialogueText Text);
 public sealed record DialogueView(Guid DialogueInstanceId, string DialogueId, string ActivityNodeId,
     string ContentRevision, DialogueText Title, string NodeId, DialogueText Speaker, DialogueText Text,
     string? PortraitId, bool Completed, ImmutableArray<DialogueChoiceView> Choices,
-    ImmutableArray<DialogueVisit> History, ImmutableArray<DialogueTranscriptLine> Transcript);
+    ImmutableArray<DialogueVisit> History, ImmutableArray<DialogueTranscriptLine> Transcript,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SpeakerId = null);
