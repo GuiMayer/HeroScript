@@ -38,6 +38,8 @@ var _reserved_card_size := Vector2.ZERO
 var _layout_text_scale := -1.0
 var _layout_card_style_key := ""
 var _inspection_anchor := ""
+var overview_enabled := true
+var toolbar_external := false
 
 func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
@@ -104,7 +106,9 @@ func _preferences_changed() -> void:
 	interaction.cancel_pointer()
 	_clear_ghost()
 	toolbar.get_node("HandInspectButton").text = visual_context.translator.text("Inspect card")
-	toolbar.get_node("HandOverviewButton").text = visual_context.translator.text("Hand overview")
+	var overview := toolbar.get_node_or_null("HandOverviewButton")
+	if overview: overview.text = visual_context.translator.text("Hand overview")
+	_update_counter()
 	for card in _cards.values(): card.configure(card.model)
 	request_layout()
 
@@ -120,6 +124,10 @@ func ordered_cards() -> Array: return order.map(func(id): return _cards[id])
 func set_tools_below_cards(value: bool) -> void:
 	# Combat uses a floating bottom hand; labs and overview retain their toolbar.
 	move_child(toolbar, get_child_count() - 1 if value else 0)
+func disable_overview() -> void:
+	overview_enabled = false
+	var button := toolbar.get_node_or_null("HandOverviewButton")
+	if button: toolbar.remove_child(button); button.queue_free()
 
 func sync_models(models: Array, context: String, empty_message := "Your hand is empty.") -> void:
 	_syncing = true
@@ -214,8 +222,8 @@ func clear_choice() -> void:
 		if card.has_focus(): card.release_focus()
 		card.select_card(false)
 	if is_inside_tree() and not get_tree().paused:
-		var neutral: Control = find_child("HandOverviewButton", true, false)
-		if neutral.is_visible_in_tree(): neutral.grab_focus()
+		var neutral: Control = toolbar.get_node_or_null("HandInspectButton")
+		if is_instance_valid(neutral) and neutral.is_visible_in_tree(): neutral.grab_focus()
 	_apply_emphasis()
 func set_read_only(value: bool) -> void:
 	read_only = value
@@ -361,11 +369,17 @@ func _update_counter() -> void:
 	counter.text = (visual_context.translator.text("%s cards") % order.size()) + ("  ↔" if overflow else "")
 	previous.disabled = not overflow or scroll.scroll_horizontal <= 0
 	next.disabled = not overflow or scroll.scroll_horizontal >= scroll.get_h_scroll_bar().max_value - scroll.get_h_scroll_bar().page - 1
-	counter.tooltip_text = visual_context.translator.text("More cards — scroll or open hand overview.") if overflow else ""
+	if toolbar_external:
+		previous.visible = overflow; next.visible = overflow
+		preload("res://scripts/ui/combat_chrome.gd").apply(previous, "left", visual_context.translator.text("Previous cards"), visual_context, false, true)
+		preload("res://scripts/ui/combat_chrome.gd").apply(next, "arrow", visual_context.translator.text("Next cards"), visual_context, false, true)
+	counter.tooltip_text = visual_context.translator.text("More cards — scroll to browse.") if overflow else ""
 	var inspect: Button = find_child("HandInspectButton", true, false)
 	var overview: Button = find_child("HandOverviewButton", true, false)
-	if is_instance_valid(inspect): inspect.text = "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]
-	if is_instance_valid(overview): overview.text = "%s [%s]" % [visual_context.translator.text("Hand overview"), visual_context.action_label("hand_overview")]
+	if is_instance_valid(inspect):
+		if toolbar_external: preload("res://scripts/ui/combat_chrome.gd").apply(inspect, "inspect", "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")], visual_context, false, true)
+		else: inspect.text = "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]
+	if is_instance_valid(overview): overview.text = visual_context.translator.text("Hand overview")
 	_update_reading_proxy()
 
 func pointer_input(event: InputEvent) -> void:
@@ -422,7 +436,7 @@ func _clear_ghost() -> void:
 	if is_instance_valid(_ghost): remove_child(_ghost); _ghost.queue_free()
 	_ghost = null
 func show_overview() -> void:
-	if reading_modal: return
+	if reading_modal or not overview_enabled: return
 	var dialog = load("res://scripts/ui/hand_overview_dialog.gd").new(visual_context)
 	dialog.setup(order.map(func(id): return _cards[id].model.duplicate(true)), scope, interaction.selected)
 	var return_focus := {"id": active_card_id()}
@@ -446,9 +460,9 @@ func wire_focus() -> void:
 		# the cards. Geometry alone can choose another same-row tool instead.
 		var id := active_card_id()
 		var destination: Control = _cards[id if id in order else order[0]]
-		var direction := "focus_neighbor_top" if toolbar.get_index() > scroll.get_index() else "focus_neighbor_bottom"
+		var direction := "focus_neighbor_top" if toolbar_external or toolbar.get_index() > scroll.get_index() else "focus_neighbor_bottom"
 		for tool in [previous, next, find_child("HandInspectButton", true, false), find_child("HandOverviewButton", true, false)]:
-			tool.set(direction, tool.get_path_to(destination))
+			if is_instance_valid(tool): tool.set(direction, tool.get_path_to(destination))
 static func empty_state(message: String, context: ContextType = null) -> Control:
 	if context == null: context = ContextType.new()
 	var state := CenterContainer.new()

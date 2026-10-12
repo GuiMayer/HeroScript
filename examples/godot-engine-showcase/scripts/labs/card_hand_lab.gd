@@ -274,8 +274,6 @@ func inspect_selected() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("inspect_card"):
 		select_card(hand.active_card_id()); inspect_selected(); get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("hand_overview"):
-		hand.show_overview(); get_viewport().set_input_as_handled()
 
 func _exit_tree() -> void:
 	if _prior_preferences.is_empty(): return

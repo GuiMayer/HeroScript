@@ -5,17 +5,17 @@ signal changed
 const SAVE_PATH := "user://heroscript_showcase.cfg"
 const Schema = preload("res://scripts/ui/styles/settings_schema.gd")
 const DEFAULT_API_URL := "http://127.0.0.1:5271"
-const ACTIONS := ["pause_game", "end_turn", "open_timeline", "confirm_action", "inspect_card", "hand_overview"]
+const ACTIONS := ["pause_game", "end_turn", "open_timeline", "confirm_action", "inspect_card"]
 const DEFAULT_KEYS := {
 	"pause_game": KEY_ESCAPE,
 	"end_turn": KEY_E,
 	"open_timeline": KEY_T,
-	"confirm_action": KEY_F, "inspect_card": KEY_I, "hand_overview": KEY_H
+	"confirm_action": KEY_F, "inspect_card": KEY_I
 }
 
 const DEFAULT_BUTTONS := {"pause_game": JOY_BUTTON_START, "end_turn": JOY_BUTTON_Y,
 	"open_timeline": JOY_BUTTON_BACK, "confirm_action": JOY_BUTTON_RIGHT_SHOULDER,
-	"inspect_card": JOY_BUTTON_X, "hand_overview": JOY_BUTTON_LEFT_SHOULDER}
+	"inspect_card": JOY_BUTTON_X}
 const RESERVED_KEYS := [KEY_ENTER, KEY_KP_ENTER, KEY_TAB, KEY_SPACE, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]
 const RESERVED_BUTTONS := [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]
 var text_scale := 1.0

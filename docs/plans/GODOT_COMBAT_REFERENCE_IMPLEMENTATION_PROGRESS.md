@@ -6,7 +6,7 @@ Guia: [plano](GODOT_COMBAT_REFERENCE_LAYOUT_HAND_AND_PILES_PLAN.md). Início: 20
 2. Composição proporcional: política de largura central limitada, métricas puras e área segura dos atores; altura de arte ampliada no perfil. Dock será separado na etapa 5.
 3. Adaptive fan: curvatura independente de compressão, mínimo de 4° com duas cartas, máximo de 8° e passo proporcional. Reading mantém cartas retas; hitboxes/reserva permanecem no layout compartilhado.
 4. Ícones/chrome: catálogo SVG monocromático e keylines angulares em controles nativos; header/turn controls usam a família sem perder labels acessíveis ou comandos.
-5. Remoção de overview/dock: pendente.
+5. Remoção de overview/dock: overview removido do combate/atalhos públicos; permanece somente o consumidor real do laboratório. Pilhas e ferramentas ficam no dock independente da geometria da mão, com identidade por endereço.
 6. Browser de pilhas: pendente.
 7. Feedback: pendente.
 8. Certificação: pendente.

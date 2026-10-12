@@ -13,12 +13,11 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	add_theme_constant_override("separation", 8)
 	var context_slot := CenterContainer.new()
 	context_slot.name = "ContextActionSlot"
-	context_slot.custom_minimum_size = Vector2(190, 44)
+	context_slot.custom_minimum_size = Vector2(48, 44)
 	next_frame_button = _button(translator.text("NEXT ANIMATION  [%s]") % str(labels["confirm_action"]), next_requested.emit, 180)
 	next_frame_button.clip_text = true
 	preload("res://scripts/ui/combat_chrome.gd").apply(next_frame_button, "advance", next_frame_button.text, visual_context, false, true)
 	next_frame_button.custom_minimum_size.x = 44
-	next_frame_button.tooltip_text = next_frame_button.text
 	context_slot.add_child(next_frame_button)
 	selection_actions = HBoxContainer.new()
 	selection_actions.add_theme_constant_override("separation", 6)
@@ -30,12 +29,11 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	selection_actions.add_child(cancel)
 	# Inspection remains in the hand toolbar; do not duplicate it in the turn dock.
 	cancel.clip_text = true
-	cancel.tooltip_text = cancel.text
 	context_slot.add_child(selection_actions)
 	add_child(context_slot)
 	var system_slot := CenterContainer.new()
 	system_slot.name = "SystemActionSlot"
-	system_slot.custom_minimum_size = Vector2(100, 44)
+	system_slot.custom_minimum_size = Vector2(48, 44)
 	var pass_candidate := pass_option
 	if not pass_candidate.is_empty():
 		var pass_label := "PASS PRIORITY" if str(pass_candidate.command.get("actionType", "")) == "PASS_PRIORITY" else "PASS"

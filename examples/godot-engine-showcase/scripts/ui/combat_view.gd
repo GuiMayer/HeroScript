@@ -62,6 +62,7 @@ var character_sidebar_content: ScrollContainer
 var character_sidebar_title: Label
 var character_sidebar_reopen: Button
 var character_sidebar_expanded := false
+var pile_controls
 
 func _ready() -> void:
 	visibility_changed.connect(func():
@@ -180,52 +181,14 @@ func _build_battlefield() -> void:
 
 
 func _build_hand() -> void:
-	var section := hand_section if is_instance_valid(hand_section) else VBoxContainer.new()
-	hand_section = section
-	var chrome_key: Array = [zone_presenter.auxiliary_zones(), visual_context.translator.locale]
-	if is_instance_valid(hand) and _hand_chrome_key == chrome_key:
-		_sync_hand_models()
-		return
-	_hand_chrome_key = chrome_key.duplicate(true)
-	section.name = "HandSection"
-	for child in section.get_children():
-		if child != hand: section.remove_child(child); child.queue_free()
-	if is_instance_valid(hand):
-		var prior_heading: Node = hand.toolbar.get_node_or_null("HandHeading")
-		if is_instance_valid(prior_heading): hand.toolbar.remove_child(prior_heading); prior_heading.queue_free()
-	section.add_theme_constant_override("separation", 4)
-	var heading := HBoxContainer.new()
-	heading.name = "HandHeading"
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_theme_constant_override("separation", 10)
-	hint_label = visual_context.styles.caption(visual_context.translator.text("Select a card, then choose a highlighted target."), 13, 260)
-	hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# The footer already presents this hint; keep the same data hook without
-	# reserving a second line above the cards.
-	hint_label.hide()
-	section.add_child(hint_label)
-	var zones_scroll := ScrollContainer.new()
-	zones_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	zones_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	zones_scroll.custom_minimum_size = Vector2(360, 40)
-	zones_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var zones := HBoxContainer.new()
-	zones.add_theme_constant_override("separation", 6)
-	for zone in zone_presenter.auxiliary_zones():
-		var zone_id := str(zone.get("zoneId", ""))
-		var label: String = zone_presenter.zone_label(zone)
-		var pile := _button("%s · %s" % [label, int(zone.get("count", 0))],
-			func(): _inspect_pile(label, zone_id))
-		pile.add_theme_font_size_override("font_size", 13)
-		pile.custom_minimum_size = Vector2(136, 34)
-		pile.clip_text = true
-		pile.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		pile.tooltip_text = "%s · %s" % [label, int(zone.get("count", 0))]
-		zones.add_child(pile)
-	zones_scroll.add_child(zones)
-	heading.add_child(zones_scroll)
+	if not is_instance_valid(hand_section):
+		hand_section = VBoxContainer.new(); hand_section.name = "HandSection"
+		hand_section.add_theme_constant_override("separation", 0)
+		hint_label = visual_context.styles.caption("", 13, 260); hint_label.hide(); hand_section.add_child(hint_label)
 	if not is_instance_valid(hand):
 		hand = HandView.new(visual_context)
+		hand.disable_overview(); hand.toolbar_external = true
+		hand.counter.hide(); hand.toolbar.custom_minimum_size = Vector2(144, 44)
 		hand.card_activated.connect(_choose_card)
 		hand.card_previewed.connect(_show_preview)
 		hand.inspection_requested.connect(_inspect_instance)
@@ -233,11 +196,12 @@ func _build_hand() -> void:
 			if _locked() or id not in card_buttons: return
 			intent_requested.emit("select_card", [id]))
 		hand.drop_requested.connect(_drop_card)
-		section.add_child(hand)
-	hand.toolbar.add_child(heading)
-	hand.toolbar.move_child(heading, 0)
-	hand.set_tools_below_cards(true)
-	hand.counter.size_flags_horizontal = Control.SIZE_FILL
+		hand_section.add_child(hand)
+	if not is_instance_valid(pile_controls):
+		pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
+		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
+		add_child(pile_controls)
+	pile_controls.apply_model(zone_presenter.auxiliary_zones(), visual_context)
 	_sync_hand_models()
 
 
@@ -263,6 +227,8 @@ func _build_footer() -> void:
 	if is_instance_valid(turn_view) and key == _turn_key: return
 	_turn_key = key.duplicate(true)
 	if is_instance_valid(turn_view):
+		if hand.toolbar.get_parent() == turn_view: hand.toolbar.reparent(hand, false)
+		if is_instance_valid(pile_controls) and pile_controls.get_parent() == turn_view: pile_controls.reparent(self, false)
 		for button in turn_view.buttons: action_buttons.erase(button)
 		if is_instance_valid(_feedback_column) and _feedback_column.get_parent() != turn_view:
 			floating_hud.release_slot("preview")
@@ -282,6 +248,9 @@ func _build_footer() -> void:
 	row.system_requested.connect(_execute_system)
 	row.mount(visual_context.translator, {"confirm_action": visual_context.action_label("confirm_action"), "end_turn": visual_context.action_label("end_turn")},
 		_system_candidate(["PASS", "PASS_PRIORITY"]))
+	pile_controls.reparent(row, false); row.move_child(pile_controls, 0)
+	hand.toolbar.reparent(row, false); row.move_child(hand.toolbar, 1)
+	hand.toolbar_external = true; hand._update_counter()
 	next_frame_button = row.next_frame_button; selection_actions = row.selection_actions
 	reconnect_button = _button(visual_context.translator.text("RECONNECT"), _reconnect, 130)
 	floating_hud.replace_slot("reconnect", reconnect_button)
@@ -378,9 +347,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("inspect_card") and not event.is_echo():
 		_inspect_instance(hand.active_card_id())
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("hand_overview") and not event.is_echo():
-		hand.show_overview()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("end_turn") and not event.is_echo():
 		_end_turn()
@@ -520,7 +486,7 @@ func _inspect_instance(id: String) -> void:
 	dialog.popup_centered()
 
 
-func _inspect_pile(label: String, zone: String) -> void:
+func _inspect_pile(label: String, zone: String, _address: Dictionary = {}) -> void:
 	var lines: Array[String] = []
 	for card in presenter.pile_cards(zone):
 		lines.append(visual_context.translator.content_name(str(card.get("definitionId", ""))) + (" +" if not card.get("upgrades", []).is_empty() else ""))
