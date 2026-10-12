@@ -109,6 +109,10 @@ func _layout_gameplay() -> void:
 	_gameplay_layout_pending = false
 	if not is_inside_tree() or not is_instance_valid(bottom_hud): return
 	var height := bottom_hud.get_combined_minimum_size().y
+	if is_instance_valid(hand_section):
+		var metrics: Dictionary = preload("res://scripts/presentation/combat_layout_metrics.gd").calculate(gameplay_column.size, Vector2(0, hand_section.get_combined_minimum_size().y), height - hand_section.get_combined_minimum_size().y, layout_profile)
+		hand_section.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		hand_section.custom_minimum_size.x = metrics.hand_width
 	bottom_hud.offset_top = -height
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
@@ -129,7 +133,7 @@ func _layout_gameplay() -> void:
 	# The scenery extends behind the floating hand, but actor information stays
 	# above even the raised cards. No rules or card count limits affect this layout.
 	if is_instance_valid(battlefield_actors):
-		battlefield_actors.offset_bottom = -height
+		battlefield_actors.offset_bottom = -height - layout_profile.safe_margin
 		var available := battlefield_actors.size.y
 		if battlefield_actors.get_h_scroll_bar().visible: available -= battlefield_actors.get_h_scroll_bar().size.y
 		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
