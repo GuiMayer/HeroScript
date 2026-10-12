@@ -28,16 +28,13 @@ func _run() -> void:
 	screen.controller.dispose()
 	screen.controller = load("res://scripts/ui/controllers/activity_controller.gd").new(fake)
 	screen.controller.bind(session.run, session.activity_choices())
-	var route = screen.find_child("RouteView", true, false)
-	if route == null: route = screen.find_children("*", "Control", true, false).filter(func(node): return node.get_script() == load("res://scripts/ui/route_view.gd"))[0]
-	var route_id: int = route.get_instance_id()
 	var first_id: int = screen.view.choice_buttons[0].get_instance_id()
 	session._run.resources.gold.current = 25
 	session._run.sequence = 2
 	session._available_commands.append({"type": "RESOLVE_NODE", "validPayload": {}})
 	screen.refresh_state(router.presentation)
 	await settle()
-	check(is_instance_valid(route) and route.get_instance_id() == route_id, "resource update retains route")
+	check(screen.find_child("RouteView", true, false) == null, "activity presentation has no second embedded map")
 	check(screen.view.choice_buttons.any(func(button): return button.get_instance_id() == first_id), "existing option retains identity")
 	var button = screen.view.choice_buttons.filter(func(option): return option.text.contains("COMPLETE"))[0]
 	button.pressed.emit()
@@ -47,7 +44,7 @@ func _run() -> void:
 	screen.refresh_state(router.presentation)
 	await settle()
 	check(load("res://scripts/ui/view_reconciler.gd").replaced == before, "unchanged activity does not build staging view")
-	check(route.nodes[0].current, "retained route projection is current")
+	check(screen.presenter.current_node().nodeId == "a", "activity projection remains on the published current node")
 	session._run.sequence += 1
 	screen.refresh_state(router.presentation)
 	await settle()

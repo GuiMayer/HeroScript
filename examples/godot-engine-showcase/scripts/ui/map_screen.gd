@@ -1,0 +1,45 @@
+extends "res://scripts/ui/screen_view.gd"
+## Navigation adapter: inspection is local; travel uses current published choices.
+var router
+var controller
+var view
+var presentation: Dictionary
+var _scope := ""
+func setup(owner, data: Dictionary) -> void:
+	router = owner; mount(owner.visual_context)
+	controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(GameSession)
+	view = preload("res://scripts/ui/map_view.gd").new()
+	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	view.intent_requested.connect(_intent)
+	add_child(view)
+	refresh_state(data)
+	view.restore_local_state(router.map_reading_states.get(_scope, {}))
+func refresh_state(data: Dictionary) -> void:
+	presentation = data.duplicate(true)
+	visual_context.update_from(Preferences, I18n, AppTheme.profile)
+	var run: Dictionary = GameSession.run
+	var choices: Array = GameSession.activity_choices()
+	_scope = JSON.stringify([run.get("runId", ""), run.get("branchId", "")])
+	controller.bind(run, choices)
+	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n)
+	view.apply_projection(run, choices, presenter, visual_context)
+	view.set_read_only(GameSession.busy or not GameSession.synchronized)
+func _intent(action: String, arguments: Array) -> void:
+	match action:
+		"pause": router.toggle_pause()
+		"resume_dialogue": router.show_dialogue()
+		"command":
+			if get_tree().paused or GameSession.busy: return
+			var choice: Dictionary = controller.choice_for(str(arguments[0]))
+			if choice.is_empty(): return
+			view.set_read_only(true)
+			if await controller.execute(choice) and is_inside_tree(): router.open_game()
+			elif is_inside_tree(): view.set_read_only(not GameSession.synchronized)
+func capture_local_state() -> Dictionary: return view.capture_local_state()
+func apply_interaction(_state) -> void: view.set_read_only(GameSession.busy or not GameSession.synchronized)
+func apply_visual_profile(_profile) -> void: refresh_state(presentation)
+func dispose() -> void:
+	if is_instance_valid(view):
+		if router.map_reading_states.size() >= 16 and not router.map_reading_states.has(_scope): router.map_reading_states.erase(router.map_reading_states.keys()[0])
+		router.map_reading_states[_scope] = view.capture_local_state()
+	if controller: controller.dispose()

@@ -17,9 +17,6 @@ var _columns: HBoxContainer
 var _workspace: VBoxContainer
 var _summary: Control
 var _ending: Control
-var _route
-var _map_panel: Control
-var _route_scroll: ScrollContainer
 var _lifecycle := ""
 var _region_keys: Dictionary = {}
 func _scroll_value(name: String) -> int:
@@ -56,6 +53,7 @@ func _build_header() -> Control:
 	title_box.add_child(visual_context.styles.muted(visual_context.translator.text("Build your deck. Choose your path."), 14, 240))
 	row.add_child(title_box)
 	row.add_child(_button(visual_context.translator.text("VERIFY REPLAY"), _verify, 185))
+	row.add_child(_button(visual_context.translator.text("MAP"), _map, 100))
 	row.add_child(_button(visual_context.translator.text("PAUSE"), _pause, 100))
 	header.add_child(row)
 	var badges := HFlowContainer.new()
@@ -90,27 +88,6 @@ func _build_header() -> Control:
 	if badges.get_child_count() > 0: header.add_child(badges)
 	else: badges.free()
 	return header
-
-
-func _build_map() -> Control:
-	var column := VBoxContainer.new()
-	column.custom_minimum_size.x = 282
-	column.add_child(visual_context.styles.title(visual_context.translator.text("JOURNEY"), 17, visual_context.styles.GOLD))
-	column.add_child(visual_context.styles.muted(visual_context.translator.text("Highlighted stops are available."), 12))
-	var route := preload("res://scripts/ui/route_view.gd").new()
-	route.visual_context = visual_context
-	_route = route
-	route.setup(presenter.route())
-	route.travel_requested.connect(_execute)
-	var scroll := ScrollContainer.new()
-	scroll.name = "RouteScroll"
-	scroll.follow_focus = true
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.add_child(route)
-	column.add_child(scroll)
-	_route_scroll = scroll
-	return visual_context.styles.panel(column, visual_context.styles.color("surface.journey"))
 
 
 func _activity_summary(node: Dictionary) -> Control:
@@ -191,8 +168,6 @@ func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: 
 	presentation = data.duplicate(true)
 	presenter = projection
 	render_epoch += 1
-	var route_scroll := _scroll_value("RouteScroll")
-	var route_horizontal: int = _route_scroll.scroll_horizontal if is_instance_valid(_route_scroll) else 0
 	var action_scroll := _scroll_value("ActionScroll")
 	var visual_key := visual_context.presentation_key()
 	var display_run := _run_snapshot.duplicate(true)
@@ -226,8 +201,6 @@ func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: 
 		return
 	if not is_instance_valid(_columns):
 		_build_structure()
-	_route.visual_context = visual_context
-	_route.setup(presenter.route())
 	var summary_key: Array = [_current_node(), _zone_snapshot, visual_key]
 	if _region_keys.get("summary") != summary_key:
 		var dialogue := str(_current_node().get("activity", {}).get("type", "")) == "Dialogue"
@@ -242,8 +215,7 @@ func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: 
 		_region_keys.summary = summary_key.duplicate(true)
 	action_panel.apply_projection(_run_snapshot, choices, presenter, visual_context)
 	visual_context.styles.apply_view_preferences(self)
-	_restore_scroll.call_deferred(render_epoch, route_scroll, action_scroll, route_horizontal)
-	_fit_map_panel.call_deferred()
+	_restore_scroll.call_deferred(render_epoch, 0, action_scroll)
 
 func _build_structure() -> void:
 	add_theme_constant_override("separation", 16)
@@ -251,8 +223,6 @@ func _build_structure() -> void:
 	_columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_columns.add_theme_constant_override("separation", 22)
 	add_child(_columns)
-	_map_panel = _build_map(); _columns.add_child(_map_panel)
-	_columns.resized.connect(_fit_map_panel)
 	_workspace = VBoxContainer.new(); _workspace.name = "ActivityWorkspace"
 	_workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_workspace.add_theme_constant_override("separation", 14)
@@ -263,13 +233,6 @@ func _build_structure() -> void:
 	action_panel.intent_requested.connect(func(action, arguments): intent_requested.emit(action, arguments))
 	action_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(action_panel); _workspace.add_child(scroll); _columns.add_child(_workspace)
-
-func _fit_map_panel() -> void:
-	if not is_instance_valid(_map_panel): return
-	var profile = _route.layout_profile
-	var requested := minf(profile.maximum_panel_width, _columns.size.x * profile.panel_width_ratio)
-	# Small linear maps stay compact; wide graphs may scroll without shrinking text.
-	_map_panel.custom_minimum_size.x = maxf(282, minf(_route.custom_minimum_size.x + 32, requested))
 
 func set_choices_disabled(disabled: bool) -> void:
 	for button in choice_buttons:
@@ -287,3 +250,6 @@ func _main_menu() -> void: intent_requested.emit("main_menu", [])
 
 func _choice_label(choice: Dictionary, model: Dictionary) -> String:
 	return action_panel._choice_label(choice, model)
+
+
+func _map() -> void: intent_requested.emit("map", [])

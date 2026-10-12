@@ -5,6 +5,7 @@ const SandboxScreen = preload("res://scripts/ui/sandbox_screen.gd")
 const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
 const ActivityScreen = preload("res://scripts/ui/activity_screen.gd")
 const DialogueScreen = preload("res://scripts/ui/dialogue_screen.gd")
+const MapScreen = preload("res://scripts/ui/map_screen.gd")
 const CombatScreen = preload("res://scripts/ui/combat_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
@@ -29,6 +30,7 @@ var settings_return_to_gameplay := false
 var continuation_run_id := ""
 var replay_from_history := false
 var _dialogue_return_scope := ""
+var map_reading_states: Dictionary = {}
 var dialogue_return_barrier: bool:
 	get: return _dialogue_return_scope == _run_navigation_scope() and not _dialogue_return_scope.is_empty()
 	set(value): _dialogue_return_scope = _run_navigation_scope() if value else ""
@@ -85,7 +87,7 @@ func _ready() -> void:
 	call_deferred("_probe_engine")
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause_game") and current_screen in ["activity", "combat", "timeline", "dialogue"]:
+	if event.is_action_pressed("pause_game") and current_screen in ["activity", "combat", "timeline", "dialogue", "map"]:
 		toggle_pause()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("open_timeline") and current_screen == "combat":
@@ -255,7 +257,11 @@ func open_game() -> void:
 		show_combat()
 	else:
 		if _has_dialogue_activity(): show_dialogue()
-		else: show_activity()
+		else:
+			var types: Array = GameSession.activity_choices().map(func(choice): return str(choice.get("type", "")))
+			var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC"])
+			if detailed or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active": show_activity()
+			else: show_map()
 
 func _has_dialogue_activity() -> bool:
 	var run: Dictionary = GameSession.run
@@ -273,6 +279,7 @@ func show_dialogue() -> void:
 	var screen = DialogueScreen.new(); screen.setup(self, presentation); host.add_child(screen)
 
 func show_activity(inspect_map := false) -> void:
+	if inspect_map and str(GameSession.run.get("lifecycle", "Active")).to_lower() == "active": show_map(); return
 	if not inspect_map and _has_dialogue_activity(): show_dialogue(); return
 	if current_screen == "activity" and host.get_child_count() == 1:
 		var existing = host.get_child(0)
@@ -284,6 +291,12 @@ func show_activity(inspect_map := false) -> void:
 	var screen = ActivityScreen.new()
 	screen.setup(self, presentation)
 	host.add_child(screen)
+
+func show_map() -> void:
+	if current_screen == "map" and host.get_child_count() == 1:
+		host.get_child(0).refresh_state(presentation); return
+	current_screen = "map"; _clear_host()
+	var screen = MapScreen.new(); screen.setup(self, presentation); host.add_child(screen)
 
 func show_combat() -> void:
 	if current_screen == "combat" and host.get_child_count() == 1:
@@ -393,7 +406,7 @@ func _button(text: String, action: Callable, width := 0) -> Button:
 	return value
 
 func _on_session_changed() -> void:
-	if current_screen in ["combat", "dialogue"] and host.get_child_count() > 0:
+	if current_screen in ["combat", "dialogue", "map"] and host.get_child_count() > 0:
 		var screen = host.get_child(0)
 		if screen.has_method("apply_interaction"):
 			screen.apply_interaction(null)
@@ -419,6 +432,7 @@ func _on_locale_changed() -> void:
 
 func _rebuild_localized_screen() -> void:
 	match current_screen:
+		"map": show_map()
 		"dialogue": show_dialogue()
 		"settings": show_settings(settings_return_to_gameplay)
 		"combat": show_combat()

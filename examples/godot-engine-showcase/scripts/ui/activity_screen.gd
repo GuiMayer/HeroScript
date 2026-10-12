@@ -40,6 +40,7 @@ func _render(data: Dictionary) -> void:
 func _on_intent(action: String, arguments: Array) -> void:
 	GameAudio.ui()
 	match action:
+		"map": router.show_map()
 		"pause": router.toggle_pause()
 		"replay": router.show_run_replay(str(arguments[0]))
 		"new_journey": router._new_campaign()
