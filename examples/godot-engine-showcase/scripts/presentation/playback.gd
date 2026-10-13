@@ -12,6 +12,8 @@ func load_envelope(value) -> void:
 func activate(prefix: Array = []) -> void:
 	_frames = prefix + _frames
 	dispatch_ready = true
+func annotate(values: Dictionary) -> void:
+	for frame in _frames: frame.merge(values.duplicate(true), true)
 var _frames: Array = []
 var index := 0
 var generation := 0

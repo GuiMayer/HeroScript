@@ -8,6 +8,13 @@ var target_button: Button
 var _battlefield_content: VBoxContainer
 var _projection := []
 var _model: Dictionary = {}
+func present_resource(application: Dictionary, duration: float) -> void:
+	var id := str(application.get("resourceId", ""))
+	var view = find_child("Resource_" + id.validate_node_name(), true, false)
+	if view != null: view.present_change(application, duration); return
+	var counter = find_child("ResourceCounter_" + id.validate_node_name(), true, false)
+	if counter != null and application.get("currentValue") != null and str(application.get("resourceField", "Current")) in ["Current", "0", "0.0"]:
+		counter.text = "%s %s" % [visual_context.translator.number(float(application.currentValue)), visual_context.translator.content_name(id)]
 func presentation_model() -> Dictionary: return _model.duplicate(true)
 
 func apply_model(data: Dictionary) -> void:
@@ -112,6 +119,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 			content.add_child(resource)
 		else:
 			var amount := visual_context.styles.muted("%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)], 14)
+			amount.name = "ResourceCounter_" + str(id).validate_node_name()
 			amount.autowrap_mode = TextServer.AUTOWRAP_OFF
 			amount.add_theme_color_override("font_color", Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown")))
 			amount.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]

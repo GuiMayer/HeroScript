@@ -27,7 +27,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 6. Pause/cancelamento/pós-combate: implementado; cenário e vozes de combate
    pausáveis, skip visual no HUD e reconciliação/navegação protegida por geração.
    Teste de integração cobre leitura atrasada, voo único, pause e confirmação repetida.
-7. Feedback semântico/resources: pendente.
+7. Feedback semântico/resources: implementado; pagamento por proveniência,
+   reações de dano separadas, lanes de texto, status/modifiers e endpoints de
+   resource sincronizados ao beat sem alterar snapshots autoritativos.
 8. Zonas de cartas: pendente.
 9. Perfis/acessibilidade/áudio: pendente.
 10. Replay: pendente.

@@ -182,6 +182,10 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
 	controller.presentation_pending = true
+	var payments: Array = []
+	for cost in _prepared_card.get("costs", []):
+		if cost.get("componentId") != null: payments.append({"componentId": cost.componentId, "sourceId": _prepared_card.get("cardInstanceId", "")})
+	Playback.annotate({"payments": payments})
 	var prefix: Array = []
 	if not _prepared_card.is_empty():
 		var intro := _prepared_card.duplicate(true)
@@ -215,6 +219,9 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		card.fly_to(destination, view.feedback.effects, handle)
 	else:
 		handle.hit(); GameAudio.frame(frame)
+		for application in frame.get("applications", []):
+			var target := str(application.get("targetEntityId", ""))
+			if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, 0 if visual_context.reduced_motion else .16 / maxf(visual_context.animation_speed, .25))
 		if not frame.get("hasVisibleFacts", false): handle.finish(); return
 		var tween := view.create_tween()
 		handle.own(tween)
@@ -269,7 +276,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 	if _locked() or candidate.is_empty():
 		return
 	var id := str(candidate.command.get("cardInstanceId", ""))
-	_prepared_card = {"cardInstanceId": id, "targets": presenter.targets(candidate)}
+	_prepared_card = {"cardInstanceId": id, "targets": presenter.targets(candidate), "costs": candidate.get("costs", [])}
 	var success: bool = await controller.submit(candidate)
 	if not is_inside_tree():
 		return

@@ -3,6 +3,7 @@ extends RefCounted
 static func cues(frame: Dictionary, resource_gain_cues: Dictionary = {}) -> Array[String]:
 	var result: Array[String] = []
 	for application in frame.get("applications", []):
+		if preload("res://scripts/presentation/semantic_cues.gd").kind(application, frame) == "payment": continue
 		var cue := ""
 		var type := str(application.get("effectType", ""))
 		if type in ["DAMAGE", "HEAL", "MODIFY_RESOURCE"]:

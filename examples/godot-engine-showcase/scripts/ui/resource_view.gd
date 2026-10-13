@@ -6,6 +6,21 @@ var label := Label.new()
 var bar := ProgressBar.new()
 var amount := Label.new()
 var _model: Dictionary = {}
+var _value_motion: Tween
+func present_change(application: Dictionary, duration: float) -> void:
+	if str(application.get("resourceId", "")) != str(_model.get("resourceId", "")) or application.get("currentValue") == null: return
+	var field: String = {"Current": "current", "0": "current", "0.0": "current", "Minimum": "minimum", "1": "minimum", "1.0": "minimum", "Maximum": "maximum", "2": "maximum", "2.0": "maximum"}.get(str(application.get("resourceField", "Current")), "")
+	if field.is_empty(): return
+	var state: Dictionary = _model.state.duplicate(true)
+	state[field] = application.currentValue
+	var previous: float = bar.value
+	setup(_model.resourceId, state, _model.appearance)
+	if _value_motion and _value_motion.is_valid(): _value_motion.kill()
+	if bar.visible and duration > 0:
+		var destination: float = bar.value; bar.value = previous
+		_value_motion = create_tween(); _value_motion.tween_property(bar, "value", destination, duration)
+func _exit_tree() -> void:
+	if _value_motion and _value_motion.is_valid(): _value_motion.kill()
 func presentation_model() -> Dictionary: return _model.duplicate(true)
 func reconcile_from(other) -> void:
 	visual_context = other.visual_context
