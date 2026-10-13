@@ -67,9 +67,20 @@ func run_history(player_id: String, setting_id: String) -> Dictionary:
 		}
 	return response
 
-func run_timeline(run_id: String, after_sequence := 0, limit := 200) -> Dictionary:
+func run_timeline(run_id: String, after_sequence := 0, limit := 25, through_sequence := 0) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
-		"/api/v1/runs/%s/timeline?afterSequence=%s&limit=%s" % [run_id.uri_encode(), after_sequence, limit])
+		_timeline_path(run_id, after_sequence, limit, through_sequence))
+
+func _timeline_path(run_id: String, after_sequence: int, limit: int, through_sequence: int) -> String:
+	return "/api/v1/runs/%s/timeline?afterSequence=%s&limit=%s%s" % [run_id.uri_encode(), after_sequence, limit,
+		"&throughSequence=%s" % through_sequence if through_sequence > 0 else ""]
+func replay_context() -> Array: return _transport.endpoint_context()
+func begin_run_timeline(run_id: String, after_sequence: int, limit: int, through_sequence: int):
+	return _transport.read(_timeline_path(run_id, after_sequence, limit, through_sequence))
+func begin_run_presentation(run_id: String, sequence: int):
+	return _transport.read("/api/v1/runs/%s/commits/%s/presentation" % [run_id.uri_encode(), sequence])
+func begin_run_commit(run_id: String, sequence: int):
+	return _transport.read("/api/v1/runs/%s/commits/%s" % [run_id.uri_encode(), sequence])
 
 func run_commit(run_id: String, sequence: int) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,

@@ -464,10 +464,18 @@ func find_resume(index, api: String, legacy_id := "") -> Dictionary:
 		return {"ok": true, "runId": str(record.get("runId", "")), "legacyChecked": legacy_checked}
 	return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
 
-func replay_timeline(run_id: String, after_sequence := 0, limit := 200) -> Dictionary:
+func replay_timeline(run_id: String, after_sequence := 0, limit := 25, through_sequence := 0) -> Dictionary:
 	if run_id.is_empty():
 		return {"ok": false, "errorKey": "No journey was selected.", "error": "No journey was selected."}
-	return await _gateway.run_timeline(run_id, after_sequence, limit)
+	return await _gateway.run_timeline(run_id, after_sequence, limit, through_sequence)
+
+func replay_context() -> Array: return _gateway.replay_context()
+func begin_replay_page(run_id: String, after_sequence: int, limit: int, through_sequence: int):
+	return _gateway.begin_run_timeline(run_id, after_sequence, limit, through_sequence)
+func begin_replay_presentation(run_id: String, sequence: int):
+	return _gateway.begin_run_presentation(run_id, sequence)
+func begin_replay_inspection(run_id: String, sequence: int):
+	return _gateway.begin_run_commit(run_id, sequence)
 
 func replay_commit(run_id: String, sequence: int) -> Dictionary:
 	if run_id.is_empty() or sequence < 1:
