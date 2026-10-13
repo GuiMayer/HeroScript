@@ -12,6 +12,7 @@ var previous_button: Button
 var next_button: Button
 var verify_button: Button
 var more_button: Button
+var inspect_button: Button
 var _last_selected := -2
 
 func setup(context, from_history := false) -> void:
@@ -70,6 +71,8 @@ func setup(context, from_history := false) -> void:
 	controls.add_child(next_button)
 	verify_button = _button(I18n.text("VERIFY INTEGRITY"), "verify")
 	controls.add_child(verify_button)
+	inspect_button = _button(I18n.text("Show engine details"), "inspect")
+	controls.add_child(inspect_button)
 	right.add_child(controls)
 	body.add_child(AppTheme.panel(right))
 	previous_button.disabled = true; next_button.disabled = true; play_button.disabled = true
@@ -96,6 +99,8 @@ func apply_model(model: Dictionary) -> void:
 	verify_button.disabled = entries.is_empty() or model.verifying
 	more_button.visible = model.has_more
 	more_button.disabled = model.page_loading
+	inspect_button.visible = model.inspection_allowed
+	inspect_button.disabled = model.presentation_loading or model.selected_index < 0
 func _button(text: String, action: String) -> Button:
 	var value := AppTheme.button(text)
 	value.pressed.connect(func(): intent_requested.emit(action, []))

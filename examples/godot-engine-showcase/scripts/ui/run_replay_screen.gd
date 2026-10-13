@@ -5,6 +5,8 @@ var controller
 var view
 var replay_run_id := ""
 var return_to_history := false
+var _inspection_ticket
+var _inspection_dialog: Window
 var entries: Array:
 	get: return controller.entries if controller else []
 var selected_index: int:
@@ -32,6 +34,7 @@ func _intent(action: String, arguments: Array) -> void:
 		"previous": _previous()
 		"next": _next()
 		"more": controller.load_more()
+		"inspect": _inspect()
 		"toggle_play": _toggle_play()
 		"verify": _verify()
 		"back": _back()
@@ -64,5 +67,22 @@ func _back() -> void:
 	controller.stop()
 	if return_to_history: router.show_history()
 	else: router.open_game()
+func _inspect() -> void:
+	if not controller.inspection_allowed or selected_index < 0: return
+	var sequence := int(entries[selected_index].sequence)
+	if _inspection_ticket != null and not _inspection_ticket.done: _inspection_ticket.cancel()
+	_inspection_ticket = GameSession.begin_replay_inspection(replay_run_id, sequence)
+	var response: Dictionary = await _inspection_ticket.result()
+	if not is_inside_tree() or not controller.valid() or selected_index < 0 or int(entries[selected_index].sequence) != sequence: return
+	if not response.get("ok", false):
+		if not response.get("cancelled", false): router.show_error(I18n.error(response))
+		return
+	if is_instance_valid(_inspection_dialog): _inspection_dialog.queue_free()
+	_inspection_dialog = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	add_child(_inspection_dialog)
+	_inspection_dialog.setup(I18n.text("Show engine details"), JSON.stringify(response.data, "  "))
+	_inspection_dialog.popup_centered_clamped(Vector2i(1000, 650), .9)
 func dispose() -> void:
 	if controller: controller.dispose()
+	if _inspection_ticket != null and not _inspection_ticket.done: _inspection_ticket.cancel()
+	if is_instance_valid(_inspection_dialog): _inspection_dialog.queue_free()

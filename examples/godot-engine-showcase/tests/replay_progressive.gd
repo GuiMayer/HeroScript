@@ -5,6 +5,9 @@ class Session extends RefCounted:
 	var head := 4001
 	var held
 	var hold_more := true
+	var hold_presentations := false
+	var presentation_calls: Array = []
+	var presentation_tickets: Dictionary = {}
 	func replay_context() -> Array: return ["fixture", 1]
 	func begin_replay_page(id: String, cursor: int, limit: int, through: int):
 		calls.append([cursor, limit, through])
@@ -17,7 +20,9 @@ class Session extends RefCounted:
 		var next := mini(cursor + limit, head)
 		return {"ok": true, "data": {"items": items, "throughSequence": head, "nextCursor": next, "hasMore": next < head}}
 	func begin_replay_presentation(id: String, sequence: int):
+		presentation_calls.append(sequence)
 		var ticket = load("res://scripts/engine/read_ticket.gd").new()
+		if hold_presentations: presentation_tickets[sequence] = ticket; return ticket
 		ticket.finish({"ok": true, "data": {"runId": id, "sequence": sequence, "stateHash": "h%s" % sequence, "stateSummary": {"lifecycle": "Active"}}}); return ticket
 func _init() -> void: call_deferred("_run")
 func check(ok: bool, label: String) -> void:
@@ -39,6 +44,22 @@ func _run() -> void:
 	while controller.has_more: await controller.load_more()
 	check(controller.entries.size() == 4001 and controller.entries.back().sequence == 4001, "more than four thousand commands remain accessible")
 	check(session.calls.size() == 161, "explicit hasMore avoids final empty request")
+	controller.max_cache_entries = 2
+	for index in range(5): await controller.select(index)
+	check(controller.commit_cache.size() == 2 and controller.cache_bytes <= controller.max_cache_bytes, "LRU is bounded by count and serialized bytes")
+	var reads: int = session.presentation_calls.size()
+	await controller.select(4)
+	check(session.presentation_calls.size() == reads, "current cache hit needs no request")
+	await controller.select(0)
+	check(session.presentation_calls.size() == reads + 1, "evicted command reloads canonically")
+	session.hold_presentations = true
+	controller.select(6); controller.select(6)
+	check(session.presentation_calls.count(7) == 1 and controller._pending.size() == 1, "identical in-flight selections are coalesced")
+	controller.select(7)
+	check(session.presentation_tickets[7].is_cancelled and controller._pending.size() == 1, "new selection cancels obsolete exclusive read")
+	session.presentation_tickets[8].finish({"ok": true, "data": {"runId": "run", "sequence": 8, "stateHash": "h8", "stateSummary": {"lifecycle": "Active"}}})
+	for i in 3: await process_frame
+	check(controller.selected_index == 7 and not controller.presentation_loading and controller._pending.is_empty(), "stale response never overwrites current selection")
 	controller.dispose()
 	check(controller.entries.is_empty() and controller.commit_cache.is_empty(), "dispose releases viewing data")
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout; quit(0 if failures == 0 else 1)
