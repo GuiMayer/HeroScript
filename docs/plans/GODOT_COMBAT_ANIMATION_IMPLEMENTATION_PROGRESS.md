@@ -18,7 +18,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
    de contrato da engine nesta etapa.
 3. Planner causal: implementado; agrupa apenas aplicações contíguas, reconhece
    ancestralidade da condensação e reserva snapshots de frame para o beat final.
-4. Director/handles: pendente.
+4. Director/handles: implementado; conclusão única, trabalho bloqueante distinto
+   de cursor, confirmação sem sobreposição, cancelamento/skip e watchdog pausável.
+   Alias de import antigo será removido após migrar os consumidores.
 5. Integração com combate/mão: pendente.
 6. Pause/cancelamento/pós-combate: pendente.
 7. Feedback semântico/resources: pendente.

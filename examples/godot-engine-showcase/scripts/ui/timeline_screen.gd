@@ -183,6 +183,7 @@ func _select(index: int) -> void:
 
 func _next_frame() -> void:
 	playback.advance()
+	playback.complete_active() # This inspector currently uses decorative flashes only.
 	next_button.disabled = not playback.has_frames()
 
 func _restart_frames() -> void:
