@@ -22,6 +22,7 @@ var _zone_reading_states: Dictionary = {}
 var _collection_dialog: Window
 var _prepared_card: Dictionary = {}
 var _intro_handle
+var _transfer_models: Dictionary = {}
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -186,6 +187,14 @@ func _on_presentation_ready(value) -> void:
 	for cost in _prepared_card.get("costs", []):
 		if cost.get("componentId") != null: payments.append({"componentId": cost.componentId, "sourceId": _prepared_card.get("cardInstanceId", "")})
 	Playback.annotate({"payments": payments})
+	_transfer_models.clear()
+	var after: Dictionary = value.snapshot("after")
+	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), GameSession.legal_actions,
+		visual_context.translator, presentation, after.get("zones", {}))
+	final_presenter.accept_evaluations(after.get("evaluations", []))
+	for zone in after.get("zones", {}).get("zones", []):
+		if zone.get("contentsVisible", false):
+			for card in zone.get("cards", []): _transfer_models[str(card.cardInstanceId)] = final_presenter.card_view_model(str(card.cardInstanceId))
 	var prefix: Array = []
 	if not _prepared_card.is_empty():
 		var intro := _prepared_card.duplicate(true)
@@ -222,15 +231,33 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		for application in frame.get("applications", []):
 			var target := str(application.get("targetEntityId", ""))
 			if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, 0 if visual_context.reduced_motion else .16 / maxf(visual_context.animation_speed, .25))
+		var steps: Array = frame.get("cardZoneSteps", []).duplicate(true)
+		if steps.is_empty():
+			for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
+		if not steps.is_empty() and Playback.envelope != null:
+			preload("res://scripts/ui/card_zone_motion.gd").execute(steps,
+				[Playback.envelope.snapshot("before").get("zones", {}), Playback.envelope.snapshot("after").get("zones", {})],
+				_transfer_models, _zone_anchor, view.feedback.effects, visual_context, handle)
+			return
 		if not frame.get("hasVisibleFacts", false): handle.finish(); return
 		var tween := view.create_tween()
 		handle.own(tween)
 		tween.tween_interval(.16 / maxf(visual_context.animation_speed, .25))
 		tween.tween_callback(func(): handle.finish())
 
+func _zone_anchor(address: String, id: String) -> Vector2:
+	var card = view.hand.card_for(id)
+	if is_instance_valid(card) and card.visible: return card.get_global_rect().get_center()
+	for button in view.find_children("Pile_*", "Button", true, false):
+		if preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {})) == address: return button.get_global_rect().get_center()
+	for zone in _zone_snapshot.get("zones", []):
+		if zone.get("allowsCardPlay", false) and preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address: return view.hand.scroll.get_global_rect().get_center()
+	return view.battlefield_view.get_global_rect().get_center()
+
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
 	_prepared_card = {}; _intro_handle = null
+	_transfer_models.clear()
 	_update_controls()
 	_finish_navigation.call_deferred(generation, router.navigation_epoch)
 

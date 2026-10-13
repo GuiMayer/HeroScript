@@ -30,7 +30,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 7. Feedback semântico/resources: implementado; pagamento por proveniência,
    reações de dano separadas, lanes de texto, status/modifiers e endpoints de
    resource sincronizados ao beat sem alterar snapshots autoritativos.
-8. Zonas de cartas: pendente.
+8. Zonas de cartas: implementado; executor por addresses publicados, reutiliza
+   CardView quando permitido e verso para fluxo oculto, sem interpretar finalidade
+   da zona. Cancelamento remove todas as representações transitórias.
 9. Perfis/acessibilidade/áudio: pendente.
 10. Replay: pendente.
 11. Limites/desempenho: pendente.
