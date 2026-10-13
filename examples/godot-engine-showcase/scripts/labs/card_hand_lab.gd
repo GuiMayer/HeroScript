@@ -21,6 +21,8 @@ var _prior_preferences: Dictionary = {}
 var _rotation := 0
 var _prior_profile: Resource
 var ornaments: Array[Control] = []
+var motion_lab
+var motion_scenarios: Array = []
 
 func _ready() -> void:
 	_prior_profile = AppTheme.profile
@@ -164,6 +166,27 @@ func _build() -> void:
 	read_only.set_meta("lab_label", "Read-only / busy")
 	read_only.toggled.connect(func(enabled): hand.set_read_only(enabled))
 	actions.add_child(read_only)
+	motion_scenarios = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/card_motion_lab.json")).scenarios
+	motion_lab = preload("res://scripts/labs/card_motion_lab.gd").new(hand, visual_context,
+		func(): return hand.scroll.global_position + Vector2(30, hand.scroll.size.y * .5),
+		func(): return hand.scroll.global_position + Vector2(hand.scroll.size.x - 30, hand.scroll.size.y * .5),
+		func(): return hand.scroll.get_global_rect().get_center() + Vector2(0, -160))
+	add_child(motion_lab)
+	var scenario_picker := OptionButton.new(); scenario_picker.name = "MotionScenario"
+	for scenario in motion_scenarios: scenario_picker.add_item(str(scenario.label))
+	actions.add_child(scenario_picker)
+	var speed := OptionButton.new(); speed.name = "MotionPreset"
+	for value in ["normal", "fast", "instant"]: speed.add_item(value.capitalize())
+	speed.item_selected.connect(func(index): motion_lab.preset = ["normal", "fast", "instant"][index]); actions.add_child(speed)
+	var manual := CheckButton.new(); manual.text = "Manual animation steps"
+	manual.toggled.connect(func(value): motion_lab.options.auto_animations = not value); actions.add_child(manual)
+	actions.add_child(_button("Play motion", func(): motion_lab.play(motion_scenarios[scenario_picker.selected], models)))
+	actions.add_child(_button("Next", func(): motion_lab.director.advance()))
+	actions.add_child(_button("Skip presentation", func(): motion_lab.skip()))
+	motion_lab.finished.connect(func(result, metrics):
+		models = result; count = models.size(); count_picker.set_value_no_signal(count)
+		card_controls = hand.ordered_cards()
+		status.text = "Motion: %.1f ms · %s instant facts · %s CPU yields · %s" % [metrics.elapsed_ms, metrics.instant, metrics.cpu_yields, metrics.result])
 
 func enrich_selected() -> void:
 	for data in models:
@@ -185,6 +208,7 @@ func set_preset(index: int) -> void:
 	set_count(catalog.presets[preset_index].cards.size())
 
 func set_count(value: int) -> void:
+	if motion_lab != null and motion_lab._running: motion_lab.skip()
 	count = clampi(value, 0, 100)
 	count_picker.set_value_no_signal(count)
 	selected_id = ""
@@ -201,6 +225,7 @@ func set_text_scale(value: float) -> void:
 	_refresh()
 
 func _refresh() -> void:
+	if motion_lab != null and motion_lab._running: motion_lab.skip()
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
@@ -218,6 +243,7 @@ func _refresh() -> void:
 		if I18n.locale == "pt_BR": data.merge(data.get("pt_BR", {}), true)
 		data.erase("pt_BR")
 		data["labId"] = "%s:%s" % [fixture_id, i]
+		data["cardInstanceId"] = data.labId
 		data["summary"] = "\n".join(data.get("effects", []))
 		models.append(data)
 	_render_hand()

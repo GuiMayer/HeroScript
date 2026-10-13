@@ -80,6 +80,13 @@ mudança futura de contrato de dados.
    cada executor conclui seu handle. O director coordena avanço, pause e skip.
    Input e navegação aguardam `has_blocking_work()`, não apenas frames restantes.
 
+   O director drena operações instantâneas iterativamente, com geração e orçamento
+   de CPU. A confirmação manual depende da capacidade visual resolvida. Impactos
+   vivos/históricos compartilham `EffectMotion`, que aguarda apenas tweens iniciados.
+   `CardUseMotion`, `CardZoneMotion` e `CardTransitRegistry` são compartilhados com
+   o laboratório: a mão reserva chegadas e empresta a instância durante o voo.
+   As curvas, tempos e limites ficam em `data/motion_manifest.json`.
+
 Nenhuma preferência gráfica deve entrar em um envelope de jogo. No fluxo
 atual, a sessão conserva o snapshot final autoritativo. As views podem consumir
 `StateAfter` publicado por frame e interpolar `previousValue/currentValue`.

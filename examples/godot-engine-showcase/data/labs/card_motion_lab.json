@@ -10,6 +10,9 @@
     {"id":"create","label":"Create card","operation":"create","count":1},
     {"id":"destroy","label":"Destroy card","operation":"destroy","count":1},
     {"id":"reorder","label":"Reorder hand","operation":"reorder","count":5},
-    {"id":"empty","label":"100 instant facts","operation":"empty","count":100}
+    {"id":"empty","label":"100 instant facts","operation":"empty","count":100},
+    {"id":"missing_target","label":"Absent effect target","operation":"missing_target","count":1},
+    {"id":"zero_delta","label":"Effect with no change","operation":"zero_delta","count":1},
+    {"id":"lifecycle","label":"100 lifecycle facts","operation":"lifecycle","count":100}
   ]
 }

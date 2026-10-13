@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "easings": {"card_flight": {"curve": "cubic", "ease": "in"}, "zone_transfer": {"curve": "cubic", "ease": "in_out"}, "hover": {"curve": "cubic", "ease": "out"}, "hand_transition": {"curve": "cubic", "ease": "out"}},
-  "durations": {"prepare": 0.075, "retain": 0.09, "draw": 0.18, "discard": 0.15, "create": 0.14, "destroy": 0.12, "stagger": 0.025, "batch_span": 0.15, "card_flight": 0.16, "impact": 0.085, "float": 0.45, "zone_transfer": 0.18, "hand_transition": 0.11, "hover": 0.085, "watchdog": 12, "max_floats": 24, "max_transfers": 12},
+  "easings": {"card_flight": {"curve": "cubic", "ease": "out"}, "retain": {"curve": "cubic", "ease": "in_out"}, "zone_transfer": {"curve": "cubic", "ease": "in_out"}, "hover": {"curve": "cubic", "ease": "out"}, "hand_transition": {"curve": "cubic", "ease": "out"}},
+  "durations": {"prepare": 0.075, "retain": 0.09, "draw": 0.18, "discard": 0.15, "staged_discard": 0.07, "create": 0.14, "destroy": 0.12, "stagger": 0.025, "batch_span": 0.15, "card_flight": 0.16, "impact": 0.085, "float": 0.45, "zone_transfer": 0.18, "hand_transition": 0.11, "hover": 0.085, "watchdog": 12, "max_floats": 24, "max_transfers": 12},
   "cues": {
     "impact": {"sound": "impact", "label": "Impact", "color": "#ca452f"},
     "heal": {"sound": "heal", "label": "Recovery", "color": "#3eaa8d"},

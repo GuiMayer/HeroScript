@@ -47,6 +47,9 @@ func _random_text(frame: Dictionary, application: Dictionary) -> String:
 			if rule.has("success_label"): parts.append(visual_context.translator.text(str(rule.success_label)) + (" ✓" if outcome.get("success", false) else " —"))
 	return " · ".join(parts)
 func _float_application(application: Dictionary, portrait: Control, lane := 0, kind := "fact") -> void:
+	if not visual_context.motion.cue(kind).get("enabled", true): return
+	var duration: float = visual_context.motion.duration("float")
+	if duration <= 0: return
 	var previous = application.get("previousValue")
 	var current = application.get("currentValue")
 	var delta := 0.0
@@ -82,8 +85,6 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 	var tween := label.create_tween().set_parallel()
 	_tails.append(tween)
 	tween.finished.connect(func(): _tails.erase(tween), CONNECT_ONE_SHOT)
-	var duration: float = visual_context.motion.duration("float")
-	if duration <= 0: label.queue_free(); return
 	if not visual_context.motion.reduced: tween.tween_property(label, "position:y", label.position.y - 36, duration)
 	tween.tween_property(label, "modulate:a", 0.0, duration)
 	tween.chain().tween_callback(label.queue_free)

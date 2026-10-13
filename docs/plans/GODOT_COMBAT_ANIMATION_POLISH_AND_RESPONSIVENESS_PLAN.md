@@ -1,7 +1,9 @@
 # Combate: animações básicas, acabamento e resposta imediata
 
-Data: 2026-10-13. Estado: plano, ainda não implementado.
+Data: 2026-10-13. Estado: oito etapas implementadas.
 Base inspecionada: `5925db3`.
+
+Implementação e evidências: [relatório de calibração](GODOT_COMBAT_ANIMATION_POLISH_VALIDATION.md).
 
 ## 1. Objetivo
 

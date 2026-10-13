@@ -33,7 +33,7 @@ func _pump(manual: bool = false) -> bool:
 		if handle == null: instant_dispatches += 1
 		else:
 			handle.completed.connect(func(_result):
-				if _alive and not _pumping:
+				if _alive and not _pumping and ticket == _playback.generation:
 					_pump(); changed.emit(), CONNECT_ONE_SHOT)
 		if Time.get_ticks_usec() - start >= pump_budget_usec:
 			if handle == null and _playback.has_frames(): budget_yields += 1
@@ -44,6 +44,8 @@ func _pump(manual: bool = false) -> bool:
 	return advanced
 func metrics() -> Dictionary:
 	return {"dispatches": dispatches, "instant": instant_dispatches, "cpu_yields": budget_yields, "longest_pump_us": longest_pump_usec}
+func reset_metrics() -> void:
+	dispatches = 0; instant_dispatches = 0; budget_yields = 0; longest_pump_usec = 0
 func _process(delta: float) -> void:
 	if not _alive or _paused.call(): return
 	var handle = _playback.active_handle

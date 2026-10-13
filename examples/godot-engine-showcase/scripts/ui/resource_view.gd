@@ -23,6 +23,9 @@ func present_change(application: Dictionary, duration: float) -> Tween:
 	return null
 func _exit_tree() -> void:
 	if _value_motion and _value_motion.is_valid(): _value_motion.kill()
+func settle_motion() -> void:
+	if _value_motion != null and _value_motion.is_valid(): _value_motion.kill()
+	if not _model.is_empty(): bar.value = float(_model.state.get("current", bar.value))
 func presentation_model() -> Dictionary: return _model.duplicate(true)
 func reconcile_from(other) -> void:
 	visual_context = other.visual_context

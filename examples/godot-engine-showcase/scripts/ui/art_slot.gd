@@ -45,6 +45,9 @@ func flash_hit() -> Tween:
 	_hit_tween = create_tween()
 	_hit_tween.tween_property(self, "modulate", Color.WHITE, policy.duration("impact", true))
 	return _hit_tween
+func settle_motion() -> void:
+	if _hit_tween != null and _hit_tween.is_valid(): _hit_tween.kill()
+	modulate = Color.WHITE
 
 
 func _init(context = null) -> void:

@@ -16,12 +16,23 @@ static func can_animate(frame: Dictionary, context, portraits: Dictionary, panel
 static func execute(frame: Dictionary, handle, context, feedback, presenter, portraits: Dictionary, panels: Dictionary, index: int, total: int, audio: Callable = Callable()) -> String:
 	var operations: Array = []
 	var text: String = feedback.present(frame, index, total, presenter, portraits, operations)
+	for id in portraits:
+		if not portraits[id].has_method("settle_motion"): continue
+		var portrait_ref: WeakRef = weakref(portraits[id])
+		handle.cleanup(func():
+			var portrait = portrait_ref.get_ref()
+			if portrait != null: portrait.settle_motion())
 	for app in frame.get("applications", []):
 		var id := str(app.get("targetEntityId", ""))
 		if not panels.has(id): continue
 		var duration: float = context.motion.duration("impact", true) if Cues.kind(app, frame) == "impact" and context.motion.cue("impact").get("enabled", true) else 0.0
 		var movement = panels[id].present_resource(app, duration)
-		if movement is Tween: operations.append(movement)
+		if movement is Tween:
+			operations.append(movement)
+			var resource_ref: WeakRef = weakref(panels[id].find_child("Resource_" + str(app.get("resourceId", "")).validate_node_name(), true, false))
+			handle.cleanup(func():
+				var resource = resource_ref.get_ref()
+				if resource != null: resource.settle_motion())
 	handle.hit()
 	if audio.is_valid(): audio.call(frame, context.motion)
 	handle.join(operations)

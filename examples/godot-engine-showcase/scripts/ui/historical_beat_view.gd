@@ -10,6 +10,7 @@ var status: Label
 var _settled := false
 func _finish(result: String) -> void:
 	if _settled: return
+	if result in ["skipped", "cancelled"] and feedback != null: feedback.clear_cosmetics()
 	_settled = true; settled.emit(result)
 func set_paused(value: bool) -> void:
 	process_mode = Node.PROCESS_MODE_DISABLED if value else Node.PROCESS_MODE_INHERIT

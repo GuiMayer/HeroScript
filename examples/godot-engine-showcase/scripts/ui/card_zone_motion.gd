@@ -42,8 +42,14 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 		var source_visible := false
 		for zone in snapshots[0].get("zones", []):
 			if address_key(zone) == item.source: source_visible = bool(zone.get("contentsVisible", false))
+		if item.operation == "create": source_visible = true
 		var ghost: Control = owner.acquire(item.id, models.get(item.id, {}), source_visible, item.start)
+		var ghost_ref: WeakRef = weakref(ghost)
+		if not source_visible:
+			ghost.scale = Vector2.ONE * .35; ghost.hide()
+		if item.operation == "create": ghost.scale = Vector2.ONE * .8; ghost.modulate.a = 0; ghost.hide()
 		var duration: float = policy.duration(item.operation, true)
+		if item.operation == "discard" and owner.consume_staged(item.id): duration = policy.duration("staged_discard", true)
 		var key: String = item.id if not item.id.is_empty() else "hidden:%s" % i
 		var delay: float = maxf(float(serial.get(key, 0)), minf(i * policy.duration("stagger", true), policy.duration("batch_span", true)))
 		serial[key] = delay + duration
@@ -68,11 +74,11 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 			ghost.scale = Vector2.ONE * lerpf(float(pose.scale), target_scale, progress)
 			ghost.rotation = lerpf(float(pose.rotation), 0, progress)
 			ghost.global_position = center - ghost.size * .5
-			ghost.modulate.a = 1.0 if item.operation in ["draw", "create"] or following else 1.0 - clampf((progress - .8) / .2, 0, 1), 0.0, 1.0, duration).set_trans(policy.curve("zone_transfer")).set_ease(policy.easing("zone_transfer"))
+			ghost.modulate.a = progress if item.operation == "create" else (1.0 if item.operation == "draw" or following else 1.0 - clampf((progress - .8) / .2, 0, 1)), 0.0, 1.0, duration).set_trans(policy.curve("zone_transfer")).set_ease(policy.easing("zone_transfer"))
 		tween.tween_callback(func():
 			if arrival.is_valid(): arrival.call(item)
 			if not following: owner.release(item.id, ghost, role.is_valid() and role.call(item.target) == "hand" and item.operation != "destroy")
 			remaining.count -= 1
 			if remaining.count == 0: handle.hit(); handle.finish())
 		handle.cleanup(func():
-			if handle.result != "completed": owner.release(item.id, ghost))
+			if handle.result != "completed": owner.release(item.id, ghost_ref.get_ref()))

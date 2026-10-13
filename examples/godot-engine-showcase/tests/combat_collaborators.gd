@@ -47,16 +47,18 @@ func _run() -> void:
 	var options := Options.new()
 	var pause := {"value": false}
 	var driver = Driver.new(cursor, options, func(): return pause.value)
+	cursor.executor = func(_frame, _handle): pass
 	cursor.load_receipt({"state": {"resolution": {"frames": [{}, {}, {}]}}})
 	driver._process(.01)
 	check(cursor.index == 1, "timing driver advances the existing presentation cursor")
 	driver._process(.1)
-	check(cursor.index == 1, "presentation interval persists without a screen render dependency")
+	check(cursor.index == 1, "actual visual handle persists without a screen render dependency")
 	pause.value = true
 	driver._process(10.)
 	check(not driver.advance() and cursor.index == 1, "pause blocks both automatic and manual advancement")
 	pause.value = false
 	options.auto_animations = false
+	cursor.complete_active()
 	driver._process(10.)
 	check(cursor.index == 1 and driver.advance() and cursor.index == 2, "manual mode uses the same cursor and no second queue")
 	options.auto_animations = true

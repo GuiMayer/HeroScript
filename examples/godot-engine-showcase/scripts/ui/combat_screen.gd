@@ -120,6 +120,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 
 func _update_controls() -> void:
 	if not is_instance_valid(view): return
+	view.card_buttons = view.hand.cards()
 	view.apply_interaction(controller.interaction_model().to_dictionary())
 	if is_instance_valid(_collection_dialog):
 		var address: Dictionary = _collection_dialog.collection.model.address

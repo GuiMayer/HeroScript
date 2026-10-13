@@ -22,10 +22,12 @@ labels passam pelo tradutor do cliente.
 ```json
 {
   "version": 1,
-  "durations": {"card_flight": 0.2, "card_entry": 0.22, "impact": 0.12,
-    "float": 0.55, "zone_transfer": 0.18, "hand_transition": 0.13,
-    "hover": 0.12, "watchdog": 12, "max_floats": 24, "max_transfers": 12},
-  "easings": {"card_flight": {"curve": "cubic", "ease": "in"}},
+  "durations": {"prepare": 0.075, "card_flight": 0.16, "retain": 0.09,
+    "draw": 0.18, "discard": 0.15, "staged_discard": 0.07, "create": 0.14,
+    "destroy": 0.12, "stagger": 0.025, "batch_span": 0.15, "impact": 0.085,
+    "float": 0.45, "zone_transfer": 0.18, "hand_transition": 0.11,
+    "hover": 0.085, "watchdog": 12, "max_floats": 24, "max_transfers": 12},
+  "easings": {"card_flight": {"curve": "cubic", "ease": "out"}},
   "cues": {"impact": {"sound": "impact", "label": "Impact", "color": "#ca452f"}},
   "settings": {"my-setting": {"durations": {"impact": 0.15},
     "cues": {"heal": {"sound": "heal", "label": "Recovery", "color": "#3eaa8d"}}}}
@@ -36,16 +38,17 @@ Durações são segundos, finitas e entre 0 e 64. Limites são inteiros com mín
 efetivo 1. Campos desconhecidos são ignorados. Ausência do arquivo, raiz inválida
 ou versão não suportada usa defaults limitados. Curvas aceitas: `linear`, `cubic`,
 `sine`, `quad`; easings: `in`, `out`, `in_out`. Pares inválidos conservam o fallback.
-O perfil é relido na fronteira de cada apresentação; não há watcher que altere
+O perfil é verificado na fronteira de cada apresentação; o JSON só é parseado
+quando seu texto muda, inclusive em alterações do mesmo tamanho/segundo. Não há watcher que altere
 tweens em curso. A geometria/lift da mão continua no `HandVisualStyle`, não nos
 JSON de regras. Curvas do voo, entrada/hover da carta e transferência usam o
 perfil; interpolação simples de barras/mão permanece linear.
 
 Presets: normal respeita velocidade entre 0,25× e 2×; fast usa 2×; instant usa
 duração zero. Movimento reduzido elimina deslocamento/flash intenso, mantendo
-informação e pausas breves de leitura. Avanço manual é uma preferência separada.
-Frames de lifecycle explicitamente identificados e sem fatos visuais não exigem
-confirmação; beats de efeitos continuam disponíveis ao leitor manual.
+informação factual. Avanço manual é uma preferência separada. Somente uma operação
+visual executável pede confirmação. Sem alvo, delta, deslocamento ou duração,
+o beat termina imediatamente. Não há pausa mínima por aplicação ou lifecycle.
 
 ## Cues e informação factual
 
@@ -53,6 +56,22 @@ confirmação; beats de efeitos continuam disponíveis ao leitor manual.
 status, modifier e transferência. Pagamento usa proveniência de custo, não nome
 de recurso. Um recurso arbitrário funciona como qualquer outro. Dados sem cue
 específico mantêm descrição factual neutra.
+
+`enabled: false` no cue suprime seu feedback; o fato e a projeção continuam sendo
+consumidos. Impactos aguardam tweens concretos; pagamento/status/ganhos e texto
+flutuante podem terminar sem bloquear. Cancelamento também encerra resíduos e
+restaura os endpoints publicados das barras e a cor dos retratos.
+
+`CardTransitRegistry` mantém uma representação por instância. Usa a própria carta
+da mão durante saída/retorno; entrada oculta usa um verso anônimo. `CardHandView`
+reserva slots e suspende hover/fade local durante trânsito. Addresses são resolvidos
+antes do ID: leque vem das zonas apresentadas como jogáveis, pilhas dos botões
+vinculados a addresses. Não existe semântica de nome de zona no executor.
+
+Lotes têm sobreposição e espaçamento limitado por `batch_span`. `max_transfers`
+limita movimentos, com contagem compacta permitida e reconciliação final. Reordenação
+usa a acomodação da mão; ausência de uma ordem intermediária autorizada usa fallback
+factual. Uso e fluxo posterior reaproveitam a mesma instância visual.
 
 Os IDs de áudio são resolvidos pelo catálogo existente; sons desconhecidos não
 criam regras nem novas vozes ilimitadas. O catálogo de artes continua compartilhado
@@ -99,6 +118,15 @@ e blocking_completed quando disponíveis. Eles separam espera da API de ritmo
 visual; não constituem benchmark de parsing, FPS ou p95 universal. Após settling,
 `release_facts()` libera recibos/frames grandes. O transporte conserva suas próprias
 medições. Consulte o relatório de validação antes de fazer afirmações de desempenho.
+
+As leituras também registram `run_loaded`, `projections_loaded`, `actions_loaded`,
+`evaluations_loaded` e `views_prepared`. O director expõe contadores de dispatch,
+operações instantâneas e cessões do orçamento de CPU (4 ms por passagem). Uma cessão
+não cria timer/handle; serve para preservar o quadro sob custo real de processamento.
+
+No laboratório `scenes/card_hand_lab.tscn`, selecione a operação e use **Play motion**.
+Há 14 fixtures, presets normal/fast/instant, avanço manual e skip. Os mesmos executores
+do combate consomem fatos sintéticos; nenhuma regra ou chamada REST é executada ali.
 
 ## Testar
 

@@ -68,7 +68,7 @@ func _run() -> void:
 	check(screen.view.hand.card_for("played").position.y < -5, "pending inspection receives immediate reversible card preparation")
 	fixture.release.emit(); await create_timer(.025).timeout
 	check(seen == ["card_departure"] and screen.controller.locked(), "card departure starts first and keeps commands locked")
-	check(not screen.view.hand.card_for("played").visible and screen.view.feedback.effects.get_children().filter(func(node): return node is CardView).size() == 1, "only one card representation is visible in transit")
+	check(screen.view.hand.card_for("played").get_parent() == screen.view.feedback.effects and screen.view.feedback.effects.get_children().filter(func(node): return node is CardView).size() == 1, "one existing card instance is borrowed for transit without rebuilding its face")
 	await capture("card-departure")
 	var ghost: Control = screen.view.feedback.effects.get_children().filter(func(node): return node is CardView)[0]
 	router.toggle_pause(); var position: Vector2 = ghost.position

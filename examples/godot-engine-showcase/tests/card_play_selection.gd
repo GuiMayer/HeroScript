@@ -83,7 +83,7 @@ func _run() -> void:
 	await settle()
 	check(screen.view.hand == hand and hand.card_for("first") == survivor and "second" not in hand.order, "accepted use reconciles instances without rebuilding survivors")
 	check_neutral(screen, "consumed card")
-	check(playback.has_frames(), "manual presentation queue still waits for confirmation independently of selection")
+	check(not playback.has_blocking_work(), "an empty effect receipt requires no manual confirmation or delay")
 	screen._next_frame()
 	await settle()
 	check_neutral(screen, "after animation confirmation")

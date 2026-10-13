@@ -161,6 +161,7 @@ func finish_transit(id: String, reveal_card := true) -> void:
 	_apply_emphasis()
 
 func end_presentation() -> void:
+	for id in _destination_order: finish_transit(str(id))
 	_presenting = false; _destination_order.clear()
 	for id in _transit.keys(): finish_transit(id)
 	request_layout()
@@ -172,6 +173,23 @@ func destination_center(id: String) -> Vector2:
 	return scroll.get_global_rect().get_center()
 
 func is_in_transit(id: String) -> bool: return _transit.has(id)
+
+func borrow_card(id: String, overlay: Control) -> Control:
+	var card: CardView = _cards[id]
+	var origin: Vector2 = card.global_position
+	begin_transit(id)
+	card.reparent(overlay, false)
+	card.global_position = origin; card.process_mode = Node.PROCESS_MODE_PAUSABLE
+	card.show()
+	return card
+
+func return_card(id: String, card: Control, reveal_card: bool) -> void:
+	if _cards.get(id) != card or not _slots.has(id): return
+	card.reparent(_slots[id], false)
+	card.position = Vector2.ZERO; card.rotation = 0; card.scale = Vector2.ONE
+	card.z_index = 0
+	card.process_mode = Node.PROCESS_MODE_INHERIT
+	finish_transit(id, reveal_card)
 
 func prepare_use(id: String) -> void:
 	if not _cards.has(id): return
@@ -268,6 +286,8 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	_update_counter()
 
 func _remove(id: String) -> void:
+	if _cards.has(id) and _slots.has(id) and _cards[id].get_parent() != _slots[id]:
+		_cards[id].hide(); _cards[id].queue_free()
 	if _entries.has(id) and _entries[id].is_valid(): _entries[id].kill()
 	_entries.erase(id); _transit.erase(id)
 	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
@@ -351,7 +371,7 @@ func _relayout() -> void:
 		card.pivot_offset = dimensions * .5
 		slot.size = dimensions
 		var target: Vector2 = _layout.positions[i]
-		if slot.has_meta("placed") and slot.position != target and not visual_context.reduced_motion:
+		if slot.has_meta("placed") and slot.position != target and duration() > 0:
 			if _motions.has(id) and _motions[id].is_valid(): _motions[id].kill()
 			_motions[id] = create_tween()
 			_motions[id].tween_property(slot, "position", target, duration())
@@ -387,7 +407,7 @@ func _apply_emphasis() -> void:
 		if _emphasis.has(id) and _emphasis[id].position == target and is_equal_approx(_emphasis[id].rotation, angle): continue
 		if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 		var tween: Tween = null
-		if not visual_context.reduced_motion and is_inside_tree():
+		if duration() > 0 and is_inside_tree():
 			tween = create_tween().set_parallel()
 			tween.tween_property(card, "position", target, duration())
 			tween.tween_property(card, "rotation", angle, duration())
