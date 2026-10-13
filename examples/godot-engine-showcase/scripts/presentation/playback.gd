@@ -4,6 +4,7 @@ signal frame_presented(frame: Dictionary, index: int, total: int)
 signal settled(result: String, generation: int)
 var active_handle
 var executor: Callable
+var visual_resolver: Callable
 var dispatch_ready := true
 var envelope
 var _measurements: Array = []
@@ -50,6 +51,8 @@ func has_frames() -> bool:
 func next_is_passive() -> bool:
 	if not has_frames(): return false
 	var beat: Dictionary = _frames[index]
+	if not executor.is_valid(): return true
+	if visual_resolver.is_valid(): return not visual_resolver.call(beat)
 	var transition := str(beat.get("transitionType", ""))
 	return not transition.is_empty() and transition != "effect" and not beat.get("hasVisibleFacts", false) and beat.get("presentationOnly", "") != "card_departure"
 
@@ -87,4 +90,5 @@ func advance() -> bool:
 	if executor.is_valid():
 		handle.claimed = true
 		executor.call(frame, handle)
+	else: handle.finish()
 	return true
