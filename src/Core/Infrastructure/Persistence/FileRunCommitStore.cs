@@ -254,6 +254,58 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         finally { gate.Release(); }
     }
 
+    public async Task<RunCommitEnvelopePage> LoadEnvelopePageAsync(
+        Guid runId, int afterSequence, int limit, int? throughSequence = null, CancellationToken ct = default)
+    {
+        if (afterSequence < 0 || limit is < 1 or > 1000 || throughSequence is < 1)
+            throw new ArgumentOutOfRangeException(nameof(afterSequence), "Invalid envelope page cursor");
+        var gate = Gate(runId);
+        var captured = new Dictionary<int, byte[]>();
+        int through;
+        int[] page;
+        bool more;
+        await gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var sequences = ListSequencesUnsafe(runId);
+            if (sequences.Count == 0)
+                return new(runId, afterSequence, 0, afterSequence, false, null, []);
+            through = throughSequence ?? sequences[^1];
+            if (through > sequences[^1] || afterSequence > through)
+                throw new ArgumentOutOfRangeException(nameof(throughSequence), "Replay snapshot/cursor exceeds the recorded head");
+            var prefix = sequences.TakeWhile(sequence => sequence <= through).ToArray();
+            if (prefix.Length != through || prefix.Where((sequence, index) => sequence != index + 1).Any())
+                throw new InvalidDataException("Run commit sequences are not contiguous");
+            page = prefix.Where(sequence => sequence > afterSequence).Take(limit).ToArray();
+            more = page.Length > 0 && page[^1] < through;
+            foreach (var sequence in page.Append(1).Concat(afterSequence > 0 ? [afterSequence] : []).Distinct())
+                captured[sequence] = await File.ReadAllBytesAsync(GetCommitPath(runId, sequence), ct).ConfigureAwait(false);
+        }
+        finally { gate.Release(); }
+        // Bytes are a coherent captured read. CPU validation does not hold up appends/deletion.
+        var envelopes = new Dictionary<int, RunCommit>();
+        foreach (var (sequence, bytes) in captured)
+        {
+            ct.ThrowIfCancellationRequested();
+            var commit = DeserializeEnvelope(bytes, Convert.ToHexString(SHA256.HashData(bytes)));
+            if (commit.RunId != runId || commit.Sequence != sequence)
+                throw new InvalidDataException("Run envelope path does not match its identity");
+            envelopes[sequence] = commit;
+        }
+        RunCommit? previous = afterSequence > 0 ? envelopes[afterSequence] : null;
+        var items = new List<RunCommit>(page.Length);
+        foreach (var sequence in page)
+        {
+            var commit = envelopes[sequence];
+            if (previous != null && previous.StateHash != commit.PreviousStateHash)
+                throw new InvalidDataException("Invalid run envelope page chain");
+            items.Add(commit);
+            previous = commit;
+        }
+        return new(runId, afterSequence, through, items.LastOrDefault()?.Sequence ?? afterSequence,
+            more, envelopes[1], items);
+    }
+
     public async Task<RunCommit?> LoadCommitAsync(
         Guid runId,
         int sequence,

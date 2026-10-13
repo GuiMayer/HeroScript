@@ -48,4 +48,10 @@ public interface IPreparedRunCommitStore
 public interface IRunCommitEnvelopeReader
 {
     Task<IReadOnlyList<RunCommit>> LoadCommitEnvelopesAsync(Guid runId, CancellationToken ct = default);
+    Task<RunCommitEnvelopePage> LoadEnvelopePageAsync(Guid runId, int afterSequence, int limit,
+        int? throughSequence = null, CancellationToken ct = default);
 }
+
+/// <summary>Structural chain read, not semantic replay verification. States remain unmaterialized.</summary>
+public sealed record RunCommitEnvelopePage(Guid RunId, int AfterSequence, int ThroughSequence,
+    int NextCursor, bool HasMore, RunCommit? InitialCommit, IReadOnlyList<RunCommit> Items);

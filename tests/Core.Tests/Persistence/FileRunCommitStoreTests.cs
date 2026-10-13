@@ -293,6 +293,47 @@ public sealed class FileRunCommitStoreTests : IDisposable
         Assert.Single(await store.ListCommitSequencesAsync(commit.RunId));
     }
 
+    [Fact]
+    public async Task EnvelopePages_PinHeadAndDoNotMaterializeDeltas()
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var run = Guid.NewGuid();
+        var first = CreateCommit(run, 1, null, 1);
+        var second = CreateCommit(run, 2, first.StateHash, 2);
+        await store.AppendAsync(first);
+        await store.AppendPreparedAsync(PreparedRunCommit.CreateVerified(second, second.StateHash, first.RequireState()));
+        var page = await store.LoadEnvelopePageAsync(run, 0, 1);
+        Assert.Equal(2, page.ThroughSequence);
+        Assert.True(page.HasMore);
+        var third = CreateCommit(run, 3, second.StateHash, 3);
+        await store.AppendPreparedAsync(PreparedRunCommit.CreateVerified(third, third.StateHash, second.RequireState()));
+        var final = await store.LoadEnvelopePageAsync(run, page.NextCursor, 1, page.ThroughSequence);
+        Assert.Single(final.Items);
+        Assert.Equal(2, final.Items[0].Sequence);
+        Assert.Null(final.Items[0].StateAfter);
+        Assert.False(final.HasMore);
+        Assert.Empty((await store.LoadEnvelopePageAsync(run, 2, 1, 2)).Items);
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => store.LoadEnvelopePageAsync(run, 0, 1, 4));
+    }
+
+    [Fact]
+    public async Task EnvelopePages_RejectChangedBoundaryAndMissingSequences()
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var run = Guid.NewGuid();
+        var first = CreateCommit(run, 1, null, 1);
+        var second = CreateCommit(run, 2, first.StateHash, 2);
+        var third = CreateCommit(run, 3, second.StateHash, 3);
+        await store.AppendAsync(first); await store.AppendAsync(second); await store.AppendAsync(third);
+        await store.LoadEnvelopePageAsync(run, 1, 1);
+        var path = Path.Combine(_directory, run.ToString("D"), "commits", "00000002.json");
+        var bytes = await File.ReadAllTextAsync(path);
+        await File.WriteAllTextAsync(path, bytes.Replace(second.PreviousStateHash, new string('0', 64)));
+        await Assert.ThrowsAsync<InvalidDataException>(() => store.LoadEnvelopePageAsync(run, 1, 1));
+        File.Delete(path);
+        await Assert.ThrowsAsync<InvalidDataException>(() => store.LoadEnvelopePageAsync(run, 0, 1));
+    }
+
     private async Task usingScope(Func<FileRunCommitStore, Task> action)
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
