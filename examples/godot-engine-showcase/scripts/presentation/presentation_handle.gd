@@ -21,6 +21,16 @@ func own(tween: Tween) -> void:
 	claimed = true
 	_tweens.append(tween)
 func cleanup(action: Callable) -> void: _cleanup.append(action)
+func join(operations: Array) -> void:
+	var running: Array = operations.filter(func(tween): return tween is Tween and tween.is_valid() and tween.is_running())
+	if running.is_empty(): hit(); finish(); return
+	var remaining := {"count": running.size()}
+	for tween in running:
+		own(tween)
+		tween.finished.connect(func():
+			if done: return
+			remaining.count -= 1
+			if remaining.count == 0: finish(), CONNECT_ONE_SHOT)
 func finish(outcome := "completed") -> void:
 	if done: return
 	done = true; result = outcome

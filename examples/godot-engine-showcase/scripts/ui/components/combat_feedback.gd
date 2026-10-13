@@ -4,11 +4,12 @@ const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
 var effects := Control.new()
 var _active_lanes: Dictionary = {}
+var _tails: Array = []
 func _init(context) -> void:
 	visual_context = context
 	effects.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(effects)
-func present(frame: Dictionary, index: int, total: int, presenter, portraits: Dictionary) -> String:
+func present(frame: Dictionary, index: int, total: int, presenter, portraits: Dictionary, blocking: Array = []) -> String:
 	if visual_context.motion == null: visual_context.capture_motion()
 	var i18n = visual_context.translator
 	var text: String = "%s %s/%s  •  %s" % [i18n.text("Animations"), index + 1, total, i18n.content_name(str(frame.get("transitionType", "")))]
@@ -21,8 +22,10 @@ func present(frame: Dictionary, index: int, total: int, presenter, portraits: Di
 		var target := str(application.get("targetEntityId", ""))
 		if portraits.has(target):
 			var kind: String = preload("res://scripts/presentation/semantic_cues.gd").kind(application, frame)
-			if kind == "impact" and not visual_context.reduced_motion and target not in flashed:
-				portraits[target].flash_hit()
+			var has_delta: bool = application.get("previousValue") != null and application.get("currentValue") != null and not is_equal_approx(float(application.previousValue), float(application.currentValue))
+			if kind == "impact" and has_delta and not visual_context.reduced_motion and target not in flashed and portraits[target].has_method("flash_hit") and visual_context.motion.cue(kind).get("enabled", true):
+				var reaction = portraits[target].call("flash_hit")
+				if reaction is Tween: blocking.append(reaction)
 				flashed.append(target)
 			var lane: int = lanes.get(target, 0)
 			_float_application(application, portraits[target], lane, kind)
@@ -77,13 +80,22 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 	effects.add_child(label)
 	label.global_position = portrait.global_position + Vector2(20 + (lane % 3) * 12, 45 + lane * 27)
 	var tween := label.create_tween().set_parallel()
+	_tails.append(tween)
+	tween.finished.connect(func(): _tails.erase(tween), CONNECT_ONE_SHOT)
 	var duration: float = visual_context.motion.duration("float")
 	if duration <= 0: label.queue_free(); return
 	if not visual_context.motion.reduced: tween.tween_property(label, "position:y", label.position.y - 36, duration)
 	tween.tween_property(label, "modulate:a", 0.0, duration)
 	tween.chain().tween_callback(label.queue_free)
-func dispose() -> void:
+func clear_cosmetics() -> void:
+	for tween in _tails:
+		if tween.is_valid(): tween.kill()
+	_tails.clear()
 	for child in effects.get_children():
+		if not child is Label: continue
 		effects.remove_child(child)
 		child.queue_free()
 	_active_lanes.clear()
+func dispose() -> void:
+	clear_cosmetics()
+	for child in effects.get_children(): effects.remove_child(child); child.queue_free()

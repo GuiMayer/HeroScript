@@ -49,6 +49,7 @@ func setup(owner, data: Dictionary) -> void:
 	add_child(view)
 	Playback.frame_presented.connect(_on_frame)
 	Playback.executor = _execute_beat
+	Playback.visual_resolver = _can_animate
 	Playback.settled.connect(_on_settled)
 	GameSession.presentation_ready.connect(_on_presentation_ready)
 	_render(data)
@@ -253,26 +254,31 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 			tween.parallel().tween_property(ghost, "scale", Vector2.ONE, visual_context.motion.duration("retain", true))
 		tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
 	else:
-		handle.hit(); GameAudio.play_beat(frame, visual_context.motion)
 		if frame.get("stateAfter") is Dictionary: view.present_combat_snapshot(frame.stateAfter)
-		view.present_frame(frame, Playback.index - 1, Playback.total)
-		for application in frame.get("applications", []):
-			var target := str(application.get("targetEntityId", ""))
-			if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, visual_context.motion.duration("impact", true))
 		var steps: Array = frame.get("cardZoneSteps", []).duplicate(true)
 		if steps.is_empty():
 			for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
 		if not steps.is_empty() and Playback.envelope != null:
+			# Card motion owns its arrival milestone; static outcomes still publish
+			# immediately and do not add a second timer to the transfer.
+			view.detail_label.text = view.feedback.present(frame, Playback.index - 1, Playback.total, presenter, {})
+			for application in frame.get("applications", []):
+				var target := str(application.get("targetEntityId", ""))
+				if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, 0)
 			preload("res://scripts/ui/card_zone_motion.gd").execute(steps,
 				_motion_zones, _transfer_models, _zone_anchor, view.feedback.effects, visual_context, handle, _zone_role, _transits,
 				func(item):
 					if _zone_role(item.target) == "hand": GameAudio.play_event("card_move"))
 			return
-		if not frame.get("hasVisibleFacts", false) or visual_context.motion.duration("impact") <= 0: handle.finish(); return
-		var tween := view.create_tween()
-		handle.own(tween)
-		tween.tween_interval(visual_context.motion.duration("impact"))
-		tween.tween_callback(func(): handle.finish())
+		view.detail_label.text = preload("res://scripts/ui/effect_motion.gd").execute(frame, handle, visual_context, view.feedback, presenter,
+			view.actor_portraits, view.battlefield_view.panels, Playback.index - 1, Playback.total, GameAudio.play_beat)
+
+func _can_animate(frame: Dictionary) -> bool:
+	if frame.get("presentationOnly", "") == "card_departure": return visual_context.motion.duration("card_flight", true) > 0 and is_instance_valid(view.hand.card_for(str(frame.get("cardInstanceId", ""))))
+	var steps: Array = frame.get("cardZoneSteps", []).duplicate()
+	for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
+	if not steps.is_empty() and not preload("res://scripts/ui/card_zone_motion.gd").resolve(steps, _motion_zones, _zone_anchor, visual_context.motion, _zone_role).is_empty(): return true
+	return preload("res://scripts/ui/effect_motion.gd").can_animate(frame, visual_context, view.actor_portraits, view.battlefield_view.panels)
 
 func _zone_anchor(address: String, id: String) -> Vector2:
 	for button in view.find_children("Pile_*", "Button", true, false):
@@ -294,6 +300,7 @@ func _on_settled(_result: String, generation: int) -> void:
 	_prepared_card = {}; _intro_handle = null
 	if _transits != null: _transits.dispose(); _transits = null
 	view.hand.end_presentation()
+	if _result in ["skipped", "cancelled"]: view.feedback.clear_cosmetics()
 	_transfer_models.clear()
 	_update_controls()
 	_finish_navigation.call_deferred(generation, router.navigation_epoch)
@@ -321,6 +328,7 @@ func dispose() -> void:
 	if Playback.settled.is_connected(_on_settled): Playback.settled.disconnect(_on_settled)
 	if GameSession.presentation_ready.is_connected(_on_presentation_ready): GameSession.presentation_ready.disconnect(_on_presentation_ready)
 	Playback.executor = Callable()
+	Playback.visual_resolver = Callable()
 
 func _drop_card(id: String, point: Vector2) -> void:
 	if _locked(): return

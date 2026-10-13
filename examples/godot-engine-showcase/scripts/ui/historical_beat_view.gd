@@ -33,19 +33,18 @@ func load_commit(commit: Dictionary, appearance: Dictionary, automatic := true) 
 	var next: Button = visual_context.styles.button(visual_context.translator.text("NEXT")); next.pressed.connect(func(): director.advance()); controls.add_child(next)
 	var skip: Button = visual_context.styles.button(visual_context.translator.text("Skip presentation")); skip.pressed.connect(func(): director.skip()); controls.add_child(skip); add_child(controls)
 	playback.executor = _execute
+	playback.visual_resolver = _can_animate
 	playback.settled.connect(func(result, _generation): _finish(result))
 	playback.load_receipt({"state": {"resolution": {"frames": preload("res://scripts/presentation/historical_presentation.gd").frames(commit)}}})
 func _execute(frame: Dictionary, handle) -> void:
-	handle.hit()
 	if frame.get("stateAfter") is Dictionary: history.apply_frame_snapshot(frame.stateAfter)
 	var portraits := {}
 	for id in history.actor_panels: portraits[id] = history.actor_panels[id].portrait_view
-	status.text = feedback.present(frame, playback.index - 1, playback.total, history.presenter, portraits)
-	for application in frame.get("applications", []):
-		var id := str(application.get("targetEntityId", ""))
-		if history.actor_panels.has(id): history.actor_panels[id].present_resource(application, visual_context.motion.duration("impact", true))
-	if not frame.get("hasVisibleFacts", false) or visual_context.motion.duration("impact") <= 0: handle.finish(); return
-	var tween := create_tween(); handle.own(tween); tween.tween_interval(visual_context.motion.duration("impact")); tween.tween_callback(func(): handle.finish())
+	status.text = preload("res://scripts/ui/effect_motion.gd").execute(frame, handle, visual_context, feedback, history.presenter, portraits, history.actor_panels, playback.index - 1, playback.total)
+func _can_animate(frame: Dictionary) -> bool:
+	var portraits := {}
+	for id in history.actor_panels: portraits[id] = history.actor_panels[id].portrait_view
+	return preload("res://scripts/ui/effect_motion.gd").can_animate(frame, visual_context, portraits, history.actor_panels)
 func blocking() -> bool: return playback != null and playback.has_blocking_work()
 func dispose() -> void:
 	if director: director.dispose()

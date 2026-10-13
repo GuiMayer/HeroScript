@@ -37,13 +37,14 @@ func rebind_context(context) -> void:
 	if is_inside_tree(): _subscribe_context()
 	_on_context_changed()
 
-func flash_hit() -> void:
+func flash_hit() -> Tween:
 	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
-	if policy.duration("impact", true) <= 0: return
+	if policy.duration("impact", true) <= 0: return null
 	if _hit_tween: _hit_tween.kill()
 	modulate = Color(1.8, 1.4, 1.2)
 	_hit_tween = create_tween()
 	_hit_tween.tween_property(self, "modulate", Color.WHITE, policy.duration("impact", true))
+	return _hit_tween
 
 
 func _init(context = null) -> void:

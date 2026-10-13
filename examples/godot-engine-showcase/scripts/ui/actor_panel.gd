@@ -8,13 +8,14 @@ var target_button: Button
 var _battlefield_content: VBoxContainer
 var _projection := []
 var _model: Dictionary = {}
-func present_resource(application: Dictionary, duration: float) -> void:
+func present_resource(application: Dictionary, duration: float) -> Tween:
 	var id := str(application.get("resourceId", ""))
 	var view = find_child("Resource_" + id.validate_node_name(), true, false)
-	if view != null: view.present_change(application, duration); return
+	if view != null: return view.present_change(application, duration)
 	var counter = find_child("ResourceCounter_" + id.validate_node_name(), true, false)
 	if counter != null and application.get("currentValue") != null and str(application.get("resourceField", "Current")) in ["Current", "0", "0.0"]:
 		counter.text = "%s %s" % [visual_context.translator.number(float(application.currentValue)), visual_context.translator.content_name(id)]
+	return null
 func presentation_model() -> Dictionary: return _model.duplicate(true)
 
 func apply_model(data: Dictionary) -> void:

@@ -16,7 +16,7 @@ func _run() -> void:
 	view.load_commit(commit, {})
 	check(context.setting_id == "default" and view.visual_context.setting_id == "ascendant", "historical motion uses the saved setting without changing the live context")
 	view.director._process(.01)
-	check(view.blocking(), "historical reader uses the same blocking completion contract")
+	check(not view.blocking(), "historical facts without an actor or animation settle immediately")
 	view.director.skip()
 	check(not view.blocking() and JSON.stringify(commit) == before, "historical skip changes neither recorded facts nor live session")
 	view.history.apply_frame_snapshot({"combatId": "finished", "actors": [{"instanceId": "transient", "definitionId": "spire_adept", "resources": {}}]})

@@ -65,6 +65,7 @@ func _run() -> void:
 	fixture.held = true
 	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.1).timeout
 	check(session.busy and seen.is_empty() and cursor.index == 0, "receipt cannot present impacts before synchronization")
+	check(screen.view.hand.card_for("played").position.y < -5, "pending inspection receives immediate reversible card preparation")
 	fixture.release.emit(); await create_timer(.025).timeout
 	check(seen == ["card_departure"] and screen.controller.locked(), "card departure starts first and keeps commands locked")
 	check(not screen.view.hand.card_for("played").visible and screen.view.feedback.effects.get_children().filter(func(node): return node is CardView).size() == 1, "only one card representation is visible in transit")
@@ -91,8 +92,8 @@ func _run() -> void:
 	prefs.reduced_motion = true
 	router.show_combat(); await settle(); screen = router.host.get_child(0)
 	await screen._play_candidate(screen.presenter.candidate_for_card("played")); await settle()
-	check(router.current_screen == "combat" and cursor.has_blocking_work(), "terminal result cannot cut pending manual presentation")
-	screen.presentation_driver.skip(); await settle()
+	check(not cursor.has_blocking_work(), "reduced motion does not require manual clicks for absent animations")
+	await settle()
 	check(router.current_screen != "combat" and not cursor.has_blocking_work(), "terminal navigation occurs only after presentation settles")
 	# Destroying a view during a flight must not execute its deferred navigation.
 	fixture = Fixture.new(); session.configure(fixture)
