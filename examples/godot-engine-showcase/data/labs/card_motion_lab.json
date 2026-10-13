@@ -1,0 +1,15 @@
+{
+  "scenarios": [
+    {"id":"use","label":"Use card","operation":"use","count":1},
+    {"id":"retained","label":"Use retained card","operation":"retained","count":1},
+    {"id":"draw_one","label":"Draw 1","operation":"draw","count":1},
+    {"id":"draw_five","label":"Draw 5","operation":"draw","count":5},
+    {"id":"draw_ten","label":"Draw 10","operation":"draw","count":10},
+    {"id":"discard","label":"Discard hand","operation":"discard","count":5},
+    {"id":"draw_discard","label":"Draw then discard","operation":"draw_discard","count":5},
+    {"id":"create","label":"Create card","operation":"create","count":1},
+    {"id":"destroy","label":"Destroy card","operation":"destroy","count":1},
+    {"id":"reorder","label":"Reorder hand","operation":"reorder","count":5},
+    {"id":"empty","label":"100 instant facts","operation":"empty","count":100}
+  ]
+}
