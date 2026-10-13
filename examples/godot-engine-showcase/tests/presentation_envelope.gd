@@ -18,6 +18,8 @@ func _run() -> void:
 		check(Envelope.build(receipt, before, other, []) == null, "foreign context rejected: " + field)
 	var later := after.duplicate(true); later.run.sequence = 3
 	check(Envelope.build(receipt, before, later, []) == null, "external sequence advance cannot pair old receipt with a newer result")
+	var foreign := before.duplicate(true); foreign.run.settingId = "foreign"
+	check(Envelope.build(receipt, foreign, after, []) == null, "foreign setting cannot reuse a run-scoped presentation")
 	var steps := [{"instanceIds": ["visible", "hidden"], "sourceOrderBefore": ["hidden", "visible"]}]
 	var zones := {"zones": [{"contentsVisible": true, "cards": [{"cardInstanceId": "visible"}]}]}
 	var projected: Array = Envelope.visible_zone_steps(steps, [zones])

@@ -177,23 +177,6 @@ static func normalize_history(data: Dictionary) -> Dictionary:
 	# Historical endpoints return the aggregate, while live endpoints return DTOs.
 	# Adapt their shapes here; never synthesize or execute historical transitions.
 	var result := data.duplicate(true)
-	var combat: Dictionary = result.get("combat", {})
-	var actors: Array = []
-	var roster: Dictionary = combat.get("actors", {})
-	var order: Array = combat.get("actorOrder", roster.keys())
-	for id in order:
-		if not roster.has(id): continue
-		var actor: Dictionary = roster[id].duplicate(true)
-		actor["resources"] = {}
-		for component in actor.get("components", {}).values():
-			if str(component.get("type", "")) == "resources":
-				actor.resources = component.get("state", {}).get("resources", {}).duplicate(true)
-		actor["statuses"] = combat.get("statusEffects", {}).get(id, []).duplicate(true)
-		actors.append(actor)
-	combat.actors = actors
-	combat["activation"] = combat.get("activationState", {})
-	combat["phase"] = combat.get("phaseState", {})
-	combat["step"] = combat.get("determinism", {}).get("step", 0)
-	var deck: Dictionary = result.get("run", {}).get("deck", {})
-	if deck.get("cardInstances") is Dictionary: deck.cardInstances = deck.cardInstances.values()
+	result["combat"] = preload("res://scripts/contracts/snapshot_projection.gd").combat(result.get("combat", {}))
+	result["run"] = preload("res://scripts/contracts/snapshot_projection.gd").run(result.get("run", {}))
 	return result

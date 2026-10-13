@@ -113,11 +113,13 @@ func _apply() -> void:
 
 func shutdown() -> void:
 	_stopped = true
+	set_process(false)
 	if Preferences.changed.is_connected(_apply): Preferences.changed.disconnect(_apply)
 	if is_instance_valid(_music):
 		_music.stop()
 		_music.stream = null
 	for voice in _voices:
+		voice.stream_paused = false
 		voice.stop()
 		voice.stream = null
 	_streams.clear()

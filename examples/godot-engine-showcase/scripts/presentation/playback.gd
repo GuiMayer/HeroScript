@@ -47,6 +47,11 @@ func clear(_run_id := "") -> void:
 
 func has_frames() -> bool:
 	return index < _frames.size()
+func next_is_passive() -> bool:
+	if not has_frames(): return false
+	var beat: Dictionary = _frames[index]
+	var transition := str(beat.get("transitionType", ""))
+	return not transition.is_empty() and transition != "effect" and not beat.get("hasVisibleFacts", false) and beat.get("presentationOnly", "") != "card_departure"
 
 func has_blocking_work() -> bool: return active_handle != null or has_frames()
 func skip() -> void:

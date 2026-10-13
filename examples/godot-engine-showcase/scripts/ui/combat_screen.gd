@@ -180,7 +180,6 @@ func _toggle_character_sidebar() -> void: view._toggle_character_sidebar()
 func replace_composition(scene: PackedScene, profile: Resource) -> void: view.replace_composition(scene, profile)
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	if _active_motion != null: visual_context.motion = _active_motion
-	if frame.get("presentationOnly", "") != "card_departure": view.present_frame(frame, index, total)
 
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
@@ -233,6 +232,8 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		card.fly_to(destination, view.feedback.effects, handle)
 	else:
 		handle.hit(); GameAudio.play_beat(frame, visual_context.motion)
+		if frame.get("stateAfter") is Dictionary: view.present_combat_snapshot(frame.stateAfter)
+		view.present_frame(frame, Playback.index - 1, Playback.total)
 		for application in frame.get("applications", []):
 			var target := str(application.get("targetEntityId", ""))
 			if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, visual_context.motion.duration("impact", true))

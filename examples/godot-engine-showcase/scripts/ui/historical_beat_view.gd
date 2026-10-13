@@ -17,14 +17,16 @@ class Options extends RefCounted:
 	var auto_animations := true
 	var animation_speed := 1.0
 func _init(context = null) -> void:
-	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
+	visual_context = context.derive(context.profile) if context != null else preload("res://scripts/ui/visual_context.gd").new()
 func load_commit(commit: Dictionary, appearance: Dictionary, automatic := true) -> void:
+	var saved: Dictionary = preload("res://scripts/presentation/historical_presentation.gd").state(commit)
+	visual_context.setting_id = str(saved.run.get("settingId", saved.run.get("configName", visual_context.setting_id)))
 	visual_context.capture_motion()
 	playback = preload("res://scripts/presentation/playback.gd").new(); add_child(playback)
 	var options := Options.new(); options.auto_animations = automatic; options.animation_speed = visual_context.animation_speed
 	director = preload("res://scripts/ui/controllers/presentation_director.gd").new(playback, options, func(): return get_tree().paused); add_child(director)
 	history = preload("res://scripts/ui/historical_combat_view.gd").new(visual_context); history.size_flags_vertical = Control.SIZE_EXPAND_FILL; add_child(history)
-	history.display(preload("res://scripts/presentation/historical_presentation.gd").state(commit), appearance)
+	history.display(saved, appearance)
 	feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(visual_context); add_child(feedback)
 	status = visual_context.styles.caption("", 12, 280); add_child(status)
 	var controls := HBoxContainer.new()

@@ -1,10 +1,12 @@
 param(
-    [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation','card_refresh_stability','settings_contracts','settings_interaction','settings_recovery','audio_contracts','replay_transport','replay_progressive','connection_epoch','run_graphics_updates','run_visual_contexts','combat_collaborators','map_geometry','map_graph_view','run_graphics_architecture','activity_reconciliation','map_selection','dialogue_contracts','dialogue_coordination','dialogue_reading','activity_ingress','ivory_run_contracts','reference_hand_geometry','card_collections'),
+    [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation','card_refresh_stability','animation_contracts','presentation_envelope','presentation_planner','presentation_director','animation_live','semantic_cues','card_zone_motion','motion_policy','historical_presentation','animation_limits','settings_contracts','settings_interaction','settings_recovery','audio_contracts','replay_transport','replay_progressive','connection_epoch','run_graphics_updates','run_visual_contexts','combat_collaborators','map_geometry','map_graph_view','run_graphics_architecture','activity_reconciliation','map_selection','dialogue_contracts','dialogue_coordination','dialogue_reading','activity_ingress','ivory_run_contracts','reference_hand_geometry','card_collections'),
     [string]$ApiUrl = '',
     [string]$VisualTest = '',
     [string]$VisualOutputDirectory = '',
     [string]$VisualPhase = '',
+    [ValidatePattern('^$|^[0-9]+x[0-9]+$')][string]$VisualResolution = '',
     [string]$ReuseProject = '',
+    [switch]$VerboseGodot,
     [int]$TimeoutSeconds = 180,
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
@@ -48,9 +50,11 @@ foreach ($test in $testNames) {
     $stdout = Join-Path $project "$test.stdout.log"
     $stderr = Join-Path $project "$test.stderr.log"
     $arguments = @('--headless','--path',"`"$project`"")
+    if ($VerboseGodot) { $arguments += '--verbose' }
     if ($test -eq $VisualTest) {
         $arguments = @('--path',"`"$project`"",'--audio-driver','Dummy','--script',"res://tests/$test.gd",'--','--layout-smoke',"`"--lab-output=$VisualOutputDirectory`"")
         if ($VisualPhase) { $arguments += "--capture-phase=$VisualPhase" }
+        if ($VisualResolution) { $arguments = @('--resolution',$VisualResolution) + $arguments + "--capture-resolution=$VisualResolution" }
     }
     elseif ($test -eq 'import') { $arguments += @('--editor','--import','--quit') }
     else { $arguments += @('--script',"res://tests/$test.gd",'--','--layout-smoke') }

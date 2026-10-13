@@ -289,12 +289,13 @@ func _ready() -> void:
 	mouse_exited.connect(func(): _emphasize(chosen))
 	focus_entered.connect(func(): _emphasize(true))
 	focus_exited.connect(func(): _emphasize(chosen))
-	if animate_entry and not hand_managed and not visual_context.reduced_motion:
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	if animate_entry and not hand_managed and policy.duration("card_entry", true) > 0:
 		modulate.a = 0.0
 		scale = Vector2(.92, .92)
 		motion = create_tween().set_parallel()
-		motion.tween_property(self, "modulate:a", 1.0, .18 / visual_context.animation_speed)
-		motion.tween_property(self, "scale", Vector2.ONE, .22 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		motion.tween_property(self, "modulate:a", 1.0, policy.duration("card_entry", true))
+		motion.tween_property(self, "scale", Vector2.ONE, policy.duration("card_entry", true)).set_trans(policy.curve("card_entry")).set_ease(policy.easing("card_entry"))
 
 func select_card(value: bool) -> void:
 	var changed := chosen != value
@@ -310,12 +311,13 @@ func _emphasize(value: bool) -> void:
 		motion.kill()
 	modulate.a = 1.0
 	z_index = 2 if value else 0
-	if visual_context.reduced_motion:
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	if policy.duration("hover", true) <= 0:
 		scale = Vector2.ONE
 		return
 	motion = create_tween()
 	motion.tween_property(self, "scale", Vector2(1.035, 1.035) if value else Vector2.ONE,
-		.12 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		policy.duration("hover", true)).set_trans(policy.curve("hover")).set_ease(policy.easing("hover"))
 
 func fly_to(destination: Vector2, overlay: Node, handle = null) -> void:
 	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
@@ -345,7 +347,7 @@ func fly_to(destination: Vector2, overlay: Node, handle = null) -> void:
 		handle.own(tween)
 		handle.cleanup(func(): if is_instance_valid(ghost): ghost.queue_free())
 		tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
-	tween.tween_property(ghost, "global_position", destination - size * .5, policy.duration("card_flight", true)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(ghost, "global_position", destination - size * .5, policy.duration("card_flight", true)).set_trans(policy.curve("card_flight")).set_ease(policy.easing("card_flight"))
 	tween.tween_property(ghost, "scale", Vector2(.45, .45), policy.duration("card_flight", true))
 	tween.tween_property(ghost, "modulate:a", 0.0, policy.duration("card_flight", true))
 	var completion := FlightCompletion.new()

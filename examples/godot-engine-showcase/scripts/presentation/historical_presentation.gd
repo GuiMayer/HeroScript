@@ -17,4 +17,5 @@ static func state(commit: Dictionary) -> Dictionary:
 	if combat.is_empty():
 		for frame in frames(commit):
 			if frame.stateAfter is Dictionary: combat = frame.stateAfter
-	return {"run": run, "combat": combat, "runSequence": commit.get("sequence", 0)}
+	var projection = preload("res://scripts/contracts/snapshot_projection.gd")
+	return {"run": projection.run(run), "combat": projection.combat(combat), "runSequence": commit.get("sequence", 0)}

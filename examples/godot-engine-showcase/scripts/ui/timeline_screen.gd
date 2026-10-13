@@ -140,6 +140,7 @@ func _load() -> void:
 func _select(index: int) -> void:
 	if index < 0 or index >= entries.size(): return
 	request_epoch += 1
+	_history_commit = {}
 	var ticket := request_epoch
 	var entry: Dictionary = entries[index]
 	selected_entry = entry.duplicate(true)

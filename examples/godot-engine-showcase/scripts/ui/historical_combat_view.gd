@@ -9,14 +9,21 @@ var _row: HBoxContainer
 var _run: Dictionary
 var _appearance: Dictionary
 func apply_frame_snapshot(combat: Dictionary) -> void:
+	combat = preload("res://scripts/contracts/snapshot_projection.gd").combat(combat)
 	presenter = preload("res://scripts/presentation/combat_presenter.gd").new(_run, combat, [], visual_context.translator)
+	var visible_ids := {}
 	for actor in presenter.actors():
 		var id := str(actor.get("instanceId", ""))
+		visible_ids[id] = true
 		var panel = actor_panels.get(id)
 		if panel == null:
 			panel = preload("res://scripts/ui/actor_panel.gd").new(visual_context); _row.add_child(panel); actor_panels[id] = panel
 		panel.setup(actor, presenter.relationship(actor, str(combat.get("activeActorId", ""))) == "Enemy", _appearance, presenter.intent_for(id))
 		panel.target_button.disabled = true; panel.target_button.focus_mode = Control.FOCUS_NONE
+	for id in actor_panels.keys():
+		if visible_ids.has(id): continue
+		var removed = actor_panels[id]
+		_row.remove_child(removed); removed.queue_free(); actor_panels.erase(id)
 
 func display(state: Dictionary, appearance: Dictionary) -> void:
 	for child in get_children():

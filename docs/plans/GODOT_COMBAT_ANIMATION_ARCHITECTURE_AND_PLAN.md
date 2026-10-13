@@ -1,6 +1,10 @@
 # Apresentação de combate: arquitetura e plano de implementação
 
-Data: 2026-10-13. Estado: planejado, não implementado.
+Data: 2026-10-13. Estado: etapas de implementação concluídas, com limites de
+certificação registrados no [relatório](GODOT_COMBAT_ANIMATION_VALIDATION_REPORT.md).
+O escopo de benchmarks/playtests não inteiramente cobertos está explícito nesse
+relatório; este plano continua sendo a referência de requisitos, não uma afirmação
+de cobertura integral da matriz.
 
 ## 1. Objetivo
 

@@ -34,7 +34,7 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 		var destination: Vector2 = anchor.call(str(item.step.get("targetAddress", "")), item.id) - ghost.size * .15
 		var tween := ghost.create_tween().set_parallel(); handle.own(tween)
 		handle.cleanup(func(): if is_instance_valid(ghost): ghost.queue_free())
-		tween.tween_property(ghost, "global_position", destination, policy.duration("zone_transfer", true)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(ghost, "global_position", destination, policy.duration("zone_transfer", true)).set_trans(policy.curve("zone_transfer")).set_ease(policy.easing("zone_transfer"))
 		tween.tween_property(ghost, "modulate:a", 0.0, policy.duration("zone_transfer", true))
 		tween.chain().tween_callback(func():
 			remaining.count -= 1

@@ -14,8 +14,8 @@ var _sections
 
 func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}, zone_snapshot := {}) -> void:
 	_i18n = translator
-	_run = run.duplicate(true)
-	_combat = combat.duplicate(true)
+	_run = preload("res://scripts/contracts/snapshot_projection.gd").run(run)
+	_combat = preload("res://scripts/contracts/snapshot_projection.gd").combat(combat)
 	_actions = actions.duplicate(true)
 	_appearance = appearance.duplicate(true) if appearance is Dictionary else {}
 	_zone_snapshot = zone_snapshot.duplicate(true) if zone_snapshot is Dictionary else {}

@@ -35,7 +35,7 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	add_child(context_slot)
 	skip_button = _button(translator.text("Skip presentation"), skip_requested.emit, 44)
 	skip_button.name = "SkipPresentationButton"
-	preload("res://scripts/ui/combat_chrome.gd").apply(skip_button, "advance", skip_button.text, visual_context, false, true)
+	preload("res://scripts/ui/combat_chrome.gd").apply(skip_button, "skip", skip_button.text, visual_context, false, true)
 	skip_button.custom_minimum_size.x = 44
 	add_child(skip_button)
 	var system_slot := CenterContainer.new()

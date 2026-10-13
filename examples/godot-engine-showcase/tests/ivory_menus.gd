@@ -5,6 +5,12 @@ var output_dir := ""
 var captures: Array[String] = []
 const Layout = preload("res://tests/layout_inspector.gd")
 class Gateway extends RefCounted:
+	func replay_context() -> Array: return ["visual-fixture", 0]
+	func begin_run_timeline(id: String, cursor: int, limit: int, _through: int):
+		var ticket = preload("res://scripts/engine/read_ticket.gd").new()
+		var response: Dictionary = run_timeline(id, cursor, limit)
+		response.data.merge({"runId": id, "throughSequence": 1, "nextCursor": 1, "hasMore": false, "historicalInspectionAllowed": false}, true)
+		ticket.finish(response); return ticket
 	var reads := 0
 	func content(kind: String, _revision: String, _setting: String, _limit: int) -> Dictionary:
 		reads += 1

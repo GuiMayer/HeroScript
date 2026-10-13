@@ -13,7 +13,7 @@ func present_change(application: Dictionary, duration: float) -> void:
 	if field.is_empty(): return
 	var state: Dictionary = _model.state.duplicate(true)
 	state[field] = application.currentValue
-	var previous: float = bar.value
+	var previous: float = float(application.get("previousValue", bar.value)) if field == "current" else bar.value
 	setup(_model.resourceId, state, _model.appearance)
 	if _value_motion and _value_motion.is_valid(): _value_motion.kill()
 	if bar.visible and duration > 0:

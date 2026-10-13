@@ -17,4 +17,6 @@ func _run() -> void:
 	check(Policy.capture("unknown", {}, "res://absent.json").duration("card_flight") > 0, "missing manifest falls back to bounded defaults")
 	var copy: Dictionary = normal.cue("impact"); copy.sound = "altered"
 	check(normal.cue("impact").sound == "impact", "captured cue policy is defensively copied")
+	check(normal.curve("card_flight") == Tween.TRANS_CUBIC and normal.easing("card_flight") == Tween.EASE_IN, "configured easing is captured with the command policy")
+	check(normal.curve("unknown") == Tween.TRANS_LINEAR, "unknown motion has a neutral easing fallback")
 	root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

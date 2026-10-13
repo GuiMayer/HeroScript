@@ -33,5 +33,7 @@ func _run() -> void:
 	check(cursor.index == 0, "manual wait is not a watchdog failure")
 	director.advance(); director._process(20.)
 	check(not cursor.has_blocking_work() and outcomes[-1] == "fallback", "broken executor has a bounded safe fallback")
+	cursor.load_receipt({"state": {"resolution": {"frames": [{"transitionType": "activation-start"}]}}}); director._process(.01)
+	check(cursor.index == 1, "empty lifecycle facts do not request a manual confirmation")
 	director.dispose(); director.free(); cursor.free()
 	root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

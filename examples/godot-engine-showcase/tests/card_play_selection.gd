@@ -131,5 +131,6 @@ func _run() -> void:
 	session._tool_capabilities = prior.capabilities; session.synchronized = prior.synchronized
 	prefs.reduced_motion = prior.motion; prefs.auto_animations = prior.auto
 	root.get_node("GameAudio").shutdown()
+	await create_timer(.12).timeout
 	print("CARD PLAY SELECTION: ", failures, " failure(s)")
 	quit(0 if failures == 0 else 1)

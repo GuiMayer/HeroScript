@@ -669,6 +669,17 @@ func present_frame(frame: Dictionary, index: int, total: int) -> void:
 	detail_label.text = feedback.present(frame, index, total, presenter, actor_portraits)
 	detail_label.tooltip_text = detail_label.text
 
+func present_combat_snapshot(state: Dictionary) -> void:
+	# This is an engine-published intermediate snapshot, never a reconstructed state.
+	var projection = preload("res://scripts/presentation/combat_presenter.gd").new(_run_snapshot, state, [], visual_context.translator, presentation)
+	var actors: Array = projection.combat_model(_input_actor).read("actors")
+	battlefield_view.apply_model(actors, presentation)
+	if is_instance_valid(scenery):
+		scenery.apply_model(actors, str(scenery_model.get("backgroundId", "combat")), visual_context)
+		scenery.bind_anchors(battlefield_view.targets)
+	actor_portraits = scenery.portraits if is_instance_valid(scenery) else {}
+	target_buttons = battlefield_view.targets
+
 func show_options(candidates: Array) -> void:
 	_clear_choices()
 	for candidate in candidates:
@@ -697,17 +708,6 @@ func target_at(point: Vector2) -> String:
 
 func contains_battlefield_point(point: Vector2) -> bool:
 	return is_instance_valid(battlefield_view) and battlefield_view.get_global_rect().has_point(point)
-
-func animate_card_use(id: String, target_ids: Array, still_present: bool) -> void:
-	hand.clear_choice()
-	reset_preview()
-	var destination := size * .5 + global_position
-	if not target_ids.is_empty() and actor_portraits.has(target_ids[0]):
-		var portrait: Control = actor_portraits[target_ids[0]]
-		destination = portrait.global_position + portrait.size * .5
-	if card_buttons.has(id):
-		if not still_present: card_buttons[id].modulate.a = 0
-		await card_buttons[id].fly_to(destination, feedback.effects)
 
 func dispose() -> void:
 	if feedback: feedback.dispose()

@@ -12,7 +12,7 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 
 1. Baseline: regressões mantidas em `animation_contracts.gd`; o modo diagnóstico
    `--animation-baseline` registra defeitos conhecidos. O modo normal exige os
-   comportamentos corretos e será incluído na suíte após a implementação.
+   comportamentos corretos e está incluído na suíte padrão.
 2. Envelope contextual: implementado como projeção imutável com validação de
    identidade/sequence e filtragem de transferências visuais ocultas. Sem alteração
    de contrato da engine nesta etapa.
@@ -20,7 +20,7 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
    ancestralidade da condensação e reserva snapshots de frame para o beat final.
 4. Director/handles: implementado; conclusão única, trabalho bloqueante distinto
    de cursor, confirmação sem sobreposição, cancelamento/skip e watchdog pausável.
-   Alias de import antigo será removido após migrar os consumidores.
+   Alias antigo removido após migrar os consumidores.
 5. Integração com combate/mão: implementado; recibo aceito fica retido até
    sincronização, carta sai uma vez antes dos impactos, input usa trabalho
    bloqueante e projeção final determina a permanência da instância.
@@ -43,11 +43,16 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 11. Limites/desempenho: implementado; efeitos/transfers limitados por manifesto,
     lanes limitadas por alvo, métricas observacionais em anel de 64 comandos e
     descarte de recibos/snapshots após settling. Sem pooling sem evidência de benefício.
-12. Certificação/limpeza: pendente.
+12. Certificação/limpeza: implementada. Fluxo antigo e ActorPortrait sem consumidores
+    removidos, UIDs versionados, guias atualizados. Testes offline, integração
+    conectada aos três settings e replay autorizado executados; limites da matriz
+    e do benchmark estão no relatório de validação.
 
 ## Limites de validação
 
-Os probes da auditoria demonstraram recebimento antes da sincronização, input
-liberado durante voo e cenário animando no pause. Esses cenários serão
-convertidos em testes de integração do novo fluxo nas etapas 5–6. Testes
-offline não substituem certificação online nem inspeção de imagens renderizadas.
+Os probes viraram regressões mantidas. A validação online identificou a diferença
+entre agregados históricos e DTOs de combate: agora ambos passam por um adaptador
+puro compartilhado, sem implementação duplicada ou reconstrução de regras.
+
+Consulte o [relatório](GODOT_COMBAT_ANIMATION_VALIDATION_REPORT.md) para números,
+capturas, timeout da suíte ampliada de API e verificações ainda não realizadas.

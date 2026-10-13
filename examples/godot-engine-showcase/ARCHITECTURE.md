@@ -8,7 +8,7 @@ ui/views → ui/controllers → application/GameSession → engine/EngineGateway
 	└─ presentation/Presenters + ViewModels (cópias defensivas)
 	└─ VisualContext + Theme/Layout/Art resources (somente apresentação)
 			│
-			└─ receipt_received → presentation/Playback → animações da UI
+			└─ presentation_ready → envelope → planner → Playback/director → handles → views
 
 bootstrap.gd: instancia transporte/gateway e conecta sessão, playback e preferências
 presentation/I18n: traduz mensagens apenas na borda visual
@@ -32,7 +32,8 @@ O novo `ActivityPresenter` relaciona ofertas, preços e navegação anunciados;
 | Gateway da engine | rotas, queries, schemas, IDs de comando, normalização de payload | animar, calcular regras, salvar preferências |
 | Sessão | snapshots, leitura coordenada, comandos, versão esperada e erros de sincronização | construir URLs, tocar áudio, traduzir mensagens, avançar animações |
 | Escolhas de progressão | transformar opções anunciadas em escolhas enviáveis | inventar IDs, preços ou regras de upgrade |
-| Playback | copiar frames do recibo, manter cursor e emitir frame apresentado | enviar comandos, recalcular efeitos, alterar snapshots |
+| Envelope/planner | validar escopo e organizar fatos em beats causais sem reordenar aplicações | executar efeitos ou revelar zonas ocultas |
+| Playback/director/handles | cursor, execução, milestones, pause, skip e conclusão única | enviar comandos, recalcular efeitos, alterar snapshots |
 | Presenters | indexar snapshots, descrever aplicações canônicas e organizar histórico/linhagem | consultar HTTP, executar regras ou modificar a sessão |
 | Controllers de tela | seleção, intenção publicada, envio, validação local e epochs | construir nodes/estilos, HTTP ou cálculo de regras |
 | Contexto visual / perfis | tradução, preferências projetadas, papéis, geometria e artes | conhecer gateway ou alterar envelopes |
@@ -73,13 +74,23 @@ mudança futura de contrato de dados.
 5. Observe `changed`, `failed`, `command_started`, `command_finished` e
    `availability_changed`. Erros estruturados são formatados por `I18n.error`
    somente quando apresentados. Diagnósticos crus do servidor são preservados.
-6. Apresente `Playback.frames` e avance com `Playback.advance()`, ou substitua
-   o playback por outro consumidor de `receipt_received`. Ritmo, pause e input
-   bloqueado durante animações são políticas da apresentação, não da engine.
+6. Consuma `presentation_ready`, emitido somente após sincronização completa.
+   O recibo recebido antes disso é confirmação factual, não autorização para
+   começar impactos. O adaptador ativa o envelope e registra o executor de beats;
+   cada executor conclui seu handle. O director coordena avanço, pause e skip.
+   Input e navegação aguardam `has_blocking_work()`, não apenas frames restantes.
 
 Nenhuma preferência gráfica deve entrar em um envelope de jogo. No fluxo
-atual, a UI exibe o snapshot final autoritativo e anima os frames recebidos;
-não simula estados intermediários por conta própria.
+atual, a sessão conserva o snapshot final autoritativo. As views podem consumir
+`StateAfter` publicado por frame e interpolar `previousValue/currentValue`.
+Na ausência desses estados, mostram fatos e reconciliam no fim; não simulam
+regras para reconstruir estados intermediários.
+
+O replay visual e a timeline possuem Playback/director descartáveis. Carregam
+um commit autorizado por vez, inclusive de combates encerrados, sem consultar o
+combate atual ou enviar comandos. Não reconstroem mãos ocultas. Consulte o
+[guia de autoria da apresentação](../../docs/design/COMBAT_PRESENTATION_AUTHORING.md)
+e o [relatório de validação](../../docs/plans/GODOT_COMBAT_ANIMATION_VALIDATION_REPORT.md).
 
 ## Ciclo de vida das telas e snapshots
 

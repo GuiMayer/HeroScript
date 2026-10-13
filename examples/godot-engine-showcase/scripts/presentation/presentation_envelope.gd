@@ -7,6 +7,8 @@ static func build(receipt: Dictionary, before: Dictionary, after: Dictionary, en
 	var previous: Dictionary = before.get("run", {})
 	var current: Dictionary = after.get("run", {})
 	if previous.get("runId", "") != current.get("runId", "") or previous.get("branchId", "") != current.get("branchId", ""): return null
+	var previous_setting := str(previous.get("settingId", previous.get("configName", "")))
+	if not previous_setting.is_empty() and previous_setting != str(current.get("settingId", current.get("configName", ""))): return null
 	if int(receipt.get("sequence", -1)) != int(current.get("sequence", -2)): return null
 	var resolution: Dictionary = receipt.get("state", {}).get("resolution", {})
 	var combat: Dictionary = receipt.get("state", {}).get("combat", after.get("combat", {}))
@@ -15,7 +17,7 @@ static func build(receipt: Dictionary, before: Dictionary, after: Dictionary, en
 	if not final_combat.is_empty() and final_combat.get("combatId") != combat.get("combatId"): return null
 	var result = load("res://scripts/presentation/presentation_envelope.gd").new()
 	result._scope = [endpoint.duplicate(), current.get("settingId", current.get("configName", "")), current.get("runId", ""), current.get("branchId", ""),
-		combat.get("combatId", ""), resolution.get("commandId", receipt.get("commandId", "")), current.get("sequence", 0), current.get("contentRevision", "")]
+		combat.get("combatId", ""), resolution.get("commandId", receipt.get("commandId", "")), current.get("sequence", 0), current.get("contentRevision", current.get("contentRevisionId", ""))]
 	result._facts = {"receipt": receipt.duplicate(true), "before": before.duplicate(true), "after": after.duplicate(true), "combat": combat.duplicate(true)}
 	result.mark("synchronized")
 	return result

@@ -1,6 +1,6 @@
 extends SceneTree
 const Inspection = preload("res://scripts/ui/controllers/combat_inspection_coordinator.gd")
-const Driver = preload("res://scripts/ui/controllers/combat_presentation_driver.gd")
+const Driver = preload("res://scripts/ui/controllers/presentation_director.gd")
 var failures := 0
 var results: Array = []
 class Probe extends RefCounted:

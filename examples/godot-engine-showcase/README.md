@@ -45,6 +45,20 @@ partida normal. O launcher usa a engine em Release. Se uma API já estiver
 rodando na porta escolhida, ela é reutilizada: reinicie-a para carregar mudanças
 no código da engine.
 
+## Apresentação do combate
+
+Nas configurações há presets Normal, Rápido e Instantâneo, além de movimento
+reduzido e avanço automático/manual. O botão de skip conclui somente a parte
+visual: não encerra turno nem envia outro comando. Pause congela voo, impacto,
+cenário e vozes de combate; os sons do menu continuam disponíveis.
+
+O manifesto `data/motion_manifest.json` define durações, curvas, limites e cues
+com overrides por setting. A política é capturada antes de cada apresentação;
+editar o arquivo afeta o próximo comando, não o comando em curso.
+Replay/timeline podem apresentar um comando salvo sob demanda quando a engine
+autoriza a inspeção histórica. Consulte o
+[guia de autoria](../../docs/design/COMBAT_PRESENTATION_AUTHORING.md).
+
 ## Laboratório isolado de cartas e mão
 
 Abra `scenes/card_hand_lab.tscn` no editor e pressione **F6**. Essa cena funciona
