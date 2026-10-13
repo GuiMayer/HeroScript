@@ -24,6 +24,7 @@ var _prepared_card: Dictionary = {}
 var _intro_handle
 var _transfer_models: Dictionary = {}
 var _active_motion
+var _transits
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -200,6 +201,8 @@ func _on_presentation_ready(value) -> void:
 			for card in zone.get("cards", []): _transfer_models[str(card.cardInstanceId)] = final_presenter.card_view_model(str(card.cardInstanceId))
 	var final_cards: Array = CardZonePresenter.new(after.get("zones", {}), visual_context.translator).playable_cards()
 	view.hand.begin_presentation(final_cards.map(func(card): return final_presenter.card_view_model(str(card.cardInstanceId))))
+	if _transits != null: _transits.dispose()
+	_transits = preload("res://scripts/ui/card_transit_registry.gd").new(view.hand, view.feedback.effects, visual_context)
 	var prefix: Array = []
 	if not _prepared_card.is_empty():
 		var intro := _prepared_card.duplicate(true)
@@ -218,20 +221,34 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		view.hand.clear_choice(); view.reset_preview()
 		var card = view.hand.card_for(id)
 		if not is_instance_valid(card): handle.finish("fallback"); return
-		view.hand.begin_transit(id)
-		var destination: Vector2 = view.global_position + view.size * .5
-		if not frame.targets.is_empty() and view.actor_portraits.has(frame.targets[0]):
-			destination = view.actor_portraits[frame.targets[0]].get_global_rect().get_center()
+		var ghost: Control = _transits.acquire(id, card.model, true, card.get_global_rect().get_center())
+		var transits = _transits
+		var destination: Vector2 = view.battlefield_view.get_global_rect().get_center()
+		destination.y = view.battlefield_view.global_position.y + view.battlefield_view.size.y * .72
 		GameAudio.card()
+		var final_zones: Dictionary = Playback.envelope.snapshot("after").get("zones", {}) if Playback.envelope != null else {}
+		var retained: bool = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().any(func(item): return str(item.get("cardInstanceId", "")) == id)
+		var continued := false
+		for beat in Playback.frames:
+			var steps: Array = beat.get("cardZoneSteps", []).duplicate()
+			for application in beat.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
+			if steps.any(func(step): return id in step.get("instanceIds", [])): continued = true; break
 		handle.completed.connect(func(_result):
 			if not is_inside_tree(): return
-			var final_zones: Dictionary = Playback.envelope.snapshot("after").get("zones", {}) if Playback.envelope != null else {}
-			var ids: Array = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().map(func(item): return str(item.get("cardInstanceId", "")))
-			if id not in ids:
+			if not retained and not continued:
 				view.hand.sync_models(view.hand.ordered_cards().filter(func(item): return item.model.cardInstanceId != id).map(func(item): return item.model), view._hand_scope())
-			elif is_instance_valid(card): view.hand.finish_transit(id)
+			if retained or not continued or _result != "completed": transits.release(id, ghost, retained)
 			view.card_buttons = view.hand.cards(), CONNECT_ONE_SHOT)
-		card.fly_to(destination, view.feedback.effects, handle)
+		var duration: float = visual_context.motion.duration("card_flight", true)
+		if duration <= 0: handle.hit(); handle.finish(); return
+		var tween := ghost.create_tween().set_parallel(); handle.own(tween)
+		tween.tween_property(ghost, "global_position", destination - ghost.size * .5, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(ghost, "rotation", 0.0, duration)
+		tween.tween_property(ghost, "scale", Vector2.ONE * .82, duration)
+		if retained:
+			tween.chain().tween_property(ghost, "global_position", view.hand.destination_center(id) - ghost.size * .5, visual_context.motion.duration("retain", true)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			tween.parallel().tween_property(ghost, "scale", Vector2.ONE, visual_context.motion.duration("retain", true))
+		tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
 	else:
 		handle.hit(); GameAudio.play_beat(frame, visual_context.motion)
 		if frame.get("stateAfter") is Dictionary: view.present_combat_snapshot(frame.stateAfter)
@@ -266,6 +283,7 @@ func _zone_anchor(address: String, id: String) -> Vector2:
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
 	_prepared_card = {}; _intro_handle = null
+	if _transits != null: _transits.dispose(); _transits = null
 	view.hand.end_presentation()
 	_transfer_models.clear()
 	_update_controls()
@@ -283,6 +301,7 @@ func apply_interaction(_state) -> void: _update_controls()
 func capture_local_state() -> Dictionary: return view.capture_local_state()
 func restore_local_state(state: Dictionary) -> void: view.restore_local_state(state)
 func dispose() -> void:
+	if _transits != null: _transits.dispose(); _transits = null
 	if is_instance_valid(_collection_dialog): _collection_dialog.queue_free()
 	if controller: controller.dispose()
 	if inspection_coordinator: inspection_coordinator.dispose()
@@ -315,6 +334,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 		return
 	var id := str(candidate.command.get("cardInstanceId", ""))
 	_prepared_card = {"cardInstanceId": id, "targets": presenter.targets(candidate), "costs": candidate.get("costs", [])}
+	view.hand.prepare_use(id)
 	var success: bool = await controller.submit(candidate)
 	if not is_inside_tree():
 		return
@@ -323,6 +343,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 		if _intro_handle != null and not _intro_handle.done: await _intro_handle.completed
 		if is_inside_tree() and accepted_generation == Playback.generation and not Playback.has_blocking_work() and GameSession.synchronized: router.open_game()
 	else:
+		view.hand.reject_use(id)
 		_prepared_card = {}
 		GameAudio.error()
 		_update_controls()

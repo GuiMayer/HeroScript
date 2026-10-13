@@ -23,6 +23,7 @@ var _motions := {}
 var _emphasis := {}
 var _transit := {}
 var _entries := {}
+var _preparations := {}
 var _destination_order: Array = []
 var _presenting := false
 var _layout: Dictionary = {}
@@ -140,6 +141,8 @@ func begin_presentation(final_models: Array) -> void:
 
 func begin_transit(id: String) -> void:
 	_transit[id] = true
+	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
+	_preparations.erase(id)
 	if _entries.has(id):
 		if _entries[id].is_valid(): _entries[id].kill()
 		_entries.erase(id)
@@ -169,6 +172,22 @@ func destination_center(id: String) -> Vector2:
 	return scroll.get_global_rect().get_center()
 
 func is_in_transit(id: String) -> bool: return _transit.has(id)
+
+func prepare_use(id: String) -> void:
+	if not _cards.has(id): return
+	if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
+	var card: CardView = _cards[id]
+	_transit[id] = true
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	if policy.duration("prepare", true) <= 0: return
+	var tween := create_tween().set_parallel(); _preparations[id] = tween
+	tween.tween_property(card, "position", Vector2(0, -visual_style.lift - 14), policy.duration("prepare", true)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(card, "rotation", 0.0, policy.duration("prepare", true))
+
+func reject_use(id: String) -> void:
+	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
+	_preparations.erase(id); _transit.erase(id); _emphasis.erase(id)
+	_apply_emphasis()
 
 func set_tools_below_cards(value: bool) -> void:
 	# Combat uses a floating bottom hand; labs and overview retain their toolbar.
@@ -251,6 +270,8 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 func _remove(id: String) -> void:
 	if _entries.has(id) and _entries[id].is_valid(): _entries[id].kill()
 	_entries.erase(id); _transit.erase(id)
+	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
+	_preparations.erase(id)
 	if id == _inspection_anchor: _inspection_anchor = ""
 	if _motions.has(id) and _motions[id].is_valid(): _motions[id].kill()
 	if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
@@ -556,6 +577,9 @@ func dispose() -> void:
 	for tween in _entries.values():
 		if tween != null and tween.is_valid(): tween.kill()
 	_entries.clear(); _transit.clear()
+	for tween in _preparations.values():
+		if tween != null and tween.is_valid(): tween.kill()
+	_preparations.clear()
 	for item in _emphasis.values():
 		if item.tween != null and item.tween.is_valid(): item.tween.kill()
 	_emphasis.clear()
