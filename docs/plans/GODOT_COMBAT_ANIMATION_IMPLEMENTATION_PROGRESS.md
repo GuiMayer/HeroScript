@@ -16,7 +16,8 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 2. Envelope contextual: implementado como projeção imutável com validação de
    identidade/sequence e filtragem de transferências visuais ocultas. Sem alteração
    de contrato da engine nesta etapa.
-3. Planner causal: pendente.
+3. Planner causal: implementado; agrupa apenas aplicações contíguas, reconhece
+   ancestralidade da condensação e reserva snapshots de frame para o beat final.
 4. Director/handles: pendente.
 5. Integração com combate/mão: pendente.
 6. Pause/cancelamento/pós-combate: pendente.
