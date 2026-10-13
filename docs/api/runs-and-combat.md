@@ -273,6 +273,24 @@ Use os seguintes recursos depois de reconectar ou para suporte:
 | Estado completo | `GET /api/v1/runs/{runId}` |
 | Histórico de comandos | `GET /api/v1/runs/{runId}/journal` |
 | Commits e timeline | `/commits`, `/commits/{sequence}` e `/timeline` |
+
+### Carregamento de replay
+
+`GET /api/v1/runs/{runId}/timeline?afterSequence=0&limit=25` retorna cabeçalhos
+compactos de comandos/frames, `throughSequence`, `nextCursor`, `hasMore` e
+`historicalInspectionAllowed`. Passe o mesmo `throughSequence` nas páginas
+seguintes para não incluir comandos adicionados depois de abrir o histórico.
+Não há StateAfter, Resolution ou cálculos completos nesta listagem.
+
+Para um comando autorizado, consulte
+`GET /api/v1/runs/{runId}/commits/{sequence}/presentation`: resumo canônico,
+recursos, quantidade de cartas/reliquias, revisão e transcrição registrada.
+O documento completo em `/commits/{sequence}` é uma inspeção técnica distinta.
+Nenhuma dessas leituras reexecuta regras ou substitui `POST /verify`.
+`validationKind=StructuralChain` não significa replay semanticamente verificado.
+
+A demo carrega a primeira página antes das seguintes; cache e pedidos pendentes
+são limitados e cancelados ao sair/trocar contexto.
 | Replay semântico | `POST /api/v1/runs/{runId}/verify` |
 | Auditoria de encontro | `/api/v1/combats/{combatId}/journal` e `/verify` |
 

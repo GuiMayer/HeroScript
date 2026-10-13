@@ -33,7 +33,7 @@ func _intent(action: String, arguments: Array) -> void:
 		"restart": _restart()
 		"previous": _previous()
 		"next": _next()
-		"more": controller.load_more()
+		"more": _more()
 		"inspect": _inspect()
 		"toggle_play": _toggle_play()
 		"verify": _verify()
@@ -43,6 +43,9 @@ func _stop_and_select(index: int) -> void: controller.stop(); await controller.s
 func _restart() -> void: await _stop_and_select(0)
 func _previous() -> void: await _stop_and_select(maxi(0, selected_index - 1))
 func _next() -> void: controller.stop(); await controller.navigate(1)
+func _more() -> void:
+	await controller.load_more()
+	if is_inside_tree() and selected_index < 0 and not entries.is_empty(): await controller.select(0)
 func playback_delay() -> float: return (.18 if Preferences.reduced_motion else .7) / maxf(Preferences.animation_speed, .25)
 func _toggle_play() -> void:
 	if playing: controller.stop(); return

@@ -666,4 +666,11 @@ app.UseMiddleware<API.Middleware.ApiStatusCodeProblemDetailsMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
 app.MapControllers();
 
+// Compile serializer metadata before readiness. This reads no runs/content and
+// does not execute gameplay or precompute state hashes.
+Core.Determinism.SerializationMetadataWarmup.Prepare(RunCommitJson.Options, typeof(RunCommit), typeof(RunState));
+Core.Determinism.CanonicalJson.PrepareMetadata(typeof(RunState));
+Core.Determinism.SerializationMetadataWarmup.Prepare(
+    app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>().Value.JsonSerializerOptions,
+    typeof(Core.Run.Replay.ReplayTimelinePage), typeof(Core.Run.Replay.ReplayCommandPresentation));
 app.Run();

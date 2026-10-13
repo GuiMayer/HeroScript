@@ -354,6 +354,18 @@ public sealed class FileRunCommitStoreTests : IDisposable
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.LoadCommitAsync(run, 3, cancelled.Token));
     }
 
+    [Fact]
+    public async Task CapturedRead_RemainsCoherentWhenRunIsDeleted()
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var commit = CreateCommit(Guid.NewGuid(), 1, null, 1);
+        await store.AppendAsync(commit);
+        var reading = store.LoadCommitAsync(commit.RunId, 1);
+        await store.DeleteRunAsync(commit.RunId);
+        Assert.Equal(commit.StateHash, (await reading)!.StateHash);
+        Assert.Null(await store.LoadCommitAsync(commit.RunId, 1));
+    }
+
     private async Task usingScope(Func<FileRunCommitStore, Task> action)
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);

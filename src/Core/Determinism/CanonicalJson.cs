@@ -33,6 +33,9 @@ public static class CanonicalJson
         return Encoding.UTF8.GetString(bytes.WrittenSpan);
     }
 
+    public static void PrepareMetadata(params Type[] roots) =>
+        SerializationMetadataWarmup.Prepare(DefaultOptions, roots);
+
     public static string ComputeHash<T>(T value, JsonSerializerOptions? options = null)
     {
         var effectiveOptions = options ?? DefaultOptions;

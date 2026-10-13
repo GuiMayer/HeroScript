@@ -667,6 +667,34 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
+    public async Task ReplayPresentation_RespectsModeAndMatchesCanonicalCommit()
+    {
+        using var start = await _client.PostAsJsonAsync("/api/v1/runs", new {
+            settingId="default", runDefinitionId="default_run", playerEntityId=$"replay-query-{Guid.NewGuid():N}",
+            seed=883322UL, modeId="combat_sandbox", contentRevision=await GetCurrentRevisionAsync() });
+        start.EnsureSuccessStatusCode();
+        var run = await start.Content.ReadFromJsonAsync<JsonElement>();
+        var runId = run.GetProperty("runId").GetGuid();
+        using var timelineResponse = await _client.GetAsync($"/api/v1/runs/{runId}/timeline?limit=25");
+        timelineResponse.EnsureSuccessStatusCode();
+        var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(timeline.GetProperty("historicalInspectionAllowed").GetBoolean());
+        Assert.False(timeline.GetProperty("hasMore").GetBoolean());
+        using var presentationResponse = await _client.GetAsync($"/api/v1/runs/{runId}/commits/1/presentation");
+        presentationResponse.EnsureSuccessStatusCode();
+        var presentation = await presentationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        using var commitResponse = await _client.GetAsync($"/api/v1/runs/{runId}/commits/1");
+        commitResponse.EnsureSuccessStatusCode();
+        var commit = await commitResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(commit.GetProperty("stateHash").GetString(), presentation.GetProperty("stateHash").GetString());
+        Assert.Equal(commit.GetProperty("stateAfter").GetProperty("currentNodeId").ToString(),
+            presentation.GetProperty("stateSummary").GetProperty("currentNodeId").ToString());
+        Assert.False(presentation.TryGetProperty("stateAfter",out _));
+        using var invalid = await _client.GetAsync($"/api/v1/runs/{runId}/timeline?throughSequence=99999");
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
     public async Task DurableJournal_SurvivesSnapshotPolicyAndSemanticReplayMatches()
     {
         var revision = await GetCurrentRevisionAsync();

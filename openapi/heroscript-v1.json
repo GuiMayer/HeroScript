@@ -1324,6 +1324,7 @@
           "hasMore": { "type": "boolean" },
           "returned": { "type": "integer" },
           "validationKind": { "type": "string", "enum": ["StructuralChain"] },
+          "historicalInspectionAllowed": { "type": "boolean", "description": "Effective mode/operator permission; false means only timeline headers are accessible." },
           "items": { "type": "array", "items": { "$ref": "#/components/schemas/ReplayTimelineItem" } }
         }
       },

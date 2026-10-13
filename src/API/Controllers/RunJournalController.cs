@@ -131,7 +131,10 @@ public sealed class RunJournalController : BaseApiController
         try
         {
             var page = await _replayQueries.ReadTimelineAsync(runId, afterSequence, limit, throughSequence, cancellationToken);
-            return page == null ? ApiNotFound($"Run timeline not found: {runId}") : Ok(page);
+            if (page == null) return ApiNotFound($"Run timeline not found: {runId}");
+            var run = _runs.GetRun(runId);
+            return Ok(page with { HistoricalInspectionAllowed = run.IsSuccess &&
+                _toolAccess.Allows(run.Value, ToolCapabilities.TimelineInspectState) });
         }
         catch (ArgumentOutOfRangeException exception)
         {

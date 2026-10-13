@@ -608,5 +608,11 @@
   "Next cards": "Next cards",
   "Draw": "Draw",
   "Discard": "Discard",
-  "CLOSE": "CLOSE"
+  "CLOSE": "CLOSE",
+  "Replay snapshot changed.": "Replay snapshot changed.",
+  "Replay page is not contiguous.": "Replay page is not contiguous.",
+  "Replay presentation does not match its command.": "Replay presentation does not match its command.",
+  "Historical inspection is unavailable in this mode.": "Historical inspection is unavailable in this mode.",
+  "Request cancelled.": "Request cancelled.",
+  "%s commands loaded of %s": "%s commands loaded of %s"
 }

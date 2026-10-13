@@ -12,7 +12,7 @@ func check(ok: bool, label: String) -> void:
 func settle() -> void:
 	for _i in 10: await process_frame
 func _run() -> void:
-	for file in ["combat_view", "journey_view", "route_view", "actor_panel", "card_hand_view", "card_view", "dialogue_panel", "dialogue_view", "dialogue_reading", "map_view", "map_camera", "card_collection_view", "card_zone_dialog", "combat_chrome"]:
+	for file in ["combat_view", "journey_view", "route_view", "actor_panel", "card_hand_view", "card_view", "dialogue_panel", "dialogue_view", "dialogue_reading", "map_view", "map_camera", "card_collection_view", "card_zone_dialog", "combat_chrome", "run_replay_view"]:
 		var source := FileAccess.get_file_as_string("res://scripts/ui/%s.gd" % file)
 		check(not ["GameSession", "Preferences.", "I18n.", "AppTheme.", "http_transport"].any(func(token): return source.contains(token)), "passive boundary: " + file)
 	for file in ["combat_controller", "activity_controller", "combat_inspection_coordinator", "dialogue_controller"]:

@@ -12,7 +12,8 @@ public sealed record ReplayTimelineItem(int Sequence, ulong Step, Guid CommandId
     ImmutableArray<ReplayFrameHeader> Frames);
 public sealed record ReplayTimelinePage(Guid RunId, string SettingId, RunLineage? Lineage,
     string ContentRevision, int AfterSequence, int ThroughSequence, int NextCursor, bool HasMore,
-    int Returned, ImmutableArray<ReplayTimelineItem> Items, string ValidationKind = "StructuralChain");
+    int Returned, ImmutableArray<ReplayTimelineItem> Items, string ValidationKind = "StructuralChain",
+    bool HistoricalInspectionAllowed = false);
 public sealed record ReplayResource(string ResourceId, float Current, float Maximum);
 public sealed record ReplayStateSummary(string Lifecycle, string? CurrentNodeId, int CardCount,
     int RelicCount, ImmutableArray<ReplayResource> Resources, ImmutableArray<DialogueTranscriptLine> Transcript);
@@ -50,6 +51,8 @@ public sealed class RunReplayQueryService(IRunCommitEnvelopeReader envelopes, IR
         if (sequence < 1) throw new ArgumentOutOfRangeException(nameof(sequence));
         var commit = await commits.LoadCommitAsync(runId, sequence, ct).ConfigureAwait(false);
         if (commit == null) return null;
+        if (commit.RunId != runId || commit.Sequence != sequence)
+            throw new InvalidDataException("Replay presentation does not match requested identity");
         var state = commit.RequireState();
         var summary = new ReplayStateSummary(state.Lifecycle.ToString(), state.CurrentNodeId,
             state.Deck.Topology.Instances.Count, state.Relics.Length,

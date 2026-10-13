@@ -24,6 +24,7 @@ var max_cache_entries := 32
 var max_cache_bytes := 8 * 1024 * 1024
 var cache_bytes := 0
 var inspection_allowed := false
+var _can_inspect := true
 var _cache_sizes: Dictionary = {}
 var _cache_order: Array[String] = []
 var _pending: Dictionary = {}
@@ -39,7 +40,7 @@ func setup(client, id: String, i18n) -> void:
 func valid() -> bool: return not disposed and endpoint_context == session.replay_context()
 func model() -> Dictionary:
 	return {"entries": entries, "selected_index": selected_index, "through_sequence": through_sequence,
-		"has_more": has_more, "page_loading": page_loading, "presentation_loading": presentation_loading,
+		"has_more": has_more, "page_loading": page_loading, "page_error": page_error, "presentation_loading": presentation_loading,
 		"playing": playing, "verifying": verifying, "state_text": state_text, "frame_text": frame_text,
 		"inspection_allowed": inspection_allowed}
 func start() -> void:
@@ -66,13 +67,11 @@ func load_more() -> void:
 	var scope: Array = [page.get("settingId", ""), page.get("lineage", {}), page.get("contentRevision", "")]
 	if not _scope.is_empty() and _scope != scope:
 		page_error = true; state_text = translator.text("Replay snapshot changed."); changed.emit(); return
-	_scope = scope
 	var incoming: Array = page.get("items", [])
 	var incoming_head := int(page.get("throughSequence", 0))
 	if through_sequence != 0 and through_sequence != incoming_head:
 		page_error = true
 		state_text = translator.text("Replay snapshot changed."); changed.emit(); return
-	through_sequence = incoming_head
 	var expected := next_cursor + 1
 	for item in incoming:
 		if int(item.get("sequence", 0)) != expected:
@@ -80,9 +79,11 @@ func load_more() -> void:
 			state_text = translator.text("Replay page is not contiguous."); changed.emit(); return
 		expected += 1
 	var cursor := int(page.get("nextCursor", next_cursor))
-	if cursor != expected - 1 or (page.get("hasMore", false) and incoming.is_empty()):
+	if cursor != expected - 1 or incoming_head < cursor or (page.get("hasMore", false) and incoming.is_empty()):
 		page_error = true
 		state_text = translator.text("Replay page is not contiguous."); changed.emit(); return
+	_scope = scope; through_sequence = incoming_head
+	_can_inspect = bool(page.get("historicalInspectionAllowed", true))
 	entries.append_array(incoming)
 	next_cursor = cursor; has_more = bool(page.get("hasMore", false))
 	if entries.is_empty(): state_text = translator.text("This journey has no recorded commands.")
@@ -95,6 +96,11 @@ func select(index: int) -> void:
 	var entry: Dictionary = entries[index]
 	frame_text = preload("res://scripts/presentation/run_replay_presenter.gd").frames_text(entry, translator)
 	state_text = translator.text("Loading saved state…"); presentation_loading = true; changed.emit()
+	if not _can_inspect:
+		presentation_loading = false; inspection_allowed = false
+		state_text = translator.text("Historical inspection is unavailable in this mode.") + "\n" + translator.text("State hash: %s") % entry.get("stateHash", "")
+		if first_content_ms < 0: first_content_ms = Time.get_ticks_msec() - started_ms
+		changed.emit(); return
 	var sequence := int(entry.sequence)
 	var key := JSON.stringify([endpoint_context, run_id, _scope, sequence, entry.get("stateHash", "")])
 	for old in _pending.keys():

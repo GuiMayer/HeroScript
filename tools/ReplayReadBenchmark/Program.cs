@@ -8,6 +8,7 @@ using Core.Logging;
 using Core.Run;
 using Core.Run.Branching;
 using Core.Run.Projections;
+using Core.Run.Replay;
 
 if (args.Length < 2) throw new ArgumentException("Use <existing-store> <run-id>, or --fixture <new-directory> <count> [payload-kib]");
 string path;
@@ -49,7 +50,7 @@ if (args[0] == "--fixture")
 else { path = Path.GetFullPath(args[0]); runId = Guid.Parse(args[1]); if (!Directory.Exists(path)) throw new DirectoryNotFoundException(path); }
 
 Console.WriteLine(JsonSerializer.Serialize(new { kind = "environment", path, runId, runtime = Environment.Version.ToString(), processors = Environment.ProcessorCount }));
-foreach (var mode in new[] { "materialized", "envelopes" })
+foreach (var mode in new[] { "materialized", "envelopes", "compact" })
 foreach (var capacity in new[] { 0, 256 })
 {
     using var store = new FileRunCommitStore(path, NullLogger.Instance, capacity);
@@ -57,6 +58,16 @@ foreach (var capacity in new[] { 0, 256 })
     {
         var allocated = GC.GetTotalAllocatedBytes();
         var timer = Stopwatch.StartNew();
+        if (mode == "compact")
+        {
+            var page = await new RunReplayQueryService(store, store).ReadTimelineAsync(runId, 0, 25);
+            var queryMs = timer.Elapsed.TotalMilliseconds;
+            var compactBytes = JsonSerializer.SerializeToUtf8Bytes(page, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Console.WriteLine(JsonSerializer.Serialize(new { mode, capacity, sample, firstRead = sample == 0,
+                count = page?.Returned, readMs = queryMs, totalMs = timer.Elapsed.TotalMilliseconds,
+                payloadBytes = compactBytes.Length, allocatedBytes = GC.GetTotalAllocatedBytes() - allocated }));
+            continue;
+        }
         var commits = mode == "materialized" ? await store.LoadCommitsAsync(runId, 0, 25) :
             (await store.LoadCommitEnvelopesAsync(runId)).Take(25).ToArray();
         var readMs = timer.Elapsed.TotalMilliseconds;

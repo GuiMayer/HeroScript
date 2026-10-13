@@ -1,6 +1,8 @@
 # Replay: carregamento progressivo e consultas eficientes
 
-Data: 2026-10-13. Estado: planejamento; implementação ainda não iniciada.
+Data: 2026-10-13. Estado: implementado em etapas;
+[progresso](REPLAY_LOADING_IMPLEMENTATION_PROGRESS.md) e
+[certificação](../design/REPLAY_LOADING_CERTIFICATION.md).
 
 ## 1. Objetivo e limites
 
@@ -358,4 +360,4 @@ Dependências principais: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 
 
 Commit por etapa, testes antes do próximo marco e documento de progresso
 atualizado durante a futura implementação. Não fazer push sem solicitação.
-Este plano não implementa mudanças no código de produção.
+A implementação e seus resultados estão registrados no documento de progresso.
