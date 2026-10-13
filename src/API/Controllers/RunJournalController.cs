@@ -15,6 +15,7 @@ public sealed class RunJournalController : BaseApiController
     private readonly IRunCommitReader _commits;
     private readonly IRunCommitProjectionReader _projections;
     private readonly IRunReplayService _replay;
+    private readonly IRunReplayQueryService _replayQueries;
     private readonly IRunQueryService _runs;
     private readonly IToolAccessPolicy _toolAccess;
 
@@ -22,6 +23,7 @@ public sealed class RunJournalController : BaseApiController
         IRunCommitReader commits,
         IRunCommitProjectionReader projections,
         IRunReplayService replay,
+        IRunReplayQueryService replayQueries,
         IRunQueryService runs,
         IToolAccessPolicy toolAccess,
         ILogger<RunJournalController> logger)
@@ -30,6 +32,7 @@ public sealed class RunJournalController : BaseApiController
         _commits = commits;
         _projections = projections;
         _replay = replay;
+        _replayQueries = replayQueries;
         _runs = runs;
         _toolAccess = toolAccess;
     }
@@ -116,36 +119,23 @@ public sealed class RunJournalController : BaseApiController
         Guid runId,
         [FromQuery] int afterSequence = 0,
         [FromQuery] int limit = 200,
+        [FromQuery] int? throughSequence = null,
         CancellationToken cancellationToken = default)
     {
         var denied = Authorize(runId, ToolCapabilities.TimelineRead);
         if (denied != null)
             return denied;
-        if (afterSequence < 0 || limit is < 1 or > 1000)
+        if (afterSequence < 0 || limit is < 1 or > 1000 || throughSequence is < 1)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
-        var items = (await _projections.ReadRunAsync(runId, afterSequence, limit, cancellationToken))
-            .Select(commit => new
-            {
-                commit.Sequence,
-                step = commit.AfterStep,
-                commandId = commit.RootCommand.CommandId,
-                commandType = commit.RootCommand.Type,
-                commit.LogicalTimestamp,
-                commit.PreviousStateHash,
-                commit.StateHash,
-                frames = commit.Frames
-            })
-            .ToArray();
-        if (items.Length == 0 && await _commits.LoadLatestStateAsync(runId, cancellationToken) == null)
-            return ApiNotFound($"Run timeline not found: {runId}");
-        return Ok(new
+        try
         {
-            runId,
-            afterSequence,
-            returned = items.Length,
-            nextCursor = items.LastOrDefault()?.Sequence ?? afterSequence,
-            items
-        });
+            var page = await _replayQueries.ReadTimelineAsync(runId, afterSequence, limit, throughSequence, cancellationToken);
+            return page == null ? ApiNotFound($"Run timeline not found: {runId}") : Ok(page);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline snapshot", exception.Message);
+        }
     }
 
     [HttpPost("verify")]

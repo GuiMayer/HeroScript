@@ -367,8 +367,11 @@
         "tags": ["Runs"],
         "operationId": "getRunTimeline",
         "x-heroscript-stability": "experimental",
-        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
-        "responses": { "200": { "description": "Run command timeline projection" } }
+        "parameters": [{ "$ref": "#/components/parameters/RunId" },
+          { "name": "afterSequence", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 200 } },
+          { "name": "throughSequence", "in": "query", "schema": { "type": "integer", "minimum": 1 }, "description": "Pinned head returned on first page; pass it on subsequent pages." }],
+        "responses": { "200": { "description": "Compact structural timeline, not semantic replay verification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReplayTimelinePage" } } } } }
       }
     },
     "/api/v1/runs/{runId}/branches": {
@@ -1275,6 +1278,49 @@
           "frames": { "type": "array", "items": { "$ref": "#/components/schemas/RunCommitFrame" } },
           "facts": { "type": "array", "items": { "$ref": "#/components/schemas/RunCommitFact" } },
           "summary": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ReplayTimelinePage": {
+        "type": "object",
+        "required": ["runId", "settingId", "afterSequence", "throughSequence", "nextCursor", "hasMore", "items", "validationKind"],
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" },
+          "settingId": { "type": "string" },
+          "lineage": { "type": "object", "nullable": true },
+          "contentRevision": { "type": "string" },
+          "afterSequence": { "type": "integer" },
+          "throughSequence": { "type": "integer" },
+          "nextCursor": { "type": "integer" },
+          "hasMore": { "type": "boolean" },
+          "returned": { "type": "integer" },
+          "validationKind": { "type": "string", "enum": ["StructuralChain"] },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/ReplayTimelineItem" } }
+        }
+      },
+      "ReplayTimelineItem": {
+        "type": "object",
+        "properties": {
+          "sequence": { "type": "integer" },
+          "step": { "type": "integer", "format": "uint64" },
+          "commandId": { "type": "string", "format": "uuid" },
+          "commandType": { "type": "string" },
+          "logicalTimestamp": { "type": "string", "format": "date-time" },
+          "previousStateHash": { "type": "string" },
+          "stateHash": { "type": "string" },
+          "frameCount": { "type": "integer" },
+          "frames": { "type": "array", "items": { "$ref": "#/components/schemas/ReplayFrameHeader" } }
+        }
+      },
+      "ReplayFrameHeader": {
+        "type": "object",
+        "properties": {
+          "frameIndex": { "type": "integer" }, "step": { "type": "integer" },
+          "scope": { "type": "string" }, "kind": { "type": "string" },
+          "combatId": { "type": "string", "format": "uuid", "nullable": true },
+          "actorId": { "type": "string", "nullable": true },
+          "phaseId": { "type": "string", "nullable": true },
+          "round": { "type": "integer", "nullable": true },
+          "activation": { "type": "integer", "nullable": true }
         }
       },
       "RunCommitFrame": {

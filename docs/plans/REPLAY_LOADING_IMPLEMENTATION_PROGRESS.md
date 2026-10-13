@@ -5,7 +5,7 @@ Início: 2026-10-13. Sem alteração de regras/checkpoints/schema de gravação.
 
 1. Baseline: benchmark read-only e geração isolada de fixtures de armazenamento.
 2. Envelopes paginados: head fixo, fronteira/cadeia/identidade validadas, bytes capturados sob gate e CPU fora dele; sem materializar deltas.
-3. Timeline compacta: pendente.
+3. Timeline compacta: DTOs de cabeçalhos, query separada, contrato canônico com hasMore/throughSequence e escopo; sem estado/cálculos na resposta.
 4. Apresentação de comando: pendente.
 5. Transporte cancelável: pendente.
 6. Coordenação/view: pendente.

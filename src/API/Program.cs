@@ -251,6 +251,8 @@ builder.Services.AddSingleton<IRunCommitStore>(sp => sp.GetRequiredService<FileR
 builder.Services.AddSingleton<Core.Meta.IProfileProgressSnapshotReader>(sp =>
     (Core.Meta.IProfileProgressSnapshotReader)sp.GetRequiredService<IRunCommitStore>());
 builder.Services.AddSingleton<IRunCommitReader>(sp => sp.GetRequiredService<IRunCommitStore>());
+builder.Services.AddSingleton<IRunCommitEnvelopeReader>(sp => sp.GetRequiredService<FileRunCommitStore>());
+builder.Services.AddSingleton<Core.Run.Replay.IRunReplayQueryService, Core.Run.Replay.RunReplayQueryService>();
 builder.Services.AddSingleton<IRunCommitProjectionReader, RunCommitProjectionReader>();
 builder.Services.AddSingleton<ICombatResolutionReader, CombatResolutionReader>();
 
