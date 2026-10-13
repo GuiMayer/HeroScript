@@ -12,8 +12,15 @@ class ReplayGateway extends RefCounted:
 		return {"ok": true, "data": {"items": [{"settingId": "default", "currentRevision": "fixture"}]}}
 	func run_history(_player: String, _setting: String) -> Dictionary:
 		return {"ok": true, "data": {"items": []}}
-	func run_timeline(_id: String, _cursor: int, _limit: int) -> Dictionary:
-		return {"ok": true, "data": {"items": [{"sequence": 0}, {"sequence": 1}, {"sequence": 2}], "nextCursor": 0}}
+	func run_timeline(_id: String, _cursor: int, _limit: int, _through := 0) -> Dictionary:
+		return {"ok": true, "data": {"items": [{"sequence": 1, "stateHash": "fixture"}, {"sequence": 2, "stateHash": "fixture"}, {"sequence": 3, "stateHash": "fixture"}], "nextCursor": 3, "throughSequence": 3, "hasMore": false}}
+	func replay_context() -> Array: return ["fixture", 1]
+	func begin_run_timeline(id: String, cursor: int, limit: int, through: int):
+		var ticket = load("res://scripts/engine/read_ticket.gd").new()
+		ticket.finish(await run_timeline(id, cursor, limit, through)); return ticket
+	func begin_run_presentation(id: String, sequence: int):
+		var ticket = load("res://scripts/engine/read_ticket.gd").new()
+		ticket.finish({"ok": true, "data": {"runId": id, "sequence": sequence, "stateHash": "fixture", "stateSummary": {"lifecycle": "Completed"}}}); return ticket
 	func run_commit(_id: String, _sequence: int) -> Dictionary:
 		return {"ok": true, "data": {"stateAfter": {"lifecycle": "Completed"}}}
 func _init() -> void: call_deferred("_run")
