@@ -25,6 +25,7 @@ var _intro_handle
 var _transfer_models: Dictionary = {}
 var _active_motion
 var _transits
+var _motion_zones: Array = []
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -192,7 +193,9 @@ func _on_presentation_ready(value) -> void:
 		if cost.get("componentId") != null: payments.append({"componentId": cost.componentId, "sourceId": _prepared_card.get("cardInstanceId", "")})
 	Playback.annotate({"payments": payments})
 	_transfer_models.clear()
+	for card in view.hand.ordered_cards(): _transfer_models[str(card.model.cardInstanceId)] = card.model
 	var after: Dictionary = value.snapshot("after")
+	_motion_zones = [value.snapshot("before").get("zones", {}), after.get("zones", {})]
 	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), GameSession.legal_actions,
 		visual_context.translator, presentation, after.get("zones", {}))
 	final_presenter.accept_evaluations(after.get("evaluations", []))
@@ -261,8 +264,9 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 			for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
 		if not steps.is_empty() and Playback.envelope != null:
 			preload("res://scripts/ui/card_zone_motion.gd").execute(steps,
-				[Playback.envelope.snapshot("before").get("zones", {}), Playback.envelope.snapshot("after").get("zones", {})],
-				_transfer_models, _zone_anchor, view.feedback.effects, visual_context, handle)
+				_motion_zones, _transfer_models, _zone_anchor, view.feedback.effects, visual_context, handle, _zone_role, _transits,
+				func(item):
+					if _zone_role(item.target) == "hand": GameAudio.play_event("card_move"))
 			return
 		if not frame.get("hasVisibleFacts", false) or visual_context.motion.duration("impact") <= 0: handle.finish(); return
 		var tween := view.create_tween()
@@ -273,12 +277,17 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 func _zone_anchor(address: String, id: String) -> Vector2:
 	for button in view.find_children("Pile_*", "Button", true, false):
 		if preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {})) == address: return button.get_global_rect().get_center()
-	var snapshots: Array = [_zone_snapshot]
-	if Playback.envelope != null: snapshots.append(Playback.envelope.snapshot("after").get("zones", {}))
-	for snapshot in snapshots:
+	for snapshot in _motion_zones:
 		for zone in snapshot.get("zones", []):
 			if zone.get("allowsCardPlay", false) and preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address: return view.hand.destination_center(id)
-	return view.battlefield_view.get_global_rect().get_center()
+	return Vector2.INF
+
+func _zone_role(address: String) -> String:
+	for snapshot in _motion_zones:
+		for zone in snapshot.get("zones", []):
+			if preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address:
+				return "hand" if zone.get("allowsCardPlay", false) else "pile"
+	return ""
 
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return

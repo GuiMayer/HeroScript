@@ -2,40 +2,77 @@ extends RefCounted
 ## Purpose-free transfer executor. Addresses and visibility come from published zones.
 static func address_key(address: Dictionary) -> String:
 	return "%s::%s::%s" % [address.get("scopeId") if address.get("scopeId") != null else "$run", address.get("ownerId", ""), address.get("zoneId", "")]
-static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: Callable, overlay: Control, context, handle) -> void:
+static func resolve(steps: Array, snapshots: Array, anchor: Callable, policy, role: Callable = Callable()) -> Array:
 	var facts: Array = preload("res://scripts/presentation/presentation_envelope.gd").visible_zone_steps(steps, snapshots)
 	var transfers: Array = []
-	var policy = context.motion if context.motion != null else context.capture_motion()
 	for step in facts:
 		var ids: Array = []
 		for key in ["instanceIds", "createdInstanceIds", "destroyedInstanceIds"]:
 			for id in step.get(key, []):
 				if id not in ids: ids.append(id)
-		for id in ids: transfers.append({"id": str(id), "step": step})
-		var hidden: int = int(step.get("instanceIdsHiddenCount", 0))
-		if ids.is_empty() and hidden > 0: transfers.append({"id": "", "step": step})
-	if transfers.is_empty() or policy.duration("zone_transfer", true) <= 0:
-		handle.hit(); handle.finish(); return
-	var remaining := {"count": mini(transfers.size(), policy.limit("max_transfers"))}
-	for item in transfers.slice(0, policy.limit("max_transfers")):
-		var ghost: Control
+		var hidden := 0
+		for key in ["instanceIds", "createdInstanceIds", "destroyedInstanceIds"]: hidden += int(step.get(key + "HiddenCount", 0))
+		if ids.is_empty() and hidden > 0: ids.append("")
+		for id in ids:
+			var source := str(step.get("sourceAddress", "")); var target := str(step.get("targetAddress", ""))
+			var start: Vector2 = anchor.call(source, str(id)); var end: Vector2 = anchor.call(target, str(id))
+			var operation := "zone_transfer"
+			if id in step.get("createdInstanceIds", []) or (id == "" and int(step.get("createdInstanceIdsHiddenCount", 0)) > 0): operation = "create"; start = end
+			elif id in step.get("destroyedInstanceIds", []) or (id == "" and int(step.get("destroyedInstanceIdsHiddenCount", 0)) > 0): operation = "destroy"; end = start
+			elif role.is_valid():
+				if role.call(target) == "hand": operation = "draw"
+				elif role.call(source) == "hand": operation = "discard"
+			if not start.is_finite() or not end.is_finite() or policy.duration(operation, true) <= 0: continue
+			if operation not in ["create", "destroy"] and start.is_equal_approx(end): continue
+			transfers.append({"id": str(id), "source": source, "target": target, "start": start, "end": end, "operation": operation, "step": step, "hidden": hidden})
+	return transfers
+
+static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: Callable, overlay: Control, context, handle, role: Callable = Callable(), registry = null, arrival: Callable = Callable()) -> void:
+	var policy = context.motion if context.motion != null else context.capture_motion()
+	var transfers := resolve(steps, snapshots, anchor, policy, role)
+	if transfers.is_empty(): handle.hit(); handle.finish(); return
+	var owner = registry if registry != null else preload("res://scripts/ui/card_transit_registry.gd").new(null, overlay, context)
+	var visible := transfers.slice(0, policy.limit("max_transfers"))
+	var remaining := {"count": visible.size()}
+	# The same instance may cross several addresses in one published beat. Chain
+	# only its own passages; unrelated cards travel together.
+	var serial: Dictionary = {}
+	for i in visible.size():
+		var item: Dictionary = visible[i]
 		var source_visible := false
 		for zone in snapshots[0].get("zones", []):
-			if address_key(zone) == str(item.step.get("sourceAddress", "")): source_visible = bool(zone.get("contentsVisible", false))
-		if source_visible and models.has(item.id):
-			ghost = CardView.new(context); ghost.animate_entry = false; ghost.hand_managed = true; ghost.configure(models[item.id])
-			ghost.size = context.card_style.effective_size(context.text_scale)
-		else:
-			ghost = Panel.new(); ghost.size = Vector2(220, 300)
-			ghost.add_theme_stylebox_override("panel", context.styles.box(context.styles.PANEL, 6, context.styles.INK, 2))
-		ghost.name = "ZoneTransfer"; ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE; ghost.process_mode = Node.PROCESS_MODE_PAUSABLE
-		overlay.add_child(ghost); ghost.scale = Vector2.ONE * .3
-		ghost.global_position = anchor.call(str(item.step.get("sourceAddress", "")), item.id) - ghost.size * .15
-		var destination: Vector2 = anchor.call(str(item.step.get("targetAddress", "")), item.id) - ghost.size * .15
-		var tween := ghost.create_tween().set_parallel(); handle.own(tween)
-		handle.cleanup(func(): if is_instance_valid(ghost): ghost.queue_free())
-		tween.tween_property(ghost, "global_position", destination, policy.duration("zone_transfer", true)).set_trans(policy.curve("zone_transfer")).set_ease(policy.easing("zone_transfer"))
-		tween.tween_property(ghost, "modulate:a", 0.0, policy.duration("zone_transfer", true))
-		tween.chain().tween_callback(func():
+			if address_key(zone) == item.source: source_visible = bool(zone.get("contentsVisible", false))
+		var ghost: Control = owner.acquire(item.id, models.get(item.id, {}), source_visible, item.start)
+		var duration: float = policy.duration(item.operation, true)
+		var key: String = item.id if not item.id.is_empty() else "hidden:%s" % i
+		var delay: float = maxf(float(serial.get(key, 0)), minf(i * policy.duration("stagger", true), policy.duration("batch_span", true)))
+		serial[key] = delay + duration
+		var following: bool = visible.slice(i + 1).any(func(next): return not item.id.is_empty() and next.id == item.id)
+		if item.hidden > 1 or (i == visible.size() - 1 and transfers.size() > visible.size()):
+			var count := Label.new(); count.text = "×%s" % (item.hidden if item.hidden > 1 else transfers.size() - visible.size() + 1)
+			count.add_theme_font_size_override("font_size", 36); count.mouse_filter = Control.MOUSE_FILTER_IGNORE; ghost.add_child(count)
+		var tween := ghost.create_tween(); handle.own(tween)
+		var pose := {"center": item.start, "scale": .35, "rotation": 0.0}
+		tween.tween_callback(func():
+			pose.center = ghost.global_position + ghost.size * .5
+			pose.scale = ghost.scale.x; pose.rotation = ghost.rotation
+			if not source_visible: pose.scale = .35
+			if item.operation == "create": pose.scale = .8
+			ghost.show()).set_delay(delay)
+		tween.tween_method(func(progress: float):
+			var destination: Vector2 = anchor.call(item.target, item.id)
+			if not destination.is_finite(): destination = item.end
+			var center: Vector2 = pose.center.lerp(destination, progress)
+			center.y -= sin(progress * PI) * minf(42, pose.center.distance_to(destination) * .12)
+			var target_scale := 1.0 if item.operation in ["draw", "create"] else .3
+			ghost.scale = Vector2.ONE * lerpf(float(pose.scale), target_scale, progress)
+			ghost.rotation = lerpf(float(pose.rotation), 0, progress)
+			ghost.global_position = center - ghost.size * .5
+			ghost.modulate.a = 1.0 if item.operation in ["draw", "create"] or following else 1.0 - clampf((progress - .8) / .2, 0, 1), 0.0, 1.0, duration).set_trans(policy.curve("zone_transfer")).set_ease(policy.easing("zone_transfer"))
+		tween.tween_callback(func():
+			if arrival.is_valid(): arrival.call(item)
+			if not following: owner.release(item.id, ghost, role.is_valid() and role.call(item.target) == "hand" and item.operation != "destroy")
 			remaining.count -= 1
 			if remaining.count == 0: handle.hit(); handle.finish())
+		handle.cleanup(func():
+			if handle.result != "completed": owner.release(item.id, ghost))

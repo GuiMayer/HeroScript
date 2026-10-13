@@ -9,6 +9,7 @@ func _init(hand_view, effects: Control, visual_context) -> void:
 func acquire(id: String, model: Dictionary, source_visible: bool, start: Vector2) -> Control:
 	if not id.is_empty() and _records.has(id) and is_instance_valid(_records[id]): return _records[id]
 	var card = hand.card_for(id) if hand != null else null
+	var copy_pose: bool = source_visible and is_instance_valid(card) and card.visible
 	if is_instance_valid(card): hand.begin_transit(id)
 	var ghost: Control
 	if source_visible and not model.is_empty():
@@ -21,7 +22,7 @@ func acquire(id: String, model: Dictionary, source_visible: bool, start: Vector2
 	ghost.focus_mode = Control.FOCUS_NONE; ghost.process_mode = Node.PROCESS_MODE_PAUSABLE
 	overlay.add_child(ghost); ghost.pivot_offset = ghost.size * .5
 	ghost.global_position = start - ghost.size * .5; ghost.z_index = 100
-	if is_instance_valid(card):
+	if copy_pose:
 		ghost.size = card.size; ghost.pivot_offset = card.size * .5
 		ghost.global_position = card.global_position; ghost.rotation = card.rotation
 	if not id.is_empty(): _records[id] = ghost
