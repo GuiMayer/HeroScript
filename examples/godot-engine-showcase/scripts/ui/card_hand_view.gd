@@ -21,6 +21,10 @@ var _cards := {}
 var _slots := {}
 var _motions := {}
 var _emphasis := {}
+var _transit := {}
+var _entries := {}
+var _destination_order: Array = []
+var _presenting := false
 var _layout: Dictionary = {}
 var relayout_count := 0
 var scroll := ScrollContainer.new()
@@ -123,6 +127,49 @@ func active_card_id() -> String:
 func cards() -> Dictionary: return _cards.duplicate()
 func ordered_cards() -> Array: return order.map(func(id): return _cards[id])
 
+func begin_presentation(final_models: Array) -> void:
+	_presenting = true
+	_destination_order = final_models.map(func(model): return str(model.cardInstanceId))
+	var merged := final_models.duplicate()
+	for model in final_models:
+		if not _cards.has(str(model.cardInstanceId)): _transit[str(model.cardInstanceId)] = true
+	for card in ordered_cards():
+		if str(card.model.cardInstanceId) not in _destination_order: merged.append(card.model)
+	sync_models(merged, scope)
+	_relayout()
+
+func begin_transit(id: String) -> void:
+	_transit[id] = true
+	if _entries.has(id):
+		if _entries[id].is_valid(): _entries[id].kill()
+		_entries.erase(id)
+	if _emphasis.has(id):
+		var tween = _emphasis[id].tween
+		if tween != null and tween.is_valid(): tween.kill()
+		_emphasis.erase(id)
+	if _cards.has(id): _cards[id].hide()
+	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
+
+func finish_transit(id: String, reveal_card := true) -> void:
+	_transit.erase(id)
+	if _cards.has(id):
+		_cards[id].modulate.a = 1.0
+		_cards[id].visible = reveal_card
+	_apply_emphasis()
+
+func end_presentation() -> void:
+	_presenting = false; _destination_order.clear()
+	for id in _transit.keys(): finish_transit(id)
+	request_layout()
+
+func destination_center(id: String) -> Vector2:
+	var index := order.find(id)
+	if index >= 0 and index < _layout.get("positions", []).size():
+		return surface.global_position + _layout.positions[index] + _cards[id].size * .5
+	return scroll.get_global_rect().get_center()
+
+func is_in_transit(id: String) -> bool: return _transit.has(id)
+
 func set_tools_below_cards(value: bool) -> void:
 	# Combat uses a floating bottom hand; labs and overview retain their toolbar.
 	move_child(toolbar, get_child_count() - 1 if value else 0)
@@ -174,9 +221,11 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 			card.focus_exited.connect(func():
 				if interaction.focused == id: interaction.focused = ""
 				_apply_emphasis())
-			if is_inside_tree() and not visual_context.reduced_motion:
+			if _transit.has(id): card.hide()
+			elif is_inside_tree() and duration() > 0:
 				card.modulate.a = 0
-				card.create_tween().tween_property(card, "modulate:a", 1.0, duration())
+				_entries[id] = card.create_tween()
+				_entries[id].tween_property(card, "modulate:a", 1.0, duration())
 		else:
 			var card: CardView = _cards[id]
 			var before := card.custom_minimum_size
@@ -200,6 +249,8 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	_update_counter()
 
 func _remove(id: String) -> void:
+	if _entries.has(id) and _entries[id].is_valid(): _entries[id].kill()
+	_entries.erase(id); _transit.erase(id)
 	if id == _inspection_anchor: _inspection_anchor = ""
 	if _motions.has(id) and _motions[id].is_valid(): _motions[id].kill()
 	if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
@@ -257,6 +308,13 @@ func _relayout() -> void:
 	dimensions = dimensions.max(_reserved_card_size)
 	_reserved_card_size = dimensions
 	_layout = Layout.calculate(order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
+	if _presenting:
+		var target_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
+		for i in order.size():
+			var target_index := _destination_order.find(order[i])
+			if target_index >= 0:
+				_layout.positions[i] = target_layout.positions[target_index]
+				_layout.rotations[i] = target_layout.rotations[target_index]
 	scroll.custom_minimum_size.y = _layout.height + 12
 	surface.custom_minimum_size = Vector2(_layout.extent, _layout.height)
 	# Reserve the scroll chrome even when the native bar toggles during layout.
@@ -298,6 +356,7 @@ func _apply_emphasis() -> void:
 	for i in order.size():
 		var id := order[i]
 		if not _cards.has(id): continue
+		if _transit.has(id): continue
 		if i >= _layout.rotations.size(): continue
 		var raised := id == active
 		var target := Vector2(0, -visual_style.lift * visual_context.hand_emphasis) if raised else Vector2.ZERO
@@ -321,7 +380,7 @@ func _update_reading_proxy() -> void:
 	# This copy is visual only: the stable hit surface still owns all input.
 	var id: String = interaction.active_id()
 	var card: CardView = _cards.get(id)
-	if read_only or reading_modal or interaction.dragging or not is_instance_valid(card):
+	if read_only or reading_modal or interaction.dragging or _transit.has(id) or not is_instance_valid(card):
 		if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 		return
 	var clip := scroll.get_global_rect()
@@ -494,5 +553,11 @@ func dispose() -> void:
 	for tween in _motions.values():
 		if tween: tween.kill()
 	_motions.clear()
+	for tween in _entries.values():
+		if tween != null and tween.is_valid(): tween.kill()
+	_entries.clear(); _transit.clear()
+	for item in _emphasis.values():
+		if item.tween != null and item.tween.is_valid(): item.tween.kill()
+	_emphasis.clear()
 
 func _exit_tree() -> void: dispose()

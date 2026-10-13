@@ -198,6 +198,8 @@ func _on_presentation_ready(value) -> void:
 	for zone in after.get("zones", {}).get("zones", []):
 		if zone.get("contentsVisible", false):
 			for card in zone.get("cards", []): _transfer_models[str(card.cardInstanceId)] = final_presenter.card_view_model(str(card.cardInstanceId))
+	var final_cards: Array = CardZonePresenter.new(after.get("zones", {}), visual_context.translator).playable_cards()
+	view.hand.begin_presentation(final_cards.map(func(card): return final_presenter.card_view_model(str(card.cardInstanceId))))
 	var prefix: Array = []
 	if not _prepared_card.is_empty():
 		var intro := _prepared_card.duplicate(true)
@@ -216,7 +218,7 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		view.hand.clear_choice(); view.reset_preview()
 		var card = view.hand.card_for(id)
 		if not is_instance_valid(card): handle.finish("fallback"); return
-		card.hide()
+		view.hand.begin_transit(id)
 		var destination: Vector2 = view.global_position + view.size * .5
 		if not frame.targets.is_empty() and view.actor_portraits.has(frame.targets[0]):
 			destination = view.actor_portraits[frame.targets[0]].get_global_rect().get_center()
@@ -227,7 +229,7 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 			var ids: Array = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().map(func(item): return str(item.get("cardInstanceId", "")))
 			if id not in ids:
 				view.hand.sync_models(view.hand.ordered_cards().filter(func(item): return item.model.cardInstanceId != id).map(func(item): return item.model), view._hand_scope())
-			elif is_instance_valid(card): card.show()
+			elif is_instance_valid(card): view.hand.finish_transit(id)
 			view.card_buttons = view.hand.cards(), CONNECT_ONE_SHOT)
 		card.fly_to(destination, view.feedback.effects, handle)
 	else:
@@ -252,17 +254,19 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		tween.tween_callback(func(): handle.finish())
 
 func _zone_anchor(address: String, id: String) -> Vector2:
-	var card = view.hand.card_for(id)
-	if is_instance_valid(card) and card.visible: return card.get_global_rect().get_center()
 	for button in view.find_children("Pile_*", "Button", true, false):
 		if preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {})) == address: return button.get_global_rect().get_center()
-	for zone in _zone_snapshot.get("zones", []):
-		if zone.get("allowsCardPlay", false) and preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address: return view.hand.scroll.get_global_rect().get_center()
+	var snapshots: Array = [_zone_snapshot]
+	if Playback.envelope != null: snapshots.append(Playback.envelope.snapshot("after").get("zones", {}))
+	for snapshot in snapshots:
+		for zone in snapshot.get("zones", []):
+			if zone.get("allowsCardPlay", false) and preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address: return view.hand.destination_center(id)
 	return view.battlefield_view.get_global_rect().get_center()
 
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
 	_prepared_card = {}; _intro_handle = null
+	view.hand.end_presentation()
 	_transfer_models.clear()
 	_update_controls()
 	_finish_navigation.call_deferred(generation, router.navigation_epoch)
