@@ -19,4 +19,8 @@ func _run() -> void:
 	check(normal.cue("impact").sound == "impact", "captured cue policy is defensively copied")
 	check(normal.curve("card_flight") == Tween.TRANS_CUBIC and normal.easing("card_flight") == Tween.EASE_IN, "configured easing is captured with the command policy")
 	check(normal.curve("unknown") == Tween.TRANS_LINEAR, "unknown motion has a neutral easing fallback")
+	Policy.invalidate()
+	var parses: int = Policy.document_parses
+	for _index in 20: Policy.capture("ascendant", {})
+	check(Policy.document_parses == parses + 1, "unchanged manifest is parsed once across captured presentations")
 	root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

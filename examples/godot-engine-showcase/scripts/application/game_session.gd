@@ -211,12 +211,18 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 	if not response.ok:
 		return _refresh_failed(response)
 	var next_run: Dictionary = response.data
+	var refresh_timings := {"run_loaded": Time.get_ticks_msec()}
 	var next_combat: Dictionary = committed_combat if receipt_sequence == int(next_run.get("sequence", 0)) else {}
 	var encounter_id := str(next_run.get("activeEncounterId", "")) if next_run.get("activeEncounterId") != null else ""
 	var include_combat := not encounter_id.is_empty() and str(next_combat.get("combatId", "")) != encounter_id
 	if encounter_id.is_empty():
 		next_combat = {}
-	var responses: Dictionary = await _gateway.read_projections(run_id, encounter_id, include_combat)
+	var responses: Dictionary
+	var known_actor: String = _input_actor_id(next_combat) if not next_combat.is_empty() and str(next_combat.get("status", "ACTIVE")) == "ACTIVE" else ""
+	if not include_combat and not known_actor.is_empty() and _gateway.has_method("read_combat_projections"):
+		responses = await _gateway.read_combat_projections(run_id, encounter_id, known_actor)
+	else: responses = await _gateway.read_projections(run_id, encounter_id, include_combat)
+	refresh_timings["projections_loaded"] = Time.get_ticks_msec()
 	if not _current(ticket):
 		return false
 	for result in responses.values():
@@ -229,7 +235,8 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 	if not next_combat.is_empty() and str(next_combat.get("status", "ACTIVE")) == "ACTIVE":
 		var actor_id := _input_actor_id(next_combat)
 		if not actor_id.is_empty():
-			var actions_response: Dictionary = await _gateway.read_legal_actions(str(next_combat.get("combatId", "")), actor_id)
+			var actions_response: Dictionary = responses.actions if responses.has("actions") else await _gateway.read_legal_actions(str(next_combat.get("combatId", "")), actor_id)
+			refresh_timings["actions_loaded"] = Time.get_ticks_msec()
 			if not _current(ticket):
 				return false
 			if not actions_response.ok:
@@ -244,6 +251,7 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 				if selected.is_empty() and command.get("targetId") != null: selected = [command.targetId]
 				if not selected.is_empty(): targets = [selected[0]]; break
 			var inspection: Dictionary = await _gateway.inspect_hand(str(next_combat.get("combatId", "")), actor_id, targets)
+			refresh_timings["evaluations_loaded"] = Time.get_ticks_msec()
 			if not _current(ticket): return false
 			if not inspection.ok: return _refresh_failed(inspection)
 			next_evaluations = inspection.data.get("cards", [])
@@ -274,6 +282,7 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 		var envelope = preload("res://scripts/presentation/presentation_envelope.gd").build(accepted.receipt, accepted.before,
 			{"run": run, "combat": combat, "zones": card_zones, "evaluations": card_evaluations}, accepted.endpoint)
 		if envelope != null:
+			for marker in refresh_timings: envelope.mark_at(marker, refresh_timings[marker])
 			envelope.mark_at("submitted", int(accepted.get("submitted", 0)))
 			envelope.mark_at("received", int(accepted.get("received", 0)))
 			presentation_ready.emit(envelope)

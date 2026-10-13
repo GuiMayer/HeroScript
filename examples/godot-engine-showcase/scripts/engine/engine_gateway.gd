@@ -86,7 +86,9 @@ func run_commit(run_id: String, sequence: int) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/runs/%s/commits/%s" % [run_id.uri_encode(), sequence])
 
-func read_projections(run_id: String, combat_id: String, include_combat: bool) -> Dictionary:
+func read_combat_projections(run_id: String, combat_id: String, actor_id: String) -> Dictionary:
+	return await read_projections(run_id, combat_id, false, actor_id)
+func read_projections(run_id: String, combat_id: String, include_combat: bool, actor_id := "") -> Dictionary:
 	var paths := {
 		"commands": "/api/v1/runs/%s/available-commands" % run_id.uri_encode(),
 		"capabilities": "/api/v1/runs/%s/capabilities" % run_id.uri_encode(),
@@ -94,6 +96,8 @@ func read_projections(run_id: String, combat_id: String, include_combat: bool) -
 	}
 	if include_combat:
 		paths["combat"] = "/api/v1/combats/%s" % combat_id.uri_encode()
+	if not actor_id.is_empty():
+		paths["actions"] = "/api/v1/combats/%s/legal-actions?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()]
 	return await _transport.request_many(paths)
 
 func read_legal_actions(combat_id: String, actor_id: String) -> Dictionary:

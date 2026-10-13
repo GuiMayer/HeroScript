@@ -26,6 +26,8 @@ var _transfer_models: Dictionary = {}
 var _active_motion
 var _transits
 var _motion_zones: Array = []
+var _pile_anchors: Dictionary = {}
+var _zone_roles: Dictionary = {}
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -197,6 +199,11 @@ func _on_presentation_ready(value) -> void:
 	for card in view.hand.ordered_cards(): _transfer_models[str(card.model.cardInstanceId)] = card.model
 	var after: Dictionary = value.snapshot("after")
 	_motion_zones = [value.snapshot("before").get("zones", {}), after.get("zones", {})]
+	_pile_anchors.clear(); _zone_roles.clear()
+	for button in view.find_children("Pile_*", "Button", true, false):
+		_pile_anchors[preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {}))] = button
+	for snapshot in _motion_zones:
+		for zone in snapshot.get("zones", []): _zone_roles[preload("res://scripts/ui/card_zone_motion.gd").address_key(zone)] = "hand" if zone.get("allowsCardPlay", false) else "pile"
 	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), GameSession.legal_actions,
 		visual_context.translator, presentation, after.get("zones", {}))
 	final_presenter.accept_evaluations(after.get("evaluations", []))
@@ -213,6 +220,7 @@ func _on_presentation_ready(value) -> void:
 		intro["presentationOnly"] = "card_departure"
 		prefix.append(intro)
 	Playback.activate(prefix)
+	value.mark("views_prepared")
 	if not prefix.is_empty(): presentation_driver.advance()
 	elif not Playback.has_frames(): _on_settled("completed", Playback.generation)
 	_update_controls()
@@ -225,10 +233,6 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		view.hand.clear_choice(); view.reset_preview()
 		var card = view.hand.card_for(id)
 		if not is_instance_valid(card): handle.finish("fallback"); return
-		var ghost: Control = _transits.acquire(id, card.model, true, card.get_global_rect().get_center())
-		var transits = _transits
-		var destination: Vector2 = view.battlefield_view.get_global_rect().get_center()
-		destination.y = view.battlefield_view.global_position.y + view.battlefield_view.size.y * .72
 		GameAudio.card()
 		var final_zones: Dictionary = Playback.envelope.snapshot("after").get("zones", {}) if Playback.envelope != null else {}
 		var retained: bool = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().any(func(item): return str(item.get("cardInstanceId", "")) == id)
@@ -239,20 +243,9 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 			if steps.any(func(step): return id in step.get("instanceIds", [])): continued = true; break
 		handle.completed.connect(func(_result):
 			if not is_inside_tree(): return
-			if not retained and not continued:
-				view.hand.sync_models(view.hand.ordered_cards().filter(func(item): return item.model.cardInstanceId != id).map(func(item): return item.model), view._hand_scope())
-			if retained or not continued or _result != "completed": transits.release(id, ghost, retained)
 			view.card_buttons = view.hand.cards(), CONNECT_ONE_SHOT)
-		var duration: float = visual_context.motion.duration("card_flight", true)
-		if duration <= 0: handle.hit(); handle.finish(); return
-		var tween := ghost.create_tween().set_parallel(); handle.own(tween)
-		tween.tween_property(ghost, "global_position", destination - ghost.size * .5, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tween.tween_property(ghost, "rotation", 0.0, duration)
-		tween.tween_property(ghost, "scale", Vector2.ONE * .82, duration)
-		if retained:
-			tween.chain().tween_property(ghost, "global_position", view.hand.destination_center(id) - ghost.size * .5, visual_context.motion.duration("retain", true)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-			tween.parallel().tween_property(ghost, "scale", Vector2.ONE, visual_context.motion.duration("retain", true))
-		tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
+		preload("res://scripts/ui/card_use_motion.gd").execute(id, retained, continued, view.hand, _transits, visual_context,
+			func(): return view.battlefield_view.global_position + view.battlefield_view.size * Vector2(.5, .72), handle)
 	else:
 		if frame.get("stateAfter") is Dictionary: view.present_combat_snapshot(frame.stateAfter)
 		var steps: Array = frame.get("cardZoneSteps", []).duplicate(true)
@@ -281,19 +274,13 @@ func _can_animate(frame: Dictionary) -> bool:
 	return preload("res://scripts/ui/effect_motion.gd").can_animate(frame, visual_context, view.actor_portraits, view.battlefield_view.panels)
 
 func _zone_anchor(address: String, id: String) -> Vector2:
-	for button in view.find_children("Pile_*", "Button", true, false):
-		if preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {})) == address: return button.get_global_rect().get_center()
-	for snapshot in _motion_zones:
-		for zone in snapshot.get("zones", []):
-			if zone.get("allowsCardPlay", false) and preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address: return view.hand.destination_center(id)
+	if _zone_roles.get(address) == "hand": return view.hand.destination_center(id)
+	var button = _pile_anchors.get(address)
+	if is_instance_valid(button): return button.get_global_rect().get_center()
 	return Vector2.INF
 
 func _zone_role(address: String) -> String:
-	for snapshot in _motion_zones:
-		for zone in snapshot.get("zones", []):
-			if preload("res://scripts/ui/card_zone_motion.gd").address_key(zone) == address:
-				return "hand" if zone.get("allowsCardPlay", false) else "pile"
-	return ""
+	return str(_zone_roles.get(address, ""))
 
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
@@ -302,6 +289,7 @@ func _on_settled(_result: String, generation: int) -> void:
 	view.hand.end_presentation()
 	if _result in ["skipped", "cancelled"]: view.feedback.clear_cosmetics()
 	_transfer_models.clear()
+	_motion_zones.clear(); _pile_anchors.clear(); _zone_roles.clear()
 	_update_controls()
 	_finish_navigation.call_deferred(generation, router.navigation_epoch)
 

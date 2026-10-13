@@ -7,6 +7,10 @@ var _paused: Callable
 var _alive := true
 var _pumping := false
 var pump_budget_usec := 4000
+var dispatches := 0
+var instant_dispatches := 0
+var budget_yields := 0
+var longest_pump_usec := 0
 var watchdog_seconds := 12.0
 func _init(playback, preferences, paused: Callable) -> void:
 	_playback = playback; _preferences = preferences; _paused = paused
@@ -22,12 +26,24 @@ func _pump(manual: bool = false) -> bool:
 		var passive: bool = _playback.next_is_passive()
 		if not _preferences.auto_animations and not passive and not manual: break
 		if not _playback.advance(): break
+		dispatches += 1
 		advanced = true
 		if not passive: manual = false
-		if Time.get_ticks_usec() - start >= pump_budget_usec: break
+		var handle = _playback.active_handle
+		if handle == null: instant_dispatches += 1
+		else:
+			handle.completed.connect(func(_result):
+				if _alive and not _pumping:
+					_pump(); changed.emit(), CONNECT_ONE_SHOT)
+		if Time.get_ticks_usec() - start >= pump_budget_usec:
+			if handle == null and _playback.has_frames(): budget_yields += 1
+			break
+	longest_pump_usec = maxi(longest_pump_usec, Time.get_ticks_usec() - start)
 	_pumping = false
 	if advanced and _alive: changed.emit()
 	return advanced
+func metrics() -> Dictionary:
+	return {"dispatches": dispatches, "instant": instant_dispatches, "cpu_yields": budget_yields, "longest_pump_us": longest_pump_usec}
 func _process(delta: float) -> void:
 	if not _alive or _paused.call(): return
 	var handle = _playback.active_handle

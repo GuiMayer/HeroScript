@@ -12,10 +12,23 @@ var _random: Dictionary = {}
 var speed := 1.0
 var instant := false
 var reduced := false
+static var _documents: Dictionary = {}
+static var document_parses := 0
+static func invalidate() -> void: _documents.clear()
+static func _document(path: String) -> Dictionary:
+	# Source comparison also catches same-second/same-size development edits.
+	# Only this command boundary touches disk; hot paths consume captured policy.
+	var source := FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+	if _documents.has(path) and _documents[path].source == source: return _documents[path].document
+	var parsed = JSON.parse_string(source) if not source.is_empty() else null
+	document_parses += 1
+	var document: Dictionary = parsed if parsed is Dictionary and int(parsed.get("version", 0)) == 1 else {}
+	if _documents.size() >= 8: _documents.erase(_documents.keys()[0])
+	_documents[path] = {"source": source, "document": document}
+	return document
 static func capture(setting: String, options: Dictionary, path := PATH):
 	var policy = load("res://scripts/presentation/motion_policy.gd").new()
-	var document = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
-	if not document is Dictionary or int(document.get("version", 0)) != 1: document = {}
+	var document: Dictionary = _document(path)
 	policy._values = DEFAULTS.duplicate()
 	var settings: Dictionary = as_dictionary(document.get("settings", {}))
 	var override: Dictionary = as_dictionary(settings.get(setting, {}))
