@@ -115,6 +115,7 @@ public sealed class RunJournalController : BaseApiController
     }
 
     [HttpGet("timeline")]
+    [ProducesResponseType(typeof(ReplayTimelinePage), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTimeline(
         Guid runId,
         [FromQuery] int afterSequence = 0,
@@ -136,6 +137,18 @@ public sealed class RunJournalController : BaseApiController
         {
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline snapshot", exception.Message);
         }
+    }
+
+    [HttpGet("commits/{sequence:int}/presentation")]
+    [ProducesResponseType(typeof(ReplayCommandPresentation), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPresentation(Guid runId, int sequence, CancellationToken cancellationToken = default)
+    {
+        var denied = Authorize(runId, ToolCapabilities.TimelineInspectState);
+        if (denied != null) return denied;
+        if (sequence < 1)
+            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid replay command", "Sequence must be positive");
+        var result = await _replayQueries.ReadPresentationAsync(runId, sequence, cancellationToken);
+        return result == null ? ApiNotFound($"Run command not found: {runId}/{sequence}") : Ok(result);
     }
 
     [HttpPost("verify")]

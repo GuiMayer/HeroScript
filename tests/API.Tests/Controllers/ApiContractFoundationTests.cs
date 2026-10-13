@@ -732,6 +732,17 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             commits.GetProperty("commits").EnumerateArray(),
             commit => commit.GetProperty("frameCount").GetInt32() > 1);
 
+        using var timelineResponse = await _client.GetAsync($"/api/v1/runs/{runId}/timeline?limit=1");
+        timelineResponse.EnsureSuccessStatusCode();
+        var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(timeline.GetProperty("hasMore").GetBoolean());
+        Assert.Equal(3, timeline.GetProperty("throughSequence").GetInt32());
+        var timelineFrame = timeline.GetProperty("items")[0].GetProperty("frames")[0];
+        Assert.False(timelineFrame.TryGetProperty("resolution", out _));
+        Assert.False(timelineFrame.TryGetProperty("calculations", out _));
+        using var presentationResponse = await _client.GetAsync($"/api/v1/runs/{runId}/commits/1/presentation");
+        Assert.Equal(HttpStatusCode.Forbidden, presentationResponse.StatusCode);
+
         using var verifyResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var verificationBody = await verifyResponse.Content.ReadAsStringAsync();
         Assert.True(verifyResponse.IsSuccessStatusCode, verificationBody);

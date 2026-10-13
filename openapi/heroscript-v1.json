@@ -362,6 +362,15 @@
         "responses": { "200": { "description": "One immutable authoritative commit including frames and facts" }, "404": { "$ref": "#/components/responses/Problem" } }
       }
     },
+    "/api/v1/runs/{runId}/commits/{sequence}/presentation": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getReplayCommandPresentation",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": { "200": { "description": "Canonical historical state summary and recorded dialogue; no gameplay mutation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReplayCommandPresentation" } } } }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/runs/{runId}/timeline": {
       "get": {
         "tags": ["Runs"],
@@ -1278,6 +1287,27 @@
           "frames": { "type": "array", "items": { "$ref": "#/components/schemas/RunCommitFrame" } },
           "facts": { "type": "array", "items": { "$ref": "#/components/schemas/RunCommitFact" } },
           "summary": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ReplayCommandPresentation": {
+        "type": "object",
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" }, "settingId": { "type": "string" },
+          "lineage": { "type": "object", "nullable": true }, "contentRevision": { "type": "string" },
+          "sequence": { "type": "integer" }, "commandType": { "type": "string" },
+          "stateHash": { "type": "string" }, "previousStateHash": { "type": "string" },
+          "stateSummary": {
+            "type": "object",
+            "properties": {
+              "lifecycle": { "type": "string" }, "currentNodeId": { "type": "string", "nullable": true },
+              "cardCount": { "type": "integer" }, "relicCount": { "type": "integer" },
+              "resources": { "type": "array", "items": { "type": "object", "properties": {
+                "resourceId": { "type": "string" }, "current": { "type": "number" }, "maximum": { "type": "number" } } } },
+              "transcript": { "type": "array", "items": { "type": "object", "properties": {
+                "nodeId": { "type": "string" }, "choiceId": { "type": "string", "nullable": true },
+                "speaker": { "type": "object" }, "text": { "type": "object" } } } }
+            }
+          }
         }
       },
       "ReplayTimelinePage": {
