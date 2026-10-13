@@ -4,6 +4,14 @@ signal frame_presented(frame: Dictionary, index: int, total: int)
 signal settled(result: String, generation: int)
 var active_handle
 var executor: Callable
+var dispatch_ready := true
+var envelope
+func load_envelope(value) -> void:
+	load_receipt(value.receipt())
+	envelope = value; dispatch_ready = false
+func activate(prefix: Array = []) -> void:
+	_frames = prefix + _frames
+	dispatch_ready = true
 var _frames: Array = []
 var index := 0
 var generation := 0
@@ -28,6 +36,7 @@ func clear(_run_id := "") -> void:
 	if old != null: old.finish("cancelled")
 	_frames = []
 	index = 0
+	envelope = null; dispatch_ready = true
 
 func has_frames() -> bool:
 	return index < _frames.size()
@@ -41,7 +50,7 @@ func complete_active() -> void:
 	if active_handle != null: active_handle.finish()
 
 func advance() -> bool:
-	if active_handle != null or not has_frames():
+	if not dispatch_ready or active_handle != null or not has_frames():
 		return false
 	var current := index
 	index += 1

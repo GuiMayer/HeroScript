@@ -9,6 +9,7 @@ const CardZones = preload("res://scripts/presentation/card_zone_presenter.gd")
 var failures := 0
 
 class FakeTransport extends RefCounted:
+	func endpoint_context() -> Array: return ["fixture", 0]
 	signal release_read
 	var hold_read := false
 	var timeout_once := false

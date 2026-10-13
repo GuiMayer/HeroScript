@@ -317,8 +317,9 @@ func _emphasize(value: bool) -> void:
 	motion.tween_property(self, "scale", Vector2(1.035, 1.035) if value else Vector2.ONE,
 		.12 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-func fly_to(destination: Vector2, overlay: Node) -> void:
+func fly_to(destination: Vector2, overlay: Node, handle = null) -> void:
 	if visual_context.reduced_motion:
+		if handle != null: handle.hit(); handle.finish()
 		return
 	var ghost := CardView.new(visual_context)
 	ghost.animate_entry = false
@@ -339,12 +340,17 @@ func fly_to(destination: Vector2, overlay: Node) -> void:
 	ghost.pivot_offset = size * .5
 	ghost.z_index = 100
 	var tween := ghost.create_tween().set_parallel()
+	if handle != null:
+		handle.own(tween)
+		handle.cleanup(func(): if is_instance_valid(ghost): ghost.queue_free())
+		tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
 	tween.tween_property(ghost, "global_position", destination - size * .5, .22 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_property(ghost, "scale", Vector2(.45, .45), .22 / visual_context.animation_speed)
 	tween.tween_property(ghost, "modulate:a", 0.0, .22 / visual_context.animation_speed)
 	var completion := FlightCompletion.new()
 	tween.finished.connect(completion.complete)
 	ghost.tree_exiting.connect(completion.complete)
+	if handle != null: ghost.tree_exiting.connect(func(): handle.finish("cancelled"), CONNECT_ONE_SHOT)
 	await completion.finished
 	if is_instance_valid(ghost) and not ghost.is_queued_for_deletion(): ghost.queue_free()
 

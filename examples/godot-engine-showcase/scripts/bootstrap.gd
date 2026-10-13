@@ -14,7 +14,7 @@ func _ready() -> void:
 	GameSession.run_opened.connect(_remember_run)
 	GameSession.changed.connect(_remember_progress)
 	GameSession.run_opened.connect(Playback.clear)
-	GameSession.receipt_received.connect(Playback.load_receipt)
+	GameSession.presentation_ready.connect(Playback.load_envelope)
 
 func _apply_connection() -> void:
 	if _transport.base_url == Preferences.api_url:

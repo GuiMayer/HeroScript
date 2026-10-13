@@ -20,6 +20,8 @@ var _zone_snapshot: Dictionary
 var _scenery_key := ""
 var _zone_reading_states: Dictionary = {}
 var _collection_dialog: Window
+var _prepared_card: Dictionary = {}
+var _intro_handle
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -33,7 +35,7 @@ func setup(owner, data: Dictionary) -> void:
 	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return router.get_tree().paused)
 	controller.changed.connect(_update_controls)
 	inspection_coordinator = preload("res://scripts/ui/controllers/combat_inspection_coordinator.gd").new(controller)
-	presentation_driver = preload("res://scripts/ui/controllers/combat_presentation_driver.gd").new(Playback, Preferences, func(): return router.get_tree().paused)
+	presentation_driver = preload("res://scripts/ui/controllers/presentation_director.gd").new(Playback, Preferences, func(): return router.get_tree().paused)
 	presentation_driver.changed.connect(_update_controls)
 	add_child(presentation_driver)
 	view = preload("res://scripts/ui/combat_view.gd").new()
@@ -42,7 +44,11 @@ func setup(owner, data: Dictionary) -> void:
 	view.intent_requested.connect(_on_intent)
 	add_child(view)
 	Playback.frame_presented.connect(_on_frame)
+	Playback.executor = _execute_beat
+	Playback.settled.connect(_on_settled)
+	GameSession.presentation_ready.connect(_on_presentation_ready)
 	_render(data)
+	if Playback.envelope != null and not Playback.dispatch_ready: _on_presentation_ready(Playback.envelope)
 
 func refresh_state(data: Dictionary) -> void: _render(data)
 func _render(data: Dictionary) -> void:
@@ -170,8 +176,54 @@ func _candidates(id: String) -> Array: return presenter.candidates(id)
 func _toggle_character_sidebar() -> void: view._toggle_character_sidebar()
 func replace_composition(scene: PackedScene, profile: Resource) -> void: view.replace_composition(scene, profile)
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
-	view.present_frame(frame, index, total)
-	GameAudio.frame(frame)
+	if frame.get("presentationOnly", "") != "card_departure": view.present_frame(frame, index, total)
+
+func _on_presentation_ready(value) -> void:
+	if not is_inside_tree() or value != Playback.envelope: return
+	var prefix: Array = []
+	if not _prepared_card.is_empty():
+		var intro := _prepared_card.duplicate(true)
+		intro["presentationOnly"] = "card_departure"
+		prefix.append(intro)
+	Playback.activate(prefix)
+	if not prefix.is_empty(): presentation_driver.advance()
+	elif not Playback.has_frames(): _on_settled("completed", Playback.generation)
+	_update_controls()
+
+func _execute_beat(frame: Dictionary, handle) -> void:
+	if frame.get("presentationOnly", "") == "card_departure":
+		_intro_handle = handle
+		var id := str(frame.cardInstanceId)
+		view.hand.clear_choice(); view.reset_preview()
+		var card = view.hand.card_for(id)
+		if not is_instance_valid(card): handle.finish("fallback"); return
+		card.hide()
+		var destination: Vector2 = view.global_position + view.size * .5
+		if not frame.targets.is_empty() and view.actor_portraits.has(frame.targets[0]):
+			destination = view.actor_portraits[frame.targets[0]].get_global_rect().get_center()
+		GameAudio.card()
+		handle.completed.connect(func(_result):
+			if not is_inside_tree(): return
+			var final_zones: Dictionary = Playback.envelope.snapshot("after").get("zones", {}) if Playback.envelope != null else {}
+			var ids: Array = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().map(func(item): return str(item.get("cardInstanceId", "")))
+			if id not in ids:
+				view.hand.sync_models(view.hand.ordered_cards().filter(func(item): return item.model.cardInstanceId != id).map(func(item): return item.model), view._hand_scope())
+			elif is_instance_valid(card): card.show()
+			view.card_buttons = view.hand.cards(), CONNECT_ONE_SHOT)
+		card.fly_to(destination, view.feedback.effects, handle)
+	else:
+		handle.hit(); GameAudio.frame(frame)
+		if not frame.get("hasVisibleFacts", false): handle.finish(); return
+		var tween := view.create_tween()
+		handle.own(tween)
+		tween.tween_interval(.16 / maxf(visual_context.animation_speed, .25))
+		tween.tween_callback(func(): handle.finish())
+
+func _on_settled(_result: String, generation: int) -> void:
+	if generation != Playback.generation or not is_inside_tree(): return
+	_prepared_card = {}; _intro_handle = null
+	_update_controls()
+	if GameSession.synchronized and not GameSession.busy: router.open_game.call_deferred()
 func apply_model(model) -> void: refresh_state(model)
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func apply_interaction(_state) -> void: _update_controls()
@@ -185,6 +237,9 @@ func dispose() -> void:
 	if is_instance_valid(view): view.dispose()
 	if is_instance_valid(view) and is_instance_valid(view.scenery) and is_instance_valid(router): router.shell.run_scenery.release_combat(view.scenery)
 	if Playback.frame_presented.is_connected(_on_frame): Playback.frame_presented.disconnect(_on_frame)
+	if Playback.settled.is_connected(_on_settled): Playback.settled.disconnect(_on_settled)
+	if GameSession.presentation_ready.is_connected(_on_presentation_ready): GameSession.presentation_ready.disconnect(_on_presentation_ready)
+	Playback.executor = Callable()
 
 func _drop_card(id: String, point: Vector2) -> void:
 	if _locked(): return
@@ -206,16 +261,15 @@ func _play_candidate(candidate: Dictionary) -> void:
 	if _locked() or candidate.is_empty():
 		return
 	var id := str(candidate.command.get("cardInstanceId", ""))
+	_prepared_card = {"cardInstanceId": id, "targets": presenter.targets(candidate)}
 	var success: bool = await controller.submit(candidate)
 	if not is_inside_tree():
 		return
 	if success:
-		GameAudio.card()
-		var still_present := zone_presenter.playable_cards().any(func(card): return str(card.get("cardInstanceId", "")) == id)
-		await view.animate_card_use(id, presenter.targets(candidate), still_present)
-		if is_inside_tree():
-			router.open_game()
+		if _intro_handle != null and not _intro_handle.done: await _intro_handle.completed
+		if is_inside_tree() and not Playback.has_blocking_work() and GameSession.synchronized: router.open_game()
 	else:
+		_prepared_card = {}
 		GameAudio.error()
 		_update_controls()
 
@@ -229,7 +283,7 @@ func _execute_system(candidate: Dictionary) -> void:
 	if not is_inside_tree(): return
 	if accepted:
 		GameAudio.turn()
-		router.open_game()
+		if not Playback.has_blocking_work(): router.open_game()
 	else: GameAudio.error()
 
 

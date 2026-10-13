@@ -6,6 +6,8 @@ signal operation_changed(state: String)
 signal changed
 signal command_started(label: String)
 signal receipt_received(receipt: Dictionary)
+signal presentation_ready(envelope)
+var _accepted_presentation: Dictionary = {}
 signal run_opened(run_id: String)
 signal availability_changed(value: bool)
 signal command_finished
@@ -263,6 +265,13 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 		_tool_capabilities[str(capability)] = true
 	synchronized = true
 	changed.emit()
+	if not _accepted_presentation.is_empty():
+		var accepted: Dictionary = _accepted_presentation
+		_accepted_presentation = {}
+		var envelope = preload("res://scripts/presentation/presentation_envelope.gd").build(accepted.receipt, accepted.before,
+			{"run": run, "combat": combat, "zones": card_zones, "evaluations": card_evaluations}, accepted.endpoint)
+		if envelope != null: presentation_ready.emit(envelope)
+		else: failed.emit({"errorKey": "Presentation was superseded by a newer game revision."})
 	return true
 
 func _refresh_failed(error: Dictionary) -> bool:
@@ -331,6 +340,8 @@ func _send_pending(ticket: int) -> bool:
 		changed.emit()
 		return false
 	_pending = {}
+	_accepted_presentation = {"receipt": response.data.duplicate(true), "before": {"run": run, "combat": combat, "zones": card_zones},
+		"endpoint": replay_context() if _gateway.has_method("replay_context") else ["fixture", _generation]}
 	receipt_received.emit(response.data.duplicate(true))
 	var state: Dictionary = response.data.get("state", {})
 	var updated := await _refresh(ticket, state.get("combat", {}) if state.get("combat") is Dictionary else {}, int(response.data.get("sequence", -1)))
@@ -363,6 +374,7 @@ func invalidate() -> void:
 	_generation += 1
 	_operation = "idle"
 	_run = {}
+	_accepted_presentation = {}
 	_combat = {}
 	_card_zones = {}
 	_card_evaluations = []; _card_evaluation_context = []

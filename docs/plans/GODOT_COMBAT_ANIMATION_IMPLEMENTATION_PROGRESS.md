@@ -21,7 +21,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 4. Director/handles: implementado; conclusão única, trabalho bloqueante distinto
    de cursor, confirmação sem sobreposição, cancelamento/skip e watchdog pausável.
    Alias de import antigo será removido após migrar os consumidores.
-5. Integração com combate/mão: pendente.
+5. Integração com combate/mão: implementado; recibo aceito fica retido até
+   sincronização, carta sai uma vez antes dos impactos, input usa trabalho
+   bloqueante e projeção final determina a permanência da instância.
 6. Pause/cancelamento/pós-combate: pendente.
 7. Feedback semântico/resources: pendente.
 8. Zonas de cartas: pendente.
