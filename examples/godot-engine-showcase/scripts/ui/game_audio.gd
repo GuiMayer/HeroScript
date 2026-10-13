@@ -46,19 +46,19 @@ func _ensure_bus(bus_name: String) -> void:
 	if bus_name == "SFX": AudioServer.add_bus_effect(index, AudioEffectLimiter.new())
 
 func ui() -> void: play_event("ui")
-func card() -> void: play_event("card_play")
+func card() -> void: play_event("card_play", true)
 func hit() -> void: play_event("impact")
 func reward() -> void: play_event("reward")
 func select_card() -> void: play_event("card_select")
 func cancel() -> void: play_event("cancel")
-func turn() -> void: play_event("turn")
+func turn() -> void: play_event("turn", true)
 func error() -> void: play_event("error")
 
 func frame(frame_data: Dictionary) -> void:
 	for event in preload("res://scripts/presentation/combat_audio_presenter.gd").cues(frame_data, resource_gain_cues):
-		play_event(event)
+		play_event(event, true)
 
-func play_event(event_id: String) -> bool:
+func play_event(event_id: String, combat_cue := false) -> bool:
 	if _stopped or not _events.has(event_id): return false
 	var bus := AudioServer.get_bus_index("SFX")
 	if AudioServer.is_bus_mute(bus) or AudioServer.is_bus_mute(0): return false
@@ -86,10 +86,16 @@ func play_event(event_id: String) -> bool:
 	player.pitch_scale = 1.0
 	player.stream = stream
 	player.set_meta("event_id", event_id)
+	player.set_meta("combat_cue", combat_cue)
+	player.stream_paused = false
 	player.play()
 	_variant[event_id] = variant + 1
 	_last_played[event_id] = now
 	return true
+
+func _process(_delta: float) -> void:
+	for voice in _voices:
+		voice.stream_paused = get_tree().paused and bool(voice.get_meta("combat_cue", false))
 
 func _apply() -> void:
 	for spec in [["Music", Preferences.music_volume], ["SFX", Preferences.sfx_volume]]:

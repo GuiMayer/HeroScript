@@ -9,6 +9,7 @@ var _playback
 var _paused: Callable
 var _alive := true
 var _epoch := 0
+var presentation_pending := false
 func _init(session, playback, paused: Callable) -> void:
 	_session = session
 	_playback = playback
@@ -24,7 +25,7 @@ func locked() -> bool:
 	return not _alive or State.phase(state.submitting or _session.busy, _session.synchronized,
 		_animating(), _paused.call(), state.selected_card) not in [State.InputState.READY, State.InputState.SELECTING]
 func _animating() -> bool:
-	return _playback.has_blocking_work() if _playback.has_method("has_blocking_work") else _playback.has_frames()
+	return presentation_pending or (_playback.has_blocking_work() if _playback.has_method("has_blocking_work") else _playback.has_frames())
 
 func interaction_model():
 	return preload("res://scripts/presentation/view_models.gd").Hud.new({

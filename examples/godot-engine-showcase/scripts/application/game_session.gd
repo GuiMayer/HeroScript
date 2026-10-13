@@ -108,6 +108,7 @@ func _apply_setting(setting_id: String, clear_active_session: bool) -> bool:
 		selected_setting_id = setting_id
 		content_revision = str(item.get("currentRevision", ""))
 		if clear_active_session:
+			_accepted_presentation = {}
 			_run = {}
 			_combat = {}
 			_card_zones = {}
@@ -162,6 +163,7 @@ func _open_run(kind: String, args: Array) -> bool:
 			_finish(ticket)
 			return false
 	_run = opened.duplicate(true)
+	_accepted_presentation = {}
 	var opened_setting_id := str(_run.get("settingId", selected_setting_id))
 	if _has_setting(opened_setting_id):
 		selected_setting_id = opened_setting_id

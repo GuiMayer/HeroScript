@@ -15,6 +15,7 @@ func release_combat(node: Control) -> void:
 	remove_child(node)
 	node.queue_free()
 func mount(context) -> void:
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	name = "RunSceneryHost"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

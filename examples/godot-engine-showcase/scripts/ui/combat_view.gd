@@ -254,6 +254,7 @@ func _build_footer() -> void:
 	row.add_child(feedback)
 	detail_label = feedback.detail_label; selection_label = feedback.selection_label; queue_label = feedback.queue_label
 	row.next_requested.connect(_next_frame)
+	row.skip_requested.connect(func(): intent_requested.emit("skip_presentation", []))
 	row.cancel_requested.connect(_cancel_selection)
 	row.end_requested.connect(_end_turn)
 	row.system_requested.connect(_execute_system)
@@ -455,6 +456,8 @@ func _update_controls() -> void:
 	queue_label.text = _queue_text() if _has_frames() else ""
 	queue_label.tooltip_text = queue_label.text
 	next_frame_button.visible = _has_frames()
+	turn_view.skip_button.visible = _has_frames()
+	turn_view.skip_button.disabled = bool(_interaction.get("busy", false)) or submitting
 	selection_actions.visible = not selected_card.is_empty() and not _has_frames()
 	selection_label.text = visual_context.translator.text("PROCESSING…") if bool(_interaction.get("busy", false)) or submitting else (
 		visual_context.translator.text("Choose a highlighted target.") if not selected_card.is_empty() else "")

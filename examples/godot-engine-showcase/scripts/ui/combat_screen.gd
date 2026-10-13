@@ -97,6 +97,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 	elif action == "inspect_zone": _open_collection(arguments[0])
 	elif action == "timeline": router.show_timeline()
 	elif action == "pause": router.toggle_pause()
+	elif action == "skip_presentation": presentation_driver.skip()
 	elif action == "select_card":
 		if controller.select_card(str(arguments[0])):
 			GameAudio.select_card()
@@ -180,6 +181,7 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
+	controller.presentation_pending = true
 	var prefix: Array = []
 	if not _prepared_card.is_empty():
 		var intro := _prepared_card.duplicate(true)
@@ -223,7 +225,13 @@ func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
 	_prepared_card = {}; _intro_handle = null
 	_update_controls()
-	if GameSession.synchronized and not GameSession.busy: router.open_game.call_deferred()
+	_finish_navigation.call_deferred(generation, router.navigation_epoch)
+
+func _finish_navigation(generation: int, epoch: int) -> void:
+	if not is_inside_tree() or generation != Playback.generation or epoch != router.navigation_epoch: return
+	if GameSession.synchronized and not GameSession.busy:
+		controller.presentation_pending = false
+		router.open_game()
 func apply_model(model) -> void: refresh_state(model)
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func apply_interaction(_state) -> void: _update_controls()
@@ -266,8 +274,9 @@ func _play_candidate(candidate: Dictionary) -> void:
 	if not is_inside_tree():
 		return
 	if success:
+		var accepted_generation: int = Playback.generation
 		if _intro_handle != null and not _intro_handle.done: await _intro_handle.completed
-		if is_inside_tree() and not Playback.has_blocking_work() and GameSession.synchronized: router.open_game()
+		if is_inside_tree() and accepted_generation == Playback.generation and not Playback.has_blocking_work() and GameSession.synchronized: router.open_game()
 	else:
 		_prepared_card = {}
 		GameAudio.error()
@@ -326,7 +335,7 @@ func _reconnect() -> void:
 	if not is_inside_tree():
 		return
 	if accepted:
-		router.open_game()
+		if not Playback.has_blocking_work(): router.open_game()
 
 
 func _load_inspection(ticket: int) -> void:
@@ -350,4 +359,4 @@ func _load_inspection(ticket: int) -> void:
 
 func _execute_zone_flow(payload: Dictionary) -> void:
 	var accepted: bool = await controller.execute_zone_flow(payload)
-	if is_inside_tree() and accepted: router.open_game()
+	if is_inside_tree() and accepted and not Playback.has_blocking_work(): router.open_game()

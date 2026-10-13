@@ -24,7 +24,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 5. Integração com combate/mão: implementado; recibo aceito fica retido até
    sincronização, carta sai uma vez antes dos impactos, input usa trabalho
    bloqueante e projeção final determina a permanência da instância.
-6. Pause/cancelamento/pós-combate: pendente.
+6. Pause/cancelamento/pós-combate: implementado; cenário e vozes de combate
+   pausáveis, skip visual no HUD e reconciliação/navegação protegida por geração.
+   Teste de integração cobre leitura atrasada, voo único, pause e confirmação repetida.
 7. Feedback semântico/resources: pendente.
 8. Zonas de cartas: pendente.
 9. Perfis/acessibilidade/áudio: pendente.
