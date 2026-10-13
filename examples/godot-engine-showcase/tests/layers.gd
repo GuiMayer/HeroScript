@@ -73,6 +73,8 @@ class FakeTransport extends RefCounted:
 			]})
 		if path.contains("/legal-actions?"):
 			return _ok({"candidates": [legal]})
+		if path.contains("/cards/evaluations?"):
+			return _ok({"cards": []})
 		if path.contains("/combats/"):
 			return _ok(snapshot)
 		if hold_read:

@@ -29,16 +29,18 @@ func configure(data: Dictionary) -> void:
 	if visual_style == _context_card_style:
 		_context_card_style = visual_context.card_style
 		visual_style = _context_card_style
-	var presentation_key: String = JSON.stringify(data) + visual_style.presentation_key() + visual_context.presentation_key()
+	# Diagnostics belong to persistent inspection, not the printed face. Keep
+	# the latest model without rebuilding the card for invisible journal changes.
+	model = data.duplicate(true)
+	var face_data := data.duplicate(true)
+	face_data.erase("inspectionText")
+	var presentation_key: String = JSON.stringify(face_data) + visual_style.presentation_key() + visual_context.presentation_key()
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
 	configuration_count += 1
-	model = data.duplicate(true)
 	if has_meta("visual_preferences_revision"): remove_meta("visual_preferences_revision")
 	text = ""
-	for child in get_children():
-		remove_child(child)
-		child.queue_free()
+	var face := Control.new()
 	custom_minimum_size = visual_style.effective_size(visual_context.text_scale)
 	var tone: Color = {"attack": visual_context.styles.BLOOD, "power": visual_context.styles.color("accent.power")}.get(str(data.get("tone", "skill")), visual_context.styles.TEAL)
 	var border: Color = visual_style.rarity_color(str(data.get("rarityId", "")))
@@ -55,11 +57,12 @@ func configure(data: Dictionary) -> void:
 		keyline.name = "PrintedKeyline"
 		keyline.ink = visual_context.styles.INK
 		keyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		add_child(keyline)
+		face.add_child(keyline)
 	var margin := MarginContainer.new()
+	margin.name = "CardFaceMargin"
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 12)
-	add_child(margin)
+	face.add_child(margin)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 3)
 	margin.add_child(column)
@@ -165,6 +168,10 @@ func configure(data: Dictionary) -> void:
 		var sources: Array = badge.get("sources", [])
 		tooltip.append(str(badge.get("label", "")) + (": " + ", ".join(sources) if not sources.is_empty() else ""))
 	tooltip_text = "\n".join(tooltip.filter(func(line): return not line.is_empty()))
+	# Reconcile the passive face in place. Labels, rich text and art retain their
+	# native layout rather than drawing a newly-created intermediate subtree.
+	preload("res://scripts/ui/view_reconciler.gd").children(self, face)
+	face.free()
 	# Inspection can enrich a visible card after the REST response arrives. Theme
 	# the replacement subtree before configure returns so no frame is drawn with
 	# the unscaled base fonts.
@@ -351,6 +358,9 @@ class FlightCompletion extends RefCounted:
 
 class InkKeyline extends Control:
 	var ink := Color("#20201c")
+	func reconcile_from(other) -> void:
+		ink = other.ink
+		queue_redraw()
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		focus_mode = Control.FOCUS_NONE

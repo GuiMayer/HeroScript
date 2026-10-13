@@ -42,6 +42,14 @@ O novo `ActivityPresenter` relaciona ofertas, preços e navegação anunciados;
 
 As projeções públicas da sessão são cópias profundas. Uma tela pode organizar
 seus dados sem modificar os snapshots usados para sincronização e envio.
+Em combate, a sessão publica estado, zonas, ações legais e `card_evaluations`
+juntos, após verificar run, sequence, combate, step e revisão do conteúdo. A
+inspeção da mão não é uma segunda atualização visual: a tela recebe os valores
+calculados antes de montar as cartas. Durante a leitura, mantém-se a última
+apresentação com input bloqueado; falhas mantêm essa apresentação em estado
+dessincronizado até reconectar. Invalidação/troca de setting elimina as inspeções.
+O componente `CardView` reconcilia sua face por identidade e ignora alterações
+de `inspectionText` para renderização, mantendo esse diagnóstico no modelo.
 As projeções continuam tendo o formato dos read models da engine: esta divisão
 desacopla transporte e ciclo de vida, não promete compatibilidade com qualquer
 mudança futura de contrato de dados.

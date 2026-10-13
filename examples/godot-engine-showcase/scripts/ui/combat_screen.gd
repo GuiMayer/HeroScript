@@ -67,6 +67,7 @@ func _render(data: Dictionary) -> void:
 	presentation = data.duplicate(true)
 	zone_presenter = CardZonePresenter.new(_zone_snapshot, visual_context.translator)
 	presenter = Presenter.new(_run_snapshot, _combat_snapshot, _action_snapshot, visual_context.translator, presentation, _zone_snapshot)
+	presenter.accept_evaluations(GameSession.card_evaluations)
 	controller.bind(presenter, _hand_scope(), zone_presenter.playable_cards().map(func(card): return str(card.get("cardInstanceId", ""))))
 	view.apply_projection(presentation, presenter, zone_presenter,
 		{"run": _run_snapshot, "combat": _combat_snapshot, "actions": _action_snapshot, "zones": _zone_snapshot,
@@ -74,7 +75,9 @@ func _render(data: Dictionary) -> void:
 		"setting_id": GameSession.selected_setting_id,
 		"scenery": _resolve_scenery()}, visual_context)
 	_update_controls()
-	_load_inspection.call_deferred(render_epoch)
+	# Real session refreshes already include the inspection in the same revision.
+	# Standalone/fixture-mounted combat views can still request enrichment.
+	if not GameSession.card_evaluations_ready: _load_inspection.call_deferred(render_epoch)
 
 func _hand_scope() -> String:
 	return JSON.stringify([_run_snapshot.get("runId", ""), _run_snapshot.get("branchId", ""),

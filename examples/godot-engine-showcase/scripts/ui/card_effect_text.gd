@@ -4,8 +4,24 @@ var visual_context
 var rows: Array = []
 var numeric_colors: Array[Color] = []
 var visual_style: Resource
+var _configuration_key := ""
+
+func reconcile_from(other) -> void:
+	visual_context = other.visual_context
+	custom_minimum_size = other.custom_minimum_size
+	size_flags_vertical = other.size_flags_vertical
+	configure(other.rows, other.visual_style)
+	scroll_active = other.scroll_active
+	mouse_filter = other.mouse_filter
 
 func configure(effect_rows: Array, style: Resource) -> void:
+	var key: String = JSON.stringify(effect_rows) + style.presentation_key() + visual_context.presentation_key()
+	if key == _configuration_key: return
+	_configuration_key = key
+	# Incoming text is canonical/unscaled; preferences are applied by CardView.
+	if has_meta("visual_preferences_revision"): remove_meta("visual_preferences_revision")
+	for meta in get_meta_list():
+		if str(meta).begins_with("base_"): remove_meta(meta)
 	rows = effect_rows.duplicate(true)
 	visual_style = style
 	bbcode_enabled = false

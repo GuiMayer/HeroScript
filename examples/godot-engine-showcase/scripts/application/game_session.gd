@@ -17,6 +17,8 @@ var _available_commands: Array = []
 var _legal_actions: Array = []
 var _tool_capabilities: Dictionary = {}
 var _card_zones: Dictionary = {}
+var _card_evaluations: Array = []
+var _card_evaluation_context: Array = []
 var _settings: Array = []
 var tool_profile := "normal"
 var selected_setting_id := "default"
@@ -32,6 +34,10 @@ var tool_capabilities: Array:
 	get: return _tool_capabilities.keys().duplicate()
 var card_zones: Dictionary:
 	get: return _card_zones.duplicate(true)
+var card_evaluations_ready: bool:
+	get: return _card_evaluation_context == _evaluation_context(_run, _combat)
+var card_evaluations: Array:
+	get: return _card_evaluations.duplicate(true) if card_evaluations_ready else []
 var settings: Array:
 	get: return _settings.duplicate(true)
 var selected_setting: Dictionary:
@@ -103,6 +109,7 @@ func _apply_setting(setting_id: String, clear_active_session: bool) -> bool:
 			_run = {}
 			_combat = {}
 			_card_zones = {}
+			_card_evaluations = []; _card_evaluation_context = []
 			_available_commands = []
 			_legal_actions = []
 			_tool_capabilities = {}
@@ -159,6 +166,7 @@ func _open_run(kind: String, args: Array) -> bool:
 	content_revision = str(_run.get("contentRevision", content_revision))
 	_combat = {}
 	_card_zones = {}
+	_card_evaluations = []; _card_evaluation_context = []
 	synchronized = false
 	var ok := await _refresh(ticket)
 	if ok: run_opened.emit(str(_run.get("runId", "")))
@@ -212,6 +220,7 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 	if responses.has("combat"):
 		next_combat = responses.combat.data
 	var next_actions: Array = []
+	var next_evaluations: Array = []
 	if not next_combat.is_empty() and str(next_combat.get("status", "ACTIVE")) == "ACTIVE":
 		var actor_id := _input_actor_id(next_combat)
 		if not actor_id.is_empty():
@@ -221,11 +230,33 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 			if not actions_response.ok:
 				return _refresh_failed(actions_response)
 			next_actions = actions_response.data if actions_response.data is Array else actions_response.data.get("candidates", [])
+			# Publish one complete visual revision, not a generic face followed by
+			# a second async rewrite. All values still come from the engine.
+			var targets: Array = []
+			for candidate in next_actions:
+				var command: Dictionary = candidate.get("command", {})
+				var selected: Array = command.get("targetIds", [])
+				if selected.is_empty() and command.get("targetId") != null: selected = [command.targetId]
+				if not selected.is_empty(): targets = [selected[0]]; break
+			var inspection: Dictionary = await _gateway.inspect_hand(str(next_combat.get("combatId", "")), actor_id, targets)
+			if not _current(ticket): return false
+			if not inspection.ok: return _refresh_failed(inspection)
+			next_evaluations = inspection.data.get("cards", [])
+			for card in next_evaluations:
+				var version: Dictionary = card.get("version", {})
+				if int(version.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or \
+					str(version.get("runId", "")) != run_id or \
+					str(version.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
+					int(version.get("combatStep", -1)) != int(next_combat.get("step", 0)) or \
+					str(version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
+					return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
 	_run = next_run.duplicate(true)
 	_combat = next_combat.duplicate(true)
 	_card_zones = responses.cardZones.data.duplicate(true)
 	_available_commands = responses.commands.data.get("commands", []).duplicate(true)
 	_legal_actions = next_actions.duplicate(true)
+	_card_evaluations = next_evaluations.duplicate(true)
+	_card_evaluation_context = _evaluation_context(_run, _combat)
 	_tool_capabilities = {}
 	tool_profile = str(responses.capabilities.data.get("profile", "normal"))
 	for capability in responses.capabilities.data.get("granted", []):
@@ -239,11 +270,17 @@ func _refresh_failed(error: Dictionary) -> bool:
 	_legal_actions = []
 	_available_commands = []
 	_tool_capabilities = {}
-	_card_zones = {}
+	# Retain the last published presentation while disconnected. Commands are
+	# disabled; a failed read must not replace cards with fallback text/empty zones.
 	tool_profile = "normal"
 	failed.emit(error)
 	changed.emit()
 	return false
+
+func _evaluation_context(run_state: Dictionary, combat_state: Dictionary) -> Array:
+	return [selected_setting_id, run_state.get("runId", ""), run_state.get("branchId", ""),
+		run_state.get("sequence", -1), run_state.get("contentRevision", ""),
+		combat_state.get("combatId", ""), combat_state.get("step", -1), _input_actor_id(combat_state)]
 
 func execute_run_command(type: String, payload: Dictionary, label := "") -> bool:
 	var advertised := command(type)
@@ -328,6 +365,7 @@ func invalidate() -> void:
 	_run = {}
 	_combat = {}
 	_card_zones = {}
+	_card_evaluations = []; _card_evaluation_context = []
 	_legal_actions = []
 	_available_commands = []
 	_tool_capabilities = {}

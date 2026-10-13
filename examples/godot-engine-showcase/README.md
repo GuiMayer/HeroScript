@@ -82,6 +82,11 @@ definem anatomia, raridade na borda e cores dos valores. A paleta compartilhada 
 editável em `data/default_card_visual_style.tres`, usada pela carta, tooltip e inspeção.
 Validação offline: `godot --headless --path examples/godot-engine-showcase --script res://tests/card_presentation.gd`.
 
+`tests/card_refresh_stability.gd` verifica a publicação atômica da mão: uma
+inspeção atrasada não mostra texto genérico entre revisões, os componentes da
+carta são preservados e respostas obsoletas/falhas não liberam input nem
+substituem os valores autoritativos. O teste faz parte de `tools/test-godot-ui.ps1`.
+
 Regressões da nova mão: `godot --headless --path examples/godot-engine-showcase --script res://tests/hand_ux.gd`.
 Integração real em dois settings, a partir da raiz do repositório:
 

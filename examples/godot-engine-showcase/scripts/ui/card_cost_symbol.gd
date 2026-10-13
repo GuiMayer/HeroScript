@@ -8,6 +8,9 @@ const INK := Color("#20201c")
 var amount_label: Label
 var icon: TextureRect
 
+func reconcile_from(other) -> void:
+	preload("res://scripts/ui/view_reconciler.gd").patch_contents(self, other)
+
 func _init(cost: Dictionary, appearance: Dictionary, context: ContextType, policy: CardVisualStyle) -> void:
 	name = "CostSymbol"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
