@@ -616,6 +616,8 @@
   "Request cancelled.": "Request cancelled.",
   "%s commands loaded of %s": "%s commands loaded of %s",
   "Skip presentation": "Skip presentation",
+  "Watch combat": "Watch combat",
+  "Visual replay payload is too large.": "Visual replay payload is too large.",
   "Animation preset": "Animation preset",
   "Presentation only; manual stepping remains available.": "Presentation only; manual stepping remains available.",
   "Normal": "Normal", "Fast": "Fast", "Instant": "Instant",

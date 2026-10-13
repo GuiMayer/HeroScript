@@ -5,6 +5,9 @@ var next_cursor := 0
 
 func append_page(page: Dictionary) -> void:
 	for item in page.get("items", []):
+		item = item.duplicate(true)
+		item["runSequence"] = item.get("sequence", item.get("runSequence", 0))
+		item["stateAvailable"] = page.get("historicalInspectionAllowed", item.get("stateAvailable", false))
 		if not _entries.any(func(previous): return previous.runSequence == item.runSequence):
 			_entries.append(item.duplicate(true))
 	_entries.sort_custom(func(a, b): return int(a.runSequence) < int(b.runSequence))

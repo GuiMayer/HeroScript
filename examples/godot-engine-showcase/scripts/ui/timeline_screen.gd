@@ -27,6 +27,9 @@ var fork_allowed := false
 var branch_read_allowed := false
 var simulation_allowed := false
 var selected_entry: Dictionary = {}
+var _history_ticket
+var _history_widget
+var _history_commit: Dictionary = {}
 
 func setup(owner) -> void:
 	router = owner
@@ -78,7 +81,7 @@ func setup(owner) -> void:
 	scrubber.step = 1
 	scrubber.value_changed.connect(func(value): _select(int(value)))
 	right.add_child(scrubber)
-	history_view = preload("res://scripts/ui/historical_combat_view.gd").new(visual_context)
+	history_view = VBoxContainer.new()
 	history_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(history_view)
 	frame_text = RichTextLabel.new()
@@ -108,9 +111,6 @@ func setup(owner) -> void:
 	actions.add_child(_button(I18n.text("VERIFY REPLAY"), _verify))
 	right.add_child(actions)
 	body.add_child(AppTheme.panel(right))
-	playback = preload("res://scripts/presentation/playback.gd").new()
-	add_child(playback)
-	playback.frame_presented.connect(_frame_presented)
 	call_deferred("_load")
 	if branch_read_allowed: call_deferred("_load_tree")
 
@@ -147,12 +147,13 @@ func _select(index: int) -> void:
 	list.select(index)
 	scrubber.set_value_no_signal(index)
 	details.text = "#%s • %s %s • %s • %s" % [selected_sequence, I18n.text("Turn"), int(entry.get("turn", 0)), str(entry.get("phase", "")), str(entry.get("actorId", ""))]
-	playback.clear()
+	if _history_ticket != null and not _history_ticket.done: _history_ticket.cancel()
+	if is_instance_valid(_history_widget): _history_widget.dispose()
 	frame_text.text = I18n.text("Loading saved state…")
 	for child in history_view.get_children():
 		history_view.remove_child(child)
 		child.queue_free()
-	history_view.presenter = null
+	_history_widget = null
 	next_button.disabled = true
 	if not history_allowed or not entry.get("stateAvailable", false):
 		frame_text.text = I18n.text("Historical inspection is not available in this mode.")
@@ -162,43 +163,40 @@ func _select(index: int) -> void:
 	if not _valid() or ticket != request_epoch: return
 	var state: Dictionary = historical_cache.get(selected_sequence, {})
 	if state.is_empty():
-		var response := await GameSession.historical_state(selected_sequence)
+		_history_ticket = GameSession.begin_replay_inspection(screen_run_id, selected_sequence)
+		var response: Dictionary = await _history_ticket.result()
 		if not _valid() or ticket != request_epoch: return
 		if not response.ok:
 			frame_text.text = I18n.error(response)
 			return
 		state = response.data
-		historical_cache[selected_sequence] = state.duplicate(true)
-		if historical_cache.size() > 32: historical_cache.erase(historical_cache.keys()[0])
-	history_view.display(state, router.presentation)
+		if str(state.get("runId", "")) != screen_run_id or int(state.get("sequence", -1)) != selected_sequence: return
+		var bytes := JSON.stringify(state).to_utf8_buffer().size()
+		if bytes < 8 * 1024 * 1024:
+			historical_cache.clear() # One full visual command; timeline headers remain paginated.
+			historical_cache[selected_sequence] = state.duplicate(true)
+	_history_commit = state
+	_mount_history(state)
 	frame_text.text = I18n.text("Saved state loaded. Frame playback only changes this inspector.")
-	if entry.get("resolutionCommandId") != null:
-		var resolution := await GameSession.resolution(str(entry.resolutionCommandId))
-		if not _valid() or ticket != request_epoch: return
-		if resolution.ok:
-			playback.load_receipt({"state": {"resolution": resolution.data}})
-		else:
-			frame_text.text = I18n.error(resolution)
 	next_button.disabled = not playback.has_frames()
 
+func _mount_history(commit: Dictionary) -> void:
+	if is_instance_valid(_history_widget): _history_widget.dispose(); _history_widget.queue_free()
+	_history_widget = preload("res://scripts/ui/historical_beat_view.gd").new(visual_context)
+	history_view.add_child(_history_widget)
+	_history_widget.load_commit(commit, router.presentation, false)
+	playback = _history_widget.playback
+
 func _next_frame() -> void:
-	playback.advance()
-	playback.complete_active() # This inspector currently uses decorative flashes only.
+	if not is_instance_valid(_history_widget): return
+	_history_widget.director.advance()
 	next_button.disabled = not playback.has_frames()
 
 func _restart_frames() -> void:
-	playback.index = 0
+	if _history_commit.is_empty(): return
+	_mount_history(_history_commit)
 	next_button.disabled = not playback.has_frames()
 	frame_text.text = I18n.text("Saved state loaded. Frame playback only changes this inspector.")
-
-func _frame_presented(frame: Dictionary, index: int, total: int) -> void:
-	frame_text.text = "%s/%s • %s" % [index + 1, total, str(frame.get("transitionType", ""))]
-	if history_view.presenter == null: return
-	for application in frame.get("applications", []):
-		frame_text.text += "\n" + history_view.presenter.application_text(application, true)
-		var id := str(application.get("targetEntityId", ""))
-		if history_view.actor_panels.has(id) and not Preferences.reduced_motion:
-			history_view.actor_panels[id].portrait_view.flash_hit()
 
 func _load_tree() -> void:
 	if not branch_read_allowed: return
@@ -293,3 +291,6 @@ func _button(text: String, action: Callable) -> Button:
 
 func dispose() -> void:
 	request_epoch += 1
+	if _history_ticket != null and not _history_ticket.done: _history_ticket.cancel()
+	if is_instance_valid(_history_widget): _history_widget.dispose()
+	historical_cache.clear()

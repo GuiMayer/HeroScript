@@ -36,7 +36,10 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 9. Perfis/acessibilidade/áudio: implementado; manifesto JSON capturado em
    fronteira segura, presets normal/rápido/instantâneo, modo manual existente,
    limites e áudio por cue com chaves/fallback em inglês.
-10. Replay: pendente.
+10. Replay: apresentação visual de um comando sob demanda implementada pelo
+    endpoint canônico de commit já autorizado. Reutiliza planner/director/feedback
+    e componentes de atores, sem consulta pelo combate atual nem nova rota.
+    Modo restrito mantém resumo factual; leitor visual não reconstrói mãos ocultas.
 11. Limites/desempenho: pendente.
 12. Certificação/limpeza: pendente.
 

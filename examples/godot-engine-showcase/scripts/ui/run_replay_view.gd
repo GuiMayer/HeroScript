@@ -14,6 +14,9 @@ var next_button: Button
 var verify_button: Button
 var more_button: Button
 var inspect_button: Button
+var watch_button: Button
+var visual_slot: VBoxContainer
+var visual_scroll: ScrollContainer
 var loaded_count: Label
 var _last_selected := -2
 
@@ -65,6 +68,9 @@ func setup(context, from_history := false) -> void:
 	frame_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	frame_text.custom_minimum_size.y = 160
 	right.add_child(frame_text)
+	visual_scroll = ScrollContainer.new(); visual_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; visual_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	visual_slot = VBoxContainer.new(); visual_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	visual_scroll.add_child(visual_slot); visual_scroll.hide(); right.add_child(visual_scroll)
 	var controls := HFlowContainer.new()
 	controls.add_child(_button(visual_context.translator.text("RESTART"), "restart"))
 	previous_button = _button(visual_context.translator.text("PREVIOUS"), "previous")
@@ -78,6 +84,8 @@ func setup(context, from_history := false) -> void:
 	controls.add_child(verify_button)
 	inspect_button = _button(visual_context.translator.text("Show engine details"), "inspect")
 	controls.add_child(inspect_button)
+	watch_button = _button(visual_context.translator.text("Watch combat"), "watch")
+	controls.add_child(watch_button)
 	right.add_child(controls)
 	body.add_child(visual_context.styles.panel(right))
 	previous_button.disabled = true; next_button.disabled = true; play_button.disabled = true
@@ -109,6 +117,7 @@ func apply_model(model: Dictionary) -> void:
 	loaded_count.text = visual_context.translator.text("%s commands loaded of %s") % [entries.size(), model.through_sequence]
 	inspect_button.visible = model.inspection_allowed
 	inspect_button.disabled = model.presentation_loading or model.selected_index < 0
+	watch_button.visible = model.inspection_allowed; watch_button.disabled = inspect_button.disabled
 func _button(text: String, action: String) -> Button:
 	var value := visual_context.styles.button(text)
 	value.pressed.connect(func(): intent_requested.emit(action, []))
