@@ -24,6 +24,8 @@ func snapshot(which: String) -> Dictionary: return _facts.get(which, {}).duplica
 func receipt() -> Dictionary: return _facts.get("receipt", {}).duplicate(true)
 func mark(name: String) -> void:
 	if not _trace.has(name): _trace[name] = Time.get_ticks_msec()
+func mark_at(name: String, timestamp: int) -> void:
+	if not _trace.has(name): _trace[name] = timestamp
 func timings() -> Dictionary: return _trace.duplicate(true)
 
 static func visible_zone_steps(steps: Array, snapshots: Array) -> Array:

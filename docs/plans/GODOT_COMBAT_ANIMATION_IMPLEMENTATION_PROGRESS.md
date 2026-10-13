@@ -40,7 +40,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
     endpoint canônico de commit já autorizado. Reutiliza planner/director/feedback
     e componentes de atores, sem consulta pelo combate atual nem nova rota.
     Modo restrito mantém resumo factual; leitor visual não reconstrói mãos ocultas.
-11. Limites/desempenho: pendente.
+11. Limites/desempenho: implementado; efeitos/transfers limitados por manifesto,
+    lanes limitadas por alvo, métricas observacionais em anel de 64 comandos e
+    descarte de recibos/snapshots após settling. Sem pooling sem evidência de benefício.
 12. Certificação/limpeza: pendente.
 
 ## Limites de validação

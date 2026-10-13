@@ -23,6 +23,7 @@ var _collection_dialog: Window
 var _prepared_card: Dictionary = {}
 var _intro_handle
 var _transfer_models: Dictionary = {}
+var _active_motion
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -178,12 +179,13 @@ func _candidates(id: String) -> Array: return presenter.candidates(id)
 func _toggle_character_sidebar() -> void: view._toggle_character_sidebar()
 func replace_composition(scene: PackedScene, profile: Resource) -> void: view.replace_composition(scene, profile)
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
+	if _active_motion != null: visual_context.motion = _active_motion
 	if frame.get("presentationOnly", "") != "card_departure": view.present_frame(frame, index, total)
 
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
 	controller.presentation_pending = true
-	visual_context.capture_motion()
+	_active_motion = visual_context.capture_motion()
 	presentation_driver.watchdog_seconds = visual_context.motion.duration("watchdog")
 	var payments: Array = []
 	for cost in _prepared_card.get("costs", []):
@@ -208,6 +210,7 @@ func _on_presentation_ready(value) -> void:
 	_update_controls()
 
 func _execute_beat(frame: Dictionary, handle) -> void:
+	if _active_motion != null: visual_context.motion = _active_motion
 	if frame.get("presentationOnly", "") == "card_departure":
 		_intro_handle = handle
 		var id := str(frame.cardInstanceId)
@@ -268,6 +271,7 @@ func _finish_navigation(generation: int, epoch: int) -> void:
 	if GameSession.synchronized and not GameSession.busy:
 		controller.presentation_pending = false
 		router.open_game()
+		Playback.release_facts()
 func apply_model(model) -> void: refresh_state(model)
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func apply_interaction(_state) -> void: _update_controls()

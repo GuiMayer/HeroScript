@@ -8,6 +8,7 @@ signal command_started(label: String)
 signal receipt_received(receipt: Dictionary)
 signal presentation_ready(envelope)
 var _accepted_presentation: Dictionary = {}
+var _command_started_ms := 0
 signal run_opened(run_id: String)
 signal availability_changed(value: bool)
 signal command_finished
@@ -272,7 +273,10 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 		_accepted_presentation = {}
 		var envelope = preload("res://scripts/presentation/presentation_envelope.gd").build(accepted.receipt, accepted.before,
 			{"run": run, "combat": combat, "zones": card_zones, "evaluations": card_evaluations}, accepted.endpoint)
-		if envelope != null: presentation_ready.emit(envelope)
+		if envelope != null:
+			envelope.mark_at("submitted", int(accepted.get("submitted", 0)))
+			envelope.mark_at("received", int(accepted.get("received", 0)))
+			presentation_ready.emit(envelope)
 		else: failed.emit({"errorKey": "Presentation was superseded by a newer game revision."})
 	return true
 
@@ -314,6 +318,7 @@ func _execute(scope: String, id: String, type: String, payload: Dictionary, labe
 	if ticket < 0:
 		return false
 	command_started.emit(label if not label.is_empty() else type)
+	_command_started_ms = Time.get_ticks_msec()
 	_pending = _gateway.prepare_command(scope, id, type, payload, int(_run.get("sequence", 0)), expected_step)
 	return await _send_pending(ticket)
 
@@ -343,7 +348,8 @@ func _send_pending(ticket: int) -> bool:
 		return false
 	_pending = {}
 	_accepted_presentation = {"receipt": response.data.duplicate(true), "before": {"run": run, "combat": combat, "zones": card_zones},
-		"endpoint": replay_context() if _gateway.has_method("replay_context") else ["fixture", _generation]}
+		"endpoint": replay_context() if _gateway.has_method("replay_context") else ["fixture", _generation],
+		"submitted": _command_started_ms, "received": Time.get_ticks_msec()}
 	receipt_received.emit(response.data.duplicate(true))
 	var state: Dictionary = response.data.get("state", {})
 	var updated := await _refresh(ticket, state.get("combat", {}) if state.get("combat") is Dictionary else {}, int(response.data.get("sequence", -1)))
