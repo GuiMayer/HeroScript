@@ -334,6 +334,26 @@ public sealed class FileRunCommitStoreTests : IDisposable
         await Assert.ThrowsAsync<InvalidDataException>(() => store.LoadEnvelopePageAsync(run, 0, 1));
     }
 
+    [Fact]
+    public async Task CapturedRange_RemainsCoherentWhenAppendRunsConcurrently()
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var run = Guid.NewGuid();
+        var first = CreateCommit(run, 1, null, 1);
+        var second = CreateCommit(run, 2, first.StateHash, 2);
+        await store.AppendAsync(first);
+        await store.AppendPreparedAsync(PreparedRunCommit.CreateVerified(second, second.StateHash, first.RequireState()));
+        var reading = store.LoadCommitsAsync(run);
+        var third = CreateCommit(run, 3, second.StateHash, 3);
+        await store.AppendPreparedAsync(PreparedRunCommit.CreateVerified(third, third.StateHash, second.RequireState()));
+        var snapshot = await reading;
+        Assert.Equal(new[] { 1, 2 }, snapshot.Select(commit => commit.Sequence));
+        Assert.Equal(second.StateHash, snapshot[1].StateHash);
+        Assert.Equal(third.StateHash, (await store.LoadCommitAsync(run, 3))!.StateHash);
+        using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.LoadCommitAsync(run, 3, cancelled.Token));
+    }
+
     private async Task usingScope(Func<FileRunCommitStore, Task> action)
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);

@@ -292,6 +292,8 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                 throw new InvalidDataException("Run envelope path does not match its identity");
             envelopes[sequence] = commit;
         }
+        if (!string.IsNullOrEmpty(envelopes[1].PreviousStateHash))
+            throw new InvalidDataException("Initial envelope cannot reference a previous state");
         RunCommit? previous = afterSequence > 0 ? envelopes[afterSequence] : null;
         var items = new List<RunCommit>(page.Length);
         foreach (var sequence in page)
@@ -306,68 +308,39 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             more, envelopes[1], items);
     }
 
-    public async Task<RunCommit?> LoadCommitAsync(
-        Guid runId,
-        int sequence,
-        CancellationToken ct = default)
+    public async Task<RunCommit?> LoadCommitAsync(Guid runId, int sequence, CancellationToken ct = default)
     {
         var gate = Gate(runId);
+        IReadOnlyList<CapturedEnvelope> bytes;
         await gate.WaitAsync(ct).ConfigureAwait(false);
-        try
-        {
-            return await LoadCommitUnsafeAsync(runId, sequence, ct).ConfigureAwait(false);
-        }
-        finally
-        {
-            gate.Release();
-        }
+        try { bytes = await CaptureSegmentUnsafeAsync(runId, sequence, ct).ConfigureAwait(false); }
+        finally { gate.Release(); }
+        return MaterializeCaptured(runId, bytes, ct).LastOrDefault();
     }
 
+    public Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(Guid runId, CancellationToken ct = default) =>
+        LoadCommitsAsync(runId, 0, int.MaxValue, ct);
+
     public async Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(
-        Guid runId,
-        CancellationToken ct = default)
+        Guid runId, int afterSequence, int limit, CancellationToken ct = default)
     {
+        if (afterSequence < 0 || limit < 1) throw new ArgumentOutOfRangeException(nameof(afterSequence));
         var gate = Gate(runId);
+        IReadOnlyList<CapturedEnvelope> bytes;
         await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var sequences = ListSequencesUnsafe(runId);
-            return await LoadMaterializedRangeUnsafeAsync(runId, sequences, ct).ConfigureAwait(false);
+            var sequences = ListSequencesUnsafe(runId).Where(sequence => sequence > afterSequence).Take(limit).ToArray();
+            if (sequences.Length == 0) return [];
+            var anchor = sequences[0] == 1 ? 1 : sequences[0] - 1;
+            var captured = (await CaptureSegmentUnsafeAsync(runId, anchor, ct).ConfigureAwait(false)).ToList();
+            if (captured.Count == 0) throw new InvalidDataException("Historical range boundary is missing");
+            foreach (var sequence in sequences.Where(sequence => sequence > anchor))
+                captured.Add(new(sequence, await File.ReadAllBytesAsync(GetCommitPath(runId, sequence), ct).ConfigureAwait(false)));
+            bytes = captured;
         }
-        finally
-        {
-            gate.Release();
-        }
-    }
-
-    public async Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(
-        Guid runId,
-        int afterSequence,
-        int limit,
-        CancellationToken ct = default)
-    {
-        if (afterSequence < 0)
-            throw new ArgumentOutOfRangeException(nameof(afterSequence));
-        if (limit < 1)
-            throw new ArgumentOutOfRangeException(nameof(limit));
-
-        var gate = Gate(runId);
-        await gate.WaitAsync(ct).ConfigureAwait(false);
-        try
-        {
-            var sequences = ListSequencesUnsafe(runId)
-                .Where(sequence => sequence > afterSequence)
-                .Take(limit)
-                .ToArray();
-            if (sequences.Length == 0)
-                return [];
-
-            return await LoadMaterializedRangeUnsafeAsync(runId, sequences, ct).ConfigureAwait(false);
-        }
-        finally
-        {
-            gate.Release();
-        }
+        finally { gate.Release(); }
+        return MaterializeCaptured(runId, bytes, ct).Where(commit => commit.Sequence > afterSequence).ToArray();
     }
 
     public async Task<RunCommit?> FindCommandAsync(
@@ -446,23 +419,18 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         CancellationToken ct = default) =>
         (await LoadCommitAsync(runId, sequence, ct).ConfigureAwait(false))?.StateAfter;
 
-    public async Task<RunState?> LoadLatestStateAsync(
-        Guid runId,
-        CancellationToken ct = default)
+    public async Task<RunState?> LoadLatestStateAsync(Guid runId, CancellationToken ct = default)
     {
         var gate = Gate(runId);
+        IReadOnlyList<CapturedEnvelope> bytes;
         await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             var sequence = ListSequencesUnsafe(runId).LastOrDefault();
-            return sequence == 0
-                ? null
-                : (await LoadCommitUnsafeAsync(runId, sequence, ct).ConfigureAwait(false))?.StateAfter;
+            bytes = sequence == 0 ? [] : await CaptureSegmentUnsafeAsync(runId, sequence, ct).ConfigureAwait(false);
         }
-        finally
-        {
-            gate.Release();
-        }
+        finally { gate.Release(); }
+        return MaterializeCaptured(runId, bytes, ct).LastOrDefault()?.StateAfter;
     }
 
     public async Task<IReadOnlyList<int>> ListCommitSequencesAsync(
@@ -553,75 +521,63 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         return cursor;
     }
 
-    private async Task<RunCommit?> LoadCommitUnsafeAsync(
-        Guid runId,
-        int sequence,
-        CancellationToken ct)
-    {
-        if (!File.Exists(GetCommitPath(runId, sequence)))
-            return null;
-        var checkpointSequence = sequence;
-        RunCommit? checkpoint = null;
-        while (checkpointSequence > 0)
-        {
-            var candidate = await LoadEnvelopeUnsafeAsync(runId, checkpointSequence, ct)
-                .ConfigureAwait(false)
-                ?? throw new InvalidDataException(
-                    $"Run commit disappeared while reading: {runId}/{checkpointSequence}");
-            if (candidate.StorageKind == RunCommitStorageKind.Checkpoint)
-            {
-                checkpoint = candidate;
-                break;
-            }
-            checkpointSequence--;
-        }
-        if (checkpoint?.StateAfter == null)
-            throw new InvalidDataException($"Run checkpoint not found before sequence {sequence}");
+    private sealed record CapturedEnvelope(int Sequence, byte[] Bytes);
 
-        var current = checkpoint;
-        for (var currentSequence = checkpointSequence + 1; currentSequence <= sequence; currentSequence++)
+    private async Task<IReadOnlyList<CapturedEnvelope>> CaptureSegmentUnsafeAsync(Guid runId, int sequence, CancellationToken ct)
+    {
+        if (!File.Exists(GetCommitPath(runId, sequence))) return [];
+        var captured = new List<CapturedEnvelope>();
+        for (var cursor = sequence; cursor > 0; cursor--)
         {
-            var envelope = await LoadEnvelopeUnsafeAsync(runId, currentSequence, ct)
-                .ConfigureAwait(false)
-                ?? throw new InvalidDataException(
-                    $"Run commit disappeared while reading: {runId}/{currentSequence}");
-            current = MaterializeDelta(current, envelope);
+            ct.ThrowIfCancellationRequested();
+            var path = GetCommitPath(runId, cursor);
+            if (!File.Exists(path)) throw new InvalidDataException($"Historical segment is missing: {runId}/{cursor}");
+            var bytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
+            captured.Add(new(cursor, bytes));
+            if (ReadStorageKind(bytes) == RunCommitStorageKind.Checkpoint)
+            {
+                captured.Reverse();
+                return captured;
+            }
         }
-        return current;
+        throw new InvalidDataException("Run checkpoint not found");
     }
 
-    private async Task<IReadOnlyList<RunCommit>> LoadMaterializedRangeUnsafeAsync(
-        Guid runId,
-        IReadOnlyList<int> sequences,
-        CancellationToken ct)
+    private static RunCommitStorageKind ReadStorageKind(byte[] bytes)
     {
-        if (sequences.Count == 0)
-            return [];
-        RunCommit? previous = sequences[0] == 1
-            ? null
-            : await LoadCommitUnsafeAsync(runId, sequences[0] - 1, ct).ConfigureAwait(false);
-        var commits = new List<RunCommit>(sequences.Count);
-        foreach (var sequence in sequences)
-        {
-            var envelope = await LoadEnvelopeUnsafeAsync(runId, sequence, ct).ConfigureAwait(false)
-                ?? throw new InvalidDataException($"Run commit disappeared while reading: {runId}/{sequence}");
-            if (previous != null && !string.Equals(
-                    previous.StateHash,
-                    envelope.PreviousStateHash,
-                    StringComparison.Ordinal))
+        var reader = new Utf8JsonReader(bytes);
+        while (reader.Read())
+            if (reader.TokenType == JsonTokenType.PropertyName && reader.CurrentDepth == 1 && reader.ValueTextEquals("StorageKind"))
             {
-                throw new InvalidDataException($"Broken run commit hash chain at sequence {sequence}");
+                reader.Read();
+                return Enum.Parse<RunCommitStorageKind>(reader.GetString()!);
             }
-            var materialized = envelope.StorageKind == RunCommitStorageKind.Checkpoint
-                ? ValidateCheckpoint(envelope)
-                : previous == null
-                    ? throw new InvalidDataException($"Delta run commit has no previous state: {runId}/{sequence}")
-                    : MaterializeDelta(previous, envelope);
-            commits.Add(materialized);
+        return RunCommitStorageKind.Checkpoint;
+    }
+
+    private IReadOnlyList<RunCommit> MaterializeCaptured(Guid runId, IReadOnlyList<CapturedEnvelope> captured, CancellationToken ct)
+    {
+        var result = new List<RunCommit>(captured.Count);
+        RunCommit? previous = null;
+        foreach (var item in captured)
+        {
+            ct.ThrowIfCancellationRequested();
+            var envelope = DeserializeEnvelope(item.Bytes, Convert.ToHexString(SHA256.HashData(item.Bytes)));
+            if (envelope.RunId != runId || envelope.Sequence != item.Sequence)
+                throw new InvalidDataException("Historical path does not match commit identity");
+            if (previous != null && (envelope.Sequence != previous.Sequence + 1 || envelope.PreviousStateHash != previous.StateHash))
+                throw new InvalidDataException("Broken historical segment chain");
+            // DeserializeEnvelope validates checkpoint states, or reuses proof for these exact bytes.
+            var materialized = envelope.StorageKind == RunCommitStorageKind.Checkpoint ? envelope :
+                previous == null ? throw new InvalidDataException("Delta has no checkpoint") : MaterializeDelta(previous, envelope);
+            result.Add(materialized);
             previous = materialized;
         }
-        return commits;
+        return result;
     }
+
+    private async Task<RunCommit?> LoadCommitUnsafeAsync(Guid runId, int sequence, CancellationToken ct) =>
+        MaterializeCaptured(runId, await CaptureSegmentUnsafeAsync(runId, sequence, ct).ConfigureAwait(false), ct).LastOrDefault();
 
     private async Task<RunCommit?> LoadEnvelopeUnsafeAsync(
         Guid runId,
@@ -653,12 +609,6 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                 _validatedBytes?.Set(fingerprint, ValidatedCommitIdentity.From(commit));
         }
         return commit;
-    }
-
-    private static RunCommit ValidateCheckpoint(RunCommit checkpoint)
-    {
-        checkpoint.Validate();
-        return checkpoint;
     }
 
     private static RunCommit MaterializeDelta(RunCommit previous, RunCommit delta)
