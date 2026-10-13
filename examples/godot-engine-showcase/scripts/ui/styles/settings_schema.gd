@@ -12,6 +12,7 @@ const OPTIONS := {
 	"locale": {"values": ["en", "pt_BR"]},
 	"animation_speed": {"min": .25, "max": 2.0, "step": .05, "control": "AnimationSpeedSlider"},
 	"auto_animations": {"type": "bool"},
+	"animation_preset": {"values": ["normal", "fast", "instant"]},
 	"hand_layout_mode": {"values": ["adaptive", "reading"]},
 	"hand_emphasis": {"min": 0.0, "max": 1.0, "step": .1, "control": "HandEmphasisSlider"},
 	"hand_drag_enabled": {"type": "bool"},

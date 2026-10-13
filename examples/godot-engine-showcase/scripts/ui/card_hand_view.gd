@@ -103,6 +103,7 @@ func _tool(label: String, action: Callable) -> Button:
 	return button
 
 func _preferences_changed() -> void:
+	visual_context.capture_motion()
 	theme = visual_context.theme
 	interaction.cancel_pointer()
 	_clear_ghost()
@@ -233,7 +234,9 @@ func cancel_gesture() -> void:
 	interaction.cancel_pointer()
 	_clear_ghost()
 	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
-func duration() -> float: return visual_style.transition_seconds / maxf(visual_context.animation_speed, .25)
+func duration() -> float:
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	return policy.duration("hand_transition", true)
 
 func request_layout() -> void:
 	if _layout_pending: return

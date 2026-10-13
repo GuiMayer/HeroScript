@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "durations": {"card_flight": 0.2, "impact": 0.12, "float": 0.55, "zone_transfer": 0.18, "hand_transition": 0.13, "hover": 0.12, "watchdog": 12, "max_floats": 24, "max_transfers": 12},
+  "cues": {
+    "impact": {"sound": "impact", "label": "Impact", "color": "#ca452f"},
+    "heal": {"sound": "heal", "label": "Recovery", "color": "#3eaa8d"},
+    "payment": {"label": "Cost", "color": "#868075"},
+    "status": {"sound": "status", "label": "Status", "color": "#9568a5"},
+    "modifier": {"sound": "status", "label": "Modifier", "color": "#9568a5"},
+    "condense": {"sound": "status", "label": "Condense", "color": "#ca452f"},
+    "resource_gain": {"label": "Gain", "color": "#3eaa8d"},
+    "resource_loss": {"label": "Loss", "color": "#ca452f"},
+    "resource_bound": {"label": "Resource limit", "color": "#a88143"},
+    "card_move": {"sound": "card_move", "label": "Card flow"}
+  },
+  "settings": {
+    "ascendant": {"random_inputs": {"critical": {"label": "Critical", "checkpoints": {"guaranteed": "Guaranteed tiers"}, "success_label": "Extra tier"}}},
+    "volatile-core": {"cues": {"condense": {"sound": "status", "label": "Condensed proc", "color": "#9568a5"}}}
+  }
+}

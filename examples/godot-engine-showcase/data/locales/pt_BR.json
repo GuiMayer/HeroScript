@@ -614,5 +614,11 @@
   "Replay presentation does not match its command.": "Os detalhes não correspondem ao comando registrado.",
   "Historical inspection is unavailable in this mode.": "A inspeção de estados históricos está desativada neste modo.",
   "Request cancelled.": "Solicitação cancelada.",
-  "%s commands loaded of %s": "%s comandos carregados de %s"
+  "%s commands loaded of %s": "%s comandos carregados de %s",
+  "Skip presentation": "Pular apresentação",
+  "Animation preset": "Perfil de animação",
+  "Presentation only; manual stepping remains available.": "Só altera a apresentação; o avanço manual continua disponível.",
+  "Normal": "Normal", "Fast": "Rápido", "Instant": "Instantâneo",
+  "Guaranteed tiers": "Níveis garantidos", "Extra tier": "Nível adicional",
+  "Presentation was superseded by a newer game revision.": "A apresentação foi substituída por uma revisão mais recente da partida."
 }

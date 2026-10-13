@@ -24,6 +24,10 @@ var theme: Theme:
 var _options: Dictionary = {}
 var _revision_key: Array = []
 var _resource_styles: Dictionary = {}
+var motion
+func capture_motion():
+	motion = preload("res://scripts/presentation/motion_policy.gd").capture(setting_id, _options)
+	return motion
 var setting_id := "":
 	set(value):
 		if value == setting_id: return
@@ -65,14 +69,14 @@ func _init(i18n = null, options: Dictionary = {}, theme_profile: Resource = null
 	_revision_key = [_options.duplicate(true), translator.locale, profile.presentation_key()]
 static func from_nodes(preferences, i18n):
 	var options := {}
-	for key in ["text_scale", "high_contrast", "reduced_motion", "animation_speed", "hand_layout_mode", "hand_drag_enabled", "hand_emphasis"]:
+	for key in ["text_scale", "high_contrast", "reduced_motion", "animation_speed", "animation_preset", "hand_layout_mode", "hand_drag_enabled", "hand_emphasis"]:
 		options[key] = preferences.get(key)
 	options["action_labels"] = {}
 	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game"]: options.action_labels[action] = preferences.action_label(action)
 	return load("res://scripts/ui/visual_context.gd").new(i18n, options, AppTheme.profile)
 func update_from(preferences, i18n, theme_profile: Resource) -> void:
 	var next := {}
-	for key in ["text_scale", "high_contrast", "reduced_motion", "animation_speed", "hand_layout_mode", "hand_drag_enabled", "hand_emphasis"]:
+	for key in ["text_scale", "high_contrast", "reduced_motion", "animation_speed", "animation_preset", "hand_layout_mode", "hand_drag_enabled", "hand_emphasis"]:
 		next[key] = preferences.get(key)
 	next["action_labels"] = {}
 	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game"]: next.action_labels[action] = preferences.action_label(action)

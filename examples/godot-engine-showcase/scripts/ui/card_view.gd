@@ -318,7 +318,8 @@ func _emphasize(value: bool) -> void:
 		.12 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func fly_to(destination: Vector2, overlay: Node, handle = null) -> void:
-	if visual_context.reduced_motion:
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	if policy.duration("card_flight", true) <= 0:
 		if handle != null: handle.hit(); handle.finish()
 		return
 	var ghost := CardView.new(visual_context)
@@ -344,9 +345,9 @@ func fly_to(destination: Vector2, overlay: Node, handle = null) -> void:
 		handle.own(tween)
 		handle.cleanup(func(): if is_instance_valid(ghost): ghost.queue_free())
 		tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
-	tween.tween_property(ghost, "global_position", destination - size * .5, .22 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tween.tween_property(ghost, "scale", Vector2(.45, .45), .22 / visual_context.animation_speed)
-	tween.tween_property(ghost, "modulate:a", 0.0, .22 / visual_context.animation_speed)
+	tween.tween_property(ghost, "global_position", destination - size * .5, policy.duration("card_flight", true)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(ghost, "scale", Vector2(.45, .45), policy.duration("card_flight", true))
+	tween.tween_property(ghost, "modulate:a", 0.0, policy.duration("card_flight", true))
 	var completion := FlightCompletion.new()
 	tween.finished.connect(completion.complete)
 	ghost.tree_exiting.connect(completion.complete)

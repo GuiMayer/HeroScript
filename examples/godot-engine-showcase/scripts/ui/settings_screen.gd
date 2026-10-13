@@ -175,6 +175,11 @@ func _build_general_page() -> void:
 		func(value): controller.set_option("auto_animations", value, false), "AutomaticAnimationsToggle")
 	_add_option(I18n.text("Automatic animation playback"),
 		I18n.text("Advance the action queue automatically after the engine resolves a command."), automatic)
+	var preset := OptionButton.new(); preset.name = "AnimationPresetSelector"
+	var modes := ["normal", "fast", "instant"]
+	for label in ["Normal", "Fast", "Instant"]: preset.add_item(I18n.text(label))
+	preset.select(maxi(0, modes.find(controller.read("animation_preset"))))
+	preset.item_selected.connect(func(index): controller.set_option("animation_preset", modes[index], false); controller.commit())
 	_add_section(I18n.text("CARD HAND"))
 	var hand_mode := OptionButton.new()
 	hand_mode.name = "HandLayoutSelector"
@@ -190,6 +195,7 @@ func _build_general_page() -> void:
 			func(value): controller.set_option("hand_emphasis", value, false), "HandEmphasisSlider"))
 	_add_option(I18n.text("Drag cards to play"), I18n.text("Optional. Click selection and target choices remain available."),
 		_toggle_control(controller.read("hand_drag_enabled"), func(value): controller.set_option("hand_drag_enabled", value, false), "HandDragToggle"))
+	_add_option(I18n.text("Animation preset"), I18n.text("Presentation only; manual stepping remains available."), preset)
 
 func _build_audio_page() -> void:
 	_add_section(I18n.text("VOLUME"))

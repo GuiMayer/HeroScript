@@ -614,5 +614,11 @@
   "Replay presentation does not match its command.": "Replay presentation does not match its command.",
   "Historical inspection is unavailable in this mode.": "Historical inspection is unavailable in this mode.",
   "Request cancelled.": "Request cancelled.",
-  "%s commands loaded of %s": "%s commands loaded of %s"
+  "%s commands loaded of %s": "%s commands loaded of %s",
+  "Skip presentation": "Skip presentation",
+  "Animation preset": "Animation preset",
+  "Presentation only; manual stepping remains available.": "Presentation only; manual stepping remains available.",
+  "Normal": "Normal", "Fast": "Fast", "Instant": "Instant",
+  "Guaranteed tiers": "Guaranteed tiers", "Extra tier": "Extra tier",
+  "Presentation was superseded by a newer game revision.": "Presentation was superseded by a newer game revision."
 }

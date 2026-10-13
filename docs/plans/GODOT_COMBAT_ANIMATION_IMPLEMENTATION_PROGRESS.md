@@ -33,7 +33,9 @@ Guia: [arquitetura e plano](GODOT_COMBAT_ANIMATION_ARCHITECTURE_AND_PLAN.md).
 8. Zonas de cartas: implementado; executor por addresses publicados, reutiliza
    CardView quando permitido e verso para fluxo oculto, sem interpretar finalidade
    da zona. Cancelamento remove todas as representações transitórias.
-9. Perfis/acessibilidade/áudio: pendente.
+9. Perfis/acessibilidade/áudio: implementado; manifesto JSON capturado em
+   fronteira segura, presets normal/rápido/instantâneo, modo manual existente,
+   limites e áudio por cue com chaves/fallback em inglês.
 10. Replay: pendente.
 11. Limites/desempenho: pendente.
 12. Certificação/limpeza: pendente.

@@ -183,6 +183,8 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
 	controller.presentation_pending = true
+	visual_context.capture_motion()
+	presentation_driver.watchdog_seconds = visual_context.motion.duration("watchdog")
 	var payments: Array = []
 	for cost in _prepared_card.get("costs", []):
 		if cost.get("componentId") != null: payments.append({"componentId": cost.componentId, "sourceId": _prepared_card.get("cardInstanceId", "")})
@@ -227,10 +229,10 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 			view.card_buttons = view.hand.cards(), CONNECT_ONE_SHOT)
 		card.fly_to(destination, view.feedback.effects, handle)
 	else:
-		handle.hit(); GameAudio.frame(frame)
+		handle.hit(); GameAudio.play_beat(frame, visual_context.motion)
 		for application in frame.get("applications", []):
 			var target := str(application.get("targetEntityId", ""))
-			if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, 0 if visual_context.reduced_motion else .16 / maxf(visual_context.animation_speed, .25))
+			if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, visual_context.motion.duration("impact", true))
 		var steps: Array = frame.get("cardZoneSteps", []).duplicate(true)
 		if steps.is_empty():
 			for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
@@ -239,10 +241,10 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 				[Playback.envelope.snapshot("before").get("zones", {}), Playback.envelope.snapshot("after").get("zones", {})],
 				_transfer_models, _zone_anchor, view.feedback.effects, visual_context, handle)
 			return
-		if not frame.get("hasVisibleFacts", false): handle.finish(); return
+		if not frame.get("hasVisibleFacts", false) or visual_context.motion.duration("impact") <= 0: handle.finish(); return
 		var tween := view.create_tween()
 		handle.own(tween)
-		tween.tween_interval(.16 / maxf(visual_context.animation_speed, .25))
+		tween.tween_interval(visual_context.motion.duration("impact"))
 		tween.tween_callback(func(): handle.finish())
 
 func _zone_anchor(address: String, id: String) -> Vector2:

@@ -58,6 +58,14 @@ func frame(frame_data: Dictionary) -> void:
 	for event in preload("res://scripts/presentation/combat_audio_presenter.gd").cues(frame_data, resource_gain_cues):
 		play_event(event, true)
 
+func play_beat(frame_data: Dictionary, policy) -> void:
+	var emitted: Array = []
+	for application in frame_data.get("applications", []):
+		var kind: String = preload("res://scripts/presentation/semantic_cues.gd").kind(application, frame_data)
+		var event := str(policy.cue(kind).get("sound", ""))
+		if kind == "resource_gain": event = str(resource_gain_cues.get(str(application.get("resourceId", "")), event))
+		if not event.is_empty() and event not in emitted: play_event(event, true); emitted.append(event)
+
 func play_event(event_id: String, combat_cue := false) -> bool:
 	if _stopped or not _events.has(event_id): return false
 	var bus := AudioServer.get_bus_index("SFX")

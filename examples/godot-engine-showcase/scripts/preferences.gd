@@ -31,6 +31,7 @@ var master_volume := 0.80
 var music_volume := 0.42
 var sfx_volume := 0.75
 var animation_speed := 1.0
+var animation_preset := "normal"
 var hand_layout_mode := "adaptive"
 var hand_emphasis := 1.0
 var hand_drag_enabled := false
@@ -69,6 +70,7 @@ func load_settings() -> void:
 	music_volume = _read_option(config, "audio", "music", "music_volume", .42)
 	sfx_volume = _read_option(config, "audio", "sfx", "sfx_volume", .75)
 	animation_speed = _read_option(config, "game", "animation_speed", "animation_speed", 1.0)
+	animation_preset = _read_option(config, "game", "animation_preset", "animation_preset", "normal")
 	hand_layout_mode = _read_option(config, "game", "hand_layout", "hand_layout_mode", "adaptive")
 	hand_emphasis = _read_option(config, "game", "hand_emphasis", "hand_emphasis", 1.0)
 	hand_drag_enabled = _read_option(config, "game", "hand_drag", "hand_drag_enabled", false)
@@ -140,6 +142,7 @@ func save(notify := true) -> void:
 	config.set_value("audio", "music", music_volume)
 	config.set_value("audio", "sfx", sfx_volume)
 	config.set_value("game", "animation_speed", animation_speed)
+	config.set_value("game", "animation_preset", animation_preset)
 	config.set_value("game", "hand_layout", hand_layout_mode)
 	config.set_value("game", "hand_emphasis", hand_emphasis)
 	config.set_value("game", "hand_drag", hand_drag_enabled)
