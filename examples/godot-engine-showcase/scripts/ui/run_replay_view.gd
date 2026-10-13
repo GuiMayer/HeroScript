@@ -12,6 +12,7 @@ var previous_button: Button
 var next_button: Button
 var verify_button: Button
 var more_button: Button
+var _last_selected := -2
 
 func setup(context, from_history := false) -> void:
 	visual_context = context
@@ -36,6 +37,8 @@ func setup(context, from_history := false) -> void:
 	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	list.item_selected.connect(func(index): intent_requested.emit("select", [index]))
 	left.add_child(list)
+	more_button = _button(I18n.text("LOAD MORE"), "more")
+	left.add_child(more_button)
 	body.add_child(AppTheme.panel(left))
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 8)
@@ -78,8 +81,9 @@ func apply_model(model: Dictionary) -> void:
 		var entry: Dictionary = entries[list.item_count]
 		list.add_item("#%03d  •  %s\n%s %s" % [int(entry.sequence),
 			I18n.text(str(entry.get("commandType", "")).replace("_", " ").capitalize()), I18n.text("Step"), int(entry.get("step", 0))])
-	if model.selected_index >= 0:
+	if model.selected_index >= 0 and model.selected_index != _last_selected:
 		list.select(model.selected_index); list.ensure_current_is_visible()
+		_last_selected = model.selected_index
 	progress.max_value = maxi(int(model.through_sequence) - 1, 1)
 	progress.value = maxi(model.selected_index, 0)
 	heading.text = I18n.text("Loading replay…") if entries.is_empty() else I18n.text("Command %s of %s") % [model.selected_index + 1, model.through_sequence]
@@ -90,6 +94,8 @@ func apply_model(model: Dictionary) -> void:
 	play_button.disabled = entries.is_empty()
 	play_button.text = I18n.text("PAUSE REPLAY" if model.playing else "PLAY")
 	verify_button.disabled = entries.is_empty() or model.verifying
+	more_button.visible = model.has_more
+	more_button.disabled = model.page_loading
 func _button(text: String, action: String) -> Button:
 	var value := AppTheme.button(text)
 	value.pressed.connect(func(): intent_requested.emit(action, []))

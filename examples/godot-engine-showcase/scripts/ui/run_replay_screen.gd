@@ -31,6 +31,7 @@ func _intent(action: String, arguments: Array) -> void:
 		"restart": _restart()
 		"previous": _previous()
 		"next": _next()
+		"more": controller.load_more()
 		"toggle_play": _toggle_play()
 		"verify": _verify()
 		"back": _back()
@@ -38,15 +39,16 @@ func _select(index: int) -> void: await controller.select(index)
 func _stop_and_select(index: int) -> void: controller.stop(); await controller.select(index)
 func _restart() -> void: await _stop_and_select(0)
 func _previous() -> void: await _stop_and_select(maxi(0, selected_index - 1))
-func _next() -> void: await _stop_and_select(mini(entries.size() - 1, selected_index + 1))
+func _next() -> void: controller.stop(); await controller.navigate(1)
 func playback_delay() -> float: return (.18 if Preferences.reduced_motion else .7) / maxf(Preferences.animation_speed, .25)
 func _toggle_play() -> void:
 	if playing: controller.stop(); return
 	controller.playing = true; _update()
-	while playing and is_inside_tree() and selected_index < entries.size() - 1:
-		await controller.select(selected_index + 1)
+	var epoch: int = controller.play_epoch
+	while playing and is_inside_tree() and controller.valid() and epoch == controller.play_epoch:
+		if not await controller.navigate(1): break
 		await get_tree().create_timer(playback_delay()).timeout
-	if is_inside_tree(): controller.stop()
+	if is_inside_tree() and epoch == controller.play_epoch: controller.stop()
 func _verify() -> void:
 	if controller.verifying: return
 	controller.verifying = true; _update()

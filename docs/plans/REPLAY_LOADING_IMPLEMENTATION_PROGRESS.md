@@ -9,7 +9,7 @@ Início: 2026-10-13. Sem alteração de regras/checkpoints/schema de gravação.
 4. Apresentação de comando: resumo mínimo e transcrição compartilhada do domínio, materializador canônico e autorização histórica preservada.
 5. Transporte cancelável: tickets com conclusão única, cancelamento antes/durante HTTP, epoch de endpoint e métricas de bytes/transferência/parsing.
 6. Coordenação/view: ReplayController + presenter + view passiva; screen apenas adapta intents, navegação/verify e contexto.
-7. Paginação incremental: pendente.
+7. Paginação incremental: primeira página/primeiro comando imediatos, Load More e next/autoplay atravessando páginas com head fixo, sem teto de 4.000 ou consulta vazia.
 8. Cache e prioridades: pendente.
 9. Materialização: pendente.
 10. Certificação: pendente.

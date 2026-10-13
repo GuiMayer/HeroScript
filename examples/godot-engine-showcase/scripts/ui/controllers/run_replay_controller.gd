@@ -23,6 +23,9 @@ var commit_cache: Dictionary = {}
 var _page_ticket
 var _presentation_ticket
 var _epoch := 0
+var play_epoch := 0
+var started_ms := 0
+var first_content_ms := -1
 func setup(client, id: String, i18n) -> void:
 	session = client; run_id = id; translator = i18n; endpoint_context = session.replay_context()
 func valid() -> bool: return not disposed and endpoint_context == session.replay_context()
@@ -31,8 +34,8 @@ func model() -> Dictionary:
 		"has_more": has_more, "page_loading": page_loading, "presentation_loading": presentation_loading,
 		"playing": playing, "verifying": verifying, "state_text": state_text, "frame_text": frame_text}
 func start() -> void:
+	started_ms = Time.get_ticks_msec()
 	await load_more()
-	while valid() and has_more and not page_error and not entries.is_empty(): await load_more()
 	if valid() and not entries.is_empty(): await select(0)
 func load_more() -> void:
 	if not valid() or page_loading or not has_more: return
@@ -84,6 +87,7 @@ func select(index: int) -> void:
 	presentation_loading = false
 	if not response.get("ok", false):
 		state_text = translator.text("Historical inspection is unavailable in this mode.") if response.get("status", 0) == 403 else translator.error(response)
+		if response.get("status", 0) == 403 and first_content_ms < 0: first_content_ms = Time.get_ticks_msec() - started_ms
 		changed.emit(); return
 	var projection: Dictionary = response.data
 	if str(projection.get("runId", "")) != run_id or int(projection.get("sequence", 0)) != sequence or projection.get("stateHash", "") != entry.get("stateHash", ""):
@@ -92,9 +96,18 @@ func select(index: int) -> void:
 	state_text = preload("res://scripts/presentation/run_replay_presenter.gd").summary_text(projection, translator)
 	var transcript: String = preload("res://scripts/presentation/run_replay_presenter.gd").transcript_text(projection, translator)
 	if not transcript.is_empty(): frame_text = transcript
+	if first_content_ms < 0: first_content_ms = Time.get_ticks_msec() - started_ms
 	changed.emit()
+func navigate(direction: int) -> bool:
+	if not valid(): return false
+	var index := maxi(0, selected_index + direction)
+	if index >= entries.size() and has_more:
+		await load_more()
+	if not valid() or index >= entries.size() or index == selected_index: return false
+	await select(index)
+	return valid() and not page_error
 func stop() -> void:
-	playing = false; _epoch += 1; changed.emit()
+	playing = false; _epoch += 1; play_epoch += 1; changed.emit()
 func dispose() -> void:
 	if disposed: return
 	disposed = true; playing = false; _epoch += 1
