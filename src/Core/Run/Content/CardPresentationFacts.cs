@@ -64,6 +64,7 @@ public sealed record CardEffectPresentation
 {
     public string ComponentId { get; init; } = string.Empty;
     public string EffectPath { get; init; } = string.Empty;
+    public string? ParentEffectPath { get; init; }
     public string? Boundary { get; init; }
     public EffectDefinition Definition { get; init; } = new();
     public ImmutableArray<CardParameterPresentation> Parameters { get; init; } = [];
