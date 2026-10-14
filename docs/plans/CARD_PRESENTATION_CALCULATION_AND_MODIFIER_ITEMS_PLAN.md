@@ -2,6 +2,12 @@
 
 Data: 2026-10-14. Estado: plano para implementação; nenhuma mudança de gameplay aplicada neste pedido.
 
+## Acompanhamento da implementação
+
+- Base anterior registrada separadamente em `3e18838` (animações e atributos globais).
+- Etapa 1: contratos imutáveis de identidade, camadas numéricas, comparações e fixtures mecânicas implementados; não alteram a execução de efeitos.
+- Etapas 2–10: pendentes.
+
 ## 1. Objetivo e interpretação
 
 Uma carta oferecida deve ser a mesma carta que será recebida: mesmo componente visual, arte, custo de uso, condições, efeitos e regras. Não deve ser uma descrição de flavor no lugar de sua mecânica. Na escolha, mostrar o valor-base da carta, sem atributos/buffs do herói, defesa de um alvo ou sorteio de crítico. Uma comparação contextual pode ser aberta separadamente.
