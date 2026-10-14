@@ -510,6 +510,51 @@ public sealed class CardTransformationTests
         Assert.Single(card.Upgrades);
     }
 
+    [Theory]
+    [InlineData(CardModifierItemUse.Consume, CardModifierItemState.Consumed)]
+    [InlineData(CardModifierItemUse.Bind, CardModifierItemState.Bound)]
+    public void ModifierItemPreviewAndCommandUseOneAtomicComposition(CardModifierItemUse use, CardModifierItemState expectedState)
+    {
+        var runtime = Runtime(Upgrade("item-plus", Numeric(2)), use);
+        var (manager, original) = Manager(runtime);
+        var itemId = Guid.Parse("50000000-0000-4000-8000-000000000001");
+        var state = original with { CardModifierItems = new() { Items = [new() {
+            ItemInstanceId = itemId, ItemDefinitionId = "test-item", AcquisitionRevision = Revision,
+            AcquisitionSource = "fixture:reward", AcquisitionSequence = original.Sequence }] } };
+        Assert.True(manager.HydrateForReplay(state).IsSuccess);
+        var runtimes = new Mock<IContentRuntimeResolver>();
+        runtimes.Setup(value => value.Resolve(Revision, "test")).Returns(Result<ContentRuntime>.Success(runtime));
+        var planner = new CardModifierItemApplicationPlanner(runtimes.Object, new CardContentCompiler(), new EffectiveCardResolver());
+        var beforeHash = CanonicalJson.ComputeHash(state);
+        var preview = planner.Plan(state, itemId, Card().CardInstanceId);
+        Assert.True(preview.IsSuccess, preview.IsFailure ? preview.Error : null);
+        Assert.Equal(beforeHash, CanonicalJson.ComputeHash(state));
+        Assert.Equal(6, preview.Value.Before.Effects[0].Parameters[0].Values.ComposedBase);
+        Assert.Equal(8, preview.Value.After.Effects[0].Parameters[0].Values.ComposedBase);
+        var command = new RunCommandIdentity(Guid.Parse("60000000-0000-4000-8000-000000000001"),
+            RunCommandTypes.ApplyCardModifierItem, state.Sequence, state.Determinism.Step);
+        var payload = JsonSerializer.SerializeToElement(new ApplyCardModifierItemCommand(itemId, Card().CardInstanceId));
+        var applied = manager.Execute(state.RunId, new(command, payload));
+        Assert.True(applied.IsSuccess, applied.IsFailure ? applied.Error : null);
+        Assert.Equal(expectedState, applied.Value.State.CardModifierItems!.Items[0].State);
+        Assert.Equal(CanonicalJson.ComputeHash(preview.Value.Candidate.Deck), CanonicalJson.ComputeHash(applied.Value.State.Deck));
+        Assert.Equal(Card().CardInstanceId, applied.Value.State.CardModifierItems.Items[0].CardInstanceId);
+        var retry = manager.Execute(state.RunId, new(command, payload));
+        Assert.True(retry.IsSuccess && retry.Value.Duplicate);
+        Assert.Equal(applied.Value.StateHash, retry.Value.StateHash);
+        var after = applied.Value.State;
+        var duplicateUse = manager.Execute(state.RunId, new(new(Guid.NewGuid(), RunCommandTypes.ApplyCardModifierItem,
+            after.Sequence, after.Determinism.Step), payload));
+        Assert.True(duplicateUse.IsFailure);
+        Assert.Equal(CanonicalJson.ComputeHash(after), CanonicalJson.ComputeHash(manager.GetRun(state.RunId).Value));
+        Assert.True(planner.Plan(state with { ActiveEncounterId = Guid.NewGuid() }, itemId, Card().CardInstanceId).IsFailure);
+        Assert.True(planner.Plan(state, itemId, Guid.NewGuid()).IsFailure);
+        var restored = JsonSerializer.Deserialize<RunState>(JsonSerializer.Serialize(after))!;
+        Assert.Equal(CanonicalJson.ComputeHash(after), CanonicalJson.ComputeHash(restored));
+        Assert.True(new CardTransformationPlanner(runtime).Plan(after, Card().CardInstanceId,
+            CardTransformationOperation.Remove, after.Deck.GetCard(Card().CardInstanceId)!.Upgrades.Last().TransformationId, null).IsFailure);
+    }
+
     private static (RunManager Manager, RunState State) Manager(ContentRuntime runtime)
     {
         var runtimes = new Mock<IContentRuntimeResolver>(MockBehavior.Strict);
@@ -527,7 +572,7 @@ public sealed class CardTransformationTests
         return (manager, state);
     }
 
-    private static ContentRuntime Runtime(CardUpgradeDefinition? upgrade)
+    private static ContentRuntime Runtime(CardUpgradeDefinition? upgrade, CardModifierItemUse? itemUse = null)
     {
         var artifacts = new List<(string Kind, string Path, Dictionary<string, object> Definitions)>
         {
@@ -536,6 +581,8 @@ public sealed class CardTransformationTests
             ("resources", "resources/catalog.json", new() { ["health"] = new ResourceDefinition { ResourceId = "health" } })
         };
         if (upgrade != null) artifacts.Add(("card-upgrades", "card-upgrades/catalog.json", new() { [upgrade.UpgradeId] = upgrade }));
+        if (upgrade != null && itemUse != null) artifacts.Add(("card-modifier-items", "card-modifier-items/catalog.json", new() {
+            ["test-item"] = new CardModifierItemDefinition { ItemDefinitionId = "test-item", UpgradeId = upgrade.UpgradeId, Use = itemUse } }));
         var result = ContentRuntime.Create(new ContentBundle
         {
             Manifest = new() { ConfigName = "test", Revision = Revision, Artifacts = artifacts.Select(item =>

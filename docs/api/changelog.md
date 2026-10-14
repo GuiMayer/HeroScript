@@ -2,6 +2,7 @@
 
 ## v1 — 2026-10-14
 
+- Engine `30`: projeções explícitas de base/origem/impacto das cartas, inventário de itens modificadores e aplicação atômica `APPLY_CARD_MODIFIER_ITEM`. Consultas de apresentações e itens são revisionadas e não alteram RNG. Runs de versões executáveis anteriores não são migradas silenciosamente.
 - Engine `29`: políticas revisionadas de resolução global de efeitos, componente `effect_rule_override`, defaults declarados de atributos e Armor configurável. Crítico do Mundo 1 usa bônus percentual linear por tier, com 100% de bônus inicial; inputs são herdados pelo executor comum, sem configuração repetida em cada carta.
 - `GET /api/v1/runs/{runId}/character-attributes` seleciona personagem persistente ou ator do encontro ativo. `GET /api/v1/combats/{combatId}/actors/{actorId}/attributes` inspeciona um ator. Respostas incluem revisão, sequência, passo, valores-base/efetivos, contribuições limitadas e resumo de tiers sem consumir RNG.
 - Alterações numéricas são publicadas em nova revisão; snapshots anteriores não são reescritos. Execução/replay semântico exige runtime compatível com a versão capturada.

@@ -127,6 +127,9 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
             return Result<CardInstanceState>.Failure($"Card instance not found: {cardInstanceId}");
         if (operation == CardTransformationOperation.Apply ? targetTransformationId != null : targetTransformationId is null or 0)
             return Result<CardInstanceState>.Failure("Invalid selected transformation identity");
+        if (targetTransformationId != null && run.CardModifierItems?.Items.Any(item =>
+            item.CardInstanceId == cardInstanceId && item.TransformationId == targetTransformationId) == true)
+            return Result<CardInstanceState>.Failure("Item-owned transformations cannot be removed or replaced without an explicit item policy");
         CardUpgradeDefinition? definition = null;
         if (operation != CardTransformationOperation.Remove)
         {

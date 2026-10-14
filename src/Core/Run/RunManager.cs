@@ -475,6 +475,21 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var commands = _progression.GetAvailableCommands(run.Value);
         if (commands.IsFailure)
             return commands;
+        if (_contentRuntimes != null && run.Value.ActiveEncounterId == null && run.Value.Lifecycle == RunLifecycleState.Active &&
+            run.Value.CardModifierItems?.Items.Any(item => item.State == CardModifierItemState.Available) == true)
+        {
+            var planner = new CardModifierItemApplicationPlanner(_contentRuntimes, new CardContentCompiler(), new EffectiveCardResolver());
+            var visible = Core.CardZones.CardZoneReadModel.Project(run.Value).Zones.SelectMany(zone => zone.Cards)
+                .Select(card => card.CardInstanceId).Distinct().Order().ToArray();
+            var applications = run.Value.CardModifierItems.Items.Where(item => item.State == CardModifierItemState.Available)
+                .OrderBy(item => item.ItemInstanceId).SelectMany(item => visible.Where(cardId => planner.Plan(run.Value, item.ItemInstanceId, cardId).IsSuccess)
+                    .Select(cardId => new { itemInstanceId = item.ItemInstanceId, cardInstanceId = cardId })).ToArray();
+            if (applications.Length > 0) commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Append(new RunAvailableCommand {
+                Type = RunCommandTypes.ApplyCardModifierItem, CurrentNodeId = run.Value.CurrentNodeId ?? string.Empty,
+                ExpectedSequence = run.Value.Sequence, ExpectedStep = run.Value.Determinism.Step,
+                PayloadSchema = JsonSerializer.SerializeToElement(new { itemInstanceId = "guid", cardInstanceId = "guid" }),
+                ValidPayload = JsonSerializer.SerializeToElement(new { options = applications }) }).ToArray());
+        }
         if (!commands.Value.Any(command => CardTransformationAccess.IsCommand(command.Type)))
             return commands;
         var options = GetCardTransformationOptions(run.Value, null);
@@ -673,6 +688,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.AcquireRelic => ExecuteAcquireRelic(runId, payload),
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
+            RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
             RunCommandTypes.RemoveCardTransformation => ExecuteRemoveCardTransformation(runId, payload),
             RunCommandTypes.ReplaceCardTransformation => ExecuteReplaceCardTransformation(runId, payload),
             RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
@@ -930,6 +946,16 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var request = DeserializePayload<CardUpgradeCommand>(payload);
         return ExecuteCardTransformation(runId, payload, request.CardInstanceId,
             CardTransformationOperation.Apply, null, request.UpgradeId);
+    }
+
+    private Result ExecuteApplyCardModifierItem(Guid runId, JsonElement payload)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var request = DeserializePayload<ApplyCardModifierItemCommand>(payload);
+        var planned = new CardModifierItemApplicationPlanner(_contentRuntimes, new CardContentCompiler(), new EffectiveCardResolver())
+            .Plan(_runs[runId], request.ItemInstanceId, request.CardInstanceId);
+        return planned.IsFailure ? Result.Failure(planned.Error) :
+            ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyCardModifierItem, payload));
     }
 
     private Result ExecuteRemoveCardTransformation(Guid runId, JsonElement payload)

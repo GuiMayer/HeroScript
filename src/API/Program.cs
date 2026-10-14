@@ -496,6 +496,7 @@ builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
 builder.Services.AddSingleton<ICardSourcePresentationProjector, CardSourcePresentationProjector>();
 builder.Services.AddSingleton<ICardPresentationQueryService, CardPresentationQueryService>();
 builder.Services.AddSingleton<ICardModifierItemQueryService, CardModifierItemQueryService>();
+builder.Services.AddSingleton<CardModifierItemApplicationPlanner>();
 builder.Services.AddSingleton<IActorAttributeProjectionService, ActorAttributeProjectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
 builder.Services.AddSingleton<ILegalActionResolver, LegalActionResolver>();

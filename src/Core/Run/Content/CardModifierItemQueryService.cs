@@ -45,32 +45,11 @@ public sealed class CardModifierItemQueryService(IRunQueryService runs, IContent
             if (acquired.IsFailure) return Result<CardModifierItemSnapshot>.Failure(acquired.Error);
             var definition = acquired.Value.GetDefinition<CardModifierItemDefinition>("card-modifier-items", instance.ItemDefinitionId);
             if (definition.IsFailure) return Result<CardModifierItemSnapshot>.Failure(definition.Error);
-            var upgrade = acquired.Value.GetDefinition<CardUpgradeDefinition>("card-upgrades", definition.Value.UpgradeId);
-            if (upgrade.IsFailure) return Result<CardModifierItemSnapshot>.Failure(upgrade.Error);
-            var sealedUpgrade = CardBundleCompiler.Seal(upgrade.Value, acquired.Value);
-            if (sealedUpgrade.IsFailure) return Result<CardModifierItemSnapshot>.Failure(sealedUpgrade.Error);
             var cards = ImmutableArray.CreateBuilder<CardModifierItemCompatibility>();
             foreach (var id in visible)
             {
-                var card = run.Deck.GetCard(id)!;
-                string? reason = instance.State != CardModifierItemState.Available ? "Item is not available" :
-                    run.ActiveEncounterId != null ? "Application requires leaving combat" :
-                    run.Lifecycle != RunLifecycleState.Active ? "Run is not active" : null;
-                var eligible = RunEligibility.Require(run, Core.Meta.UnlockTargetKind.CardUpgrade, definition.Value.UpgradeId);
-                if (reason == null && eligible.IsFailure) reason = eligible.Error;
-                if (reason == null)
-                {
-                    var changed = CardInstanceUpgradeTransitions.Apply(card, sealedUpgrade.Value, instance.AcquisitionRevision);
-                    if (changed.IsFailure) reason = changed.Error;
-                    else
-                    {
-                        var compiled = compiler.Compile(card.DefinitionId, active.Value);
-                        if (compiled.IsFailure) return Result<CardModifierItemSnapshot>.Failure(compiled.Error);
-                        var composed = composer.Resolve(compiled.Value, changed.Value);
-                        if (composed.IsFailure) reason = composed.Error;
-                    }
-                }
-                cards.Add(new(id, reason == null, reason));
+                var planned = new CardModifierItemApplicationPlanner(runtimes, compiler, composer).Plan(run, instance.ItemInstanceId, id);
+                cards.Add(new(id, planned.IsSuccess, planned.IsFailure ? planned.Error : null));
             }
             items.Add(new(instance, definition.Value, cards.ToImmutable()));
         }
