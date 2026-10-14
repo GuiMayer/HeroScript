@@ -184,6 +184,11 @@ recorrem ao inglês. Os nomes de conteúdo também priorizam o fallback inglês.
 
 A apresentação exibe o snapshot final autoritativo e anima as aplicações dos
 frames recebidos; ela não executa novamente as regras nem altera a timeline.
+O movimento da carta começa assim que o comando é aceito, enquanto as consultas
+de atualização continuam. Dano, custos e textos novos aguardam a projeção completa.
+Esse voo é reaproveitado na fila, sem repetir o movimento ou adicionar espera vazia.
+Previews da engine usam caches limitados por snapshot imutável e entrada completa;
+mudanças de estado, setting ou revisão não reutilizam resultados antigos.
 
 ## Trocar de setting
 
