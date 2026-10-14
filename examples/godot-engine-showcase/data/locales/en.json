@@ -1,4 +1,10 @@
 {
+  "MODIFIERS": "MODIFIERS",
+  "Modifier items": "Modifier items",
+  "ACQUIRE MODIFIER": "ACQUIRE MODIFIER",
+  "APPLY MODIFIER": "APPLY MODIFIER",
+  "Select an item, then a card.": "Select an item, then a card.",
+  "No modifier items owned.": "No modifier items owned.",
   "Calculation": "Calculation",
   "Original": "Original",
   "Composed base": "Composed base",

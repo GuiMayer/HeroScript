@@ -25,7 +25,7 @@ func refresh_state(data: Dictionary) -> void:
 	if changed_scope and not _scope.is_empty(): _store_reading()
 	_scope = next_scope
 	controller.bind(run, choices)
-	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations)
+	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations, GameSession.modifier_items)
 	view.apply_projection(run, choices, presenter, visual_context)
 	if changed_scope:
 		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "horizontal": 0, "vertical": 0, "overview": false, "filter": ""}))
@@ -38,6 +38,9 @@ func _intent(action: String, arguments: Array) -> void:
 	if not _alive or not is_inside_tree(): return
 	match action:
 		"pause": router.toggle_pause()
+		"modifier_items":
+			router.show_activity()
+			if router.host.get_child_count() > 0: router.host.get_child(0)._open_items()
 		"resume_dialogue": router.show_dialogue()
 		"command":
 			if get_tree().paused or GameSession.busy: return

@@ -30,6 +30,7 @@ func _build_actions() -> void:
 		var type := str(choice.type)
 		if type == "CHOOSE_DIALOGUE_OPTION": continue
 		if type == "ABANDON_RUN": continue # Run exit belongs to the pause menu.
+		if type == "APPLY_CARD_MODIFIER_ITEM": continue # Item collection owns this optional workflow.
 		if type == "ADVANCE_NODE": continue # The route itself is the navigation control.
 		var reference_id: String = presenter.option_reference(choice)
 		var model: Dictionary = presenter.offer(choice)
@@ -72,7 +73,7 @@ func _build_actions() -> void:
 			column.name = "Offer_" + reference_id
 			column.custom_minimum_size.x = 236
 			var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
-			art.setup("activities", str(_current_node().get("activity", {}).get("type", "")))
+			art.setup("modifier_items" if str(model.get("category", "")) == "modifier_items" else "activities", str(model.get("artId", _current_node().get("activity", {}).get("type", ""))))
 			art.custom_minimum_size.y = 100
 			column.add_child(art)
 			if not str(choice.get("subjectId", "")).is_empty():

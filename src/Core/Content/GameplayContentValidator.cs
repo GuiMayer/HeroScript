@@ -65,7 +65,8 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                     Encounter(address, node.Activity);
                 if (node.Activity.Type == RunActivityType.CardUpgrade)
                 {
-                    ReferencesParameter(address, node.Activity, "upgradeIds", "card-upgrades", required: true);
+                    ReferencesParameter(address, node.Activity, "upgradeIds", "card-upgrades", required: !node.Activity.Parameters.ContainsKey("modifierItemIds"));
+                    ReferencesParameter(address, node.Activity, "modifierItemIds", "card-modifier-items", required: !node.Activity.Parameters.ContainsKey("upgradeIds"));
                     var costs = CardTransformationAccess.ReadCosts(node.Activity);
                     if (costs.IsSuccess) foreach (var cost in costs.Value) Reference(address, "resources", cost.ResourceId, required: true);
                 }

@@ -1,0 +1,18 @@
+{
+  "w1_condense_transform": {
+    "upgradeId": "w1_condense_transform", "category": "Behavior", "slotId": "behavior", "maxApplications": 1,
+    "cardDefinitionIds": ["w1_strike"],
+    "patches": [{"type": "component", "componentId": "main", "operation": "Replace", "component": {
+      "type": "effect", "componentId": "main", "order": 20,
+      "effect": {"type": "CONDENSE_STACKS", "target": "TARGET", "condensationRecipeId": "w1_release_dot"}
+    }}]
+  },
+  "w1_no_critical_transform": {
+    "upgradeId": "w1_no_critical_transform", "category": "Behavior", "slotId": "behavior", "maxApplications": 1,
+    "cardDefinitionIds": ["w1_strike", "w1_flurry"],
+    "patches": [{"type": "component", "componentId": "rule.no-critical", "operation": "Add", "component": {
+      "type": "effect_rule_override", "componentId": "rule.no-critical", "order": 90,
+      "rule": {"critical": false, "requiredTags": ["effect.damage"]}
+    }}]
+  }
+}

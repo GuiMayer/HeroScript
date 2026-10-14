@@ -277,6 +277,7 @@ public static class GameplayCommandDescriptors
         Run<RelicInstanceCommand>(RunCommandTypes.RemoveRelic),
         Run<CardUpgradeCommand>(RunCommandTypes.UpgradeCard),
         Run<ApplyCardModifierItemCommand>(RunCommandTypes.ApplyCardModifierItem),
+        Run<AcquireCardModifierItemCommand>(RunCommandTypes.AcquireCardModifierItem),
         Run<CardTransformationRemoveCommand>(RunCommandTypes.RemoveCardTransformation),
         Run<CardTransformationReplaceCommand>(RunCommandTypes.ReplaceCardTransformation),
         Run<RestoreHeadFromHistoryCommand>(RunCommandTypes.RestoreHeadFromHistory),
@@ -319,6 +320,7 @@ public sealed record RelicCommand(string RelicId);
 public sealed record RelicInstanceCommand(Guid RelicInstanceId);
 public sealed record CardUpgradeCommand(Guid CardInstanceId, string UpgradeId);
 public sealed record ApplyCardModifierItemCommand(Guid ItemInstanceId, Guid CardInstanceId);
+public sealed record AcquireCardModifierItemCommand(string ItemDefinitionId);
 public sealed record CardTransformationRemoveCommand(Guid CardInstanceId, ulong TransformationId);
 public sealed record CardTransformationReplaceCommand(Guid CardInstanceId, ulong TransformationId, string UpgradeId);
 public sealed record RestoreHeadFromHistoryCommand(int SourceSequence);

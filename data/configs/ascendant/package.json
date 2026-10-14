@@ -11,6 +11,8 @@
   ],
   "conflicts": [],
   "content": [
+    { "schemaVersion": 1, "operation": "definition", "kind": "card-modifier-items", "sourcePath": "Resources/card-modifier-items/world_one.json", "artifactPath": "card-modifier-items/world_one.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "card-upgrades", "sourcePath": "Resources/card-upgrades/modifier_items.json", "artifactPath": "card-upgrades/modifier_items.json" },
     {
       "schemaVersion": 1,
       "operation": "definition",

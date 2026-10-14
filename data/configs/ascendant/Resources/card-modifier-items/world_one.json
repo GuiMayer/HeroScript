@@ -1,0 +1,13 @@
+{
+  "w1_poison_item": { "itemDefinitionId": "w1_poison_item", "upgradeId": "w1_poison_affinity", "use": "Bind", "presentation": { "name": "Venom imprint" } },
+  "w1_efficiency_item": { "itemDefinitionId": "w1_efficiency_item", "upgradeId": "w1_efficiency", "use": "Bind", "presentation": { "name": "Efficiency matrix" } },
+  "w1_calibration_item": { "itemDefinitionId": "w1_calibration_item", "upgradeId": "w1_calibration", "use": "Bind", "presentation": { "name": "Calibration matrix" } },
+  "w1_amplify_item": { "itemDefinitionId": "w1_amplify_item", "upgradeId": "w1_amplify", "use": "Bind", "presentation": { "name": "Amplification matrix" } },
+  "w1_recall_item": { "itemDefinitionId": "w1_recall_item", "upgradeId": "w1_recall_link", "use": "Bind", "presentation": { "name": "Recall link" } },
+  "w1_ward_item": { "itemDefinitionId": "w1_ward_item", "upgradeId": "w1_ward_link", "use": "Bind", "presentation": { "name": "Ward link" } },
+  "w1_fire_item": { "itemDefinitionId": "w1_fire_item", "upgradeId": "w1_fire_affinity", "use": "Bind", "presentation": { "name": "Ember imprint", "description": "Adds the authored fire affinity to a compatible card.", "artId": "fire" } },
+  "w1_split_item": { "itemDefinitionId": "w1_split_item", "upgradeId": "w1_split", "use": "Bind", "presentation": { "name": "Split matrix", "description": "Transforms a compatible card into multiple hits.", "artId": "flurry" } },
+  "w1_cascade_item": { "itemDefinitionId": "w1_cascade_item", "upgradeId": "w1_cascade", "use": "Bind", "presentation": { "name": "Cascade link", "description": "Transfers excess through the configured continuation pipeline.", "artId": "cascade" } },
+  "w1_condense_item": { "itemDefinitionId": "w1_condense_item", "upgradeId": "w1_condense_transform", "use": "Consume", "presentation": { "name": "Condensation seal", "description": "Replaces the main effect with the existing DoT stack-release recipe.", "artId": "condense" } },
+  "w1_no_critical_item": { "itemDefinitionId": "w1_no_critical_item", "upgradeId": "w1_no_critical_transform", "use": "Bind", "presentation": { "name": "Stable matrix", "description": "Prevents damage effects from rolling critical tiers.", "artId": "guard" } }
+}

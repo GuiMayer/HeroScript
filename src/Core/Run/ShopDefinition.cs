@@ -35,6 +35,8 @@ public sealed record ShopItemDefinition
 
     public string ItemId { get; init; } = string.Empty;
     public string? CardId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ModifierItemDefinitionId { get; init; }
     public IReadOnlyList<ResourceAmount> Costs
     {
         get => _costs;
@@ -127,6 +129,8 @@ public sealed record ShopItemState
 
     public string ItemId { get; init; } = string.Empty;
     public string? CardId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ModifierItemDefinitionId { get; init; }
     public CardRarity Rarity { get; init; } = CardRarity.Common;
     public IReadOnlyList<string> Tags
     {

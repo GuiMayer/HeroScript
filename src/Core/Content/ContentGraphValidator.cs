@@ -299,6 +299,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         foreach (var (id, definition) in runtime.GetDefinitions("runs"))
         {
             RequireArray(runtime, errors, "runs", id, definition, "startingCards", "cards");
+            foreach (var itemId in FindStringArrayItems(definition, "modifierItemIds"))
+                Require(runtime, errors, "runs", id, itemId, "card-modifier-items");
             if (!TryGetProperty(definition, "startingResources", out var resources) ||
                 resources.ValueKind != JsonValueKind.Object ||
                 !resources.EnumerateObject().Any())
@@ -923,7 +925,14 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             ValidateResourceAmounts($"shops/{id} reroll baseCosts", shop.Reroll.BaseCosts, errors);
             ValidateResourceAmounts($"shops/{id} reroll costsPerReroll", shop.Reroll.CostsPerReroll, errors);
             foreach (var item in shop.Items)
+            {
+                if (!string.IsNullOrWhiteSpace(item.ModifierItemDefinitionId))
+                {
+                    Require(runtime, errors, "shops", id, item.ModifierItemDefinitionId, "card-modifier-items");
+                    if (!string.IsNullOrWhiteSpace(item.CardId)) errors.Add($"shops/{id}/{item.ItemId} cannot grant both a card and a modifier item");
+                }
                 ValidateResourceAmounts($"shops/{id} item {item.ItemId} costs", item.Costs, errors);
+            }
         }
     }
 

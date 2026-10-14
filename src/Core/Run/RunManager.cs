@@ -689,6 +689,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
+            RunCommandTypes.AcquireCardModifierItem => ExecuteAcquireCardModifierItem(runId, payload),
             RunCommandTypes.RemoveCardTransformation => ExecuteRemoveCardTransformation(runId, payload),
             RunCommandTypes.ReplaceCardTransformation => ExecuteReplaceCardTransformation(runId, payload),
             RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
@@ -956,6 +957,27 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             .Plan(_runs[runId], request.ItemInstanceId, request.CardInstanceId);
         return planned.IsFailure ? Result.Failure(planned.Error) :
             ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyCardModifierItem, payload));
+    }
+
+    private Result ExecuteAcquireCardModifierItem(Guid runId, JsonElement payload)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var request = DeserializePayload<AcquireCardModifierItemCommand>(payload);
+        var run = _runs[runId];
+        var node = run.Map.Nodes.FirstOrDefault(node => node.NodeId == run.CurrentNodeId);
+        if (node?.Activity.Type != RunActivityType.CardUpgrade || run.CompletedActivityNodeIds.Contains(node.NodeId) ||
+            run.Map.ResolvedNodeIds.Contains(node.NodeId) || !node.Activity.Parameters.TryGetValue("modifierItemIds", out var ids) ||
+            ids.ValueKind != JsonValueKind.Array || !ids.EnumerateArray().Any(id => id.GetString() == request.ItemDefinitionId))
+            return Result.Failure("Modifier item is not offered by the current activity");
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var granted = CardModifierItemAcquisition.Grant(run, runtime.Value, request.ItemDefinitionId, $"node:{node.NodeId}");
+        if (granted.IsFailure) return Result.Failure(granted.Error);
+        var spent = CardTransformationAccess.SpendCosts(run);
+        if (spent.IsFailure) return Result.Failure(spent.Error);
+        return ToResult(Persist(granted.Value with { ResourceState = spent.Value, Determinism = granted.Value.Determinism.AdvanceStep(),
+            CompletedActivityNodeIds = run.CompletedActivityNodeIds.Append(node.NodeId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray() },
+            RunCommandTypes.AcquireCardModifierItem, payload));
     }
 
     private Result ExecuteRemoveCardTransformation(Guid runId, JsonElement payload)
@@ -1964,7 +1986,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<ShopItemState>.Failure($"Run not found: {runId}");
 
-            var transition = ShopTransitions.Buy(state, shopInstanceId, itemId, _cardZoneFlows);
+            var runtime = _contentRuntimes?.Resolve(state.Determinism.ContentRevision, state.ConfigName);
+            if (runtime?.IsFailure == true) return Result<ShopItemState>.Failure(runtime.Error);
+            var transition = ShopTransitions.Buy(state, shopInstanceId, itemId, _cardZoneFlows, runtime?.Value);
             return transition.IsFailure
                 ? Result<ShopItemState>.Failure(transition.Error)
                 : CommitTransition(

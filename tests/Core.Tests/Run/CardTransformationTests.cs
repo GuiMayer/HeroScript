@@ -572,6 +572,37 @@ public sealed class CardTransformationTests
         return (manager, state);
     }
 
+    [Fact]
+    public void BuyingModifierCreatesOwnershipWithoutChangingDeckAndRetryDoesNotDuplicateIt()
+    {
+        var runtime = Runtime(Upgrade("item-plus", Numeric(2)), CardModifierItemUse.Consume);
+        var (manager, initial) = Manager(runtime);
+        var shopId = Guid.Parse("70000000-0000-4000-8000-000000000001");
+        var state = initial with { Shops = [new() { ShopInstanceId = shopId,
+            Items = [new() { ItemId = "modifier", ModifierItemDefinitionId = "test-item", Costs = [] }] }] };
+        Assert.True(manager.HydrateForReplay(state).IsSuccess);
+        var payload = JsonSerializer.SerializeToElement(new ShopItemCommand(shopId, "modifier"));
+        var identity = new RunCommandIdentity(Guid.Parse("80000000-0000-4000-8000-000000000001"), RunCommandTypes.BuyShopItem,
+            state.Sequence, state.Determinism.Step);
+        var beforeDeck = CanonicalJson.ComputeHash(state.Deck);
+        var acquired = manager.Execute(state.RunId, new(identity, payload));
+        Assert.True(acquired.IsSuccess, acquired.IsFailure ? acquired.Error : null);
+        var unit = Assert.Single(acquired.Value.State.CardModifierItems!.Items);
+        Assert.Equal(CardModifierItemState.Available, unit.State);
+        Assert.StartsWith("shop:", unit.AcquisitionSource);
+        Assert.Equal(beforeDeck, CanonicalJson.ComputeHash(acquired.Value.State.Deck));
+        var retry = manager.Execute(state.RunId, new(identity, payload));
+        Assert.True(retry.IsSuccess && retry.Value.Duplicate);
+        Assert.Single(retry.Value.State.CardModifierItems!.Items);
+        Assert.True(ShopTransitions.Buy(state, shopId, "modifier", runtime: null).IsFailure);
+        var direct = ShopTransitions.Buy(state, shopId, "modifier", runtime: runtime);
+        Assert.True(direct.IsSuccess);
+        Assert.Equal(unit.ItemInstanceId, direct.Value.State.CardModifierItems!.Items[0].ItemInstanceId);
+        var invalid = state with { Shops = [state.Shops[0] with { Items = [state.Shops[0].Items[0] with { ModifierItemDefinitionId = "missing" }] }] };
+        Assert.True(ShopTransitions.Buy(invalid, shopId, "modifier", runtime: runtime).IsFailure);
+        Assert.Equal(beforeDeck, CanonicalJson.ComputeHash(state.Deck));
+    }
+
     private static ContentRuntime Runtime(CardUpgradeDefinition? upgrade, CardModifierItemUse? itemUse = null)
     {
         var artifacts = new List<(string Kind, string Path, Dictionary<string, object> Definitions)>

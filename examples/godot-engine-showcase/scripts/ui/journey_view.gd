@@ -54,6 +54,7 @@ func _build_header() -> Control:
 	row.add_child(title_box)
 	row.add_child(_button(visual_context.translator.text("VERIFY REPLAY"), _verify, 185))
 	row.add_child(_button(visual_context.translator.text("MAP"), _map, 100))
+	row.add_child(_button(visual_context.translator.text("MODIFIERS"), func(): intent_requested.emit("modifier_items", []), 140))
 	row.add_child(_button(visual_context.translator.text("PAUSE"), _pause, 100))
 	header.add_child(row)
 	var badges := HFlowContainer.new()

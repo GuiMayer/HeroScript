@@ -24,7 +24,7 @@ func _render(data: Dictionary) -> void:
 	var choices: Array = GameSession.activity_choices()
 	var zones: Dictionary = GameSession.card_zones
 	controller.bind(run, choices)
-	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations)
+	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations, GameSession.modifier_items)
 	var key: Array = [run, choices, zones, data, visual_context.presentation_key()]
 	if key != _projection_key:
 		_projection_key = key.duplicate(true); render_epoch += 1
@@ -48,6 +48,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 		"verify": _verify()
 		"recover": _recover_actions()
 		"confirm": _confirm_ref(str(arguments[0]))
+		"modifier_items": _open_items()
 		"execute":
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if not choice.is_empty(): _execute(choice)
@@ -57,7 +58,7 @@ func dispose() -> void:
 	if controller: controller.dispose()
 func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
 	if GameSession.busy: return
-	var transformation := str(choice.type) in ["UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION"]
+	var transformation := str(choice.type) in ["UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "APPLY_CARD_MODIFIER_ITEM"]
 	if not transformation and str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
 		_execute(choice)
 		return
@@ -75,6 +76,19 @@ func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> vo
 			router.show_toast(I18n.text("Detailed inspection is unavailable."))
 			return
 		dialog.dialog_text += "\n\n" + presenter.transformation_text(assessment)
+		if str(choice.type) == "APPLY_CARD_MODIFIER_ITEM":
+			dialog.dialog_text = label
+			var comparison := HBoxContainer.new()
+			comparison.position = Vector2(20, 60)
+			for side in ["before", "after"]:
+				var column := VBoxContainer.new()
+				column.add_child(visual_context.styles.title(I18n.text("Before" if side == "before" else "After"), 18))
+				var card := CardView.new(visual_context)
+				card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(I18n, presentation).project(assessment.get(side, {})))
+				column.add_child(card)
+				comparison.add_child(column)
+			dialog.add_child(comparison)
+			dialog.min_size = Vector2i(660, 630)
 		dialog.get_ok_button().disabled = not bool(assessment.get("isCompatible", false))
 	dialog.ok_button_text = I18n.text("CONFIRM")
 	dialog.cancel_button_text = I18n.text("CANCEL")
@@ -82,6 +96,19 @@ func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> vo
 	dialog.visibility_changed.connect(func(): if not dialog.visible: dialog.queue_free())
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(440, 180))
+
+func _open_items() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = I18n.text("Modifier items")
+	dialog.theme = visual_context.theme
+	var collection := preload("res://scripts/ui/components/card_modifier_inventory_view.gd").new()
+	collection.custom_minimum_size = Vector2(950, 570)
+	collection.configure(GameSession.modifier_items, GameSession.activity_choices(), GameSession.card_presentations, presentation, visual_context)
+	collection.choice_requested.connect(func(reference): dialog.hide(); _confirm_ref(reference))
+	dialog.add_child(collection)
+	dialog.visibility_changed.connect(func(): if not dialog.visible: dialog.queue_free())
+	add_child(dialog)
+	dialog.popup_centered_clamped(Vector2i(1100, 680), 0.92)
 
 
 func _execute(choice: Dictionary) -> void:
@@ -93,7 +120,7 @@ func _execute(choice: Dictionary) -> void:
 		return
 	for button in view.choice_buttons: button.disabled = bool(button.get_meta("engine_disabled", false))
 	if accepted:
-		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
+		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "ACQUIRE_CARD_MODIFIER_ITEM", "APPLY_CARD_MODIFIER_ITEM"]:
 			GameAudio.reward()
 		router.open_game()
 

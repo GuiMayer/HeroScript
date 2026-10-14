@@ -1,4 +1,10 @@
 {
+  "MODIFIERS": "MODIFICADORES",
+  "Modifier items": "Itens modificadores",
+  "ACQUIRE MODIFIER": "ADQUIRIR MODIFICADOR",
+  "APPLY MODIFIER": "APLICAR MODIFICADOR",
+  "Select an item, then a card.": "Selecione um item e depois uma carta.",
+  "No modifier items owned.": "Nenhum item modificador adquirido.",
   "Calculation": "Cálculo",
   "Original": "Original",
   "Composed base": "Base composta",

@@ -143,7 +143,8 @@ internal sealed class RunOfferGenerator(
             return Result<ShopOfferGeneration>.Success(new(
                 offer.Value.Cards
                     .Select((card, index) => ToShopItem(card, definition.Pricing, index))
-                    .ToList(),
+                    .Concat(definition.Items.Where(item => item.ModifierItemDefinitionId != null)
+                        .Select((item, index) => ToShopItem(state, item, definition.Pricing, index))).ToList(),
                 offer.Value.Context,
                 offer.Value.Fingerprint));
         }
@@ -191,6 +192,7 @@ internal sealed class RunOfferGenerator(
             ItemId = string.IsNullOrWhiteSpace(item.ItemId) ? $"item_{index + 1}" : item.ItemId,
             CardId = item.CardId,
             BaseCosts = item.Costs,
+            ModifierItemDefinitionId = item.ModifierItemDefinitionId,
             Costs = item.Costs
         };
     }

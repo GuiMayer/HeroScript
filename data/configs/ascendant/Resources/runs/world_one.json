@@ -160,20 +160,8 @@
         "activity": {
           "type": "CardUpgrade",
           "parameters": {
-            "upgradeIds": [
-              "w1_ranked_edge",
-              "w1_ranked_ward",
-              "w1_efficiency",
-              "w1_split",
-              "w1_calibration",
-              "w1_amplify",
-              "w1_fire_affinity",
-              "w1_poison_affinity",
-              "w1_cascade",
-              "w1_lasting",
-              "w1_recall_link",
-              "w1_ward_link"
-            ],
+            "upgradeIds": ["w1_ranked_edge", "w1_ranked_ward", "w1_lasting"],
+            "modifierItemIds": ["w1_fire_item", "w1_poison_item", "w1_split_item", "w1_cascade_item", "w1_efficiency_item", "w1_calibration_item", "w1_amplify_item", "w1_recall_item", "w1_ward_item", "w1_condense_item", "w1_no_critical_item"],
             "allowRemoval": true,
             "allowReplacement": true,
             "costs": []
@@ -1157,20 +1145,8 @@
         "activity": {
           "type": "CardUpgrade",
           "parameters": {
-            "upgradeIds": [
-              "w1_ranked_edge",
-              "w1_ranked_ward",
-              "w1_efficiency",
-              "w1_split",
-              "w1_calibration",
-              "w1_amplify",
-              "w1_fire_affinity",
-              "w1_poison_affinity",
-              "w1_cascade",
-              "w1_lasting",
-              "w1_recall_link",
-              "w1_ward_link"
-            ],
+            "upgradeIds": ["w1_ranked_edge", "w1_ranked_ward", "w1_lasting"],
+            "modifierItemIds": ["w1_fire_item", "w1_poison_item", "w1_split_item", "w1_cascade_item", "w1_efficiency_item", "w1_calibration_item", "w1_amplify_item", "w1_recall_item", "w1_ward_item", "w1_condense_item", "w1_no_critical_item"],
             "allowRemoval": true,
             "allowReplacement": true,
             "costs": []
@@ -1362,20 +1338,8 @@
         "activity": {
           "type": "CardUpgrade",
           "parameters": {
-            "upgradeIds": [
-              "w1_ranked_edge",
-              "w1_ranked_ward",
-              "w1_efficiency",
-              "w1_split",
-              "w1_calibration",
-              "w1_amplify",
-              "w1_fire_affinity",
-              "w1_poison_affinity",
-              "w1_cascade",
-              "w1_lasting",
-              "w1_recall_link",
-              "w1_ward_link"
-            ],
+            "upgradeIds": ["w1_ranked_edge", "w1_ranked_ward", "w1_lasting"],
+            "modifierItemIds": ["w1_fire_item", "w1_poison_item", "w1_split_item", "w1_cascade_item", "w1_efficiency_item", "w1_calibration_item", "w1_amplify_item", "w1_recall_item", "w1_ward_item", "w1_condense_item", "w1_no_critical_item"],
             "allowRemoval": true,
             "allowReplacement": true,
             "costs": [

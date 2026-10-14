@@ -64,6 +64,8 @@ func _build() -> void:
 	var pause := visual_context.styles.button(visual_context.translator.text("PAUSE"), 100)
 	pause.name = "MapPauseButton"
 	pause.pressed.connect(func(): intent_requested.emit("pause", [])); header.add_child(pause)
+	var items := visual_context.styles.button(visual_context.translator.text("MODIFIERS"), 140)
+	items.pressed.connect(func(): intent_requested.emit("modifier_items", [])); header.add_child(items)
 	_body = HBoxContainer.new(); _body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.add_theme_constant_override("separation", 20); add_child(_body)
 	_scroll = ScrollContainer.new(); _scroll.name = "MapScroll"

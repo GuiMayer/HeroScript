@@ -42,6 +42,9 @@ class Transport extends RefCounted:
 		if path.ends_with("/cards/presentations"):
 			var record: Dictionary = records[path.split("/")[4]]
 			return ok({"runId": record.runId, "runSequence": record.sequence, "contentRevision": record.get("contentRevision", ""), "cards": []})
+		if path.ends_with("/card-modifier-items"):
+			var record: Dictionary = records[path.split("/")[4]]
+			return ok({"runId": record.runId, "runSequence": record.sequence, "contentRevision": record.get("contentRevision", ""), "items": []})
 		if path.contains("/legal-actions?"): return ok({"candidates": []})
 		if path.contains("/combats/"):
 			return ok({"combatId": path.get_file(), "status": "ACTIVE", "activeActorId": "player", "actors": [

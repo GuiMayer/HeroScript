@@ -22,6 +22,7 @@ var _tool_capabilities: Dictionary = {}
 var _card_zones: Dictionary = {}
 var _character_attributes: Dictionary = {}
 var _card_presentations: Dictionary = {}
+var _modifier_items: Dictionary = {}
 var _card_evaluations: Array = []
 var _card_evaluation_context: Array = []
 var _settings: Array = []
@@ -49,6 +50,8 @@ var card_evaluations: Array:
 	get: return _card_evaluations.duplicate(true) if card_evaluations_ready else []
 var settings: Array:
 	get: return _settings.duplicate(true)
+var modifier_items: Dictionary:
+	get: return _modifier_items.duplicate(true) if str(_modifier_items.get("runId", "")) == str(_run.get("runId", "")) and int(_modifier_items.get("runSequence", -1)) == int(_run.get("sequence", 0)) else {}
 var selected_setting: Dictionary:
 	get:
 		for item in _settings:
@@ -201,6 +204,13 @@ func preview_transformation(choice: Dictionary) -> Dictionary:
 	var captured_sequence := int(_run.get("sequence", -1))
 	var captured_run := str(_run.get("runId", ""))
 	var operation: String = {"UPGRADE_CARD": "Apply", "REMOVE_CARD_TRANSFORMATION": "Remove", "REPLACE_CARD_TRANSFORMATION": "Replace"}.get(str(choice.get("type", "")), "")
+	if str(choice.get("type", "")) == "APPLY_CARD_MODIFIER_ITEM":
+		var item_payload: Dictionary = choice.get("payload", {})
+		var preview: Dictionary = await _gateway.modifier_item_preview(captured_run, str(item_payload.get("itemInstanceId", "")), str(item_payload.get("cardInstanceId", "")))
+		if not preview.ok or captured_run != str(_run.get("runId", "")) or captured_sequence != int(_run.get("sequence", -1)) or int(preview.data.get("runSequence", -2)) != captured_sequence: return {}
+		var data: Dictionary = preview.data.duplicate(true)
+		data["isCompatible"] = true
+		return data
 	if operation.is_empty(): return {}
 	var payload: Dictionary = choice.get("payload", {})
 	var upgrade_id := str(payload.upgradeId) if payload.get("upgradeId") != null else ""
@@ -280,6 +290,10 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 	var next_presentations: Dictionary = responses.cardPresentations.data if responses.has("cardPresentations") else {}
 	if not next_presentations.is_empty() and (str(next_presentations.get("runId", "")) != run_id or int(next_presentations.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_presentations.get("contentRevision", "")) != str(next_run.get("contentRevision", ""))):
 		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	var next_items: Dictionary = responses.modifierItems.data if responses.has("modifierItems") else {}
+	if not next_items.is_empty() and (str(next_items.get("runId", "")) != run_id or int(next_items.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_items.get("contentRevision", "")) != str(next_run.get("contentRevision", ""))):
+		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	_modifier_items = next_items.duplicate(true)
 	_card_presentations = next_presentations.duplicate(true)
 	_character_attributes = next_attributes.duplicate(true)
 	_run = next_run.duplicate(true)

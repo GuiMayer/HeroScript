@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using Core.CardZones;
 using Core.Common;
 using Core.Resources;
+using Core.Content;
+using Core.Run.Content;
 
 namespace Core.Run;
 
@@ -41,7 +43,8 @@ public static class ShopTransitions
         RunState state,
         Guid shopInstanceId,
         string itemId,
-        ICardZoneFlowExecutor? zoneFlows = null)
+        ICardZoneFlowExecutor? zoneFlows = null,
+        ContentRuntime? runtime = null)
     {
         var located = Locate(state, shopInstanceId);
         if (located.IsFailure)
@@ -73,7 +76,16 @@ public static class ShopTransitions
             Shops = state.Shops.SetItem(shopIndex, updatedShop)
         };
 
-        if (!string.IsNullOrWhiteSpace(updatedItem.CardId))
+        if (!string.IsNullOrWhiteSpace(updatedItem.ModifierItemDefinitionId))
+        {
+            if (runtime == null || !string.IsNullOrWhiteSpace(updatedItem.CardId))
+                return Result<RunStateTransition<ShopItemState>>.Failure("Modifier shop item requires pinned content and cannot also grant a card");
+            var granted = CardModifierItemAcquisition.Grant(next, runtime, updatedItem.ModifierItemDefinitionId,
+                $"shop:{shopInstanceId}:{shop.OfferFingerprint}:{itemId}");
+            if (granted.IsFailure) return Result<RunStateTransition<ShopItemState>>.Failure(granted.Error);
+            next = granted.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(updatedItem.CardId))
         {
             var deck = CardZoneGrantTransitions.Grant(next, [updatedItem.CardId], zoneFlows);
             if (deck.IsFailure)

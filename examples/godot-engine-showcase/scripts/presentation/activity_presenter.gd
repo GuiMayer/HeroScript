@@ -8,13 +8,15 @@ var _choices: Array
 var _appearance: Dictionary
 var _i18n
 var _card_facts: Array = []
+var _item_catalog: Dictionary = {}
 
-func _init(run: Dictionary, choices: Array, appearance: Dictionary, translator, card_facts: Array = []) -> void:
+func _init(run: Dictionary, choices: Array, appearance: Dictionary, translator, card_facts: Array = [], item_snapshot: Dictionary = {}) -> void:
 	_run = run.duplicate(true)
 	_choices = choices.duplicate(true)
 	_appearance = appearance.duplicate(true)
 	_i18n = translator
 	_card_facts = card_facts.duplicate(true)
+	for item in item_snapshot.get("catalog", []): _item_catalog[str(item.get("itemDefinitionId", ""))] = item.duplicate(true)
 
 func current_node() -> Dictionary:
 	for node in _run.get("map", {}).get("nodes", []):
@@ -28,6 +30,8 @@ func choice_label(choice: Dictionary, model: Dictionary = {}) -> String:
 		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
 		"REMOVE_CARD_TRANSFORMATION": "REMOVE  •  %s", "REPLACE_CARD_TRANSFORMATION": "REPLACE  •  %s"}
 	if templates.has(type): return _i18n.text(templates[type]) % str(model.get("name", node_name(str(choice.get("subjectId", "")))))
+	if type == "ACQUIRE_CARD_MODIFIER_ITEM": return _i18n.text("ACQUIRE MODIFIER") + " · " + str(model.get("name", ""))
+	if type == "APPLY_CARD_MODIFIER_ITEM": return _i18n.text("APPLY MODIFIER")
 	return _i18n.text({"START_ENCOUNTER": "ENTER COMBAT", "START_DIALOGUE": "TALK", "RESOLVE_COMBAT": "CONFIRM RESULT",
 		"RESOLVE_NODE": "COMPLETE STAGE", "ACQUIRE_RELIC": "CLAIM RELIC", "CREATE_CARD_SELECTION": "REVEAL REWARD",
 		"CREATE_SHOP": "ENTER SHOP", "CREATE_PREPARATION": "LIGHT CAMPFIRE", "REROLL_CARD_REWARD": "NEW OPTIONS",
@@ -80,6 +84,7 @@ func offer(choice: Dictionary) -> Dictionary:
 					definition = str(item.get("cardId", subject)) if item.get("cardId") != null else subject
 					costs = item.get("costs", []).duplicate(true)
 					has_cost = item.has("costs")
+					if item.get("modifierItemDefinitionId") != null: definition = str(item.modifierItemDefinitionId)
 	elif type == "APPLY_PREPARATION_OPTION":
 		for preparation in _run.get("preparations", []):
 			if str(preparation.get("preparationInstanceId", "")) != str(choice.payload.get("preparationInstanceId", "")): continue
@@ -109,6 +114,12 @@ func offer(choice: Dictionary) -> Dictionary:
 		"summary": summary, "category": "cards" if is_card else "activities",
 		"cost": (_i18n.text("Free") if costs.is_empty() else " + ".join(price)) if has_cost else "",
 		"choice": choice.duplicate(true)}
+	if _item_catalog.has(definition):
+		var item_presentation: Dictionary = _item_catalog[definition].get("presentation", {})
+		model["name"] = _i18n.content_name(definition, str(item_presentation.get("name", definition)))
+		model["category"] = "modifier_items"
+		model["summary"] = _i18n.text(str(item_presentation.get("description", "Select an item, then a card.")))
+		model["artId"] = str(item_presentation.get("artId", definition))
 	for facts in _card_facts:
 		var identity: Dictionary = facts.get("identity", {})
 		if str(identity.get("kind", "")) != "Offer" or str(identity.get("definitionId", "")) != definition: continue

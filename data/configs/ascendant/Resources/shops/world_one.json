@@ -3,6 +3,13 @@
     "shopId": "w1_shop",
     "cardPoolId": "w1_rewards",
     "offerCount": 5,
+    "items": [
+      {"itemId": "modifier.fire", "modifierItemDefinitionId": "w1_fire_item", "costs": [{"resourceId": "gold", "amount": 25}]},
+      {"itemId": "modifier.split", "modifierItemDefinitionId": "w1_split_item", "costs": [{"resourceId": "gold", "amount": 25}]},
+      {"itemId": "modifier.cascade", "modifierItemDefinitionId": "w1_cascade_item", "costs": [{"resourceId": "gold", "amount": 30}]},
+      {"itemId": "modifier.condense", "modifierItemDefinitionId": "w1_condense_item", "costs": [{"resourceId": "gold", "amount": 20}]},
+      {"itemId": "modifier.stable", "modifierItemDefinitionId": "w1_no_critical_item", "costs": [{"resourceId": "gold", "amount": 15}]}
+    ],
     "pricing": {
       "baseMultiplier": 1,
       "rarityMultipliers": {

@@ -94,7 +94,8 @@ func read_projections(run_id: String, combat_id: String, include_combat: bool, a
 		"capabilities": "/api/v1/runs/%s/capabilities" % run_id.uri_encode(),
 		"cardZones": "/api/v1/runs/%s/card-zones" % run_id.uri_encode(),
 		"attributes": "/api/v1/runs/%s/character-attributes" % run_id.uri_encode(),
-		"cardPresentations": "/api/v1/runs/%s/cards/presentations" % run_id.uri_encode()
+		"cardPresentations": "/api/v1/runs/%s/cards/presentations" % run_id.uri_encode(),
+		"modifierItems": "/api/v1/runs/%s/card-modifier-items" % run_id.uri_encode()
 	}
 	if include_combat:
 		paths["combat"] = "/api/v1/combats/%s" % combat_id.uri_encode()
@@ -105,6 +106,9 @@ func read_projections(run_id: String, combat_id: String, include_combat: bool, a
 func read_legal_actions(combat_id: String, actor_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/combats/%s/legal-actions?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()])
+
+func modifier_item_preview(run_id: String, item_id: String, card_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/card-modifier-items/%s/preview/%s" % [run_id.uri_encode(), item_id.uri_encode(), card_id.uri_encode()])
 
 func prepare_command(scope: String, id: String, type: String, payload: Dictionary, sequence: int, step: int) -> Dictionary:
 	assert(scope in ["runs", "combats"])

@@ -591,6 +591,7 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
     public override IReadOnlySet<string> CommandTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         RunCommandTypes.UpgradeCard,
+        RunCommandTypes.AcquireCardModifierItem,
         RunCommandTypes.RemoveCardTransformation,
         RunCommandTypes.ReplaceCardTransformation,
         RunCommandTypes.ResolveNode
@@ -612,6 +613,9 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
                 return Result.Failure($"Card transformation activity {key} must be a boolean");
         var costs = CardTransformationAccess.ReadCosts(activity);
         if (costs.IsFailure) return Result.Failure(costs.Error);
+        if (activity.Parameters.TryGetValue("modifierItemIds", out var ids) &&
+            (ids.ValueKind != JsonValueKind.Array || ids.EnumerateArray().Any(id => id.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(id.GetString()))))
+            return Result.Failure("modifierItemIds must be an array of nonempty definition identities");
         return Result.Success();
     }
     public override bool IsComplete(RunState run, RunMapNodeState node) =>
@@ -632,6 +636,9 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
                         : JsonSerializer.SerializeToElement(Array.Empty<string>())
                 })
         };
+        if (CardTransformationAccess.UpgradeIds(node).Count == 0) commands.RemoveAll(command => command.Type == RunCommandTypes.UpgradeCard);
+        if (node.Activity.Parameters.TryGetValue("modifierItemIds", out var modifierIds) && modifierIds.ValueKind == JsonValueKind.Array)
+            commands.Add(Command(run, node, RunCommandTypes.AcquireCardModifierItem, new { itemDefinitionId = "string" }, new { itemDefinitionIds = modifierIds }));
         if (CardTransformationAccess.Enabled(node, "allowRemoval")) commands.Add(Command(run, node,
             RunCommandTypes.RemoveCardTransformation, new { cardInstanceId = "guid", transformationId = "uint64" }));
         if (CardTransformationAccess.Enabled(node, "allowReplacement")) commands.Add(Command(run, node,

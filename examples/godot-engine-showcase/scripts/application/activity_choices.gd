@@ -7,6 +7,10 @@ static func build(run: Dictionary, commands: Array) -> Array:
 		var type := str(command.get("type", ""))
 		var valid: Dictionary = command.get("validPayload", {}) if command.get("validPayload") is Dictionary else {}
 		match type:
+			"ACQUIRE_CARD_MODIFIER_ITEM":
+				for id in valid.get("itemDefinitionIds", []): choices.append(_choice(type, {"itemDefinitionId": id}, str(id), "modifier_item"))
+			"APPLY_CARD_MODIFIER_ITEM":
+				for option in valid.get("options", []): choices.append(_choice(type, option, str(option.get("itemInstanceId", "")), "modifier_item", true))
 			"CHOOSE_DIALOGUE_OPTION":
 				for id in valid.get("choiceIds", []):
 					choices.append(_choice(type, {"dialogueInstanceId": valid.get("dialogueInstanceId"), "nodeId": valid.get("nodeId"), "choiceId": id}, str(id), "dialogue"))
@@ -48,14 +52,14 @@ static func build(run: Dictionary, commands: Array) -> Array:
 
 static func only_forced_advance(choices: Array) -> Dictionary:
 	# Abandon is always a pause-menu escape hatch, not a progression decision.
-	var gameplay: Array = choices.filter(func(choice): return str(choice.get("type", "")) != "ABANDON_RUN")
+	var gameplay: Array = choices.filter(func(choice): return str(choice.get("type", "")) not in ["ABANDON_RUN", "APPLY_CARD_MODIFIER_ITEM"])
 	if gameplay.size() != 1 or str(gameplay[0].get("type", "")) != "ADVANCE_NODE":
 		return {}
 	return gameplay[0].duplicate(true)
 
 static func single_entry(choices: Array) -> Dictionary:
 	# Presentation ingress following an explicit travel, never a reward/price choice.
-	var gameplay: Array = choices.filter(func(choice): return str(choice.get("type", "")) != "ABANDON_RUN")
+	var gameplay: Array = choices.filter(func(choice): return str(choice.get("type", "")) not in ["ABANDON_RUN", "APPLY_CARD_MODIFIER_ITEM"])
 	if gameplay.size() != 1: return {}
 	if str(gameplay[0].get("type", "")) not in ["START_ENCOUNTER", "CREATE_CARD_SELECTION", "CREATE_SHOP", "CREATE_PREPARATION"]: return {}
 	return gameplay[0].duplicate(true)
