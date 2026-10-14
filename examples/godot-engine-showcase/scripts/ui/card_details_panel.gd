@@ -33,6 +33,18 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		scroll.follow_focus = true
 		add_child(scroll)
 		scroll.add_child(body)
+	if model.get("presentationFacts") is Dictionary:
+		body.add_child(visual_context.styles.title(visual_context.translator.text("Calculation"), 20))
+		var descriptions: Array[String] = preload("res://scripts/presentation/card_calculation_presenter.gd").new(visual_context.translator).describe(model.presentationFacts, mode == DisplayMode.TOOLTIP)
+		for line in descriptions: body.add_child(visual_context.styles.caption(line, 14, 260))
+		if mode == DisplayMode.INSPECTION:
+			for requirement in model.get("requirements", []): body.add_child(visual_context.styles.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
+			for behavior in model.get("behaviors", []): body.add_child(visual_context.styles.caption(str(behavior), 13, 260))
+		else:
+			body.add_child(visual_context.styles.caption(visual_context.translator.text("Open card inspection for full details."), 12, 260))
+			_disable_tooltip_input(self)
+		visual_context.styles.apply_view_preferences(self)
+		return
 	body.add_child(visual_context.styles.title(str(model.get("name", "")), 22) if style.printed_face else visual_context.styles.caption(str(model.get("name", "")), 20, 260))
 	body.add_child(visual_context.styles.caption(" · ".join([str(model.get("cardType", "")), str(model.get("rarity", ""))]), 13, 260))
 	var options: Array = model.get("costOptions", [])

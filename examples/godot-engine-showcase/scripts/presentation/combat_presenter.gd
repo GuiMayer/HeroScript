@@ -312,6 +312,8 @@ func compact_application(application: Dictionary) -> String:
 
 func inspection_text(id: String) -> String:
 	var data: Dictionary = _evaluations.get(id, {})
+	if data.get("presentation") is Dictionary:
+		return "\n".join(preload("res://scripts/presentation/card_calculation_presenter.gd").new(_i18n).describe(data.presentation, false))
 	var lines: Array[String] = [action_summary(id)]
 	if candidates(id).is_empty(): lines.append(unavailable_reason(id))
 	for candidate in candidates(id): lines.append(preview(candidate))

@@ -57,6 +57,13 @@ func _run() -> void:
 	facts.effects[0].parameters[0].values.source = null
 	check(passive.project(facts).effectRows[0].segments[1].text == i18n.text("Calculated — inspect"), "unknown source is not invented from flat definitions")
 	var style = load("res://data/default_card_visual_style.tres")
+	var calculation_lines: Array[String] = load("res://scripts/presentation/card_calculation_presenter.gd").new(i18n).describe(facts, true)
+	check("\n".join(calculation_lines).contains("Composed base 8") and not "\n".join(calculation_lines).contains("999"), "calculation tooltip formats declared layers without recomputing effects")
+	var calculation_tooltip = load("res://scripts/ui/card_details_panel.gd").new()
+	root.add_child(calculation_tooltip)
+	calculation_tooltip.configure(contextual, style, calculation_tooltip.DisplayMode.TOOLTIP)
+	check(passive_tooltip(calculation_tooltip) and calculation_tooltip.find_child("DetailedEffects", true, false) == null, "new tooltip explains calculation without repeating effect text or exposing an unreachable scrollbar")
+	calculation_tooltip.free()
 	check(style.value_color(6, 6) == Color.WHITE, "unchanged values are white")
 	check(style.value_color(3, 6) == style.lower_value_color, "lower values are red")
 	check(style.value_color(9, 6) == style.higher_value_color, "higher values are blue")
