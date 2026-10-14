@@ -34,6 +34,7 @@ func configure(data: Dictionary) -> void:
 	model = data.duplicate(true)
 	var face_data := data.duplicate(true)
 	face_data.erase("inspectionText")
+	face_data.erase("availability")
 	var presentation_key: String = JSON.stringify(face_data) + visual_style.presentation_key() + visual_context.presentation_key()
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
@@ -150,16 +151,8 @@ func configure(data: Dictionary) -> void:
 	var badges := _change_badges(data.get("changeBadges", []))
 	if badges != null:
 		column.add_child(badges)
-	var more := visual_context.styles.muted(visual_context.translator.text("Full text in details"), 10)
-	more.name = "DetailsHint"
-	more.autowrap_mode = TextServer.AUTOWRAP_OFF
-	column.add_child(more)
-	var availability := visual_context.styles.muted(str(data.get("availability", "")), 11)
-	availability.autowrap_mode = TextServer.AUTOWRAP_OFF
-	availability.name = "Availability"
-	availability.add_theme_color_override("font_color", tone.darkened(.15) if visual_style.printed_face else tone.lightened(.2))
-	availability.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(availability)
+	# Interaction guidance and playability belong to surrounding controls,
+	# preview and inspection. The printed face contains card information only.
 	_ignore_mouse(margin)
 	var tooltip: Array[String] = [str(data.get("name", "")), _cost_accessible_text(data), str(data.get("summary", ""))]
 	# Target previews and execution diagnostics belong to the separate combat

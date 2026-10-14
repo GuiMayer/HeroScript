@@ -129,7 +129,9 @@ func _run() -> void:
 					var card = screen.view.card_buttons[id]
 					var cost: Control = card.find_child("Cost", true, false)
 					costs_visible = costs_visible and cost.size.y > 5 and cost.get_child_count() > 0
-					rules_fit = rules_fit and card.find_child("Rules", true, false).get_global_rect().end.y <= card.find_child("Availability", true, false).get_global_rect().position.y
+					var rules: Control = card.find_child("Rules", true, false)
+					var local_end: Vector2 = card.get_global_transform().affine_inverse() * (rules.get_global_transform() * rules.size)
+					rules_fit = rules_fit and local_end.y <= card.size.y - 4
 				check(costs_visible and rules_fit, "every card has visible cost and fitting rules: " + label)
 				if scale == 1.0: await capture("combat-%s-%s" % [resolution.x, language])
 	if "--layout-only" in OS.get_cmdline_user_args():

@@ -86,10 +86,11 @@ func _run() -> void:
 	context._options.text_scale = 1.2
 	card.configure(model)
 	var font_size: int = rules.get_theme_font_size("normal_font_size")
+	var face_count: int = card.configuration_count
 	for index in 4:
 		model.availability = "Availability %s" % index
 		card.configure(model)
-		check(card.find_child("Rules", true, false) == rules and rules.get_theme_font_size("normal_font_size") == font_size, "availability updates preserve rich text and scaled font, update %s" % index)
+		check(card.configuration_count == face_count and card.find_child("Rules", true, false) == rules and rules.get_theme_font_size("normal_font_size") == font_size, "playability updates do not rebuild the printed face, update %s" % index)
 	var changed_style = card.visual_style.duplicate(true)
 	changed_style.rules_font_size += 2
 	card.visual_style = changed_style; card.configure(model)

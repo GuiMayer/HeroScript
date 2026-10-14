@@ -467,7 +467,7 @@ func _update_controls() -> void:
 	for id in card_buttons:
 		var card: CardView = card_buttons[id]
 		card.disabled = false # Still focusable for reading; activation is gated by the hand/screen.
-		# Availability is explicit text; tinting the entire card corrupts semantic colors.
+		# Playability is explained in preview/inspection; preserve the face's semantic colors.
 		card.modulate = Color.WHITE
 		card.select_card(id == selected_card)
 	for button in action_buttons:

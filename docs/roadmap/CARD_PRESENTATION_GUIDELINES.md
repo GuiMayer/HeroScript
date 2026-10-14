@@ -25,7 +25,7 @@ Este documento consolida as diretrizes discutidas na conversa e as decisões de 
 | Chance, duração e momento de execução | Junto do efeito | Não misturar esses qualificadores com custo ou raridade. Efeitos encadeados indicam antes/depois do impacto. |
 | Repetição, orçamento, condensação e continuação | Palavras-chave de comportamento | Mostrar os parâmetros importantes; explicar a operação completa nos detalhes. Condensar stacks não significa obrigatoriamente causar dano. |
 | Alterações contextuais | Faixa separada de alterações | Mostrar que existem influências e suas origens. Não somar alterações de parâmetros diferentes para decidir se a carta foi “buffada”. |
-| Disponibilidade | Rodapé | Mostrar seleção ou motivo de indisponibilidade. Não substituir o custo pela palavra “indisponível”. |
+| Disponibilidade | Preview e inspeção, fora da face | Explicar impedimentos sem imprimir instruções como “SELECT TO PLAY” na carta. Não substituir o custo pela palavra “indisponível”. |
 | Fórmulas, buckets e contribuições | Inspeção | Informações para entender a origem dos valores. Não ocupar a leitura principal com identificadores técnicos. |
 | Preço de loja e recompensa de decomposição | Contexto de aquisição / inspeção | Não são custo de uso. Uma oferta pode mostrar um preço; isso não transforma esse preço em custo de jogar a carta. |
 | Slots, bundles, capacidades e histórico de transformações | Inspeção e telas de transformação | São informações de composição, não precisam ocupar permanentemente a face da carta. |
@@ -73,14 +73,14 @@ Paleta inicial editável:
 
 Usar o identificador canônico da raridade, separado do rótulo traduzido. Uma raridade ainda não recebida não deve ser inventada como Common. Identificadores numéricos do contrato são normalizados na projeção.
 
-Hover e seleção podem alterar o fundo. Foco usa uma borda mais grossa da mesma raridade. Indisponibilidade deve aparecer em texto: tingir a carta inteira mudaria as cores dos números. Alto contraste escurece o fundo sem apagar as cores semânticas.
+Hover e seleção podem alterar o fundo. Foco usa uma borda mais grossa da mesma raridade. Indisponibilidade deve aparecer em texto no preview/inspeção: tingir a carta inteira mudaria as cores dos números. Alto contraste escurece o fundo sem apagar as cores semânticas.
 
 ## Leitura e detalhes
 
 - Não diminuir a fonte para encaixar mais cartas na mão. Usar rolagem horizontal e manter o foco de teclado/controle visível.
 - A mão adaptativa usa arco suave e sobreposição limitada; o modo leitura mantém cartas retas e separadas. Visão geral é persistente e usa as mesmas instâncias/modelos de apresentação. Hover eleva/endireita sem mover vizinhos nem animar fontes.
 - No overflow, uma carta cortada pode ganhar uma cópia de leitura passiva. Ela não rouba input nem permite comandos; os hitboxes continuam vinculados aos slots de repouso. Inspeção/visão geral cancelam gestos e destaque transitório.
-- O corpo da carta tem espaço limitado, com indicação explícita de texto completo nos detalhes. O tooltip usa a mesma apresentação de números. A inspeção aberta por botão permite rolagem, seleção de texto e acesso aos dados completos.
+- O corpo da carta tem espaço limitado. Instruções de selecionar/jogar/inspecionar ficam nos controles ao redor e no tooltip, sem um rodapé de instruções na face. O tooltip usa a mesma apresentação de números. A inspeção aberta por botão permite rolagem, seleção de texto e acesso aos dados completos.
 - A janela de inspeção é o caminho persistente para textos extensos; o tooltip é um resumo passivo, sem rolagem, seleção ou foco. Seu texto e suas linhas são limitados, com indicação explícita para abrir a inspeção. Não depender de conseguir mover o cursor para dentro de um tooltip transitório.
 - Cabeçalhos e badges podem abreviar na face. A inspeção deve preservar nomes, fontes e descrições completos, com quebra de linha.
 - Reaplicar escala de texto antes de apresentar uma carta enriquecida por resposta assíncrona, evitando um frame com fonte diferente.
@@ -111,7 +111,7 @@ Edite o recurso `.tres` no Inspector para configurar a política padrão, ou atr
 
 O resumo usa `tooltip_effect_rows`, `tooltip_effect_lines` e `tooltip_label_lines` para limitar o espaço, sem diminuir a fonte. `inspection_height` define a altura mínima do painel completo; apenas esse modo cria um `ScrollContainer` com foco de teclado. O tooltip não carrega o journal nem a descrição técnica extensa (`inspectionText`).
 
-O modelo fornece `rarityId`, `rarity`, `costs`, `costOptions`, `requirements`, `effectRows`, `identityTags`, `behaviors`, `changeBadges`, `availability` e `inspectionText`. Um segmento numérico usa `text`, `value` e `baseValue`. Texto não estruturado continua legível, mas fica neutro: não é possível inferir com segurança seu valor base.
+O modelo fornece `rarityId`, `rarity`, `costs`, `costOptions`, `requirements`, `effectRows`, `identityTags`, `behaviors`, `changeBadges`, `availability` e `inspectionText`. `availability` e `inspectionText` são metadados de contexto/inspeção, não seções impressas da carta; suas alterações isoladas não reconstroem a face. Um segmento numérico usa `text`, `value` e `baseValue`. Texto não estruturado continua legível, mas fica neutro: não é possível inferir com segurança seu valor base.
 
 Opções de pagamento ainda não cotadas pela engine recebem indicação de custo alternativo pendente (`costsKnown = false`), nunca “0” por ausência de dados. A lista de ações pode oferecer vários alvos com o mesmo pagamento: isso não cria opções de custo adicionais.
 

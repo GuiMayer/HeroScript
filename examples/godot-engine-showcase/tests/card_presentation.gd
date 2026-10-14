@@ -100,6 +100,7 @@ func _run() -> void:
 	root.add_child(card)
 	for _frame in 4: await process_frame
 	var rules = card.find_child("Rules", true, false)
+	check(card.find_child("Availability", true, false) == null and card.find_child("DetailsHint", true, false) == null, "printed face contains no play or inspection instructions")
 	check(rules.numeric_colors == [style.higher_value_color, style.lower_value_color, style.base_value_color], "numeric colors are applied per value, never to the whole description")
 	check(card.find_child("Cost", true, false).position.y > card.find_child("CardName", true, false).position.y, "costs occupy their own strip below the name")
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
