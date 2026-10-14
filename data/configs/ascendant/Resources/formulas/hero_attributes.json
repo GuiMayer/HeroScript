@@ -1,0 +1,37 @@
+{
+  "W1_ARMOR_REMAINING_AMOUNT": {
+    "description": "Target armor diminishing returns before capacity defenses. No resource identity is assumed.",
+    "params": {
+      "K": 100,
+      "bucket.contributions.sum": 0,
+      "bucket.input": 0
+    },
+    "parameterConstraints": {
+      "K": {
+        "minimumExclusive": 0
+      }
+    },
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.bucket.contributions.sum"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "ADD",
+        "value": "params.K"
+      },
+      {
+        "op": "DIVIDE_INVERSE",
+        "value": "params.K"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "params.bucket.input"
+      }
+    ]
+  }
+}

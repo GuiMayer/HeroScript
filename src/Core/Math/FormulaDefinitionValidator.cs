@@ -3,15 +3,41 @@ using System.Globalization;
 
 namespace Core.Math;
 
+public sealed record FormulaParameterConstraint
+{
+    public float? Minimum { get; init; }
+    public float? MinimumExclusive { get; init; }
+    public float? Maximum { get; init; }
+}
+
 /// <summary>Static validation only: content publication never samples gameplay inputs or executes a formula.</summary>
 public static class FormulaDefinitionValidator
 {
+    public static ImmutableArray<string> ValidateParameters(FormulaDefinition formula, IReadOnlyDictionary<string, float> values)
+    {
+        var errors = ImmutableArray.CreateBuilder<string>();
+        foreach (var (name, bound) in formula.ParameterConstraints ?? [])
+        {
+            if (bound == null || string.IsNullOrWhiteSpace(name) || !formula.Params.ContainsKey(name) ||
+                !values.TryGetValue(name, out var value)) { errors.Add("parameter constraint references an undeclared value"); continue; }
+            var constraints = new[] { bound.Minimum, bound.MinimumExclusive, bound.Maximum }.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
+            if (constraints.Length == 0 || constraints.Any(value => !float.IsFinite(value)) ||
+                bound.Maximum is { } maximum && (bound.Minimum > maximum || bound.MinimumExclusive >= maximum))
+                errors.Add($"invalid parameter constraint: {name}");
+            if (!float.IsFinite(value) || bound.Minimum is { } min && value < min ||
+                bound.MinimumExclusive is { } exclusive && value <= exclusive || bound.Maximum is { } max && value > max)
+                errors.Add($"parameter {name} is outside declared bounds");
+        }
+        return errors.ToImmutable();
+    }
+
     public static ImmutableArray<string> Validate(FormulaDefinition formula)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         if (formula.Params == null || formula.Operations == null) return ["params and operations cannot be null"];
         foreach (var (name, value) in formula.Params)
             if (string.IsNullOrWhiteSpace(name) || !float.IsFinite(value)) errors.Add("formula parameters require names and finite values");
+        errors.AddRange(ValidateParameters(formula, formula.Params));
         if (formula.Operations.Count > 4096) errors.Add("formula operation limit exceeded");
         foreach (var (operation, index) in formula.Operations.Take(4096).Select((operation, index) => (operation, index)))
         {

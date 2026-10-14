@@ -436,9 +436,12 @@
 	"en": "Support Link"
   },
   "w1_strike": {
-	"en": "Matrix Strike",
-	"pt_BR": "Golpe da matriz"
+    "en": "Matrix Strike",
+    "pt_BR": "Golpe da matriz"
   },
+  "w1_last_guard": {"en": "Last Guard", "pt_BR": "Última guarda"},
+  "w1_second_wind": {"en": "Second Wind", "pt_BR": "Novo fôlego"},
+  "w1_solar_burst": {"en": "Solar Burst", "pt_BR": "Explosão solar"},
   "w1_guard": {
 	"en": "Kinetic Guard",
 	"pt_BR": "Guarda cinética"

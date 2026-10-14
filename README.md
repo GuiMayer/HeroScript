@@ -29,7 +29,7 @@ desbloqueios por setting e elegibilidade congelada. A
 [certificação técnica](docs/plans/ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md)
 é distinta do conteúdo/balanceamento do ato. O
 [conteúdo do primeiro mundo](docs/content/ASCENDANT_WORLD_ONE.md) já está publicado
-como alpha: 30 cartas, 12 transformações, 8 relíquias, rotas ramificadas,
+como alpha: 33 cartas, 12 transformações, 8 relíquias, rotas ramificadas,
 14 paradas principais e nove combates por tentativa, incluindo o chefe.
 A duração de 25–40 minutos e a viabilidade das cinco famílias ainda precisam
 de playtests; consulte o [relatório do conteúdo](docs/plans/ASCENDANT_WORLD_1_CONTENT_VALIDATION_REPORT.md).

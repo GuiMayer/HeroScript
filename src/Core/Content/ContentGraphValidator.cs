@@ -60,6 +60,12 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
         var runtime = created.Value;
         ValidateModes(runtime, errors);
+        foreach (var id in runtime.GetDefinitions("effect-resolution-policies").Keys)
+        {
+            var policy = runtime.GetDefinition<EffectResolutionPolicyDefinition>("effect-resolution-policies", id);
+            var valid = policy.IsFailure ? Result.Failure(policy.Error) : EffectResolutionPolicyResolver.Validate(policy.Value, runtime);
+            if (valid.IsFailure) errors.Add($"effect-resolution-policies/{id}: {valid.Error}");
+        }
         ValidateCardZoneSystems(runtime, errors);
         ValidateCombatRules(runtime, errors, warnings);
         ValidatePhaseSequences(runtime, errors);
@@ -113,6 +119,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "runDefinitionId", "runs");
             RequireProperty(runtime, errors, "modes", id, definition, "flowRulesId", "flow-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "combatRulesId", "combat-rules");
+            if (TryGetProperty(definition, "effectResolutionPolicyId", out _))
+                RequireProperty(runtime, errors, "modes", id, definition, "effectResolutionPolicyId", "effect-resolution-policies");
             RequireArray(runtime, errors, "modes", id, definition, "calculationPipelineIds", "calculation-pipelines");
             RequireProperty(runtime, errors, "modes", id, definition, "replayPolicyId", "replay-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "timelinePolicyId", "timeline-policies");
@@ -133,6 +141,19 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             {
                 errors.Add($"modes/{id}: {mode.Error}");
                 continue;
+            }
+            if (mode.Value.EffectResolutionPolicyId is { } effectPolicyId)
+            {
+                var policy = runtime.GetDefinition<EffectResolutionPolicyDefinition>("effect-resolution-policies", effectPolicyId);
+                if (policy.IsSuccess)
+                {
+                    var required = policy.Value.Attributes.Select(value => value.PipelineId).Concat(policy.Value.Rules.SelectMany(rule =>
+                        new[] { rule.AmountPipelineId, rule.NonCriticalPipelineId, rule.CriticalInput?.Probability?.PipelineId }
+                            .Concat(rule.CriticalInput?.Probability?.Captures.Values.Select(value => value.PipelineId) ?? []))).Where(id => id != null);
+                    foreach (var pipelineId in required.Distinct(StringComparer.Ordinal))
+                        if (!mode.Value.CalculationPipelineIds.Contains(pipelineId!, StringComparer.Ordinal))
+                            errors.Add($"modes/{id}: effect policy requires enabled pipeline {pipelineId}");
+                }
             }
             if (mode.Value.ProfileProgressProvenance is { } provenance && !Enum.IsDefined(provenance))
                 errors.Add($"modes/{id}: invalid profile progress provenance");

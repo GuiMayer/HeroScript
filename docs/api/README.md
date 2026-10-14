@@ -18,6 +18,7 @@ ferramentas de QA. O contrato de máquina está em `/openapi/v1.json` e em
 | [Progresso por setting](../content/profile-progress-policies.md) | Configurar condições, origens e provas de desbloqueios. |
 | [Elegibilidade por run](../content/run-eligibility.md) | Disponibilidade congelada, ofertas e retries de criação. |
 | [Fundamentos do mundo 1](world-one-foundations.md) | Owners de recursos, disponibilidade do perfil e certeza dos previews. |
+| [Atributos e regras globais](../content/hero-attribute-scaling.md) | Armor, tiers críticos, overrides e projeções read-only do personagem. |
 | [Autenticação](authentication.md) | Usar administração sem expor a chave. |
 | [Changelog](changelog.md) | Mudanças publicadas no contrato. |
 

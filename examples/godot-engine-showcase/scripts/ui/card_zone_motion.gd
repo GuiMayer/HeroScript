@@ -22,23 +22,58 @@ static func resolve(steps: Array, snapshots: Array, anchor: Callable, policy, ro
 			elif role.is_valid():
 				if role.call(target) == "hand": operation = "draw"
 				elif role.call(source) == "hand": operation = "discard"
-			if not start.is_finite() or not end.is_finite() or policy.duration(operation, true) <= 0: continue
-			if operation not in ["create", "destroy"] and start.is_equal_approx(end): continue
+			var burning: bool = not str(id).is_empty() and flow_visual(str(step.get("flowId", "")), policy).get("animation") == "burn"
+			# A dissolve needs the source face, not a visible destination pile.
+			if burning: end = start
+			if not start.is_finite() or not end.is_finite() or policy.duration("exile_burn" if burning else operation, true) <= 0: continue
+			if not burning and operation not in ["create", "destroy"] and start.is_equal_approx(end): continue
 			transfers.append({"id": str(id), "source": source, "target": target, "start": start, "end": end, "operation": operation, "step": step, "hidden": hidden})
 	return transfers
+
+static func schedule(transfers: Array, policy, staged: Callable = Callable()) -> Array:
+	var visible: Array = transfers.slice(0, policy.limit("max_transfers"))
+	var serial: Dictionary = {}
+	var result: Array = []
+	for i in visible.size():
+		var item: Dictionary = visible[i].duplicate(true)
+		var duration: float = policy.duration(item.operation, true)
+		if item.operation == "discard" and staged.is_valid() and staged.call(item.id): duration = policy.duration("staged_discard", true)
+		var visual := flow_visual(str(item.get("step", {}).get("flowId", "")), policy)
+		if visual.get("animation") == "burn" and not item.id.is_empty(): duration = policy.duration("exile_burn", true)
+		item["visual"] = visual
+		var key: String = item.id if not item.id.is_empty() else "hidden:%s" % i
+		var delay: float = maxf(float(serial.get(key, 0)), minf(i * policy.duration("stagger", true), policy.duration("batch_span", true)))
+		serial[key] = delay + duration
+		item["duration"] = duration; item["delay"] = delay
+		item["following"] = visible.slice(i + 1).any(func(next): return not item.id.is_empty() and next.id == item.id)
+		result.append(item)
+	return result
+
+static func flow_visual(flow_id: String, policy) -> Dictionary:
+	return policy.as_dictionary(policy.cue("card_flows").get(flow_id, {}))
+
+static func uses_burn(frames: Array, id: String, policy) -> bool:
+	for frame in frames:
+		var steps: Array = frame.get("cardZoneSteps", []).duplicate()
+		for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
+		for step in steps:
+			if id in step.get("instanceIds", []) and flow_visual(str(step.get("flowId", "")), policy).get("animation") == "burn": return true
+	return false
 
 static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: Callable, overlay: Control, context, handle, role: Callable = Callable(), registry = null, arrival: Callable = Callable()) -> void:
 	var policy = context.motion if context.motion != null else context.capture_motion()
 	var transfers := resolve(steps, snapshots, anchor, policy, role)
 	if transfers.is_empty(): handle.hit(); handle.finish(); return
 	var owner = registry if registry != null else preload("res://scripts/ui/card_transit_registry.gd").new(null, overlay, context)
-	var visible := transfers.slice(0, policy.limit("max_transfers"))
+	var visible := schedule(transfers, policy, owner.consume_staged)
 	var remaining := {"count": visible.size()}
 	# The same instance may cross several addresses in one published beat. Chain
 	# only its own passages; unrelated cards travel together.
-	var serial: Dictionary = {}
 	for i in visible.size():
 		var item: Dictionary = visible[i]
+		if item.visual.get("animation") == "burn" and hand_source(owner, item.id):
+			_execute_burn(item, owner, overlay, context, handle, remaining, arrival)
+			continue
 		var source_visible := false
 		for zone in snapshots[0].get("zones", []):
 			if address_key(zone) == item.source: source_visible = bool(zone.get("contentsVisible", false))
@@ -48,12 +83,9 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 		if not source_visible:
 			ghost.scale = Vector2.ONE * .35; ghost.hide()
 		if item.operation == "create": ghost.scale = Vector2.ONE * .8; ghost.modulate.a = 0; ghost.hide()
-		var duration: float = policy.duration(item.operation, true)
-		if item.operation == "discard" and owner.consume_staged(item.id): duration = policy.duration("staged_discard", true)
-		var key: String = item.id if not item.id.is_empty() else "hidden:%s" % i
-		var delay: float = maxf(float(serial.get(key, 0)), minf(i * policy.duration("stagger", true), policy.duration("batch_span", true)))
-		serial[key] = delay + duration
-		var following: bool = visible.slice(i + 1).any(func(next): return not item.id.is_empty() and next.id == item.id)
+		var duration: float = item.duration
+		var delay: float = item.delay
+		var following: bool = item.following
 		if item.hidden > 1 or (i == visible.size() - 1 and transfers.size() > visible.size()):
 			var count := Label.new(); count.text = "×%s" % (item.hidden if item.hidden > 1 else transfers.size() - visible.size() + 1)
 			count.add_theme_font_size_override("font_size", 36); count.mouse_filter = Control.MOUSE_FILTER_IGNORE; ghost.add_child(count)
@@ -82,3 +114,24 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 			if remaining.count == 0: handle.hit(); handle.finish())
 		handle.cleanup(func():
 			if handle.result != "completed": owner.release(item.id, ghost_ref.get_ref()))
+
+static func hand_source(owner, id: String) -> bool:
+	return owner.hand != null and is_instance_valid(owner.hand) and is_instance_valid(owner.hand.card_for(id))
+
+static func _execute_burn(item: Dictionary, owner, overlay: Control, context, handle, remaining: Dictionary, arrival: Callable) -> void:
+	var child = preload("res://scripts/presentation/presentation_handle.gd").new()
+	handle.claimed = true
+	handle.cleanup(func(): if not child.done: child.finish("cancelled"))
+	child.completed.connect(func(_result):
+		if handle.done: return
+		if arrival.is_valid(): arrival.call(item)
+		remaining.count -= 1
+		if remaining.count == 0: handle.hit(); handle.finish(), CONNECT_ONE_SHOT)
+	var start := func():
+		if handle.done: return
+		child.begin()
+		preload("res://scripts/ui/card_burn_motion.gd").execute(item.id, str(item.visual.get("direction", "center")), owner.hand, owner, context, overlay, child, "normal", item.duration)
+	if item.delay > 0:
+		var delay := overlay.create_tween(); handle.own(delay)
+		delay.tween_callback(start).set_delay(item.delay)
+	else: start.call()

@@ -61,6 +61,8 @@ public sealed class ContractDocumentationTests
 
         Assert.Equal("3.0.4", root.GetProperty("openapi").GetString());
         Assert.Equal("v1", root.GetProperty("info").GetProperty("version").GetString());
+        AssertOperation(root.GetProperty("paths"), "/api/v1/runs/{runId}/character-attributes", "get", "experimental");
+        AssertOperation(root.GetProperty("paths"), "/api/v1/combats/{combatId}/actors/{actorId}/attributes", "get", "experimental");
 
         var paths = root.GetProperty("paths");
         AssertOperation(paths, "/api/v1/content/settings", "get", "stable");

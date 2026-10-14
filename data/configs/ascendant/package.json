@@ -14,6 +14,27 @@
     {
       "schemaVersion": 1,
       "operation": "definition",
+      "kind": "effect-resolution-policies",
+      "sourcePath": "Resources/effect-resolution-policies/world_one.json",
+      "artifactPath": "effect-resolution-policies/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "calculation-pipelines",
+      "sourcePath": "Resources/calculation-pipelines/hero_attributes.json",
+      "artifactPath": "calculation-pipelines/hero_attributes.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "formulas",
+      "sourcePath": "Resources/formulas/hero_attributes.json",
+      "artifactPath": "formulas/hero_attributes.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
       "sourcePath": "Resources/profile-progress-policies/ascendant_options.json",
       "kind": "profile-progress-policies",
       "artifactPath": "profile-progress-policies/ascendant_options.json"

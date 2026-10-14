@@ -1,0 +1,122 @@
+{
+  "w1_global_effect_rules": {
+    "policyId": "w1_global_effect_rules",
+    "rules": [
+      {
+        "ruleId": "direct-damage",
+        "armorBypassTag": "ignore_armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "damage.residual",
+          "damage.condensed"
+        ],
+        "excludedChannels": [
+          "w1_dot",
+          "w1_overflow"
+        ],
+        "amountPipelineId": "w1_critical_amount",
+        "nonCriticalPipelineId": "w1_direct_amount",
+        "criticalStageId": "w1_impact",
+        "tierCheckpointId": "guaranteed",
+        "bonusCaptureId": "bonus",
+        "projectionTags": ["damage", "attack", "critical"],
+        "criticalInput": {
+          "inputId": "critical",
+          "scope": "Impact",
+          "probability": {
+            "formulaValue": "captures.chance + 0",
+            "channel": "critical_probability",
+            "pipelineId": "ascendant_critical_probability",
+            "unitId": "probability",
+            "captures": {
+              "chance": {
+                "parameter": "Amount",
+                "flatValue": 0,
+                "channel": "critical_chance",
+                "pipelineId": "w1_critical_chance",
+                "unitId": "percent",
+                "conversion": {
+                  "sign": "NonNegative"
+                }
+              },
+              "bonus": {
+                "parameter": "Amount",
+                "flatValue": 0,
+                "channel": "critical_bonus",
+                "pipelineId": "w1_critical_bonus",
+                "unitId": "factor",
+                "conversion": {
+                  "sign": "NonNegative"
+                }
+              }
+            }
+          }
+        },
+        "channels": [
+          "effect_amount"
+        ]
+      },
+      {
+        "ruleId": "residual-damage",
+        "armorBypassTag": "ignore_armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "channels": [
+          "w1_dot"
+        ],
+        "amountPipelineId": "w1_dot"
+      }
+    ],
+    "attributes": [
+      {
+        "attributeId": "armor",
+        "displayName": "Armor",
+        "pipelineId": "w1_armor_attribute",
+        "displayUnit": "points",
+        "tags": [
+          "effect.damage"
+        ]
+      },
+      {
+        "attributeId": "armor_reduction",
+        "displayName": "Armor reduction",
+        "pipelineId": "w1_armor_reduction",
+        "displayUnit": "percent",
+        "displayScale": -100,
+        "displayOffset": 100,
+        "flatValue": 1,
+        "tags": [
+          "effect.damage"
+        ]
+      },
+      {
+        "attributeId": "critical_chance",
+        "displayName": "Critical chance",
+        "pipelineId": "w1_critical_chance",
+        "displayUnit": "percent",
+        "tags": [
+          "damage",
+          "attack",
+          "critical",
+          "effect.damage"
+        ]
+      },
+      {
+        "attributeId": "critical_damage",
+        "displayName": "Critical damage bonus per tier",
+        "pipelineId": "w1_critical_bonus",
+        "displayUnit": "percent",
+        "displayScale": 100,
+        "tags": [
+          "damage",
+          "attack",
+          "critical",
+          "effect.damage"
+        ]
+      }
+    ]
+  }
+}

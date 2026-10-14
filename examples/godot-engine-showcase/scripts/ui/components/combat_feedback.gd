@@ -5,6 +5,15 @@ var visual_context: ContextType
 var effects := Control.new()
 var _active_lanes: Dictionary = {}
 var _tails: Array = []
+var _tail_cleanup: Dictionary = {}
+func track_cosmetic(tween: Tween, cleanup: Callable = Callable()) -> void:
+	if tween == null or not tween.is_valid(): return
+	_tails = _tails.filter(func(item): return item.is_valid())
+	for old in _tail_cleanup.keys():
+		if not old.is_valid(): _tail_cleanup.erase(old)
+	_tails.append(tween)
+	if cleanup.is_valid(): _tail_cleanup[tween] = cleanup
+	tween.finished.connect(func(): _tails.erase(tween); _tail_cleanup.erase(tween), CONNECT_ONE_SHOT)
 func _init(context) -> void:
 	visual_context = context
 	effects.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -91,6 +100,8 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 func clear_cosmetics() -> void:
 	for tween in _tails:
 		if tween.is_valid(): tween.kill()
+	for cleanup in _tail_cleanup.values(): cleanup.call()
+	_tail_cleanup.clear()
 	_tails.clear()
 	for child in effects.get_children():
 		if not child is Label: continue

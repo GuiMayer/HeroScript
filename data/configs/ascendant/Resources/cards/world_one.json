@@ -1,4 +1,323 @@
 {
+  "w1_last_guard": {
+    "cardId": "w1_last_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "defense",
+      "starter"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_last_guard",
+      "artKey": "placeholder.w1_last_guard",
+      "displayName": "Last Guard",
+      "description": "One-use defensive burst. Exiled after play."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_last_guard.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 14,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_second_wind": {
+    "cardId": "w1_second_wind",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "recovery"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_second_wind",
+      "artKey": "placeholder.w1_second_wind",
+      "displayName": "Second Wind",
+      "description": "One-use recovery and protection. Exiled after play."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_second_wind.0",
+          "type": "HEAL",
+          "target": "SELF",
+          "targetResource": "health",
+          "flatValue": 10,
+          "tags": [
+            "recovery"
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_second_wind.1",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 8,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_solar_burst": {
+    "cardId": "w1_solar_burst",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "fire"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_solar_burst",
+      "artKey": "placeholder.w1_solar_burst",
+      "displayName": "Solar Burst",
+      "description": "One-use strike with a stronger residual. Exiled after play."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_solar_burst.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 12,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_solar_burst.1",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_burn",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 4
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
   "w1_strike": {
     "cardId": "w1_strike",
     "rarity": "Common",
@@ -64,49 +383,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 8,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -293,49 +577,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 4,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -644,49 +893,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 7,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -885,49 +1099,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 17,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -1029,49 +1208,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 10,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -1173,49 +1317,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 22,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -1317,50 +1426,15 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 12,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
                 "w1_origin",
-                "w1_impact",
                 "w1_target"
               ]
             }
@@ -1452,49 +1526,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 4,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -1992,49 +2031,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 4,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -2668,49 +2672,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 14,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -2942,49 +2911,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 12,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -3086,49 +3020,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "formulaValue": "source.resources.block.current * 0.75",
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -3246,49 +3145,14 @@
             "attack",
             "piercing"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 7,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {
@@ -3322,6 +3186,17 @@
         "componentId": "disposition",
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
+      },
+      {
+        "type": "effect_rule_override",
+        "componentId": "rule.no-critical",
+        "order": 90,
+        "rule": {
+          "critical": false,
+          "requiredTags": [
+            "effect.damage"
+          ]
+        }
       }
     ]
   },
@@ -3391,49 +3266,14 @@
             "attack",
             "physical"
           ],
-          "randomInputs": [
-            {
-              "inputId": "critical",
-              "scope": "Impact",
-              "probability": {
-                "formulaValue": "captures.chance + 0",
-                "channel": "critical_probability",
-                "pipelineId": "ascendant_critical_probability",
-                "unitId": "probability",
-                "captures": {
-                  "chance": {
-                    "parameter": "Amount",
-                    "flatValue": 0,
-                    "channel": "critical_chance",
-                    "pipelineId": "ascendant_critical_chance",
-                    "unitId": "percent",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  },
-                  "bonus": {
-                    "parameter": "Amount",
-                    "flatValue": -1,
-                    "channel": "critical_bonus",
-                    "pipelineId": "ascendant_critical_bonus",
-                    "unitId": "factor",
-                    "conversion": {
-                      "sign": "NonNegative"
-                    }
-                  }
-                }
-              }
-            }
-          ],
           "parameters": [
             {
               "parameter": "Amount",
               "flatValue": 6,
               "unitId": "points",
               "channel": "effect_amount",
-              "pipelineId": "w1_critical_amount",
+              "pipelineId": "w1_direct_amount",
               "stageIds": [
-                "w1_impact",
                 "w1_target"
               ],
               "distribution": {

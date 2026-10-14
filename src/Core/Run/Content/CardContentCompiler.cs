@@ -169,6 +169,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
 
         return component switch
         {
+            CardEffectRuleOverrideComponentDefinition rule => EffectResolutionPolicyResolver.ValidateOverride(rule.Rule),
             CardCostComponentDefinition cost => ValidateCosts(cardId, cost),
             CardEffectComponentDefinition effect => ValidateEffect(cardId, component.ComponentId, effect.Effect),
             CardConditionComponentDefinition condition when string.IsNullOrWhiteSpace(condition.Expression) =>

@@ -18,6 +18,8 @@ public sealed record EffectExecutionStep
     public bool Retargeted { get; init; }
     public double? ChanceRoll { get; init; }
     public ImmutableArray<EffectRandomInputResult> RandomInputs { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public EffectResolutionPolicyReceipt? ResolutionPolicy { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
     public EffectProvenance Provenance { get; init; } = new();
     public CalculationResult? Calculation { get; init; }

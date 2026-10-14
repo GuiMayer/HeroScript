@@ -10,10 +10,13 @@
       "w1_critical_amount",
       "w1_dot",
       "w1_overflow",
-      "ascendant_critical_chance",
-      "ascendant_critical_bonus",
       "ascendant_critical_probability",
-      "signed_resource_delta"
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_direct_amount"
     ],
     "defaultCalculationPipelines": {
       "effect_amount": "w1_amount",
@@ -42,6 +45,7 @@
         25,
         40
       ]
-    }
+    },
+    "effectResolutionPolicyId": "w1_global_effect_rules"
   }
 }

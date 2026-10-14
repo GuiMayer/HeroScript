@@ -31,6 +31,7 @@ var _transits
 var _motion_zones: Array = []
 var _pile_anchors: Dictionary = {}
 var _zone_roles: Dictionary = {}
+var _burn_noise: Texture2D
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -39,6 +40,7 @@ var submitting: bool:
 	get: return controller.state.submitting if controller else false
 
 func setup(owner, data: Dictionary) -> void:
+	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
 	router = owner
 	mount(owner.visual_context)
 	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return router.get_tree().paused)
@@ -89,7 +91,7 @@ func _render(data: Dictionary) -> void:
 	view.apply_projection(presentation, presenter, zone_presenter,
 		{"run": _run_snapshot, "combat": _combat_snapshot, "actions": _action_snapshot, "zones": _zone_snapshot,
 		"scope": _hand_scope(), "input_actor": GameSession.input_actor_id(), "setting": GameSession.selected_setting,
-		"setting_id": GameSession.selected_setting_id,
+		"setting_id": GameSession.selected_setting_id, "attributes": GameSession.character_attributes,
 		"scenery": _resolve_scenery()}, visual_context)
 	_update_controls()
 	# Real session refreshes already include the inspection in the same revision.
@@ -104,7 +106,17 @@ func _hand_scope() -> String:
 
 func _on_intent(action: String, arguments: Array) -> void:
 	if action == "card_hover":
-		if is_inside_tree() and not get_tree().paused and not view.hand.reading_modal: GameAudio.play_event("card_hover")
+		if is_inside_tree() and not get_tree().paused and not view.hand.reading_modal:
+			var id := str(arguments[0])
+			# Pointer browsing cancels targeting, but never chooses or plays the next card.
+			# Keyboard/controller focus uses card_previewed, not this pointer-only intent.
+			if view.hand.interaction.pointer_active and not view.hand.interaction.dragging and not _locked() \
+					and not id.is_empty() and not selected_card.is_empty() and selected_card != id:
+				if controller.cancel():
+					view._clear_choices()
+					_update_controls()
+					view._show_preview(id)
+			GameAudio.play_event("card_hover")
 	elif action == "inspect_zone": _open_collection(arguments[0])
 	elif action == "timeline": router.show_timeline()
 	elif action == "pause": router.toggle_pause()
@@ -192,7 +204,7 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	if _active_motion != null: visual_context.motion = _active_motion
 
 func _card_stage() -> Vector2:
-	return view.battlefield_view.global_position + view.battlefield_view.size * Vector2(.5, .72)
+	return preload("res://scripts/presentation/card_choreography.gd").stage_center(view.hand)
 
 func _on_receipt_received(receipt: Dictionary) -> void:
 	# Acceptance authorizes visual departure only. No effects, costs, final faces
@@ -205,6 +217,7 @@ func _on_receipt_received(receipt: Dictionary) -> void:
 	var id := str(_prepared_card.get("cardInstanceId", ""))
 	if not is_instance_valid(view.hand.card_for(id)): return
 	_active_motion = visual_context.capture_motion()
+	if preload("res://scripts/ui/card_zone_motion.gd").uses_burn(receipt.get("state", {}).get("resolution", {}).get("frames", []), id, _active_motion): return
 	if _active_motion.duration("card_flight", true) <= 0: return
 	_receipt_motion_started = Time.get_ticks_msec()
 	_transits = preload("res://scripts/ui/card_transit_registry.gd").new(view.hand, view.feedback.effects, visual_context)
@@ -271,6 +284,12 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		view.hand.clear_choice(); view.reset_preview()
 		var card = view.hand.card_for(id)
 		if not is_instance_valid(card): handle.finish("fallback"); return
+		# The published post-play flow owns the burn. Do not prepend a flight or
+		# animate the same card again when that transfer beat reaches the executor.
+		if preload("res://scripts/ui/card_zone_motion.gd").uses_burn(Playback.frames, id, visual_context.motion):
+			GameAudio.card()
+			if _receipt_departure != null: _receipt_departure.finish("cancelled"); _receipt_departure = null
+			handle.hit(); handle.finish(); return
 		if _receipt_departure == null: GameAudio.card()
 		var final_zones: Dictionary = Playback.envelope.snapshot("after").get("zones", {}) if Playback.envelope != null else {}
 		var retained: bool = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().any(func(item): return str(item.get("cardInstanceId", "")) == id)
@@ -302,24 +321,24 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		if not steps.is_empty() and Playback.envelope != null:
 			# Card motion owns its arrival milestone; static outcomes still publish
 			# immediately and do not add a second timer to the transfer.
-			view.detail_label.text = view.feedback.present(frame, Playback.index - 1, Playback.total, presenter, {})
-			for application in frame.get("applications", []):
-				var target := str(application.get("targetEntityId", ""))
-				if view.battlefield_view.panels.has(target): view.battlefield_view.panels[target].present_resource(application, 0)
+			var cosmetics = preload("res://scripts/presentation/presentation_handle.gd").new()
+			view.detail_label.text = preload("res://scripts/ui/effect_motion.gd").execute(frame, cosmetics, visual_context, view.feedback, presenter,
+				view.actor_portraits, view.battlefield_view.panels, Playback.index - 1, Playback.total, GameAudio.play_beat, true)
 			preload("res://scripts/ui/card_zone_motion.gd").execute(steps,
 				_motion_zones, _transfer_models, _zone_anchor, view.feedback.effects, visual_context, handle, _zone_role, _transits,
 				func(item):
 					if _zone_role(item.target) == "hand": GameAudio.play_event("card_move"))
 			return
 		view.detail_label.text = preload("res://scripts/ui/effect_motion.gd").execute(frame, handle, visual_context, view.feedback, presenter,
-			view.actor_portraits, view.battlefield_view.panels, Playback.index - 1, Playback.total, GameAudio.play_beat)
+			view.actor_portraits, view.battlefield_view.panels, Playback.index - 1, Playback.total, GameAudio.play_beat, not _prepared_card.is_empty())
 
 func _can_animate(frame: Dictionary) -> bool:
-	if frame.get("presentationOnly", "") == "card_departure": return visual_context.motion.duration("card_flight", true) > 0 and is_instance_valid(view.hand.card_for(str(frame.get("cardInstanceId", ""))))
+	if frame.get("presentationOnly", "") == "card_departure":
+		return not preload("res://scripts/ui/card_zone_motion.gd").uses_burn(Playback.frames, str(frame.get("cardInstanceId", "")), visual_context.motion) and visual_context.motion.duration("card_flight", true) > 0 and is_instance_valid(view.hand.card_for(str(frame.get("cardInstanceId", ""))))
 	var steps: Array = frame.get("cardZoneSteps", []).duplicate()
 	for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
 	if not steps.is_empty() and not preload("res://scripts/ui/card_zone_motion.gd").resolve(steps, _motion_zones, _zone_anchor, visual_context.motion, _zone_role).is_empty(): return true
-	return preload("res://scripts/ui/effect_motion.gd").can_animate(frame, visual_context, view.actor_portraits, view.battlefield_view.panels)
+	return preload("res://scripts/ui/effect_motion.gd").can_animate(frame, visual_context, view.actor_portraits, view.battlefield_view.panels, not _prepared_card.is_empty())
 
 func _zone_anchor(address: String, id: String) -> Vector2:
 	if _zone_roles.get(address) == "hand": return view.hand.destination_center(id)
@@ -393,7 +412,9 @@ func _play_candidate(candidate: Dictionary) -> void:
 	_active_motion = null; _receipt_motion_started = 0
 	_prepared_card = {"cardInstanceId": id, "targets": presenter.targets(candidate), "costs": candidate.get("costs", []),
 		"sequence": _run_snapshot.get("sequence", 0)}
-	view.hand.prepare_use(id)
+	# Freeze the existing face while pending. The canonical executor alone moves
+	# it after acceptance, exactly as in the laboratory; rejection restores it.
+	view.hand.prepare_use(id, false)
 	var success: bool = await controller.submit(candidate)
 	if not is_inside_tree():
 		return

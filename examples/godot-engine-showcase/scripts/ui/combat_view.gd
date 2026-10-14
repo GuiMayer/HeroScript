@@ -29,6 +29,7 @@ var _run_snapshot: Dictionary
 var _combat_snapshot: Dictionary
 var _action_snapshot: Array
 var _zone_snapshot: Dictionary
+var _attribute_snapshot: Dictionary = {}
 var header_view
 var battlefield_view
 var turn_view
@@ -315,7 +316,7 @@ func _build_character_sidebar() -> Control:
 	view.visual_context = visual_context
 	view.apply_model({"presentation": presentation, "run": _run_snapshot, "combat": _combat_snapshot,
 		"actors": presenter.actors(), "input_actor": _input_actor, "zones": _zone_snapshot,
-		"setting": _setting, "setting_id": _setting_id}, visual_context.translator)
+		"setting": _setting, "setting_id": _setting_id, "attributes": _attribute_snapshot}, visual_context.translator)
 	character_sidebar = view
 	view.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	view.offset_left = -layout_profile.sidebar_width
@@ -445,7 +446,7 @@ func _show_target_preview(actor_id: String) -> void:
 
 
 func _update_controls() -> void:
-	preload("res://scripts/ui/focus_navigation.gd").wire.call_deferred(self)
+	preload("res://scripts/ui/focus_navigation.gd").queue(self)
 	if not is_instance_valid(queue_label):
 		return
 	var locked := _locked()
@@ -632,6 +633,7 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 	_combat_snapshot = facts.combat.duplicate(true)
 	_action_snapshot = facts.actions.duplicate(true)
 	_zone_snapshot = facts.zones.duplicate(true)
+	_attribute_snapshot = facts.get("attributes", {}).duplicate(true)
 	_input_actor = facts.input_actor
 	_scope = facts.scope
 	_setting = facts.setting.duplicate(true)
@@ -690,7 +692,7 @@ func show_options(candidates: Array) -> void:
 		option.tooltip_text = label
 		choices.add_child(option)
 	candidate_panel.visible = not candidates.is_empty()
-	preload("res://scripts/ui/focus_navigation.gd").wire.call_deferred(self)
+	preload("res://scripts/ui/focus_navigation.gd").queue(self)
 
 func refresh_cards() -> void:
 	_sync_hand_models()

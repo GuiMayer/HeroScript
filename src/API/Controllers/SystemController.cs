@@ -100,6 +100,8 @@ public sealed class SystemController : ControllerBase
             "foundation-read-models",
             "foundation-reload-safety",
             "canonical-effect-identities",
+            "global-effect-policies",
+            "actor-attribute-projections",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

@@ -16,6 +16,26 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/character-attributes": {
+      "get": {
+        "tags": ["Runs"], "operationId": "getCharacterAttributes", "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": {
+          "200": { "description": "Read-only persistent player or active-encounter attribute projection. Does not consume RNG.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActorAttributesProjection" } } } },
+          "400": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/combats/{combatId}/actors/{actorId}/attributes": {
+      "get": {
+        "tags": ["Combats"], "operationId": "getActorAttributes", "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "actorId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Versioned actor attributes calculated from the same providers as gameplay.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActorAttributesProjection" } } } },
+          "400": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/api/v1/runs/{runId}/cards/{cardInstanceId}/transformation-preview": {
       "get": {
         "tags": ["Runs"],
@@ -592,6 +612,33 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "ActorAttributesProjection": {
+        "type": "object", "required": ["runId", "runSequence", "contentRevision", "actorId", "authority", "attributes", "criticalRules"],
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" },
+          "combatId": { "type": "string", "format": "uuid", "nullable": true },
+          "runSequence": { "type": "integer" },
+          "combatStep": { "type": "integer", "format": "uint64", "nullable": true },
+          "contentRevision": { "type": "string" }, "actorId": { "type": "string" },
+          "authority": { "type": "string", "enum": ["PersistentPlayer", "ActiveEncounter"] },
+          "attributes": { "type": "array", "maxItems": 64, "items": {
+            "type": "object", "required": ["attributeId", "displayName", "unit", "baseValue", "effectiveValue"],
+            "properties": {
+              "attributeId": { "type": "string" }, "displayName": { "type": "string" }, "unit": { "type": "string" },
+              "baseValue": { "type": "number", "format": "float" }, "effectiveValue": { "type": "number", "format": "float" },
+              "pipelineId": { "type": "string" }, "pipelineFingerprint": { "type": "string" },
+              "contextTags": { "type": "array", "items": { "type": "string" } },
+              "contributionsTruncated": { "type": "boolean" },
+              "contributions": { "type": "array", "maxItems": 64, "description": "Bounded contribution facts in pipeline units, not full formulas, variables or historical state.", "items": { "type": "object", "additionalProperties": true } }
+            }
+          } },
+          "criticalRules": { "type": "array", "maxItems": 32, "items": { "type": "object", "properties": {
+            "ruleId": { "type": "string" }, "guaranteedTiers": { "type": "number" },
+            "nextTierChancePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+            "bonusPerTierPercent": { "type": "number" }, "contextTags": { "type": "array", "items": { "type": "string" } }
+          } } }
+        }
+      },
       "RunStartRequest": {
         "type": "object",
         "required": ["settingId", "contentRevision", "modeId"],

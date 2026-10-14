@@ -27,8 +27,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -68,8 +67,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -109,8 +107,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -151,8 +148,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -193,8 +189,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -235,8 +230,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -277,8 +271,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -318,8 +311,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -360,8 +352,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -402,8 +393,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -444,8 +434,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {
@@ -487,8 +476,7 @@
         "componentId": "stats",
         "values": {
           "weapon_damage": 0,
-          "critical_chance": 0,
-          "critical_multiplier": 1.5
+          "critical_chance": 0
         }
       },
       {

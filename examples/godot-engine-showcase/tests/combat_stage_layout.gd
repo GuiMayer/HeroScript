@@ -22,11 +22,17 @@ func _run() -> void:
 	var session = root.get_node("GameSession")
 	var prior := {"scale": prefs.text_scale, "motion": prefs.reduced_motion, "locale": i18n.locale,
 		"run": session._run, "combat": session._combat, "zones": session._card_zones,
-		"actions": session._legal_actions, "gateway": session._gateway}
+		"actions": session._legal_actions, "gateway": session._gateway, "attributes": session._character_attributes}
 	prefs.reduced_motion = true
 	session.configure(InspectionFixture.new())
 	session.synchronized = true
 	session._run = {"runId": "layout-fixture", "sequence": 1, "playerEntityId": "hero"}
+	session._character_attributes = {"runId": "layout-fixture", "runSequence": 1, "actorId": "hero", "attributes": [
+		{"attributeId": "armor", "displayName": "Armor", "unit": "points", "baseValue": 0, "effectiveValue": 25},
+		{"attributeId": "armor_reduction", "displayName": "Armor reduction", "unit": "percent", "baseValue": 0, "effectiveValue": 20},
+		{"attributeId": "critical_chance", "displayName": "Critical chance", "unit": "percent", "baseValue": 15, "effectiveValue": 150},
+		{"attributeId": "critical_damage", "displayName": "Critical damage bonus per tier", "unit": "percent", "baseValue": 100, "effectiveValue": 100}],
+		"criticalRules": [{"ruleId": "direct-damage", "guaranteedTiers": 1, "nextTierChancePercent": 50}]}
 	session._legal_actions = []
 	session._combat = {"combatId": "layout-combat", "activeActorId": "hero", "activation": {
 		"round": 1, "activeActorId": "hero", "waitingForInput": true,
@@ -95,6 +101,12 @@ func _run() -> void:
 				await settle()
 				check(screen.view.choices.get_parent().get_v_scroll_bar().visible and screen.view.bottom_hud.get_global_rect() == before, "many published payment options scroll without changing composition")
 				screen._cancel_selection()
+				if resolution in [Vector2i(1280, 720), Vector2i(2560, 1080)] and locale == "en" and scale == 1.0 and DisplayServer.get_name() != "headless":
+					await RenderingServer.frame_post_draw
+					for argument in OS.get_cmdline_user_args():
+						if argument.begins_with("--lab-output="):
+							var destination: String = argument.trim_prefix("--lab-output=").path_join("character-attributes-%sx%s.png" % [resolution.x, resolution.y])
+							check(root.get_texture().get_image().save_png(destination) == OK, "attribute panel screenshot saved")
 				if resolution == Vector2i(1280, 800) and locale == "pt_BR" and scale == 1.2 and DisplayServer.get_name() != "headless":
 					await RenderingServer.frame_post_draw
 					for argument in OS.get_cmdline_user_args():
@@ -191,6 +203,7 @@ func _run() -> void:
 	router.queue_free()
 	await settle()
 	session._run = prior.run; session._combat = prior.combat; session._card_zones = prior.zones
+	session._character_attributes = prior.attributes
 	session._legal_actions = prior.actions; session.configure(prior.gateway)
 	prefs.text_scale = prior.scale; prefs.reduced_motion = prior.motion
 	i18n.set_locale(prior.locale)

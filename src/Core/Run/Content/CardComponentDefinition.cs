@@ -17,6 +17,7 @@ namespace Core.Run.Content;
 [JsonDerivedType(typeof(CardDispositionComponentDefinition), "disposition")]
 [JsonDerivedType(typeof(CardTriggerComponentDefinition), "trigger")]
 [JsonDerivedType(typeof(CardInfluenceComponentDefinition), "influence")]
+[JsonDerivedType(typeof(CardEffectRuleOverrideComponentDefinition), "effect_rule_override")]
 public abstract record CardComponentDefinition
 {
     private ImmutableArray<string> _capabilityIds = [];
@@ -37,6 +38,11 @@ public sealed record CardCostComponentDefinition : CardComponentDefinition
 public sealed record CardEffectComponentDefinition : CardComponentDefinition
 {
     public EffectDefinition Effect { get; init; } = new();
+}
+
+public sealed record CardEffectRuleOverrideComponentDefinition : CardComponentDefinition
+{
+    public EffectRuleOverrideDefinition Rule { get; init; } = new();
 }
 
 public sealed record CardConditionComponentDefinition : CardComponentDefinition

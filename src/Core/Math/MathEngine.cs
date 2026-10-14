@@ -17,6 +17,10 @@ namespace Core.Math
         [JsonPropertyName("params")]
         public Dictionary<string, float> Params { get; set; } = new();
 
+        [JsonPropertyName("parameterConstraints")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Dictionary<string, FormulaParameterConstraint>? ParameterConstraints { get; set; }
+
         [JsonPropertyName("operations")]
         public List<OperationDefinition> Operations { get; set; } = new();
     }
@@ -324,6 +328,8 @@ namespace Core.Math
 
             // 5. Validar parâmetros da fórmula
             ValidateFormulaParameters(formula);
+            var boundErrors = FormulaDefinitionValidator.ValidateParameters(formula, parameters);
+            if (!boundErrors.IsEmpty) throw new ArgumentException(string.Join("; ", boundErrors));
 
             // 6. Validar input contextual (Fase 2)
             ValidateInputForFormula(inputValue, formula, formulaName);

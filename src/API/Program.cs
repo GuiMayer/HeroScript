@@ -493,6 +493,7 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
+builder.Services.AddSingleton<IActorAttributeProjectionService, ActorAttributeProjectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
 builder.Services.AddSingleton<ILegalActionResolver, LegalActionResolver>();
 builder.Services.AddSingleton<IReactionFlowReducer, ReactionFlowReducer>();

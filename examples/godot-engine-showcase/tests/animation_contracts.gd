@@ -23,10 +23,17 @@ func _run() -> void:
 	var cursor = PlaybackType.new(); root.add_child(cursor)
 	var dispatched: Array = []
 	cursor.frame_presented.connect(func(frame, _i, _n): dispatched.append(frame))
+	# A real visual executor may claim the handle; an absent executor must not.
+	cursor.executor = func(_frame, handle): handle.claimed = true
 	cursor.load_receipt({"state": {"resolution": {"frames": [{"applications": []}]}}})
 	cursor.advance()
-	check(cursor.has_method("has_blocking_work") and cursor.has_blocking_work(), "last dispatch remains blocking until visual completion", true)
+	check(cursor.has_method("has_blocking_work") and cursor.has_blocking_work(), "last claimed visual remains blocking until completion", true)
 	check(dispatched.size() == 1, "one explicit step dispatches exactly one frame")
+	cursor.complete_active()
+	check(not cursor.has_blocking_work(), "visual completion releases the last blocking handle")
+	cursor.executor = Callable()
+	cursor.load_receipt({"state": {"resolution": {"frames": [{"applications": []}]}}}); cursor.advance()
+	check(not cursor.has_blocking_work(), "facts without an executor create no artificial wait")
 	var context = preload("res://scripts/ui/visual_context.gd").new()
 	var feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(context); root.add_child(feedback)
 	var portrait := Portrait.new(); root.add_child(portrait)

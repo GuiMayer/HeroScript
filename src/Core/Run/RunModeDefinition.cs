@@ -23,6 +23,8 @@ public sealed record GameModeDefinition
     public bool AllowCustomSeed { get; init; } = true;
     public string? FlowRulesId { get; init; }
     public string? CombatRulesId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EffectResolutionPolicyId { get; init; }
     public string? ReplayPolicyId { get; init; }
     public string? TimelinePolicyId { get; init; }
     public string? ContentBindingPolicyId { get; init; }

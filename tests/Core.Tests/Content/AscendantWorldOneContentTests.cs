@@ -90,7 +90,7 @@ public sealed class AscendantWorldOneContentTests
         using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,
             "data/configs/ascendant/Resources/cards/world_one.json")));
         var compiler = new CardContentCompiler();
-        Assert.Equal(30, json.RootElement.EnumerateObject().Count());
+        Assert.Equal(33, json.RootElement.EnumerateObject().Count());
         foreach (var entry in json.RootElement.EnumerateObject())
         {
             var card = compiler.Compile(entry.Name, runtime);
@@ -99,6 +99,23 @@ public sealed class AscendantWorldOneContentTests
                 .Where(component => component.GetProperty("type").GetString() == "cost")
                 .SelectMany(component => component.GetProperty("costs").GetProperty("costs").EnumerateArray()))
                 Assert.Equal("energy", cost.GetProperty("resourceId").GetString());
+        }
+    }
+
+    [Fact]
+    public async Task ExileCards_AreCanonicalComponentsAndStarterIsInTheOpeningDeck()
+    {
+        var runtime = await Compile();
+        var run = runtime.GetDefinition<RunDefinition>("runs", "ascendant_world_one_run").Value;
+        Assert.Equal(10, run.StartingCards.Count);
+        Assert.Single(run.StartingCards, id => id == "w1_last_guard");
+        var compiler = new CardContentCompiler();
+        foreach (var id in new[] { "w1_last_guard", "w1_second_wind", "w1_solar_burst" })
+        {
+            var card = compiler.Compile(id, runtime);
+            Assert.True(card.IsSuccess, card.IsFailure ? card.Error : null);
+            Assert.Equal("card.played.to-exhaust", card.Value.All<CardDispositionComponentDefinition>().Single().CardZoneResolutionFlowId);
+            Assert.NotEmpty(card.Value.All<CardEffectComponentDefinition>());
         }
     }
 }

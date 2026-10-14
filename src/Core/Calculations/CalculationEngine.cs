@@ -246,6 +246,8 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                 return Result.Failure($"Stat influence binding {binding.BindingId} targets unknown bucket {binding.Bucket}");
             if (!IsFinite(binding.Scale) || !IsFinite(binding.Offset))
                 return Result.Failure($"Stat influence binding {binding.BindingId} must be finite");
+            if (!IsFinite(binding.DefaultValue))
+                return Result.Failure($"Stat influence binding {binding.BindingId} default must be finite");
             if (binding.RequiredTags.Any(string.IsNullOrWhiteSpace) || binding.ExcludedTags.Any(string.IsNullOrWhiteSpace))
                 return Result.Failure($"Stat influence binding {binding.BindingId} contains an empty tag");
         }

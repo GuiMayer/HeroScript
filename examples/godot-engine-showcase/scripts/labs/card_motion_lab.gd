@@ -1,6 +1,8 @@
 extends Node
 ## Visual fixtures only, executed through production presentation components.
 signal finished(models: Array, metrics: Dictionary)
+const Burn = preload("res://scripts/ui/card_burn_motion.gd")
+const ZoneMotion = preload("res://scripts/ui/card_zone_motion.gd")
 var hand
 var context
 var overlay := Control.new()
@@ -18,6 +20,7 @@ var _started := 0
 var _running := false
 var _last_instant := false
 var preset := "normal"
+var _active_preset := "normal"
 class Options extends RefCounted:
 	var auto_animations := true
 var options := Options.new()
@@ -31,6 +34,7 @@ func play(scenario: Dictionary, initial: Array) -> void:
 	if _running: skip()
 	director.reset_metrics(); _started = Time.get_ticks_usec()
 	_serial += 1
+	_active_preset = preset
 	context.motion = preload("res://scripts/presentation/motion_policy.gd").capture(context.setting_id,
 		{"animation_preset": preset, "reduced_motion": context.reduced_motion, "animation_speed": context.animation_speed})
 	final_models = initial.duplicate(true); _models.clear()
@@ -46,10 +50,16 @@ func play(scenario: Dictionary, initial: Array) -> void:
 		frames.append(_flow("" if operation == "create" else "origin", "hand", arrivals, "createdInstanceIds" if operation == "create" else "instanceIds"))
 		if operation == "draw_discard":
 			reservations = final_models.duplicate(); frames.append(_flow("hand", "destination", arrivals)); final_models = initial.duplicate(true)
+	elif operation == "burn" and not initial.is_empty():
+		var id := str(scenario.get("cardInstanceId", initial[0].cardInstanceId))
+		if not _models.has(id): id = str(initial[0].cardInstanceId)
+		final_models = initial.filter(func(model): return str(model.cardInstanceId) != id)
+		frames.append({"presentationOnly": "card_burn", "cardInstanceId": id, "direction": str(scenario.get("direction", "center")), "durationSeconds": Burn.DEFAULT_DURATION})
 	elif operation in ["use", "retained"] and not initial.is_empty():
-		var id := str(initial[0].cardInstanceId)
+		var id := str(scenario.get("cardInstanceId", initial[0].cardInstanceId))
+		if not _models.has(id): id = str(initial[0].cardInstanceId)
 		frames.append({"presentationOnly": "card_departure", "cardInstanceId": id, "retained": operation == "retained", "continued": operation == "use"})
-		if operation == "use": final_models = initial.slice(1); frames.append(_flow("hand", "destination", [id]))
+		if operation == "use": final_models = initial.filter(func(model): return str(model.cardInstanceId) != id); frames.append(_flow("hand", "destination", [id]))
 	elif operation in ["discard", "destroy"]:
 		frames.append(_flow("hand", "" if operation == "destroy" else "destination", initial.map(func(model): return str(model.cardInstanceId)), "destroyedInstanceIds" if operation == "destroy" else "instanceIds")); final_models = []
 	elif operation == "reorder": final_models.reverse(); frames.append({"transitionType": "reorder"})
@@ -59,10 +69,19 @@ func play(scenario: Dictionary, initial: Array) -> void:
 	var visible := initial + final_models + reservations
 	_zones = [{"zones": [{"scopeId": "lab", "ownerId": "actor", "zoneId": "hand", "contentsVisible": true, "cards": visible}]},
 		{"zones": [{"scopeId": "lab", "ownerId": "actor", "zoneId": "destination", "contentsVisible": true, "cards": visible}]}]
+	if scenario.has("cycleSeconds"):
+		var raw = scenario.cycleSeconds
+		var seconds: float = Burn.cycle_seconds(float(raw)) if raw is int or raw is float else Burn.DEFAULT_DURATION
+		_fit_cycle(frames, seconds)
+		director.watchdog_seconds = maxf(12, seconds + 2)
+	else: director.watchdog_seconds = 12
 	hand.clear_choice(); hand.set_read_only(true); hand.begin_presentation(reservations if not reservations.is_empty() else final_models)
 	registry = preload("res://scripts/ui/card_transit_registry.gd").new(hand, overlay, context)
 	_running = true
 	playback.load_receipt({"state": {"resolution": {"frames": frames}}}); director._process(0)
+
+func _fit_cycle(frames: Array, seconds: float) -> void:
+	preload("res://scripts/presentation/card_choreography.gd").fit_cycle(frames, context.motion, seconds, _zones, _anchor, _role, Burn.enabled(context, _active_preset))
 func _flow(source: String, destination: String, ids: Array, key := "instanceIds") -> Dictionary:
 	var step := {"sourceAddress": "lab::actor::" + source, "targetAddress": "lab::actor::" + destination}; step[key] = ids
 	return {"transitionType": "effect", "cardZoneSteps": [step]}
@@ -73,11 +92,16 @@ func _anchor(address: String, id: String) -> Vector2:
 	return Vector2.INF
 func _role(address: String) -> String: return "hand" if address == "lab::actor::hand" else "pile"
 func _can_animate(frame: Dictionary) -> bool:
+	if frame.get("presentationOnly") == "card_burn":
+		return Burn.enabled(context, _active_preset, float(frame.durationSeconds)) and is_instance_valid(hand.card_for(str(frame.cardInstanceId)))
 	if frame.get("presentationOnly") == "card_departure": return context.motion.duration("card_flight", true) > 0
 	return not preload("res://scripts/ui/card_zone_motion.gd").resolve(frame.get("cardZoneSteps", []), _zones, _anchor, context.motion, _role).is_empty()
 func _execute(frame: Dictionary, handle) -> void:
 	_last_instant = not _can_animate(frame)
-	if frame.get("presentationOnly") == "card_departure":
+	if frame.get("presentationOnly") == "card_burn":
+		GameAudio.card()
+		Burn.execute(str(frame.cardInstanceId), str(frame.direction), hand, registry, context, overlay, handle, _active_preset, float(frame.durationSeconds))
+	elif frame.get("presentationOnly") == "card_departure":
 		GameAudio.card()
 		preload("res://scripts/ui/card_use_motion.gd").execute(str(frame.cardInstanceId), bool(frame.retained), bool(frame.continued), hand, registry, context, _stage, handle)
 	else:

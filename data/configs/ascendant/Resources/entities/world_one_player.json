@@ -32,7 +32,8 @@
           "dot_damage": 0,
           "block_efficiency": 0,
           "critical_chance": 15,
-          "critical_multiplier": 1.5
+          "critical_damage": 100,
+          "armor": 0
         }
       }
     ]

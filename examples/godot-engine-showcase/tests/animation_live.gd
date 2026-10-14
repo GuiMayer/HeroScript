@@ -15,6 +15,7 @@ class Fixture extends RefCounted:
 	var command_received_ms := 0
 	var terminal := false
 	var retained := false
+	var exile := false
 	var superseded := false
 	var state := {"runId": "animation-fixture", "sequence": 1, "activeEncounterId": "combat"}
 	var combat := {"combatId": "combat", "step": 1, "status": "ACTIVE", "activeActorId": "hero", "actors": [{"instanceId": "hero", "definitionId": "spire_adept", "sideId": "player", "resources": {}}]}
@@ -31,6 +32,9 @@ class Fixture extends RefCounted:
 		if terminal: combat.status = "WON"
 		if not retained:
 			zones.zones[0].cards = zones.zones[0].cards.filter(func(card): return card.cardInstanceId != "played"); zones.zones[0].count = 1
+		if exile:
+			zones.zones[1] = {"zoneId": "unrelated-name", "contentsVisible": true, "allowsCardPlay": false, "count": 1, "presentation": {"slot": "exile_pile", "labelKey": "Exile"}, "cards": [{"cardInstanceId": "played", "definitionId": "basic_attack"}]}
+			return {"ok": true, "data": {"sequence": state.sequence, "state": {"combat": combat.duplicate(true), "resolution": {"frames": [{"transitionType": "effect", "cardZoneSteps": [{"flowId": "card.played.to-exhaust", "sourceAddress": "$run::::custom", "targetAddress": "$run::::unrelated-name", "instanceIds": ["played"]}]}]}}}}
 		return {"ok": true, "data": {"sequence": state.sequence, "state": {"combat": combat.duplicate(true), "resolution": {"frames": [
 			{"transitionType": "effect", "applications": [{"effectType": "DAMAGE", "resourceId": "mana", "targetEntityId": "hero", "previousValue": 8, "currentValue": 6}]},
 			{"transitionType": "effect", "applications": [{"effectType": "HEAL", "resourceId": "mana", "targetEntityId": "hero", "previousValue": 6, "currentValue": 7}]}]}}}}
@@ -66,7 +70,7 @@ func _run() -> void:
 			var parts := argument.trim_prefix("--capture-resolution=").split("x")
 			if parts.size() == 2: capture_resolution = Vector2i(int(parts[0]), int(parts[1]))
 	var prefs = root.get_node("Preferences")
-	prefs.reduced_motion = false; prefs.auto_animations = false
+	prefs.reduced_motion = false; prefs.auto_animations = false; prefs.animation_speed = 1.0; prefs.animation_preset = "normal"
 	var session = root.get_node("GameSession"); var cursor = root.get_node("Playback")
 	var fixture := Fixture.new(); session.configure(fixture)
 	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
@@ -82,7 +86,7 @@ func _run() -> void:
 	fixture.hold_command = true
 	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.1).timeout
 	check(session.busy and seen.is_empty() and cursor.index == 0, "pending command cannot present unconfirmed impacts")
-	check(screen.view.hand.card_for("played").position.y < -5 and screen.view.hand.card_for("played").get_parent() != screen.view.feedback.effects, "before acceptance, preparation is reversible and does not depart")
+	check(screen.view.hand.card_for("played").get_parent() != screen.view.feedback.effects, "before acceptance, the face stays in the hand without a separate preparation animation")
 	fixture.command_release.emit(); await create_timer(.04).timeout
 	check(screen._receipt_motion_started >= fixture.command_received_ms and screen._receipt_motion_started - fixture.command_received_ms < 50,
 		"accepted card flight begins immediately, without waiting for inspection")
@@ -107,10 +111,10 @@ func _run() -> void:
 	var played = screen.view.hand.card_for("played")
 	check((played == null or played.get_parent() == screen.view.feedback.effects) and screen.view.feedback.effects.get_children().filter(func(node): return node is CardView).size() <= 1, "synchronization never creates a duplicate departure face")
 	await capture("card-departure")
-	await create_timer(.3).timeout
-	check(done and screen.view.hand.card_for("played") == null and cursor.has_blocking_work(), "consumed card leaves hand, manual effect beats remain pending")
+	await create_timer(.6).timeout
+	check(done and screen.view.hand.card_for("played") == null and not cursor.has_blocking_work(), "consumed card leaves hand and cosmetic effects require no extra manual confirmation")
 	screen._next_frame(); screen._next_frame()
-	check(cursor.index == 2 and cursor.active_handle != null and screen.controller.locked(), "repeated confirmation does not overlap impacts")
+	check(cursor.active_handle == null and not screen.controller.locked(), "repeated confirmation cannot create a blocking cosmetic impact")
 	await create_timer(.2).timeout
 	screen.presentation_driver.skip(); await settle()
 	check(not cursor.has_blocking_work() and session.run.sequence == 2 and not screen.controller.locked(), "skip settles visuals and reconciles authoritative state without another command")
@@ -121,12 +125,34 @@ func _run() -> void:
 	session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
 	session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
 	router.show_combat(); await settle(); screen = router.host.get_child(0); done = false
-	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.25).timeout
-	check(screen._receipt_departure.done and cursor.index == 0 and session.busy, "completed early departure waits for synchronization without impacts")
+	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.6).timeout
+	check(screen._receipt_departure.done and not cursor.has_blocking_work() and session.busy, "completed early departure waits for synchronization without impacts")
 	fixture.release.emit(); await settle()
-	check(screen.view.hand.card_for("played") == null and cursor.index == 1 and cursor.active_handle == null and cursor.has_frames(),
-		"synchronization consumes the completed departure instantly; manual effects still await confirmation")
+	check(screen.view.hand.card_for("played") == null and cursor.active_handle == null and not cursor.has_frames(),
+		"synchronization consumes the completed departure and cosmetic facts without manual waits")
 	screen.presentation_driver.skip(); await settle()
+	# A published exile flow replaces departure with one short burn.
+	fixture = Fixture.new(); fixture.exile = true
+	fixture.zones.zones.append({"zoneId": "unrelated-name", "contentsVisible": true, "allowsCardPlay": false, "count": 0, "presentation": {"slot": "exile_pile", "labelKey": "Exile"}, "cards": []})
+	session.configure(fixture)
+	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
+	session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
+	session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
+	prefs.auto_animations = true; prefs.animation_speed = 1.0
+	router.show_combat(); await settle(); screen = router.host.get_child(0)
+	await screen._play_candidate(screen.presenter.candidate_for_card("played"))
+	await process_frame
+	var burn = screen.view.feedback.effects.find_child("CardBurnView", true, false)
+	check(burn != null and screen._receipt_motion_started == 0, "published exile flow starts a center burn without an extra departure flight")
+	if burn != null:
+		check(burn.burn_material.get_shader_parameter("direction") == 0, "live exile uses the center variant")
+		var started := Time.get_ticks_usec()
+		while cursor.has_blocking_work(): await process_frame
+		var duration := (Time.get_ticks_usec() - started) / 1000000.0
+		print("EXILE_METRIC=", duration)
+		check(duration >= .35 and duration <= .75, "live exile burn finishes in a half-second cycle")
+	check(screen.view.hand.card_for("played") == null and not screen.controller.locked() and fixture.sends == 1 and screen.view.feedback.effects.find_child("CardBurnView", true, false) == null, "exile settles the authoritative hand once and cleans the burn")
+	prefs.auto_animations = false
 	# Rejection never authorizes departure, even with animations enabled.
 	fixture = Fixture.new(); fixture.reject = true; session.configure(fixture)
 	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
@@ -142,7 +168,7 @@ func _run() -> void:
 	session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
 	session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
 	router.show_combat(); await settle(); screen = router.host.get_child(0); done = false
-	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.25).timeout
+	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.6).timeout
 	fixture.release.emit(); await settle()
 	check(not session.synchronized and screen.controller.locked() and session.run.sequence == 1 and screen._receipt_departure.done,
 		"failed refresh keeps the accepted staged card locked without publishing partial facts")
@@ -157,8 +183,8 @@ func _run() -> void:
 	session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
 	router.show_combat(); await settle(); screen = router.host.get_child(0); done = false
 	var original_face = screen.view.hand.card_for("played")
-	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.25).timeout
-	fixture.release.emit(); await create_timer(.25).timeout; await settle()
+	launch(screen, screen.presenter.candidate_for_card("played")); await create_timer(.6).timeout
+	fixture.release.emit(); await create_timer(.6).timeout; await settle()
 	check(screen.view.hand.card_for("played") == original_face and original_face.get_parent() == screen.view.hand._slots.played and original_face.scale == Vector2.ONE,
 		"retained card returns the same accepted face to its final hand slot")
 	check(screen.view.hand.interaction.selected.is_empty() and fixture.sends == 1, "retained return has no automatic selection or second command")
@@ -172,7 +198,7 @@ func _run() -> void:
 	check(screen._receipt_departure == null and screen._transits == null and not cursor.has_blocking_work() and not screen.controller.locked(),
 		"superseded receipt cancels its early handle and displays the newer revision without orphan motion")
 	await screen._play_candidate(screen.presenter.candidate_for_card("remaining")); await settle()
-	check(screen._receipt_motion_started > 0 and fixture.sends == 2, "the next valid command can start its own accepted flight after supersession")
+	check(fixture.sends == 2 and session.synchronized and not cursor.has_blocking_work(), "the next valid command completes its accepted flight after supersession without orphan locks")
 	screen.presentation_driver.skip(); await settle()
 	# Terminal outcomes must keep the combat view until its beats are settled.
 	fixture = Fixture.new(); fixture.terminal = true; session.configure(fixture)

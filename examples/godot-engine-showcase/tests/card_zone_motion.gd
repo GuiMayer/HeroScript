@@ -8,6 +8,17 @@ func _run() -> void:
 	var executor = preload("res://scripts/ui/card_zone_motion.gd")
 	check(executor.address_key({"zoneId": "arbitrary", "ownerId": "owner", "scopeId": null}) == "$run::owner::arbitrary", "published address identity is independent of pile purpose")
 	var context = preload("res://scripts/ui/visual_context.gd").new()
+	var policy = preload("res://scripts/presentation/motion_policy.gd").capture("default", {})
+	var transfers := [{"id": "first", "operation": "draw"}, {"id": "first", "operation": "discard"}, {"id": "other", "operation": "discard"}]
+	var scheduled: Array = executor.schedule(transfers, policy, func(id): return id == "first")
+	check(is_equal_approx(scheduled[0].duration, policy.duration("draw", true)) and is_equal_approx(scheduled[1].duration, policy.duration("staged_discard", true)), "schedule shares the production durations including staged discard")
+	check(scheduled[0].following and not scheduled[1].following and scheduled[1].delay >= scheduled[0].duration, "same-instance passages are serial while other cards remain concurrent")
+	check(is_equal_approx(scheduled[2].delay, minf(2 * policy.duration("stagger", true), policy.duration("batch_span", true))) and not transfers[0].has("duration"), "schedule caps stagger and never mutates transfer facts")
+	policy._values.max_transfers = 2
+	check(executor.schedule(transfers, policy).size() == 2, "schedule respects the published transfer animation budget")
+	var burn_steps := [{"flowId": "card.played.to-exhaust", "sourceAddress": "visible-source", "targetAddress": "unmounted-pile", "instanceIds": ["burned"]}]
+	var burn_snapshots := [{"zones": [{"contentsVisible": true, "cards": [{"cardInstanceId": "burned"}]}]}]
+	check(executor.resolve(burn_steps, burn_snapshots, func(address, _id): return Vector2(100, 100) if address == "visible-source" else Vector2.INF, policy).size() == 1, "published burn needs no destination pile anchor")
 	var overlay := Control.new(); root.add_child(overlay)
 	var handle = preload("res://scripts/presentation/presentation_handle.gd").new()
 	var zones := {"zones": [{"zoneId": "arbitrary", "ownerId": "owner", "contentsVisible": false, "cards": []}]}

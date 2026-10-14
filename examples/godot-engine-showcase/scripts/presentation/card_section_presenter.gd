@@ -32,6 +32,8 @@ func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 			var flow_id := str(component.get("cardZoneResolutionFlowId", ""))
 			var labels: Dictionary = _appearance.get("card_flow_labels", {})
 			if labels.has(flow_id): behaviors.append(_i18n.text(str(labels[flow_id])))
+		elif component.get("type") == "effect_rule_override" and component.get("rule", {}).get("critical") == false:
+			_add_unique(behaviors, _i18n.text("Cannot crit"))
 	var tags: Array[String] = []
 	var labels: Dictionary = _appearance.get("card_tag_labels", {})
 	for tag in effective.get("tags", container.get("tags", [])):

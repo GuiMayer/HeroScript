@@ -2,6 +2,8 @@ extends Control
 ## Offline visual fixture harness. No gateway, rules, run mutation or preference save.
 const HandView = preload("res://scripts/ui/card_hand_view.gd")
 const Fixtures = "res://data/labs/card_hand_lab.json"
+# Keep the reusable noise warm on rendered lab entry, not at the first click.
+var _burn_noise: Texture2D
 var catalog: Dictionary = {}
 var visual_context
 var hand
@@ -23,8 +25,13 @@ var _prior_profile: Resource
 var ornaments: Array[Control] = []
 var motion_lab
 var motion_scenarios: Array = []
+var animation_picker
+var animation_cycle: SpinBox
+var play_animation_button: Button
+var apply_animation_button: Button
 
 func _ready() -> void:
+	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
 	_prior_profile = AppTheme.profile
 	AppTheme.set_profile(preload("res://data/themes/ivory_theme.tres"))
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
@@ -170,23 +177,76 @@ func _build() -> void:
 	motion_lab = preload("res://scripts/labs/card_motion_lab.gd").new(hand, visual_context,
 		func(): return hand.scroll.global_position + Vector2(30, hand.scroll.size.y * .5),
 		func(): return hand.scroll.global_position + Vector2(hand.scroll.size.x - 30, hand.scroll.size.y * .5),
-		func(): return hand.scroll.get_global_rect().get_center() + Vector2(0, -160))
+		func(): return preload("res://scripts/presentation/card_choreography.gd").stage_center(hand))
 	add_child(motion_lab)
-	var scenario_picker := OptionButton.new(); scenario_picker.name = "MotionScenario"
-	for scenario in motion_scenarios: scenario_picker.add_item(str(scenario.label))
-	actions.add_child(scenario_picker)
-	var speed := OptionButton.new(); speed.name = "MotionPreset"
-	for value in ["normal", "fast", "instant"]: speed.add_item(value.capitalize())
-	speed.item_selected.connect(func(index): motion_lab.preset = ["normal", "fast", "instant"][index]); actions.add_child(speed)
-	var manual := CheckButton.new(); manual.text = "Manual animation steps"
-	manual.toggled.connect(func(value): motion_lab.options.auto_animations = not value); actions.add_child(manual)
-	actions.add_child(_button("Play motion", func(): motion_lab.play(motion_scenarios[scenario_picker.selected], models)))
-	actions.add_child(_button("Next", func(): motion_lab.director.advance()))
-	actions.add_child(_button("Skip presentation", func(): motion_lab.skip()))
+	# Keep playback controls reachable when the sample/details area scrolls.
+	var animation_controls := HFlowContainer.new()
+	animation_controls.name = "AnimationControls"
+	animation_controls.add_theme_constant_override("h_separation", 8)
+	animation_controls.add_theme_constant_override("v_separation", 8)
+	outer.add_child(animation_controls)
+	outer.move_child(animation_controls, outer.get_children().find(hand))
+	animation_picker = preload("res://scripts/labs/lab_animation_picker.gd").new()
+	animation_controls.add_child(animation_picker)
+	animation_picker.setup(JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/card_animation_catalog.json")), motion_scenarios, I18n)
+	var cycle_label := AppTheme.title(I18n.text("Cycle duration (s)"), 14)
+	cycle_label.set_meta("lab_label", "Cycle duration (s)")
+	animation_controls.add_child(cycle_label)
+	animation_cycle = SpinBox.new()
+	animation_cycle.name = "AnimationCycleSeconds"
+	animation_cycle.min_value = 0; animation_cycle.max_value = 30
+	animation_cycle.step = .05; animation_cycle.value = 1
+	animation_cycle.suffix = " s"
+	animation_cycle.custom_minimum_size = Vector2(120, 40)
+	animation_cycle.tooltip_text = I18n.text("Total active animation time. Zero is instant; pause and manual steps do not count.")
+	animation_controls.add_child(animation_cycle)
+	animation_picker.animation_selected.connect(_animation_selected)
+	_animation_selected(animation_picker.selected_id)
+	var instant := CheckButton.new()
+	instant.text = I18n.text("Instant preview"); instant.set_meta("lab_label", "Instant preview")
+	instant.toggled.connect(func(value): motion_lab.preset = "instant" if value else "normal")
+	animation_controls.add_child(instant)
+	var manual := CheckButton.new(); manual.text = I18n.text("Manual animation steps"); manual.set_meta("lab_label", "Manual animation steps")
+	manual.toggled.connect(func(value): motion_lab.options.auto_animations = not value); animation_controls.add_child(manual)
+	play_animation_button = _button("Play animation", play_selected_animation)
+	play_animation_button.name = "PlayAnimationButton"
+	animation_controls.add_child(play_animation_button)
+	apply_animation_button = _button("Apply animation to combat", apply_animation_to_combat)
+	animation_controls.add_child(apply_animation_button)
+	apply_animation_button.disabled = not preload("res://scripts/presentation/card_animation_profile.gd").KEYS.has(str(animation_picker.selected_scenario().get("operation", "")))
+	animation_controls.add_child(_button("Next", func(): motion_lab.director.advance()))
+	animation_controls.add_child(_button("Skip presentation", func(): motion_lab.skip()))
 	motion_lab.finished.connect(func(result, metrics):
 		models = result; count = models.size(); count_picker.set_value_no_signal(count)
 		card_controls = hand.ordered_cards()
 		status.text = "Motion: %.1f ms · %s instant facts · %s CPU yields · %s" % [metrics.elapsed_ms, metrics.instant, metrics.cpu_yields, metrics.result])
+
+func play_selected_animation() -> void:
+	var scenario: Dictionary = animation_picker.selected_scenario()
+	if scenario.is_empty(): return
+	if scenario.operation == "burn" and models.is_empty(): return
+	scenario["cycleSeconds"] = animation_cycle.value
+	if not models.is_empty():
+		scenario["cardInstanceId"] = selected_id if selected_id in hand.order else str(models[0].cardInstanceId)
+	motion_lab.play(scenario, models)
+
+func _animation_selected(_id: String) -> void:
+	var operation := str(animation_picker.selected_scenario().get("operation", ""))
+	var keys: Array = preload("res://scripts/presentation/card_animation_profile.gd").KEYS.get(operation, [])
+	if apply_animation_button != null: apply_animation_button.disabled = keys.is_empty()
+	if animation_cycle == null or keys.is_empty(): return
+	var policy = visual_context.capture_motion()
+	# Display the configured time even when accessibility currently skips motion.
+	# Never mutate the captured policy merely to populate a numeric field.
+	var seconds := 0.0
+	for key in keys: seconds += float(policy._values[str(key)]) / policy.speed
+	animation_cycle.set_value_no_signal(seconds)
+
+func apply_animation_to_combat() -> void:
+	var scenario: Dictionary = animation_picker.selected_scenario()
+	var policy = visual_context.capture_motion()
+	var result: Error = preload("res://scripts/presentation/card_animation_profile.gd").save(str(scenario.get("operation", "")), animation_cycle.value * policy.speed, str(scenario.get("direction", "center")))
+	status.text = I18n.text("Animation applied to combat. Active animations keep their captured settings.") if result == OK else I18n.text("Could not save the animation profile.")
 
 func enrich_selected() -> void:
 	for data in models:
@@ -230,6 +290,8 @@ func _refresh() -> void:
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
 	_translate_controls(self)
+	animation_picker.refresh_labels()
+	animation_cycle.tooltip_text = I18n.text("Total active animation time. Zero is instant; pause and manual steps do not count.")
 	for i in 3: scale_picker.set_item_text(i, I18n.text("Text %s%%") % [90, 100, 120][i])
 	layout_picker.set_item_text(0, I18n.text("Adaptive fan"))
 	layout_picker.set_item_text(1, I18n.text("Reading — no overlap"))
@@ -262,7 +324,7 @@ func _render_hand() -> void:
 	card_controls = hand.ordered_cards()
 	AppTheme.apply_view_preferences(self)
 	select_card(selected_id)
-	preload("res://scripts/ui/focus_navigation.gd").wire.call_deferred(self)
+	preload("res://scripts/ui/focus_navigation.gd").queue(self)
 
 func select_card(id: String) -> void:
 	selected_id = id

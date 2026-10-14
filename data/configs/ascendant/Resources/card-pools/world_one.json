@@ -13,6 +13,8 @@
       "Rare": 10
     },
     "explicitCardIds": [
+      "w1_second_wind",
+      "w1_solar_burst",
       "w1_scorch",
       "w1_poison",
       "w1_release",

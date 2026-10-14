@@ -47,6 +47,11 @@ public static class EffectDefinitionValidator
                 if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
             }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
+            foreach (var rule in effect.RuleOverrides)
+            {
+                var valid = EffectResolutionPolicyResolver.ValidateOverride(rule);
+                if (valid.IsFailure) Error(valid.Error);
+            }
             if (effect.Type == EffectType.MODIFY_ATTRIBUTE)
             {
                 if (effect.AttributeMutation is not { } mutation || string.IsNullOrWhiteSpace(mutation.ComponentId) ||

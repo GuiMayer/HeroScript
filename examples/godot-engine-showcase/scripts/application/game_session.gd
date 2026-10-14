@@ -20,6 +20,7 @@ var _available_commands: Array = []
 var _legal_actions: Array = []
 var _tool_capabilities: Dictionary = {}
 var _card_zones: Dictionary = {}
+var _character_attributes: Dictionary = {}
 var _card_evaluations: Array = []
 var _card_evaluation_context: Array = []
 var _settings: Array = []
@@ -37,6 +38,8 @@ var tool_capabilities: Array:
 	get: return _tool_capabilities.keys().duplicate()
 var card_zones: Dictionary:
 	get: return _card_zones.duplicate(true)
+var character_attributes: Dictionary:
+	get: return _character_attributes.duplicate(true) if str(_character_attributes.get("runId", "")) == str(_run.get("runId", "")) and int(_character_attributes.get("runSequence", -1)) == int(_run.get("sequence", 0)) else {}
 var card_evaluations_ready: bool:
 	get: return _card_evaluation_context == _evaluation_context(_run, _combat)
 var card_evaluations: Array:
@@ -113,6 +116,7 @@ func _apply_setting(setting_id: String, clear_active_session: bool) -> bool:
 			_run = {}
 			_combat = {}
 			_card_zones = {}
+			_character_attributes = {}
 			_card_evaluations = []; _card_evaluation_context = []
 			_available_commands = []
 			_legal_actions = []
@@ -171,6 +175,7 @@ func _open_run(kind: String, args: Array) -> bool:
 	content_revision = str(_run.get("contentRevision", content_revision))
 	_combat = {}
 	_card_zones = {}
+	_character_attributes = {}
 	_card_evaluations = []; _card_evaluation_context = []
 	synchronized = false
 	var ok := await _refresh(ticket)
@@ -263,6 +268,13 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 					int(version.get("combatStep", -1)) != int(next_combat.get("step", 0)) or \
 					str(version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
 					return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	var next_attributes: Dictionary = responses.attributes.data if responses.has("attributes") else {}
+	if not next_attributes.is_empty():
+		if str(next_attributes.get("runId", "")) != run_id or int(next_attributes.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_attributes.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
+			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+		if not next_combat.is_empty() and (str(next_attributes.get("combatId", "")) != str(next_combat.get("combatId", "")) or int(next_attributes.get("combatStep", -1)) != int(next_combat.get("step", 0))):
+			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	_character_attributes = next_attributes.duplicate(true)
 	_run = next_run.duplicate(true)
 	_combat = next_combat.duplicate(true)
 	_card_zones = responses.cardZones.data.duplicate(true)
@@ -394,6 +406,7 @@ func invalidate() -> void:
 	_accepted_presentation = {}
 	_combat = {}
 	_card_zones = {}
+	_character_attributes = {}
 	_card_evaluations = []; _card_evaluation_context = []
 	_legal_actions = []
 	_available_commands = []

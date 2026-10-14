@@ -137,6 +137,19 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (!definitionErrors.IsEmpty)
             return Result<EffectBatchResult>.Failure(string.Join("; ", definitionErrors));
 
+        ContentRuntime? policyRuntime = null;
+        EffectResolutionPolicyDefinition? resolutionPolicy = null;
+        if (request.Run?.ResolvedMode?.Definition.EffectResolutionPolicyId is { } policyId)
+        {
+            if (_contentRuntimes == null)
+                return Result<EffectBatchResult>.Failure("Global effect policy requires revisioned content");
+            var loaded = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
+            if (loaded.IsFailure) return Result<EffectBatchResult>.Failure(loaded.Error);
+            policyRuntime = loaded.Value;
+            var policy = policyRuntime.GetDefinition<EffectResolutionPolicyDefinition>("effect-resolution-policies", policyId);
+            if (policy.IsFailure) return Result<EffectBatchResult>.Failure(policy.Error);
+            resolutionPolicy = policy.Value;
+        }
         var current = request.Combat;
         var currentRun = request.Run;
         var executionId = EffectResultContext.ExecutionId(request);
@@ -215,6 +228,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         {
             if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
                 return Result.Failure("Effect execution limit exceeded");
+            var resolvedPolicy = EffectResolutionPolicyResolver.Resolve(effect, resolutionPolicy, policyRuntime, request.Card, request.Tags);
+            if (resolvedPolicy.IsFailure) return Result.Failure(resolvedPolicy.Error);
+            effect = resolvedPolicy.Value.Effect;
             definitionPath ??= path;
             if (effect.ExecutionScope != EffectExecutionScope.EveryInvocation)
             {
@@ -637,6 +653,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         SkipReason = applies ? null : condensationSkip ?? (!tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition"),
                         ChanceRoll = roll,
                         RandomInputs = randomInputs.ToImmutable(),
+                        ResolutionPolicy = resolvedPolicy.Value.Receipt,
                         ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
                         Calculation = calculation,

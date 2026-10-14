@@ -85,6 +85,10 @@ class FakeTransport extends RefCounted:
 	func request_many(paths: Dictionary) -> Dictionary:
 		var results := {}
 		for key in paths:
+			if key == "attributes":
+				results[key] = _ok({"runId": state.get("runId", ""), "runSequence": state.get("sequence", 0),
+					"contentRevision": state.get("contentRevision", ""), "combatId": snapshot.get("combatId", ""), "combatStep": snapshot.get("step", 0), "attributes": []})
+				continue
 			results[key] = await request(HTTPClient.METHOD_GET, paths[key])
 		return results
 

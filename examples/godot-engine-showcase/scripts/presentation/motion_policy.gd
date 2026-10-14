@@ -1,7 +1,7 @@
 extends RefCounted
 ## Visual JSON captured at a presentation boundary, independent of rule content.
 const PATH := "res://data/motion_manifest.json"
-const DEFAULTS := {"prepare": .075, "retain": .09, "draw": .18, "discard": .15, "staged_discard": .07, "create": .14, "destroy": .12, "stagger": .025, "batch_span": .15, "card_flight": .16, "card_entry": .18, "impact": .085, "float": .45, "zone_transfer": .18, "hand_transition": .11, "hover": .085, "watchdog": 12., "max_floats": 24, "max_transfers": 12}
+const DEFAULTS := {"prepare": .075, "retain": .5, "draw": 1., "discard": 1., "staged_discard": .5, "create": 1., "destroy": 1., "exile_burn": .5, "stagger": 0., "batch_span": 0., "card_flight": .5, "card_entry": 1., "impact": 1., "float": 1., "zone_transfer": 1., "hand_transition": .11, "hover": .085, "watchdog": 12., "max_floats": 24, "max_transfers": 12}
 const CURVES := {"linear": Tween.TRANS_LINEAR, "cubic": Tween.TRANS_CUBIC, "sine": Tween.TRANS_SINE, "quad": Tween.TRANS_QUAD}
 const EASES := {"in": Tween.EASE_IN, "out": Tween.EASE_OUT, "in_out": Tween.EASE_IN_OUT}
 const DEFAULT_EASINGS := {"card_flight": {"curve": "cubic", "ease": "out"}, "retain": {"curve": "cubic", "ease": "in_out"}, "zone_transfer": {"curve": "cubic", "ease": "in_out"}, "hover": {"curve": "cubic", "ease": "out"}, "card_entry": {"curve": "cubic", "ease": "out"}}
@@ -48,6 +48,13 @@ static func capture(setting: String, options: Dictionary, path := PATH):
 	policy.instant = str(options.get("animation_preset", "normal")) == "instant"
 	policy.speed = 2.0 if options.get("animation_preset") == "fast" else clampf(float(options.get("animation_speed", 1)), .25, 2.)
 	policy.reduced = bool(options.get("reduced_motion", false))
+	preload("res://scripts/presentation/card_animation_profile.gd").apply(policy)
+	# A long explicitly applied lab cycle must not hit the old twelve-second
+	# watchdog. Keep the guard outside the animation's own active budget.
+	var longest := 0.0
+	for key in ["card_flight", "retain", "staged_discard", "draw", "discard", "create", "destroy", "exile_burn", "zone_transfer"]:
+		longest = maxf(longest, float(policy._values[key]))
+	policy._values["watchdog"] = maxf(float(policy._values.watchdog), longest + 2 * policy.speed)
 	return policy
 func duration(key: String, movement := false) -> float:
 	return 0.0 if instant or (movement and reduced) else float(_values.get(key, DEFAULTS.get(key, .12))) / speed

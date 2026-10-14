@@ -15,7 +15,7 @@ static func children(parent: Node, desired: Node) -> void:
 				current = node
 				break
 		if current == null and not _interactive(incoming) and i < original.size() and original[i] in existing:
-			if str(incoming.name).begins_with("@") or original[i].name == incoming.name:
+			if (str(incoming.name).begins_with("@") and not _semantic_name(original[i])) or original[i].name == incoming.name:
 				current = original[i]
 		if current != null and (current.get_class() != incoming.get_class() or current.get_script() != incoming.get_script()):
 			current = null

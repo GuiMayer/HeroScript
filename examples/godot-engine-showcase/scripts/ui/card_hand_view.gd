@@ -192,11 +192,12 @@ func return_card(id: String, card: Control, reveal_card: bool) -> void:
 	card.process_mode = Node.PROCESS_MODE_INHERIT
 	finish_transit(id, reveal_card)
 
-func prepare_use(id: String) -> void:
+func prepare_use(id: String, lift := true) -> void:
 	if not _cards.has(id): return
 	if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 	var card: CardView = _cards[id]
 	_transit[id] = true
+	if not lift: return
 	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
 	if policy.duration("prepare", true) <= 0: return
 	var tween := create_tween().set_parallel(); _preparations[id] = tween
@@ -304,7 +305,16 @@ func _remove(id: String) -> void:
 	_emphasis.erase(id)
 
 func set_selection(id: String) -> void:
+	var previous: String = interaction.selected
 	interaction.selected = id if id in order else ""
+	if interaction.pointer_active and not previous.is_empty() and interaction.selected.is_empty():
+		# Click focus draws its own outline, independently of chosen/button_pressed.
+		# Keep the current hover, but park navigation away from every card face.
+		for card in _cards.values():
+			if card.has_focus(): card.release_focus()
+		var neutral: Control = toolbar.get_node_or_null("HandInspectButton")
+		if is_inside_tree() and not get_tree().paused and is_instance_valid(neutral) and neutral.is_visible_in_tree():
+			neutral.grab_focus()
 	for key in order: _cards[key].select_card(key == interaction.selected)
 	_apply_emphasis()
 
@@ -534,11 +544,12 @@ func _update_counter() -> void:
 
 func pointer_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
+		var pointer_resumed: bool = not interaction.pointer_active
 		interaction.pointer_active = true
 		var point: Vector2 = hit_surface.get_global_transform() * event.position
 		var id := pick_global(point)
 		_hover_point = point
-		if id != interaction.hovered:
+		if id != interaction.hovered or pointer_resumed:
 			interaction.hovered = id
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
 			if not id.is_empty() and not reading_modal and not interaction.dragging: card_hovered.emit(id)
@@ -562,7 +573,11 @@ func pointer_input(event: InputEvent) -> void:
 			_clear_ghost()
 			if read_only or pressed not in order: return
 			if dragging: drop_requested.emit(pressed, event.global_position)
-			elif id == pressed: _cards[id].grab_focus(); card_activated.emit(id)
+			elif id == pressed:
+				_cards[id].grab_focus()
+				# _focus is shared with keyboard navigation; a mouse click stays pointer-driven.
+				interaction.pointer_active = true
+				card_activated.emit(id)
 func _input(event: InputEvent) -> void:
 	if interaction.pressed.is_empty(): return
 	if event.is_action_pressed("ui_cancel") or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT):

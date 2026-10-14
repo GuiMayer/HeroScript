@@ -10,6 +10,7 @@ Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundam
 - Vida inicial 100 e persistente; energia 3 por ativação; mão 5. Só energia paga cartas. Ouro paga serviços, não ações de combate.
 - Aumento de ataque, magia e elemento entra no mesmo bucket aditivo. Multiplicadores `more`, vulnerabilidade, defesa e crítico têm etapas distintas.
 - Crítico por impacto: níveis garantidos mais fração restante, bônus linear. A etapa crítica Shared só usa fatos do sorteio daquele impacto; não reaplica atributos de origem.
+- Política global `w1_global_effect_rules`: chance inicial 15%, bônus crítico 100% por tier e Armor inicial 0. Armor usa K=100 antes de Block, sem consumir o atributo. [Configuração e API](hero-attribute-scaling.md). `w1_pierce` ignora Block, mas não Armor, e declara que não pode critar.
 - Multi-hit divide um orçamento de origem antes dos sorteios individuais. Área paga por cobertura, calculada separadamente por alvo; não usa a distribuição de sequência de alvo único.
 - Residuais capturam potência na aplicação e só executam as etapas do alvo no tick. Não sorteiam crítico novamente.
 - Condensação inicial libera **150% da soma das potências atuais**, consome todos os lotes selecionados e não reaplica scaling de origem. Não corresponde à soma de todos os ticks futuros: ponderação por duração restante ainda não é um agregado da engine. Esta escolha fica explícita no catálogo, em vez de simular suporte inexistente.
@@ -22,6 +23,9 @@ Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundam
 | --- | ---: | --- | --- |
 | w1_strike | 1 | Common | Reliable single-target damage. |
 | w1_guard | 1 | Common | Baseline mitigation. |
+| w1_last_guard | 1 | Common | 14 Block; exile after play. One replaces a guard in the initial ten-card deck. |
+| w1_second_wind | 2 | Uncommon | 10 Health + 8 Block; exile after play. Reward pool. |
+| w1_solar_burst | 2 | Common | 12 damage + Scorch potency 4; exile after play. Reward pool. |
 | w1_scorch | 1 | Common | Immediate damage plus a short residual. |
 | w1_poison | 1 | Common | Delayed single-target pressure. |
 | w1_release | 1 | Uncommon | Consume all Scorch/Corrosion potency in one proc at 150%; not remaining-duration damage. |
@@ -53,7 +57,7 @@ Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundam
 
 ## Verificação por etapa
 
-1. Cartas, pipelines, payloads e operador: 30 cartas compiladas; custos exclusivamente em energia; grafo de conteúdo validado e fixtures antigas preservadas.
+1. Cartas, pipelines, payloads e operador: 33 cartas compiladas (30 originais + 3 opções de uso único); custos exclusivamente em energia; grafo de conteúdo validado e fixtures antigas preservadas. [Queima de exílio e conteúdo adicional](../design/CARD_EXILE_ANIMATION.md).
 2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços e grafo publicados. Desempate de iniciativa favorece o jogador, evitando ataque de entrada não anunciado.
 3. Apresentação: componentes compartilhados, nomes/descrições em inglês e português, riscos/custos nos metadados e launch atualizado. A navegação continua vindo das escolhas da API, não das arestas desenhadas.
 4. Verificação técnica e pendências: [relatório do ato](../plans/ASCENDANT_WORLD_1_CONTENT_VALIDATION_REPORT.md). Vitória de uma política automática não substitui playtest nem garante viabilidade de todas as builds.

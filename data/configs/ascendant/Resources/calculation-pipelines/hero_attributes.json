@@ -1,0 +1,108 @@
+{
+  "w1_critical_bonus": {
+    "pipelineId": "w1_critical_bonus",
+    "channel": "critical_bonus",
+    "unitId": "factor",
+    "buckets": [
+      {
+        "bucketId": "bonus",
+        "order": 10,
+        "operation": "Add",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "actor.critical-damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "critical_damage",
+        "channel": "critical_bonus",
+        "bucket": "bonus",
+        "scale": 0.01,
+        "missingValue": "Zero",
+        "defaultValue": 100
+      }
+    ]
+  },
+  "w1_critical_chance": {
+    "pipelineId": "w1_critical_chance",
+    "channel": "critical_chance",
+    "unitId": "percent",
+    "buckets": [
+      {
+        "bucketId": "chance",
+        "order": 10,
+        "operation": "Add",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "actor.chance",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "critical_chance",
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "missingValue": "Zero"
+      }
+    ]
+  },
+  "w1_armor_attribute": {
+    "pipelineId": "w1_armor_attribute",
+    "channel": "effect_amount",
+    "unitId": "scalar",
+    "buckets": [
+      {
+        "bucketId": "armor",
+        "order": 10,
+        "operation": "Add",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "target.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "missingValue": "Zero"
+      }
+    ]
+  },
+  "w1_armor_reduction": {
+    "pipelineId": "w1_armor_reduction",
+    "channel": "effect_amount",
+    "unitId": "scalar",
+    "buckets": [
+      {
+        "bucketId": "armor",
+        "order": 10,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT",
+        "minimum": 0,
+        "maximum": 1
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "target.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "missingValue": "Zero"
+      }
+    ]
+  }
+}

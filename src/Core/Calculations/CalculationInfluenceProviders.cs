@@ -234,7 +234,7 @@ public sealed class EntityStatInfluenceProvider : ICalculationInfluenceProvider
                 SourceId = $"{entity.InstanceId}:{binding.ComponentId}:{binding.ValueId}",
                 Channel = binding.Channel,
                 Bucket = binding.Bucket,
-                Value = (found ? raw : 0) * binding.Scale + binding.Offset,
+                Value = (found ? raw : binding.DefaultValue) * binding.Scale + binding.Offset,
                 Priority = binding.Priority,
                 OrderKey = binding.BindingId
             });

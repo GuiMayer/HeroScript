@@ -29,7 +29,7 @@ func apply_model(model: Dictionary, i18n) -> void:
 		"presentation": model.presentation, "actors": model.actors, "input_actor": model.input_actor,
 		"zones": model.zones, "setting": model.setting, "setting_id": model.setting_id,
 		"resources": model.run.get("characterResources", {}), "relics": model.run.get("relics", []),
-		"modifiers": model.run.get("modifiers", []),
+		"modifiers": model.run.get("modifiers", []), "attributes": model.get("attributes", {}),
 		"round": model.combat.get("activation", {}).get("round", model.combat.get("currentTurn", 1))}
 	if _projection == projection: return
 	_projection = projection.duplicate(true)
@@ -107,6 +107,41 @@ func _populate_character_sidebar(details: VBoxContainer) -> void:
 		resource_view.custom_minimum_size.x = 260
 		resource_view.setup(str(resource_id), resources[resource_id], presentation.get("resources", {}).get(resource_id, {}))
 		details.add_child(resource_view)
+	var attributes: Dictionary = _model.get("attributes", {})
+	if str(attributes.get("actorId", "")) == str(actor.get("instanceId", "")) and not attributes.get("attributes", []).is_empty():
+		_add_sidebar_section(details, translator.text("Attributes"))
+		for attribute in attributes.get("attributes", []):
+			var value := float(attribute.get("effectiveValue", 0))
+			var base := float(attribute.get("baseValue", value))
+			var suffix := "%" if str(attribute.get("unit", "")) == "percent" else ""
+			var row := HBoxContainer.new()
+			row.name = "CharacterAttributeRow_" + str(attribute.get("attributeId", "")).validate_node_name()
+			var title := visual_context.styles.muted(translator.text(str(attribute.get("displayName", attribute.get("attributeId", "")))), 12, 160)
+			title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(title)
+			var chip := PanelContainer.new()
+			var surface: Color = visual_context.card_style.effect_surface
+			if surface.a < .1: surface = Color("#1f2023")
+			chip.add_theme_stylebox_override("panel", visual_context.styles.box(surface, 3, surface, 0))
+			var line: String = translator.number(value) + suffix
+			var color: Color = visual_context.card_style.value_color(value, base)
+			var label := visual_context.styles.caption(line, 12, 64)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			label.add_theme_color_override("font_color", color)
+			label.name = "CharacterAttribute_" + str(attribute.get("attributeId", "")).validate_node_name()
+			label.tooltip_text = translator.text("Base: %s · Effective: %s") % [translator.number(base) + suffix, translator.number(value) + suffix]
+			for contribution in attribute.get("contributions", []):
+				label.tooltip_text += "\n" + str(contribution.get("sourceKind", "")) + ": " + str(contribution.get("sourceId", ""))
+			if not attribute.get("contextTags", []).is_empty():
+				label.tooltip_text += "\n" + translator.text("Context") + ": " + ", ".join(attribute.contextTags)
+			chip.add_child(label); row.add_child(chip); details.add_child(row)
+		for rule in attributes.get("criticalRules", []):
+			var summary: String = translator.text("%s guaranteed tiers · %s%% chance of the next tier") % [
+				translator.number(float(rule.get("guaranteedTiers", 0))), translator.number(float(rule.get("nextTierChancePercent", 0)))]
+			var label := _sidebar_item(summary, visual_context.styles.GOLD)
+			label.name = "CharacterCriticalRule_" + str(rule.get("ruleId", "")).validate_node_name()
+			label.tooltip_text = translator.text("Context") + ": " + ", ".join(rule.get("contextTags", []))
+			details.add_child(label)
 	_add_sidebar_section(details, translator.text("Statuses"))
 	var statuses: Array = actor.get("statuses", []).filter(func(status): return status is Dictionary and bool(status.get("isActive", true)))
 	if statuses.is_empty():

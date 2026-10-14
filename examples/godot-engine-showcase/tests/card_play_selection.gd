@@ -1,6 +1,7 @@
 extends SceneTree
 ## Real session/UI command flow with an injected gateway, no API or preference writes.
 var failures := 0
+var output_dir := ""
 class GatewayFixture extends RefCounted:
 	var consume := true
 	var reject := false
@@ -39,6 +40,21 @@ func check(ok: bool, label: String) -> void:
 	if not ok: failures += 1
 func settle() -> void:
 	for _i in 10: await process_frame
+func capture(name: String) -> void:
+	if output_dir.is_empty() or DisplayServer.get_name() == "headless": return
+	await RenderingServer.frame_post_draw
+	check(root.get_texture().get_image().save_png(output_dir.path_join(name + ".png")) == OK, "rendered focus outline: " + name)
+func hover_card(hand, id: String) -> void:
+	var card: Control = hand.card_for(id)
+	for y in [card.size.y * .5, card.size.y - 20, 20.0]:
+		for x in [card.size.x * .5, 20.0, card.size.x - 20]:
+			var point: Vector2 = card.get_global_transform() * Vector2(x, y)
+			if hand.pick_global(point, false) != id: continue
+			var event := InputEventMouseMotion.new()
+			event.position = point; event.global_position = point
+			root.push_input(event, true)
+			return
+	check(false, "visible pointer surface exists for " + id)
 func check_neutral(screen, label: String) -> void:
 	check(screen.selected_card.is_empty() and screen.selected_target.is_empty() and screen.view.hand.interaction.selected.is_empty(), label + ": no selected card/target")
 	check(screen.view.hand.interaction.active_id().is_empty() and screen.view.hand.active_card_id().is_empty(), label + ": no automatic hover, focus or inspection anchor")
@@ -54,6 +70,8 @@ func check_neutral(screen, label: String) -> void:
 		var delta: float = (left + right) * .5 - screen.view.gameplay_column.get_global_rect().get_center().x
 		check(absf(delta) <= 1.0, label + ": remaining hand centers on combat")
 func _run() -> void:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--lab-output="): output_dir = argument.trim_prefix("--lab-output=")
 	var session = root.get_node("GameSession")
 	var prefs = root.get_node("Preferences")
 	var playback = root.get_node("Playback")
@@ -78,6 +96,66 @@ func _run() -> void:
 	var hand = screen.view.hand
 	check_neutral(screen, "combat entry")
 	var survivor = hand.card_for("first")
+	# Hover only cancels a previous choice; focus navigation must never cancel it.
+	hand.mode_override = "reading"; hand.request_layout(); await settle()
+	hand.card_for("first").grab_focus()
+	screen._choose_card("first")
+	screen.controller.target_options("hero")
+	hover_card(hand, "first"); await settle()
+	check(screen.selected_card == "first" and screen.selected_target == "hero", "hovering the selected card preserves targeting")
+	await capture("selected-card")
+	var padding_motion := InputEventMouseMotion.new()
+	padding_motion.position = hand.hit_surface.global_position + Vector2(2, 2)
+	padding_motion.global_position = padding_motion.position
+	root.push_input(padding_motion, true); await settle()
+	check(hand.interaction.hovered.is_empty() and screen.selected_card == "first", "empty hand padding does not cancel selection")
+	hover_card(hand, "second"); await settle()
+	check(screen.selected_card.is_empty() and screen.selected_target.is_empty() and hand.interaction.selected.is_empty(), "mouse hover on another card clears card and target selection")
+	check(hand.cards().values().all(func(card): return not card.chosen and not card.button_pressed), "hover cancellation removes all selected card borders")
+	check(hand.cards().values().all(func(card): return not card.has_focus()) and hand.interaction.focused.is_empty(), "hover cancellation also removes native focus outlines and printed keyline emphasis")
+	await capture("deselected-card")
+	check(hand.interaction.hovered == "second" and hand.active_card_id() == "second", "hovered card remains available for preview without being selected")
+	check(not screen.view.selection_actions.visible and screen.view.choices.get_child_count() == 0 and screen.view.target_buttons.values().all(func(button): return button.disabled), "hover cancellation removes old action choices and target affordances")
+	check(gateway.state.sequence == 1 and gateway.combat.step == 1, "hovering never submits an engine command")
+	screen._choose_card("first")
+	hand.card_for("first").grab_focus()
+	var right := InputEventKey.new()
+	right.keycode = KEY_RIGHT; right.physical_keycode = KEY_RIGHT; right.pressed = true
+	root.push_input(right, true); await settle()
+	check(root.gui_get_focus_owner() == hand.card_for("second") and screen.selected_card == "first", "keyboard focus on another card preserves the selected card")
+	right.pressed = false; root.push_input(right, true)
+	var joy := InputEventJoypadButton.new()
+	joy.button_index = JOY_BUTTON_DPAD_RIGHT; joy.pressed = true
+	root.push_input(joy, true); await settle()
+	check(root.gui_get_focus_owner() == hand.card_for("third") and screen.selected_card == "first", "controller focus on another card preserves the selected card")
+	joy.pressed = false; root.push_input(joy, true)
+	# The last hovered id can still be cached when returning from keyboard focus.
+	hover_card(hand, "second"); await settle()
+	check(screen.selected_card.is_empty(), "resuming mouse over the cached hover cancels keyboard-preserved selection")
+	check(hand.cards().values().all(func(card): return not card.has_focus()), "returning to mouse also clears focus on a different keyboard-focused card")
+	screen._choose_card("first")
+	screen.controller.state.submitting = true; screen._update_controls()
+	hover_card(hand, "third"); await settle()
+	check(screen.selected_card == "first", "mouse hover cannot cancel a pending submission")
+	screen.controller.state.submitting = false; screen._update_controls()
+	hand.interaction.dragging = true
+	hover_card(hand, "second"); await settle()
+	check(screen.selected_card == "first", "dragging across another card preserves the ongoing choice")
+	hand.interaction.dragging = false
+	paused = true
+	hover_card(hand, "third"); await settle()
+	check(screen.selected_card == "first", "paused combat cannot cancel selection through mouse hover")
+	paused = false
+	hand.reading_modal = true
+	var overlay_motion := InputEventMouseMotion.new()
+	var overlay_card: Control = hand.card_for("second")
+	overlay_motion.position = overlay_card.get_global_transform() * (overlay_card.size * .5)
+	overlay_motion.global_position = overlay_motion.position
+	root.push_input(overlay_motion, true); await settle()
+	check(screen.selected_card == "first", "reading overlays do not cancel the underlying selection")
+	hand.reading_modal = false
+	screen._cancel_selection(); hand.clear_choice()
+	hand.mode_override = ""; hand.request_layout(); await settle()
 	prefs.reduced_motion = false
 	var point: Vector2 = hand.scroll.global_position + hand._layout.hitRects[1].get_center() - Vector2(hand.scroll.scroll_horizontal, 0)
 	var motion := InputEventMouseMotion.new()
@@ -89,6 +167,19 @@ func _run() -> void:
 		event.position = point; event.global_position = point
 		root.push_input(event, true)
 	check(screen.selected_card == "second", "explicit card input still selects a card")
+	check(hand.interaction.pointer_active and hand.card_for("second").has_focus(), "mouse click remains pointer-driven despite retaining navigation focus")
+	var cancel_click := InputEventMouseButton.new()
+	cancel_click.button_index = MOUSE_BUTTON_RIGHT; cancel_click.pressed = true
+	cancel_click.position = point; cancel_click.global_position = point
+	root.push_input(cancel_click, true); await settle()
+	check(screen.selected_card.is_empty() and hand.cards().values().all(func(card): return not card.chosen and not card.has_focus()), "right-click mouse cancellation also removes selection and focus outlines")
+	cancel_click.pressed = false; root.push_input(cancel_click, true)
+	for pressed in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT; event.pressed = pressed
+		event.position = point; event.global_position = point
+		root.push_input(event, true)
+	check(screen.selected_card == "second", "mouse can explicitly select the card again after cancellation")
 	await screen._play_candidate(screen.view._candidate_for_card("second"))
 	await settle()
 	check(screen.view.hand == hand and hand.card_for("first") == survivor and "second" not in hand.order, "accepted use reconciles instances without rebuilding survivors")

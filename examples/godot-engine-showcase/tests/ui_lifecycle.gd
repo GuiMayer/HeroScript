@@ -24,10 +24,14 @@ func _run() -> void:
 	retained.pressed.emit()
 	panel.choice_buttons[1].pressed.emit()
 	check(panel.choice_buttons[0] == retained and calls.size() == 2 and calls[0].payload.node == "second" and calls[1].payload.node == "new", "retained and new dialogue choices resolve current payload through the live panel")
-	panel._open_history()
-	var history: Window = panel.get_children().filter(func(child): return child is Window)[0]
+	# History belongs to pause, no longer to the passive dialogue composition.
+	var shell = load("res://scenes/ui/application_shell.tscn").instantiate(); root.add_child(shell)
+	shell.mount(panel.visual_context); shell.show_pause({}, model.history)
+	shell.pause_layer.find_child("ConversationHistoryButton", true, false).pressed.emit()
+	var history: Window = shell.pause_layer.find_child("ConversationHistoryDialog", true, false)
 	check(history.visible, "conversation history opens in an independent read-only modal")
 	history.queue_free()
+	shell.queue_free(); await settle()
 	var context = load("res://scripts/ui/visual_context.gd").new(null, {"reduced_motion": false})
 	var orphan_before: int = int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
 	var hand = load("res://scripts/ui/card_hand_view.gd").new(context)

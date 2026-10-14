@@ -18,7 +18,7 @@ namespace API.Tests.Integration;
 public sealed class AscendantWorldOneMechanicsTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
-    public async Task AllThirtyCardEffects_ExecuteThroughProductionServicesAndLeaveInputsImmutable()
+    public async Task AllShippedCardEffects_ExecuteThroughProductionServicesAndLeaveInputsImmutable()
     {
         var (run, combat, runtime) = await Fixture();
         var executor = factory.Services.GetRequiredService<IEffectTriggerExecutor>();

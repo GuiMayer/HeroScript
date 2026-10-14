@@ -1,5 +1,8 @@
 {
   "cards": {
+    "w1_last_guard": {"name": "Last Guard", "text": "One-use defensive burst. Exiled after play.", "tone": "skill"},
+    "w1_second_wind": {"name": "Second Wind", "text": "One-use recovery and protection. Exiled after play.", "tone": "skill"},
+    "w1_solar_burst": {"name": "Solar Burst", "text": "One-use strike with a stronger residual. Exiled after play.", "tone": "attack"},
     "w1_strike": {
       "name": "Matrix Strike",
       "text": "Reliable single-target damage.",

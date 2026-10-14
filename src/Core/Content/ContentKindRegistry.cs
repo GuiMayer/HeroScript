@@ -134,6 +134,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("actor-resource-lifecycle-policies", "actor-resource-lifecycle-policies", typeof(ActorResourceLifecyclePolicyDefinition), "actorResourceLifecyclePolicyId"),
         new("boards", "boards", typeof(JsonElement)),
         new("calculation-pipelines", "calculation-pipelines", typeof(CalculationPipelineDefinition), "pipelineId"),
+        new("effect-resolution-policies", "effect-resolution-policies", typeof(EffectResolutionPolicyDefinition), "policyId"),
         new("capability-policies", "capability-policies", typeof(CapabilityPolicyDefinition), "capabilityPolicyId"),
         new("card-component-bundles", "card-component-bundles", typeof(CardComponentBundleDefinition), "bundleId"),
         new("card-pools", "card-pools", typeof(CardPoolDefinition), "poolId"),

@@ -34,6 +34,11 @@ class Transport extends RefCounted:
 		if path.ends_with("/available-commands"): return ok({"commands": []})
 		if path.ends_with("/capabilities"): return ok({"profile": "normal", "granted": []})
 		if path.ends_with("/card-zones"): return ok({"zones": []})
+		if path.ends_with("/character-attributes"):
+			var run_id: String = path.get_slice("/", 4)
+			var record: Dictionary = records.get(run_id, {})
+			return ok({"runId": run_id, "runSequence": record.get("sequence", 0), "contentRevision": record.get("contentRevision", ""),
+				"combatId": record.get("activeEncounterId", ""), "combatStep": 0, "attributes": []})
 		if path.contains("/legal-actions?"): return ok({"candidates": []})
 		if path.contains("/combats/"):
 			return ok({"combatId": path.get_file(), "status": "ACTIVE", "activeActorId": "player", "actors": [

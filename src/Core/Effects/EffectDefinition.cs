@@ -45,6 +45,7 @@ public record EffectDefinition
     public string? ChanceGroupId { get; init; }
     public EffectChildTiming ChildTiming { get; init; }
     public ImmutableArray<EffectRandomInputDefinition> RandomInputs { get; init; } = [];
+    public ImmutableArray<EffectRuleOverrideDefinition> RuleOverrides { get; init; } = [];
     public ImmutableArray<EffectNumericParameterDefinition> Parameters { get; init; } = [];
     public ImmutableArray<StackPayloadBinding> PayloadBindings { get; init; } = [];
     public string? CondensationRecipeId { get; init; }

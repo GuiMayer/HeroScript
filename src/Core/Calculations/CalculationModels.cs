@@ -351,6 +351,8 @@ public sealed record StatInfluenceBindingDefinition
     private ImmutableArray<string> _excludedTags = [];
 
     public MissingResourcePolicy MissingValue { get; init; } = MissingResourcePolicy.Ignore;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public float DefaultValue { get; init; }
     public string BindingId { get; init; } = string.Empty;
     public CalculationEntityScope Scope { get; init; }
     public string ComponentId { get; init; } = "stats";
