@@ -8,7 +8,7 @@ public static class CardModifierItemAcquisition
     public static Result<RunState> Grant(RunState run, ContentRuntime runtime, string definitionId, string source)
     {
         if (run.Lifecycle != RunLifecycleState.Active || run.ActiveEncounterId != null ||
-            runtime.Manifest.Revision != run.Determinism.ContentRevision || runtime.Manifest.ConfigName != run.ConfigName)
+            runtime.Manifest.Revision != run.Determinism.ContentRevision || !string.Equals(runtime.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
             return Result<RunState>.Failure("Modifier acquisition requires the run's published setting outside combat");
         var definition = runtime.GetDefinition<CardModifierItemDefinition>("card-modifier-items", definitionId);
         if (definition.IsFailure) return Result<RunState>.Failure(definition.Error);

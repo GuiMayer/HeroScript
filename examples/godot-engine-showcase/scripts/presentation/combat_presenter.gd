@@ -161,6 +161,9 @@ func card_view_model(instance_id: String) -> Dictionary:
 	var facts: Dictionary = inspection.get("presentation", {}) if inspection.get("presentation") is Dictionary else _base_facts.get(instance_id, {})
 	if not facts.is_empty():
 		result.merge(preload("res://scripts/presentation/card_facts_presenter.gd").new(_i18n, _appearance).project(facts), true)
+		if not result.get("costsKnown", true) and not inspected_evaluation.get("costs", []).is_empty():
+			result["costs"] = _cost_tokens(inspected_evaluation.costs)
+			result["costsKnown"] = true
 	return preload("res://scripts/presentation/view_models.gd").Card.new(result).to_dictionary()
 
 func _card_type(tags: Array, tone: String) -> String:

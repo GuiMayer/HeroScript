@@ -28,6 +28,7 @@ func _run() -> void:
 	check(cards.size() == 1 and not cards[0].disabled, "eligible target is the shared card component, not a name-only list")
 	cards[0].pressed.emit()
 	check(selected.size() == 1 and selected[0] == load("res://scripts/presentation/activity_presenter.gd").option_reference(choices[1]), "target click emits only the advertised command reference")
+	await _capture(inventory, context)
 	unit.cards[0].compatible = false
 	unit.cards[0]["reason"] = "No available slot"
 	inventory._select(unit)
@@ -39,3 +40,26 @@ func _run() -> void:
 	root.get_node("GameAudio").shutdown()
 	await create_timer(.12).timeout
 	quit(0 if failures == 0 else 1)
+
+func _capture(inventory: Control, context) -> void:
+	var output := ""
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--lab-output="): output = argument.trim_prefix("--lab-output=")
+		if argument.begins_with("--capture-resolution="):
+			var parts: PackedStringArray = argument.trim_prefix("--capture-resolution=").split("x")
+			root.size = Vector2i(int(parts[0]), int(parts[1]))
+	if output.is_empty(): return
+	root.gui_embed_subwindows = true
+	root.remove_child(inventory)
+	var dialog := AcceptDialog.new()
+	dialog.theme = context.theme
+	dialog.title = context.translator.text("Modifier items")
+	inventory.custom_minimum_size = Vector2(950, 570)
+	dialog.add_child(inventory)
+	root.add_child(dialog)
+	dialog.popup_centered_clamped(Vector2i(1100, 680), .92)
+	for _i in 20: await process_frame
+	await RenderingServer.frame_post_draw
+	var path := output.path_join("modifier-items-%sx%s.png" % [root.size.x, root.size.y])
+	check(root.get_texture().get_image().save_png(path) == OK, "native inventory rendering captured")
+	check(dialog.size.x <= root.size.x and dialog.size.y <= root.size.y, "inventory dialog fits the selected native resolution")

@@ -83,6 +83,9 @@ func _run() -> void:
 	model.inspectionText = "Different execution journal"
 	card.configure(model)
 	check(card.configuration_count == count and card.model.inspectionText == model.inspectionText and card.find_child("Rules", true, false) == rules, "journal-only updates keep the face intact but update inspection data")
+	model["presentationFacts"] = {"version": {"runSequence": 42}, "impacts": [{"targetEntityId": "other"}]}
+	card.configure(model)
+	check(card.configuration_count == count and card.model.presentationFacts.version.runSequence == 42 and card.find_child("Rules", true, false) == rules, "presentation versions and impact traces enrich inspection without rebuilding the face")
 	context._options.text_scale = 1.2
 	card.configure(model)
 	var font_size: int = rules.get_theme_font_size("normal_font_size")

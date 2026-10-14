@@ -475,7 +475,8 @@ public sealed partial class CardTransformationCompositionTests
         UpgradeId = id, Category = CardTransformationCategory.Behavior,
         Patches = [new CardBundlePatchDefinition { Namespace = "behavior", Operation = operation, BundleId = bundleId }]
     };
-    private static ContentRuntime Runtime(CardUpgradeDefinition[] upgrades, CardComponentBundleDefinition? bundle = null, CardContentDefinition? card = null)
+    private static ContentRuntime Runtime(CardUpgradeDefinition[] upgrades, CardComponentBundleDefinition? bundle = null, CardContentDefinition? card = null,
+        CardModifierItemDefinition? modifierItem = null)
     {
         var artifacts = new List<(string Kind, string Path, Dictionary<string, object> Definitions)>
         {
@@ -484,6 +485,7 @@ public sealed partial class CardTransformationCompositionTests
             ("card-upgrades", "card-upgrades/catalog.json", upgrades.ToDictionary(item => item.UpgradeId, item => (object)item))
         };
         if (bundle != null) artifacts.Add(("card-component-bundles", "card-component-bundles/catalog.json", new() { [bundle.BundleId] = bundle }));
+        if (modifierItem != null) artifacts.Add(("card-modifier-items", "card-modifier-items/catalog.json", new() { [modifierItem.ItemDefinitionId] = modifierItem }));
         var result = ContentRuntime.Create(new ContentBundle
         {
             Manifest = new() { ConfigName = "test", Revision = Revision, Artifacts = artifacts.Select(item =>

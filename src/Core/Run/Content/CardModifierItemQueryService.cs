@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using Core.CardZones;
 using Core.Common;
 using Core.Content;
+using Core.Caching;
+using Core.Determinism;
 
 namespace Core.Run.Content;
 
@@ -17,13 +19,20 @@ public interface ICardModifierItemQueryService
 
 /// <summary>Ownership and compatibility facts. Reuses the ledger transition and effective composer; no rule evaluation in clients.</summary>
 public sealed class CardModifierItemQueryService(IRunQueryService runs, IContentRuntimeResolver runtimes,
-    ICardContentCompiler compiler, IEffectiveCardResolver composer) : ICardModifierItemQueryService
+    ICardContentCompiler compiler, IEffectiveCardResolver composer) : ICardModifierItemQueryService, ICacheService
 {
+    private readonly LruCache<string, CardModifierItemSnapshot> _cache = new(32);
+    public string CacheName => "RunCardModifierItems";
+    public CacheLayer Layer => CacheLayer.Derived;
+    public void Invalidate(string? key = null) { if (key == null) _cache.Clear(); else _cache.Remove(key); }
+    public CacheServiceStats GetStats() => new LruCacheService<string, CardModifierItemSnapshot>(_cache, CacheName).GetStats();
     public Result<CardModifierItemSnapshot> Read(Guid runId)
     {
         var loaded = runs.GetRun(runId);
         if (loaded.IsFailure) return Result<CardModifierItemSnapshot>.Failure(loaded.Error);
         var run = loaded.Value;
+        var key = CanonicalJson.ComputeHash(run);
+        if (_cache.TryGetValue(key, out var cached)) return Result<CardModifierItemSnapshot>.Success(cached!);
         var active = runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (active.IsFailure) return Result<CardModifierItemSnapshot>.Failure(active.Error);
         var catalog = ImmutableArray.CreateBuilder<CardModifierItemDefinition>();
@@ -53,7 +62,8 @@ public sealed class CardModifierItemQueryService(IRunQueryService runs, IContent
             }
             items.Add(new(instance, definition.Value, cards.ToImmutable()));
         }
-        return Result<CardModifierItemSnapshot>.Success(new(run.RunId, run.Sequence,
-            run.Determinism.ContentRevision, catalog.ToImmutable(), items.ToImmutable()));
+        var snapshot = new CardModifierItemSnapshot(run.RunId, run.Sequence, run.Determinism.ContentRevision, catalog.ToImmutable(), items.ToImmutable());
+        _cache.Set(key, snapshot);
+        return Result<CardModifierItemSnapshot>.Success(snapshot);
     }
 }

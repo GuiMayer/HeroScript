@@ -1,4 +1,19 @@
 {
+  "Amount": { "en": "Amount", "pt_BR": "Quantidade" },
+  "StatusStacks": { "en": "Status stacks", "pt_BR": "Acúmulos de status" },
+  "ModifierStacks": { "en": "Modifier stacks", "pt_BR": "Acúmulos do modificador" },
+  "CardCount": { "en": "Card count", "pt_BR": "Quantidade de cartas" },
+  "w1_fire_item": { "en": "Ember imprint", "pt_BR": "Marca de brasa" },
+  "w1_poison_item": { "en": "Venom imprint", "pt_BR": "Marca de veneno" },
+  "w1_split_item": { "en": "Split matrix", "pt_BR": "Matriz de divisão" },
+  "w1_cascade_item": { "en": "Cascade link", "pt_BR": "Elo de cascata" },
+  "w1_efficiency_item": { "en": "Efficiency matrix", "pt_BR": "Matriz de eficiência" },
+  "w1_calibration_item": { "en": "Calibration matrix", "pt_BR": "Matriz de calibração" },
+  "w1_amplify_item": { "en": "Amplification matrix", "pt_BR": "Matriz de amplificação" },
+  "w1_recall_item": { "en": "Recall link", "pt_BR": "Elo de compra" },
+  "w1_ward_item": { "en": "Ward link", "pt_BR": "Elo de defesa" },
+  "w1_condense_item": { "en": "Condensation seal", "pt_BR": "Selo de condensação" },
+  "w1_no_critical_item": { "en": "Stable matrix", "pt_BR": "Matriz estável" },
   "core_strike": {
 	"en": "Volatile Strike",
 	"pt_BR": "Golpe volátil"

@@ -49,6 +49,7 @@ public static class CardBasePresentationProjector
             Targeting = composed.All<CardTargetingComponentDefinition>().ToImmutableArray(),
             Dispositions = composed.All<CardDispositionComponentDefinition>().ToImmutableArray(),
             RuleOverrides = composed.All<CardEffectRuleOverrideComponentDefinition>().ToImmutableArray(),
+            Influences = composed.All<CardInfluenceComponentDefinition>().ToImmutableArray(),
             PermanentChanges = composed.UpgradeTrace.ToImmutableArray()
         };
         return Result<CardPresentationFacts>.Success(facts with { Fingerprint = CanonicalJson.ComputeHash(facts) });

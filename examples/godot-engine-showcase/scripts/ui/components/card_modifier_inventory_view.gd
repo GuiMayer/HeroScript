@@ -50,6 +50,7 @@ func _select(item: Dictionary) -> void:
 		if facts.is_empty(): continue
 		var column := VBoxContainer.new()
 		var card := CardView.new(_context)
+		card.animate_entry = false
 		card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(_context.translator, _appearance).project(facts[0]))
 		card.disabled = not compatibility.get("compatible", false)
 		var options: Array = _choices.filter(func(choice): return str(choice.get("type", "")) == "APPLY_CARD_MODIFIER_ITEM" and str(choice.get("payload", {}).get("itemInstanceId", "")) == str(item.get("instance", {}).get("itemInstanceId", "")) and str(choice.get("payload", {}).get("cardInstanceId", "")) == id)

@@ -472,6 +472,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var run = GetRun(runId);
         if (run.IsFailure)
             return Result<IReadOnlyList<RunAvailableCommand>>.Failure(run.Error);
+        if (_contentRuntimes == null && run.Value.Map.Nodes.Any(node => node.NodeId == run.Value.CurrentNodeId && node.Activity.Type == RunActivityType.CardUpgrade))
+            return Result<IReadOnlyList<RunAvailableCommand>>.Failure("Pinned content runtime is unavailable for card transformations");
         var commands = _progression.GetAvailableCommands(run.Value);
         if (commands.IsFailure)
             return commands;

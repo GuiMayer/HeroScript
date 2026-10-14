@@ -10,6 +10,7 @@
     "backgrounds": "battlefield"
   },
   "categories": {
+    "modifier_items": { "fire": "core_scorch_effect", "flurry": "core_multihit_behavior", "cascade": "core_cascade_behavior", "condense": "card_unknown", "guard": "card_unknown" },
     "effects": {
       "core_charge": "core_charge_effect",
       "core_ember_damage": "core_scorch_effect",

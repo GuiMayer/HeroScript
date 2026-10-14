@@ -38,6 +38,14 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		var descriptions: Array[String] = preload("res://scripts/presentation/card_calculation_presenter.gd").new(visual_context.translator).describe(model.presentationFacts, mode == DisplayMode.TOOLTIP)
 		for line in descriptions: body.add_child(visual_context.styles.caption(line, 14, 260))
 		if mode == DisplayMode.INSPECTION:
+			var changes: Array[String] = []
+			var seen: Array[String] = []
+			for change in model.presentationFacts.get("permanentChanges", []):
+				var identity := str(change.get("transformationId", "")) + "/" + str(change.get("upgradeId", ""))
+				if identity in seen: continue
+				seen.append(identity)
+				changes.append(visual_context.translator.text("Base upgrade" if str(change.get("category", "")) == "Base" else "Card modifier") + ": " + visual_context.translator.content_name(str(change.get("upgradeId", ""))))
+			for line in changes: body.add_child(visual_context.styles.caption(line, 14, 260))
 			for requirement in model.get("requirements", []): body.add_child(visual_context.styles.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
 			for behavior in model.get("behaviors", []): body.add_child(visual_context.styles.caption(str(behavior), 13, 260))
 		else:

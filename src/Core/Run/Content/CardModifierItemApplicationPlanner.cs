@@ -30,6 +30,10 @@ public sealed class CardModifierItemApplicationPlanner(IContentRuntimeResolver r
         var acquired = runtimes.Resolve(item.AcquisitionRevision, run.ConfigName);
         if (active.IsFailure) return Fail(active.Error);
         if (acquired.IsFailure) return Fail(acquired.Error);
+        if (active.Value.Manifest.Revision != run.Determinism.ContentRevision || acquired.Value.Manifest.Revision != item.AcquisitionRevision ||
+            !string.Equals(active.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
+            return Fail("Modifier item runtime revision or setting does not match its owner");
         var definition = acquired.Value.GetDefinition<CardModifierItemDefinition>("card-modifier-items", item.ItemDefinitionId);
         if (definition.IsFailure) return Fail(definition.Error);
         valid = definition.Value.Validate(acquired.Value);

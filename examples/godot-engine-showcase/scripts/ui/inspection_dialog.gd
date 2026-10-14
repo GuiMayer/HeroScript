@@ -25,7 +25,7 @@ func setup(title_text: String, summary: String, data: Dictionary = {}, card_mode
 		body.add_child(detail)
 		text.visible = false
 	body.add_child(text)
-	if not data.is_empty():
+	if not data.is_empty() and str(data.get("detail", "Full")) in ["Full", "2", "2.0"]:
 		var technical := CheckButton.new()
 		technical.text = visual_context.translator.text("Show engine details")
 		technical.toggled.connect(func(value):

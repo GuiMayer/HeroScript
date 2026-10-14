@@ -1,6 +1,6 @@
 # Cartas completas, cálculo explicável e modificadores como itens
 
-Data: 2026-10-14. Estado: plano para implementação; nenhuma mudança de gameplay aplicada neste pedido.
+Data: 2026-10-14. Estado: dez etapas implementadas, com commits separados. Validação automatizada e suas ressalvas em `docs/validation/CARD_PRESENTATION_AND_MODIFIER_ITEMS.md`.
 
 ## Acompanhamento da implementação
 
@@ -14,7 +14,7 @@ Data: 2026-10-14. Estado: plano para implementação; nenhuma mudança de gamepl
 - Etapa 7: kind tipado `card-modifier-items`, validação da transformação/política explícita, inventário imutável com identidade e proveniência, roundtrip/hash e consulta `GET /api/v1/runs/{runId}/card-modifier-items` implementados. Compatibilidade usa transição de ledger + compositor existentes, respeita visibilidade, desbloqueios e bloqueio durante combate. Inventário ausente não altera hashes antigos. Aquisição/aplicação ainda aguardam a etapa 8; não há mutação externa por essa consulta.
 - Etapa 8: planner único de aplicação/compatibilidade/preview e comando canônico `APPLY_CARD_MODIFIER_ITEM` implementados. Preview GET retorna antes/depois em base composta e versão esperada. Comando atualiza carta e unidade consumida/vinculada no mesmo candidato; descoberta anuncia pares executáveis. Remoção/substituição pelo caminho de upgrades não pode contornar a posse do item. Testes de composição, preview imutável, retry idempotente, dupla utilização, contexto inválido e roundtrip passaram. Engine versionada em `30`; aquisição/conteúdo e UI seguem na etapa 9. Certificação específica de replay semântico/branches e falha de persistência fica no gate final da etapa 10.
 - Etapa 9: aquisição canônica por atividade `ACQUIRE_CARD_MODIFIER_ITEM` e compra `BUY_SHOP_ITEM` entrega unidade independente, sem alterar deck. Coleção acessível por MODIFIERS no mapa/journey: selecionar item, ver cartas/razões, abrir comparação antes/depois com os mesmos componentes e confirmar. Mundo 1 migra afinidades/comportamentos para itens; upgrades Base permanecem upgrades. Catálogo inclui afinidade, multihit, continuação, condensação por receita e proibição de crítico, sem processadores especiais. Testes de compra, proveniência, identidade determinística, retry e UI passiva passaram. Outros settings mantêm suas regras de transformação próprias; não são migrados silenciosamente.
-- Etapa 10: certificação final e documentação pendentes. Suíte geral Core anterior à última integração: 1715 testes passaram. Suíte geral API anterior à última integração: 209 passaram, zero falhas observadas, mas abortada pelo timeout de 300 segundos (não certificada como completa).
+- Etapa 10: testes de falha de persistência, restart, retry, replay semântico repetido e branches para Consume/Bind implementados e aprovados; caches registrados, contrato OpenAPI e guia de conteúdo atualizados. Suíte Core: 1720 aprovados. Godot: 41 suítes/999 verificações, mais rodada final focada e capturas sintéticas nativas 1280×720/2560×1080. API focada: contratos/projeções/controllers e efeitos/habilidades aprovados. API geral: 209 aprovados sem falhas observadas, mas abortada pelo timeout de 300 s; não certificada como completa. Nenhuma run real foi alterada; não houve migração silenciosa de saves.
 
 ## 1. Objetivo e interpretação
 

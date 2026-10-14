@@ -27,6 +27,9 @@ func describe(facts: Dictionary, compact: bool) -> Array[String]:
 						lines.append("  " + _i18n.content_name(str(bucket.get("bucketId", ""))) + " · " + str(bucket.get("operation", "")) + ": " + _number(bucket.get("input")) + " → " + _number(bucket.get("output")))
 	if lines.is_empty(): lines.append(_i18n.text("No numeric calculation."))
 	if str(facts.get("faceValueMode", "")) == "Source": lines.append(_i18n.text("Before-action source snapshot. Target defenses and critical outcomes are separate."))
-	return lines.slice(0, 12) if compact else lines
+	if compact and lines.size() > 12:
+		lines = lines.slice(0, 11)
+		lines.append(_i18n.text("More calculations in card inspection."))
+	return lines
 func _number(value) -> String:
 	return _i18n.number(float(value)) if value is int or value is float else "—"

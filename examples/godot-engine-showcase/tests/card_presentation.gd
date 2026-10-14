@@ -51,6 +51,11 @@ func _run() -> void:
 	var passive = load("res://scripts/presentation/card_facts_presenter.gd").new(i18n, {})
 	var offered: Dictionary = passive.project(facts)
 	check(offered.effectRows[0].segments[1].value == 8 and offered.costs[0].amount == 1, "shared offer presenter uses engine composed base and actual use costs, not flat definitions or flavor")
+	var influenced: Dictionary = facts.duplicate(true)
+	influenced["influences"] = [{"channel": "critical_chance", "bucket": "chance", "value": 40}]
+	influenced["permanentChanges"] = [{"category": "Behavior", "transformationId": 1, "upgradeId": "calibration"}]
+	var with_influence: Dictionary = passive.project(influenced)
+	check(with_influence.behaviors.any(func(label): return str(label).contains("40")) and with_influence.changeBadges.size() == 1, "critical contribution is visible even when composed-base damage does not change")
 	facts.faceValueMode = "Source"
 	var contextual: Dictionary = passive.project(facts)
 	check(contextual.effectRows[0].segments[1].value == 12 and contextual.effectRows[0].segments[1].baseValue == 8, "combat source value compares with composed base, not original")

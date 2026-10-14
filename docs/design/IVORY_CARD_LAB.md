@@ -17,7 +17,7 @@ Selecione um conjunto, altere o idioma e a escala, experimente seleção/hover, 
 - Efeitos em superfície escura: prosa clara; números-base brancos, reduzidos vermelhos e aumentados azuis. As quatro cores atendem contraste de texto normal ≥4,5:1 sobre a faixa. Comparações continuam consumindo fatos publicados; a UI não calcula efeitos.
 - Raridade permanece na borda externa e nos detalhes, acompanhada do nome. Filete interno de tinta garante leitura do contorno no papel claro; seleção/foco reforçam o filete sem substituir a raridade.
 - Circuitos passivos de cinco linhas finas, com cotovelos de 45° e distância perpendicular constante. Redesenho somente quando necessário; não recebem input/foco. Alto contraste oculta os circuitos e preserva a superfície invertida dos efeitos.
-- Tooltip continua resumo passivo sem scrollbar. Inspeção persistente e visão geral conservam navegação e rolagem próprias.
+- Tooltip continua passivo sem scrollbar. Com fatos publicados, explica as camadas do cálculo e fontes pertinentes, sem repetir a face. Inspeção persistente conserva navegação e rolagem próprias. A face ignora versões e traces de impacto em sua chave de reconstrução; usa apenas os valores/seções visíveis.
 
 ## Recursos e isolamento
 

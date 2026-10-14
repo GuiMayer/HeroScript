@@ -16,6 +16,27 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/cards/presentations": {
+      "get": {
+        "tags": ["Runs"], "operationId": "getRunCardPresentations", "x-heroscript-stability": "experimental",
+        "parameters": [{"$ref": "#/components/parameters/RunId"}],
+        "responses": {"200": {"description": "Revision-pinned composed bases for visible instances and current concrete offers. No RNG or gameplay mutation.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CardPresentationBatch"}}}}, "400": {"$ref": "#/components/responses/Problem"}}
+      }
+    },
+    "/api/v1/runs/{runId}/card-modifier-items": {
+      "get": {
+        "tags": ["Runs"], "operationId": "getCardModifierItems", "x-heroscript-stability": "experimental",
+        "parameters": [{"$ref": "#/components/parameters/RunId"}],
+        "responses": {"200": {"description": "Catalog, immutable ownership and compatibility facts for visible cards.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CardModifierItemSnapshot"}}}}, "400": {"$ref": "#/components/responses/Problem"}}
+      }
+    },
+    "/api/v1/runs/{runId}/card-modifier-items/{itemInstanceId}/preview/{cardInstanceId}": {
+      "get": {
+        "tags": ["Runs"], "operationId": "previewCardModifierItem", "x-heroscript-stability": "experimental",
+        "parameters": [{"$ref": "#/components/parameters/RunId"}, {"name": "itemInstanceId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}, {"name": "cardInstanceId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {"200": {"description": "Before/after base facts and expected version. No candidate aggregate or mutation.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CardModifierItemPreview"}}}}, "400": {"$ref": "#/components/responses/Problem"}}
+      }
+    },
     "/api/v1/runs/{runId}/character-attributes": {
       "get": {
         "tags": ["Runs"], "operationId": "getCharacterAttributes", "x-heroscript-stability": "experimental",
@@ -612,6 +633,33 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "CardNumericLayers": {
+        "type": "object", "properties": {
+          "original": {"type": "number", "nullable": true}, "composedBase": {"type": "number", "nullable": true}, "source": {"type": "number", "nullable": true},
+          "unitId": {"type": "string"}, "expression": {"type": "string", "nullable": true}, "unresolvedReason": {"type": "string", "nullable": true}
+        }
+      },
+      "CardPresentationFacts": {
+        "type": "object", "required": ["identity", "version", "faceValueMode", "costs", "effects", "explanations", "impacts", "fingerprint"],
+        "properties": {
+          "identity": {"type": "object", "properties": {"kind": {"type": "string", "enum": ["Definition", "Offer", "Instance", "Transformation"]}, "definitionId": {"type": "string"}, "cardInstanceId": {"type": "string", "format": "uuid", "nullable": true}, "offerId": {"type": "string", "nullable": true}}},
+          "version": {"type": "object", "description": "Pinned content, composition and run/combat coordinates.", "additionalProperties": true},
+          "faceValueMode": {"type": "string", "enum": ["ComposedBase", "Source"]}, "rarity": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}},
+          "costs": {"type": "array", "items": {"type": "object", "properties": {"componentId": {"type": "string"}, "costs": {"type": "object", "additionalProperties": true}}}},
+          "effects": {"type": "array", "items": {"type": "object", "properties": {"componentId": {"type": "string"}, "effectPath": {"type": "string"}, "parentEffectPath": {"type": "string", "nullable": true}, "boundary": {"type": "string", "nullable": true}, "definition": {"type": "object", "additionalProperties": true}, "parameters": {"type": "array", "items": {"type": "object", "properties": {"parameter": {"type": "string"}, "values": {"$ref": "#/components/schemas/CardNumericLayers"}}}}}}},
+          "conditions": {"type": "array", "items": {"type": "object"}}, "targeting": {"type": "array", "items": {"type": "object"}}, "dispositions": {"type": "array", "items": {"type": "object"}}, "ruleOverrides": {"type": "array", "items": {"type": "object"}}, "permanentChanges": {"type": "array", "items": {"type": "object"}},
+          "influences": {"type": "array", "description": "Intrinsic card contribution components, including critical chance or multiplier changes that do not change composed-base numbers.", "items": {"type": "object", "additionalProperties": true}},
+          "explanations": {"type": "array", "description": "Per-parameter source attributes, eligible zero values, pertinent contributors, conditions and bounded bucket outputs. Full detail may include technical traces.", "items": {"type": "object", "additionalProperties": true}},
+          "impacts": {"type": "array", "description": "Separate target outcomes with captured-preview validity; never the face value.", "items": {"type": "object", "additionalProperties": true}}, "impactsTruncated": {"type": "boolean"}, "fingerprint": {"type": "string"}
+        }
+      },
+      "CardPresentationBatch": {"type": "object", "required": ["runId", "runSequence", "contentRevision", "cards"], "properties": {"runId": {"type": "string", "format": "uuid"}, "runSequence": {"type": "integer"}, "contentRevision": {"type": "string"}, "cards": {"type": "array", "maxItems": 512, "items": {"$ref": "#/components/schemas/CardPresentationFacts"}}}},
+      "CardModifierItemDefinition": {"type": "object", "required": ["itemDefinitionId", "upgradeId", "use"], "properties": {"itemDefinitionId": {"type": "string"}, "upgradeId": {"type": "string"}, "use": {"type": "string", "enum": ["Consume", "Bind"]}, "presentation": {"type": "object", "additionalProperties": {"type": "string"}}}},
+      "CardModifierItemSnapshot": {"type": "object", "required": ["runId", "runSequence", "contentRevision", "catalog", "items"], "properties": {
+        "runId": {"type": "string", "format": "uuid"}, "runSequence": {"type": "integer"}, "contentRevision": {"type": "string"}, "catalog": {"type": "array", "items": {"$ref": "#/components/schemas/CardModifierItemDefinition"}},
+        "items": {"type": "array", "maxItems": 512, "items": {"type": "object", "properties": {"instance": {"type": "object", "description": "Owned unit identity, acquisition revision/source/sequence and Available/Consumed/Bound state, including card/transformation binding when used.", "additionalProperties": true}, "definition": {"$ref": "#/components/schemas/CardModifierItemDefinition"}, "cards": {"type": "array", "items": {"type": "object", "properties": {"cardInstanceId": {"type": "string", "format": "uuid"}, "compatible": {"type": "boolean"}, "reason": {"type": "string", "nullable": true}}}}}}}
+      }},
+      "CardModifierItemPreview": {"type": "object", "required": ["runId", "runSequence", "expectedStep", "contentRevision", "itemInstanceId", "cardInstanceId", "before", "after"], "properties": {"runId": {"type": "string", "format": "uuid"}, "runSequence": {"type": "integer"}, "expectedStep": {"type": "integer", "format": "uint64"}, "contentRevision": {"type": "string"}, "itemInstanceId": {"type": "string", "format": "uuid"}, "cardInstanceId": {"type": "string", "format": "uuid"}, "before": {"$ref": "#/components/schemas/CardPresentationFacts"}, "after": {"$ref": "#/components/schemas/CardPresentationFacts"}}},
       "ActorAttributesProjection": {
         "type": "object", "required": ["runId", "runSequence", "contentRevision", "actorId", "authority", "attributes", "criticalRules"],
         "properties": {
@@ -1515,8 +1563,9 @@
       },
       "CardInspectionResult": {
         "type": "object",
-        "required": ["version", "detail", "zone", "isInPlayableZone", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewSteps", "previewApplications", "disposition", "resolutionFingerprint"],
+        "required": ["version", "detail", "zone", "isInPlayableZone", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewSteps", "previewApplications", "resolutionFingerprint"],
         "properties": {
+          "presentation": {"allOf": [{"$ref": "#/components/schemas/CardPresentationFacts"}], "nullable": true},
           "version": { "type": "object", "description": "Run, combat, engine and content-revision coordinates used by this projection", "additionalProperties": true },
           "previewScope": { "type": "object", "description": "Exact only for the captured snapshot, target IDs and cost option; dependsOnRandomInputs does not mean nondeterministic. GET never consumes RNG.", "additionalProperties": true },
           "randomOutcomes": { "$ref": "#/components/schemas/RandomOutcomePreview" },
@@ -1534,7 +1583,6 @@
           "calculations": { "type": "array", "description": "Configured bucket traces and influence provenance", "items": { "type": "object", "additionalProperties": true } },
           "previewSteps": { "type": "array", "description": "Ordered effect trace produced by the same pure transaction used by PLAY_CARD", "items": { "$ref": "#/components/schemas/EffectExecutionStep" } },
           "previewApplications": { "type": "array", "description": "Exact immutable effect preview from the current deterministic snapshot", "items": { "type": "object", "additionalProperties": true } },
-          "disposition": { "type": "string" },
           "resolutionFingerprint": { "type": "string" }
         }
       },

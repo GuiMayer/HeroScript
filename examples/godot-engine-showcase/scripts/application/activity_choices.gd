@@ -8,7 +8,10 @@ static func build(run: Dictionary, commands: Array) -> Array:
 		var valid: Dictionary = command.get("validPayload", {}) if command.get("validPayload") is Dictionary else {}
 		match type:
 			"ACQUIRE_CARD_MODIFIER_ITEM":
-				for id in valid.get("itemDefinitionIds", []): choices.append(_choice(type, {"itemDefinitionId": id}, str(id), "modifier_item"))
+				for id in valid.get("itemDefinitionIds", []):
+					var choice := _choice(type, {"itemDefinitionId": id}, str(id), "modifier_item")
+					choice["costs"] = valid.get("costs", []).duplicate(true)
+					choices.append(choice)
 			"APPLY_CARD_MODIFIER_ITEM":
 				for option in valid.get("options", []): choices.append(_choice(type, option, str(option.get("itemInstanceId", "")), "modifier_item", true))
 			"CHOOSE_DIALOGUE_OPTION":

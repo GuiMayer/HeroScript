@@ -12,6 +12,7 @@ public sealed class CardModifierItemController(ICardModifierItemQueryService ite
     ILogger<CardModifierItemController> logger) : BaseApiController(logger)
 {
     [HttpGet]
+    [ProducesResponseType(typeof(CardModifierItemSnapshot), StatusCodes.Status200OK)]
     public IActionResult Read(Guid runId)
     {
         var result = items.Read(runId);

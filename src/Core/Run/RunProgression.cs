@@ -638,7 +638,7 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
         };
         if (CardTransformationAccess.UpgradeIds(node).Count == 0) commands.RemoveAll(command => command.Type == RunCommandTypes.UpgradeCard);
         if (node.Activity.Parameters.TryGetValue("modifierItemIds", out var modifierIds) && modifierIds.ValueKind == JsonValueKind.Array)
-            commands.Add(Command(run, node, RunCommandTypes.AcquireCardModifierItem, new { itemDefinitionId = "string" }, new { itemDefinitionIds = modifierIds }));
+            commands.Add(Command(run, node, RunCommandTypes.AcquireCardModifierItem, new { itemDefinitionId = "string" }, new { itemDefinitionIds = modifierIds, costs = CardTransformationAccess.ReadCosts(node.Activity).Value }));
         if (CardTransformationAccess.Enabled(node, "allowRemoval")) commands.Add(Command(run, node,
             RunCommandTypes.RemoveCardTransformation, new { cardInstanceId = "guid", transformationId = "uint64" }));
         if (CardTransformationAccess.Enabled(node, "allowReplacement")) commands.Add(Command(run, node,

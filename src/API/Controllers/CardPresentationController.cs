@@ -10,6 +10,7 @@ public sealed class CardPresentationController(ICardPresentationQueryService car
     ILogger<CardPresentationController> logger) : BaseApiController(logger)
 {
     [HttpGet]
+    [ProducesResponseType(typeof(CardPresentationBatch), StatusCodes.Status200OK)]
     public IActionResult Read(Guid runId)
     {
         var result = cards.Read(runId);

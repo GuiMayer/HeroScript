@@ -7,6 +7,22 @@ namespace API.Tests;
 public sealed class ContractDocumentationTests
 {
     [Fact]
+    public void CardPresentationContractSeparatesLayersAndDeclaresModifierQueries()
+    {
+        using var document = LoadJson("openapi", "heroscript-v1.json");
+        var root = document.RootElement;
+        foreach (var path in new[] { "/api/v1/runs/{runId}/cards/presentations", "/api/v1/runs/{runId}/card-modifier-items",
+                     "/api/v1/runs/{runId}/card-modifier-items/{itemInstanceId}/preview/{cardInstanceId}" })
+            Assert.True(root.GetProperty("paths").GetProperty(path).TryGetProperty("get", out _));
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        var layers = schemas.GetProperty("CardNumericLayers").GetProperty("properties");
+        Assert.True(layers.TryGetProperty("original", out _));
+        Assert.True(layers.TryGetProperty("composedBase", out _));
+        Assert.True(layers.TryGetProperty("source", out _));
+        Assert.False(layers.TryGetProperty("impact", out _));
+        Assert.Equal(512, schemas.GetProperty("CardPresentationBatch").GetProperty("properties").GetProperty("cards").GetProperty("maxItems").GetInt32());
+    }
+    [Fact]
     public void CreationContract_DeclaresRetryInputsButNotClientEligibility()
     {
         using var document = LoadJson("openapi", "heroscript-v1.json");

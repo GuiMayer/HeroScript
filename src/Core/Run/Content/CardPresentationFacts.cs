@@ -85,6 +85,7 @@ public sealed record CardPresentationFacts
     public ImmutableArray<CardTargetingComponentDefinition> Targeting { get; init; } = [];
     public ImmutableArray<CardDispositionComponentDefinition> Dispositions { get; init; } = [];
     public ImmutableArray<CardEffectRuleOverrideComponentDefinition> RuleOverrides { get; init; } = [];
+    public ImmutableArray<CardInfluenceComponentDefinition> Influences { get; init; } = [];
     public ImmutableArray<CardUpgradeApplicationTrace> PermanentChanges { get; init; } = [];
     public ImmutableArray<CardValueExplanation> Explanations { get; init; } = [];
     public ImmutableArray<CardImpactExplanation> Impacts { get; init; } = [];
