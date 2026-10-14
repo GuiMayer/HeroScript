@@ -371,7 +371,9 @@ func toggle_pause() -> void:
 		return
 	get_tree().paused = true
 	GameAudio.play_event("open")
-	shell.show_pause(_abandon_choice())
+	# Read-only projection scoped to the current run/branch/activity, never cached by the shell.
+	var dialogue: Dictionary = preload("res://scripts/presentation/dialogue_presenter.gd").build(GameSession.run, GameSession.activity_choices(), I18n)
+	shell.show_pause(_abandon_choice(), dialogue.get("history", []))
 
 func _pause_settings() -> void:
 	toggle_pause()

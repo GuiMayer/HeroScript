@@ -12,8 +12,6 @@ var _title: Label
 var _portrait
 var _choices: VBoxContainer
 var _next: Button
-var _history: Button
-var _gradual: CheckButton
 var _locked := false
 var _choices_key := ""
 func _init(context = null) -> void:
@@ -22,6 +20,7 @@ func apply_model(data: Dictionary) -> void:
 	theme = visual_context.theme; model = data.duplicate(true)
 	if not is_instance_valid(_speech): _build()
 	reading.bind(model, visual_context.translator.locale)
+	reading.gradual = visual_context.reveal_text_gradually
 	_title.text = str(model.get("title", ""))
 	_speaker.text = str(model.get("speaker", "")); _speaker.visible = not _speaker.text.is_empty()
 	_portrait.visual_context = visual_context
@@ -49,9 +48,6 @@ func apply_model(data: Dictionary) -> void:
 		desired.free(); choice_buttons.clear()
 		for child in _choices.get_children():
 			if child is Button: choice_buttons.append(child)
-	_history.text = visual_context.translator.text("CONVERSATION HISTORY")
-	_history.disabled = model.get("history", []).is_empty()
-	_gradual.text = visual_context.translator.text("Reveal text gradually")
 	_sync_reading()
 func _build() -> void:
 	name = "DialoguePanel"; add_theme_constant_override("separation", 14)
@@ -71,9 +67,7 @@ func _build() -> void:
 	var tools := HFlowContainer.new()
 	_next = visual_context.styles.button(""); _next.name = "DialogueReadNext"
 	_next.pressed.connect(advance_reading); tools.add_child(_next)
-	_history = visual_context.styles.button(""); _history.pressed.connect(_open_history); tools.add_child(_history)
-	_gradual = CheckButton.new(); _gradual.toggled.connect(func(value): reading.gradual = value; _sync_reading())
-	tools.add_child(_gradual); speech_box.add_child(tools)
+	speech_box.add_child(tools)
 	add_child(visual_context.styles.panel(speech_box))
 	var scroll := ScrollContainer.new(); scroll.custom_minimum_size.y = 150
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -86,18 +80,11 @@ func _sync_reading() -> void:
 	_speech.visible_characters = -1 if reading.fully_revealed() else int(reading.revealed)
 	_next.visible = not reading.fully_revealed() or not reading.last_page()
 	_next.text = visual_context.translator.text("Reveal text" if not reading.fully_revealed() else "Next page") + " · %s/%s" % [reading.page + 1, reading.pages.size()]
-	_gradual.set_pressed_no_signal(reading.gradual)
 	_choices.visible = reading.fully_revealed() and reading.last_page()
 	for button in choice_buttons: button.disabled = _locked or not _choices.visible or bool(button.get_meta("engine_disabled", false))
 func set_read_only(value: bool) -> void: _locked = value; _sync_reading()
 func _process(delta: float) -> void:
 	if not is_instance_valid(_speech) or reading.fully_revealed(): return
 	reading.revealed += delta * 45.; _sync_reading()
-func _open_history() -> void:
-	var lines: Array[String] = []
-	for entry in model.get("history", []): lines.append((str(entry.speaker) + ": " if not str(entry.speaker).is_empty() else "") + str(entry.text))
-	var dialog = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
-	dialog.setup(visual_context.translator.text("CONVERSATION HISTORY"), "\n\n".join(lines))
-	add_child(dialog); dialog.popup_centered()
 func capture_local_state() -> Dictionary: return reading.capture()
 func restore_local_state(state: Dictionary) -> void: reading.restore(state); _sync_reading()

@@ -15,6 +15,7 @@ var _previous_focus: WeakRef
 var _toast_motion: Tween
 const PauseProfile = preload("res://data/themes/ivory_theme.tres")
 var pause_context
+var _history_dialog: AcceptDialog
 func mount(context) -> void:
 	visual_context = context
 	run_scenery = preload("res://scripts/ui/shell/run_scenery_host.gd").new()
@@ -40,14 +41,14 @@ func mount(context) -> void:
 	toast.add_theme_stylebox_override("normal", AppTheme.box(AppTheme.color("surface.toast"), 10, AppTheme.EMBER, 1))
 	toast.add_theme_font_size_override("font_size", 16)
 	notices.add_child(toast)
-func show_pause(abandon: Dictionary) -> void:
+func show_pause(abandon: Dictionary, conversation_history: Array = []) -> void:
 	_previous_focus = weakref(get_viewport().gui_get_focus_owner()) if get_viewport().gui_get_focus_owner() else null
 	pause_context = visual_context.derive(PauseProfile)
-	AppTheme.scoped_profile(PauseProfile, func(): _build_pause(abandon))
+	AppTheme.scoped_profile(PauseProfile, func(): _build_pause(abandon, conversation_history.duplicate(true)))
 	var resume: Button = pause_layer.find_child("ResumeButton", true, false)
 	resume.grab_focus()
 	preload("res://scripts/ui/focus_navigation.gd").queue(pause_layer)
-func _build_pause(abandon: Dictionary) -> void:
+func _build_pause(abandon: Dictionary, conversation_history: Array) -> void:
 	pause_canvas = CanvasLayer.new()
 	pause_canvas.name = "PauseCanvas"
 	pause_canvas.layer = Layers.MODAL
@@ -79,6 +80,10 @@ func _build_pause(abandon: Dictionary) -> void:
 	resume.theme_type_variation = "PrimaryAction"
 	content.add_child(resume)
 	content.add_child(_button(i18n.text("SETTINGS"), settings_requested.emit))
+	var history := _button(i18n.text("CONVERSATION HISTORY"), func(): _open_conversation_history(conversation_history))
+	history.name = "ConversationHistoryButton"
+	history.disabled = conversation_history.is_empty()
+	content.add_child(history)
 	if not abandon.is_empty():
 		var button := _button(i18n.text("ABANDON RUN"), func(): confirm_abandon(abandon))
 		button.name = "AbandonRunButton"
@@ -96,6 +101,11 @@ func refresh_pause_visuals() -> void:
 		AppTheme.apply_view_preferences(pause_layer, pause_context.text_scale, pause_context.high_contrast)
 		pause_layer.find_child("PauseCircuit", true, false).simplified = pause_context.high_contrast)
 func close_pause() -> void:
+	# Windows detach from their embedded viewport immediately with the pause canvas.
+	if is_instance_valid(_history_dialog):
+		_history_dialog.get_parent().remove_child(_history_dialog)
+		_history_dialog.queue_free()
+	_history_dialog = null
 	if is_instance_valid(pause_canvas):
 		remove_child(pause_canvas)
 		pause_canvas.queue_free()
@@ -105,6 +115,26 @@ func close_pause() -> void:
 	if is_inside_tree() and _previous_focus and is_instance_valid(_previous_focus.get_ref()) and _previous_focus.get_ref().is_inside_tree():
 		_previous_focus.get_ref().grab_focus()
 	_previous_focus = null
+func _open_conversation_history(entries: Array) -> void:
+	if not is_instance_valid(pause_layer) or entries.is_empty(): return
+	if is_instance_valid(_history_dialog): return
+	var lines: Array[String] = []
+	for entry in entries:
+		var speaker := str(entry.get("speaker", ""))
+		lines.append((speaker + ": " if not speaker.is_empty() else "") + str(entry.get("text", "")))
+	var dialog = preload("res://scripts/ui/inspection_dialog.gd").new(pause_context)
+	_history_dialog = dialog
+	dialog.name = "ConversationHistoryDialog"
+	dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	dialog.exclusive = true
+	dialog.setup(pause_context.translator.text("CONVERSATION HISTORY"), "\n\n".join(lines))
+	dialog.ok_button_text = pause_context.translator.text("BACK")
+	dialog.tree_exited.connect(func():
+		if is_instance_valid(pause_layer):
+			var button: Button = pause_layer.find_child("ConversationHistoryButton", true, false)
+			if is_instance_valid(button) and button.is_inside_tree(): button.grab_focus())
+	pause_layer.add_child(dialog)
+	dialog.popup_centered()
 func confirm_abandon(choice: Dictionary) -> void:
 	if not is_instance_valid(pause_layer): return
 	var dialog := ConfirmationDialog.new()

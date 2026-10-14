@@ -37,6 +37,7 @@ var hand_emphasis := 1.0
 var hand_drag_enabled := false
 var locale := "en"
 var reduced_motion := false
+var reveal_text_gradually := false
 var auto_animations := true
 var fullscreen := false
 var high_contrast := false
@@ -76,6 +77,7 @@ func load_settings() -> void:
 	hand_drag_enabled = _read_option(config, "game", "hand_drag", "hand_drag_enabled", false)
 	locale = _read_option(config, "game", "locale", "locale", "en")
 	reduced_motion = _read_option(config, "game", "reduced_motion", "reduced_motion", false)
+	reveal_text_gradually = _read_option(config, "accessibility", "reveal_text_gradually", "reveal_text_gradually", false)
 	auto_animations = _read_option(config, "game", "auto_animations", "auto_animations", true)
 	fullscreen = _read_option(config, "video", "fullscreen", "fullscreen", false)
 	window_resolution = Vector2i(_read_dimension(config, "width", DEFAULT_RESOLUTION.x),
@@ -148,6 +150,7 @@ func save(notify := true) -> void:
 	config.set_value("game", "hand_drag", hand_drag_enabled)
 	config.set_value("game", "locale", locale)
 	config.set_value("game", "reduced_motion", reduced_motion)
+	config.set_value("accessibility", "reveal_text_gradually", reveal_text_gradually)
 	config.set_value("game", "auto_animations", auto_animations)
 	config.set_value("video", "fullscreen", fullscreen)
 	config.set_value("video", "width", window_resolution.x)

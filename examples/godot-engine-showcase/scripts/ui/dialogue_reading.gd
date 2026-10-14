@@ -22,9 +22,8 @@ func advance_reading() -> bool:
 	if not fully_revealed(): revealed = text().length(); return true
 	if not last_page(): page += 1; revealed = 0.; return true
 	return false
-func capture() -> Dictionary: return {"scope": scope, "page": page, "revealed": revealed, "gradual": gradual}
+func capture() -> Dictionary: return {"scope": scope, "page": page, "revealed": revealed}
 func restore(state: Dictionary) -> void:
 	if str(state.get("scope", "")) != scope: return
 	page = clampi(int(state.get("page", 0)), 0, maxi(0, pages.size() - 1))
 	revealed = maxf(0., float(state.get("revealed", 0.)))
-	gradual = bool(state.get("gradual", false))

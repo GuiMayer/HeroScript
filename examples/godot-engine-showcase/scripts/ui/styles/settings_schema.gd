@@ -22,6 +22,7 @@ const OPTIONS := {
 	"fullscreen": {"type": "bool"},
 	"text_scale": {"min": .9, "max": 1.2, "step": .05, "control": "TextScaleSlider"},
 	"high_contrast": {"type": "bool"},
+	"reveal_text_gradually": {"type": "bool"},
 	"reduced_motion": {"type": "bool"}
 }
 static func option(key: String) -> Dictionary: return OPTIONS.get(key, {}).duplicate(true)

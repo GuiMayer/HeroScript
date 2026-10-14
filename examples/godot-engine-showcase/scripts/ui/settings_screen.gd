@@ -243,6 +243,8 @@ func _build_accessibility_page() -> void:
 		_toggle_control(controller.read("high_contrast"), func(value): controller.set_option("high_contrast", value, false), "HighContrastToggle"))
 	_add_option(I18n.text("Reduced motion"), I18n.text("Disables decorative motion and shortens transitions."),
 		_toggle_control(controller.read("reduced_motion"), func(value): controller.set_option("reduced_motion", value, false), "ReducedMotionToggle"))
+	_add_option(I18n.text("Reveal text gradually"), I18n.text("Reveals dialogue text progressively. Turn off to show each page immediately."),
+		_toggle_control(controller.read("reveal_text_gradually"), func(value): controller.set_option("reveal_text_gradually", value, false), "RevealTextGraduallyToggle"))
 
 func _build_controls_page() -> void:
 	_add_section(I18n.text("GAMEPLAY ACTIONS"))
