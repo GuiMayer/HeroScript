@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Core.Calculations;
+using Core.Caching;
 using Core.CardZones;
 using Core.Combat.Flow;
 using Core.Combat.Models;
@@ -156,8 +157,33 @@ public sealed class LegalActionQueryService : ILegalActionQueryService
 /// Sole legality/preview boundary for player commands, automatic policies and
 /// REST projections. Calling it never commits or mutates runtime state.
 /// </summary>
-public sealed class LegalActionResolver : ILegalActionResolver
+public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
 {
+    private readonly LruCache<string, LegalActionEvaluation> _evaluations = new(128);
+    private readonly LruCache<string, LegalActionSet> _sets = new(16);
+    public string CacheName => "CombatLegalPreviews";
+    public CacheLayer Layer => CacheLayer.Derived;
+    public void Invalidate(string? key = null)
+    {
+        if (key != null) { _evaluations.Remove(key); _sets.Remove(key); return; }
+        _evaluations.Clear(); _sets.Clear();
+    }
+    public CacheServiceStats GetStats()
+    {
+        var evaluations = _evaluations.GetStats();
+        var sets = _sets.GetStats();
+        var hits = evaluations.Hits + sets.Hits;
+        var misses = evaluations.Misses + sets.Misses;
+        return new() { CacheName = CacheName, Capacity = evaluations.Capacity + sets.Capacity,
+            Count = evaluations.Count + sets.Count, Hits = hits, Misses = misses,
+            Evictions = evaluations.Evictions + sets.Evictions,
+            HitRate = hits + misses == 0 ? 0 : (double)hits / (hits + misses),
+            LastInvalidation = evaluations.LastInvalidation };
+    }
+    // Full immutable snapshot hashes, not just sequence/step: branches, settings,
+    // actor/resource changes and hot-rebound revisions cannot share a stale preview.
+    private static string SnapshotKey(RunState run, CombatState combat) =>
+        CanonicalJson.ComputeHash(run) + ":" + CanonicalJson.ComputeHash(combat);
     private readonly IActionManager _actions;
     private readonly IContentRuntimeResolver _runtimes;
     private readonly ICardContentCompiler _cards;
@@ -202,6 +228,17 @@ public sealed class LegalActionResolver : ILegalActionResolver
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
         ArgumentNullException.ThrowIfNull(command);
+        var key = SnapshotKey(run, combat) + ":" + origin + ":" + CanonicalJson.ComputeHash(command);
+        if (_evaluations.TryGetValue(key, out var cached))
+            return Result<LegalActionEvaluation>.Success(cached!);
+        var result = EvaluateUncached(run, combat, command, origin);
+        if (result.IsSuccess) _evaluations.Set(key, result.Value);
+        return result;
+    }
+
+    private Result<LegalActionEvaluation> EvaluateUncached(
+        RunState run, CombatState combat, CombatActionCommand command, CombatCommandOrigin origin)
+    {
         if (run.ResolvedMode == null)
             return Result<LegalActionEvaluation>.Failure("Run has no resolved game mode");
 
@@ -234,6 +271,20 @@ public sealed class LegalActionResolver : ILegalActionResolver
         CombatState combat,
         string actorId,
         CombatCommandOrigin origin)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(combat);
+        using var hashes = CanonicalJson.BeginHashScope();
+        var key = SnapshotKey(run, combat) + ":" + origin + ":" + actorId;
+        if (_sets.TryGetValue(key, out var cached))
+            return Result<LegalActionSet>.Success(cached!);
+        var result = ResolveUncached(run, combat, actorId, origin);
+        if (result.IsSuccess) _sets.Set(key, result.Value);
+        return result;
+    }
+
+    private Result<LegalActionSet> ResolveUncached(
+        RunState run, CombatState combat, string actorId, CombatCommandOrigin origin)
     {
         if (string.IsNullOrWhiteSpace(actorId))
             return Result<LegalActionSet>.Failure("Actor id is required");

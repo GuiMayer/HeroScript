@@ -64,7 +64,7 @@ public sealed class CardInspectionServiceTests
             .Returns(Result<EffectiveCardDefinition>.Success(effective));
         var legal = new Mock<ILegalActionResolver>();
         legal.Setup(service => service.Evaluate(
-                run, It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput))
+                It.IsAny<RunState>(), It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput))
             .Returns(Result<LegalActionEvaluation>.Success(new LegalActionEvaluation
             {
                 CardEvaluation = evaluation,
@@ -137,7 +137,26 @@ public sealed class CardInspectionServiceTests
         Assert.Empty(first.Value.Procs);
         legal.Verify(service => service.Evaluate(
             run, It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput),
-            Times.Exactly(2));
+            Times.Once);
+        Assert.Same(first.Value, second.Value);
+        Assert.Equal(1, service.GetStats().Hits);
+        // Same sequence with different input/policy still requires a distinct result.
+        var changedTargets = service.Inspect(new CardInspectionRequest
+        {
+            CombatId = CombatId, CardInstanceId = CardId, ActorId = "hero",
+            SelectedTargetIds = [], MaximumDetail = InspectionDetailLevel.Resolved
+        });
+        Assert.True(changedTargets.IsSuccess);
+        Assert.NotSame(first.Value, changedTargets.Value);
+        Assert.Null(changedTargets.Value.ContextSources);
+        Assert.Empty(changedTargets.Value.PreviewScope.SelectedTargetIds);
+        var fork = run with { RunId = Guid.NewGuid() };
+        runs.Setup(manager => manager.GetRunByCombat(CombatId)).Returns(Result<RunState>.Success(fork));
+        Assert.True(service.Inspect(new() { CombatId = CombatId, CardInstanceId = CardId, ActorId = "hero", SelectedTargetIds = ["enemy"] }).IsSuccess);
+        legal.Verify(item => item.Evaluate(It.IsAny<RunState>(), It.IsAny<CombatState>(),
+            It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput), Times.Exactly(3));
+        service.Invalidate();
+        Assert.Equal(0, service.GetStats().Count);
     }
 
     [Fact]

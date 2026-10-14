@@ -98,6 +98,55 @@ public sealed class LegalActionResolverTests
         Assert.Equal(preview.Evaluation.Costs, first.Value.Candidate.Costs);
         Assert.Equal(1.5f, Assert.Single(first.Value.Candidate.Costs).Amount);
         Assert.Same(successor, first.Value.Candidate.SuccessorCombat);
+        Assert.Same(first.Value, second.Value);
+        abilities.Verify(service => service.Execute(It.IsAny<AbilityExecutionRequest>()), Times.Once);
+    }
+
+    [Fact]
+    public void PreviewCache_UsesCompleteStateAndInput_NotOnlyStep_AndSupportsInvalidation()
+    {
+        var (run, combat) = State(includeAbility: true);
+        var abilities = new Mock<IAbilityExecutor>();
+        abilities.Setup(service => service.Execute(It.IsAny<AbilityExecutionRequest>()))
+            .Returns((AbilityExecutionRequest request) => Result<AbilityExecutionResult>.Success(new()
+            {
+                Combat = request.Combat,
+                Definition = new ActionDefinition { ActionId = "slash", ActionType = ActionType.POWER },
+                Evaluation = new CardPlayEvaluation { IsLegal = true, ActorId = request.ActorId,
+                    ResolvedTargetIds = request.SelectedTargetIds },
+                ResolutionFingerprint = "preview"
+            }));
+        var resolver = Resolver(abilities);
+        var command = new CombatActionCommand { RunId = run.RunId, ActorId = "enemy",
+            ActionType = ActionType.POWER, PowerId = "slash", TargetIds = ["hero"] };
+        var first = resolver.Evaluate(run, combat, command, CombatCommandOrigin.AutomaticController);
+        var warm = resolver.Evaluate(run, combat, command, CombatCommandOrigin.AutomaticController);
+        Assert.Same(first.Value, warm.Value);
+        var hero = combat.GetActor("hero")!;
+        var changed = combat.ReplaceActor(hero.WithResourceState(hero.ResourceState with
+        {
+            Resources = hero.ResourceState.Resources.ToImmutableDictionary().SetItem("health", hero.GetResource("health")! with { Current = 50 })
+        }));
+        var changedResult = resolver.Evaluate(run, changed, command, CombatCommandOrigin.AutomaticController);
+        Assert.NotSame(first.Value, changedResult.Value);
+        var fork = run with { RunId = Guid.NewGuid() };
+        Assert.NotSame(first.Value, resolver.Evaluate(fork, combat, command with { RunId = fork.RunId }, CombatCommandOrigin.AutomaticController).Value);
+        Assert.NotSame(first.Value, resolver.Evaluate(run with { SettingId = "another-setting" }, combat, command,
+            CombatCommandOrigin.AutomaticController).Value);
+        Assert.NotSame(first.Value, resolver.Evaluate(run, combat, command with { IgnoreConfiguredCosts = true },
+            CombatCommandOrigin.AutomaticController).Value);
+        Assert.False(resolver.Evaluate(run, combat, command, CombatCommandOrigin.PlayerInput).Value.IsLegal);
+        var set = resolver.Resolve(run, combat, "enemy", CombatCommandOrigin.AutomaticController);
+        Assert.Same(set.Value, resolver.Resolve(run, combat, "enemy", CombatCommandOrigin.AutomaticController).Value);
+        Assert.True(resolver.GetStats().Hits >= 2);
+        resolver.Invalidate();
+        Assert.Equal(0, resolver.GetStats().Count);
+        Assert.NotSame(first.Value, resolver.Evaluate(run, combat, command, CombatCommandOrigin.AutomaticController).Value);
+        Assert.True(resolver.GetStats().Capacity > 0);
+        for (var index = 0; index < 150; index++)
+            resolver.Evaluate(run, combat, command with { ActorId = "absent-" + index }, CombatCommandOrigin.AutomaticController);
+        Assert.True(resolver.GetStats().Evictions > 0);
+        Assert.True(resolver.GetStats().Count <= resolver.GetStats().Capacity);
     }
 
     [Fact]

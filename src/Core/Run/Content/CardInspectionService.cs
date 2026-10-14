@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Calculations;
+using Core.Caching;
 using Core.CardZones;
 using Core.Combat;
 using Core.Combat.Flow;
@@ -145,8 +146,17 @@ public interface ICardInspectionService
 /// Read-only card projection. Compilation, upgrade resolution, legality and
 /// preview execution are delegated to the same services used by PLAY_CARD.
 /// </summary>
-public sealed class CardInspectionService : ICardInspectionService
+public sealed class CardInspectionService : ICardInspectionService, ICacheService
 {
+    private readonly LruCache<string, CardInspectionResult> _cache = new(128);
+    public string CacheName => "CombatCardInspections";
+    public CacheLayer Layer => CacheLayer.Derived;
+    public void Invalidate(string? key = null)
+    {
+        if (key == null) _cache.Clear();
+        else _cache.Remove(key);
+    }
+    public CacheServiceStats GetStats() => new LruCacheService<string, CardInspectionResult>(_cache, CacheName).GetStats();
     private readonly IRunQueryService _runs;
     private readonly IContentRuntimeResolver _runtimes;
     private readonly ICardContentCompiler _compiler;
@@ -173,6 +183,7 @@ public sealed class CardInspectionService : ICardInspectionService
     public Result<CardInspectionResult> Inspect(CardInspectionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+        using var hashes = CanonicalJson.BeginHashScope();
         var resolved = ResolveCombat(request.CombatId);
         return resolved.IsFailure
             ? Result<CardInspectionResult>.Failure(resolved.Error)
@@ -186,6 +197,7 @@ public sealed class CardInspectionService : ICardInspectionService
         string? costOptionId = null,
         InspectionDetailLevel maximumDetail = InspectionDetailLevel.Full)
     {
+        using var hashes = CanonicalJson.BeginHashScope();
         var resolved = ResolveCombat(combatId);
         if (resolved.IsFailure)
             return Result<IReadOnlyList<CardInspectionResult>>.Failure(resolved.Error);
@@ -213,6 +225,17 @@ public sealed class CardInspectionService : ICardInspectionService
         RunState run,
         CombatState combat,
         CardInspectionRequest request)
+    {
+        var key = CanonicalJson.ComputeHash(run) + ":" + CanonicalJson.ComputeHash(combat) + ":" + CanonicalJson.ComputeHash(request);
+        if (_cache.TryGetValue(key, out var cached))
+            return Result<CardInspectionResult>.Success(cached!);
+        var result = InspectUncached(run, combat, request);
+        if (result.IsSuccess) _cache.Set(key, result.Value);
+        return result;
+    }
+
+    private Result<CardInspectionResult> InspectUncached(
+        RunState run, CombatState combat, CardInspectionRequest request)
     {
         var detail = run.ResolvedMode?.CapabilityPolicy.CardInspectionDetail
             ?? InspectionDetailLevel.Full;
@@ -252,6 +275,9 @@ public sealed class CardInspectionService : ICardInspectionService
             ActorId = actorId,
             ActionType = ActionType.PLAY_CARD,
             CardInstanceId = request.CardInstanceId,
+            // Mirror the canonical legal-action query's command shape so this
+            // identical input can reuse its preview (without defaulting targets).
+            TargetId = request.SelectedTargetIds.FirstOrDefault(),
             TargetIds = request.SelectedTargetIds,
             CostOptionId = request.CostOptionId
         };
