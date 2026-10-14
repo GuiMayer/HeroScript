@@ -21,7 +21,22 @@ func click(point: Vector2, pressed: bool) -> void:
 	event.global_position = point
 	root.push_input(event, true)
 func point_for(hand, index: int) -> Vector2:
-	return hand.scroll.global_position + hand._layout.hitRects[index].get_center() - Vector2(hand.scroll.scroll_horizontal, 0)
+	# Choose a visible pixel of the actual face, not the old partition's center,
+	# which may be covered by the next card in a compressed fan.
+	var id: String = hand.order[index]
+	var card: Control = hand.card_for(id)
+	for y in [card.size.y - 12, card.size.y * .5, 16.0]:
+		for x in range(12, int(card.size.x), 12):
+			var point: Vector2 = card.get_global_transform() * Vector2(x, y)
+			if not hand.scroll.get_global_rect().has_point(point): continue
+			var covered := false
+			for other in hand.order:
+				if other == id: continue
+				var above: bool = hand._slots[other].z_index > hand._slots[id].z_index or (hand._slots[other].z_index == hand._slots[id].z_index and hand._slots[other].get_index() > hand._slots[id].get_index())
+				var neighbor: Control = hand.card_for(other)
+				if above and Rect2(Vector2.ZERO, neighbor.size).has_point(neighbor.get_global_transform().affine_inverse() * point): covered = true; break
+			if not covered: return point
+	return card.get_global_transform() * (card.size * .5)
 
 func _run() -> void:
 	var prefs = root.get_node("Preferences")

@@ -44,6 +44,7 @@ var _reserved_card_size := Vector2.ZERO
 var _layout_text_scale := -1.0
 var _layout_card_style_key := ""
 var _inspection_anchor := ""
+var _hover_point := Vector2.INF
 var overview_enabled := true
 var toolbar_external := false
 
@@ -83,7 +84,7 @@ func _init(context = null) -> void:
 	hit_surface.name = "HandHitSurface"
 	hit_surface.hand = self
 	hit_surface.tooltip_text = " "
-	hit_surface.mouse_exited.connect(func(): interaction.hovered = ""; _apply_emphasis())
+	hit_surface.mouse_exited.connect(func(): interaction.hovered = ""; _hover_point = Vector2.INF; _apply_emphasis())
 	surface.add_child(hit_surface)
 	hit_surface.set_as_top_level(true)
 
@@ -225,6 +226,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 		for id in order: _remove(id)
 		order.clear()
 		interaction.clear()
+		_hover_point = Vector2.INF
 		_inspection_anchor = ""
 		scroll.scroll_horizontal = 0
 		scope = context
@@ -311,6 +313,7 @@ func clear_choice() -> void:
 	# Release card focus before reconciliation can transfer it to a neighboring card.
 	cancel_gesture()
 	interaction.clear()
+	_hover_point = Vector2.INF
 	_inspection_anchor = ""
 	for card in _cards.values():
 		if card.has_focus(): card.release_focus()
@@ -448,14 +451,46 @@ func _update_reading_proxy() -> void:
 		resting.y - visual_style.lift * visual_context.hand_emphasis)
 	_reading_proxy.show()
 
-func pick(local_point: Vector2, stable := false) -> String:
-	if _layout.is_empty() or not Rect2(scroll.position, scroll.size).has_point(local_point): return ""
-	var point := local_point - scroll.position + Vector2(scroll.scroll_horizontal, 0)
-	var current := order.find(interaction.hovered)
-	if stable and current >= 0 and current < _layout.hitRects.size() and _layout.hitRects[current].grow(visual_style.pointer_hysteresis).has_point(point): return interaction.hovered
-	for i in mini(order.size(), _layout.hitRects.size()):
-		if _layout.hitRects[i].has_point(point): return order[i]
-	return ""
+func pick(local_point: Vector2, stable := true) -> String:
+	return pick_global(get_global_transform() * local_point, stable)
+
+func _pickable(id: String) -> bool:
+	var card = _cards.get(id)
+	return is_instance_valid(card) and card.is_visible_in_tree() and not _transit.has(id) and card.get_parent() == _slots.get(id)
+
+func _contains_card(id: String, point: Vector2, padding := 0.0) -> bool:
+	var card: Control = _cards[id]
+	return Rect2(Vector2.ZERO, card.size).grow(padding).has_point(card.get_global_transform().affine_inverse() * point)
+
+func _draw_rank(id: String) -> int:
+	return int(_slots[id].z_index) + int(_cards[id].z_index)
+func _above(a: String, b: String) -> bool:
+	return _draw_rank(a) > _draw_rank(b) or (_draw_rank(a) == _draw_rank(b) and _slots[a].get_index() > _slots[b].get_index())
+
+func pick_global(point: Vector2, stable := true) -> String:
+	if _layout.is_empty() or reading_modal: return ""
+	# The hit surface follows the clipped viewport, excluding scroll chrome.
+	if not Rect2(Vector2.ZERO, hit_surface.size).has_point(hit_surface.get_global_transform().affine_inverse() * point): return ""
+	if is_instance_valid(_reading_proxy) and _reading_proxy.is_visible_in_tree():
+		var proxy_id := str(_reading_proxy.model.get("cardInstanceId", _reading_proxy.model.get("labId", "")))
+		if _pickable(proxy_id) and Rect2(Vector2.ZERO, _reading_proxy.size).has_point(_reading_proxy.get_global_transform().affine_inverse() * point): return proxy_id
+	var best := ""
+	for id in order:
+		if not _pickable(id) or not _contains_card(id, point): continue
+		if best.is_empty() or _above(id, best): best = id
+	var current: String = interaction.hovered
+	if stable and _pickable(current) and (best.is_empty() or current == best or _above(current, best)):
+		if _contains_card(current, point, visual_style.pointer_hysteresis): return current
+		# A lift can uncover the pixel that originally entered the card. Keep that
+		# resting footprint to avoid oscillation without claiming another top face.
+		var index := order.find(current)
+		if point.is_equal_approx(_hover_point) and index >= 0 and index < _layout.rotations.size():
+			var card: Control = _cards[current]
+			var resting := Transform2D(float(_layout.rotations[index]), Vector2.ZERO)
+			resting.origin = card.pivot_offset - resting.basis_xform(card.pivot_offset)
+			var transform: Transform2D = _slots[current].get_global_transform() * resting
+			if Rect2(Vector2.ZERO, card.size).grow(visual_style.pointer_hysteresis).has_point(transform.affine_inverse() * point): return current
+	return best
 func _focus(id: String) -> void:
 	interaction.focused = id
 	_inspection_anchor = id
@@ -495,7 +530,9 @@ func _update_counter() -> void:
 func pointer_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		interaction.pointer_active = true
-		var id := pick(event.position + scroll.position, true)
+		var point: Vector2 = hit_surface.get_global_transform() * event.position
+		var id := pick_global(point)
+		_hover_point = point
 		if id != interaction.hovered:
 			interaction.hovered = id
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
@@ -510,7 +547,7 @@ func pointer_input(event: InputEvent) -> void:
 			page(-1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1)
 			return
 		if event.button_index != MOUSE_BUTTON_LEFT: return
-		var id := pick(event.position + scroll.position)
+		var id := pick_global(hit_surface.get_global_transform() * event.position)
 		if event.pressed:
 			if not read_only: interaction.pressed = id; interaction.press_position = event.global_position
 		elif not interaction.pressed.is_empty():

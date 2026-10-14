@@ -79,7 +79,8 @@ Hover e seleção podem alterar o fundo. Foco usa uma borda mais grossa da mesma
 
 - Não diminuir a fonte para encaixar mais cartas na mão. Usar rolagem horizontal e manter o foco de teclado/controle visível.
 - A mão adaptativa usa arco suave e sobreposição limitada; o modo leitura mantém cartas retas e separadas. Visão geral é persistente e usa as mesmas instâncias/modelos de apresentação. Hover eleva/endireita sem mover vizinhos nem animar fontes.
-- No overflow, uma carta cortada pode ganhar uma cópia de leitura passiva. Ela não rouba input nem permite comandos; os hitboxes continuam vinculados aos slots de repouso. Inspeção/visão geral cancelam gestos e destaque transitório.
+- Hover, clique e tooltip usam o mesmo resolvedor: transformação atual da face, recorte da mão e ordem real de desenho. Uma carta elevada sobre outra continua sendo a carta clicável. A tolerância é a mesma em todas as consultas; o ponto de entrada em repouso só estabiliza um ponteiro parado durante a elevação.
+- No overflow, uma carta cortada pode ganhar uma cópia de leitura passiva. Ela não rouba input nem emite comandos; a superfície da mão associa a área visível dessa cópia à instância original. Inspeção/visão geral cancelam gestos e destaque transitório. Cartas ocultas ou em trânsito não capturam seleção.
 - O corpo da carta tem espaço limitado. Instruções de selecionar/jogar/inspecionar ficam nos controles ao redor e no tooltip, sem um rodapé de instruções na face. O tooltip usa a mesma apresentação de números. A inspeção aberta por botão permite rolagem, seleção de texto e acesso aos dados completos.
 - A janela de inspeção é o caminho persistente para textos extensos; o tooltip é um resumo passivo, sem rolagem, seleção ou foco. Seu texto e suas linhas são limitados, com indicação explícita para abrir a inspeção. Não depender de conseguir mover o cursor para dentro de um tooltip transitório.
 - Cabeçalhos e badges podem abreviar na face. A inspeção deve preservar nomes, fontes e descrições completos, com quebra de linha.
@@ -101,7 +102,7 @@ Hover e seleção podem alterar o fundo. Foco usa uma borda mais grossa da mesma
 | `data/presentation.json` | Símbolos e cores dos recursos, nomes de tags e descrições de fluxos/receitas. Não cria regras. |
 | `scripts/ui/card_hand_view.gd` | Reconciliação por instância/escopo, slots persistentes, destaque, foco, overflow, estado vazio e intenções de seleção/drag. Não chama REST. |
 | `scripts/ui/hand_visual_style.gd` + `data/default_hand_visual_style.tres` | Ângulo, arco, passo mínimo exposto, elevação, duração, padding e limiar de drag. Não configura capacidade da pilha. |
-| `scripts/ui/hand_layout.gd` | Cálculo puro de posições, rotações, extensão e hitboxes estáveis. |
+| `scripts/ui/hand_layout.gd` | Cálculo puro de posições, rotações, extensão e regiões de referência para navegação. A seleção usa as faces efetivamente desenhadas. |
 | `scripts/ui/hand_interaction.gd` + `hand_hit_surface.gd` | Estado local de interação e captura de input, independente das faces animadas. |
 | `scripts/ui/hand_overview_dialog.gd` | Consulta persistente com a mesma mão em modo leitura, inspeção e retorno por identidade. |
 
