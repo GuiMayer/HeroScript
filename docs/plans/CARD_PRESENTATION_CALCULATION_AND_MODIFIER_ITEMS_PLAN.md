@@ -11,7 +11,8 @@ Data: 2026-10-14. Estado: plano para implementação; nenhuma mudança de gamepl
 - Etapa 4: consulta em lote `GET /api/v1/runs/{runId}/cards/presentations` implementada para instâncias visíveis e ofertas atuais; cache derivado limitado, compilação compartilhada por definição no lote, snapshot revisionado e publicação atômica na sessão Godot. A inspeção de combate inclui origem mesmo sem candidato executável e mantém impactos separados. Diagnósticos de fórmulas/traces internos permanecem restritos ao detalhe Full. Testes de equivalência, leitura imutável, cache, revisão e sigilo de pilhas passaram.
 - Etapa 5: adapter passivo compartilhado de fatos aplicado às ofertas atuais, mão e coleções de combate, incluindo os modelos finais das animações. Custos de aquisição separados dos custos de uso; números usam a camada explícita e não impactos. Efeitos filhos são apresentados uma vez por path. Fixtures antigas sem o novo contrato mantêm fallback; ofertas reais atuais usam a consulta revisionada.
 - Etapa 6: tooltip de cartas com fatos publicados mostra camadas, atributos elegíveis (inclusive zero), fontes pertinentes e condição; não repete os efeitos/custos da face e continua passivo, sem scroll inacessível. Inspector inclui outputs publicados dos buckets, sem calcular na Godot. Impacto continua separado; dados técnicos de fórmulas não são necessários para essa explicação.
-- Etapas 7–10: pendentes.
+- Etapa 7: kind tipado `card-modifier-items`, validação da transformação/política explícita, inventário imutável com identidade e proveniência, roundtrip/hash e consulta `GET /api/v1/runs/{runId}/card-modifier-items` implementados. Compatibilidade usa transição de ledger + compositor existentes, respeita visibilidade, desbloqueios e bloqueio durante combate. Inventário ausente não altera hashes antigos. Aquisição/aplicação ainda aguardam a etapa 8; não há mutação externa por essa consulta.
+- Etapas 8–10: pendentes.
 
 ## 1. Objetivo e interpretação
 

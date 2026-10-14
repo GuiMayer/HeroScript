@@ -140,6 +140,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("card-pools", "card-pools", typeof(CardPoolDefinition), "poolId"),
         new("card-selections", "card-selections", typeof(CardSelectionDefinition), "selectionId"),
         new("card-upgrades", "card-upgrades", typeof(CardUpgradeDefinition), "upgradeId"),
+        new("card-modifier-items", "card-modifier-items", typeof(CardModifierItemDefinition), "itemDefinitionId"),
         new("card-zone-systems", "card-zone-systems", typeof(Core.CardZones.CardZoneSystemDefinition), "cardZoneSystemId"),
         new("cards", "cards", typeof(CardContentDefinition), "cardId"),
         new("combat-rules", "combat-rules", typeof(CombatRulesDefinition), "combatRulesId"),

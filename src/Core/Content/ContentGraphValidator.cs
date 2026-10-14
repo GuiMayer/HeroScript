@@ -84,6 +84,12 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateEnemyPools(runtime, errors);
         ValidateCardPools(runtime, errors);
         ValidateCardUpgrades(runtime, errors);
+        foreach (var id in runtime.GetDefinitions("card-modifier-items").Keys)
+        {
+            var item = runtime.GetDefinition<CardModifierItemDefinition>("card-modifier-items", id);
+            var valid = item.IsFailure ? Result.Failure(item.Error) : item.Value.Validate(runtime);
+            if (valid.IsFailure) errors.Add($"card-modifier-items/{id}: {valid.Error}");
+        }
         ValidateCardSelections(runtime, errors);
         ValidateShops(runtime, errors);
         ValidatePreparations(runtime, errors);

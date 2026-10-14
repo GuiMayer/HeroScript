@@ -43,6 +43,9 @@ public sealed record RunState : ICanonicalHashMemoizable
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
+    // Absent until acquisition: introducing the inventory does not change existing snapshot hashes.
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Run.Content.CardModifierItemInventory? CardModifierItems { get; init; }
     // Absent until the first conversation, preserving hashes of snapshots without narrative state.
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Dialogue.RunNarrativeState? Narrative { get; init; }
