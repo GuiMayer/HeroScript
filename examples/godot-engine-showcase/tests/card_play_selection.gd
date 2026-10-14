@@ -43,6 +43,16 @@ func check_neutral(screen, label: String) -> void:
 	check(screen.selected_card.is_empty() and screen.selected_target.is_empty() and screen.view.hand.interaction.selected.is_empty(), label + ": no selected card/target")
 	check(screen.view.hand.interaction.active_id().is_empty() and screen.view.hand.active_card_id().is_empty(), label + ": no automatic hover, focus or inspection anchor")
 	check(screen.view.hand.cards().values().all(func(card): return not card.chosen and not card.button_pressed and not card.has_focus()), label + ": no raised/focused/pressed card")
+	var hand = screen.view.hand
+	if not hand.order.is_empty():
+		var left := INF; var right := -INF
+		for id in hand.order:
+			var card: Control = hand.card_for(id)
+			for corner in [Vector2.ZERO, Vector2(card.size.x, 0), card.size, Vector2(0, card.size.y)]:
+				var point: Vector2 = card.get_global_transform() * corner
+				left = minf(left, point.x); right = maxf(right, point.x)
+		var delta: float = (left + right) * .5 - screen.view.gameplay_column.get_global_rect().get_center().x
+		check(absf(delta) <= 1.0, label + ": remaining hand centers on combat")
 func _run() -> void:
 	var session = root.get_node("GameSession")
 	var prefs = root.get_node("Preferences")

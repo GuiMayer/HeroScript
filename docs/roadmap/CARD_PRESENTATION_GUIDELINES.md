@@ -86,6 +86,7 @@ Hover e seleção podem alterar o fundo. Foco usa uma borda mais grossa da mesma
 - Cabeçalhos e badges podem abreviar na face. A inspeção deve preservar nomes, fontes e descrições completos, com quebra de linha.
 - Reaplicar escala de texto antes de apresentar uma carta enriquecida por resposta assíncrona, evitando um frame com fonte diferente.
 - Manter contagem/altura da mão estáveis ao selecionar ou esvaziar a mão. Não trocar o componente visual nem animar sua entrada novamente só porque chegaram detalhes.
+- A mão que cabe no viewport deve permanecer centralizada, inclusive com uma ou duas cartas. Cada novo layout cancela a animação anterior dos slots antes de mover ou posicionar diretamente: mesmo um slot já no destino pode ter um tween antigo ainda aguardando seu primeiro frame. `reference_hand_geometry` cobre essa corrida, redução após uso, compra/skip e retorno de uma mão com rolagem; `card_play_selection` verifica o centro no combate integrado.
 - Não depender apenas da cor: detalhes mostram `Base → Current`, nome da raridade, fontes de alteração e motivo de indisponibilidade. Isso é uma medida de acessibilidade, não uma declaração de conformidade completa.
 
 ## Componentes e configuração

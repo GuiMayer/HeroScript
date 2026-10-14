@@ -374,8 +374,13 @@ func _relayout() -> void:
 		card.pivot_offset = dimensions * .5
 		slot.size = dimensions
 		var target: Vector2 = _layout.positions[i]
+		# Every new layout owns the slot, even if it already sits at the target.
+		# A previous tween may not have ticked yet; leaving it alive would move
+		# a centered small hand back to the obsolete, larger hand's positions.
+		if _motions.has(id):
+			if _motions[id].is_valid(): _motions[id].kill()
+			_motions.erase(id)
 		if slot.has_meta("placed") and slot.position != target and duration() > 0:
-			if _motions.has(id) and _motions[id].is_valid(): _motions[id].kill()
 			_motions[id] = create_tween()
 			_motions[id].tween_property(slot, "position", target, duration())
 		else: slot.position = target
