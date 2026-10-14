@@ -49,9 +49,9 @@ func _build_actions() -> void:
 			model["availability"] = label
 			# Offer price is not a card's play cost. This projection has no engine
 			# inspection of the offered container, so report unknown instead of zero.
-			var price := str(model.cost)
+			var price := str(model.get("acquisitionPrice", model.cost))
 			model["cost"] = ""
-			model["costsKnown"] = false
+			model["costsKnown"] = model.has("presentationFacts")
 			model["costUnknownLabel"] = visual_context.translator.text("Cost unavailable")
 			card.configure(model)
 			if primary.get_child_count() == 0: card.set_meta("initial_focus", true)

@@ -7,12 +7,14 @@ var _run: Dictionary
 var _choices: Array
 var _appearance: Dictionary
 var _i18n
+var _card_facts: Array = []
 
-func _init(run: Dictionary, choices: Array, appearance: Dictionary, translator) -> void:
+func _init(run: Dictionary, choices: Array, appearance: Dictionary, translator, card_facts: Array = []) -> void:
 	_run = run.duplicate(true)
 	_choices = choices.duplicate(true)
 	_appearance = appearance.duplicate(true)
 	_i18n = translator
+	_card_facts = card_facts.duplicate(true)
 
 func current_node() -> Dictionary:
 	for node in _run.get("map", {}).get("nodes", []):
@@ -103,10 +105,21 @@ func offer(choice: Dictionary) -> Dictionary:
 	if choice.has("variantId"): summary = _i18n.content_name(str(choice.variantId))
 	var price: Array[String] = []
 	for cost in costs: price.append("%s %s" % [_i18n.number(float(cost.get("amount", 0))), _i18n.content_name(str(cost.get("resourceId", "")))])
-	return {"name": name, "definitionId": definition, "tone": card.get("tone", "skill"),
+	var model := {"name": name, "definitionId": definition, "tone": card.get("tone", "skill"),
 		"summary": summary, "category": "cards" if is_card else "activities",
 		"cost": (_i18n.text("Free") if costs.is_empty() else " + ".join(price)) if has_cost else "",
 		"choice": choice.duplicate(true)}
+	for facts in _card_facts:
+		var identity: Dictionary = facts.get("identity", {})
+		if str(identity.get("kind", "")) != "Offer" or str(identity.get("definitionId", "")) != definition: continue
+		var payload: Dictionary = choice.get("payload", {})
+		var scope := str(payload.get("shopInstanceId", payload.get("selectionInstanceId", "")))
+		if scope.is_empty() or scope not in str(identity.get("offerId", "")): continue
+		var price_text: String = model.cost
+		model.merge(preload("res://scripts/presentation/card_facts_presenter.gd").new(_i18n, _appearance).project(facts), true)
+		model["acquisitionPrice"] = price_text
+		break
+	return model
 
 func transformation_text(assessment: Dictionary) -> String:
 	var lines: Array[String] = []

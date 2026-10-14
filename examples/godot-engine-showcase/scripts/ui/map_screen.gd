@@ -25,7 +25,7 @@ func refresh_state(data: Dictionary) -> void:
 	if changed_scope and not _scope.is_empty(): _store_reading()
 	_scope = next_scope
 	controller.bind(run, choices)
-	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n)
+	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations)
 	view.apply_projection(run, choices, presenter, visual_context)
 	if changed_scope:
 		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "horizontal": 0, "vertical": 0, "overview": false, "filter": ""}))

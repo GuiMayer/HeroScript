@@ -87,6 +87,7 @@ func _render(data: Dictionary) -> void:
 	zone_presenter = CardZonePresenter.new(_zone_snapshot, visual_context.translator)
 	presenter = Presenter.new(_run_snapshot, _combat_snapshot, _action_snapshot, visual_context.translator, presentation, _zone_snapshot)
 	presenter.accept_evaluations(GameSession.card_evaluations)
+	presenter.accept_presentations(GameSession.card_presentations)
 	controller.bind(presenter, _hand_scope(), zone_presenter.playable_cards().map(func(card): return str(card.get("cardInstanceId", ""))))
 	view.apply_projection(presentation, presenter, zone_presenter,
 		{"run": _run_snapshot, "combat": _combat_snapshot, "actions": _action_snapshot, "zones": _zone_snapshot,
@@ -250,6 +251,7 @@ func _on_presentation_ready(value) -> void:
 	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), GameSession.legal_actions,
 		visual_context.translator, presentation, after.get("zones", {}))
 	final_presenter.accept_evaluations(after.get("evaluations", []))
+	final_presenter.accept_presentations(GameSession.card_presentations)
 	for zone in after.get("zones", {}).get("zones", []):
 		if zone.get("contentsVisible", false):
 			for card in zone.get("cards", []): _transfer_models[str(card.cardInstanceId)] = final_presenter.card_view_model(str(card.cardInstanceId))

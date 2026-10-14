@@ -9,7 +9,8 @@ Data: 2026-10-14. Estado: plano para implementação; nenhuma mudança de gamepl
 - Etapa 2: projector puro de base composta implementado, sem ator/combate/candidato legal; fixtures confirmam equivalência entre oferta e instância, custo alternativo, fórmulas não resolvidas e composição própria. Consultas de run/ofertas serão conectadas na etapa 4.
 - Etapa 3: captura de prefixo Actor pelo resolver/cálculo comum, atributos estruturados (inclusive zero), fontes pertinentes, circunstâncias e explicação de impactos separada implementados. Testes de strike/multihit com energia zero provam igualdade com orçamento da execução e imutabilidade. A origem é identificada como snapshot anterior à ação, não uma promessa sobre efeitos sequenciais/condicionais futuros.
 - Etapa 4: consulta em lote `GET /api/v1/runs/{runId}/cards/presentations` implementada para instâncias visíveis e ofertas atuais; cache derivado limitado, compilação compartilhada por definição no lote, snapshot revisionado e publicação atômica na sessão Godot. A inspeção de combate inclui origem mesmo sem candidato executável e mantém impactos separados. Diagnósticos de fórmulas/traces internos permanecem restritos ao detalhe Full. Testes de equivalência, leitura imutável, cache, revisão e sigilo de pilhas passaram.
-- Etapas 5–10: pendentes.
+- Etapa 5: adapter passivo compartilhado de fatos aplicado às ofertas atuais, mão e coleções de combate, incluindo os modelos finais das animações. Custos de aquisição separados dos custos de uso; números usam a camada explícita e não impactos. Efeitos filhos são apresentados uma vez por path. Fixtures antigas sem o novo contrato mantêm fallback; ofertas reais atuais usam a consulta revisionada.
+- Etapas 6–10: pendentes.
 
 ## 1. Objetivo e interpretação
 

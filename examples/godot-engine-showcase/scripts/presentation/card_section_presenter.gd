@@ -11,6 +11,20 @@ func _init(translator, appearance: Dictionary, _actors: Array) -> void:
 	_appearance = appearance.duplicate(true)
 
 func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
+	if inspection.get("presentation") is Dictionary:
+		inspection = inspection.duplicate(true)
+		var facts: Dictionary = inspection.presentation
+		var components: Array = []
+		for effect in facts.get("effects", []):
+			# The tree is already flattened by the engine. Each path appears once.
+			var definition: Dictionary = effect.get("definition", {}).duplicate(true)
+			definition["chainedEffects"] = []
+			components.append({"type": "effect", "componentId": effect.get("effectPath", ""), "effect": definition})
+		components.append_array(facts.get("conditions", []))
+		components.append_array(facts.get("dispositions", []))
+		components.append_array(facts.get("ruleOverrides", []))
+		inspection["effectiveBase"] = {"components": components, "tags": facts.get("tags", [])}
+		inspection["baseContainer"] = {"rarity": facts.get("rarity", "Common")}
 	var original: Dictionary = inspection.get("compiledContainer", {})
 	var effective: Dictionary = inspection.get("effectiveBase", {})
 	var container: Dictionary = inspection.get("baseContainer", {})
@@ -109,6 +123,18 @@ func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary
 		_effect_rows(child, component_id, original, inspection, rows, behaviors, depth + 1)
 
 func _numeric(effect: Dictionary, component_id: String, parameter: String, original: Dictionary, inspection: Dictionary, is_root: bool) -> Dictionary:
+	if inspection.get("presentation") is Dictionary:
+		var facts: Dictionary = inspection.presentation
+		for item in facts.get("effects", []):
+			if str(item.get("effectPath", "")) != component_id: continue
+			for published in item.get("parameters", []):
+				if enum_name(published.get("parameter"), PARAMETER_TYPES) != parameter: continue
+				var values: Dictionary = published.get("values", {})
+				var source := str(facts.get("faceValueMode", "ComposedBase")) == "Source"
+				var value = values.get("source" if source else "composedBase")
+				if value == null: return {"text": _i18n.text("Calculated — inspect")}
+				return {"text": _i18n.number(float(value)), "value": value, "baseValue": values.get("composedBase" if source else "original")}
+		return {"text": _i18n.text("Calculated — inspect")}
 	var field: String = {"Amount": "flatValue", "StatusStacks": "statusStacks", "StatusDuration": "statusDuration", "ModifierStacks": "modifierStacks", "ModifierDuration": "modifierDuration", "CardCount": "cardCount"}.get(parameter, "flatValue")
 	var current = _flat_parameter(effect, parameter, field)
 	var baseline = current

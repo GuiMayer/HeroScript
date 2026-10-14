@@ -24,7 +24,7 @@ func _render(data: Dictionary) -> void:
 	var choices: Array = GameSession.activity_choices()
 	var zones: Dictionary = GameSession.card_zones
 	controller.bind(run, choices)
-	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n)
+	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations)
 	var key: Array = [run, choices, zones, data, visual_context.presentation_key()]
 	if key != _projection_key:
 		_projection_key = key.duplicate(true); render_epoch += 1

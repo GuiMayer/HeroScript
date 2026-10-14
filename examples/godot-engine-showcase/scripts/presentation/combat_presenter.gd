@@ -11,6 +11,13 @@ var _evaluations := {}
 var _appearance: Dictionary = {}
 var _zone_snapshot: Dictionary = {}
 var _sections
+var _base_facts: Dictionary = {}
+
+func accept_presentations(cards: Array) -> void:
+	_base_facts.clear()
+	for facts in cards:
+		var id := str(facts.get("identity", {}).get("cardInstanceId", ""))
+		if not id.is_empty(): _base_facts[id] = facts.duplicate(true)
 
 func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}, zone_snapshot := {}) -> void:
 	_i18n = translator
@@ -151,6 +158,9 @@ func card_view_model(instance_id: String) -> Dictionary:
 	}
 	result.merge(sections, true)
 	result["rarity"] = _i18n.text(str(result.rarityId).to_upper())
+	var facts: Dictionary = inspection.get("presentation", {}) if inspection.get("presentation") is Dictionary else _base_facts.get(instance_id, {})
+	if not facts.is_empty():
+		result.merge(preload("res://scripts/presentation/card_facts_presenter.gd").new(_i18n, _appearance).project(facts), true)
 	return preload("res://scripts/presentation/view_models.gd").Card.new(result).to_dictionary()
 
 func _card_type(tags: Array, tone: String) -> String:

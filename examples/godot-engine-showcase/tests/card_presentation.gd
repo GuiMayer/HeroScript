@@ -44,6 +44,18 @@ func _run() -> void:
 	prefs.text_scale = 1.0
 	prefs.high_contrast = false
 	var sections = load("res://scripts/presentation/card_section_presenter.gd").new(i18n, {"card_tag_labels": {"fire": "Fire"}}, [])
+	var facts := {"identity": {"kind": "Offer", "definitionId": "strike", "offerId": "selection:reward:0"},
+		"faceValueMode": "ComposedBase", "rarity": "Rare", "costs": [{"componentId": "cost", "costs": {"costs": [{"resourceId": "energy", "amount": 1}]}}],
+		"effects": [{"effectPath": "main", "definition": {"type": "DAMAGE", "targetResource": "health", "flatValue": 999},
+			"parameters": [{"parameter": "Amount", "values": {"original": 6, "composedBase": 8, "source": 12}}]}]}
+	var passive = load("res://scripts/presentation/card_facts_presenter.gd").new(i18n, {})
+	var offered: Dictionary = passive.project(facts)
+	check(offered.effectRows[0].segments[1].value == 8 and offered.costs[0].amount == 1, "shared offer presenter uses engine composed base and actual use costs, not flat definitions or flavor")
+	facts.faceValueMode = "Source"
+	var contextual: Dictionary = passive.project(facts)
+	check(contextual.effectRows[0].segments[1].value == 12 and contextual.effectRows[0].segments[1].baseValue == 8, "combat source value compares with composed base, not original")
+	facts.effects[0].parameters[0].values.source = null
+	check(passive.project(facts).effectRows[0].segments[1].text == i18n.text("Calculated — inspect"), "unknown source is not invented from flat definitions")
 	var style = load("res://data/default_card_visual_style.tres")
 	check(style.value_color(6, 6) == Color.WHITE, "unchanged values are white")
 	check(style.value_color(3, 6) == style.lower_value_color, "lower values are red")
