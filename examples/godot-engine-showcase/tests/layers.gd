@@ -72,6 +72,8 @@ class FakeTransport extends RefCounted:
 					"presentation": {"slot": "cooldown_track", "labelKey": "Cooldown"},
 					"count": 2, "contentsVisible": false, "cards": []}
 			]})
+		if path.ends_with("/cards/presentations"):
+			return _ok({"runId": state.runId, "runSequence": state.sequence, "contentRevision": state.get("contentRevision", ""), "cards": []})
 		if path.contains("/legal-actions?"):
 			return _ok({"candidates": [legal]})
 		if path.contains("/cards/evaluations?"):

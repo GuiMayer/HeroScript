@@ -96,6 +96,7 @@ public sealed record CardInspectionResult
     private ImmutableArray<EffectExecutionStep> _previewSteps = [];
 
     public CardInspectionVersion Version { get; init; } = new();
+    public CardPresentationFacts? Presentation { get; init; }
     public CardPreviewScope PreviewScope { get; init; } = new();
     public ImmutableArray<CardProcPreview> Procs { get; init; } = [];
     public RandomOutcomePreview RandomOutcomes { get; init; } = new();
@@ -163,6 +164,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
     private readonly IEffectiveCardResolver _effectiveCards;
     private readonly ILegalActionResolver _legalActions;
     private readonly ICalculationEngine? _calculations;
+    private readonly ICardSourcePresentationProjector? _presentation;
 
     public CardInspectionService(
         IRunQueryService runs,
@@ -170,7 +172,8 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
         ICardContentCompiler compiler,
         IEffectiveCardResolver effectiveCards,
         ILegalActionResolver legalActions,
-        ICalculationEngine? calculations = null)
+        ICalculationEngine? calculations = null,
+        ICardSourcePresentationProjector? presentation = null)
     {
         _runs = runs ?? throw new ArgumentNullException(nameof(runs));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
@@ -178,6 +181,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
         _effectiveCards = effectiveCards ?? throw new ArgumentNullException(nameof(effectiveCards));
         _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
         _calculations = calculations;
+        _presentation = presentation;
     }
 
     public Result<CardInspectionResult> Inspect(CardInspectionRequest request)
@@ -301,6 +305,33 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
         var isInPlayableZone = CardZonePlaySource.Contains(run, actorId, request.CardInstanceId);
         var preview = legal.Value.Candidate?.CardPlay;
         var stochastic = RandomOutcomePreviewProjector.HasStochasticInput(preview?.Steps ?? []);
+        CardPresentationFacts? presentation = null;
+        if (_presentation != null)
+        {
+            var baseline = CardBasePresentationProjector.Project(compiled.Value, effective.Value,
+                new() { Kind = CardPresentationSubjectKind.Instance, DefinitionId = instance.DefinitionId,
+                    CardInstanceId = instance.CardInstanceId },
+                new() { RunId = run.RunId, RunSequence = run.Sequence,
+                    ContentRevision = run.Determinism.ContentRevision });
+            if (baseline.IsFailure) return Result<CardInspectionResult>.Failure(baseline.Error);
+            var source = _presentation.Project(baseline.Value, effective.Value, run, combat, actorId);
+            if (source.IsFailure) return Result<CardInspectionResult>.Failure(source.Error);
+            presentation = CardImpactExplanationProjector.Attach(source.Value, effective.Value, run, combat,
+                runtime.Value, preview?.Steps ?? [], stochastic ? "SampledPathNotGuaranteedOutcome" : "ExactForCapturedSnapshotAndInput");
+            if (detail != InspectionDetailLevel.Full)
+            {
+                presentation = presentation with {
+                    Explanations = presentation.Explanations.Select(value => value with {
+                        ConditionExpression = null,
+                        Buckets = value.Buckets.Select(bucket => bucket with { Formula = null, Contributions = [] }).ToImmutableArray()
+                    }).ToImmutableArray(),
+                    Impacts = presentation.Impacts.Select(value => value with { Parameters = value.Parameters.Select(parameter => parameter with {
+                        Buckets = parameter.Buckets.Select(bucket => bucket with { Formula = null, Contributions = [] }).ToImmutableArray()
+                    }).ToImmutableArray() }).ToImmutableArray(), Fingerprint = string.Empty
+                };
+                presentation = presentation with { Fingerprint = CanonicalJson.ComputeHash(presentation) };
+            }
+        }
 
         var context = detail == InspectionDetailLevel.Full
             ? BuildContext(run, combat, actor, resolvedEvaluation)
@@ -337,6 +368,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
                 EngineVersion = run.Determinism.EngineVersion
             },
             Detail = detail,
+            Presentation = presentation,
             PreviewScope = new() { HasExecutablePreview = preview != null,
                 DependsOnRandomInputs = stochastic,
                 Validity = stochastic ? "SampledPathNotGuaranteedOutcome" : "ExactForCapturedSnapshotAndInput",

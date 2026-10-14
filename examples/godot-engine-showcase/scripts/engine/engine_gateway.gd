@@ -93,7 +93,8 @@ func read_projections(run_id: String, combat_id: String, include_combat: bool, a
 		"commands": "/api/v1/runs/%s/available-commands" % run_id.uri_encode(),
 		"capabilities": "/api/v1/runs/%s/capabilities" % run_id.uri_encode(),
 		"cardZones": "/api/v1/runs/%s/card-zones" % run_id.uri_encode(),
-		"attributes": "/api/v1/runs/%s/character-attributes" % run_id.uri_encode()
+		"attributes": "/api/v1/runs/%s/character-attributes" % run_id.uri_encode(),
+		"cardPresentations": "/api/v1/runs/%s/cards/presentations" % run_id.uri_encode()
 	}
 	if include_combat:
 		paths["combat"] = "/api/v1/combats/%s" % combat_id.uri_encode()

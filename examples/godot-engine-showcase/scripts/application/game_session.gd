@@ -21,6 +21,7 @@ var _legal_actions: Array = []
 var _tool_capabilities: Dictionary = {}
 var _card_zones: Dictionary = {}
 var _character_attributes: Dictionary = {}
+var _card_presentations: Dictionary = {}
 var _card_evaluations: Array = []
 var _card_evaluation_context: Array = []
 var _settings: Array = []
@@ -42,6 +43,8 @@ var character_attributes: Dictionary:
 	get: return _character_attributes.duplicate(true) if str(_character_attributes.get("runId", "")) == str(_run.get("runId", "")) and int(_character_attributes.get("runSequence", -1)) == int(_run.get("sequence", 0)) else {}
 var card_evaluations_ready: bool:
 	get: return _card_evaluation_context == _evaluation_context(_run, _combat)
+var card_presentations: Array:
+	get: return _card_presentations.get("cards", []).duplicate(true) if str(_card_presentations.get("runId", "")) == str(_run.get("runId", "")) and int(_card_presentations.get("runSequence", -1)) == int(_run.get("sequence", 0)) and str(_card_presentations.get("contentRevision", "")) == str(_run.get("contentRevision", "")) else []
 var card_evaluations: Array:
 	get: return _card_evaluations.duplicate(true) if card_evaluations_ready else []
 var settings: Array:
@@ -274,6 +277,10 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
 		if not next_combat.is_empty() and (str(next_attributes.get("combatId", "")) != str(next_combat.get("combatId", "")) or int(next_attributes.get("combatStep", -1)) != int(next_combat.get("step", 0))):
 			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	var next_presentations: Dictionary = responses.cardPresentations.data if responses.has("cardPresentations") else {}
+	if not next_presentations.is_empty() and (str(next_presentations.get("runId", "")) != run_id or int(next_presentations.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_presentations.get("contentRevision", "")) != str(next_run.get("contentRevision", ""))):
+		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	_card_presentations = next_presentations.duplicate(true)
 	_character_attributes = next_attributes.duplicate(true)
 	_run = next_run.duplicate(true)
 	_combat = next_combat.duplicate(true)

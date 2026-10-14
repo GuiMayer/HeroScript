@@ -493,6 +493,8 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
+builder.Services.AddSingleton<ICardSourcePresentationProjector, CardSourcePresentationProjector>();
+builder.Services.AddSingleton<ICardPresentationQueryService, CardPresentationQueryService>();
 builder.Services.AddSingleton<IActorAttributeProjectionService, ActorAttributeProjectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
 builder.Services.AddSingleton<ILegalActionResolver, LegalActionResolver>();
@@ -621,6 +623,7 @@ var applicationCaches = new ICacheService[]
 {
     (ICacheService)app.Services.GetRequiredService<ILegalActionResolver>(),
     (ICacheService)app.Services.GetRequiredService<ICardInspectionService>(),
+    (ICacheService)app.Services.GetRequiredService<ICardPresentationQueryService>(),
     (ICacheService)app.Services.GetRequiredService<IResourceLoader>(),
     app.Services.GetRequiredService<EntityDefinitionLoader>(),
     (ICacheService)app.Services.GetRequiredService<IMathEngine>(),
