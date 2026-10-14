@@ -87,6 +87,8 @@ public sealed record CardPresentationFacts
     public ImmutableArray<CardEffectRuleOverrideComponentDefinition> RuleOverrides { get; init; } = [];
     public ImmutableArray<CardUpgradeApplicationTrace> PermanentChanges { get; init; } = [];
     public ImmutableArray<CardValueExplanation> Explanations { get; init; } = [];
+    public ImmutableArray<CardImpactExplanation> Impacts { get; init; } = [];
+    public bool ImpactsTruncated { get; init; }
     public string Fingerprint { get; init; } = string.Empty;
 }
 
@@ -98,6 +100,17 @@ public sealed record CardValueExplanation
     public EffectNumericParameter Parameter { get; init; }
     public ImmutableArray<CardScalingAttribute> Attributes { get; init; } = [];
     public ImmutableArray<CalculationBucketTrace> Buckets { get; init; } = [];
+    public ImmutableArray<CardCalculationSource> Sources { get; init; } = [];
     public ImmutableArray<string> ContextTags { get; init; } = [];
+    public bool? ConditionPassed { get; init; }
+    public string? ConditionExpression { get; init; }
+    public string Validity { get; init; } = "BeforeActionSourceSnapshot";
+    public bool Truncated { get; init; }
     public string? UnresolvedReason { get; init; }
 }
+public sealed record CardCalculationSource(CalculationSourceKind Kind, string InstanceId, string? DefinitionId,
+    string? AttributeId, string ComponentId, string Bucket, float Value, bool Applied);
+public sealed record CardImpactParameterExplanation(EffectNumericParameter Parameter, string UnitId, float Value,
+    ImmutableArray<CalculationBucketTrace> Buckets, ImmutableArray<CardCalculationSource> Sources, bool Truncated);
+public sealed record CardImpactExplanation(string ImpactId, string ComponentId, string TargetEntityId, string Validity,
+    bool Applied, string? SkipReason, ImmutableArray<CardImpactParameterExplanation> Parameters);

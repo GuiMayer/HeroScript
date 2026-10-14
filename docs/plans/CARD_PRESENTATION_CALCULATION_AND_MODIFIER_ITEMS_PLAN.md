@@ -7,7 +7,8 @@ Data: 2026-10-14. Estado: plano para implementação; nenhuma mudança de gamepl
 - Base anterior registrada separadamente em `3e18838` (animações e atributos globais).
 - Etapa 1: contratos imutáveis de identidade, camadas numéricas, comparações e fixtures mecânicas implementados; não alteram a execução de efeitos.
 - Etapa 2: projector puro de base composta implementado, sem ator/combate/candidato legal; fixtures confirmam equivalência entre oferta e instância, custo alternativo, fórmulas não resolvidas e composição própria. Consultas de run/ofertas serão conectadas na etapa 4.
-- Etapas 3–10: pendentes.
+- Etapa 3: captura de prefixo Actor pelo resolver/cálculo comum, atributos estruturados (inclusive zero), fontes pertinentes, circunstâncias e explicação de impactos separada implementados. Testes de strike/multihit com energia zero provam igualdade com orçamento da execução e imutabilidade. A origem é identificada como snapshot anterior à ação, não uma promessa sobre efeitos sequenciais/condicionais futuros.
+- Etapas 4–10: pendentes.
 
 ## 1. Objetivo e interpretação
 
