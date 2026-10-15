@@ -49,6 +49,13 @@ public sealed class InteractionSessionTests
         var combat = await combatResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(active.ActiveEncounterId, combat.GetProperty("combat").GetProperty("combatId").GetGuid());
         Assert.NotEmpty(combat.GetProperty("actions").GetProperty("candidates").EnumerateArray());
+        Assert.Empty(combat.GetProperty("evaluations").GetProperty("cards").EnumerateArray());
+        Assert.All(combat.GetProperty("cardPresentations").GetProperty("cards").EnumerateArray(), card =>
+        {
+            Assert.Equal("Source", card.GetProperty("faceValueMode").GetString());
+            Assert.Empty(card.GetProperty("impacts").EnumerateArray());
+            Assert.Equal(active.Sequence, card.GetProperty("version").GetProperty("runSequence").GetInt32());
+        });
         Assert.Equal(activeHash, CanonicalJson.ComputeHash(runs.GetRun(id).Value));
         using var old = await client.GetAsync($"/api/v1/runs/{id}/session?expectedSequence={before.Sequence}");
         Assert.Equal(HttpStatusCode.Conflict, old.StatusCode);

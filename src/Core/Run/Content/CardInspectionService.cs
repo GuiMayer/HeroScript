@@ -322,19 +322,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
             if (source.IsFailure) return Result<CardInspectionResult>.Failure(source.Error);
             presentation = CardImpactExplanationProjector.Attach(source.Value, effective.Value, run, combat,
                 runtime.Value, preview?.Steps ?? [], stochastic ? "SampledPathNotGuaranteedOutcome" : "ExactForCapturedSnapshotAndInput");
-            if (detail != InspectionDetailLevel.Full)
-            {
-                presentation = presentation with {
-                    Explanations = presentation.Explanations.Select(value => value with {
-                        ConditionExpression = null,
-                        Buckets = value.Buckets.Select(bucket => bucket with { Formula = null, Contributions = [] }).ToImmutableArray()
-                    }).ToImmutableArray(),
-                    Impacts = presentation.Impacts.Select(value => value with { Parameters = value.Parameters.Select(parameter => parameter with {
-                        Buckets = parameter.Buckets.Select(bucket => bucket with { Formula = null, Contributions = [] }).ToImmutableArray()
-                    }).ToImmutableArray() }).ToImmutableArray(), Fingerprint = string.Empty
-                };
-                presentation = presentation with { Fingerprint = CanonicalJson.ComputeHash(presentation) };
-            }
+            presentation = CardPresentationVisibility.Clamp(presentation, detail);
         }
 
         var context = detail == InspectionDetailLevel.Full

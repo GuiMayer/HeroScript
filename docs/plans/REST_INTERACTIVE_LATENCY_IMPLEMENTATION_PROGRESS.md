@@ -52,3 +52,14 @@ schema e capacidades; 304 só para a mesma representação. Revisão incompatív
 retorna 409. O POST não foi ampliado e continua confirmando somente após o commit.
 Teste REST isolado cobre mapa, combate, ETag/304, conflitos e igualdade do estado
 canônico antes/depois. Nenhuma sequência histórica é apresentada como atual.
+
+## Etapa 5 — face e impacto separados
+
+Sessão usa o projetor canônico de valores de origem para as cartas jogáveis,
+sem chamar a inspeção completa contra um alvo arbitrário. Fatos de oferta continuam
+na base composta. Sanitização por nível de detalhe é compartilhada com a inspeção
+existente. O bundle não carrega árvores de execução nem containers compilados da
+mão inteira; inspeções detalhadas continuam disponíveis pela mesma REST API.
+Teste de sessão verifica valores Source da revisão correta, sem impacts ou
+inspeções completas na sincronização obrigatória. Testes de cache/inspeção e
+equivalência imutável passaram com conteúdo real do mundo 1.

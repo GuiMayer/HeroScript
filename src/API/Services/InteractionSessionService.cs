@@ -21,7 +21,7 @@ public sealed record InteractionSessionRead(string ETag, InteractionSession? Ses
 /// <summary>One captured snapshot; projections never re-enter HTTP or reload the run.</summary>
 public sealed class InteractionSessionService(IRunQueryService runs, ICardPresentationQueryService cards,
     ICardModifierItemQueryService items, IActorAttributeProjectionService attributes,
-    ILegalActionResolver legal, ICardInspectionService inspection, IToolAccessPolicy access)
+    ILegalActionResolver legal, IToolAccessPolicy access)
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
     private static JsonElement Json<T>(T value) => JsonSerializer.SerializeToElement(value, Options);
@@ -41,7 +41,9 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
         var combat = run.GetActiveEncounter()?.Combat;
         var commands = runs.GetAvailableCommands(run);
         if (commands.IsFailure) return Result<InteractionSessionRead>.Failure(commands.Error);
-        var facts = cards.Read(run, combat != null);
+        var actor = combat?.PriorityWindow?.HolderActorId ?? combat?.ActivationState?.ActiveActorId;
+        var facts = cards.Read(run, combat != null, combat, actor,
+            access.Allows(run, ToolCapabilities.CardInspectFull) ? InspectionDetailLevel.Full : InspectionDetailLevel.Resolved);
         if (facts.IsFailure) return Result<InteractionSessionRead>.Failure(facts.Error);
         var inventory = items.Read(run);
         if (inventory.IsFailure) return Result<InteractionSessionRead>.Failure(inventory.Error);
@@ -49,7 +51,6 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
         if (values.IsFailure) return Result<InteractionSessionRead>.Failure(values.Error);
         var actions = ImmutableArray<LegalActionCandidate>.Empty;
         var evaluations = ImmutableArray.CreateBuilder<CardInspectionResult>();
-        var actor = combat?.PriorityWindow?.HolderActorId ?? combat?.ActivationState?.ActiveActorId;
         if (combat != null && combat.Status == Core.Combat.Models.CombatStatus.ACTIVE && actor != null)
         {
             var origin = combat.GetActor(actor) is { } active && combat.ControllerOf(active) == Core.Combat.Models.ControllerKind.AI
@@ -57,15 +58,6 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
             var options = legal.Resolve(run, combat, actor, origin);
             if (options.IsFailure) return Result<InteractionSessionRead>.Failure(options.Error);
             actions = options.Value.Candidates.ToImmutableArray();
-            var targets = actions.Select(value => value.Command.TargetIds).FirstOrDefault(value => value.Count > 0)?.Take(1).ToArray() ?? [];
-            foreach (var cardId in CardZonePlaySource.CardsForActor(run, actor))
-            {
-                var inspected = inspection.Inspect(run, combat, new CardInspectionRequest
-                { CombatId = combat.CombatId, ActorId = actor, CardInstanceId = cardId, SelectedTargetIds = targets,
-                    MaximumDetail = access.Allows(run, ToolCapabilities.CardInspectFull) ? InspectionDetailLevel.Full : InspectionDetailLevel.Resolved });
-                if (inspected.IsFailure) return Result<InteractionSessionRead>.Failure(inspected.Error);
-                evaluations.Add(inspected.Value);
-            }
         }
         return Result<InteractionSessionRead>.Success(new(etag, new(context.Version,
             RunInteractionProjection.Project(context, granted.Contains(ToolCapabilities.CheatCardZones)),

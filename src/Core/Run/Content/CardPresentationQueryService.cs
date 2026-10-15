@@ -4,6 +4,7 @@ using Core.Common;
 using Core.Content;
 using Core.Caching;
 using Core.Determinism;
+using Core.Combat.Models;
 
 namespace Core.Run.Content;
 
@@ -13,13 +14,15 @@ public sealed record CardPresentationBatch(Guid RunId, int RunSequence, string C
 public interface ICardPresentationQueryService
 {
     Result<CardPresentationBatch> Read(Guid runId);
-    Result<CardPresentationBatch> Read(RunState snapshot, bool playableOnly = false) =>
+    Result<CardPresentationBatch> Read(RunState snapshot, bool playableOnly = false, CombatState? combat = null,
+        string? actorId = null, InspectionDetailLevel maximumDetail = InspectionDetailLevel.Resolved) =>
         Result<CardPresentationBatch>.Failure("Captured card presentation queries are unavailable");
 }
 
 /// <summary>Projects only visible instances and current offers from one captured, revision-pinned run.</summary>
 public sealed class CardPresentationQueryService(IRunQueryService runs, IContentRuntimeResolver runtimes,
-    ICardContentCompiler compiler, IEffectiveCardResolver effectiveCards) : ICardPresentationQueryService, ICacheService
+    ICardContentCompiler compiler, IEffectiveCardResolver effectiveCards,
+    ICardSourcePresentationProjector? sourceProjector = null) : ICardPresentationQueryService, ICacheService
 {
     public const int MaximumCards = 512;
     private readonly LruCache<string, CardPresentationBatch> _cache = new(64);
@@ -35,9 +38,11 @@ public sealed class CardPresentationQueryService(IRunQueryService runs, IContent
         return Read(loaded.Value);
     }
 
-    public Result<CardPresentationBatch> Read(RunState run, bool playableOnly = false)
+    public Result<CardPresentationBatch> Read(RunState run, bool playableOnly = false, CombatState? combat = null,
+        string? actorId = null, InspectionDetailLevel maximumDetail = InspectionDetailLevel.Resolved)
     {
-        var key = CanonicalJson.ComputeHash(run) + (playableOnly ? ":playable" : ":visible");
+        var key = CanonicalJson.ComputeHash(run) + (playableOnly ? ":playable" : ":visible") +
+            (combat == null ? ":base" : ":source:" + CanonicalJson.ComputeHash(combat) + ":" + actorId + ":" + maximumDetail);
         if (_cache.TryGetValue(key, out var cached)) return Result<CardPresentationBatch>.Success(cached!);
         var resolved = runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (resolved.IsFailure) return Result<CardPresentationBatch>.Failure(resolved.Error);
@@ -77,7 +82,14 @@ public sealed class CardPresentationQueryService(IRunQueryService runs, IContent
             var facts = CardBasePresentationProjector.Project(definition, composed.Value, subject.Identity,
                 new() { RunId = run.RunId, RunSequence = run.Sequence, ContentRevision = run.Determinism.ContentRevision });
             if (facts.IsFailure) return Result<CardPresentationBatch>.Failure(facts.Error);
-            cards.Add(facts.Value);
+            if (combat != null && actorId != null && subject.Instance != null)
+            {
+                if (sourceProjector == null) return Result<CardPresentationBatch>.Failure("Source presentation service is unavailable");
+                var source = sourceProjector.Project(facts.Value, composed.Value, run, combat, actorId);
+                if (source.IsFailure) return Result<CardPresentationBatch>.Failure(source.Error);
+                cards.Add(CardPresentationVisibility.Clamp(source.Value, maximumDetail));
+            }
+            else cards.Add(facts.Value);
         }
         var batch = new CardPresentationBatch(run.RunId, run.Sequence, run.Determinism.ContentRevision, cards.ToImmutable());
         _cache.Set(key, batch);
