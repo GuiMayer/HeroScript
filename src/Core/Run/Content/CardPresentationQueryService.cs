@@ -13,6 +13,8 @@ public sealed record CardPresentationBatch(Guid RunId, int RunSequence, string C
 public interface ICardPresentationQueryService
 {
     Result<CardPresentationBatch> Read(Guid runId);
+    Result<CardPresentationBatch> Read(RunState snapshot, bool playableOnly = false) =>
+        Result<CardPresentationBatch>.Failure("Captured card presentation queries are unavailable");
 }
 
 /// <summary>Projects only visible instances and current offers from one captured, revision-pinned run.</summary>
@@ -30,14 +32,18 @@ public sealed class CardPresentationQueryService(IRunQueryService runs, IContent
     {
         var loaded = runs.GetRun(runId);
         if (loaded.IsFailure) return Result<CardPresentationBatch>.Failure(loaded.Error);
-        var run = loaded.Value;
-        var key = CanonicalJson.ComputeHash(run);
+        return Read(loaded.Value);
+    }
+
+    public Result<CardPresentationBatch> Read(RunState run, bool playableOnly = false)
+    {
+        var key = CanonicalJson.ComputeHash(run) + (playableOnly ? ":playable" : ":visible");
         if (_cache.TryGetValue(key, out var cached)) return Result<CardPresentationBatch>.Success(cached!);
         var resolved = runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (resolved.IsFailure) return Result<CardPresentationBatch>.Failure(resolved.Error);
         var runtime = resolved.Value;
         var subjects = new List<(CardPresentationIdentity Identity, CardInstanceState? Instance)>();
-        foreach (var id in CardZoneReadModel.Project(run).Zones.SelectMany(zone => zone.Cards)
+        foreach (var id in CardZoneReadModel.Project(run).Zones.Where(zone => !playableOnly || zone.AllowsCardPlay).SelectMany(zone => zone.Cards)
                      .Select(card => card.CardInstanceId).Distinct().Order())
         {
             var instance = run.Deck.GetCard(id)!;

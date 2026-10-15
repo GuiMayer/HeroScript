@@ -15,6 +15,8 @@ public sealed record CardModifierItemSnapshot(Guid RunId, int RunSequence, strin
 public interface ICardModifierItemQueryService
 {
     Result<CardModifierItemSnapshot> Read(Guid runId);
+    Result<CardModifierItemSnapshot> Read(RunState snapshot) =>
+        Result<CardModifierItemSnapshot>.Failure("Captured modifier item queries are unavailable");
 }
 
 /// <summary>Ownership and compatibility facts. Reuses the ledger transition and effective composer; no rule evaluation in clients.</summary>
@@ -30,7 +32,10 @@ public sealed class CardModifierItemQueryService(IRunQueryService runs, IContent
     {
         var loaded = runs.GetRun(runId);
         if (loaded.IsFailure) return Result<CardModifierItemSnapshot>.Failure(loaded.Error);
-        var run = loaded.Value;
+        return Read(loaded.Value);
+    }
+    public Result<CardModifierItemSnapshot> Read(RunState run)
+    {
         var key = CanonicalJson.ComputeHash(run);
         if (_cache.TryGetValue(key, out var cached)) return Result<CardModifierItemSnapshot>.Success(cached!);
         var active = runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);

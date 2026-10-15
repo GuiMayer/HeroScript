@@ -135,6 +135,8 @@ public sealed record CardInspectionResult
 public interface ICardInspectionService
 {
     Result<CardInspectionResult> Inspect(CardInspectionRequest request);
+    Result<CardInspectionResult> Inspect(RunState run, CombatState combat, CardInspectionRequest request) =>
+        Result<CardInspectionResult>.Failure("Captured card inspection queries are unavailable");
     Result<IReadOnlyList<CardInspectionResult>> InspectPlayableCards(
         Guid combatId,
         string? actorId = null,
@@ -227,7 +229,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
         return Result<IReadOnlyList<CardInspectionResult>>.Success(results.ToImmutable());
     }
 
-    private Result<CardInspectionResult> Inspect(
+    public Result<CardInspectionResult> Inspect(
         RunState run,
         CombatState combat,
         CardInspectionRequest request)

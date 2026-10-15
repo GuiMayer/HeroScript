@@ -12,6 +12,8 @@ public interface IRunQueryService
     Result<RunState> GetRun(Guid runId);
     Result<RunState> GetRunByCombat(Guid combatId);
     Result<IReadOnlyList<RunAvailableCommand>> GetAvailableCommands(Guid runId);
+    Result<IReadOnlyList<RunAvailableCommand>> GetAvailableCommands(RunState snapshot) =>
+        Result<IReadOnlyList<RunAvailableCommand>>.Failure("Captured run command queries are unavailable");
 }
 
 public interface IRunCreationService

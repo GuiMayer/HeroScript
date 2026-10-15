@@ -43,3 +43,12 @@ envia as rotas necessárias. Atividades de seleção/loja/preparação são filt
 pelo nó atual. Histórico de diálogo foi preservado para o menu de conversas.
 Fluxos de ferramentas são opcionais e filtrados. Teste comprova ausência de
 crescimento com 100 encounters passados e preservação do hash original.
+
+## Etapa 4 — sessão consistente
+
+`GET /api/v1/runs/{id}/session?expectedSequence=N` captura uma run e usa overloads
+de projeção por snapshot, sem recarregar por serviço. ETag inclui estado completo,
+schema e capacidades; 304 só para a mesma representação. Revisão incompatível
+retorna 409. O POST não foi ampliado e continua confirmando somente após o commit.
+Teste REST isolado cobre mapa, combate, ETag/304, conflitos e igualdade do estado
+canônico antes/depois. Nenhuma sequência histórica é apresentada como atual.
