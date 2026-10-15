@@ -625,6 +625,7 @@ foreach (var settingId in startupSettingIds)
 var cacheCoordinator = app.Services.GetRequiredService<ICacheCoordinator>();
 var applicationCaches = new ICacheService[]
 {
+    (ICacheService)app.Services.GetRequiredService<IContentPublicationService>(),
     app.Services.GetRequiredService<TypedContentDefinitionCache>(),
     (ICacheService)app.Services.GetRequiredService<ICardContentCompiler>(),
     (ICacheService)app.Services.GetRequiredService<IEffectiveCardResolver>(),

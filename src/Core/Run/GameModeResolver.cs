@@ -191,6 +191,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName, string contentRevision)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("mode_resolve");
         if (_contentRuntimes == null)
             return Result<ResolvedGameMode>.Failure("Revisioned game-mode runtime is not configured");
 

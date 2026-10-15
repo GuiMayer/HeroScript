@@ -14,6 +14,7 @@ public static class RunContentCompatibilityValidator
 {
     public static Result ValidateForActivation(RunState run, ContentRuntime runtime)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("content_compatibility");
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
         var eligibility = RunEligibility.ValidateSnapshot(run);
@@ -35,10 +36,15 @@ public static class RunContentCompatibilityValidator
         }
         var compiler = new CardContentCompiler();
         var effectiveCards = new EffectiveCardResolver();
+        var compiledDefinitions = new Dictionary<string, Result<CompiledCardDefinition>>(StringComparer.Ordinal);
         foreach (var instance in run.Deck.Topology.Instances.Values
                      .OrderBy(card => card.CardInstanceId))
         {
-            var compiled = compiler.Compile(instance.DefinitionId, runtime);
+            if (!compiledDefinitions.TryGetValue(instance.DefinitionId, out var compiled))
+            {
+                compiled = compiler.Compile(instance.DefinitionId, runtime);
+                compiledDefinitions.Add(instance.DefinitionId, compiled);
+            }
             if (compiled.IsFailure)
             {
                 return Result.Failure(

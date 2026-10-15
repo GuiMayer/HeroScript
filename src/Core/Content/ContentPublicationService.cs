@@ -1,7 +1,10 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
+using Core.Caching;
 using Core.Config;
 using Core.Determinism;
 
@@ -59,22 +62,33 @@ public interface IContentPublicationService
 /// immutable, content-addressed bundles. Authoring timestamps and draft ids are
 /// operational metadata and never participate in the revision hash.
 /// </summary>
-public sealed class ContentPublicationService : IContentPublicationService, IDisposable
+public sealed class ContentPublicationService : IContentPublicationService, ICacheService, IDisposable
 {
     private readonly string _storePath;
     private readonly IContentManifestProvider _manifests;
     private readonly IContentGraphValidator _graphValidator;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly LruCache<(string Revision, string BytesHash), ContentBundle>? _validated;
+    private readonly object _cacheGate = new();
+    private int _cacheGeneration;
+    // Bound both entries and admitted source size; oversized bundles remain valid,
+    // but are read and validated independently instead of retained by this cache.
+    private const int MaximumCachedBytes = 8 * 1024 * 1024;
 
     public ContentPublicationService(
         string storePath,
         IContentManifestProvider manifests,
-        IContentGraphValidator? graphValidator = null)
+        IContentGraphValidator? graphValidator = null,
+        int validationCacheCapacity = 16)
     {
         _storePath = storePath;
         _manifests = manifests;
         _graphValidator = graphValidator ?? new ContentGraphValidator();
+        ArgumentOutOfRangeException.ThrowIfNegative(validationCacheCapacity);
+        if (validationCacheCapacity > 0 &&
+            _graphValidator is ContentGraphValidator { SupportsValidationReuse: true })
+            _validated = new(validationCacheCapacity);
         Directory.CreateDirectory(GetDraftDirectory());
         Directory.CreateDirectory(GetPublishedDirectory());
         _jsonOptions = new JsonSerializerOptions
@@ -273,8 +287,23 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            var bundle = JsonSerializer.Deserialize<ContentBundle>(json, _jsonOptions);
+            // Always read and fingerprint the file, even on a hit. Revision labels,
+            // file size and timestamps cannot establish that persisted bytes are intact.
+            var generation = Volatile.Read(ref _cacheGeneration);
+            var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+            var key = (revision, Convert.ToHexString(SHA256.HashData(bytes)));
+            var cacheable = _validated != null && bytes.Length <= MaximumCachedBytes;
+            ContentBundle? cached = null;
+            var hit = cacheable && _validated!.TryGetValue(key, out cached);
+            ContentBundle? bundle;
+            if (hit)
+                bundle = cached;
+            else
+            {
+                // Match ReadAllText's BOM-aware decoding, including existing UTF-16 files.
+                using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                bundle = JsonSerializer.Deserialize<ContentBundle>(reader.ReadToEnd(), _jsonOptions);
+            }
             if (bundle == null)
                 return Result<ContentBundle>.Failure($"Published content revision is invalid: {revision}");
             if (!string.Equals(bundle.Manifest.Revision, revision, StringComparison.Ordinal))
@@ -282,15 +311,19 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
                 return Result<ContentBundle>.Failure(
                     $"Published content revision identity mismatch: expected {revision}, got {bundle.Manifest.Revision}");
             }
-            var validation = Validate(bundle);
-            if (!validation.IsValid)
+            if (!hit)
             {
-                return Result<ContentBundle>.Failure(
-                    $"Published content revision is corrupt: {string.Join("; ", validation.Errors)}");
+                var validation = Validate(bundle);
+                if (!validation.IsValid)
+                    return Result<ContentBundle>.Failure(
+                        $"Published content revision is corrupt: {string.Join("; ", validation.Errors)}");
             }
             var registration = _manifests.RegisterPublishedManifest(bundle.Manifest);
             if (registration.IsFailure)
                 return Result<ContentBundle>.Failure(registration.Error);
+            if (!hit && cacheable)
+                lock (_cacheGate)
+                    if (generation == _cacheGeneration) _validated!.Set(key, bundle);
             return Result<ContentBundle>.Success(bundle);
         }
         catch (Exception exception)
@@ -363,6 +396,21 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
 
     public void Dispose() => _semaphore.Dispose();
 
+    public string CacheName => "ValidatedPublishedContent";
+    public CacheLayer Layer => CacheLayer.Revisioned;
+    public bool PreserveAcrossGlobalInvalidation => true;
+    public void Invalidate(string? key = null)
+    {
+        lock (_cacheGate)
+        {
+            _cacheGeneration++;
+            if (string.IsNullOrWhiteSpace(key)) _validated?.Clear();
+            else _validated?.RemoveWhere(entry => entry.Revision == key);
+        }
+    }
+    public CacheServiceStats GetStats() => _validated == null ? new() { CacheName = CacheName } :
+        new LruCacheService<(string Revision, string BytesHash), ContentBundle>(_validated, CacheName).GetStats();
+
     private ContentValidationResult ValidateBundle(ContentBundle bundle)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
@@ -433,8 +481,22 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         try
         {
             var json = JsonSerializer.Serialize(value, _jsonOptions);
+            var generation = Volatile.Read(ref _cacheGeneration);
             await File.WriteAllTextAsync(tmp, json, cancellationToken).ConfigureAwait(false);
             File.Move(tmp, path, overwrite);
+            // Publication already validated this immutable bundle. Cache an owned
+            // deserialization, never JsonElements backed by the caller's document.
+            if (_validated != null && value is ContentBundle bundle)
+            {
+                var bytes = Encoding.UTF8.GetBytes(json);
+                if (bytes.Length <= MaximumCachedBytes)
+                {
+                    var owned = JsonSerializer.Deserialize<ContentBundle>(json, _jsonOptions)!;
+                    var key = (bundle.Manifest.Revision, Convert.ToHexString(SHA256.HashData(bytes)));
+                    lock (_cacheGate)
+                        if (generation == _cacheGeneration) _validated.Set(key, owned);
+                }
+            }
         }
         catch
         {

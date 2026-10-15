@@ -62,6 +62,7 @@ internal sealed class RunCreationService(IRunCommitStore? store)
 
     public Result<RunEligibilitySnapshot?> Capture(RunStartOptions options, ResolvedGameMode mode, string revision)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("eligibility_capture");
         if (options.CapturedEligibility is { } captured)
         {
             if (store != null) return Result<RunEligibilitySnapshot?>.Failure("Live creation cannot accept a supplied eligibility snapshot");

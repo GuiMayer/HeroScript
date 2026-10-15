@@ -258,3 +258,60 @@ de nova run a frio precisa de uma etapa própria, não de exclusão do relatóri
 
 Certificação do streaming: 1.753 testes Core e seis testes REST passaram,
 incluindo o oráculo de cada comando e os três processos independentes.
+
+## Etapa 8 — criação de run e validação de publicação
+
+O profiling da criação expôs validação integral repetida do mesmo pacote: a
+resolução do manifesto e a resolução do runtime relêem a publicação. Agora o
+serviço mantém até 16 bundles próprios, admitindo arquivos de até 8 MiB por
+entrada. A chave combina a revisão solicitada com SHA-256 dos bytes exatos
+relidos do disco em cada acesso. Nome da revisão, tamanho e timestamp não são
+prova de integridade. Alteração, remoção e substituição por outra revisão
+continuam falhando antes de disponibilizar conteúdo incorreto.
+
+Só o validador embutido com o registry padrão imutável participa do reuso.
+Validadores/registries arbitrários podem depender de estado externo e continuam
+executando a cada leitura. A publicação validada de um arquivo novo alimenta o
+cache a partir de uma desserialização própria; não retém JsonElements que o
+autor possa invalidar ao descartar seu JsonDocument. O cache é revisionado,
+registrado no coordenador, invalidável explicitamente e desabilitável com
+capacidade zero. Invalidação durante uma operação impede republicar sua entrada
+antiga. Não substitui o arquivo publicado como autoridade e não guarda falhas.
+
+`StartRun` passa a usar o mesmo escopo de encoding/hash já usado por comandos.
+A validação de compatibilidade reutiliza somente a compilação-base de cartas
+iguais na mesma invocação; upgrades, componentes e referências de cada instância
+continuam validados individualmente. O preparo de metadados antes da prontidão
+inclui o escritor imutável, sem criar estados, consumir RNG ou calcular ações.
+Os novos timings são operacionais e não entram em snapshots, eventos ou hashes.
+
+Probe Kestrel isolado: criação a frio + primeira sessão caiu de 2.279 ms na
+etapa anterior para 892 ms (POST 633 ms + sessão 259 ms); segunda criação:
+98 ms (80 + 18 ms). É uma medição, não garantia universal de latência.
+
+Testes adicionados cobrem propriedade/lifetime do JSON, leituras concorrentes,
+evicção, capacidade zero, invalidação, alterações de mesmo tamanho/timestamp,
+arquivo removido, bytes corrompidos após reinício, troca de encoding/BOM e
+substituição de identidade. Há comparação do hash inicial com o serializer
+independente e verificação da integração com o coordenador de caches.
+
+Primeira bateria completa com `HEROSCRIPT_INTERACTION_BUDGET_MS=1000`:
+três testes passaram, incluindo 523 comandos + três criações e 526 sessões,
+sem excluir nenhuma interação medida. Máximos POST + sessão:
+
+| Seed | Nova run | Carta | Fim de turno | Maior interação |
+| --- | ---: | ---: | ---: | ---: |
+| 250 (primeira/a frio) | 865 ms | 631 ms | 749 ms | 865 ms |
+| 154 | 101 ms | 564 ms | 677 ms | 677 ms |
+| 251 | 88 ms | 479 ms | 592 ms | 592 ms |
+
+As três runs concluíram os mesmos 27 encontros; vida final por seed
+154/250/251 permaneceu 50/52/50. Replay semântico e recuperação em host novo
+passaram. Medição via Kestrel real em loopback, Release, store temporário durável,
+leitura do corpo do POST e parsing da sessão. Exclui a duração artística das
+animações, renderização/publicação Godot e inicialização do servidor. Não cobre
+todos os mods, hardware/carga arbitrários ou cada ferramenta administrativa.
+
+Certificação da etapa: 1.758 testes Core e sete testes REST focados passaram.
+Incluem hash de referência após cada comando, descoberta diferencial, sessão
+versionada, leitura/cache frio e quente, criação e determinismo em três processos.

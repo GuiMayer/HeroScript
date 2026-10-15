@@ -104,6 +104,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
     public Result<RunState> StartRun(RunStartOptions options)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("run_creation");
+        using var hashes = CanonicalJson.BeginHashScope();
         ArgumentNullException.ThrowIfNull(options);
         try
         {

@@ -33,6 +33,7 @@ public static class CardZoneRunInitializer
         ICardZoneFlowExecutor flows,
         RunEligibilitySnapshot? eligibility = null)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("card_zone_initialize");
         ArgumentNullException.ThrowIfNull(system);
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(startingCards);

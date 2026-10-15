@@ -175,6 +175,7 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheServ
 
     public Result<ContentRuntime> Resolve(string revision, string? configName = null)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("content_runtime");
         if (string.IsNullOrWhiteSpace(revision))
             return Result<ContentRuntime>.Failure("Content revision is required");
         if (_runtimes.TryGetValue(revision, out var cached))

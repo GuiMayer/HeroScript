@@ -39,6 +39,9 @@ public sealed class CombatPreviewLatencyTests(ITestOutputHelper output)
         var legalCache = (ICacheService)factory.Services.GetRequiredService<ILegalActionResolver>();
         var inspectionCache = (ICacheService)factory.Services.GetRequiredService<ICardInspectionService>();
         var registry = factory.Services.GetRequiredService<ICacheCoordinator>();
+        var publicationCache = (ICacheService)factory.Services.GetRequiredService<Core.Content.IContentPublicationService>();
+        Assert.Contains(publicationCache.CacheName, registry.GetCacheNames());
+        Assert.True(publicationCache.GetStats().Hits > 0);
         var typedCache = factory.Services.GetRequiredService<Core.Content.TypedContentDefinitionCache>();
         Assert.Contains(typedCache.CacheName, registry.GetCacheNames());
         Assert.True(typedCache.GetStats().Hits > 0);
@@ -80,5 +83,11 @@ public sealed class CombatPreviewLatencyTests(ITestOutputHelper output)
         Assert.Equal(CanonicalJson.ComputeHash(cold.Data), CanonicalJson.ComputeHash(recomputed.Data));
         Assert.Equal(before, CanonicalJson.ComputeHash((await store.LoadLatestStateAsync(id))!));
         output.WriteLine($"Legal actions: cold={cold.Ms:F1}ms warm={warm.Ms:F1}ms; inspection: cold={coldInspection.Ms:F1}ms warm={warmInspection.Ms:F1}ms");
+        var retainedPublications = publicationCache.GetStats().Count;
+        Assert.True(retainedPublications > 0);
+        registry.InvalidateAll();
+        Assert.Equal(retainedPublications, publicationCache.GetStats().Count);
+        Assert.True(registry.InvalidateCache(publicationCache.CacheName));
+        Assert.Equal(0, publicationCache.GetStats().Count);
     }
 }

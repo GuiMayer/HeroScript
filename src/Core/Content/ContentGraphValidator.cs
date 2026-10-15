@@ -41,6 +41,10 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 {
     private readonly IContentKindRegistry _kinds;
 
+    // Unknown registries/validators may consult mutable external state. Only the
+    // built-in, immutable schema registry has a process-stable validation contract.
+    internal bool SupportsValidationReuse => ReferenceEquals(_kinds, ContentKindRegistry.Default);
+
     public ContentGraphValidator(IContentKindRegistry? kinds = null)
     {
         _kinds = kinds ?? ContentKindRegistry.Default;
