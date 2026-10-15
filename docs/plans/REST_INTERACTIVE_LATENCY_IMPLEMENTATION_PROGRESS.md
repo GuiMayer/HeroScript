@@ -63,3 +63,22 @@ mão inteira; inspeções detalhadas continuam disponíveis pela mesma REST API.
 Teste de sessão verifica valores Source da revisão correta, sem impacts ou
 inspeções completas na sincronização obrigatória. Testes de cache/inspeção e
 equivalência imutável passaram com conteúdo real do mundo 1.
+
+## Etapa 6 — descoberta conservadora e exata
+
+A descoberta reutiliza resoluções cuja composição e avaliação completa são iguais
+no mesmo snapshot (por exemplo, várias seleções brutas para SELF). O memo existe
+somente durante a descoberta e é usado apenas pelo executor canônico conhecido;
+executores customizados seguem pelo caminho exato anterior. Condições continuam
+avaliadas para cada entrada bruta antes de qualquer reuso. Candidatos, IDs,
+custos, fingerprints e sucessores permanecem iguais. A sessão não serializa
+traces completos de cada candidato; preserva comandos, custos e aplicações
+necessários ao preview. O endpoint detalhado continua disponível.
+
+Decisão de segurança: não substituir a legalidade por um teste apenas estrutural.
+Uma resolução distinta ainda usa o pipeline completo, pois efeitos podem falhar
+durante a execução. Essa é a alternativa conservadora prevista no plano, sem
+falsos positivos ou um segundo processador de regras.
+
+Validação: 25 testes Core de legalidade/cartas e comparação diferencial em duas
+seeds reais do mundo 1, incluindo todos os sucessores e imutabilidade da run.

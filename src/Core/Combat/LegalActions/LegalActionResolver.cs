@@ -194,6 +194,9 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
     private readonly IPhaseGraphReducer _phases;
     private readonly IReactionFlowReducer _reactions;
     private readonly IEffectTriggerExecutor _effects;
+    private readonly bool _coalesceEquivalentCardExecutions;
+    private long _coalescedExecutions;
+    public long CoalescedExecutions => Interlocked.Read(ref _coalescedExecutions);
 
     public LegalActionResolver(
         IActionManager actions,
@@ -205,7 +208,8 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         IAbilityExecutor abilityExecutor,
         IPhaseGraphReducer phases,
         IReactionFlowReducer reactions,
-        IEffectTriggerExecutor effects)
+        IEffectTriggerExecutor effects,
+        bool coalesceEquivalentCardExecutions = true)
     {
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
@@ -217,6 +221,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         _phases = phases ?? throw new ArgumentNullException(nameof(phases));
         _reactions = reactions ?? throw new ArgumentNullException(nameof(reactions));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
+        _coalesceEquivalentCardExecutions = coalesceEquivalentCardExecutions;
     }
 
     public Result<LegalActionEvaluation> Evaluate(
@@ -224,6 +229,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         CombatState combat,
         CombatActionCommand command,
         CombatCommandOrigin origin)
+        => Evaluate(run, combat, command, origin, null);
+
+    private Result<LegalActionEvaluation> Evaluate(RunState run, CombatState combat,
+        CombatActionCommand command, CombatCommandOrigin origin, Dictionary<string, CardPlayExecutionResult>? executions)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
@@ -231,13 +240,14 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         var key = SnapshotKey(run, combat) + ":" + origin + ":" + CanonicalJson.ComputeHash(command);
         if (_evaluations.TryGetValue(key, out var cached))
             return Result<LegalActionEvaluation>.Success(cached!);
-        var result = EvaluateUncached(run, combat, command, origin);
+        var result = EvaluateUncached(run, combat, command, origin, executions);
         if (result.IsSuccess) _evaluations.Set(key, result.Value);
         return result;
     }
 
     private Result<LegalActionEvaluation> EvaluateUncached(
-        RunState run, CombatState combat, CombatActionCommand command, CombatCommandOrigin origin)
+        RunState run, CombatState combat, CombatActionCommand command, CombatCommandOrigin origin,
+        Dictionary<string, CardPlayExecutionResult>? executions = null)
     {
         if (run.ResolvedMode == null)
             return Result<LegalActionEvaluation>.Failure("Run has no resolved game mode");
@@ -258,7 +268,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
 
         return command.ActionType switch
         {
-            ActionType.PLAY_CARD => EvaluateCard(run, combat, command, origin),
+            ActionType.PLAY_CARD => EvaluateCard(run, combat, command, origin, executions),
             ActionType.BASIC_ATTACK or ActionType.POWER or ActionType.ACTIVATE_ABILITY or ActionType.PLAY_INSTANT =>
                 EvaluateAbility(run, combat, command, origin),
             ActionType.PASS or ActionType.END_TURN => EvaluatePassive(run, combat, command),
@@ -302,9 +312,13 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             return Result<LegalActionSet>.Failure(exception.Message);
         }
         var candidates = ImmutableArray.CreateBuilder<LegalActionCandidate>();
+        // Request-local only: no snapshot survives discovery in this memo. Custom
+        // executors retain the exact uncached path because their input use is unknown.
+        var executions = _coalesceEquivalentCardExecutions && _cardExecutor is CardPlayExecutor
+            ? new Dictionary<string, CardPlayExecutionResult>(StringComparer.Ordinal) : null;
         foreach (var command in commands)
         {
-            var evaluated = Evaluate(run, combat, command, origin);
+            var evaluated = Evaluate(run, combat, command, origin, executions);
             if (evaluated.IsFailure)
                 return Result<LegalActionSet>.Failure(evaluated.Error);
             if (evaluated.Value.Candidate != null)
@@ -340,7 +354,8 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         RunState run,
         CombatState combat,
         CombatActionCommand command,
-        CombatCommandOrigin origin)
+        CombatCommandOrigin origin,
+        Dictionary<string, CardPlayExecutionResult>? executions = null)
     {
         var actor = combat.GetActor(command.ActorId)!;
         if (combat.ControllerOf(actor) != ControllerKind.Player ||
@@ -383,7 +398,18 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             return Result<LegalActionEvaluation>.Failure(evaluation.Error);
         if (!evaluation.Value.IsLegal)
             return Illegal(evaluation.Value.FailureReasons, evaluation.Value);
-        var executed = _cardExecutor.Execute(new CardPlayExecutionRequest
+        // CardPlayExecutor uses raw selected targets solely in legality; effects
+        // consume resolved targets and costs. Equal complete evaluations and card
+        // composition therefore have identical execution inputs for this snapshot.
+        var executionKey = executions == null ? null : CanonicalJson.ComputeHash(new
+            { effective.Value.Fingerprint, evaluation = evaluation.Value, ignoreCosts = IgnoreCosts(run, command) });
+        Result<CardPlayExecutionResult> executed;
+        if (executionKey != null && executions!.TryGetValue(executionKey, out var previous))
+        {
+            Interlocked.Increment(ref _coalescedExecutions);
+            executed = Result<CardPlayExecutionResult>.Success(previous);
+        }
+        else executed = _cardExecutor.Execute(new CardPlayExecutionRequest
         {
             Run = run,
             Combat = combat,
@@ -395,6 +421,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         });
         if (executed.IsFailure)
             return Illegal(executed.Error);
+        if (executionKey != null) executions![executionKey] = executed.Value;
         var candidate = ApplyPhase(run, combat, CreateCandidate(run, command, executed.Value), tags);
         if (candidate.IsFailure) return Result<LegalActionEvaluation>.Failure(candidate.Error);
         return FinalizeReaction(run, combat, command, origin, tags, candidate.Value, evaluation.Value);

@@ -65,6 +65,10 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
             Json(new { run.RunId, run.Sequence, run.Determinism.Step, commands = commands.Value }),
             Json(new { run.RunId, profile = access.Snapshot.Profile, granted }),
             Json(CardZoneReadModel.Project(run)), Json(values.Value), Json(facts.Value), Json(inventory.Value),
-            Json(new { candidates = actions }), Json(new { cards = evaluations.ToImmutable() }))));
+            Json(new { candidates = actions.Select(value => new {
+                value.CandidateId, value.Source, value.Command, value.ActionId, value.CardDefinitionId,
+                value.Costs, value.Applications, value.OutcomeUncertain, value.ReactionTransition,
+                value.ResolutionFingerprint
+            }) }), Json(new { cards = evaluations.ToImmutable() }))));
     }
 }
