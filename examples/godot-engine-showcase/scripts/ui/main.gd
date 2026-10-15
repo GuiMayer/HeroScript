@@ -38,7 +38,7 @@ var dialogue_return_barrier: bool:
 func _run_navigation_scope() -> String:
 	return JSON.stringify([GameSession.run.get("runId", ""), GameSession.run.get("branchId", ""), GameSession.run.get("currentNodeId", "")])
 var _probing_engine := false
-const MENU_ROUTES := ["menu", "settings", "history", "sandbox", "codex"]
+const MENU_ROUTES := ["menu", "settings", "history", "sandbox", "codex", "loadout_lab"]
 var _entry_profile: Resource
 var _gameplay_profile: Resource
 var _menu_paper: ColorRect
@@ -189,6 +189,7 @@ func _menu_action(action: String) -> void:
 		"sandbox": show_sandbox()
 		"codex": show_codex()
 		"settings": show_settings()
+		"loadout_lab": show_loadout_lab()
 		"quit": get_tree().quit()
 
 func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
@@ -319,6 +320,13 @@ func show_timeline() -> void:
 	_clear_host()
 	var screen = TimelineScreen.new()
 	screen.setup(self)
+	host.add_child(screen)
+
+func show_loadout_lab() -> void:
+	current_screen = "loadout_lab"
+	_clear_host()
+	var screen = preload("res://scenes/inscription_loadout_lab.tscn").instantiate()
+	screen.back_requested.connect(_show_main_menu)
 	host.add_child(screen)
 
 func show_history() -> void:

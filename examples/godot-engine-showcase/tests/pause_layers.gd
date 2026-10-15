@@ -77,7 +77,6 @@ func _run() -> void:
 		check(not paused and router.pause_layer == null and closing_canvas.get_parent() == null, "Resume click closes and detaches the modal immediately")
 		check(hand.card_for("pause-3").has_focus() and intents.is_empty(), "resume restores card focus without gameplay intent")
 		await settle()
-	hand.drag_override = true
 	var point := point_for(hand, 3)
 	motion(point)
 	click(point, true)

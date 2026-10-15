@@ -15,7 +15,7 @@ func setup(models: Array, scope: String, selected: String) -> void:
 	min_size = Vector2i(850, 560)
 	hand = load("res://scripts/ui/card_hand_view.gd").new(visual_context)
 	hand.mode_override = "reading"
-	hand.drag_override = false
+	hand.drag_enabled = false
 	add_child(hand)
 	hand.sync_models(models, scope)
 	hand.set_selection(selected)

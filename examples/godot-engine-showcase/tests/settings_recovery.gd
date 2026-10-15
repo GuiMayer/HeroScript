@@ -54,6 +54,7 @@ func _run() -> void:
 	malformed.set_value("audio", "sfx", -1.)
 	malformed.set_value("audio", "master", "invalid")
 	malformed.set_value("game", "reduced_motion", "false")
+	malformed.set_value("game", "hand_drag", false)
 	malformed.set_value("video", "width", "invalid")
 	malformed.set_value("network", "api_url", "http://?invalid")
 	malformed.set_value("input", "pause_game", KEY_NONE)
@@ -64,6 +65,14 @@ func _run() -> void:
 	malformed.set_value("gamepad", "end_turn", JOY_BUTTON_A)
 	malformed.set_value("gamepad", "inspect_card", JOY_BUTTON_PADDLE1)
 	malformed.save(prefs.SAVE_PATH); prefs.load_settings()
+	var startup_hand = load("res://scripts/ui/card_hand_view.gd").new(
+		load("res://scripts/ui/visual_context.gd").from_nodes(prefs, root.get_node("I18n")))
+	check(startup_hand.drag_enabled, "legacy saved drag=false cannot disable a newly constructed hand")
+	startup_hand.free()
+	prefs.save(false)
+	var migrated := ConfigFile.new()
+	check(migrated.load(prefs.SAVE_PATH) == OK and not migrated.has_section_key("game", "hand_drag"),
+		"saving preferences removes the retired drag setting")
 	check(prefs.locale == "en", "unsupported saved language becomes canonical English")
 	check(prefs.animation_speed == 2. and prefs.music_volume == 1. and prefs.sfx_volume == 0. and prefs.master_volume == .8, "loading clamps numeric options and rejects invalid types")
 	check(not prefs.reduced_motion and prefs.window_resolution == prefs.DEFAULT_RESOLUTION and prefs.api_url == prefs.DEFAULT_API_URL, "invalid boolean/resolution/URL use safe defaults")

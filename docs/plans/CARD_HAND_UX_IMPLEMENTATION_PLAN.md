@@ -263,7 +263,7 @@ O destaque cortado horizontalmente pelo overflow usa uma cópia passiva de `Card
 
 ### Preferências e integração
 
-Em **Configurações → Geral → Mão de cartas**, escolher modo adaptativo/leitura, intensidade do destaque e drag opcional (desligado por padrão). Inspeção e visão geral são ações remapeáveis: padrões `I`/`H`, ou `X`/botão esquerdo superior no controle. Os prompts mostram o binding atual. A duração permanece na política visual e na velocidade global de animação, não em um novo sistema paralelo.
+Em **Configurações → Geral → Mão de cartas**, escolher modo adaptativo/leitura e intensidade do destaque. Atualização de 2026-10-15: o drag-to-play passou a estar sempre disponível na mão de gameplay, sem toggle ou preferência persistida, coexistindo com clique na carta e depois no alvo. Isso substitui a opção desativável proposta na etapa 8; o gesto continua não sendo obrigatório para jogar. Inspeção usa `I`/`X` por padrão e os prompts mostram o binding atual. A duração permanece na política visual e na velocidade global de animação, não em um novo sistema paralelo.
 
 O arraste converge para os candidatos já publicados. Soltar num alvo apenas escolhe essa intenção; pagamentos alternativos e conjuntos de alvos continuam explícitos. Não existe ordenação autoritativa, regra de custo ou comando REST no componente da mão.
 

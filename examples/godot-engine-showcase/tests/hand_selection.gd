@@ -30,7 +30,7 @@ func _run() -> void:
 	lab.visual_context._options["reduced_motion"] = true; lab.visual_context.capture_motion()
 	lab.set_count(8); await settle()
 	var hand = lab.hand
-	hand.drag_override = false
+	hand.drag_enabled = false
 	hand.card_activated.connect(func(id): activated.append(id))
 	var rect: Rect2 = hand._layout.hitRects[2]
 	var start: Vector2 = hand.scroll.global_position + rect.get_center() - Vector2(hand.scroll.scroll_horizontal, 0)

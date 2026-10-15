@@ -34,7 +34,6 @@ var animation_speed := 1.0
 var animation_preset := "normal"
 var hand_layout_mode := "adaptive"
 var hand_emphasis := 1.0
-var hand_drag_enabled := false
 var locale := "en"
 var reduced_motion := false
 var reveal_text_gradually := false
@@ -74,7 +73,6 @@ func load_settings() -> void:
 	animation_preset = _read_option(config, "game", "animation_preset", "animation_preset", "normal")
 	hand_layout_mode = _read_option(config, "game", "hand_layout", "hand_layout_mode", "adaptive")
 	hand_emphasis = _read_option(config, "game", "hand_emphasis", "hand_emphasis", 1.0)
-	hand_drag_enabled = _read_option(config, "game", "hand_drag", "hand_drag_enabled", false)
 	locale = _read_option(config, "game", "locale", "locale", "en")
 	reduced_motion = _read_option(config, "game", "reduced_motion", "reduced_motion", false)
 	reveal_text_gradually = _read_option(config, "accessibility", "reveal_text_gradually", "reveal_text_gradually", false)
@@ -147,7 +145,6 @@ func save(notify := true) -> void:
 	config.set_value("game", "animation_preset", animation_preset)
 	config.set_value("game", "hand_layout", hand_layout_mode)
 	config.set_value("game", "hand_emphasis", hand_emphasis)
-	config.set_value("game", "hand_drag", hand_drag_enabled)
 	config.set_value("game", "locale", locale)
 	config.set_value("game", "reduced_motion", reduced_motion)
 	config.set_value("accessibility", "reveal_text_gradually", reveal_text_gradually)

@@ -193,8 +193,6 @@ func _build_general_page() -> void:
 	_add_option(I18n.text("Card highlight lift"), I18n.text("Highlight intensity does not change card values or text size."),
 		_slider_control(controller.read("hand_emphasis"), 0.0, 1.0, .1, _format_percent,
 			func(value): controller.set_option("hand_emphasis", value, false), "HandEmphasisSlider"))
-	_add_option(I18n.text("Drag cards to play"), I18n.text("Optional. Click selection and target choices remain available."),
-		_toggle_control(controller.read("hand_drag_enabled"), func(value): controller.set_option("hand_drag_enabled", value, false), "HandDragToggle"))
 	_add_option(I18n.text("Animation preset"), I18n.text("Presentation only; manual stepping remains available."), preset)
 
 func _build_audio_page() -> void:

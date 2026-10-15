@@ -60,6 +60,36 @@ Replay/timeline podem apresentar um comando salvo sob demanda quando a engine
 autoriza a inspeção histórica. Consulte o
 [guia de autoria](../../docs/design/COMBAT_PRESENTATION_AUTHORING.md).
 
+## Laboratório isolado de inscrições e loadout
+
+Arraste inscrições da coleção para as posições; entre posições ocupadas, o gesto
+troca os itens. Soltar fora cancela. A seleção por clique e o botão de equipar
+continuam disponíveis. Posições vazias têm fundo verde-acinzentado, `+` e
+“Solte aqui”; posições ocupadas mostram nome/custo sobre marfim.
+[Referências e contrato de interação](../../docs/design/INSCRIPTION_LOADOUT_UX_REFERENCES.md).
+
+No menu principal, abra **Loadout lab / Laboratório de inscrições**. Também é
+possível abrir `scenes/inscription_loadout_lab.tscn` no editor e pressionar **F6**,
+sem API. A cena usa o tema marfim e oferece quinze exemplos, seis posições,
+presets, busca e um rascunho local com equipar/mover/remover/restaurar.
+
+O painel direito mostra atributos do personagem, com base e valor equipado:
+vida/energia/mana máximas, armadura, esquiva (base 0%), chance crítica,
+bônus de dano crítico por tier, especializações e bônus por tag. As descrições
+indicam bônus aos atributos do personagem, não mudanças na base das cartas.
+Relíquias e modificadores de cartas não aparecem neste laboratório.
+Esta etapa é um **protótipo visual**:
+custos são ilustrativos, exceder o orçamento é permitido para avaliação e não
+há validação autoritativa nem aplicação à run. Uma simulação exclusiva do laboratório
+soma bônus de exemplo em unidades de exibição; não calcula dano, tiers,
+mitigação ou esquiva e será substituída pela projeção da engine. Nenhum item,
+save ou preferência é alterado. As amostras estão em
+`data/labs/inscription_loadout_lab.json`.
+
+O [plano de arquitetura e implementação](../../docs/plans/INSCRIPTIONS_LOADOUT_ARCHITECTURE_AND_PLAN.md)
+separa o que a engine já suporta das próximas etapas, incluindo as lacunas para
+relíquias de roubo de vida e conversão de shield em armor.
+
 ## Laboratório isolado de cartas e mão
 
 Abra `scenes/card_hand_lab.tscn` no editor e pressione **F6**. Essa cena funciona

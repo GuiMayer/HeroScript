@@ -59,8 +59,6 @@ var animation_speed: float:
 	get: return maxf(float(_options.get("animation_speed", 1.0)), .25)
 var hand_layout_mode: String:
 	get: return str(_options.get("hand_layout_mode", "adaptive"))
-var hand_drag_enabled: bool:
-	get: return bool(_options.get("hand_drag_enabled", false))
 var hand_emphasis: float:
 	get: return float(_options.get("hand_emphasis", 1.0))
 func _init(i18n = null, options: Dictionary = {}, theme_profile: Resource = null) -> void:
@@ -71,14 +69,14 @@ func _init(i18n = null, options: Dictionary = {}, theme_profile: Resource = null
 	_revision_key = [_options.duplicate(true), translator.locale, profile.presentation_key()]
 static func from_nodes(preferences, i18n):
 	var options := {}
-	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_drag_enabled", "hand_emphasis"]:
+	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_emphasis"]:
 		options[key] = preferences.get(key)
 	options["action_labels"] = {}
 	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game"]: options.action_labels[action] = preferences.action_label(action)
 	return load("res://scripts/ui/visual_context.gd").new(i18n, options, AppTheme.profile)
 func update_from(preferences, i18n, theme_profile: Resource) -> void:
 	var next := {}
-	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_drag_enabled", "hand_emphasis"]:
+	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_emphasis"]:
 		next[key] = preferences.get(key)
 	next["action_labels"] = {}
 	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game"]: next.action_labels[action] = preferences.action_label(action)

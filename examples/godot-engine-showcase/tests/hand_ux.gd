@@ -59,6 +59,7 @@ func _run() -> void:
 	root.add_child(hand)
 	hand.sync_models(models, "scope-one")
 	await settle()
+	check(hand.drag_enabled, "drag is enabled on a newly constructed hand without a settings toggle")
 	var activated: Array = []
 	var drops: Array = []
 	hand.card_activated.connect(func(id): activated.append(id); hand.set_selection(id))
@@ -89,7 +90,6 @@ func _run() -> void:
 	card.visual_style.rules_font_size += 1
 	card.configure(card.model)
 	check(card.configuration_count == style_configs + 1, "editing the same style resource invalidates only the affected face")
-	hand.drag_override = false
 	click(point, true)
 	click(point, false)
 	await settle()
@@ -98,8 +98,9 @@ func _run() -> void:
 	var other := point_for(hand, 3)
 	motion(other, true)
 	click(other, false)
-	check(activated.size() == 1, "release over another card cancels rather than playing the wrong instance")
-	hand.drag_override = true
+	check(activated.size() == 1 and drops.size() == 1 and drops[0][0] == "instance-2",
+		"moving over another card drags only the pressed instance, never activates its neighbor")
+	drops.clear()
 	motion(point)
 	click(point, true)
 	var outside := Vector2(500, 80)

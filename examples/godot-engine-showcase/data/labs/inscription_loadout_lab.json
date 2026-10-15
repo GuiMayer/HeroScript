@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "authority": "VisualFixture",
+  "capacity": 12,
+  "slots": [
+    "trace_1",
+    "trace_2",
+    "trace_3",
+    "trace_4",
+    "trace_5",
+    "trace_6"
+  ],
+  "inscriptions": [
+    {
+      "instanceId": "sample_focus",
+      "name": "Calibrated focus",
+      "family": "Critical",
+      "rarity": "uncommon",
+      "cost": 3,
+      "tradeoffs": [],
+      "tags": [
+        "critical",
+        "precision"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "critical_chance",
+          "amount": 25
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_edge",
+      "name": "Serrated trace",
+      "family": "Direct damage",
+      "rarity": "common",
+      "cost": 3,
+      "tradeoffs": [],
+      "tags": [
+        "damage",
+        "direct"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "direct_bonus",
+          "amount": 20
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_ink",
+      "name": "Lingering ink",
+      "family": "Damage over time",
+      "rarity": "common",
+      "cost": 3,
+      "tradeoffs": [],
+      "tags": [
+        "periodic",
+        "poison",
+        "burn"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "periodic_bonus",
+          "amount": 30
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_dense",
+      "name": "Dense script",
+      "family": "Condensation",
+      "rarity": "rare",
+      "cost": 4,
+      "tradeoffs": [
+        "Applies to eligible stacked effects, including healing. It does not grant a condensation action."
+      ],
+      "tags": [
+        "condensation",
+        "stacks"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "condensed_bonus",
+          "amount": 25
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_guard",
+      "name": "Steady guard",
+      "family": "Defense",
+      "rarity": "common",
+      "cost": 2,
+      "tradeoffs": [],
+      "tags": [
+        "defense",
+        "block"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "block_bonus",
+          "amount": 25
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_force",
+      "name": "Measured force",
+      "family": "Direct damage",
+      "rarity": "uncommon",
+      "cost": 4,
+      "tradeoffs": [],
+      "tags": [
+        "damage",
+        "direct",
+        "tradeoff"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "direct_bonus",
+          "amount": 35
+        },
+        {
+          "attributeId": "critical_chance",
+          "amount": -15
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_cadence",
+      "name": "Quick notation",
+      "family": "Multiple hits",
+      "rarity": "common",
+      "cost": 2,
+      "tradeoffs": [
+        "A character bonus to eligible hits; it does not add hits."
+      ],
+      "tags": [
+        "multi_hit",
+        "impact"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "multi_hit_bonus",
+          "amount": 15
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_renewal",
+      "name": "Renewal script",
+      "family": "Healing",
+      "rarity": "uncommon",
+      "cost": 3,
+      "tradeoffs": [],
+      "tags": [
+        "healing",
+        "recovery"
+      ],
+      "attributeBonuses": [
+        {
+          "attributeId": "healing_bonus",
+          "amount": 30
+        }
+      ]
+    },
+    {
+      "instanceId": "sample_vitality",
+      "name": "Vital script",
+      "family": "Survival",
+      "rarity": "common",
+      "cost": 2,
+      "attributeBonuses": [
+        {
+          "attributeId": "max_health",
+          "amount": 25
+        }
+      ],
+      "tradeoffs": [],
+      "tags": [
+        "health",
+        "survival"
+      ]
+    },
+    {
+      "instanceId": "sample_energy",
+      "name": "Deep reserves",
+      "family": "Resources",
+      "rarity": "rare",
+      "cost": 4,
+      "attributeBonuses": [
+        {
+          "attributeId": "max_energy",
+          "amount": 1
+        }
+      ],
+      "tradeoffs": [],
+      "tags": [
+        "energy",
+        "resources"
+      ]
+    },
+    {
+      "instanceId": "sample_critical_damage",
+      "name": "Keen engraving",
+      "family": "Critical",
+      "rarity": "uncommon",
+      "cost": 3,
+      "attributeBonuses": [
+        {
+          "attributeId": "critical_damage",
+          "amount": 50
+        }
+      ],
+      "tradeoffs": [],
+      "tags": [
+        "critical",
+        "damage"
+      ]
+    },
+    {
+      "instanceId": "sample_armor",
+      "name": "Iron script",
+      "family": "Defense",
+      "rarity": "rare",
+      "cost": 4,
+      "attributeBonuses": [
+        {
+          "attributeId": "armor",
+          "amount": 20
+        }
+      ],
+      "tradeoffs": [
+        "Lab sample only; availability in the game is not defined."
+      ],
+      "tags": [
+        "armor",
+        "defense"
+      ]
+    },
+    {
+      "instanceId": "sample_dodge",
+      "name": "Lightfoot trace",
+      "family": "Defense",
+      "rarity": "uncommon",
+      "cost": 3,
+      "attributeBonuses": [
+        {
+          "attributeId": "dodge",
+          "amount": 5
+        }
+      ],
+      "tradeoffs": [],
+      "tags": [
+        "dodge",
+        "defense"
+      ]
+    },
+    {
+      "instanceId": "sample_fire",
+      "name": "Ember script",
+      "family": "Tag affinity",
+      "rarity": "common",
+      "cost": 3,
+      "attributeBonuses": [
+        {
+          "attributeId": "fire_bonus",
+          "amount": 25
+        }
+      ],
+      "tradeoffs": [],
+      "tags": [
+        "fire",
+        "elemental"
+      ]
+    },
+    {
+      "instanceId": "sample_poison",
+      "name": "Venom script",
+      "family": "Tag affinity",
+      "rarity": "common",
+      "cost": 3,
+      "attributeBonuses": [
+        {
+          "attributeId": "poison_bonus",
+          "amount": 25
+        }
+      ],
+      "tradeoffs": [],
+      "tags": [
+        "poison",
+        "elemental"
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Precision study",
+      "assignments": {
+        "trace_1": "sample_focus",
+        "trace_2": "sample_edge",
+        "trace_3": "sample_cadence",
+        "trace_4": "sample_guard"
+      }
+    },
+    {
+      "name": "Residual study",
+      "assignments": {
+        "trace_1": "sample_ink",
+        "trace_2": "sample_dense",
+        "trace_3": "sample_renewal",
+        "trace_4": "sample_guard"
+      }
+    },
+    {
+      "name": "Empty board",
+      "assignments": {}
+    }
+  ],
+  "character": {
+    "name": "Training hero",
+    "attributes": [
+      {
+        "id": "max_health",
+        "label": "Maximum Health",
+        "group": "SURVIVAL & RESOURCES",
+        "base": 100,
+        "format": "number"
+      },
+      {
+        "id": "max_energy",
+        "label": "Maximum Energy",
+        "group": "SURVIVAL & RESOURCES",
+        "base": 3,
+        "format": "number"
+      },
+      {
+        "id": "max_mana",
+        "label": "Maximum Mana",
+        "group": "SURVIVAL & RESOURCES",
+        "base": 5,
+        "format": "number"
+      },
+      {
+        "id": "armor",
+        "label": "Armor",
+        "group": "SURVIVAL & RESOURCES",
+        "base": 0,
+        "format": "number"
+      },
+      {
+        "id": "dodge",
+        "deltaUnit": "percentage_points",
+        "label": "Dodge Chance",
+        "group": "SURVIVAL & RESOURCES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "critical_chance",
+        "deltaUnit": "percentage_points",
+        "label": "Critical Chance",
+        "group": "CRITICAL STATS",
+        "base": 25,
+        "format": "percent"
+      },
+      {
+        "id": "critical_damage",
+        "label": "Critical Damage Bonus",
+        "group": "CRITICAL STATS",
+        "base": 100,
+        "format": "percent"
+      },
+      {
+        "id": "direct_bonus",
+        "label": "Direct Damage Bonus",
+        "group": "SPECIALIZATION BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "periodic_bonus",
+        "label": "Damage over Time Bonus",
+        "group": "SPECIALIZATION BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "condensed_bonus",
+        "label": "Condensed Effect Bonus",
+        "group": "SPECIALIZATION BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "multi_hit_bonus",
+        "label": "Multi-hit Damage Bonus",
+        "group": "SPECIALIZATION BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "block_bonus",
+        "label": "Block Gain Bonus",
+        "group": "SPECIALIZATION BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "healing_bonus",
+        "label": "Healing Bonus",
+        "group": "SPECIALIZATION BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "fire_bonus",
+        "label": "Fire Effect Bonus",
+        "group": "TAG BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "poison_bonus",
+        "label": "Poison Effect Bonus",
+        "group": "TAG BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "cold_bonus",
+        "label": "Cold Effect Bonus",
+        "group": "TAG BONUSES",
+        "base": 0,
+        "format": "percent"
+      },
+      {
+        "id": "lightning_bonus",
+        "label": "Lightning Effect Bonus",
+        "group": "TAG BONUSES",
+        "base": 0,
+        "format": "percent"
+      }
+    ]
+  }
+}

@@ -25,6 +25,7 @@ func _run() -> void:
 	check(not controller.set_option("hand_layout_mode", "invented") and prefs.hand_layout_mode == "adaptive", "unsupported option rejected")
 	check(not controller.set_option("high_contrast", "yes") and not prefs.high_contrast, "wrong boolean type rejected")
 	check(not controller.set_option("unknown", 1), "schema rejects unconfigured preference")
+	check(not controller.set_option("hand_drag_enabled", false), "drag-to-play is not a configurable preference")
 	controller.set_option("locale", "pt_BR", true)
 	check(prefs.saves == 1 and translator.locale == "pt_BR", "coordinator persists and applies language")
 	for path in ["res://scripts/ui/settings_screen.gd", "res://scripts/ui/controllers/settings_controller.gd"]:

@@ -15,7 +15,6 @@ const OPTIONS := {
 	"animation_preset": {"values": ["normal", "fast", "instant"]},
 	"hand_layout_mode": {"values": ["adaptive", "reading"]},
 	"hand_emphasis": {"min": 0.0, "max": 1.0, "step": .1, "control": "HandEmphasisSlider"},
-	"hand_drag_enabled": {"type": "bool"},
 	"master_volume": {"min": 0.0, "max": 1.0, "step": .01, "control": "MasterVolumeSlider"},
 	"music_volume": {"min": 0.0, "max": 1.0, "step": .01, "control": "MusicVolumeSlider"},
 	"sfx_volume": {"min": 0.0, "max": 1.0, "step": .01, "control": "SfxVolumeSlider"},

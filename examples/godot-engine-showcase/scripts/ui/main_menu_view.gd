@@ -126,6 +126,7 @@ func apply_model(data: Dictionary) -> void:
 	history.disabled = not model.available
 	_navigation.add_child(history)
 	_navigation.add_child(_button("RULES LAB", "sandbox", "RulesLabButton", true))
+	_navigation.add_child(_button("LOADOUT LAB", "loadout_lab", "LoadoutLabButton", true))
 	_navigation.add_child(_button("CONTENT CODEX", "codex", "CodexButton", true))
 	_navigation.add_child(_divider())
 	_navigation.add_child(_button("SETTINGS", "settings", "SettingsButton", true))

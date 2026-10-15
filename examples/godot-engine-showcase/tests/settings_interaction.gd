@@ -53,6 +53,7 @@ func _run() -> void:
 			router.show_settings(from_gameplay)
 			await settle()
 			var screen = router.host.get_child(0)
+			check(screen.find_child("HandDragToggle", true, false) == null, "drag-to-play has no settings toggle")
 			for category in SLIDERS:
 				screen.category_buttons[category].pressed.emit()
 				await settle()

@@ -14,7 +14,8 @@ var interaction = preload("res://scripts/ui/hand_interaction.gd").new()
 var read_only := false
 var reading_modal := false
 var mode_override := ""
-var drag_override = null
+## Component policy for inspection-only collections, never a player preference.
+var drag_enabled := true
 var scope := ""
 var order: Array[String] = []
 var _cards := {}
@@ -591,7 +592,7 @@ func pointer_input(event: InputEvent) -> void:
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
 			if not id.is_empty() and not reading_modal and not interaction.dragging: card_hovered.emit(id)
 		_apply_emphasis()
-		if not read_only and not interaction.pressed.is_empty() and (visual_context.hand_drag_enabled if drag_override == null else drag_override):
+		if drag_enabled and not read_only and not interaction.pressed.is_empty():
 			if event.global_position.distance_to(interaction.press_position) >= visual_style.drag_threshold:
 				interaction.dragging = true
 				_drag_visual(event.global_position)
