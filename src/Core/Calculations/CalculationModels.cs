@@ -83,7 +83,7 @@ public sealed record CalculationBucketDefinition
     public SetConflictPolicy SetConflict { get; init; } = SetConflictPolicy.HighestPriorityWins;
 }
 
-public sealed record CalculationPipelineDefinition
+public sealed record CalculationPipelineDefinition : ICanonicalHashMemoizable
 {
     private ImmutableArray<CalculationBucketDefinition> _buckets = [];
     private ImmutableArray<ResourceInfluenceBindingDefinition> _resourceInfluenceBindings = [];

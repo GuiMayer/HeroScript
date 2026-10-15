@@ -7,7 +7,7 @@ using Core.Run.Content;
 namespace Core.Effects;
 
 /// <summary>Revisioned, source-independent defaults. No calculation, RNG or mutation occurs here.</summary>
-public sealed record EffectResolutionPolicyDefinition
+public sealed record EffectResolutionPolicyDefinition : Core.Determinism.ICanonicalHashMemoizable
 {
     public string PolicyId { get; init; } = string.Empty;
     public ImmutableArray<EffectResolutionRuleDefinition> Rules { get; init; } = [];

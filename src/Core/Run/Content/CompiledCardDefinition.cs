@@ -7,7 +7,7 @@ namespace Core.Run.Content;
 /// Fully expanded immutable card container. Runtime resolution consumes this
 /// shape and never follows bundle references while a run is active.
 /// </summary>
-public sealed record CompiledCardDefinition
+public sealed record CompiledCardDefinition : Core.Determinism.ICanonicalHashMemoizable
 {
     private ImmutableArray<CardComponentDefinition> _components = [];
     private ImmutableArray<string> _tags = [];

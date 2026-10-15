@@ -264,6 +264,7 @@ builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPubli
     contentStorePath,
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IContentGraphValidator>()));
+builder.Services.AddSingleton<TypedContentDefinitionCache>();
 builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>();
 builder.Services.AddSingleton<IContentReloadService, ContentReloadService>();
 for (var packageRootIndex = 0; packageRootIndex < packageRoots.Length; packageRootIndex++)
@@ -624,6 +625,7 @@ foreach (var settingId in startupSettingIds)
 var cacheCoordinator = app.Services.GetRequiredService<ICacheCoordinator>();
 var applicationCaches = new ICacheService[]
 {
+    app.Services.GetRequiredService<TypedContentDefinitionCache>(),
     (ICacheService)app.Services.GetRequiredService<ICardContentCompiler>(),
     (ICacheService)app.Services.GetRequiredService<IEffectiveCardResolver>(),
     (ICacheService)app.Services.GetRequiredService<ILegalActionResolver>(),

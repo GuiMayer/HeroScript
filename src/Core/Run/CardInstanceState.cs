@@ -15,7 +15,7 @@ public enum CardInstancePersistence
 /// Immutable identity of one physical card owned by a run. Definition identity
 /// and instance identity intentionally never share the same field.
 /// </summary>
-public sealed record CardInstanceState
+public sealed record CardInstanceState : Core.Determinism.ICanonicalHashMemoizable
 {
     private ImmutableArray<CardUpgradeState> _upgrades = [];
 

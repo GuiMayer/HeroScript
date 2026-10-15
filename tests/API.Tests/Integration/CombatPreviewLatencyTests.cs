@@ -39,6 +39,9 @@ public sealed class CombatPreviewLatencyTests(ITestOutputHelper output)
         var legalCache = (ICacheService)factory.Services.GetRequiredService<ILegalActionResolver>();
         var inspectionCache = (ICacheService)factory.Services.GetRequiredService<ICardInspectionService>();
         var registry = factory.Services.GetRequiredService<ICacheCoordinator>();
+        var typedCache = factory.Services.GetRequiredService<Core.Content.TypedContentDefinitionCache>();
+        Assert.Contains(typedCache.CacheName, registry.GetCacheNames());
+        Assert.True(typedCache.GetStats().Hits > 0);
         Assert.Contains(legalCache.CacheName, registry.GetCacheNames());
         Assert.Contains(inspectionCache.CacheName, registry.GetCacheNames());
         legalCache.Invalidate(); inspectionCache.Invalidate();
@@ -72,7 +75,7 @@ public sealed class CombatPreviewLatencyTests(ITestOutputHelper output)
         Assert.InRange(legalCache.GetStats().Count, 1, legalCache.GetStats().Capacity);
         Assert.InRange(inspectionCache.GetStats().Count, 1, inspectionCache.GetStats().Capacity);
 
-        legalCache.Invalidate(); inspectionCache.Invalidate();
+        legalCache.Invalidate(); inspectionCache.Invalidate(); typedCache.Invalidate();
         var recomputed = await Read(route);
         Assert.Equal(CanonicalJson.ComputeHash(cold.Data), CanonicalJson.ComputeHash(recomputed.Data));
         Assert.Equal(before, CanonicalJson.ComputeHash((await store.LoadLatestStateAsync(id))!));

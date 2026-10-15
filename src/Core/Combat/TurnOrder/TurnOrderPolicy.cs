@@ -7,7 +7,7 @@ namespace Core.Combat.TurnOrder;
 /// Tagged, JSON-authored policy that completely describes how a combat derives
 /// activation order. Exactly one strategy-specific definition is allowed.
 /// </summary>
-public sealed record TurnOrderPolicyDefinition
+public sealed record TurnOrderPolicyDefinition : Core.Determinism.ICanonicalHashMemoizable
 {
     public TurnOrderStrategy Strategy { get; init; }
     public TurnOrderRecalculationBoundary RecalculateAt { get; init; }

@@ -60,7 +60,7 @@ por regressão de desempenho. Testes de referência e medições de latência fo
 separados: o primeiro valida cada hash; o segundo não adiciona alocações de
 certificação entre as ações medidas.
 
-## Etapa 2 — próximo gargalo identificado
+## Etapa 2 — definições tipadas imutáveis
 
 `ContentRuntime.GetDefinition<T>` desserializa a definição em toda consulta.
 Isso também impede reaproveitar o hash da mesma definição entre cálculos.
@@ -69,3 +69,25 @@ imutáveis; consumidores de tipos mutáveis continuam recebendo novas instância
 Chave deve incluir instância do runtime, tipo, kind e ID; hot reload não pode
 reusar definições de outra revisão/configuração. Integrar com o coordenador de
 caches e testar concorrência, evicção, invalidação e igualdade de bytes/hashes.
+
+Implementação: LRU com 256 entradas, single-flight por 32 stripes, chave com
+identidade do runtime/tipo/kind/ID. Invalidar é atômico em relação à publicação
+de valores produzidos em voo. Registrado como `TypedRevisionedDefinitions`,
+camada Derived, no coordenador existente. Capacidade zero desativa o reuso.
+
+Tipos auditados passaram a optar pela memoização de hash por identidade:
+pipeline, política global de efeitos, política de ordem de turno, carta compilada
+e instância de carta. São records com coleções imutáveis/normalizadas; nenhuma
+regra ou input de cálculo foi removido da chave. Definições com getters/setters
+mutáveis não são compartilhadas.
+
+Testes focados: 21 aprovações, incluindo tipos mutáveis, leitura concorrente,
+runtime diferente com o mesmo rótulo, cache desativado, evicção, invalidação e
+hash de cópia alterada. Benchmark do ato: comandos p95 698 ms/máximo 1.738 ms;
+sessões p95 165 ms/máximo 291 ms. Quatro comandos ainda excederam 1 s; o máximo
+não foi ocultado. Próximo foco: alocações/encoding nas folhas e trabalho de efeitos.
+
+Validação adicional: 1.744 testes Core passaram, seguidos dos cinco testes do
+cache (incluindo invalidação com leitura em voo). Cinco testes REST passaram,
+incluindo o ato com comparação de cada estado com o serializer de referência,
+descoberta diferencial em duas seeds e recomputação após invalidar o cache tipado.

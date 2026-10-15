@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Caching;
 using Core.Common;
+using Core.Determinism;
 
 namespace Core.Content;
 
@@ -15,13 +16,16 @@ public sealed class ContentRuntime
 {
     private static readonly JsonSerializerOptions SerializerOptions = CreateSerializerOptions();
     private readonly ImmutableDictionary<string, ImmutableDictionary<string, JsonElement>> _definitions;
+    private readonly TypedContentDefinitionCache _typedDefinitions;
 
     private ContentRuntime(
         ContentManifest manifest,
-        ImmutableDictionary<string, ImmutableDictionary<string, JsonElement>> definitions)
+        ImmutableDictionary<string, ImmutableDictionary<string, JsonElement>> definitions,
+        TypedContentDefinitionCache? typedDefinitions)
     {
         Manifest = manifest;
         _definitions = definitions;
+        _typedDefinitions = typedDefinitions ?? new();
     }
 
     public ContentManifest Manifest { get; }
@@ -29,7 +33,8 @@ public sealed class ContentRuntime
     public static Result<ContentRuntime> Create(ContentBundle bundle)
         => Create(bundle, ContentKindRegistry.Default);
 
-    public static Result<ContentRuntime> Create(ContentBundle bundle, IContentKindRegistry kinds)
+    public static Result<ContentRuntime> Create(ContentBundle bundle, IContentKindRegistry kinds,
+        TypedContentDefinitionCache? typedDefinitions = null)
     {
         ArgumentNullException.ThrowIfNull(bundle);
         ArgumentNullException.ThrowIfNull(kinds);
@@ -79,7 +84,7 @@ public sealed class ContentRuntime
             byKind[kindGroup.Key] = definitions.ToImmutable();
         }
 
-        return Result<ContentRuntime>.Success(new ContentRuntime(bundle.Manifest, byKind.ToImmutable()));
+        return Result<ContentRuntime>.Success(new ContentRuntime(bundle.Manifest, byKind.ToImmutable(), typedDefinitions));
     }
 
     public Result<T> GetDefinition<T>(string kind, string definitionId)
@@ -95,18 +100,24 @@ public sealed class ContentRuntime
                 $"Definition '{definitionId}' of kind '{kind}' was not found in revision {Manifest.Revision}");
         }
 
-        try
+        return typeof(ICanonicalHashMemoizable).IsAssignableFrom(typeof(T))
+            ? _typedDefinitions.GetOrCreate(this, kind, definitionId, Deserialize)
+            : Deserialize();
+
+        Result<T> Deserialize()
         {
-            var definition = json.Deserialize<T>(SerializerOptions);
-            return definition == null
-                ? Result<T>.Failure($"Definition '{definitionId}' of kind '{kind}' is invalid")
-                : Result<T>.Success(definition);
-        }
-        catch (Exception exception)
-        {
-            return Result<T>.Failure(
-                $"Definition '{definitionId}' of kind '{kind}' could not be deserialized: {exception.Message}",
-                exception);
+            try
+            {
+                var definition = json.Deserialize<T>(SerializerOptions);
+                return definition == null
+                    ? Result<T>.Failure($"Definition '{definitionId}' of kind '{kind}' is invalid")
+                    : Result<T>.Success(definition);
+            }
+            catch (Exception exception)
+            {
+                return Result<T>.Failure(
+                    $"Definition '{definitionId}' of kind '{kind}' could not be deserialized: {exception.Message}", exception);
+            }
         }
     }
 
@@ -141,6 +152,7 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheServ
 {
     private readonly IContentPublicationService _publications;
     private readonly IContentKindRegistry _kinds;
+    private readonly TypedContentDefinitionCache _typedDefinitions;
     private readonly ConcurrentDictionary<string, ContentRuntime> _runtimes =
         new(StringComparer.Ordinal);
     private long _hits;
@@ -153,10 +165,11 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheServ
 
     public ContentRuntimeResolver(
         IContentPublicationService publications,
-        IContentKindRegistry? kinds = null)
+        IContentKindRegistry? kinds = null, TypedContentDefinitionCache? typedDefinitions = null)
     {
         _publications = publications ?? throw new ArgumentNullException(nameof(publications));
         _kinds = kinds ?? ContentKindRegistry.Default;
+        _typedDefinitions = typedDefinitions ?? new();
     }
 
     public Result<ContentRuntime> Resolve(string revision, string? configName = null)
@@ -186,7 +199,7 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheServ
         if (bundle.IsFailure)
             return Result<ContentRuntime>.Failure(bundle.Error);
 
-        var runtime = ContentRuntime.Create(bundle.Value, _kinds);
+        var runtime = ContentRuntime.Create(bundle.Value, _kinds, _typedDefinitions);
         if (runtime.IsFailure)
             return runtime;
 
