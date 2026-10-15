@@ -23,6 +23,7 @@ func _ready() -> void:
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(
 		preload("res://data/themes/ivory_theme.tres"))
+	theme = visual_context.theme
 	var paper := ColorRect.new()
 	paper.color = visual_context.styles.NIGHT
 	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -55,10 +56,10 @@ func _ready() -> void:
 		var button: Button = visual_context.styles.button(I18n.text(entry[0]))
 		button.pressed.connect(entry[1]); connection.add_child(button)
 	_actor_picker.name = "LoadoutActorPicker"
-	_actor_picker.add_item("Example character 1"); _actor_picker.add_item("Example character 2")
+	_actor_picker.add_item(I18n.text("Example character 1")); _actor_picker.add_item(I18n.text("Example character 2"))
 	_actor_picker.item_selected.connect(_actor_selected)
 	connection.add_child(_actor_picker)
-	_scope_picker.add_item("Actor inventory"); _scope_picker.add_item("Run inventory")
+	_scope_picker.add_item(I18n.text("Actor inventory")); _scope_picker.add_item(I18n.text("Run inventory"))
 	_scope_picker.item_selected.connect(func(_index): _select_visual())
 	connection.add_child(_scope_picker)
 	_connection_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -102,7 +103,7 @@ func _discard_then(callback: Callable) -> void:
 func _offline() -> void: _discard_then(_open_offline)
 func _open_offline() -> void:
 	_ticket += 1; remote = false
-	_actor_picker.clear(); _actor_picker.add_item("Example character 1"); _actor_picker.add_item("Example character 2")
+	_actor_picker.clear(); _actor_picker.add_item(I18n.text("Example character 1")); _actor_picker.add_item(I18n.text("Example character 2"))
 	_scope_picker.show(); _select_visual()
 func _select_visual() -> void:
 	if remote: return

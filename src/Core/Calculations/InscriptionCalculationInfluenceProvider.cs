@@ -30,9 +30,9 @@ public sealed class InscriptionCalculationInfluenceProvider(IContentRuntimeResol
             foreach (var instanceId in equipped.Assignments.Values.Order())
             {
                 var item = inventory.Items.First(value => value.InstanceId == instanceId);
-                var acquired = runtimes.Resolve(item.AcquisitionRevision, run.ConfigName);
+                var acquired = runtimes.Resolve(item.EffectiveRevision, run.ConfigName);
                 if (acquired.IsFailure) return Fail(acquired.Error);
-                if (acquired.Value.Manifest.Revision != item.AcquisitionRevision || !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
+                if (acquired.Value.Manifest.Revision != item.EffectiveRevision || !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
                     return Fail("Inscription influence setting or revision mismatch");
                 var definition = acquired.Value.GetDefinition<InscriptionDefinition>("inscriptions", item.DefinitionId);
                 if (definition.IsFailure) return Fail(definition.Error);
@@ -42,7 +42,7 @@ public sealed class InscriptionCalculationInfluenceProvider(IContentRuntimeResol
                     var scoped = influence.Scope == CalculationEntityScope.Actor ? context.Actor : context.Target;
                     if (scoped == null || scoped.InstanceId != actorId || !context.SelectsInfluence(influence.Channel, influence.Bucket)) continue;
                     var collected = ContextualInfluencePolicies.Resolve([influence], CalculationSourceKind.Inscription,
-                        instanceId.ToString("D"), context with { ContentRevision = item.AcquisitionRevision,
+                        instanceId.ToString("D"), context with { ContentRevision = item.EffectiveRevision,
                             Variables = CalculationOwnerResolver.BindResources(context, scoped) }, formulas);
                     if (collected.IsFailure) return Fail(collected.Error);
                     result.AddRange(collected.Value);

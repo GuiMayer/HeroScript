@@ -59,5 +59,5 @@ Reflexo usa `ownerScope: Target` e `selection: Source`. DoTs usam a origem persi
 - Conteúdo existente sem `reactions` mantém o campo ausente na serialização.
 - Publicação valida os efeitos e referências; aquisição valida a forma antes de capturar a definição.
 - O Ascendant contém as definições executáveis `w1_blood_covenant` e `w1_iron_vow`, publicadas pelo manifesto do pacote. A primeira zera o bônus por tier no bucket terminal `bonus_cap` (sem remover tiers/chance), e recupera 20% da perda real de health por ataque direto contra inimigo. A segunda usa [restrições de recurso](resource-restrictions.md) para descartar/bloquear Block e concede 25 Armor pelo provider existente. Ambos são valores/configurações iniciais do setting, não constantes da engine.
-- Essas relíquias ainda não foram inseridas nas ofertas/lojas; distribuição e migração dos bônus numéricos das relíquias antigas para inscrições pertencem à etapa 7. Nenhuma carta foi editada para habilitar as regras.
-- Integração REST do laboratório, aquisição de inscrições e certificação de migrações continuam nas etapas seguintes.
+- O mundo 1 distribui Iron Vow em `elite_relic_iron` e Blood Covenant em `relic_field`. Cinco nós de bônus numéricos passaram a oferecer inscrições; definições antigas permanecem disponíveis para históricos, sem conversão automática de saves. Nenhuma carta foi editada para habilitar as regras.
+- O laboratório pode conectar à run via REST. Consulte [aquisição](inscription-acquisition.md) e [migrações](inscription-migrations.md) para políticas e limites.

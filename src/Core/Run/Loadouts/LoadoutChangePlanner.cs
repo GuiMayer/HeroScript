@@ -117,6 +117,12 @@ public static class InscriptionAcquisition
 public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
 {
     public Result<LoadoutChangePlan> Plan(RunState run, string actorId, IReadOnlyDictionary<string, Guid> assignments)
+        => PlanCore(run, actorId, assignments, true);
+
+    internal Result<LoadoutChangePlan> ValidateExisting(RunState run, string actorId, IReadOnlyDictionary<string, Guid> assignments)
+        => PlanCore(run, actorId, assignments, false);
+
+    private Result<LoadoutChangePlan> PlanCore(RunState run, string actorId, IReadOnlyDictionary<string, Guid> assignments, bool requireWindow)
     {
         Result<LoadoutChangePlan> Fail(string reason) => Result<LoadoutChangePlan>.Failure(reason);
         if (assignments == null || string.IsNullOrWhiteSpace(actorId)) return Fail("Character and complete equipment draft are required");
@@ -127,7 +133,7 @@ public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
         if (run.Loadouts == null || !run.Loadouts.Actors.TryGetValue(actorId, out var actor)) return Fail("Loadout character not found");
         var valid = run.Loadouts.Validate(run.RunId, policy.Value);
         if (valid.IsFailure) return Fail(valid.Error);
-        if (!LoadoutContentAccess.CanEquip(run, policy.Value)) return Fail("Equipment cannot be changed in the current policy window");
+        if (requireWindow && !LoadoutContentAccess.CanEquip(run, policy.Value)) return Fail("Equipment cannot be changed in the current policy window");
         if (assignments.Count > policy.Value.Slots.Length || assignments.Values.Distinct().Count() != assignments.Count) return Fail("Invalid slots or duplicate inscription instance");
         var inventory = run.Loadouts.Inventories[run.Loadouts.InventoryId(run.RunId, actorId)];
         var definitions = new HashSet<string>(StringComparer.Ordinal);
@@ -139,9 +145,9 @@ public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
             if (slot == null || owned == null || !policy.Value.InscriptionIds.Contains(owned.DefinitionId)) return Fail("Slot or owned inscription not found");
             if (run.Loadouts.Actors.Values.Where(other => other.ActorId != actorId).Any(other => other.Assignments.Values.Contains(instanceId)))
                 return Fail("Inscription is already equipped by another character");
-            var acquired = runtimes.Resolve(owned.AcquisitionRevision, run.ConfigName);
+            var acquired = runtimes.Resolve(owned.EffectiveRevision, run.ConfigName);
             if (acquired.IsFailure) return Fail(acquired.Error);
-            if (acquired.Value.Manifest.Revision != owned.AcquisitionRevision || !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
+            if (acquired.Value.Manifest.Revision != owned.EffectiveRevision || !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
                 return Fail("Inscription acquisition setting or revision mismatch");
             var item = acquired.Value.GetDefinition<InscriptionDefinition>("inscriptions", owned.DefinitionId);
             if (item.IsFailure) return Fail(item.Error);

@@ -112,6 +112,7 @@ public static class RunCommandTypes
     public const string ApplyLoadout = "APPLY_LOADOUT";
     public const string OpenInscriptionOffer = "OPEN_INSCRIPTION_OFFER";
     public const string ChooseInscriptionOffer = "CHOOSE_INSCRIPTION_OFFER";
+    public const string TransferInscription = "TRANSFER_INSCRIPTION";
     public const string AcquireCardModifierItem = "ACQUIRE_CARD_MODIFIER_ITEM";
     public const string RemoveCardTransformation = "REMOVE_CARD_TRANSFORMATION";
     public const string ReplaceCardTransformation = "REPLACE_CARD_TRANSFORMATION";

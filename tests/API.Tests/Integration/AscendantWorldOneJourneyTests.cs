@@ -179,11 +179,16 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
                 Has("CREATE_CARD_SELECTION") ? "CREATE_CARD_SELECTION" : Has("PICK_CARD_REWARD") ? "PICK_CARD_REWARD" :
                 Has("UPGRADE_CARD") ? "UPGRADE_CARD" : Has("CREATE_PREPARATION") ? "CREATE_PREPARATION" :
                 Has("APPLY_PREPARATION_OPTION") ? "APPLY_PREPARATION_OPTION" : Has("ACQUIRE_RELIC") ? "ACQUIRE_RELIC" :
+                Has("OPEN_INSCRIPTION_OFFER") ? "OPEN_INSCRIPTION_OFFER" : Has("CHOOSE_INSCRIPTION_OFFER") ? "CHOOSE_INSCRIPTION_OFFER" :
                 Has("RESOLVE_NODE") ? "RESOLVE_NODE" : Has("ADVANCE_NODE") ? "ADVANCE_NODE" : "";
             Assert.NotEqual("", type);
             var command = commands.First(c => c.GetProperty("type").GetString() == type);
             object input = command.GetProperty("validPayload");
             if (type == "START_ENCOUNTER") Assert.Equal(lastEncounterHealth, Health(run));
+            if (type == "OPEN_INSCRIPTION_OFFER")
+                input = new { actorId = player, stationId = command.GetProperty("validPayload").GetProperty("stationId").GetString() };
+            if (type == "CHOOSE_INSCRIPTION_OFFER")
+                input = new { offerId = command.GetProperty("validPayload").GetProperty("offerId").GetGuid(), inscriptionId = (string?)null };
             if (type == "PICK_CARD_REWARD")
             {
                 // Exercise decline after the offers are open, without assuming a special UI command.
@@ -237,7 +242,7 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
         {
             Assert.Equal("Completed", finalRun.GetProperty("lifecycle").GetString());
             Assert.Equal(9, fights);
-            Assert.Equal(50, Health(finalRun));
+            Assert.Equal(70, Health(finalRun)); // Current catalog: inscription rewards declined, Blood Covenant acquired before boss.
             Assert.True(sawDecline && sawUpgrade && sawRecovery);
         }
         using var verify = await client.PostAsync($"/api/v1/runs/{runId}/verify", null);

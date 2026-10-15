@@ -28,6 +28,6 @@ O laboratório Godot oferece **Connect current run**: carrega o inventário do p
 
 Exemplos offline continuam explicitamente separados e incluem dois personagens nos escopos Actor/Run. A view recebe apenas projeções; a comunicação pertence ao gateway/sessão e o rascunho conectado a `loadout_workspace.gd`. Respostas de outro personagem/inventário/revisão/versão e respostas atrasadas são descartadas. Drag payloads também incluem o contexto da view.
 
-Aquisição/distribuição no mapa e certificação de hot reload permanecem nas etapas seguintes. Conectar um setting sem loadouts retorna indisponibilidade explícita; não simula equipamento de exemplo como se fosse da run.
+Aquisição/distribuição usa [estações e ofertas canônicas](../content/inscription-acquisition.md). [Migrações e transferências](../content/inscription-migrations.md) possuem políticas explícitas e validação atômica. `OPEN_INSCRIPTION_OFFER`, `CHOOSE_INSCRIPTION_OFFER` e `TRANSFER_INSCRIPTION` usam o mesmo envelope de comandos; não há endpoint de grant livre. Conectar um setting sem loadouts retorna indisponibilidade explícita; não simula equipamento de exemplo como se fosse da run.
 
 Versão determinística 32: a correção de owner fora de combate altera resultados que antes omitiam relíquias/modificadores. Runs de versões anteriores não são migradas ou apagadas; execução/replay semântico exige a versão executável correspondente. Não remover a guarda de versão para forçar compatibilidade.

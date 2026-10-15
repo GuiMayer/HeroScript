@@ -1,6 +1,6 @@
 {
   "openapi": "3.0.4",
-  "x-heroscript-command-payloads": {"APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand"},
+  "x-heroscript-command-payloads": {"APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
   "info": {
     "title": "HeroScript API",
     "version": "v1",
@@ -844,6 +844,176 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "OpenInscriptionOfferCommand": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "stationId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChooseInscriptionOfferCommand": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inscriptionId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransferInscriptionCommand": {
+        "type": "object",
+        "properties": {
+          "fromActorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "toActorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InscriptionOfferState": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "fingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "purchasedIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "costs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceAmount"
+            }
+          },
+          "maximumPurchases": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "closed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InscriptionStationDefinition": {
+        "type": "object",
+        "properties": {
+          "stationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pool": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "selection": {
+            "$ref": "#/components/schemas/InscriptionOfferSelection"
+          },
+          "offerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maximumPurchases": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "costs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceAmount"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutRevisionMigration": {
+        "enum": [
+          "RejectRevisionChange",
+          "RebindCompatible"
+        ],
+        "type": "string"
+      },
+      "ResourceAmount": {
+        "type": "object",
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "float"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InscriptionOfferSelection": {
+        "enum": [
+          "Random",
+          "Directed"
+        ],
+        "type": "string"
+      },
       "ApplyLoadoutCommand": {
         "type": "object",
         "properties": {
@@ -865,7 +1035,6 @@
       "LoadoutSnapshot": {
         "type": "object",
         "properties": {
-          "attributes": {"allOf":[{"$ref":"#/components/schemas/ActorAttributesProjection"}],"nullable":true},
           "runId": {
             "type": "string",
             "format": "uuid"
@@ -919,6 +1088,25 @@
               "format": "uuid"
             },
             "nullable": true
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/ActorAttributesProjection"
+          },
+          "attributesUnavailableReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InscriptionOfferState"
+            }
+          },
+          "availableStations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InscriptionStationDefinition"
+            }
           }
         },
         "additionalProperties": false
@@ -1000,6 +1188,26 @@
             "items": {
               "$ref": "#/components/schemas/LoadoutEquipmentWindow"
             }
+          },
+          "startingInscriptionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "stations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InscriptionStationDefinition"
+            },
+            "nullable": true
+          },
+          "revisionMigration": {
+            "$ref": "#/components/schemas/LoadoutRevisionMigration"
+          },
+          "allowTransfers": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -1067,6 +1275,10 @@
             "nullable": true
           },
           "acquisitionRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "definitionRevision": {
             "type": "string",
             "nullable": true
           },
@@ -1481,7 +1693,7 @@
         "type": "object",
         "required": ["kind", "definitionId"],
         "properties": {
-          "kind": { "type": "string", "enum": ["Card", "CardUpgrade", "Relic"] },
+          "kind": { "type": "string", "enum": ["Card", "CardUpgrade", "Relic", "Inscription"] },
           "definitionId": { "type": "string" }
         },
         "additionalProperties": false

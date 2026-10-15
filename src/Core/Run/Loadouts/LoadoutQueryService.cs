@@ -15,6 +15,8 @@ public sealed record LoadoutSnapshot(Guid RunId, int RunSequence, ulong Expected
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Core.Calculations.ActorAttributesProjection? Attributes { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? AttributesUnavailableReason { get; init; }
     public ImmutableArray<InscriptionOfferState> Offers { get; init; } = [];
     public ImmutableArray<InscriptionStationDefinition> AvailableStations { get; init; } = [];
 }
@@ -63,9 +65,9 @@ public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeRe
         var cost = 0d;
         foreach (var instance in inventory.Items.OrderBy(value => value.InstanceId))
         {
-            var acquired = runtimes.Resolve(instance.AcquisitionRevision, run.ConfigName);
+            var acquired = runtimes.Resolve(instance.EffectiveRevision, run.ConfigName);
             if (acquired.IsFailure) return Fail(acquired.Error);
-            if (acquired.Value.Manifest.Revision != instance.AcquisitionRevision || !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
+            if (acquired.Value.Manifest.Revision != instance.EffectiveRevision || !string.Equals(acquired.Value.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
                 return Fail("Inscription acquisition setting or revision mismatch");
             var definition = acquired.Value.GetDefinition<InscriptionDefinition>("inscriptions", instance.DefinitionId);
             if (definition.IsFailure) return Fail(definition.Error);
@@ -83,9 +85,15 @@ public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeRe
             AvailableStations = (policy.Value.Stations ?? []).Where(station => InscriptionStationTransitions.IsAvailable(run, station)).ToImmutableArray() };
         if (attributes != null)
         {
-            var projected = attributes.Project(run, run.GetActiveEncounter()?.Combat, actorId);
-            if (projected.IsFailure) return Fail(projected.Error);
-            snapshot = snapshot with { Attributes = projected.Value };
+            var combat = run.GetActiveEncounter()?.Combat;
+            if (combat?.GetActor(actorId) == null && (combat != null || run.PlayerEntity?.InstanceId != actorId))
+                snapshot = snapshot with { AttributesUnavailableReason = "No materialized entity projection is available for this registered character" };
+            else
+            {
+                var projected = attributes.Project(run, combat, actorId);
+                if (projected.IsFailure) return Fail(projected.Error);
+                snapshot = snapshot with { Attributes = projected.Value };
+            }
         }
         _cache.Set(key, snapshot);
         return Result<LoadoutSnapshot>.Success(snapshot);

@@ -8,6 +8,10 @@ public sealed record InscriptionInstance
     public Guid InstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     public string AcquisitionRevision { get; init; } = string.Empty;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? DefinitionRevision { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string EffectiveRevision => DefinitionRevision ?? AcquisitionRevision;
     public string AcquisitionSource { get; init; } = string.Empty;
     public int AcquisitionSequence { get; init; }
 }
@@ -63,6 +67,8 @@ public sealed record InscriptionLoadoutState
                 if (item == null || item.InstanceId == Guid.Empty || !ownedIds.Add(item.InstanceId) || string.IsNullOrWhiteSpace(item.DefinitionId) ||
                     string.IsNullOrWhiteSpace(item.AcquisitionRevision) || string.IsNullOrWhiteSpace(item.AcquisitionSource) || item.AcquisitionSequence < 0)
                     return Result.Failure("Invalid or duplicate inscription instance provenance");
+                else if (item.DefinitionRevision != null && string.IsNullOrWhiteSpace(item.DefinitionRevision))
+                    return Result.Failure("Invalid inscription definition revision");
         }
         foreach (var (actor, loadout) in Actors)
         {

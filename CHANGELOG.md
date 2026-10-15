@@ -17,8 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Opt-in relic resource reactions reuse the canonical effect executor, pinned acquisition revision and actual application outcomes. Shared execution limits and non-reentrant reactions prevent recursive recovery/reflection loops.
 - Owner-scoped resource restrictions materialize a current-balance ceiling across canonical gain/reset/mutation/regeneration paths, retain authored maxima and do not refill discarded balances on removal. Conflicting lower bounds reject atomically; completed encounter history is preserved.
 - Deterministic engine version 32 fixes passive owner resolution outside combat. Older histories are preserved, but require their original runtime for semantic execution.
-- Ascendant publishes Blood Covenant (critical bonus ceiling plus actual-loss recovery) and Iron Vow (Block restriction plus pipeline Armor), with explicit enemy/direct-attack filters. Distribution into gameplay offers remains pending.
-- The Godot laboratory remains isolated until the later REST integration stage; inscription acquisition, existing catalog migration and migration certification are not declared complete by these foundations.
+- Ascendant distributes Blood Covenant (critical bonus ceiling plus actual-loss recovery) and Iron Vow (Block restriction plus pipeline Armor). Five numerical reward nodes now use character inscriptions, alongside deterministic choice/decline, priced shops, limited directed crafting and option unlocks.
+- The Godot laboratory supports an explicit current-run REST workspace, versioned authoritative previews, atomic confirmation and recovery, while keeping offline examples separate.
+- Explicit compatible-revision rebinding validates all inventories/loadouts before activation; incompatible scope changes reject without losing items. Authorized unequipped-item transfers preserve instance identity and acquisition provenance. See `docs/content/inscription-migrations.md` for lifecycle and measurement limits.
 
 #### Stable Godot snapshot rendering (2026-09-20)
 

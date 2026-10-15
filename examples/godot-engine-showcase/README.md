@@ -60,7 +60,7 @@ Replay/timeline podem apresentar um comando salvo sob demanda quando a engine
 autoriza a inspeção histórica. Consulte o
 [guia de autoria](../../docs/design/COMBAT_PRESENTATION_AUTHORING.md).
 
-## Laboratório isolado de inscrições e loadout
+## Laboratório de inscrições e loadout
 
 Arraste inscrições da coleção para as posições; entre posições ocupadas, o gesto
 troca os itens. Soltar fora cancela. A seleção por clique e o botão de equipar
@@ -78,17 +78,29 @@ vida/energia/mana máximas, armadura, esquiva (base 0%), chance crítica,
 bônus de dano crítico por tier, especializações e bônus por tag. As descrições
 indicam bônus aos atributos do personagem, não mudanças na base das cartas.
 Relíquias e modificadores de cartas não aparecem neste laboratório.
-Esta etapa é um **protótipo visual**:
-custos são ilustrativos, exceder o orçamento é permitido para avaliação e não
-há validação autoritativa nem aplicação à run. Uma simulação exclusiva do laboratório
-soma bônus de exemplo em unidades de exibição; não calcula dano, tiers,
-mitigação ou esquiva e será substituída pela projeção da engine. Nenhum item,
-save ou preferência é alterado. As amostras estão em
-`data/labs/inscription_loadout_lab.json`.
+O modo **Example (offline)** é um protótipo visual: custos ilustrativos e orçamento
+livre para avaliação. A simulação soma apenas bônus de exemplo em unidades de
+exibição, sem alterar run/save/preferências. As quinze amostras estão em
+`data/labs/inscription_loadout_lab.json`; não são o catálogo publicado do setting.
+
+Para equipamento real, crie/continue uma run Ascendant compatível e abra
+**INSCRIPTIONS** no mapa/atividade (ou **Connect current run** no laboratório).
+Arraste/monte o rascunho, solicite **Preview draft** e então **Confirm equipment**.
+A engine calcula atributos e valida posse, slots, orçamento e janela; a Godot
+não soma valores no modo conectado. **Recover / refresh run** recupera uma
+resposta incerta pelo fluxo idempotente existente. Alterações pendentes pedem
+confirmação antes de sair/trocar de personagem.
+
+O mundo 1 distribui inscrições iniciais não equipadas, recompensas com recusa,
+ofertas pagas e crafting dirigido limitado. Os dois escopos de inventário e dois
+personagens podem ser explorados offline; a jornada publicada registra só o herói.
+Não há importação das peças fictícias para a run.
 
 O [plano de arquitetura e implementação](../../docs/plans/INSCRIPTIONS_LOADOUT_ARCHITECTURE_AND_PLAN.md)
-separa o que a engine já suporta das próximas etapas, incluindo as lacunas para
-relíquias de roubo de vida e conversão de shield em armor.
+registra as etapas concluídas e os limites. Consulte também os contratos de
+[REST](../../docs/api/inscription-loadouts.md),
+[aquisição](../../docs/content/inscription-acquisition.md) e
+[migração](../../docs/content/inscription-migrations.md).
 
 ## Laboratório isolado de cartas e mão
 

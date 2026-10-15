@@ -40,6 +40,6 @@ O modo habilita explicitamente `loadoutPolicyId`. Deve também habilitar os pipe
 
 `inventoryScope: Actor` separa a posse por personagem persistente; `Run` compartilha a coleção, não os efeitos. Em ambos os casos os loadouts são individuais. `requiredTags` exige todas as tags indicadas, vazio aceita qualquer inscrição autorizada pela política. A capacidade limita o equipamento, não é energia de combate. `OutsideCombat`, `Preparation` e `Combat` são janelas explícitas; não há janela implícita quando a lista está vazia.
 
-Os exemplos são contratos, não conteúdo já adicionado ao mundo 1. A disponibilidade rara de armadura continua sendo uma decisão do catálogo. Settings sem `loadoutPolicyId` permanecem opt-out e não ganham estado serializado de equipamento.
+Os exemplos acima ilustram o contrato, não os valores do Ascendant: esse setting usa chance em pontos percentuais (`30` = +30 pp) e possui seu próprio catálogo em `Resources/inscriptions/world_one.json`. Sua política usa seis posições/12 pontos, inventário Actor e equipamento fora do combate; esses valores não são constantes da engine. Veja [aquisição](inscription-acquisition.md) e [migração](inscription-migrations.md). A disponibilidade rara de armadura continua sendo uma decisão do catálogo. Settings sem `loadoutPolicyId` permanecem opt-out e não ganham estado serializado de equipamento.
 
 Regras excepcionais continuam separadas: o contrato de [reações de relíquias](relic-reactions.md) observa aplicações reais de recurso. Ele não pertence à definição de inscrição ou à carta.

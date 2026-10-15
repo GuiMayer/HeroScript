@@ -5,6 +5,7 @@ var _rows := {}
 var _character_name := Label.new()
 var _table := VBoxContainer.new()
 var _scroll := ScrollContainer.new()
+var _schema: Array = []
 
 func _ready() -> void:
 	_fit_scroll()
@@ -53,6 +54,15 @@ func _label(key: String, font_size: int) -> Label:
 func present(character: Dictionary) -> void:
 	var translator = visual_context.translator
 	_character_name.text = translator.text(character.name)
+	var schema: Array = character.attributes.map(func(stat): return [stat.id, stat.group, stat.label])
+	if schema != _schema:
+		# Keep the table header, but never retain rows from a different actor/setting.
+		for index in range(_table.get_child_count() - 1, 0, -1):
+			var child := _table.get_child(index)
+			_table.remove_child(child)
+			child.queue_free()
+		_rows.clear()
+		_schema = schema
 	var group := ""
 	for stat in character.attributes:
 		if not _rows.has(stat.id):

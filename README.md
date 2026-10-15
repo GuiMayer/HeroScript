@@ -265,6 +265,7 @@ operacional auxiliam diagnóstico.
 | Implementar o fluxo REST | [API v1](docs/api/README.md) |
 | Entender combate e cálculos | [Sistema de combate](docs/systems/combat/combat-system.md) |
 | Criar conteúdo JSON | [Packages e settings](docs/content/packages-and-settings.md) |
+| Configurar inscrições e equipamento de personagem | [Inscrições](docs/content/inscriptions.md) e [loadouts REST](docs/api/inscription-loadouts.md) |
 | Usar timeline, replay e branches | [Timeline](docs/architecture/timeline-system.md) |
 | Consultar prioridades e pendências reais | [Roadmap atual](docs/roadmap/README.md) |
 | Acompanhar mudanças | [Changelog](CHANGELOG.md) |

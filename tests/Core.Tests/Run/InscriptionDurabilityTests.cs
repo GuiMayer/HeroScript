@@ -104,6 +104,46 @@ public sealed class InscriptionDurabilityTests
     }
 
     [Fact]
+    public async Task AuthorizedTransferSurvivesRestartAndSemanticReplayAcrossPrivateInventories()
+    {
+        var (initial, content, _) = InscriptionLoadoutTests.Setup(LoadoutTestContent.Policy() with { AllowTransfers = true });
+        var parent = InscriptionAcquisition.Grant(initial, content, "alice", "focus", "reward:one").Value with
+        { Sequence = 1, Lineage = RunLineage.Root(initial.RunId), Deck = TestCardZones.FromDefinitions(("collection", Array.Empty<string>())) };
+        var fork = new RunBranchStartCommand(parent.RunId, 1, "transfer", CanonicalJson.ComputeHash(parent));
+        var branch = RunBranchTransitions.Create(parent, fork).Value;
+        var instanceId = InscriptionLoadoutTests.Item(branch);
+        var command = new GameplayCommandEnvelope(new(DeterministicId.Create(77, 25, "transfer"), RunCommandTypes.TransferInscription,
+            branch.Sequence, branch.Determinism.Step), JsonSerializer.SerializeToElement(new TransferInscriptionCommand("alice", "bob", instanceId)));
+        var directory = Path.Combine(Path.GetTempPath(), "heroscript-inscription-transfer-" + Guid.NewGuid().ToString("N"));
+        var factory = Factory(content);
+        string finalHash;
+        using (var store = new FileRunCommitStore(directory, NullLogger.Instance))
+        {
+            await store.AppendAsync(InitialCommit(parent, "TEST", new { }));
+            await store.AppendAsync(InitialCommit(branch, RunCommandTypes.CreateBranchFromHistory, fork, parent.Determinism.Step));
+            var runtime = factory.Create(new(GameplayPersistenceMode.Authoritative, store));
+            Assert.True(runtime.Runs.HydrateForReplay(branch).IsSuccess);
+            var result = runtime.Gateway.Execute(branch.RunId, command);
+            Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            finalHash = result.Value.Receipt.StateHash;
+            Assert.Equal(instanceId, InscriptionLoadoutTests.Item(result.Value.Receipt.State, "bob"));
+            Assert.Equal(instanceId, InscriptionLoadoutTests.Item(parent, "alice"));
+        }
+        using var restarted = new FileRunCommitStore(directory, NullLogger.Instance);
+        var retry = factory.Create(new(GameplayPersistenceMode.Authoritative, restarted)).Gateway.Execute(branch.RunId, command);
+        Assert.True(retry.IsSuccess && retry.Value.Receipt.Duplicate);
+        Assert.Equal(finalHash, retry.Value.Receipt.StateHash);
+        Assert.Equal(2, (await restarted.LoadCommitsAsync(branch.RunId)).Count);
+        var replay = new RunSemanticReplayService(restarted, factory);
+        for (var repetition = 0; repetition < 3; repetition++)
+        {
+            var result = await replay.VerifyAsync(branch.RunId);
+            Assert.True(result.IsValid && result.Reexecuted, string.Join("; ", result.Errors));
+            Assert.Equal(finalHash, result.ActualFinalHash);
+        }
+    }
+
+    [Fact]
     public void QueriesRespectPrivateInventoriesAndInvalidateDerivedCacheBySnapshot()
     {
         var (run, content, planner) = InscriptionLoadoutTests.Setup();

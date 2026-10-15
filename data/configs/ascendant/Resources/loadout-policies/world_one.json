@@ -1,6 +1,7 @@
 {
   "w1_loadout": {
     "loadoutPolicyId":"w1_loadout","inventoryScope":"Actor","capacity":12,"allowDuplicateDefinitions":false,
+    "revisionMigration":"RebindCompatible","allowTransfers":false,
     "maximumInventoryEntries":128,"slots":[{"slotId":"trace_1"},{"slotId":"trace_2"},{"slotId":"trace_3"},{"slotId":"trace_4"},{"slotId":"trace_5"},{"slotId":"trace_6"}],
     "inscriptionIds":["w1_focus","w1_precision","w1_ward","w1_catalysis","w1_serration"],
     "startingInscriptionIds":["w1_focus","w1_ward"],"equipmentWindows":["OutsideCombat"],

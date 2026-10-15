@@ -19,6 +19,8 @@ func _run() -> void:
 	var workspace = preload("res://scripts/application/loadout_workspace.gd").new()
 	var source := sample()
 	check(workspace.accept(source), "REST snapshot accepted without running local stat math")
+	workspace.source.attributes.attributes[0].unit = "%"
+	check(workspace.snapshot().character.attributes[0].format == "percent", "canonical percent unit is preserved in the character panel")
 	workspace.select_item("one-item"); workspace.select_slot("one"); workspace.stage_selected()
 	check(workspace.dirty() and not workspace.can_confirm() and not workspace.snapshot().attributesReady, "draft hides uncomputed attributes until authoritative preview")
 	check(source.assignments.is_empty(), "draft never mutates server snapshot")
@@ -42,6 +44,12 @@ func _run() -> void:
 	check(workspace.snapshot().contextKey != shared_key, "shared inventory never shares draft/drag context between actors")
 	workspace.source.canEquip = false
 	check(not workspace.stage_drop("one-item", "one", ""), "closed equipment window cannot stage through drag")
+	var unmaterialized := sample("bob", "actor:bob")
+	unmaterialized.attributes = null
+	unmaterialized.attributesUnavailableReason = "Character is not materialized in this context"
+	workspace.accept(unmaterialized)
+	check(not workspace.snapshot().attributesReady and workspace.snapshot().character.attributes.is_empty(), "unmaterialized actor never displays stale or fabricated attributes")
+	check(workspace.snapshot().status == unmaterialized.attributesUnavailableReason, "unavailable attributes retain the server explanation")
 	var transport := Transport.new()
 	var gateway = preload("res://scripts/engine/engine_gateway.gd").new(transport)
 	await gateway.read_loadout("run /one", "actor&two")
@@ -55,6 +63,11 @@ func _run() -> void:
 	check(str(lab.draft.snapshot().items[0].instanceId).begins_with("second_"), "Actor example has separately owned identities")
 	lab._scope_picker.select(1); lab._select_visual()
 	check(lab.draft.snapshot().assignments.is_empty() and not str(lab.draft.snapshot().items[0].instanceId).begins_with("second_"), "Run example uses shared identities with independent equipment")
+	var panel = lab.view.attributes_view
+	panel.present({"name": "Other actor", "attributes": []})
+	check(panel._rows.is_empty(), "switching to an empty projection clears previous character rows")
+	lab._refresh()
+	check(not panel._rows.is_empty(), "returning to a materialized actor restores its own schema")
 	lab.queue_free(); await process_frame
 	print("INSCRIPTION REST: ", failures, " failure(s)")
 	quit(1 if failures else 0)

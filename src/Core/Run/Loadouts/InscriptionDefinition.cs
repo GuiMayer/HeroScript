@@ -51,6 +51,8 @@ public sealed record InscriptionDefinition
 public enum InscriptionInventoryScope { Actor, Run }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum LoadoutEquipmentWindow { OutsideCombat, Preparation, Combat }
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum LoadoutRevisionMigration { RejectRevisionChange, RebindCompatible }
 
 public sealed record LoadoutSlotDefinition
 {
@@ -72,6 +74,10 @@ public sealed record LoadoutPolicyDefinition
     public ImmutableArray<string>? StartingInscriptionIds { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<InscriptionStationDefinition>? Stations { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LoadoutRevisionMigration? RevisionMigration { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool AllowTransfers { get; init; }
 
     public Result Validate()
     {
@@ -86,7 +92,7 @@ public sealed record LoadoutPolicyDefinition
         if (StartingInscriptionIds is { } starting && (starting.IsDefault || starting.Length > MaximumInventoryEntries || starting.Any(id => !InscriptionIds.Contains(id))))
             return Result.Failure("Starting inscriptions must belong to the allowed catalog and inventory bound");
         var stations = InscriptionStationTransitions.Validate(Stations ?? [], InscriptionIds);
-        return stations;
+        return RevisionMigration is { } migration && !Enum.IsDefined(migration) ? Result.Failure("Invalid loadout migration policy") : stations;
     }
 
     public Result ValidateBindings(ContentRuntime runtime, GameModeDefinition? mode = null)

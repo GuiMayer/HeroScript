@@ -17,13 +17,8 @@ public static class RunContentCompatibilityValidator
         using var timing = Core.Diagnostics.OperationalTiming.Measure("content_compatibility");
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
-        if (run.Loadouts is { } loadouts)
-        {
-            var policy = Loadouts.LoadoutContentAccess.Policy(run, runtime);
-            if (policy.IsFailure) return Result.Failure(policy.Error);
-            var valid = loadouts.Validate(run.RunId, policy.Value);
-            if (valid.IsFailure) return valid;
-        }
+        var loadouts = Loadouts.LoadoutMigration.Prepare(run, runtime);
+        if (loadouts.IsFailure) return Result.Failure(loadouts.Error);
         var eligibility = RunEligibility.ValidateSnapshot(run);
         if (eligibility.IsFailure) return eligibility;
         if (run.Eligibility is { } captured)
@@ -80,6 +75,8 @@ public static class RunContentCompatibilityValidator
         var compatibility = ValidateForActivation(run, runtime);
         if (compatibility.IsFailure)
             return Result<RunState>.Failure(compatibility.Error);
+        var loadouts = Loadouts.LoadoutMigration.Prepare(run, runtime);
+        if (loadouts.IsFailure) return loadouts;
 
         var runResources = Rebind(run.ResourceState, runtime);
         if (runResources.IsFailure)
@@ -112,6 +109,7 @@ public static class RunContentCompatibilityValidator
 
         return Result<RunState>.Success(run with
         {
+            Loadouts = loadouts.Value.Loadouts,
             PlayerEntity = run.PlayerEntity == null ? null : PersistentPlayerTransitions.Rebind(run.PlayerEntity, runtime).Value,
             ResourceState = runResources.Value,
             Encounters = encounters.ToImmutableArray()

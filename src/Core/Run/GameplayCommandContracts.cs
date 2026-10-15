@@ -280,6 +280,7 @@ public static class GameplayCommandDescriptors
         Run<Loadouts.ApplyLoadoutCommand>(RunCommandTypes.ApplyLoadout),
         Run<Loadouts.OpenInscriptionOfferCommand>(RunCommandTypes.OpenInscriptionOffer),
         Run<Loadouts.ChooseInscriptionOfferCommand>(RunCommandTypes.ChooseInscriptionOffer),
+        Run<Loadouts.TransferInscriptionCommand>(RunCommandTypes.TransferInscription),
         Run<AcquireCardModifierItemCommand>(RunCommandTypes.AcquireCardModifierItem),
         Run<CardTransformationRemoveCommand>(RunCommandTypes.RemoveCardTransformation),
         Run<CardTransformationReplaceCommand>(RunCommandTypes.ReplaceCardTransformation),

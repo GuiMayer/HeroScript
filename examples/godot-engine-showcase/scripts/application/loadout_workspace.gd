@@ -63,15 +63,17 @@ func snapshot() -> Dictionary:
 			"tags": definition.get("tags", []), "attributeBonuses": [], "tradeoffs": [],
 			"description": presentation.get("description", ""), "equippedActorId": row.get("equippedActorId", "")})
 	var attributes: Array = []
-	for stat in current.get("attributes", {}).get("attributes", []):
+	var projection = current.get("attributes")
+	if not projection is Dictionary: projection = {}
+	for stat in projection.get("attributes", []):
 		var baseline: float = float(stat.baseValue)
 		attributes.append({"id": stat.attributeId, "label": stat.displayName, "group": "Character attributes",
 			"base": baseline, "value": stat.effectiveValue, "change": float(stat.effectiveValue) - baseline,
-			"format": "percent" if stat.unit == "percent" else "number", "sources": []})
+			"format": "percent" if stat.unit in ["percent", "%"] else "number", "sources": []})
 	return {"authority": "REST", "contextKey": [source.get("runId"), source.get("actorId"), source.get("inventoryId"), source.get("contentRevision")],
 		"slots": source.get("policy", {}).get("slots", []).map(func(slot): return str(slot.slotId)), "items": items,
 		"assignments": assignments.duplicate(true), "selectedItem": selected_item, "selectedSlot": selected_slot,
 		"usedCapacity": current.get("usedCapacity", 0), "capacity": source.get("policy", {}).get("capacity", 0),
 		"overBudget": false, "presets": [], "presetIndex": -1, "search": search,
-		"status": message, "canEdit": source.get("canEquip", false), "attributesReady": not dirty() or not preview.is_empty(),
+		"status": message if not message.is_empty() else current.get("attributesUnavailableReason", ""), "canEdit": source.get("canEquip", false), "attributesReady": (not dirty() or not preview.is_empty()) and current.get("attributes") is Dictionary,
 		"character": {"name": source.get("actorId", ""), "attributes": attributes, "remote": true}}

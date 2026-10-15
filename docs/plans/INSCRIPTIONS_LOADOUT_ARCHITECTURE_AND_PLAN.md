@@ -1,6 +1,6 @@
 # Inscrições, relíquias e modificadores de cartas
 
-Data: 2026-10-15. Estado: arquitetura proposta; primeiro marco é um laboratório visual isolado.
+Data: 2026-10-15. Estado: etapas implementadas; laboratório offline e integração REST disponíveis. O diagnóstico abaixo preserva o estado inicial; consulte a seção 8 para entregas, evidências e limites.
 
 ## 1. Decisões e limites
 
@@ -76,19 +76,22 @@ Inspeção do código atual, não inferência a partir da interface:
 - Estado no agregado da run, opcional/ausente até habilitação. Nunca em Preferences ou no perfil global da Godot.
 - API de consulta retorna projeção própria, não referências mutáveis ao agregado.
 
-Esboço de conteúdo (proposto, ainda não é schema publicado):
+Exemplo do contrato implementado (unidades e buckets dependem do setting):
 
 ```json
 {
   "inscriptionId": "calibrated_focus",
   "equipmentCost": 3,
   "tags": ["critical"],
-  "influences": [{
-    "influenceId": "critical_chance",
-    "channel": "critical_chance",
-    "bucket": "flat",
-    "scope": "Actor",
-    "value": 0.25
+  "attributeBonuses": [{
+    "attributeId": "critical_chance",
+    "influence": {
+      "influenceId": "critical_chance",
+      "channel": "critical_chance",
+      "bucket": "flat",
+      "scope": "Actor",
+      "value": 0.25
+    }
   }]
 }
 ```
@@ -104,7 +107,7 @@ O plano anterior mencionava owner/ator, mas não formalizava a escolha entre inv
 | `Actor` | Cada personagem da run tem seu próprio inventário. A aquisição identifica o personagem destinatário. Consultar/equipar com outro personagem não expõe nem utiliza essas peças. | Loadout individual, usando somente o inventário daquele personagem. |
 | `Run` | A run tem um inventário compartilhado entre os personagens autorizados pela política. | Cada personagem continua com seu próprio loadout; compartilhar a coleção não aplica os efeitos a todos. |
 
-O campo pertence ao JSON revisionado da política, não às preferências da Godot. Os nomes são propostas de contrato para a etapa 1, não campos já implementados. A escolha inicial do jogo ainda deve ser definida; suportar `Actor` não significa obrigar todos os settings a usá-lo.
+O campo pertence ao JSON revisionado da política, não às preferências da Godot. Ambos os escopos foram implementados; o Ascendant inicial escolhe `Actor`, sem obrigar outros settings a usá-lo.
 
 - Usar a identidade persistente do personagem na run, não o ID temporário da entidade criada para um encontro, nem a identidade da definição de conteúdo. Dois personagens da mesma definição não compartilham posse acidentalmente.
 - Separar propriedade do item e destinatário de suas influências. O provider usa o personagem equipado, inclusive quando o inventário pertence à run.
@@ -114,7 +117,7 @@ O campo pertence ao JSON revisionado da política, não às preferências da God
 - O isolamento por setting e por run permanece nos dois modos. Inventário compartilhado da run não é inventário permanente da conta; desbloqueios de opções continuam separados da posse e não concedem poder persistente.
 - Na integração da UI, selecionar personagem muda inventário acessível, loadout e inspector juntos; drafts são identificados por run + personagem + inventário + revisão. Trocar de personagem exige confirmar ou descartar alterações pendentes, sem aplicar o rascunho ao novo alvo.
 
-O laboratório atual tem um único rascunho de personagem: ainda não demonstra seleção de personagens ou os dois escopos. Acrescentar fixtures com dois personagens e um seletor é um próximo marco visual, antes da integração real.
+O laboratório inicial tinha um único rascunho. A etapa 6 acrescentou dois personagens de exemplo, seleção dos dois escopos e integração real, sem compartilhar drafts entre donos.
 
 ### 4.2. Planejamento e comando atômico
 
@@ -276,7 +279,7 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 
 ## 8. Estado da entrega
 
-### Implementação canônica em andamento
+### Histórico da implementação canônica
 
 - Etapa 0: laboratório registrado em `296f7f1`; inclui os refinamentos visuais e atributos de exemplo.
 - Etapa 1: contratos imutáveis `InscriptionDefinition`/`LoadoutPolicyDefinition`, registro canônico e validação do grafo implementados. Escopos Actor/Run, duplicatas, catálogo permitido e janelas explícitos; bônus referenciam atributos/pipelines, não cartas. Modos opt-out não serializam o novo vínculo. Guia em `docs/content/inscriptions.md`.
@@ -307,9 +310,20 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 - [x] Etapa 5: regras excepcionais e duas definições executáveis de referência.
 - [x] Etapa 6: adapter REST e workspace versionado no laboratório, com confirmação/recuperação e exemplos de dois personagens/escopos.
 - [x] Etapa 7: aquisição canônica, ofertas/recusa, loja/crafting limitado, unlock de opção e distribuição no Ascendant.
-- [ ] Etapa 8: certificação, migração/hot reload e transferências autorizadas.
+- [x] Etapa 8: migração/hot reload e transferências autorizadas; certificação automatizada e limites de medição descritos abaixo.
 
-O GDD legado permanece intocado. Inscrições ainda não estão integradas à run jogável; as duas relíquias novas existem no catálogo, mas não nas ofertas normais. As etapas 6–8 não estão concluídas.
+O GDD legado permanece intocado. Inscrições estão integradas ao Ascendant: iniciais, recompensas, lojas/crafting e desbloqueio de opção. As duas relíquias excepcionais são distribuídas em nós próprios. Nenhum save antigo é convertido automaticamente. Aprovação humana do layout e balanceamento continua aberta, separada da implementação.
+
+### Entregas finais: etapas 6–8
+
+- Etapa 6 (`d29cafd`): workspace Godot conectado por REST, preview autoritativo, confirmação atômica e recuperação. Drafts/respostas/arrasto identificam run, ator, inventário, revisão e versão; exemplos offline Actor/Run com dois personagens permanecem separados. A view não calcula regras.
+- Etapa 7 (`3617981`): estações canônicas, ofertas determinísticas, escolha/recusa, preços, crafting dirigido limitado e elegibilidade capturada. Cinco inscrições iniciais no catálogo; focus/ward são concedidas, não equipadas automaticamente. Um unlock abre opção futura sem conceder poder permanente. Dois nós distribuem as relíquias excepcionais. Definições antigas permanecem para históricos.
+- Etapa 8: política explícita de rebind compatível/rejeição; validação de todos os inventários/equipamentos; proveniência de aquisição preservada e revisão efetiva independente. Transferência autorizada de peça desequipada é comando canônico. Saída que deixaria itens/histórico órfãos é rejeitada; morte não remove o registro. Mudança de escopo exige nova run. Branch mantém identidades e isola propriedade compartilhada.
+- A jornada publicada passou a consumir os novos comandos e manter a recusa explícita; a referência determinística dessa política usa Blood Covenant no chefe, terminando com 70 de vida em vez dos 50 do catálogo anterior. Corrigida a serialização dos schemas dos comandos de oferta, detectada pela regressão completa.
+- Verificação Core final: 1.820 testes aprovados, incluindo transferência pelo gateway, retry após reinício e três replays semânticos com dois inventários privados. Godot: 21 checks de workspace, 145 do laboratório, 20 contratos, 13 seleção de mapa, 8 ingresso de atividade e 11 reconciliação; renderização com 152 checks e capturas EN/PT-BR em três resoluções. Reinício/retry e três replays semânticos também estão no teste REST `InscriptionGameplayTests`.
+- API completa: 231 testes aprovados, zero falhas/ignorados, em 9 min 3 s, com orçamento de sessão explícito de 900 s nesta execução. Inclui jornadas publicadas, sessão compacta, Kestrel, verificação canônica, recuperação e replay. A primeira execução encontrou schemas não inicializados nos novos comandos de oferta e referências antigas de catálogo nos testes; foram corrigidos antes desta execução completa aprovada. O limite padrão do repositório não foi alterado.
+- Medição Kestrel isolada: 12 aplicações com p95/máximo 148,89 ms, previews 49,04 ms e sessões 180,49 ms. Não é medição clique-a-tela nem garantia de todas as ações/longas runs abaixo de 1 s. Procedimento, políticas e limites em [migrações e certificação](../content/inscription-migrations.md).
+- Limites deliberados: a jornada atual só registra o herói; domínio/fixtures cobrem vários inventários, mas não foi criado um jogo de party. Não há grant público, conversão automática Actor/Run, redistribuição destrutiva ou criação de poder persistente. A aprovação visual humana e uma medição física clique-a-tela permanecem validações de produto, não são afirmadas por testes headless.
 
 ### Verificação do primeiro marco
 
@@ -332,7 +346,7 @@ Em 2026-10-15, a revisão baseada em Warframe e Duet Night Abyss adicionou:
 - mesma transição local para arrasto e alternativa por clique; inventário com rolagem independente;
 - barra de orçamento ilustrativo, custos visíveis e cores de componente configuráveis.
 
-As regras reais da engine e as etapas 1–8 permanecem pendentes. A [pesquisa e contrato de UX](../design/INSCRIPTION_LOADOUT_UX_REFERENCES.md) distinguem as referências das decisões próprias.
+No momento desse refinamento isolado, as regras da engine ainda estavam pendentes; foram implementadas nas etapas registradas acima. A [pesquisa e contrato de UX](../design/INSCRIPTION_LOADOUT_UX_REFERENCES.md) distingue as referências das decisões próprias.
 
 Validação final deste refinamento: 123 checks no laboratório renderizado (incluindo gesto real do mouse e sete capturas), mais 40 do menu principal, 90 dos demais menus marfim e 20 dos contratos UI; zero falhas. Resoluções e idiomas seguem a matriz acima. As capturas estão em `.runtime/inscription-loadout-drag-captures/`. Durante o refinamento, um erro transitório de indentação impediu uma execução; foi corrigido antes da execução final aprovada.
 
@@ -340,6 +354,6 @@ Validação final deste refinamento: 123 checks no laboratório renderizado (inc
 
 O painel direito agora apresenta atributos base/equipados, com recursos máximos, armor, dodge base 0%, chance crítica e bônus crítico por tier, especializações e bônus por tag. Detalhes de inscrição ficam no centro; relíquias e modificadores de cartas foram retirados tanto do painel quanto do fixture. O catálogo visual passou de oito para quinze inscrições e permite experimentar recursos, defesa, crítico e afinidades.
 
-As descrições agora nomeiam o atributo do personagem, distinguem pontos percentuais e não prometem modificar valores base das cartas. Chance acima de 100% é preservada; não há cálculo local de tiers, mitigação ou esquiva. A soma das amostras de apresentação é isolada em `scripts/labs/loadout_attribute_sample.gd`; a futura engine não está implementada por isso.
+As descrições nomeiam o atributo do personagem, distinguem pontos percentuais e não prometem modificar valores base das cartas. Chance acima de 100% é preservada; não há cálculo local de tiers, mitigação ou esquiva. A soma das amostras de apresentação permanece isolada em `scripts/labs/loadout_attribute_sample.gd`; no modo conectado, apenas a projeção canônica da engine é exibida.
 
 Foram verificados base/equipado, penalidade em vermelho, seleção sem equipamento, remover sem drift, fontes/estatísticas defensivamente copiadas, referências inválidas e isolamento da run/preferências, além do arrasto e da matriz de layout existente. As capturas desta revisão ficam em `.runtime/inscription-character-attributes/`.
