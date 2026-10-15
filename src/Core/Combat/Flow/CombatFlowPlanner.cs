@@ -163,14 +163,12 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         CombatState combat) => initialized with
     {
         Combat = combat,
-        Fingerprint = CanonicalJson.ComputeHash(new
-        {
-            combat,
-            run = initialized.Run,
-            effectSteps = initialized.EffectSteps,
-            applications = initialized.Applications,
-            phaseTransitions = initialized.PhaseTransitions,
-            cardZoneSteps = initialized.CardZoneSteps
-        })
+        Fingerprint = CanonicalJson.ComputeObjectHash(
+            CanonicalJson.Property("combat", combat),
+            CanonicalJson.Property("run", initialized.Run),
+            CanonicalJson.Property("effectSteps", initialized.EffectSteps),
+            CanonicalJson.Property("applications", initialized.Applications),
+            CanonicalJson.Property("phaseTransitions", initialized.PhaseTransitions),
+            CanonicalJson.Property("cardZoneSteps", initialized.CardZoneSteps))
     };
 }

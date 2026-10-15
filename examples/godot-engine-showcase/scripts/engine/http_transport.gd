@@ -38,6 +38,8 @@ func _acquire(method: HTTPClient.Method, path: String, epoch: int, ticket):
 			if _workers.size() < maxi(1, max_workers):
 				var worker := HTTPRequest.new()
 				worker.use_threads = true
+				# Chunk size is an I/O buffer, not a payload limit. Four workers bound it.
+				worker.download_chunk_size = 1024 * 1024
 				add_child(worker); _workers.append(worker); _queue.erase(job)
 				return worker
 		await get_tree().process_frame

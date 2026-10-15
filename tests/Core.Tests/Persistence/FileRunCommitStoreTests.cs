@@ -18,6 +18,17 @@ public sealed class FileRunCommitStoreTests : IDisposable
         $"heroscript-commits-{Guid.NewGuid():N}");
 
     [Fact]
+    public async Task ReadinessProbesDirectoryWithoutRequiringValidRunInventory()
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+        Directory.CreateDirectory(Path.Combine(_directory, "not-a-run"));
+        await store.ProbeAsync();
+        using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.ProbeAsync(cancelled.Token));
+        Assert.Empty(await store.ListRunIdsAsync());
+    }
+
+    [Fact]
     public async Task Append_RoundTripsAnAuthoritativeCommitAcrossRestart()
     {
         var runId = Guid.NewGuid();

@@ -35,6 +35,7 @@ function Test-CompatibleDemoEngine {
             @($capabilities.capabilities) -contains 'canonical-effect-identities' -and
             @($capabilities.capabilities) -contains 'global-effect-policies' -and
             @($capabilities.capabilities) -contains 'actor-attribute-projections' -and
+            @($capabilities.capabilities) -contains 'compact-interaction-sessions-v1' -and
             $settingIds -contains 'default' -and $settingIds -contains 'ascendant' -and
             $null -ne $ascendant -and $ascendant.launch.modeId -eq 'ascendant_world_one'
     }

@@ -1,5 +1,13 @@
 # Changelog do contrato público
 
+## Sessão interativa — 2026-10-14/15
+
+- `GET /api/v1/runs/{runId}/session`, expectedSequence, ETag e 409 explícito.
+- Recibo mínimo por `Prefer: return=minimal` no comando de run.
+- Fatos de origem separados da inspeção de impactos; execução, persistência,
+  replay e versão determinística 31 preservados pelas otimizações.
+- Readiness do store não requer inventário de todas as partidas.
+
 ## v1 — 2026-10-14
 
 - Engine `30`: projeções explícitas de base/origem/impacto das cartas, inventário de itens modificadores e aplicação atômica `APPLY_CARD_MODIFIER_ITEM`. Consultas de apresentações e itens são revisionadas e não alteram RNG. Runs de versões executáveis anteriores não são migradas silenciosamente.

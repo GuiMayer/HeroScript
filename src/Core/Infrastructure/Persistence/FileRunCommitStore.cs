@@ -14,7 +14,7 @@ namespace Core.Infrastructure.Persistence;
 /// unrelated runs can persist concurrently. Each append is flushed to a
 /// temporary file and atomically renamed to its immutable sequence path.
 /// </summary>
-public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStore, IRunCommitEnvelopeReader, IProfileProgressSnapshotReader, IProfileProgressCommitReader, IRunCreationStorage, IDisposable
+public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStore, IRunCommitEnvelopeReader, IProfileProgressSnapshotReader, IProfileProgressCommitReader, IRunCreationStorage, IRunStoreReadiness, IDisposable
 {
     private readonly string _storePath;
     private readonly ILogger _logger;
@@ -462,6 +462,16 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             .OrderBy(id => id)
             .ToArray();
         return Task.FromResult(ids);
+    }
+
+    public Task ProbeAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Enumerating one directory entry verifies access without scanning every
+        // run or opening/validating commit headers. Full diagnostics stay explicit.
+        using var entries = Directory.EnumerateFileSystemEntries(_storePath).GetEnumerator();
+        _ = entries.MoveNext();
+        return Task.CompletedTask;
     }
 
     public async Task DeleteRunAsync(Guid runId, CancellationToken ct = default)

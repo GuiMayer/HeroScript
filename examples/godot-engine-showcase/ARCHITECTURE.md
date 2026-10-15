@@ -43,14 +43,20 @@ O novo `ActivityPresenter` relaciona ofertas, preços e navegação anunciados;
 
 As projeções públicas da sessão são cópias profundas. Uma tela pode organizar
 seus dados sem modificar os snapshots usados para sincronização e envio.
-Em combate, a sessão publica estado, zonas, ações legais e `card_evaluations`
-juntos, após verificar run, sequence, combate, step e revisão do conteúdo. A
-inspeção da mão não é uma segunda atualização visual: a tela recebe os valores
-calculados antes de montar as cartas. Durante a leitura, mantém-se a última
+Em combate, uma consulta `/runs/{id}/session` publica estado compacto, zonas,
+ações e fatos de origem das cartas juntos, após verificar identidade, sequência,
+steps, fingerprint e revisão. Não há inspeção da mão inteira contra um alvo
+arbitrário por comando. Inspeção de impacto é contextual e sob demanda; coleções
+buscam seus fatos completos ao abrir. Durante a leitura, mantém-se a última
 apresentação com input bloqueado; falhas mantêm essa apresentação em estado
 dessincronizado até reconectar. Invalidação/troca de setting elimina as inspeções.
 O componente `CardView` reconcilia sua face por identidade e ignora alterações
 de `inspectionText` para renderização, mantendo esse diagnóstico no modelo.
+O transporte usa workers HTTPRequest em threads, com concorrência limitada,
+prioridade de comandos, coalescência de GETs e cancelamento independente por
+consumidor. POST não recebe retries automáticos. A captura privada em lote
+`capture_view_snapshot()` evita repetir getters/cópias na mesma projeção; ela
+continua sendo uma cópia defensiva, não um Dictionary mutável da sessão.
 As projeções continuam tendo o formato dos read models da engine: esta divisão
 desacopla transporte e ciclo de vida, não promete compatibilidade com qualquer
 mudança futura de contrato de dados.

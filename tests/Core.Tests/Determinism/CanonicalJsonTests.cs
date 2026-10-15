@@ -68,6 +68,51 @@ public class CanonicalJsonTests
     private sealed record MemoizableValue(int Value) : ICanonicalHashMemoizable;
 
     [Fact]
+    public void ComposedFingerprintMatchesEmbeddedCanonicalJsonWithColdWarmAndEvictedBytes()
+    {
+        var run = new Core.Run.RunState();
+        var combat = new Core.Combat.Models.CombatState();
+        var steps = new[] { "<fire>", "ação", "\"quoted\"" };
+        var expected = CanonicalJson.ComputeHash(new { state = combat, steps, run });
+        string Composed() => CanonicalJson.ComputeObjectHash(CanonicalJson.Property("steps", steps),
+            CanonicalJson.Property("run", run), CanonicalJson.Property("state", combat));
+        Assert.Equal(expected, Composed());
+        using (CanonicalJson.BeginHashScope())
+        {
+            Assert.Equal(expected, Composed());
+            Assert.Equal(expected, Composed());
+            for (var index = 0; index < 80; index++)
+                _ = CanonicalJson.Property("other", combat with { CurrentTurn = index });
+            Assert.Equal(expected, Composed());
+        }
+        Assert.Equal(expected, Composed());
+        Assert.Equal(CanonicalJson.ComputeHash(new { run = (Core.Run.RunState?)null }),
+            CanonicalJson.ComputeObjectHash(CanonicalJson.Property("run", (Core.Run.RunState?)null)));
+    }
+
+    [Fact]
+    public void CanonicalNumbersPreserveOriginalLexemesAndMatchLegacyWriter()
+    {
+        using var document = JsonDocument.Parse("{\"z\":[-0,1e+03,1.000,1E-5,123456789012345678901234567890],\"a\":0.0}");
+        const string expected = "{\"a\":0.0,\"z\":[-0,1e+03,1.000,1E-5,123456789012345678901234567890]}";
+        Assert.Equal(expected, CanonicalJson.Serialize(document.RootElement));
+        Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(expected))), CanonicalJson.ComputeHash(document.RootElement));
+    }
+
+    [Fact]
+    public void ComposedFingerprintPreservesTheDefaultSerializationDepthLimit()
+    {
+        using var document = JsonDocument.Parse(new string('[', 64) + "0" + new string(']', 64));
+        Assert.ThrowsAny<JsonException>(() => CanonicalJson.ComputeHash(new { value = document.RootElement }));
+        Assert.ThrowsAny<JsonException>(() => CanonicalJson.ComputeObjectHash(
+            CanonicalJson.Property("value", document.RootElement)));
+        using var allowed = JsonDocument.Parse(new string('[', 63) + "0" + new string(']', 63));
+        Assert.Equal(CanonicalJson.ComputeHash(new { value = allowed.RootElement }),
+            CanonicalJson.ComputeObjectHash(CanonicalJson.Property("value", allowed.RootElement)));
+    }
+
+    [Fact]
     public void WeakDefaultMemoMatchesCanonicalBytesAndNeverMemoizesMutableObjects()
     {
         var value = new MemoizableValue(42);

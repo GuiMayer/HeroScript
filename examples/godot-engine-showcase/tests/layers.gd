@@ -23,6 +23,7 @@ class FakeTransport extends RefCounted:
 
 	func request(method: int, path: String, body = null, _timeout_seconds := 12.0) -> Dictionary:
 		calls.append({"method": method, "path": path, "body": body.duplicate(true) if body is Dictionary else body})
+		if "/session" in path: return await preload("res://tests/session_fixture_adapter.gd").from_transport(self, path)
 		if path.ends_with("/health/ready"):
 			return _ok({})
 		if path.ends_with("/content/settings"):

@@ -4,6 +4,7 @@ using System.Text.Json;
 using API.Tests.Helpers;
 using Xunit;
 using Xunit.Abstractions;
+using Microsoft.AspNetCore.Hosting;
 
 namespace API.Tests.Integration;
 
@@ -11,16 +12,31 @@ namespace API.Tests.Integration;
 // This deterministic preview-greedy policy is a regression probe, not a human balance gate.
 public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
 {
-    [Fact]
-    public async Task PublishedAct_CanTraverseAllNineEncountersServicesAndReplay()
+    private sealed class TimedFactory : TestWebApplicationFactory
     {
-        using var factory = new TestWebApplicationFactory();
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        { base.ConfigureWebHost(builder); builder.UseSetting("Performance:DiagnosticsEnabled", "true"); }
+    }
+    [Fact]
+    public Task PublishedAct_CanTraverseAllNineEncountersServicesAndReplay() => Traverse(false);
+
+    [Fact]
+    public Task CompactSession_CanTraverseTheSamePublishedActAndReplay() => Traverse(true);
+
+    private async Task Traverse(bool compact)
+    {
+        using var factory = compact ? new TimedFactory() : new TestWebApplicationFactory();
         using var client = factory.CreateClient();
         var game = new GameEngineClientSimulator(client);
         const string player = "world-one-pilot";
         var runId = await game.StartRunAsync("ascendant", "ascendant_world_one_run", player, 154,
             "ascendant_world_one");
         var times = new List<double>();
+        var sessionTimes = new List<double>();
+        var sessionBytes = new List<int>();
+        var phases = new List<(double Ms, string Type, int Bytes, string Timing)>();
+        var sessionPhases = new List<(double Ms, string Timing)>();
+        if (compact) client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
         var fights = 0;
         var commandIndex = 0;
         var lastEncounterHealth = 100f;
@@ -43,11 +59,27 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.IsSuccessStatusCode, $"{type}: {body}");
             times.Add(timer.Elapsed.TotalMilliseconds);
+            phases.Add((timer.Elapsed.TotalMilliseconds, type, System.Text.Encoding.UTF8.GetByteCount(body),
+                response.Headers.TryGetValues("Server-Timing", out var timing) ? string.Join("; ", timing) : "disabled"));
         }
 
         for (var iteration = 0; iteration < 700; iteration++)
         {
-            var run = await game.GetRunStateAsync(runId);
+            JsonElement session = default;
+            JsonElement run;
+            if (compact)
+            {
+                var watch = Stopwatch.StartNew();
+                using var result = await client.GetAsync($"/api/v1/runs/{runId}/session");
+                var bytes = await result.Content.ReadAsByteArrayAsync();
+                Assert.True(result.IsSuccessStatusCode, System.Text.Encoding.UTF8.GetString(bytes));
+                using var document = JsonDocument.Parse(bytes);
+                session = document.RootElement.Clone(); run = session.GetProperty("run");
+                sessionTimes.Add(watch.Elapsed.TotalMilliseconds); sessionBytes.Add(bytes.Length);
+                sessionPhases.Add((watch.Elapsed.TotalMilliseconds,
+                    result.Headers.TryGetValues("Server-Timing", out var timing) ? string.Join("; ", timing) : "disabled"));
+            }
+            else run = await game.GetRunStateAsync(runId);
             var lifecycle = run.GetProperty("lifecycle").GetString();
             if (lifecycle != "Active")
             {
@@ -58,10 +90,10 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             if (run.GetProperty("activeEncounterId").ValueKind != JsonValueKind.Null)
             {
                 var combatId = run.GetProperty("activeEncounterId").GetGuid();
-                var combat = await game.GetCombatStateAsync(combatId);
+                var combat = compact ? session.GetProperty("combat") : await game.GetCombatStateAsync(combatId);
                 if (combat.GetProperty("status").GetString() == "ACTIVE")
                 {
-                    var legal = await Read($"/api/v1/combats/{combatId}/legal-actions?actorId={player}");
+                    var legal = compact ? session.GetProperty("actions") : await Read($"/api/v1/combats/{combatId}/legal-actions?actorId={player}");
                     var candidates = legal.ValueKind == JsonValueKind.Array ? legal : legal.GetProperty("candidates");
                     var plays = candidates.EnumerateArray().Where(candidate =>
                         candidate.GetProperty("command").GetProperty("actionType").GetString() == "PLAY_CARD").ToArray();
@@ -88,7 +120,7 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
                 output.WriteLine($"fight={fights}; node={run.GetProperty("currentNodeId").GetString()}; outcome={combat.GetProperty("status").GetString()}; health={lastEncounterHealth}; round={combat.GetProperty("currentTurn")}");
             }
 
-            var commands = (await Read($"/api/v1/runs/{runId}/available-commands")).GetProperty("commands").EnumerateArray().ToArray();
+            var commands = (compact ? session.GetProperty("commands") : await Read($"/api/v1/runs/{runId}/available-commands")).GetProperty("commands").EnumerateArray().ToArray();
             Assert.NotEmpty(commands);
             bool Has(string type) => commands.Any(c => c.GetProperty("type").GetString() == type);
             var type = Has("RESOLVE_COMBAT") ? "RESOLVE_COMBAT" : Has("START_ENCOUNTER") ? "START_ENCOUNTER" :
@@ -157,6 +189,13 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
         Assert.Equal(Core.Determinism.CanonicalJson.ComputeHash(await game.GetRunStateAsync(runId)),
             Core.Determinism.CanonicalJson.ComputeHash(await restored.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{runId}")));
         output.WriteLine($"commands n={times.Count}; p95={times.Order().ElementAt((int)Math.Ceiling(times.Count * .95) - 1):F2}ms; max={times.Max():F2}ms");
+        if (compact) output.WriteLine($"compact sessions n={sessionTimes.Count}; p50={sessionTimes.Order().ElementAt(sessionTimes.Count / 2):F2}ms; p95={sessionTimes.Order().ElementAt((int)Math.Ceiling(sessionTimes.Count * .95) - 1):F2}ms; max={sessionTimes.Max():F2}ms; bytes p95={sessionBytes.Order().ElementAt((int)Math.Ceiling(sessionBytes.Count * .95) - 1)}");
+        if (compact) foreach (var sample in phases.OrderByDescending(value => value.Ms).Take(10))
+            output.WriteLine($"slow command {sample.Type}: {sample.Ms:F2}ms {sample.Bytes}bytes {sample.Timing}");
+        if (compact) foreach (var group in phases.GroupBy(value => value.Type))
+            output.WriteLine($"command {group.Key}: n={group.Count()}; p50={group.OrderBy(value => value.Ms).ElementAt(group.Count() / 2).Ms:F2}ms; p95={group.OrderBy(value => value.Ms).ElementAt((int)Math.Ceiling(group.Count() * .95) - 1).Ms:F2}ms; max={group.Max(value => value.Ms):F2}ms");
+        if (compact) foreach (var sample in sessionPhases.OrderByDescending(value => value.Ms).Take(5))
+            output.WriteLine($"slow session: {sample.Ms:F2}ms {sample.Timing}");
     }
 
     private static double Score(JsonElement candidate, string player, double missingBlock)

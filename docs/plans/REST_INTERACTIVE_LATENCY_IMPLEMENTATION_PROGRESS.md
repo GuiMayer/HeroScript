@@ -126,3 +126,40 @@ globais possivelmente mais novos ao preparar a animação.
 Validação: sessão compacta (11 checks), animação (29), Journey (11), estabilidade
 de face (34) e movimentos do laboratório (94) passaram. Não foi removida a cópia
 defensiva dos view models públicos nem compartilhado Dictionary mutável de sessão.
+
+## Etapa 10 — certificação e documentação
+
+Readiness passou a usar probe barato de I/O em vez de inventariar saves. Flush,
+rename atômico, validação de commit, delta/checkpoint e recuperação foram
+preservados. Foram adicionados spans de preparação/execução para separar esses
+custos do hashing. As medições não justificaram reduzir garantias de persistência.
+
+O profiling encontrou serialização repetida dos mesmos agregados em fingerprints
+embutidos. Três produtores passam a compor os mesmos bytes canônicos, com cache
+operacional por escopo, limitado a 64 entradas/8 MiB, preservando tipos, profundidade
+JSON e hashes. Números são escritos sem a string intermediária por token.
+
+O transporte usa chunks de leitura de 1 MiB, sem limitar o tamanho válido das
+respostas ou aumentar os quatro workers. Probe sintético fez 300 transferências
+de 512 KiB em 30/60/144 FPS, validando o corpo completo. Launcher negocia a nova
+capability REST, sem alterar a engineVersion 31 nem reutilizar host sem `/session`.
+
+OpenAPI publicado foi ampliado sem perder restrições existentes; geração do host
+foi corrigida com dependência compatível e patch de segurança. Guias, exemplo
+HTTP, arquitetura Godot e fixtures foram atualizados. O export é isolado e não
+reescreve automaticamente o contrato editorial.
+
+Validação: Core 1.738 testes; Godot 45 suites/1.042 checks; jornada real de 9
+encounters/172 comandos com replay e restart equivalentes. A execução geral da
+API teve 221 aprovações e uma falha de localização do probe, corrigida e repetida
+com sucesso em host isolado (incluindo três processos independentes). A repetição
+focada final passou 14 testes REST; os 8 testes de JSON canônico também passaram
+novamente após a revisão da fronteira de profundidade.
+
+**Metas de latência ainda abertas:** medição final em Release: cartas p95 759 ms,
+fim de turno p95 1.550 ms, sessão p95 464 ms. Melhorias não são certificação de
+todas as ações abaixo de 1 s. Hashing e descoberta exata continuam sendo o foco;
+não foram cortadas mecânicas, traces, candidatos ou durabilidade para cumprir SLO.
+
+Método, números, limitações e reprodução no
+[relatório de validação](REST_INTERACTIVE_LATENCY_VALIDATION.md).

@@ -14,7 +14,8 @@ O launcher inicia a API em `http://127.0.0.1:5271`, guarda os dados de teste em 
 
 Antes de reutilizar uma API já aberta, o launcher verifica se ela publica os
 settings `default` e `ascendant`, `setting-scoped-profiles` e as capabilities dos
-fundamentos do mundo 1, incluindo `canonical-effect-identities` (engine 28), e o
+fundamentos do mundo 1, incluindo `canonical-effect-identities` (engine 28),
+`compact-interaction-sessions-v1` (contrato REST de interação, engine 31 mantida), e o
 launch do Ascendant em `ascendant_world_one`. Se encontrar na porta uma versão antiga desta
 mesma workspace, ele a encerra e inicia a build atual; processos de outros
 programas nunca são encerrados automaticamente.

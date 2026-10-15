@@ -6,12 +6,14 @@
    revisão publicada. Informe também a seed quando o cliente precisar
    reproduzir uma partida externa. O modo é explícito porque seleciona todo o
    grafo de regras, inclusive o sistema de zonas de cartas.
-2. Leia `GET /api/v1/runs/{runId}` e guarde `sequence`, `step`,
-   `contentRevision` e hash retornados.
-3. Consulte mapa e comandos permitidos em `/map` e `/available-commands`.
+2. Leia `GET /api/v1/runs/{runId}/session` e guarde sequência, steps, revisão
+   e fingerprint. O agregado completo continua em `GET /runs/{runId}`, mas
+   não precisa ser reenviado a cada jogada.
+3. Consuma mapa e comandos da sessão; consultas individuais continuam disponíveis.
 4. Envie uma mutação ao gateway `/commands` com as versões observadas.
 5. Para encontro ativo, use o gateway de combate associado à run.
-6. Atualize o cliente exclusivamente pelo estado e hashes da resposta aceita.
+6. Após o recibo, sincronize a sessão na sequência confirmada e publique a revisão inteira.
+   Consulte [sessão interativa](interactive-session.md) para concorrência e retries.
 
 O contrato v1 é a única superfície HTTP exposta. Clientes que precisam de
 retry, reconexão ou replay devem usar os gateways de comando descritos aqui.

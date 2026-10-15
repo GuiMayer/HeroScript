@@ -217,7 +217,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             Records = records.ToImmutable(),
             Calculations = calculations.ToImmutable(),
             Steps = steps.ToImmutable(),
-            Fingerprint = CanonicalJson.ComputeHash(new { state = current, steps = steps.ToImmutable(), run = currentRun })
+            Fingerprint = CanonicalJson.ComputeObjectHash(CanonicalJson.Property("state", current),
+                CanonicalJson.Property("steps", steps.ToImmutable()), CanonicalJson.Property("run", currentRun))
         });
 
         Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection,

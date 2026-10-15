@@ -309,6 +309,7 @@ public sealed class PreparedRunCommit
         string computedStateHash,
         RunState? previousState)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("commit_prepare");
         ArgumentNullException.ThrowIfNull(commit);
         ArgumentException.ThrowIfNullOrWhiteSpace(computedStateHash);
         var liveState = commit.StateAfter
@@ -340,6 +341,7 @@ public sealed class PreparedRunCommit
 
     public PreparedRunCommit WithProfileProgress(ProfileProgressCommit progress)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("profile_prepare");
         var commit = Commit with { ProfileProgress = progress };
         (commit with { StateAfter = LiveState }).Validate(commit.StateHash);
         commit.ValidateEnvelope();

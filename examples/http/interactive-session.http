@@ -1,0 +1,36 @@
+@baseUrl = http://127.0.0.1:5271
+@runId = 00000000-0000-0000-0000-000000000000
+@sequence = 1
+@runStep = 0
+@targetNodeId = replace-with-an-available-node
+
+### Read a single captured revision. Fill runId with a real run first.
+# @name session
+GET {{baseUrl}}/api/v1/runs/{{runId}}/session
+
+### Conditional read: 304 has no body; retain the previously accepted snapshot.
+GET {{baseUrl}}/api/v1/runs/{{runId}}/session
+If-None-Match: {{session.response.headers.ETag}}
+
+### Require the observed sequence. A different head returns 409, not mixed sections.
+GET {{baseUrl}}/api/v1/runs/{{runId}}/session?expectedSequence={{sequence}}
+
+### Example mutation. Use versions/target from session.commands, not guessed inputs.
+### Keep commandId unchanged when recovering the same uncertain submission.
+POST {{baseUrl}}/api/v1/runs/{{runId}}/commands
+Content-Type: application/json
+Prefer: return=minimal
+
+{
+  "commandId": "cb8ec3e8-707a-4929-973f-427615fe3276",
+  "expectedSequence": {{sequence}},
+  "expectedStep": {{runStep}},
+  "type": "ADVANCE_NODE",
+  "payload": { "targetNodeId": "{{targetNodeId}}" }
+}
+
+### After a successful receipt, set sequence to its sequence and synchronize again.
+GET {{baseUrl}}/api/v1/runs/{{runId}}/session?expectedSequence={{sequence}}
+
+### Collections are loaded on demand rather than copied after every action.
+GET {{baseUrl}}/api/v1/runs/{{runId}}/cards/presentations

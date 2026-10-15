@@ -13,8 +13,12 @@ public sealed class CrossProcessFoundationTests(ITestOutputHelper output)
         var repository = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (repository != null && !File.Exists(Path.Combine(repository.FullName, "HeroScript.slnx"))) repository = repository.Parent;
         Assert.NotNull(repository);
-        var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
-        var probe = Path.Combine(repository.FullName, "tests", "Determinism.Probe", "bin", configuration, "net10.0", "Determinism.Probe.dll");
+        var outputDirectory = new DirectoryInfo(AppContext.BaseDirectory);
+        // --artifacts-path uses bin/API.Tests/release, unlike bin/Release/net10.0.
+        // Require the sibling built in this same output tree, never an older probe.
+        var probe = outputDirectory.Parent!.Name == "API.Tests"
+            ? Path.Combine(outputDirectory.Parent.Parent!.FullName, "Determinism.Probe", outputDirectory.Name, "Determinism.Probe.dll")
+            : Path.Combine(repository.FullName, "tests", "Determinism.Probe", "bin", outputDirectory.Parent.Name, outputDirectory.Name, "Determinism.Probe.dll");
         Assert.True(File.Exists(probe), "Build HeroScript.slnx first; the cross-process probe is a solution test dependency.");
         string? baseline = null;
         for (var repetition = 0; repetition < 3; repetition++)

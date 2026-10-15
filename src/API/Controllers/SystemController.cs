@@ -31,10 +31,12 @@ public sealed class SystemController : ControllerBase
     [HttpGet("health/ready")]
     public async Task<IActionResult> Ready(CancellationToken cancellationToken)
     {
-        IReadOnlyList<Guid> persistedRuns;
+        int? persistedRuns = null;
         try
         {
-            persistedRuns = await _runRepository.ListRunIdsAsync(cancellationToken);
+            if (_runRepository is IRunStoreReadiness readiness)
+                await readiness.ProbeAsync(cancellationToken);
+            else persistedRuns = (await _runRepository.ListRunIdsAsync(cancellationToken)).Count;
         }
         catch (Exception)
         {
@@ -63,7 +65,7 @@ public sealed class SystemController : ControllerBase
                     currentConfig = _configManager.CurrentConfig,
                     defaultConfig = _configManager.DefaultConfig
                 },
-                runStore = new { status = "ready", persistedRuns = persistedRuns.Count }
+                runStore = new { status = "ready", persistedRuns }
             }
         });
     }
@@ -102,6 +104,7 @@ public sealed class SystemController : ControllerBase
             "canonical-effect-identities",
             "global-effect-policies",
             "actor-attribute-projections",
+            "compact-interaction-sessions-v1",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

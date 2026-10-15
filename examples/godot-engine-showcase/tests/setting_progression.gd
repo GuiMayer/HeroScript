@@ -19,6 +19,7 @@ class Transport extends RefCounted:
 	func ok(data) -> Dictionary: return {"ok": true, "status": 200, "data": data.duplicate(true)}
 	func request(_method: int, path: String, _body = null, _timeout := 12.0) -> Dictionary:
 		calls.append(path)
+		if "/session" in path: return await preload("res://tests/session_fixture_adapter.gd").from_transport(self, path)
 		if path.ends_with("/health/ready"): return ok({})
 		if path.ends_with("/content/settings"):
 			var items: Array = []

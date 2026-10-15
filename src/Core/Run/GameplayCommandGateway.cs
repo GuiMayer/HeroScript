@@ -62,6 +62,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         GameplayCommandEnvelope command,
         Guid? combatId = null)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("command_execute");
         ArgumentNullException.ThrowIfNull(command);
         using var hashScope = CanonicalJson.BeginHashScope();
         var decodedResult = _codec.Decode(command);

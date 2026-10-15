@@ -1,4 +1,22 @@
 extends RefCounted
+class TransportFixture extends RefCounted:
+	var transport
+	func _init(value) -> void: transport = value
+	func read_run(id: String) -> Dictionary: return await transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/" + id)
+	func read_projections(id: String, combat: String, include: bool) -> Dictionary:
+		var paths := {"commands": "/api/v1/runs/%s/available-commands" % id, "capabilities": "/api/v1/runs/%s/capabilities" % id,
+			"cardZones": "/api/v1/runs/%s/card-zones" % id, "attributes": "/api/v1/runs/%s/character-attributes" % id,
+			"cardPresentations": "/api/v1/runs/%s/cards/presentations" % id, "modifierItems": "/api/v1/runs/%s/card-modifier-items" % id}
+		if include: paths["combat"] = "/api/v1/combats/" + combat
+		return await transport.request_many(paths)
+	func read_legal_actions(combat: String, actor: String) -> Dictionary:
+		return await transport.request(HTTPClient.METHOD_GET, "/api/v1/combats/%s/legal-actions?actorId=%s" % [combat, actor])
+	func inspect_hand(combat: String, actor: String, _targets: Array) -> Dictionary:
+		return await transport.request(HTTPClient.METHOD_GET, "/api/v1/combats/%s/cards/evaluations?actorId=%s" % [combat, actor])
+static func from_transport(transport, path: String) -> Dictionary:
+	var id: String = path.split("/runs/")[1].split("/")[0]
+	var expected := int(path.split("expectedSequence=")[1]) if "expectedSequence=" in path else -1
+	return await read(TransportFixture.new(transport), id, expected)
 ## Test-only bridge for delayed legacy fixtures. Production uses one REST session read.
 static func read(fixture, run_id: String, expected_sequence: int) -> Dictionary:
 	var response: Dictionary = await fixture.read_run(run_id)

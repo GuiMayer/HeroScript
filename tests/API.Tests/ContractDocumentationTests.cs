@@ -7,6 +7,41 @@ namespace API.Tests;
 public sealed class ContractDocumentationTests
 {
     [Fact]
+    public async Task LiveOpenApiCanGenerateTheSessionContract()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/openapi/v1.json");
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, body);
+        using var document = JsonDocument.Parse(body);
+        Assert.True(document.RootElement.GetProperty("paths").TryGetProperty("/api/v1/runs/{runId}/session", out _));
+        using var capabilities = await client.GetAsync("/api/v1/capabilities");
+        using var payload = JsonDocument.Parse(await capabilities.Content.ReadAsStringAsync());
+        Assert.Contains(payload.RootElement.GetProperty("capabilities").EnumerateArray(),
+            capability => capability.GetString() == "compact-interaction-sessions-v1");
+    }
+
+    [Fact]
+    public void CompactSessionContractDeclaresAtomicVersionAndConditionalReads()
+    {
+        using var document = LoadJson("openapi", "heroscript-v1.json");
+        var root = document.RootElement;
+        var operation = root.GetProperty("paths").GetProperty("/api/v1/runs/{runId}/session").GetProperty("get");
+        Assert.Equal("stable", operation.GetProperty("x-heroscript-stability").GetString());
+        foreach (var status in new[] { "200", "304", "409" })
+            Assert.True(operation.GetProperty("responses").TryGetProperty(status, out _));
+        var parameters = operation.GetProperty("parameters").EnumerateArray().Select(p => p.GetProperty("name").GetString());
+        Assert.Contains("expectedSequence", parameters);
+        Assert.Contains("If-None-Match", parameters);
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        var sections = schemas.GetProperty("InteractionSession").GetProperty("properties");
+        foreach (var section in new[] { "version", "run", "combat", "cardPresentations", "actions", "attributes" })
+            Assert.True(sections.TryGetProperty(section, out _));
+        Assert.True(schemas.GetProperty("InteractionVersion").GetProperty("properties").TryGetProperty("stateFingerprint", out _));
+    }
+
+    [Fact]
     public void CardPresentationContractSeparatesLayersAndDeclaresModifierQueries()
     {
         using var document = LoadJson("openapi", "heroscript-v1.json");
@@ -238,6 +273,7 @@ public sealed class ContractDocumentationTests
         var files = new[]
         {
             "docs/api/README.md",
+            "docs/api/interactive-session.md",
             "docs/api/getting-started.md",
             "docs/api/contracts.md",
             "docs/api/combat-sandbox.md",
@@ -253,6 +289,7 @@ public sealed class ContractDocumentationTests
             "docs/systems/relics/relic-system.md",
             "docs/systems/status/status-system.md",
             "examples/http/deterministic-run.http",
+            "examples/http/interactive-session.http",
             "examples/http/replay-and-events.http",
             "examples/http/content-publication.http",
             "examples/http/combat-sandbox.http",

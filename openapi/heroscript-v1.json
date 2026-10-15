@@ -16,6 +16,88 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/session": {
+      "get": {
+        "tags": [
+          "InteractionSession"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "expectedSequence",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionSession"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionSession"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionSession"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "x-heroscript-stability": "stable",
+        "summary": "Read one atomic compact interactive session",
+        "description": "Captures one immutable run revision. expectedSequence mismatch returns 409. ETag and If-None-Match support 304. See docs/api/interactive-session.md."
+      }
+    },
     "/api/v1/runs/{runId}/cards/presentations": {
       "get": {
         "tags": ["Runs"], "operationId": "getRunCardPresentations", "x-heroscript-stability": "experimental",
@@ -633,6 +715,69 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "InteractionSession": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/InteractionVersion"
+          },
+          "run": {},
+          "combat": {},
+          "commands": {},
+          "capabilities": {},
+          "cardZones": {},
+          "attributes": {},
+          "cardPresentations": {},
+          "modifierItems": {},
+          "actions": {},
+          "evaluations": {}
+        },
+        "additionalProperties": false
+      },
+      "InteractionVersion": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "settingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "runSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "combatId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "combatStep": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "engineVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "stateFingerprint": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CardNumericLayers": {
         "type": "object", "properties": {
           "original": {"type": "number", "nullable": true}, "composedBase": {"type": "number", "nullable": true}, "source": {"type": "number", "nullable": true},

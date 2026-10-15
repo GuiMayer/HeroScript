@@ -28,7 +28,7 @@ func run_checks() -> void:
 	check(first.ok and second.ok and transport.timings.size() == 1, "identical GET consumers use one actual request")
 	first.data.value = 99
 	check(second.data.value == 1, "coalesced responses are private defensive copies")
-	check(transport._workers.size() == 1 and transport._workers[0].use_threads and transport._idle.size() == 1, "bounded threaded worker returns to pool")
+	check(transport._workers.size() == 1 and transport._workers[0].use_threads and transport._workers[0].download_chunk_size == 1024 * 1024 and transport._idle.size() == 1, "bounded threaded worker with batched I/O returns to pool")
 	var next = transport.read("/next"); await reply(server); var result: Dictionary = await next.result()
 	check(result.ok and transport._workers.size() == 1 and transport._queue.is_empty(), "subsequent request reuses worker and drains queue")
 	server.stop(); transport.queue_free(); await process_frame; root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

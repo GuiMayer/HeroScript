@@ -81,45 +81,114 @@ public static class CanonicalJson
 
     private static string ComputeHashCore<T>(T value, JsonSerializerOptions options)
     {
-        var bytes = WriteCanonicalBytes(value, options);
-        return Convert.ToHexStringLower(SHA256.HashData(bytes.WrittenSpan));
+        var bytes = CanonicalBytes(value, options);
+        return Convert.ToHexStringLower(SHA256.HashData(bytes.Bytes.Span));
+    }
+
+    // Composition preserves the original embedded JSON, not a hash-of-hashes.
+    // Only deeply immutable instances with the default serializer are reused.
+    private readonly record struct CanonicalEncoding(ReadOnlyMemory<byte> Bytes, int Depth);
+    internal readonly record struct CanonicalProperty(string Name, ReadOnlyMemory<byte> Bytes, int Depth);
+    internal static CanonicalProperty Property<T>(string name, T value)
+    {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
+        var encoded = CanonicalBytes(value, DefaultOptions);
+        return new(name, encoded.Bytes, encoded.Depth);
+    }
+
+    internal static string ComputeObjectHash(params CanonicalProperty[] properties)
+    {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
+        var buffer = new ArrayBufferWriter<byte>();
+        using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartObject();
+        string? previous = null;
+        foreach (var property in properties.OrderBy(property => property.Name, StringComparer.Ordinal))
+        {
+            if (property.Name == previous) throw new ArgumentException("Duplicate canonical property");
+            // Embedded properties add the outer object to the serializer's depth.
+            // Raw writes alone would accidentally accept previously invalid data.
+            if (property.Depth >= 64) throw new JsonException("Maximum canonical serialization depth exceeded");
+            writer.WritePropertyName(property.Name);
+            writer.WriteRawValue(property.Bytes.Span, skipInputValidation: false);
+            previous = property.Name;
+        }
+        writer.WriteEndObject();
+        writer.Flush();
+        return Convert.ToHexStringLower(SHA256.HashData(buffer.WrittenSpan));
+    }
+
+    private static CanonicalEncoding CanonicalBytes<T>(T value, JsonSerializerOptions options)
+    {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_encode");
+        var scope = ActiveHashScope.Value;
+        if (scope != null && value is ICanonicalHashMemoizable memoizable && ReferenceEquals(options, DefaultOptions))
+        {
+            var key = new HashCacheKey(memoizable, typeof(T), options);
+            if (scope.Bytes.TryGetValue(key, out var cached)) return cached;
+            var buffer = WriteCanonicalBytes(value, options, out var depth);
+            // FIFO, request-local, bounded by both retained bytes and entry count.
+            // Eviction changes only work performed, never serialized facts.
+            const int budget = 8 * 1024 * 1024;
+            if (buffer.WrittenCount > budget) return new(buffer.WrittenMemory, depth);
+            while (scope.Bytes.Count >= 64 || scope.ByteCount + buffer.WrittenCount > budget)
+            {
+                var oldest = scope.ByteOrder.Dequeue();
+                scope.ByteCount -= scope.Bytes[oldest].Bytes.Length;
+                scope.Bytes.Remove(oldest);
+            }
+            var owned = buffer.WrittenMemory.ToArray();
+            var encoding = new CanonicalEncoding(owned, depth);
+            scope.Bytes.Add(key, encoding);
+            scope.ByteOrder.Enqueue(key);
+            scope.ByteCount += owned.Length;
+            return encoding;
+        }
+        var uncached = WriteCanonicalBytes(value, options, out var uncachedDepth);
+        return new(uncached.WrittenMemory, uncachedDepth);
     }
 
     private static ArrayBufferWriter<byte> WriteCanonicalBytes<T>(
         T value,
-        JsonSerializerOptions? options)
+        JsonSerializerOptions? options) => WriteCanonicalBytes(value, options, out _);
+
+    private static ArrayBufferWriter<byte> WriteCanonicalBytes<T>(
+        T value, JsonSerializerOptions? options, out int depth)
     {
         var element = JsonSerializer.SerializeToElement(value, options ?? DefaultOptions);
         var buffer = new ArrayBufferWriter<byte>();
         using var writer = new Utf8JsonWriter(
             buffer,
             new JsonWriterOptions { Indented = false });
-        WriteElement(writer, element);
+        depth = 0;
+        WriteElement(writer, element, ref depth);
         writer.Flush();
         return buffer;
     }
 
-    private static void WriteElement(Utf8JsonWriter writer, JsonElement element)
+    private static void WriteElement(Utf8JsonWriter writer, JsonElement element, ref int depth)
     {
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
                 writer.WriteStartObject();
+                depth = System.Math.Max(depth, writer.CurrentDepth);
                 foreach (var property in element.EnumerateObject().OrderBy(
                              property => property.Name,
                              StringComparer.Ordinal))
                 {
                     writer.WritePropertyName(property.Name);
-                    WriteElement(writer, property.Value);
+                    WriteElement(writer, property.Value, ref depth);
                 }
                 writer.WriteEndObject();
                 break;
 
             case JsonValueKind.Array:
                 writer.WriteStartArray();
+                depth = System.Math.Max(depth, writer.CurrentDepth);
                 foreach (var item in element.EnumerateArray())
                 {
-                    WriteElement(writer, item);
+                    WriteElement(writer, item, ref depth);
                 }
                 writer.WriteEndArray();
                 break;
@@ -129,7 +198,8 @@ public static class CanonicalJson
                 break;
 
             case JsonValueKind.Number:
-                writer.WriteRawValue(element.GetRawText(), skipInputValidation: false);
+                // JsonElement writes the original numeric token without allocating a string.
+                element.WriteTo(writer);
                 break;
 
             case JsonValueKind.True:
@@ -153,6 +223,9 @@ public static class CanonicalJson
     {
         public HashScope? Previous { get; } = previous;
         public Dictionary<HashCacheKey, string> Hashes { get; } = new(HashCacheKeyComparer.Instance);
+        public Dictionary<HashCacheKey, CanonicalEncoding> Bytes { get; } = new(HashCacheKeyComparer.Instance);
+        public Queue<HashCacheKey> ByteOrder { get; } = new();
+        public int ByteCount { get; set; }
     }
     private sealed class ImmutableHashes { public Dictionary<Type, string> Values { get; } = new(); }
 

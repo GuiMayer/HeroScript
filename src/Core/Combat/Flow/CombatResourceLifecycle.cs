@@ -73,7 +73,8 @@ public sealed class CombatResourceLifecycle(IEffectTriggerExecutor triggers) : I
         return Result<CombatResourceLifecycleResult>.Success(new()
         {
             Combat = current, Run = currentRun, Records = records.ToImmutable(), Steps = steps.ToImmutable(),
-            Fingerprint = CanonicalJson.ComputeHash(new { combat = current, run = currentRun, steps = steps.ToImmutable() })
+            Fingerprint = CanonicalJson.ComputeObjectHash(CanonicalJson.Property("combat", current),
+                CanonicalJson.Property("run", currentRun), CanonicalJson.Property("steps", steps.ToImmutable()))
         });
     }
 }
