@@ -67,6 +67,20 @@ public class CanonicalJsonTests
 
     private sealed record MemoizableValue(int Value) : ICanonicalHashMemoizable;
 
+    [Fact]
+    public void WeakDefaultMemoMatchesCanonicalBytesAndNeverMemoizesMutableObjects()
+    {
+        var value = new MemoizableValue(42);
+        var expected = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(CanonicalJson.Serialize(value))));
+        Parallel.For(0, 32, _ => Assert.Equal(expected, CanonicalJson.ComputeHash(value)));
+        var mutable = new Dictionary<string, int> { ["x"] = 1 };
+        var before = CanonicalJson.ComputeHash(mutable);
+        mutable["x"] = 2;
+        Assert.NotEqual(before, CanonicalJson.ComputeHash(mutable));
+        Assert.NotEqual(expected, CanonicalJson.ComputeHash(value with { Value = 43 }));
+    }
+
     private sealed class CountingConverter : JsonConverter<MemoizableValue>
     {
         public int Writes { get; private set; }

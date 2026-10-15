@@ -82,3 +82,20 @@ falsos positivos ou um segundo processador de regras.
 
 Validação: 25 testes Core de legalidade/cartas e comparação diferencial em duas
 seeds reais do mundo 1, incluindo todos os sucessores e imutabilidade da run.
+
+## Etapa 7 — caches derivados e hashes
+
+Compilação (256 entradas) e composição (128) usam LRU existente e single-flight
+por stripes. Runtime é uma identidade imutável, não apenas o rótulo da revisão;
+composição inclui definição e instância completas. Ambos registrados no
+coordenador genérico, com estatísticas e invalidação. Falhas não são cacheadas.
+Não há pré-execução de ações em background nem retenção de sucessores adicionais.
+
+Hash padrão de agregados explicitamente imutáveis usa chaves fracas por instância
+e tipo declarado, sem manter runs vivas. Serializadores customizados continuam
+com memoização por escopo; objetos mutáveis não recebem essa otimização. Bytes e
+algoritmo canônicos não mudaram. O contexto agregado compartilha os hashes.
+
+Validação: 1.734 testes Core passaram, incluindo concorrência, invalidação,
+runtime diferente com mesmo rótulo e composição com upgrades; três testes REST
+de sessão e equivalência de descoberta passaram. Versão determinística permanece 31.

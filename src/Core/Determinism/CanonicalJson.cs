@@ -20,6 +20,9 @@ public interface ICanonicalHashMemoizable { }
 public static class CanonicalJson
 {
     private static readonly AsyncLocal<HashScope?> ActiveHashScope = new();
+    // Default serializer only. Weak keys cannot keep completed runs/branches alive.
+    // Custom options/converters retain the existing request-scoped semantics.
+    private static readonly ConditionalWeakTable<object, ImmutableHashes> ImmutableDefaults = new();
     private static readonly JsonSerializerOptions DefaultOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -40,6 +43,17 @@ public static class CanonicalJson
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
         var effectiveOptions = options ?? DefaultOptions;
+        if (value is ICanonicalHashMemoizable && ReferenceEquals(effectiveOptions, DefaultOptions))
+        {
+            var entry = ImmutableDefaults.GetValue(value, _ => new ImmutableHashes());
+            lock (entry.Values)
+            {
+                if (entry.Values.TryGetValue(typeof(T), out var known)) return known;
+                var hash = ComputeHashCore(value, effectiveOptions);
+                entry.Values[typeof(T)] = hash;
+                return hash;
+            }
+        }
         var scope = ActiveHashScope.Value;
         if (scope != null && value is ICanonicalHashMemoizable memoizable)
         {
@@ -140,6 +154,7 @@ public static class CanonicalJson
         public HashScope? Previous { get; } = previous;
         public Dictionary<HashCacheKey, string> Hashes { get; } = new(HashCacheKeyComparer.Instance);
     }
+    private sealed class ImmutableHashes { public Dictionary<Type, string> Values { get; } = new(); }
 
     private readonly record struct HashCacheKey(
         ICanonicalHashMemoizable Value,

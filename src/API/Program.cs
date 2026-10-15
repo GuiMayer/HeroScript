@@ -277,8 +277,8 @@ builder.Services.AddSingleton<ISettingCompiler>(sp => sp.GetRequiredService<Sett
 builder.Services.AddSingleton<ISettingBundleCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
-builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
-builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
+builder.Services.AddSingleton<ICardContentCompiler, CachedCardContentCompiler>();
+builder.Services.AddSingleton<IEffectiveCardResolver, CachedEffectiveCardResolver>();
 builder.Services.AddSingleton<ICardZoneCardMetadataResolver, RevisionedCardZoneCardMetadataResolver>();
 builder.Services.AddSingleton<ICardZoneRuleEvaluator, CardZoneRuntimeRuleEvaluator>();
 builder.Services.AddSingleton<ICardZoneFlowExecutor, CardZoneFlowExecutor>();
@@ -624,6 +624,8 @@ foreach (var settingId in startupSettingIds)
 var cacheCoordinator = app.Services.GetRequiredService<ICacheCoordinator>();
 var applicationCaches = new ICacheService[]
 {
+    (ICacheService)app.Services.GetRequiredService<ICardContentCompiler>(),
+    (ICacheService)app.Services.GetRequiredService<IEffectiveCardResolver>(),
     (ICacheService)app.Services.GetRequiredService<ILegalActionResolver>(),
     (ICacheService)app.Services.GetRequiredService<ICardInspectionService>(),
     (ICacheService)app.Services.GetRequiredService<ICardPresentationQueryService>(),
