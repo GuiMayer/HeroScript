@@ -24,6 +24,9 @@ func run_checks() -> void:
 	check(await session.refresh() and gateway.calls == 1, "refresh performs one compact read, with no legacy fan-out methods")
 	var copy: Dictionary = session.run; copy.sequence = 999
 	check(session.run.sequence == 1, "public session data remains defensively isolated")
+	var captured: Dictionary = session.capture_view_snapshot()
+	captured.run.sequence = 888; captured.zones.zones.append({"zoneId": "injected"})
+	check(session.run.sequence == 1 and session.card_zones.zones.is_empty(), "batch snapshot mutation cannot alter session or other readers")
 	for change in [{"runId": "other"}, {"settingId": "other"}, {"runSequence": 2}, {"runStep": 8}, {"engineVersion": "other"}, {"contentRevision": "other"}, {"stateFingerprint": "other"}]:
 		gateway.overrides = change
 		check(not await session.refresh() and session.run.sequence == 1 and not session.synchronized, "inconsistent bundle cannot publish: %s" % change.keys()[0])

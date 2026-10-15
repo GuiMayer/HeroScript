@@ -67,10 +67,11 @@ func setup(owner, data: Dictionary) -> void:
 func refresh_state(data: Dictionary) -> void: _render(data)
 func _render(data: Dictionary) -> void:
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
-	_run_snapshot = GameSession.run
-	_combat_snapshot = GameSession.combat
-	_action_snapshot = GameSession.legal_actions
-	_zone_snapshot = GameSession.card_zones
+	var snapshot := GameSession.capture_view_snapshot()
+	_run_snapshot = snapshot.run
+	_combat_snapshot = snapshot.combat
+	_action_snapshot = snapshot.actions
+	_zone_snapshot = snapshot.zones
 	var scenery_key := JSON.stringify([visual_context.scenery_profile.presentation_key(),
 		visual_context.setting_id, _run_snapshot.get("currentNodeId", ""), _combat_snapshot.get("encounterDefinitionId", "")])
 	if scenery_key != _scenery_key and is_instance_valid(view.battlefield_view):
@@ -82,18 +83,19 @@ func _render(data: Dictionary) -> void:
 	if key == _projection_key:
 		_update_controls()
 		return
-	_projection_key = key.duplicate(true)
 	render_epoch += 1
 	presentation = data.duplicate(true)
+	key[4] = presentation
+	_projection_key = key # Every map here is already a privately owned snapshot.
 	zone_presenter = CardZonePresenter.new(_zone_snapshot, visual_context.translator)
 	presenter = Presenter.new(_run_snapshot, _combat_snapshot, _action_snapshot, visual_context.translator, presentation, _zone_snapshot)
-	presenter.accept_evaluations(GameSession.card_evaluations)
-	presenter.accept_presentations(GameSession.card_presentations)
+	presenter.accept_evaluations(snapshot.evaluations)
+	presenter.accept_presentations(snapshot.presentations)
 	controller.bind(presenter, _hand_scope(), zone_presenter.playable_cards().map(func(card): return str(card.get("cardInstanceId", ""))))
 	view.apply_projection(presentation, presenter, zone_presenter,
 		{"run": _run_snapshot, "combat": _combat_snapshot, "actions": _action_snapshot, "zones": _zone_snapshot,
 		"scope": _hand_scope(), "input_actor": GameSession.input_actor_id(), "setting": GameSession.selected_setting,
-		"setting_id": GameSession.selected_setting_id, "attributes": GameSession.character_attributes,
+		"setting_id": GameSession.selected_setting_id, "attributes": snapshot.attributes,
 		"scenery": _resolve_scenery()}, visual_context)
 	_update_controls()
 	# Real session refreshes already include the inspection in the same revision.
@@ -257,10 +259,10 @@ func _on_presentation_ready(value) -> void:
 		_pile_anchors[preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {}))] = button
 	for snapshot in _motion_zones:
 		for zone in snapshot.get("zones", []): _zone_roles[preload("res://scripts/ui/card_zone_motion.gd").address_key(zone)] = "hand" if zone.get("allowsCardPlay", false) else "pile"
-	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), GameSession.legal_actions,
+	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), after.get("actions", []),
 		visual_context.translator, presentation, after.get("zones", {}))
 	final_presenter.accept_evaluations(after.get("evaluations", []))
-	final_presenter.accept_presentations(GameSession.card_presentations)
+	final_presenter.accept_presentations(after.get("presentations", []))
 	for zone in after.get("zones", {}).get("zones", []):
 		if zone.get("contentsVisible", false):
 			for card in zone.get("cards", []): _transfer_models[str(card.cardInstanceId)] = final_presenter.card_view_model(str(card.cardInstanceId))

@@ -24,11 +24,12 @@ func _render(data: Dictionary) -> void:
 	var choices: Array = GameSession.activity_choices()
 	var zones: Dictionary = GameSession.card_zones
 	controller.bind(run, choices)
-	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations, GameSession.modifier_items)
 	var key: Array = [run, choices, zones, data, visual_context.presentation_key()]
 	if key != _projection_key:
-		_projection_key = key.duplicate(true); render_epoch += 1
 		presentation = data.duplicate(true)
+		key[3] = presentation
+		_projection_key = key; render_epoch += 1
+		presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, presentation, I18n, GameSession.card_presentations, GameSession.modifier_items)
 		view.apply_projection(run, choices, zones, presentation, presenter, visual_context)
 	var workflow_key: Array = [run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0), choices]
 	if workflow_key != _workflow_key:

@@ -113,3 +113,16 @@ Fixtures antigos foram adaptados somente em `tests/session_fixture_adapter.gd`;
 não há fallback para o refresh antigo em produção. Testes da sessão compacta,
 animação, supersessão, seleção, estabilidade de faces e transporte passaram.
 Inspeção contextual continua no coordenador existente, com cache/epoch limitado.
+
+## Etapa 9 — fronteiras de cópia e apresentação
+
+Uma captura privada em lote entrega run, combate, zonas, ações e fatos da mesma
+revisão à tela. Getters públicos continuam defensivos; o novo teste altera a
+captura sem conseguir alterar a sessão. Chaves de projeção reutilizam mapas já
+privados em vez de duplicá-los novamente. Journey não reconstrói presenters para
+uma projeção igual. Envelope guarda os próprios fatos/ações finais, sem consultar
+globais possivelmente mais novos ao preparar a animação.
+
+Validação: sessão compacta (11 checks), animação (29), Journey (11), estabilidade
+de face (34) e movimentos do laboratório (94) passaram. Não foi removida a cópia
+defensiva dos view models públicos nem compartilhado Dictionary mutável de sessão.

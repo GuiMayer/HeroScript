@@ -63,6 +63,21 @@ var _gateway
 var available := false
 var content_revision := ""
 var _operation := "idle"
+var last_view_capture_usec := 0
+
+func _belongs_to_current_run(snapshot: Dictionary) -> bool:
+	return str(snapshot.get("runId", "")) == str(_run.get("runId", "")) and int(snapshot.get("runSequence", -1)) == int(_run.get("sequence", 0)) and str(snapshot.get("contentRevision", "")) == str(_run.get("contentRevision", ""))
+
+func capture_view_snapshot() -> Dictionary:
+	# One private copy per consumer/revision. Never expose the mutable backing maps.
+	var started := Time.get_ticks_usec()
+	var value := {"run": _run, "combat": _combat, "actions": _legal_actions, "zones": _card_zones,
+		"evaluations": _card_evaluations if card_evaluations_ready else [],
+		"presentations": _card_presentations.get("cards", []) if _belongs_to_current_run(_card_presentations) else [],
+		"attributes": _character_attributes if _belongs_to_current_run(_character_attributes) else {}}
+	var result := value.duplicate(true)
+	last_view_capture_usec = Time.get_ticks_usec() - started
+	return result
 var _generation := 0
 var _pending: Dictionary = {}
 var busy: bool:
@@ -302,7 +317,7 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 		var accepted: Dictionary = _accepted_presentation
 		_accepted_presentation = {}
 		var envelope = preload("res://scripts/presentation/presentation_envelope.gd").build(accepted.receipt, accepted.before,
-			{"run": run, "combat": combat, "zones": card_zones, "evaluations": card_evaluations}, accepted.endpoint)
+			capture_view_snapshot(), accepted.endpoint)
 		if envelope != null:
 			for marker in refresh_timings: envelope.mark_at(marker, refresh_timings[marker])
 			envelope.mark_at("submitted", int(accepted.get("submitted", 0)))
