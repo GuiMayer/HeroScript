@@ -277,6 +277,7 @@ public static class GameplayCommandDescriptors
         Run<RelicInstanceCommand>(RunCommandTypes.RemoveRelic),
         Run<CardUpgradeCommand>(RunCommandTypes.UpgradeCard),
         Run<ApplyCardModifierItemCommand>(RunCommandTypes.ApplyCardModifierItem),
+        Run<Loadouts.ApplyLoadoutCommand>(RunCommandTypes.ApplyLoadout),
         Run<AcquireCardModifierItemCommand>(RunCommandTypes.AcquireCardModifierItem),
         Run<CardTransformationRemoveCommand>(RunCommandTypes.RemoveCardTransformation),
         Run<CardTransformationReplaceCommand>(RunCommandTypes.ReplaceCardTransformation),

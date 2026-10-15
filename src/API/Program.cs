@@ -499,6 +499,8 @@ builder.Services.AddSingleton<ICardPresentationQueryService, CardPresentationQue
 builder.Services.AddSingleton<InteractionSessionService>();
 builder.Services.AddSingleton<ICardModifierItemQueryService, CardModifierItemQueryService>();
 builder.Services.AddSingleton<CardModifierItemApplicationPlanner>();
+builder.Services.AddSingleton<Core.Run.Loadouts.LoadoutChangePlanner>();
+builder.Services.AddSingleton<Core.Run.Loadouts.ILoadoutQueryService, Core.Run.Loadouts.LoadoutQueryService>();
 builder.Services.AddSingleton<IActorAttributeProjectionService, ActorAttributeProjectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
 builder.Services.AddSingleton<ILegalActionResolver, LegalActionResolver>();
@@ -575,6 +577,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.DocumentFilter<API.Contracts.CanonicalCommandDocumentFilter>();
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "HeroScript API",
@@ -633,6 +636,7 @@ var applicationCaches = new ICacheService[]
     (ICacheService)app.Services.GetRequiredService<ICardInspectionService>(),
     (ICacheService)app.Services.GetRequiredService<ICardPresentationQueryService>(),
     (ICacheService)app.Services.GetRequiredService<ICardModifierItemQueryService>(),
+    (ICacheService)app.Services.GetRequiredService<Core.Run.Loadouts.ILoadoutQueryService>(),
     (ICacheService)app.Services.GetRequiredService<IResourceLoader>(),
     app.Services.GetRequiredService<EntityDefinitionLoader>(),
     (ICacheService)app.Services.GetRequiredService<IMathEngine>(),

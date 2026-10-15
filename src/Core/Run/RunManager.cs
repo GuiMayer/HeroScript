@@ -275,6 +275,12 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 if (player.IsFailure) return Result<RunState>.Failure(player.Error);
                 state = state with { PlayerEntity = player.Value };
             }
+            if (state.ResolvedMode?.Definition.LoadoutPolicyId != null)
+            {
+                var loadouts = Loadouts.InscriptionAcquisition.Initialize(state, runtime.Value, [state.PlayerEntityId]);
+                if (loadouts.IsFailure) return Result<RunState>.Failure(loadouts.Error);
+                state = loadouts.Value;
+            }
             var cards = RunContentCompatibilityValidator.ValidateForActivation(state, runtime.Value);
             if (cards.IsFailure) return Result<RunState>.Failure(cards.Error);
         }
@@ -485,6 +491,21 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var commands = _progression.GetAvailableCommands(run.Value);
         if (commands.IsFailure)
             return commands;
+        if (_contentRuntimes != null && run.Value.Loadouts != null)
+        {
+            var runtime = _contentRuntimes.Resolve(run.Value.Determinism.ContentRevision, run.Value.ConfigName);
+            if (runtime.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(runtime.Error);
+            var policy = Loadouts.LoadoutContentAccess.Policy(run.Value, runtime.Value);
+            if (policy.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(policy.Error);
+            if (Loadouts.LoadoutContentAccess.CanEquip(run.Value, policy.Value))
+                commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Append(new RunAvailableCommand
+                {
+                    Type = RunCommandTypes.ApplyLoadout, CurrentNodeId = run.Value.CurrentNodeId ?? string.Empty,
+                    ExpectedSequence = run.Value.Sequence, ExpectedStep = run.Value.Determinism.Step,
+                    PayloadSchema = JsonSerializer.SerializeToElement(new { actorId = "string", assignments = new { slotId = "guid" } }),
+                    ValidPayload = JsonSerializer.SerializeToElement(new { actorIds = run.Value.Loadouts.Actors.Keys, requiresCompleteDraft = true })
+                }).ToArray());
+        }
         if (_contentRuntimes != null && run.Value.ActiveEncounterId == null && run.Value.Lifecycle == RunLifecycleState.Active &&
             run.Value.CardModifierItems?.Items.Any(item => item.State == CardModifierItemState.Available) == true)
         {
@@ -699,6 +720,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
+            RunCommandTypes.ApplyLoadout => ExecuteApplyLoadout(runId, payload),
             RunCommandTypes.AcquireCardModifierItem => ExecuteAcquireCardModifierItem(runId, payload),
             RunCommandTypes.RemoveCardTransformation => ExecuteRemoveCardTransformation(runId, payload),
             RunCommandTypes.ReplaceCardTransformation => ExecuteReplaceCardTransformation(runId, payload),
@@ -967,6 +989,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             .Plan(_runs[runId], request.ItemInstanceId, request.CardInstanceId);
         return planned.IsFailure ? Result.Failure(planned.Error) :
             ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyCardModifierItem, payload));
+    }
+
+    private Result ExecuteApplyLoadout(Guid runId, JsonElement payload)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var request = DeserializePayload<Loadouts.ApplyLoadoutCommand>(payload);
+        var planned = new Loadouts.LoadoutChangePlanner(_contentRuntimes).Plan(_runs[runId], request.ActorId, request.Assignments);
+        return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyLoadout, payload));
     }
 
     private Result ExecuteAcquireCardModifierItem(Guid runId, JsonElement payload)

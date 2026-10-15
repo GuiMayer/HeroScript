@@ -104,6 +104,7 @@ public sealed class SystemController : ControllerBase
             "canonical-effect-identities",
             "global-effect-policies",
             "actor-attribute-projections",
+            "inscription-loadouts-v1",
             "compact-interaction-sessions-v1",
             "run-card-instances",
             "run-card-zones",

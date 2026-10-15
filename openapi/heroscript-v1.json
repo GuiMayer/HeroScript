@@ -1,5 +1,6 @@
 {
   "openapi": "3.0.4",
+  "x-heroscript-command-payloads": {"APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand"},
   "info": {
     "title": "HeroScript API",
     "version": "v1",
@@ -16,6 +17,134 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/loadout": {
+      "get": {
+        "tags": [
+          "Loadout"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadoutSnapshot"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadoutSnapshot"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadoutSnapshot"
+                }
+              }
+            }
+          }
+        }
+      },
+      "x-heroscript-stability": "experimental"
+    },
+    "/api/v1/runs/{runId}/loadout/preview": {
+      "post": {
+        "tags": [
+          "Loadout"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadoutPreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadoutPreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadoutPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadoutPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadoutPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadoutPreview"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "x-heroscript-stability": "experimental"
+    },
     "/api/v1/runs/{runId}/session": {
       "get": {
         "tags": [
@@ -715,6 +844,341 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "ApplyLoadoutCommand": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutSnapshot": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "inventoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "policy": {
+            "$ref": "#/components/schemas/LoadoutPolicyDefinition"
+          },
+          "canEquip": {
+            "type": "boolean"
+          },
+          "usedCapacity": {
+            "type": "number",
+            "format": "float"
+          },
+          "actorIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoadoutItemView"
+            }
+          },
+          "assignments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "expectedSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedStep": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutPreview": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/LoadoutSnapshot"
+          },
+          "after": {
+            "$ref": "#/components/schemas/LoadoutSnapshot"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutPolicyDefinition": {
+        "type": "object",
+        "properties": {
+          "loadoutPolicyId": {
+            "type": "string",
+            "nullable": true
+          },
+          "inventoryScope": {
+            "$ref": "#/components/schemas/InscriptionInventoryScope"
+          },
+          "capacity": {
+            "type": "number",
+            "format": "float"
+          },
+          "allowDuplicateDefinitions": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "maximumInventoryEntries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoadoutSlotDefinition"
+            }
+          },
+          "inscriptionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "equipmentWindows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoadoutEquipmentWindow"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutItemView": {
+        "type": "object",
+        "properties": {
+          "instance": {
+            "$ref": "#/components/schemas/InscriptionInstance"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/InscriptionDefinition"
+          },
+          "equippedActorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "slotId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InscriptionInventoryScope": {
+        "enum": [
+          "Actor",
+          "Run"
+        ],
+        "type": "string"
+      },
+      "LoadoutSlotDefinition": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiredTags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoadoutEquipmentWindow": {
+        "enum": [
+          "OutsideCombat",
+          "Preparation",
+          "Combat"
+        ],
+        "type": "string"
+      },
+      "InscriptionInstance": {
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "acquisitionRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "acquisitionSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "acquisitionSequence": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InscriptionDefinition": {
+        "type": "object",
+        "properties": {
+          "inscriptionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "equipmentCost": {
+            "type": "number",
+            "format": "float"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attributeBonuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InscriptionAttributeBonusDefinition"
+            }
+          },
+          "presentation": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InscriptionAttributeBonusDefinition": {
+        "type": "object",
+        "properties": {
+          "attributeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "influence": {
+            "$ref": "#/components/schemas/ContextualInfluenceDefinition"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContextualInfluenceDefinition": {
+        "type": "object",
+        "properties": {
+          "influenceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/CalculationEntityScope"
+          },
+          "channel": {
+            "type": "string",
+            "nullable": true
+          },
+          "bucket": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "requiredTags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "excludedTags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CalculationEntityScope": {
+        "enum": [
+          "Actor",
+          "Target"
+        ],
+        "type": "string"
+      },
       "InteractionSession": {
         "type": "object",
         "properties": {

@@ -284,6 +284,10 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 - Etapa 1 registrada em `db0d8c1`.
 - Etapa 2: estado opcional imutável no agregado, inventários Actor/Run, registro de IDs persistentes, aquisição determinística com proveniência e planner de equipamento completo implementados. Há rejeição de posse estrangeira, uso simultâneo compartilhado, tags/slots, duplicatas, capacidade e janelas inválidas; preview não altera o snapshot nem RNG/cartas. Onze testes focados de inscrições passaram, incluindo round-trip e trocas com orçamento cheio. A conexão ao lifecycle/gateway é a etapa 3, ainda pendente nesta revisão.
 - Regressão após a etapa 2: os 1.770 testes Core passaram; nenhum setting existente foi habilitado implicitamente.
+- Etapa 2 registrada em `762e727`.
+- Etapa 3: `APPLY_LOADOUT` pelo codec/gateway existente, inicialização opt-in no lifecycle, consultas/preview versionados, cache derivado limitado e resumo na sessão implementados. Controller delega ao serviço de aplicação; OpenAPI inclui payloads vindos do registry canônico. Branch compartilhada rebasa o inventário sem duplicar instâncias.
+- Verificação da etapa 3: 1.773 testes Core e 13 testes focados de contrato/arquitetura/REST passaram; aquisição inicial dos testes é uma preparação de estado confiável, não um endpoint de grant aberto. Dois testes de durabilidade (Actor/Run) reexecutam replay três vezes, recuperam depois de reiniciar, testam retry, conflito e falha de armazenamento sem alteração parcial. A suíte API completa atingiu o limite configurado de 300 s após 228 casos aprovados, sem falhas reportadas; execução abortada não é certificação da suíte completa.
+- O primeiro teste OpenAPI encontrou artefatos de build antigos carregando OpenApi 3.5.4 apesar de o projeto já fixar 2.7.5. Reconstruir a saída de testes resolveu, sem atualizar dependências. Os endpoints novos permanecem experimentais; provider/atributos reais e as etapas 4–8 não estão concluídos nesta revisão.
 
 - [x] Diagnóstico por código e arquitetura documentados.
 - [x] Cena isolada implementada e verificada.

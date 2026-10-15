@@ -17,6 +17,13 @@ public static class RunContentCompatibilityValidator
         using var timing = Core.Diagnostics.OperationalTiming.Measure("content_compatibility");
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
+        if (run.Loadouts is { } loadouts)
+        {
+            var policy = Loadouts.LoadoutContentAccess.Policy(run, runtime);
+            if (policy.IsFailure) return Result.Failure(policy.Error);
+            var valid = loadouts.Validate(run.RunId, policy.Value);
+            if (valid.IsFailure) return valid;
+        }
         var eligibility = RunEligibility.ValidateSnapshot(run);
         if (eligibility.IsFailure) return eligibility;
         if (run.Eligibility is { } captured)
@@ -112,6 +119,7 @@ public static class RunContentCompatibilityValidator
     }
 
     public static bool RequiresRuntime(RunState run) =>
+        run.Loadouts != null ||
         run.PlayerEntity != null ||
         run.Deck.Topology.Instances.Count > 0 ||
         run.ResourceState.Resources.Count > 0 ||

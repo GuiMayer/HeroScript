@@ -353,9 +353,18 @@ public static class RunBranchTransitions
             command.SourceStateHash,
             source.ActiveEncounterId,
             command.BranchKey);
+        var loadouts = source.Loadouts;
+        if (loadouts?.InventoryScope == Loadouts.InscriptionInventoryScope.Run)
+        {
+            var oldId = loadouts.InventoryId(source.RunId, string.Empty);
+            var newId = loadouts.InventoryId(allocated.Value, string.Empty);
+            if (!loadouts.Inventories.TryGetValue(oldId, out var inventory)) return Result<RunState>.Failure("Shared inscription inventory not found for branch");
+            loadouts = loadouts with { Inventories = loadouts.Inventories.Remove(oldId).Add(newId, inventory with { InventoryId = newId }) };
+        }
         return Result<RunState>.Success(source with
         {
             RunId = allocated.Value,
+            Loadouts = loadouts,
             CreationReceipt = null,
             ProgressProvenance = source.ProgressProvenance != null || source.ResolvedMode?.ProfileProgressPolicy != null
                 ? Core.Meta.ProfileProgressProvenance.Branch : null,
