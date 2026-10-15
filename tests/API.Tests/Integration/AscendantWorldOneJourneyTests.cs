@@ -5,6 +5,7 @@ using API.Tests.Helpers;
 using Xunit;
 using Xunit.Abstractions;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Tests.Integration;
 
@@ -23,7 +24,10 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
     [Fact]
     public Task CompactSession_CanTraverseTheSamePublishedActAndReplay() => Traverse(true);
 
-    private async Task Traverse(bool compact)
+    [Fact]
+    public Task CanonicalEncoding_MatchesReferenceAfterEveryWorldOneCommand() => Traverse(true, true);
+
+    private async Task Traverse(bool compact, bool verifyCanonical = false)
     {
         using var factory = compact ? new TimedFactory() : new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -35,6 +39,7 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
         var sessionTimes = new List<double>();
         var sessionBytes = new List<int>();
         var phases = new List<(double Ms, string Type, int Bytes, string Timing)>();
+        var authoritativeRuns = factory.Services.GetRequiredService<Core.Run.IRunQueryService>();
         var sessionPhases = new List<(double Ms, string Timing)>();
         if (compact) client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
         var fights = 0;
@@ -61,6 +66,18 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             times.Add(timer.Elapsed.TotalMilliseconds);
             phases.Add((timer.Elapsed.TotalMilliseconds, type, System.Text.Encoding.UTF8.GetByteCount(body),
                 response.Headers.TryGetValues("Server-Timing", out var timing) ? string.Join("; ", timing) : "disabled"));
+            if (verifyCanonical)
+            {
+                // Independent legacy serializer oracle after every accepted command.
+                // Outside the timed region: certification work is not gameplay latency.
+                var state = authoritativeRuns.GetRun(runId).Value;
+                static string ReferenceHash<T>(T value) => Convert.ToHexStringLower(
+                    System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+                        Core.Determinism.CanonicalJson.Serialize(value))));
+                Assert.Equal(ReferenceHash(state), Core.Determinism.CanonicalJson.ComputeHash(state));
+                if (state.GetActiveEncounter() is { } encounter)
+                    Assert.Equal(ReferenceHash(encounter.Combat), Core.Determinism.CanonicalJson.ComputeHash(encounter.Combat));
+            }
         }
 
         for (var iteration = 0; iteration < 700; iteration++)

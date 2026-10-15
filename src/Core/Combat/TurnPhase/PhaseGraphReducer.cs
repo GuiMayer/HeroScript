@@ -365,14 +365,10 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         };
         return Result<PhaseGraphResult>.Success(result with
         {
-            Fingerprint = CanonicalJson.ComputeHash(new
-            {
-                result.Combat,
-                result.Run,
-                result.Transitions,
-                result.Steps,
-                result.Applications
-            })
+            Fingerprint = CanonicalJson.ComputeObjectHash(
+                CanonicalJson.Property("combat", result.Combat), CanonicalJson.Property("run", result.Run),
+                CanonicalJson.Property("transitions", result.Transitions),
+                CanonicalJson.Property("steps", result.Steps), CanonicalJson.Property("applications", result.Applications))
         });
     }
 

@@ -339,14 +339,11 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ActorId = actorId,
             Candidates = ordered,
             Determinism = run.Determinism,
-            StateFingerprint = CanonicalJson.ComputeHash(new
-            {
-                run.Sequence,
-                runStep = run.Determinism.Step,
-                combatStep = combat.Determinism.Step,
-                combat,
-                run.Deck
-            })
+            StateFingerprint = CanonicalJson.ComputeObjectHash(
+                CanonicalJson.Property("sequence", run.Sequence),
+                CanonicalJson.Property("runStep", run.Determinism.Step),
+                CanonicalJson.Property("combatStep", combat.Determinism.Step),
+                CanonicalJson.Property("combat", combat), CanonicalJson.Property("deck", run.Deck))
         });
     }
 

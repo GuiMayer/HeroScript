@@ -748,15 +748,12 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             Applications = immutableApplications,
             PhaseTransitions = immutablePhaseTransitions,
             CardZoneSteps = immutableCardZoneSteps,
-            Fingerprint = CanonicalJson.ComputeHash(new
-            {
-                combat,
-                run,
-                effectSteps = normalizedSteps,
-                applications = immutableApplications,
-                phaseTransitions = immutablePhaseTransitions,
-                cardZoneSteps = immutableCardZoneSteps
-            })
+            Fingerprint = CanonicalJson.ComputeObjectHash(
+                CanonicalJson.Property("combat", combat), CanonicalJson.Property("run", run),
+                CanonicalJson.Property("effectSteps", normalizedSteps),
+                CanonicalJson.Property("applications", immutableApplications),
+                CanonicalJson.Property("phaseTransitions", immutablePhaseTransitions),
+                CanonicalJson.Property("cardZoneSteps", immutableCardZoneSteps))
         };
     }
 

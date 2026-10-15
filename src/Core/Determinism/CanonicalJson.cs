@@ -17,7 +17,7 @@ public interface ICanonicalHashMemoizable { }
 /// Produces stable JSON and SHA-256 state hashes. Object properties are ordered
 /// ordinally while array order is preserved as domain data.
 /// </summary>
-public static class CanonicalJson
+public static partial class CanonicalJson
 {
     private static readonly AsyncLocal<HashScope?> ActiveHashScope = new();
     // Default serializer only. Weak keys cannot keep completed runs/branches alive.
@@ -27,6 +27,7 @@ public static class CanonicalJson
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+        TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         WriteIndented = false
     };
 
@@ -88,12 +89,20 @@ public static class CanonicalJson
     // Composition preserves the original embedded JSON, not a hash-of-hashes.
     // Only deeply immutable instances with the default serializer are reused.
     private readonly record struct CanonicalEncoding(ReadOnlyMemory<byte> Bytes, int Depth);
-    internal readonly record struct CanonicalProperty(string Name, ReadOnlyMemory<byte> Bytes, int Depth);
+    internal readonly struct CanonicalProperty
+    {
+        private CanonicalProperty(string name, CanonicalEncoding encoded)
+        { Name = name; Bytes = encoded.Bytes; Depth = encoded.Depth; }
+        public string Name { get; }
+        public ReadOnlyMemory<byte> Bytes { get; }
+        public int Depth { get; }
+        internal static CanonicalProperty Create<T>(string name, T value) =>
+            new(name, CanonicalBytes(value, DefaultOptions));
+    }
     internal static CanonicalProperty Property<T>(string name, T value)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
-        var encoded = CanonicalBytes(value, DefaultOptions);
-        return new(name, encoded.Bytes, encoded.Depth);
+        return CanonicalProperty.Create(name, value);
     }
 
     internal static string ComputeObjectHash(params CanonicalProperty[] properties)
@@ -110,7 +119,8 @@ public static class CanonicalJson
             // Raw writes alone would accidentally accept previously invalid data.
             if (property.Depth >= 64) throw new JsonException("Maximum canonical serialization depth exceeded");
             writer.WritePropertyName(property.Name);
-            writer.WriteRawValue(property.Bytes.Span, skipInputValidation: false);
+            // Factory-only fragments have already been serialized and depth checked.
+            writer.WriteRawValue(property.Bytes.Span, skipInputValidation: true);
             previous = property.Name;
         }
         writer.WriteEndObject();
@@ -123,27 +133,7 @@ public static class CanonicalJson
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_encode");
         var scope = ActiveHashScope.Value;
         if (scope != null && value is ICanonicalHashMemoizable memoizable && ReferenceEquals(options, DefaultOptions))
-        {
-            var key = new HashCacheKey(memoizable, typeof(T), options);
-            if (scope.Bytes.TryGetValue(key, out var cached)) return cached;
-            var buffer = WriteCanonicalBytes(value, options, out var depth);
-            // FIFO, request-local, bounded by both retained bytes and entry count.
-            // Eviction changes only work performed, never serialized facts.
-            const int budget = 8 * 1024 * 1024;
-            if (buffer.WrittenCount > budget) return new(buffer.WrittenMemory, depth);
-            while (scope.Bytes.Count >= 64 || scope.ByteCount + buffer.WrittenCount > budget)
-            {
-                var oldest = scope.ByteOrder.Dequeue();
-                scope.ByteCount -= scope.Bytes[oldest].Bytes.Length;
-                scope.Bytes.Remove(oldest);
-            }
-            var owned = buffer.WrittenMemory.ToArray();
-            var encoding = new CanonicalEncoding(owned, depth);
-            scope.Bytes.Add(key, encoding);
-            scope.ByteOrder.Enqueue(key);
-            scope.ByteCount += owned.Length;
-            return encoding;
-        }
+            return EncodeImmutable(memoizable, typeof(T), scope.Encodings);
         var uncached = WriteCanonicalBytes(value, options, out var uncachedDepth);
         return new(uncached.WrittenMemory, uncachedDepth);
     }
@@ -223,14 +213,12 @@ public static class CanonicalJson
     {
         public HashScope? Previous { get; } = previous;
         public Dictionary<HashCacheKey, string> Hashes { get; } = new(HashCacheKeyComparer.Instance);
-        public Dictionary<HashCacheKey, CanonicalEncoding> Bytes { get; } = new(HashCacheKeyComparer.Instance);
-        public Queue<HashCacheKey> ByteOrder { get; } = new();
-        public int ByteCount { get; set; }
+        public EncodingCache Encodings { get; } = previous?.Encodings ?? new();
     }
     private sealed class ImmutableHashes { public Dictionary<Type, string> Values { get; } = new(); }
 
     private readonly record struct HashCacheKey(
-        ICanonicalHashMemoizable Value,
+        object Value,
         Type DeclaredType,
         JsonSerializerOptions Options);
 

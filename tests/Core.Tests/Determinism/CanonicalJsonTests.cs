@@ -68,6 +68,48 @@ public class CanonicalJsonTests
     private sealed record MemoizableValue(int Value) : ICanonicalHashMemoizable;
 
     [Fact]
+    public void StructurallySharedAggregatesMatchTheUnoptimizedSerializerForEveryRevision()
+    {
+        using var diagnostics = Core.Diagnostics.OperationalTiming.Begin();
+        var manifest = new Core.Content.ContentManifest { Revision = "same-content", ConfigName = "test" };
+        var combat = new Core.Combat.Models.CombatState();
+        var run = new Core.Run.RunState
+        {
+            ContentManifest = manifest,
+            Encounters = [new() { NodeId = "past", Combat = combat, Resolved = true }],
+            Metadata = System.Collections.Immutable.ImmutableDictionary<string, JsonElement>.Empty
+                .Add("<escaped>", JsonSerializer.SerializeToElement(new { Value = "ação", Amount = -0.0 }))
+        };
+        using var scope = CanonicalJson.BeginHashScope();
+        for (var revision = 0; revision < 180; revision++)
+        {
+            var next = run with { Sequence = revision, ModeId = revision % 2 == 0 ? null : "mode" };
+            Assert.Equal(CanonicalJson.Serialize(next), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("run", next).Bytes.Span));
+            using var nested = CanonicalJson.BeginHashScope();
+            var actorRevision = combat with { CurrentTurn = revision };
+            Assert.Equal(CanonicalJson.Serialize(actorRevision), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("combat", actorRevision).Bytes.Span));
+        }
+        Assert.Contains("canonical_aggregate_encode", diagnostics.Snapshot().Keys);
+        Assert.Contains("canonical_encounters_encode", diagnostics.Snapshot().Keys);
+    }
+
+    [Fact]
+    public void StructurallySharedEncodingRetainsDepthAndDeclaredTypeSemantics()
+    {
+        using var scope = CanonicalJson.BeginHashScope();
+        using var document = JsonDocument.Parse(new string('[', 63) + "0" + new string(']', 63));
+        var invalid = new Core.Run.RunState { Metadata =
+            System.Collections.Immutable.ImmutableDictionary<string, JsonElement>.Empty.Add("deep", document.RootElement.Clone()) };
+        Assert.ThrowsAny<JsonException>(() => CanonicalJson.Serialize(invalid));
+        Assert.ThrowsAny<JsonException>(() => CanonicalJson.Property("run", invalid));
+        var run = new Core.Run.RunState();
+        Assert.Equal(CanonicalJson.Serialize<object>(run), System.Text.Encoding.UTF8.GetString(
+            CanonicalJson.Property<object>("run", run).Bytes.Span));
+    }
+
+    [Fact]
     public void ComposedFingerprintMatchesEmbeddedCanonicalJsonWithColdWarmAndEvictedBytes()
     {
         var run = new Core.Run.RunState();
