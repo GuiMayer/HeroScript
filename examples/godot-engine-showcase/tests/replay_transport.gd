@@ -22,10 +22,17 @@ func _run() -> void:
 	if error == OK:
 		transport.base_url = "http://127.0.0.1:%s" % port; transport.available = true
 		var pending = transport.read("/stall")
-		await create_timer(.05).timeout
+		var deadline := Time.get_ticks_msec() + 2000
+		while not server.is_connection_available() and Time.get_ticks_msec() < deadline: await process_frame
+		var peer = server.take_connection() if server.is_connection_available() else null
+		if peer != null:
+			peer.poll()
+			while peer.get_available_bytes() == 0 and Time.get_ticks_msec() < deadline: await process_frame; peer.poll()
+			if peer.get_available_bytes() > 0: peer.get_data(peer.get_available_bytes())
 		pending.cancel(); response = await pending.result()
+		if peer != null: peer.disconnect_from_host()
 		for i in 4: await process_frame
-		check(response.cancelled and transport.available and transport.get_child_count() == 0, "in-flight cancellation releases await and node without marking offline")
+		check(response.cancelled and transport.available and transport._idle.size() == transport._workers.size() and transport._workers.size() <= transport.max_workers, "in-flight cancellation returns the worker without marking offline")
 		var changed = transport.read("/endpoint")
 		await create_timer(.05).timeout
 		transport.base_url = "http://127.0.0.1:59184"

@@ -19,4 +19,17 @@ ms no cliente a 60 FPS. TestServer Release: descoberta inédita 915,8 ms; reuso
 36,4 ms; inspeção 385,2/34,6 ms. Amostras pequenas, não p95.
 
 Validação: teste de isolamento de spans e equivalência do hash; teste HTTP de
-corpo idêntico com diagnóstico ligado/desligado. Demais etapas pendentes.
+corpo idêntico com diagnóstico ligado/desligado. Ambos passaram.
+
+## Etapa 2 — transporte
+
+Workers HTTPRequest em threads, pool limitado (4), fila com prioridade para
+comandos e histórico em baixa prioridade. GETs idênticos em voo compartilham I/O,
+mas recebem cópias privadas e cancelamento independente. POSTs não são repetidos.
+Cancelamento nativo é agendado fora da pilha de sinais para não bloquear/juntar
+uma thread reentrantemente. Epochs continuam descartando respostas de outro host.
+Reutilização de nodes não é anunciada como prova de keep-alive TCP; isso permanece
+dependente do comportamento nativo do HTTPRequest e da medição do probe.
+
+Testes de loopback: cancelamento antes/durante I/O, consumidores compartilhados,
+troca de host, isolamento das respostas e retorno do worker ao pool.
