@@ -18,7 +18,7 @@ namespace Core.Tests.Content;
 
 public sealed class HeroAttributeScalingTests
 {
-    private static async Task<(EffectTriggerExecutor Executor, EffectTriggerExecutionRequest Request, ActorAttributeProjectionService Projection)> Fixture(float armor, float chance = 0)
+    internal static async Task<(EffectTriggerExecutor Executor, EffectTriggerExecutionRequest Request, ActorAttributeProjectionService Projection, ContentRuntime Runtime)> Fixture(float armor, float chance = 0)
     {
         var runtime = await AscendantWorldOneContentTests.Compile();
         var runtimes = new Mock<IContentRuntimeResolver>();
@@ -26,7 +26,8 @@ public sealed class HeroAttributeScalingTests
         var math = new MathEngine(Mock.Of<IConfigManager>(), new FormulaLoader(Mock.Of<IResourceLoader>()), NullLogger.Instance);
         var formulas = new RuntimeFormulaEvaluator(math, new ExpressionEvaluator(NullLogger.Instance), NullLogger.Instance, runtimes.Object);
         var engine = new CalculationEngine(formulas);
-        var providers = new CompositeCalculationInfluenceProvider([new EntityStatInfluenceProvider(), new EntityResourceInfluenceProvider()]);
+        var providers = new CompositeCalculationInfluenceProvider([new EntityStatInfluenceProvider(), new EntityResourceInfluenceProvider(),
+            new RelicCalculationInfluenceProvider(formulas), new CardComponentInfluenceProvider(formulas)]);
         var request = EffectTransactionTests.Request(new EffectDefinition { Type = EffectType.DAMAGE, TargetResource = "focus", FlatValue = 100 });
         var actor = request.Combat.GetActor("hero")!;
         actor = actor with { Components = actor.Components.ToImmutableDictionary().SetItem("stats",
@@ -42,7 +43,7 @@ public sealed class HeroAttributeScalingTests
         request = request with { Run = run, ContentRevision = runtime.Manifest.Revision,
             Combat = request.Combat.ReplaceActor(actor).ReplaceActor(target) with { Determinism = determinism } };
         return (new(formulas, new ImmutableEffectProcessor(), runtimes.Object, engine, providers), request,
-            new(runtimes.Object, formulas, engine, providers));
+            new(runtimes.Object, formulas, engine, providers), runtime);
     }
 
     [Theory]

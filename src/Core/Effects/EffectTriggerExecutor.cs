@@ -709,6 +709,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 var owner = current.GetActor(ownerId);
                                 if (owner == null || !relic.Owner.Includes(owner, current, currentRun) ||
                                     reaction.RequireLivingOwner && !owner.IsAlive) continue;
+                                if (reaction.TargetRelationship is { } relationship &&
+                                    (current.GetActor(request.SourceEntityId) is not { } originalSource ||
+                                     current.GetActor(targetId) is not { } originalTarget ||
+                                     current.Relationship(originalSource, originalTarget) != relationship)) continue;
                                 var reacted = Execute(new()
                                 {
                                     Combat = current, Run = currentRun,

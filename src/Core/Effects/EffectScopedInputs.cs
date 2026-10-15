@@ -136,6 +136,8 @@ internal static class EffectInputNamespaces
 {
     public static bool IsFactVariable(string token)
     {
+        if (token is "parent.requested_change" or "parent.applied_change" or "parent.limited_change" or
+            "parent.caused_defeat" or "parent.stack_delta") return true;
         if (token is "continuation.requested_change" or "continuation.applied_change" or "continuation.limited_change") return true;
         if (token.StartsWith("captures.", StringComparison.Ordinal)) return EffectRandomProbabilityPolicies.SafeId(token[9..]);
         if (!token.StartsWith("rolls.", StringComparison.Ordinal)) return false;

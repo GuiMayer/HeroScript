@@ -212,6 +212,13 @@
     {
       "schemaVersion": 1,
       "operation": "definition",
+      "sourcePath": "Resources/relics/exceptional_rules.json",
+      "kind": "relics",
+      "artifactPath": "relics/exceptional_rules.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
       "sourcePath": "Resources/card-pools/world_one.json",
       "kind": "card-pools",
       "artifactPath": "card-pools/world_one.json"

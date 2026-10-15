@@ -9,6 +9,12 @@
         "order": 10,
         "operation": "Add",
         "minimum": 0
+      },
+      {
+        "bucketId": "bonus_cap",
+        "order": 1000,
+        "operation": "Minimum",
+        "minimum": 0
       }
     ],
     "statInfluenceBindings": [

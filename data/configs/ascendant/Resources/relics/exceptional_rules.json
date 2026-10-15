@@ -1,0 +1,66 @@
+{
+  "w1_blood_covenant": {
+    "relicId": "w1_blood_covenant",
+    "stackLimit": 1,
+    "presentation": {
+      "displayName": "Blood Covenant",
+      "description": "Your critical tiers grant no bonus damage. Recover 20% of the health actually lost by enemies to your direct attacks."
+    },
+    "influences": [{
+      "influenceId": "blood-covenant.critical-bonus-ceiling",
+      "scope": "Actor",
+      "channel": "critical_bonus",
+      "bucket": "bonus_cap",
+      "value": 0
+    }],
+    "reactions": [{
+      "reactionId": "blood-covenant.recovery",
+      "ownerScope": "Source",
+      "targetRelationship": "Enemy",
+      "selection": "Target",
+      "resourceId": "health",
+      "resourceField": "Current",
+      "operation": "Subtract",
+      "channels": ["effect_amount"],
+      "requiredTags": ["attack", "effect.damage"],
+      "excludedTags": ["damage.residual", "damage.condensed", "reflection"],
+      "effects": [{
+        "effectId": "blood-covenant.heal",
+        "type": "HEAL",
+        "target": "SELF",
+        "targetResource": "health",
+        "condition": "parent.applied_change * -1",
+        "parameters": [{
+          "parameter": "Amount",
+          "formulaValue": "parent.applied_change * -0.2",
+          "channel": "effect_amount",
+          "pipelineId": "w1_amount",
+          "unitId": "scalar"
+        }],
+        "tags": ["recovery", "lifesteal"]
+      }]
+    }]
+  },
+  "w1_iron_vow": {
+    "relicId": "w1_iron_vow",
+    "stackLimit": 1,
+    "presentation": {
+      "displayName": "Iron Vow",
+      "description": "Discard your Block and cannot gain it while this relic is active. Gain 25 Armor. Removing the relic does not refill Block."
+    },
+    "resourceRestrictions": [{
+      "ruleId": "iron-vow.block-ceiling",
+      "resourceId": "block",
+      "currentCeiling": 0,
+      "existingBalance": "DiscardExcess"
+    }],
+    "influences": [{
+      "influenceId": "iron-vow.armor",
+      "scope": "Target",
+      "channel": "effect_amount",
+      "bucket": "armor",
+      "value": 25,
+      "requiredTags": ["effect.damage"]
+    }]
+  }
+}

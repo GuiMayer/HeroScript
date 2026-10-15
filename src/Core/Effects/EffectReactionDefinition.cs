@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Resources;
+using Core.Combat.Models;
 
 namespace Core.Effects;
 
@@ -18,6 +19,8 @@ public sealed record EffectReactionDefinition
     public int Priority { get; init; }
     public EffectReactionOwnerScope OwnerScope { get; init; }
     public EffectReactionSelection Selection { get; init; } = EffectReactionSelection.Target;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SideRelationship? TargetRelationship { get; init; }
     public string ResourceId { get; init; } = string.Empty;
     public ResourceValueField ResourceField { get; init; }
     public ResourceMutationOperation? Operation { get; init; }
@@ -42,6 +45,7 @@ public static class EffectReactionPolicies
         {
             if (string.IsNullOrWhiteSpace(item.ReactionId) || string.IsNullOrWhiteSpace(item.ResourceId) ||
                 !Enum.IsDefined(item.OwnerScope) || !Enum.IsDefined(item.Selection) || !Enum.IsDefined(item.ResourceField) ||
+                item.TargetRelationship is { } relationship && !Enum.IsDefined(relationship) ||
                 item.Operation is not { } operation || !Enum.IsDefined(operation) ||
                 item.Channels.IsDefaultOrEmpty || item.Channels.Length > 16 ||
                 item.RequiredTags.IsDefault || item.ExcludedTags.IsDefault ||

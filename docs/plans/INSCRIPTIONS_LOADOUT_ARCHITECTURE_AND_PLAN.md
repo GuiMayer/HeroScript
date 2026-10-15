@@ -296,14 +296,18 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 - Etapa 5a: reações de relíquias a aplicações primárias de recurso implementadas, sem editar cartas nem duplicar cálculo. Filtros explícitos, origem/alvo configuráveis, revisão de aquisição e subexecução pelo processador existente; perda real desconta absorção e overkill. Reações/descendentes não reentram, compartilham orçamento/profundidade e falham atomicamente. Contrato e limites em `docs/content/relic-reactions.md`. Isso é uma entrega parcial da etapa 5: as duas relíquias completas e a restrição universal de shield continuam pendentes.
 - Verificação da etapa 5a: 14 novos casos de reações passaram; regressão final de 1.791 testes Core e 13 testes focados da API passou. Inclui cinco execuções idênticas da mesma ação, preservação do RNG/snapshot, absorção parcial/total, overkill, múltiplos acertos, origem de status, filtros/posse, reflexo sem reentrada, dono derrotado configurável, revisão antiga, round-trip, publicação inválida e orçamento compartilhado. A suíte API completa permanece com a ressalva de timeout registrada na etapa 3.
 - Etapa 5b: teto de saldo genérico por dono, materializado de restrições capturadas na relíquia. `DiscardExcess` explícito é a política implementada; remover libera sem refill. Pool/reducer/reset/ganho, regeneração, custos/refunds, rebind e entrada de encontro respeitam o teto, sem mudar o máximo base ou o histórico resolvido. Interseção usa o menor teto; mínimo incompatível rejeita a transação. Contrato em `docs/content/resource-restrictions.md`. As relíquias completas/configuração do setting ainda são a etapa 5c.
+- Etapa 5b registrada em `9f42de2`, com seis novos casos focados e 1.797 testes Core aprovados.
+- Etapa 5c: as duas relíquias exemplares executáveis estão publicadas no catálogo Ascendant, ainda sem distribuição em ofertas/lojas. `w1_blood_covenant` usa bucket terminal Minimum para impedir bônus crítico mesmo após contribuições adicionais, mantendo chance/tiers; sua reação recupera 20% da perda real por ataque direto contra inimigo. `w1_iron_vow` descarta/bloqueia Block e concede 25 Armor nas mesmas projeções/pipelines de mitigação. IDs, valores, filtros e contrapartidas estão em JSON; nenhuma carta alterada. Distribuição e migração do conteúdo antigo permanecem na etapa 7.
+- Verificação da etapa 5c: cinco novos casos com conteúdo real, mais regressão completa de 1.802 testes Core e 13 testes focados API aprovados. Inclui 0/200/350% de chance crítica, bônus adicional incapaz de contornar o cap, repetibilidade, absorção/overkill/multihit, exclusão de autodano e DoT, zero ganho de Block, projeção de armor/curva e remoção sem refill. A compilação real encontrou e corrigiu duas lacunas não cobertas pelos mocks da etapa 5a: manifesto do novo arquivo e reconhecimento de fatos `parent.*` na validação sintática; exemplos também foram ajustados à gramática aritmética efetiva.
 
 - [x] Diagnóstico por código e arquitetura documentados.
 - [x] Cena isolada implementada e verificada.
 - [ ] Aprovação do autor sobre a cena e as políticas iniciais.
 - [x] Etapas 1–4: contratos, planejamento, gateway/persistência e provider canônico.
-- [ ] Etapas 5–8: regras excepcionais, integração Godot, aquisição e certificação/migração.
+- [x] Etapa 5: regras excepcionais e duas definições executáveis de referência.
+- [ ] Etapas 6–8: integração Godot, aquisição/distribuição/migração do catálogo e certificação/migração de estado.
 
-O GDD legado permanece intocado. Este plano não anuncia inscrições ou as duas relíquias novas como mecânicas já disponíveis no jogo.
+O GDD legado permanece intocado. Inscrições ainda não estão integradas à run jogável; as duas relíquias novas existem no catálogo, mas não nas ofertas normais. As etapas 6–8 não estão concluídas.
 
 ### Verificação do primeiro marco
 

@@ -35,10 +35,10 @@ Fragmento de uma relíquia; o modo precisa habilitar o pipeline `recovery`, de c
       "type": "HEAL",
       "target": "SELF",
       "targetResource": "health",
-      "condition": "parent.applied_change < 0",
+      "condition": "parent.applied_change * -1",
       "parameters": [{
         "parameter": "Amount",
-        "formulaValue": "-parent.applied_change * 0.2",
+        "formulaValue": "parent.applied_change * -0.2",
         "channel": "recovery",
         "pipelineId": "recovery",
         "unitId": "points"
@@ -48,14 +48,16 @@ Fragmento de uma relíquia; o modo precisa habilitar o pipeline `recovery`, de c
 }
 ```
 
-`parent.applied_change` é assinado: perda de 4 resulta em `-4`. Absorção completa resulta em zero; solicitar 30 de dano contra 10 restantes produz perda real de 10, não 30. A condição do exemplo suprime recuperação sem perda. O pipeline de recuperação pode aplicar suas próprias regras e limites; não deve reutilizar um pipeline ofensivo que recalcula o dano ou aplica críticos por acidente.
+`parent.applied_change` é assinado: perda de 4 resulta em `-4`. Absorção completa resulta em zero; solicitar 30 de dano contra 10 restantes produz perda real de 10, não 30. Condições numéricas passam quando o resultado é positivo; por isso o exemplo multiplica a perda por `-1`. A gramática inline usa operadores aritméticos separados por espaços, não comparação `<` ou negação de variável sem operador. O pipeline de recuperação pode aplicar suas próprias regras e limites; não deve reutilizar um pipeline ofensivo que recalcula o dano ou aplica críticos por acidente.
 
 Reflexo usa `ownerScope: Target` e `selection: Source`. DoTs usam a origem persistida pelo sistema de status; não transferem a autoria para o personagem que está tendo seu turno.
+
+`targetRelationship`, quando declarado, filtra a relação dirigida do autor original para o alvo original (`Ally`, `Enemy`, `Neutral`). Ele permite excluir autodano/aliados sem comparar nomes de entidades. Ausente, não restringe relações.
 
 ## Limites desta entrega
 
 - Conteúdo existente sem `reactions` mantém o campo ausente na serialização.
 - Publicação valida os efeitos e referências; aquisição valida a forma antes de capturar a definição.
-- O exemplo ainda não foi distribuído no catálogo do mundo 1.
-- A relíquia completa de conversão do bônus crítico, a restrição universal de shield e sua substituição por armor ainda não estão concluídas. Zerar um ganho em uma carta ou em um bucket isolado não seria uma restrição universal e não é apresentado como tal.
+- O Ascendant contém as definições executáveis `w1_blood_covenant` e `w1_iron_vow`, publicadas pelo manifesto do pacote. A primeira zera o bônus por tier no bucket terminal `bonus_cap` (sem remover tiers/chance), e recupera 20% da perda real de health por ataque direto contra inimigo. A segunda usa [restrições de recurso](resource-restrictions.md) para descartar/bloquear Block e concede 25 Armor pelo provider existente. Ambos são valores/configurações iniciais do setting, não constantes da engine.
+- Essas relíquias ainda não foram inseridas nas ofertas/lojas; distribuição e migração dos bônus numéricos das relíquias antigas para inscrições pertencem à etapa 7. Nenhuma carta foi editada para habilitar as regras.
 - Integração REST do laboratório, aquisição de inscrições e certificação de migrações continuam nas etapas seguintes.
