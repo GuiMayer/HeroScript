@@ -134,7 +134,7 @@ public static partial class CanonicalJson
         var scope = ActiveHashScope.Value;
         if (scope != null && value is ICanonicalHashMemoizable memoizable && ReferenceEquals(options, DefaultOptions))
             return EncodeImmutable(memoizable, typeof(T), scope.Encodings);
-        var uncached = WriteCanonicalBytes(value, options, out var uncachedDepth);
+        var uncached = WriteCanonicalBytes(value, options, out var uncachedDepth, fast: true);
         return new(uncached.WrittenMemory, uncachedDepth);
     }
 
@@ -143,7 +143,7 @@ public static partial class CanonicalJson
         JsonSerializerOptions? options) => WriteCanonicalBytes(value, options, out _);
 
     private static ArrayBufferWriter<byte> WriteCanonicalBytes<T>(
-        T value, JsonSerializerOptions? options, out int depth)
+        T value, JsonSerializerOptions? options, out int depth, bool fast = false)
     {
         var element = JsonSerializer.SerializeToElement(value, options ?? DefaultOptions);
         var buffer = new ArrayBufferWriter<byte>();
@@ -151,7 +151,8 @@ public static partial class CanonicalJson
             buffer,
             new JsonWriterOptions { Indented = false });
         depth = 0;
-        WriteElement(writer, element, ref depth);
+        if (fast) WriteFastElement(writer, element, ref depth);
+        else WriteElement(writer, element, ref depth);
         writer.Flush();
         return buffer;
     }

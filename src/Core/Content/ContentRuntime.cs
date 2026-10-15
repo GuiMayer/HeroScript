@@ -106,6 +106,7 @@ public sealed class ContentRuntime
 
         Result<T> Deserialize()
         {
+            using var timing = Core.Diagnostics.OperationalTiming.Measure("content_deserialize");
             try
             {
                 var definition = json.Deserialize<T>(SerializerOptions);

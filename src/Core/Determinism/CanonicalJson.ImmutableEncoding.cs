@@ -105,7 +105,7 @@ public static partial class CanonicalJson
         var buffer = new ArrayBufferWriter<byte>();
         using var writer = new Utf8JsonWriter(buffer);
         var depth = 0;
-        WriteElement(writer, element, ref depth);
+        WriteFastElement(writer, element, ref depth);
         writer.Flush();
         return new(buffer.WrittenMemory, depth);
     }

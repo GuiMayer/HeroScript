@@ -91,3 +91,21 @@ Validação adicional: 1.744 testes Core passaram, seguidos dos cinco testes do
 cache (incluindo invalidação com leitura em voo). Cinco testes REST passaram,
 incluindo o ato com comparação de cada estado com o serializer de referência,
 descoberta diferencial em duas seeds e recomputação após invalidar o cache tipado.
+
+## Etapa 3 — reduzir alocações no encoding
+
+Hashing passa a usar um escritor de JSON com buffers de campos reaproveitados,
+uma decodificação de cada nome e cópia direta de strings ASCII já canônicas.
+Unicode, escapes e caracteres bloqueados pelo encoder mantêm a normalização
+original. Nomes duplicados mantêm a ordem relativa original. Buffers são limpos
+ao devolver ao pool; o JSON e os snapshots não retêm referências a eles.
+
+`CanonicalJson.Serialize` continua usando o escritor anterior, independente do
+caminho otimizado do hash. Testes cobrem todos os caracteres ASCII, Unicode,
+escapes, chaves duplicadas e léxico numérico. 1.746 testes Core passaram.
+Quatro testes REST passaram, incluindo comparação após cada comando do ato,
+replay/recuperação, descoberta diferencial e recomputação fria/quente.
+
+Benchmark: cartas p95 727 ms/máximo 850 ms; fim de turno p95 1.024 ms/máximo
+1.142 ms; sessão p95 148 ms/máximo 345 ms. Dois fins de turno ainda excederam
+1 s. Não se considera a meta concluída por arredondamento ou só pelo p95.

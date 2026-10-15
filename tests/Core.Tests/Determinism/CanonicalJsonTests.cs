@@ -68,6 +68,34 @@ public class CanonicalJsonTests
     private sealed record MemoizableValue(int Value) : ICanonicalHashMemoizable;
 
     [Fact]
+    public void FastWriterMatchesReferenceForDuplicateNamesEscapesUnicodeAndEveryAsciiCharacter()
+    {
+        var cases = new[]
+        {
+            "{\"z\":1,\"a\":2,\"z\":3,\"a\":4}",
+            "{\"z\":[-0,1e+03,1.000,1E-5,123456789012345678901234567890],\"a\":0.0}",
+            "{\"å\":\"ação 😀\",\"a\":\"\\u0061\",\"<tag>\":\"\\/\"}",
+            JsonSerializer.Serialize(Enumerable.Range(0, 128).Select(value => ((char)value).ToString()).ToArray()),
+            JsonSerializer.Serialize(new string(Enumerable.Range(32, 95).Select(value => (char)value).ToArray()))
+        };
+        foreach (var input in cases)
+        {
+            using var json = JsonDocument.Parse(input);
+            var reference = CanonicalJson.Serialize(json.RootElement);
+            Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(reference))), CanonicalJson.ComputeHash(json.RootElement));
+        }
+        for (var character = 32; character <= 126; character++)
+        {
+            if (character is 34 or 92) continue;
+            using var literal = JsonDocument.Parse("\"" + (char)character + "\"");
+            var reference = CanonicalJson.Serialize(literal.RootElement);
+            Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(reference))), CanonicalJson.ComputeHash(literal.RootElement));
+        }
+    }
+
+    [Fact]
     public void StructurallySharedAggregatesMatchTheUnoptimizedSerializerForEveryRevision()
     {
         using var diagnostics = Core.Diagnostics.OperationalTiming.Begin();

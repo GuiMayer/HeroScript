@@ -88,6 +88,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("effect_execute");
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Combat);
         ArgumentNullException.ThrowIfNull(request.Trigger);
