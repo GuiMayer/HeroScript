@@ -134,8 +134,10 @@ independente, no caminho anterior. Nenhum buffer alugado escapa dessa vida útil
 
 O encoding final já era um buffer privado nunca reutilizado nem alterado após
 publicação. O LRU passa a guardar esse mesmo buffer, evitando uma segunda cópia
-de cada fragmento/snapshot. Mantidos 128 entradas/8 MiB por operação, sem ampliar
-o cache para esconder a regressão. Testes cobrem retenção dos bytes após descarte,
+de cada fragmento/snapshot. Mantidos 128 entradas/8 MiB de bytes úteis por
+operação, sem ampliar o cache para esconder a regressão. O backing array pode
+ter capacidade ociosa do `ArrayBufferWriter` (o limite não representa memória
+total do processo). Testes cobrem retenção dos bytes após descarte,
 reuso de buffers temporários, evicção, Unicode, polimorfismo, histórico e 600
 revisões compartilhadas. 1.750 testes Core passaram.
 
@@ -149,3 +151,33 @@ de ponta a ponta do Godot, nem garantia para conteúdo/hardware arbitrários.
 Certificação adicional: cinco testes REST passaram, incluindo o ato inteiro
 comparando cada hash de run/combate com o serializer anterior, replay/recuperação,
 descoberta diferencial, sessão versionada e cache frio/quente/invalidação.
+O teste entre três processos independentes também passou, comparando intents,
+críticos, stacks, receipts, commits e replay.
+
+## Etapa 5 — medir a interação completa por HTTP real
+
+O teste do ato agora também tem variantes Kestrel em portas loopback dinâmicas,
+com stores independentes e seeds 154/250/251. Além do POST e da sessão isolados,
+reporta a soma de POST consumido + próxima sessão atômica recebida/parseada,
+por tipo de comando e com contagem de interações acima de 1 s. Exclui a política
+de escolha do teste, a certificação independente e as animações artísticas.
+Não é uma medição de renderização/input do cliente Godot.
+
+A seed 154 continua sendo o golden de 9 encontros e vida final 50. As outras
+seeds podem terminar em vitória ou derrota legítima: o teste não altera regras,
+RNG, dificuldade ou conteúdo para alcançar uma medição melhor. Toda variante
+verifica replay semântico e recuperação num novo host.
+
+As três variantes passaram (523 comandos, 526 sessões, 27 encontros). Vida final
+154/250/251: 50/52/50. A medição mais abrangente ainda expõe outliers:
+
+| Seed | Máximo POST | Máximo POST + sessão (fim de turno) | Interações ≥ 1 s |
+| --- | ---: | ---: | ---: |
+| 154 | 1.593 ms | 1.729 ms | 10 |
+| 250 | 1.885 ms | 2.078 ms | 9 |
+| 251 | 1.361 ms | 1.393 ms | 6 |
+
+Nenhuma outra categoria além de carta/fim de turno excedeu 1 s nessas três
+execuções. Isto não certifica o SLO; a conclusão favorável do benchmark isolado
+da etapa anterior não pode ser generalizada. Próximo foco é retirar serialização
+redundante dos encontros históricos imutáveis entre comandos.

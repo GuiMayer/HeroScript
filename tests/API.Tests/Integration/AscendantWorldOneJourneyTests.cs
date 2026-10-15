@@ -27,18 +27,30 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
     [Fact]
     public Task CanonicalEncoding_MatchesReferenceAfterEveryWorldOneCommand() => Traverse(true, true);
 
-    private async Task Traverse(bool compact, bool verifyCanonical = false)
+    [Theory]
+    [InlineData(154)]
+    [InlineData(250)]
+    [InlineData(251)]
+    public Task SocketSession_MeasuresCommandsAndRefreshAcrossPublishedSeeds(int seed) =>
+        Traverse(true, seed: seed, useSocket: true);
+
+    private async Task Traverse(bool compact, bool verifyCanonical = false, int seed = 154, bool useSocket = false)
     {
         using var factory = compact ? new TimedFactory() : new TestWebApplicationFactory();
+        // A fresh loopback listener/store, never the player's API on port 5271.
+        if (useSocket) factory.UseKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
         using var client = factory.CreateClient();
+        output.WriteLine($"transport={(useSocket ? "Kestrel loopback" : "TestServer")}; seed={seed}");
         var game = new GameEngineClientSimulator(client);
         const string player = "world-one-pilot";
-        var runId = await game.StartRunAsync("ascendant", "ascendant_world_one_run", player, 154,
+        var runId = await game.StartRunAsync("ascendant", "ascendant_world_one_run", player, (ulong)seed,
             "ascendant_world_one");
         var times = new List<double>();
         var sessionTimes = new List<double>();
         var sessionBytes = new List<int>();
         var phases = new List<(double Ms, string Type, int Bytes, string Timing)>();
+        var interactions = new List<(double Ms, string Type)>();
+        (double Ms, string Type)? pendingCommand = null;
         var authoritativeRuns = factory.Services.GetRequiredService<Core.Run.IRunQueryService>();
         var sessionPhases = new List<(double Ms, string Timing)>();
         if (compact) client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
@@ -63,8 +75,10 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             });
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.IsSuccessStatusCode, $"{type}: {body}");
-            times.Add(timer.Elapsed.TotalMilliseconds);
-            phases.Add((timer.Elapsed.TotalMilliseconds, type, System.Text.Encoding.UTF8.GetByteCount(body),
+            var elapsed = timer.Elapsed.TotalMilliseconds;
+            times.Add(elapsed);
+            pendingCommand = (elapsed, type);
+            phases.Add((elapsed, type, System.Text.Encoding.UTF8.GetByteCount(body),
                 response.Headers.TryGetValues("Server-Timing", out var timing) ? string.Join("; ", timing) : "disabled"));
             if (verifyCanonical)
             {
@@ -92,7 +106,15 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
                 Assert.True(result.IsSuccessStatusCode, System.Text.Encoding.UTF8.GetString(bytes));
                 using var document = JsonDocument.Parse(bytes);
                 session = document.RootElement.Clone(); run = session.GetProperty("run");
-                sessionTimes.Add(watch.Elapsed.TotalMilliseconds); sessionBytes.Add(bytes.Length);
+                var elapsed = watch.Elapsed.TotalMilliseconds;
+                sessionTimes.Add(elapsed); sessionBytes.Add(bytes.Length);
+                if (pendingCommand is { } pending)
+                {
+                    // POST body consumed + next atomic session body parsed. Excludes
+                    // the test's choice policy, reference oracle and artistic playback.
+                    interactions.Add((pending.Ms + elapsed, pending.Type));
+                    pendingCommand = null;
+                }
                 sessionPhases.Add((watch.Elapsed.TotalMilliseconds,
                     result.Headers.TryGetValues("Server-Timing", out var timing) ? string.Join("; ", timing) : "disabled"));
             }
@@ -101,7 +123,7 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             if (lifecycle != "Active")
             {
                 output.WriteLine($"terminal={lifecycle}; encounters={fights}; commands={commandIndex}; health={Health(run)}");
-                Assert.Equal("Completed", lifecycle);
+                Assert.Contains(lifecycle, new[] { "Completed", "Failed" });
                 break;
             }
             if (run.GetProperty("activeEncounterId").ValueKind != JsonValueKind.Null)
@@ -195,9 +217,16 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
                 Assert.Equal(Math.Min(100, beforeHealth + 25), healed); lastEncounterHealth = healed;
             }
         }
-        Assert.Equal("Completed", (await game.GetRunStateAsync(runId)).GetProperty("lifecycle").GetString());
-        Assert.Equal(9, fights);
-        Assert.True(sawDecline && sawUpgrade && sawRecovery);
+        var finalRun = await game.GetRunStateAsync(runId);
+        Assert.Contains(finalRun.GetProperty("lifecycle").GetString(), new[] { "Completed", "Failed" });
+        Assert.True(fights > 0);
+        if (seed == 154)
+        {
+            Assert.Equal("Completed", finalRun.GetProperty("lifecycle").GetString());
+            Assert.Equal(9, fights);
+            Assert.Equal(50, Health(finalRun));
+            Assert.True(sawDecline && sawUpgrade && sawRecovery);
+        }
         using var verify = await client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var verification = await verify.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(verify.IsSuccessStatusCode && verification.GetProperty("isValid").GetBoolean(), verification.GetRawText());
@@ -213,6 +242,12 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             output.WriteLine($"command {group.Key}: n={group.Count()}; p50={group.OrderBy(value => value.Ms).ElementAt(group.Count() / 2).Ms:F2}ms; p95={group.OrderBy(value => value.Ms).ElementAt((int)Math.Ceiling(group.Count() * .95) - 1).Ms:F2}ms; max={group.Max(value => value.Ms):F2}ms");
         if (compact) foreach (var sample in sessionPhases.OrderByDescending(value => value.Ms).Take(5))
             output.WriteLine($"slow session: {sample.Ms:F2}ms {sample.Timing}");
+        if (compact)
+        {
+            Assert.Equal(commandIndex, interactions.Count);
+            foreach (var group in interactions.GroupBy(value => value.Type))
+                output.WriteLine($"interaction POST+session {group.Key}: n={group.Count()}; p95={group.OrderBy(value => value.Ms).ElementAt((int)Math.Ceiling(group.Count() * .95) - 1).Ms:F2}ms; max={group.Max(value => value.Ms):F2}ms; over1s={group.Count(value => value.Ms >= 1000)}");
+        }
     }
 
     private static double Score(JsonElement candidate, string player, double missingBlock)
