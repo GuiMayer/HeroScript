@@ -68,6 +68,10 @@ public sealed record LoadoutPolicyDefinition
     public ImmutableArray<LoadoutSlotDefinition> Slots { get; init; } = [];
     public ImmutableArray<string> InscriptionIds { get; init; } = [];
     public ImmutableArray<LoadoutEquipmentWindow> EquipmentWindows { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<string>? StartingInscriptionIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<InscriptionStationDefinition>? Stations { get; init; }
 
     public Result Validate()
     {
@@ -79,7 +83,10 @@ public sealed record LoadoutPolicyDefinition
             Slots.Select(slot => slot.SlotId).Distinct(StringComparer.Ordinal).Count() != Slots.Length ||
             EquipmentWindows.IsDefaultOrEmpty || EquipmentWindows.Any(window => !Enum.IsDefined(window)) || EquipmentWindows.Distinct().Count() != EquipmentWindows.Length)
             return Result.Failure("Loadout policy requires explicit inventory scope, duplicate policy, valid slots, capacity and equipment windows");
-        return Result.Success();
+        if (StartingInscriptionIds is { } starting && (starting.IsDefault || starting.Length > MaximumInventoryEntries || starting.Any(id => !InscriptionIds.Contains(id))))
+            return Result.Failure("Starting inscriptions must belong to the allowed catalog and inventory bound");
+        var stations = InscriptionStationTransitions.Validate(Stations ?? [], InscriptionIds);
+        return stations;
     }
 
     public Result ValidateBindings(ContentRuntime runtime, GameModeDefinition? mode = null)

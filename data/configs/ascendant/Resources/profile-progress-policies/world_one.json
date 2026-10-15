@@ -9,6 +9,7 @@
     ],
     "deduplication": "RootLineage",
     "unlocks": [
+      {"unlockId":"w1_precision_inscription","displayName":"Precision trace","targets":[{"kind":"Inscription","definitionId":"w1_precision"}],"condition":{"kind":"RunCompleted","runDefinitionId":"ascendant_world_one_run"}},
       {
         "unlockId": "w1_rehearsed_option",
         "displayName": "Rehearsed Strike",

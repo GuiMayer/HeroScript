@@ -1,4 +1,7 @@
 {
+  "w1_block_attribute": {"pipelineId":"w1_block_attribute","channel":"effect_amount","unitId":"scalar","buckets":[{"bucketId":"increased","operation":"Add"}],"statInfluenceBindings":[{"bindingId":"block.efficiency","scope":"Actor","componentId":"stats","valueId":"block_efficiency","channel":"effect_amount","bucket":"increased","missingValue":"Zero"}]},
+  "w1_dot_attribute": {"pipelineId":"w1_dot_attribute","channel":"w1_dot","unitId":"scalar","buckets":[{"bucketId":"increased","operation":"Add"}]},
+  "w1_attack_attribute": {"pipelineId":"w1_attack_attribute","channel":"effect_amount","unitId":"scalar","buckets":[{"bucketId":"increased","operation":"Add"}],"statInfluenceBindings":[{"bindingId":"attack.damage","scope":"Actor","componentId":"stats","valueId":"weapon_damage","channel":"effect_amount","bucket":"increased","missingValue":"Zero"}]},
   "w1_critical_bonus": {
     "pipelineId": "w1_critical_bonus",
     "channel": "critical_bonus",

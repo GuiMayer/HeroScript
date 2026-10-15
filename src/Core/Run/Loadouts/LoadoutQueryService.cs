@@ -15,6 +15,8 @@ public sealed record LoadoutSnapshot(Guid RunId, int RunSequence, ulong Expected
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Core.Calculations.ActorAttributesProjection? Attributes { get; init; }
+    public ImmutableArray<InscriptionOfferState> Offers { get; init; } = [];
+    public ImmutableArray<InscriptionStationDefinition> AvailableStations { get; init; } = [];
 }
 public sealed record LoadoutPreview(LoadoutSnapshot Before, LoadoutSnapshot After);
 
@@ -75,7 +77,10 @@ public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeRe
         if (!double.IsFinite(cost) || cost > float.MaxValue) return Fail("Invalid inscription equipment cost");
         var snapshot = new LoadoutSnapshot(run.RunId, run.Sequence, run.Determinism.Step, run.Determinism.ContentRevision,
             actorId, inventoryId, policy.Value, LoadoutContentAccess.CanEquip(run, policy.Value), (float)cost,
-            run.Loadouts.Actors.Keys.ToImmutableArray(), items.ToImmutable(), actor.Assignments);
+            run.Loadouts.Actors.Keys.ToImmutableArray(), items.ToImmutable(), actor.Assignments)
+        { Offers = (run.Loadouts.Offers?.Values ?? Enumerable.Empty<InscriptionOfferState>()).Where(offer => offer.ActorId == actorId &&
+            offer.NodeId == run.CurrentNodeId && !offer.Closed && !run.Map.ResolvedNodeIds.Contains(offer.NodeId)).ToImmutableArray(),
+            AvailableStations = (policy.Value.Stations ?? []).Where(station => InscriptionStationTransitions.IsAvailable(run, station)).ToImmutableArray() };
         if (attributes != null)
         {
             var projected = attributes.Project(run, run.GetActiveEncounter()?.Combat, actorId);

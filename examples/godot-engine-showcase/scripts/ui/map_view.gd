@@ -66,6 +66,9 @@ func _build() -> void:
 	pause.pressed.connect(func(): intent_requested.emit("pause", [])); header.add_child(pause)
 	var items := visual_context.styles.button(visual_context.translator.text("MODIFIERS"), 140)
 	items.pressed.connect(func(): intent_requested.emit("modifier_items", [])); header.add_child(items)
+	if _run.get("loadout") is Dictionary:
+		var inscriptions := visual_context.styles.button(visual_context.translator.text("INSCRIPTIONS"), 140)
+		inscriptions.pressed.connect(func(): intent_requested.emit("inscriptions", [])); header.add_child(inscriptions)
 	_body = HBoxContainer.new(); _body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.add_theme_constant_override("separation", 20); add_child(_body)
 	_scroll = ScrollContainer.new(); _scroll.name = "MapScroll"

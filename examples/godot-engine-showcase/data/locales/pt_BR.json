@@ -790,5 +790,13 @@
   "Engine loadout. Changes require preview and confirmation.": "Equipamento da engine. Alterações exigem prévia e confirmação.",
   "Equipment budget: %s / %s": "Capacidade de equipamento: %s / %s",
   "Preview required. Attributes are not calculated locally.": "Prévia necessária. Os atributos não são calculados localmente.",
-  "Authoritative preview ready.": "Prévia da engine pronta."
+  "Authoritative preview ready.": "Prévia da engine pronta.",
+  "REVEAL INSCRIPTIONS": "REVELAR INSCRIÇÕES",
+  "DECLINE INSCRIPTIONS": "RECUSAR INSCRIÇÕES",
+  "ACQUIRE INSCRIPTION": "ADQUIRIR INSCRIÇÃO",
+  "Character: +30 percentage points of critical chance.": "Personagem: +30 pontos percentuais de chance crítica.",
+  "Character: +20 percentage points of critical damage bonus per tier.": "Personagem: +20 pontos percentuais de bônus de dano crítico por tier.",
+  "Character: +20% increased Block generation on eligible defense effects.": "Personagem: +20% de geração de Block em efeitos de defesa elegíveis.",
+  "Character: +25% increased potency of eligible residual effects.": "Personagem: +25% de potência de efeitos residuais elegíveis.",
+  "Character: +20% increased attack damage.": "Personagem: +20% de dano aumentado de ataques."
 }

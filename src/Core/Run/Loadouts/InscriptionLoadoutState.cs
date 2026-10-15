@@ -31,6 +31,8 @@ public sealed record InscriptionLoadoutState
     public InscriptionInventoryScope InventoryScope { get; init; }
     public ImmutableSortedDictionary<string, InscriptionInventoryState> Inventories { get; init; } = ImmutableSortedDictionary<string, InscriptionInventoryState>.Empty.WithComparers(StringComparer.Ordinal);
     public ImmutableSortedDictionary<string, ActorLoadoutState> Actors { get; init; } = ImmutableSortedDictionary<string, ActorLoadoutState>.Empty.WithComparers(StringComparer.Ordinal);
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableSortedDictionary<Guid, InscriptionOfferState>? Offers { get; init; }
 
     public string InventoryId(Guid runId, string actorId) => InventoryScope == InscriptionInventoryScope.Run ? "run:" + runId.ToString("D") : "actor:" + actorId;
 
@@ -44,6 +46,15 @@ public sealed record InscriptionLoadoutState
             return Result.Failure("Invalid loadout policy, inventory scope or persistent character registry");
         var ownedIds = new HashSet<Guid>();
         var equippedIds = new HashSet<Guid>();
+        if (Offers is { } offers && (offers.Count > 512 || offers.Any(pair => pair.Value == null || pair.Key == Guid.Empty || pair.Key != pair.Value.OfferId ||
+            string.IsNullOrWhiteSpace(pair.Value.NodeId) || string.IsNullOrWhiteSpace(pair.Value.StationId) || string.IsNullOrWhiteSpace(pair.Value.ContentRevision) ||
+            string.IsNullOrWhiteSpace(pair.Value.Fingerprint) || !Actors.ContainsKey(pair.Value.ActorId) || pair.Value.Options.IsDefault ||
+            pair.Value.Options.Length > 512 || pair.Value.Options.Any(string.IsNullOrWhiteSpace) || pair.Value.Options.Distinct().Count() != pair.Value.Options.Length ||
+            pair.Value.PurchasedIds.IsDefault || pair.Value.PurchasedIds.Distinct().Count() != pair.Value.PurchasedIds.Length ||
+            pair.Value.PurchasedIds.Any(id => !pair.Value.Options.Contains(id)) || pair.Value.MaximumPurchases is < 1 or > 16 ||
+            pair.Value.PurchasedIds.Length > pair.Value.MaximumPurchases || pair.Value.Costs.IsDefault ||
+            pair.Value.Costs.Any(cost => cost == null || string.IsNullOrWhiteSpace(cost.ResourceId) || !float.IsFinite(cost.Amount) || cost.Amount < 0))))
+            return Result.Failure("Invalid captured inscription offer");
         foreach (var (id, inventory) in Inventories)
         {
             if (inventory == null || id != inventory.InventoryId || inventory.Items.IsDefault || inventory.Items.Length > policy.MaximumInventoryEntries ||

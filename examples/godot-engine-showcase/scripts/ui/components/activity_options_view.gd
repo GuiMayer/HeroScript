@@ -81,6 +81,8 @@ func _build_actions() -> void:
 				var title := visual_context.styles.wrap(visual_context.styles.title(str(model.name), 19), 180)
 				column.add_child(title)
 			if not str(model.cost).is_empty(): column.add_child(visual_context.styles.title(str(model.cost), 17, visual_context.styles.GOLD))
+			if str(choice.get("subjectType", "")) == "inscription" and not str(model.summary).is_empty():
+				column.add_child(visual_context.styles.muted(str(model.summary), 14, 200))
 			var button := _button(label, func(): _confirm_ref(reference_id))
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			button.name = "Choice_" + reference_id

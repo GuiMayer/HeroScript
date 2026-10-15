@@ -30,7 +30,7 @@ public sealed class AscendantWorldOneContentTests
         {
             Assert.Equal("world_one_boss", path[^1].NodeId);
             Assert.Equal(9, path.Count(node => node.Activity.Type == RunActivityType.Encounter));
-            Assert.Equal(14, path.Count(node => node.Activity.Type is not (RunActivityType.CardSelection or RunActivityType.RelicReward)));
+            Assert.Equal(14, path.Count(node => node.Activity.Type is not (RunActivityType.CardSelection or RunActivityType.RelicReward or RunActivityType.InscriptionStation)));
             Assert.True(path.Count(node => node.Activity.Type == RunActivityType.CardUpgrade) >= 2);
             Assert.Contains(path, node => node.Activity.Type == RunActivityType.Shop);
             Assert.Contains(path, node => node.NodeId.StartsWith("s12_", StringComparison.Ordinal));

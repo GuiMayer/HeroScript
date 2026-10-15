@@ -34,6 +34,22 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         {
             Influences(path, item.Influences);
             var enabled = item.CalculationPipelineIds.ToHashSet(StringComparer.Ordinal);
+            if (item.LoadoutPolicyId is { } loadoutId)
+            {
+                var policy = runtime.GetDefinition<Core.Run.Loadouts.LoadoutPolicyDefinition>("loadout-policies", loadoutId);
+                var run = runtime.GetDefinition<RunDefinition>("runs", item.RunDefinitionId ?? string.Empty);
+                if (policy.IsSuccess && run.IsSuccess)
+                {
+                    foreach (var station in policy.Value.Stations ?? [])
+                    {
+                        if (station.NodeIds.Any(id => !run.Value.MapNodes.Any(node => node.NodeId == id))) Error(path, "inscription station references a missing map node");
+                        foreach (var cost in station.Costs) Reference(path, "resources", cost.ResourceId, required: true);
+                    }
+                    foreach (var node in run.Value.MapNodes.Where(node => node.Activity.Type == RunActivityType.InscriptionStation))
+                        if (!(policy.Value.Stations ?? []).Any(station => station.StationId == node.Activity.DefinitionId && station.NodeIds.Contains(node.NodeId)))
+                            Error(path, "inscription station activity has no matching mode policy station");
+                }
+            }
             foreach (var (channel, id) in item.DefaultCalculationPipelines)
             {
                 Reference(path, "calculation-pipelines", id, required: true);

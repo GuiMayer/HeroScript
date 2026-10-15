@@ -161,6 +161,13 @@ public static class RunEligibility
             valid = Require(after, UnlockTargetKind.Relic, relic.DefinitionId);
             if (valid.IsFailure) return valid;
         }
+        foreach (var item in after.Loadouts?.Inventories.Values.SelectMany(inventory => inventory.Items) ?? [])
+            if (!(before?.Loadouts?.Inventories.Values.SelectMany(inventory => inventory.Items).Any(old =>
+                old.InstanceId == item.InstanceId && old.DefinitionId == item.DefinitionId) ?? false))
+            {
+                valid = Require(after, UnlockTargetKind.Inscription, item.DefinitionId);
+                if (valid.IsFailure) return valid;
+            }
         return Result.Success();
     }
 }

@@ -1,6 +1,7 @@
 {
   "ascendant_world_one": {
     "modeId": "ascendant_world_one",
+    "loadoutPolicyId": "w1_loadout",
     "runDefinitionId": "ascendant_world_one_run",
     "allowCustomSeed": true,
     "flowRulesId": "standard_flow",
@@ -16,7 +17,10 @@
       "w1_critical_chance",
       "w1_armor_attribute",
       "w1_armor_reduction",
-      "w1_direct_amount"
+      "w1_direct_amount",
+      "w1_block_attribute",
+      "w1_dot_attribute",
+      "w1_attack_attribute"
     ],
     "defaultCalculationPipelines": {
       "effect_amount": "w1_amount",

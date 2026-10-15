@@ -1,0 +1,13 @@
+{
+  "w1_loadout": {
+    "loadoutPolicyId":"w1_loadout","inventoryScope":"Actor","capacity":12,"allowDuplicateDefinitions":false,
+    "maximumInventoryEntries":128,"slots":[{"slotId":"trace_1"},{"slotId":"trace_2"},{"slotId":"trace_3"},{"slotId":"trace_4"},{"slotId":"trace_5"},{"slotId":"trace_6"}],
+    "inscriptionIds":["w1_focus","w1_precision","w1_ward","w1_catalysis","w1_serration"],
+    "startingInscriptionIds":["w1_focus","w1_ward"],"equipmentWindows":["OutsideCombat"],
+    "stations":[
+      {"stationId":"w1_inscription_reward","nodeIds":["relic_keen","relic_ward","relic_dot","elite_relic_venom","elite_relic_prism"],"selection":"Random","offerCount":3,"maximumPurchases":1,"pool":{"w1_focus":1,"w1_precision":1,"w1_ward":1,"w1_catalysis":1,"w1_serration":1}},
+      {"stationId":"w1_inscription_shop","nodeIds":["s08_market"],"selection":"Random","offerCount":3,"maximumPurchases":2,"costs":[{"resourceId":"gold","amount":30}],"pool":{"w1_focus":1,"w1_precision":1,"w1_ward":1,"w1_catalysis":1,"w1_serration":1}},
+      {"stationId":"w1_inscription_craft","nodeIds":["s06_rest","s12_rest"],"selection":"Directed","offerCount":5,"maximumPurchases":1,"costs":[{"resourceId":"gold","amount":40}],"pool":{"w1_focus":1,"w1_precision":1,"w1_ward":1,"w1_catalysis":1,"w1_serration":1}}
+    ]
+  }
+}

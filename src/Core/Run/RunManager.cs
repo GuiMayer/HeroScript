@@ -497,6 +497,22 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (runtime.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(runtime.Error);
             var policy = Loadouts.LoadoutContentAccess.Policy(run.Value, runtime.Value);
             if (policy.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(policy.Error);
+            var stationCommands = new List<RunAvailableCommand>();
+            foreach (var station in policy.Value.Stations ?? [])
+                if (Loadouts.InscriptionStationTransitions.IsAvailable(run.Value, station))
+                    stationCommands.Add(new() { Type = RunCommandTypes.OpenInscriptionOffer,
+                        CurrentNodeId = run.Value.CurrentNodeId ?? string.Empty, ExpectedSequence = run.Value.Sequence, ExpectedStep = run.Value.Determinism.Step,
+                        ValidPayload = JsonSerializer.SerializeToElement(new { stationId = station.StationId, actorIds = run.Value.Loadouts.Actors.Keys }) });
+            foreach (var offer in run.Value.Loadouts.Offers?.Values ?? Enumerable.Empty<Loadouts.InscriptionOfferState>())
+                if (!offer.Closed && run.Value.ActiveEncounterId == null && run.Value.Lifecycle == RunLifecycleState.Active &&
+                    offer.NodeId == run.Value.CurrentNodeId && !run.Value.Map.ResolvedNodeIds.Contains(offer.NodeId))
+                    stationCommands.Add(new() { Type = RunCommandTypes.ChooseInscriptionOffer, CurrentNodeId = offer.NodeId,
+                        ExpectedSequence = run.Value.Sequence, ExpectedStep = run.Value.Determinism.Step,
+                        ValidPayload = JsonSerializer.SerializeToElement(new { offerId = offer.OfferId, actorId = offer.ActorId,
+                            inscriptionIds = offer.Options.Except(offer.PurchasedIds), canDecline = true, offer.Costs,
+                            options = offer.Options.Except(offer.PurchasedIds).Select(id => new { inscriptionId = id,
+                                presentation = runtime.Value.GetDefinition<Loadouts.InscriptionDefinition>("inscriptions", id).Value.Presentation }) }) });
+            commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Concat(stationCommands).ToArray());
             if (Loadouts.LoadoutContentAccess.CanEquip(run.Value, policy.Value))
                 commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Append(new RunAvailableCommand
                 {
@@ -721,6 +737,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
             RunCommandTypes.ApplyLoadout => ExecuteApplyLoadout(runId, payload),
+            RunCommandTypes.OpenInscriptionOffer => ExecuteInscriptionOffer(runId, payload, false),
+            RunCommandTypes.ChooseInscriptionOffer => ExecuteInscriptionOffer(runId, payload, true),
             RunCommandTypes.AcquireCardModifierItem => ExecuteAcquireCardModifierItem(runId, payload),
             RunCommandTypes.RemoveCardTransformation => ExecuteRemoveCardTransformation(runId, payload),
             RunCommandTypes.ReplaceCardTransformation => ExecuteReplaceCardTransformation(runId, payload),
@@ -997,6 +1015,19 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var request = DeserializePayload<Loadouts.ApplyLoadoutCommand>(payload);
         var planned = new Loadouts.LoadoutChangePlanner(_contentRuntimes).Plan(_runs[runId], request.ActorId, request.Assignments);
         return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyLoadout, payload));
+    }
+
+    private Result ExecuteInscriptionOffer(Guid runId, JsonElement payload, bool choose)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var run = _runs[runId];
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var planned = choose ? Loadouts.InscriptionStationTransitions.Choose(run, runtime.Value,
+            DeserializePayload<Loadouts.ChooseInscriptionOfferCommand>(payload)) : Loadouts.InscriptionStationTransitions.Open(run, runtime.Value,
+            DeserializePayload<Loadouts.OpenInscriptionOfferCommand>(payload));
+        return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value,
+            choose ? RunCommandTypes.ChooseInscriptionOffer : RunCommandTypes.OpenInscriptionOffer, payload));
     }
 
     private Result ExecuteAcquireCardModifierItem(Guid runId, JsonElement payload)

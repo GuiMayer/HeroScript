@@ -37,6 +37,7 @@ func refresh_state(data: Dictionary) -> void:
 func _intent(action: String, arguments: Array) -> void:
 	if not _alive or not is_inside_tree(): return
 	match action:
+		"inscriptions": router.show_loadout_lab(true)
 		"pause": router.toggle_pause()
 		"modifier_items":
 			router.show_activity()

@@ -262,7 +262,7 @@ func open_game() -> void:
 		if _has_dialogue_activity(): show_dialogue()
 		else:
 			var types: Array = GameSession.activity_choices().map(func(choice): return str(choice.get("type", "")))
-			var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC"])
+			var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC", "OPEN_INSCRIPTION_OFFER", "CHOOSE_INSCRIPTION_OFFER"])
 			if detailed or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active": show_activity()
 			else: show_map()
 
@@ -322,12 +322,13 @@ func show_timeline() -> void:
 	screen.setup(self)
 	host.add_child(screen)
 
-func show_loadout_lab() -> void:
+func show_loadout_lab(from_run := false) -> void:
 	current_screen = "loadout_lab"
 	_clear_host()
 	var screen = preload("res://scenes/inscription_loadout_lab.tscn").instantiate()
-	screen.back_requested.connect(_show_main_menu)
+	screen.back_requested.connect(open_game if from_run else _show_main_menu)
 	host.add_child(screen)
+	if from_run: screen._connect_run.call_deferred()
 
 func show_history() -> void:
 	if GameSession.busy: return

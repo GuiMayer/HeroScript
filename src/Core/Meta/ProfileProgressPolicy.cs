@@ -11,7 +11,7 @@ public enum ProfileProgressProvenance { Published, Experimental, Sandbox, DevMod
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ProfileProgressDeduplication { RootLineage, RunInstance }
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum UnlockTargetKind { Card, CardUpgrade, Relic }
+public enum UnlockTargetKind { Card, CardUpgrade, Relic, Inscription }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UnlockConditionKind { Unspecified, All, Any, AttemptStarted, RunCompleted, NodeCompleted, EncounterCompleted, RunOutcome, UnlockGranted }
 
@@ -20,7 +20,8 @@ public sealed record UnlockTargetDefinition
     public UnlockTargetKind Kind { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     [JsonIgnore]
-    public string ContentKind => Kind switch { UnlockTargetKind.Card => "cards", UnlockTargetKind.CardUpgrade => "card-upgrades", _ => "relics" };
+    public string ContentKind => Kind switch { UnlockTargetKind.Card => "cards", UnlockTargetKind.CardUpgrade => "card-upgrades",
+        UnlockTargetKind.Relic => "relics", UnlockTargetKind.Inscription => "inscriptions", _ => throw new InvalidOperationException("Invalid unlock target kind") };
 }
 
 public sealed record UnlockConditionDefinition

@@ -7,6 +7,15 @@ static func build(run: Dictionary, commands: Array) -> Array:
 		var type := str(command.get("type", ""))
 		var valid: Dictionary = command.get("validPayload", {}) if command.get("validPayload") is Dictionary else {}
 		match type:
+			"APPLY_LOADOUT": continue # Dedicated workspace; never invent an equipment payload.
+			"OPEN_INSCRIPTION_OFFER":
+				choices.append(_choice(type, {"actorId": run.get("playerEntityId", ""), "stationId": valid.get("stationId", "")}, str(valid.get("stationId", "")), "inscription"))
+			"CHOOSE_INSCRIPTION_OFFER":
+				for option in valid.get("options", []):
+					var choice := _choice(type, {"offerId": valid.offerId, "inscriptionId": option.inscriptionId}, str(option.inscriptionId), "inscription")
+					choice["presentation"] = option.get("presentation", {}).duplicate(true)
+					choice["costs"] = valid.get("costs", []).duplicate(true); choices.append(choice)
+				if valid.get("canDecline", false): choices.append(_choice(type, {"offerId": valid.offerId, "inscriptionId": null}, "", "inscription", true))
 			"ACQUIRE_CARD_MODIFIER_ITEM":
 				for id in valid.get("itemDefinitionIds", []):
 					var choice := _choice(type, {"itemDefinitionId": id}, str(id), "modifier_item")

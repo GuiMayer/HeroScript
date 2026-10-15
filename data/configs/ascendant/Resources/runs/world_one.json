@@ -181,8 +181,8 @@
       {
         "nodeId": "relic_keen",
         "activity": {
-          "type": "RelicReward",
-          "definitionId": "w1_keen_lens",
+          "type": "InscriptionStation",
+          "definitionId": "w1_inscription_reward",
           "parameters": {}
         },
         "completionPolicy": "Required",
@@ -199,8 +199,8 @@
       {
         "nodeId": "relic_ward",
         "activity": {
-          "type": "RelicReward",
-          "definitionId": "w1_ward_plate",
+          "type": "InscriptionStation",
+          "definitionId": "w1_inscription_reward",
           "parameters": {}
         },
         "completionPolicy": "Required",
@@ -217,8 +217,8 @@
       {
         "nodeId": "relic_dot",
         "activity": {
-          "type": "RelicReward",
-          "definitionId": "w1_catalytic_coil",
+          "type": "InscriptionStation",
+          "definitionId": "w1_inscription_reward",
           "parameters": {}
         },
         "completionPolicy": "Required",
@@ -959,7 +959,7 @@
         "nodeId": "elite_relic_iron",
         "activity": {
           "type": "RelicReward",
-          "definitionId": "w1_opening_ward",
+          "definitionId": "w1_iron_vow",
           "parameters": {}
         },
         "completionPolicy": "Required",
@@ -1042,8 +1042,8 @@
       {
         "nodeId": "elite_relic_venom",
         "activity": {
-          "type": "RelicReward",
-          "definitionId": "w1_serrated_core",
+          "type": "InscriptionStation",
+          "definitionId": "w1_inscription_reward",
           "parameters": {}
         },
         "completionPolicy": "Required",
@@ -1126,8 +1126,8 @@
       {
         "nodeId": "elite_relic_prism",
         "activity": {
-          "type": "RelicReward",
-          "definitionId": "w1_precision_core",
+          "type": "InscriptionStation",
+          "definitionId": "w1_inscription_reward",
           "parameters": {}
         },
         "completionPolicy": "Required",
@@ -1364,7 +1364,7 @@
         "nodeId": "relic_field",
         "activity": {
           "type": "RelicReward",
-          "definitionId": "w1_field_kit",
+          "definitionId": "w1_blood_covenant",
           "parameters": {}
         },
         "completionPolicy": "Required",

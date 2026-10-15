@@ -278,6 +278,8 @@ public static class GameplayCommandDescriptors
         Run<CardUpgradeCommand>(RunCommandTypes.UpgradeCard),
         Run<ApplyCardModifierItemCommand>(RunCommandTypes.ApplyCardModifierItem),
         Run<Loadouts.ApplyLoadoutCommand>(RunCommandTypes.ApplyLoadout),
+        Run<Loadouts.OpenInscriptionOfferCommand>(RunCommandTypes.OpenInscriptionOffer),
+        Run<Loadouts.ChooseInscriptionOfferCommand>(RunCommandTypes.ChooseInscriptionOffer),
         Run<AcquireCardModifierItemCommand>(RunCommandTypes.AcquireCardModifierItem),
         Run<CardTransformationRemoveCommand>(RunCommandTypes.RemoveCardTransformation),
         Run<CardTransformationReplaceCommand>(RunCommandTypes.ReplaceCardTransformation),

@@ -217,6 +217,12 @@
       "artifactPath": "relics/exceptional_rules.json"
     },
     {
+      "schemaVersion":1,"operation":"definition","sourcePath":"Resources/inscriptions/world_one.json","kind":"inscriptions","artifactPath":"inscriptions/world_one.json"
+    },
+    {
+      "schemaVersion":1,"operation":"definition","sourcePath":"Resources/loadout-policies/world_one.json","kind":"loadout-policies","artifactPath":"loadout-policies/world_one.json"
+    },
+    {
       "schemaVersion": 1,
       "operation": "definition",
       "sourcePath": "Resources/card-pools/world_one.json",

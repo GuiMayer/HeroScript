@@ -25,6 +25,8 @@ func current_node() -> Dictionary:
 
 func choice_label(choice: Dictionary, model: Dictionary = {}) -> String:
 	var type := str(choice.get("type", ""))
+	if type == "OPEN_INSCRIPTION_OFFER": return _i18n.text("REVEAL INSCRIPTIONS")
+	if type == "CHOOSE_INSCRIPTION_OFFER": return _i18n.text("DECLINE INSCRIPTIONS") if choice.payload.get("inscriptionId") == null else _i18n.text("ACQUIRE INSCRIPTION")
 	var templates := {"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
 		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
 		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
@@ -121,6 +123,7 @@ func offer(choice: Dictionary) -> Dictionary:
 		model["summary"] = _i18n.text(str(item_presentation.get("description", "Select an item, then a card.")))
 		model["artId"] = str(item_presentation.get("artId", definition))
 	for facts in _card_facts:
+		if str(choice.get("subjectType", "")) == "inscription": break
 		var identity: Dictionary = facts.get("identity", {})
 		if str(identity.get("kind", "")) != "Offer" or str(identity.get("definitionId", "")) != definition: continue
 		var payload: Dictionary = choice.get("payload", {})
@@ -130,6 +133,9 @@ func offer(choice: Dictionary) -> Dictionary:
 		model.merge(preload("res://scripts/presentation/card_facts_presenter.gd").new(_i18n, _appearance).project(facts), true)
 		model["acquisitionPrice"] = price_text
 		break
+	if str(choice.get("subjectType", "")) == "inscription" and choice.get("presentation") is Dictionary:
+		model["name"] = _i18n.text(str(choice.presentation.get("name", definition)))
+		model["summary"] = _i18n.text(str(choice.presentation.get("description", "")))
 	return model
 
 func transformation_text(assessment: Dictionary) -> String:

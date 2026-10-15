@@ -76,7 +76,16 @@ public static class InscriptionAcquisition
                 Inventories = state.Inventories.SetItem(inventoryId, new() { InventoryId = inventoryId }) };
         }
         var valid = state.Validate(run.RunId, policy.Value);
-        return valid.IsFailure ? Result<RunState>.Failure(valid.Error) : Result<RunState>.Success(run with { Loadouts = state });
+        if (valid.IsFailure) return Result<RunState>.Failure(valid.Error);
+        var candidate = run with { Loadouts = state };
+        foreach (var actor in actors.Order(StringComparer.Ordinal))
+            foreach (var id in policy.Value.StartingInscriptionIds ?? [])
+            {
+                var granted = Grant(candidate, runtime, actor, id, "run-start");
+                if (granted.IsFailure) return granted;
+                candidate = granted.Value;
+            }
+        return Result<RunState>.Success(candidate);
     }
 
     /// <summary>Acquisition primitive; callers must authorize the offer or development capability.</summary>
@@ -89,6 +98,8 @@ public static class InscriptionAcquisition
         var valid = run.Loadouts.Validate(run.RunId, policy.Value);
         if (valid.IsFailure) return Result<RunState>.Failure(valid.Error);
         if (!policy.Value.InscriptionIds.Contains(definitionId)) return Result<RunState>.Failure("Inscription is not allowed by this loadout policy");
+        var eligible = RunEligibility.Require(run, Core.Meta.UnlockTargetKind.Inscription, definitionId);
+        if (eligible.IsFailure) return Result<RunState>.Failure(eligible.Error);
         var item = runtime.GetDefinition<InscriptionDefinition>("inscriptions", definitionId);
         if (item.IsFailure) return Result<RunState>.Failure(item.Error);
         var allocated = run.Determinism.AllocateId("inscription-instance");

@@ -71,6 +71,9 @@
       }
     ],
     "attributes": [
+      {"attributeId":"block_efficiency","displayName":"Increased Block generation","pipelineId":"w1_block_attribute","displayUnit":"percent","displayScale":100,"tags":["defense","block"]},
+      {"attributeId":"dot_bonus","displayName":"Increased residual potency","pipelineId":"w1_dot_attribute","displayUnit":"percent","displayScale":100,"tags":["residual"]},
+      {"attributeId":"attack_bonus","displayName":"Increased attack damage","pipelineId":"w1_attack_attribute","displayUnit":"percent","displayScale":100,"tags":["damage","attack"]},
       {
         "attributeId": "armor",
         "displayName": "Armor",
