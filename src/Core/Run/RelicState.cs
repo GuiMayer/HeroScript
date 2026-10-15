@@ -19,6 +19,8 @@ public sealed record RelicDefinition
     public string RelicId { get; init; } = string.Empty;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<EffectReactionDefinition>? Reactions { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<ResourceRestrictionDefinition>? ResourceRestrictions { get; init; }
     public int StackLimit { get; init; } = 1;
     public StackReapplyPolicy Stacking { get; init; } = StackReapplyPolicy.Add;
     public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
@@ -51,6 +53,8 @@ public sealed record RunRelicState
     public Guid RelicInstanceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<EffectReactionDefinition>? Reactions { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<ResourceRestrictionDefinition>? ResourceRestrictions { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     public GameplayOwner Owner { get; init; } = new();
     public string ContentRevision { get; init; } = string.Empty;
@@ -96,6 +100,8 @@ public static class RelicTransitions
             return Result<RelicTransition>.Failure("Invalid relic stacking policy");
         var reactions = EffectReactionPolicies.Validate(definition.Reactions ?? []);
         if (reactions.IsFailure) return Result<RelicTransition>.Failure(reactions.Error);
+        var restrictions = RelicResourceRules.Validate(definition.ResourceRestrictions ?? []);
+        if (restrictions.IsFailure) return Result<RelicTransition>.Failure(restrictions.Error);
         owner ??= new() { Kind = GameplayOwnerKind.Run, Id = state.RunId.ToString() };
         if (!Enum.IsDefined(owner.Kind) || owner.Kind != GameplayOwnerKind.Global && string.IsNullOrWhiteSpace(owner.Id))
             return Result<RelicTransition>.Failure("Invalid relic owner");
@@ -134,15 +140,16 @@ public static class RelicTransitions
             Influences = definition.Influences,
             Triggers = definition.Triggers,
             Reactions = definition.Reactions,
+            ResourceRestrictions = definition.ResourceRestrictions,
             Properties = definition.Properties
         };
-        return Result<RelicTransition>.Success(new RelicTransition(
-            state with
+        var restricted = RelicResourceRules.Materialize(state with
             {
                 Relics = state.Relics.Add(relic),
                 Determinism = allocated.Context.AdvanceStep()
-            },
-            relic));
+            });
+        return restricted.IsFailure ? Result<RelicTransition>.Failure(restricted.Error)
+            : Result<RelicTransition>.Success(new(restricted.Value, relic));
     }
 
     public static Result<RunState> Remove(RunState state, Guid relicInstanceId)
@@ -152,7 +159,7 @@ public static class RelicTransitions
         if (index < 0)
             return Result<RunState>.Failure($"Relic instance not found: {relicInstanceId}");
 
-        return Result<RunState>.Success(state with
+        return RelicResourceRules.Materialize(state with
         {
             Relics = state.Relics.RemoveAt(index),
             Determinism = state.Determinism.AdvanceStep()

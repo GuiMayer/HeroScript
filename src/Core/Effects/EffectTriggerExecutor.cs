@@ -157,7 +157,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             if (policy.IsFailure) return Result<EffectBatchResult>.Failure(policy.Error);
             resolutionPolicy = policy.Value;
         }
-        var current = request.Combat;
+        var restricted = request.Run == null ? Result<CombatState>.Success(request.Combat)
+            : RelicResourceRules.Materialize(request.Run, request.Combat);
+        if (restricted.IsFailure) return Result<EffectBatchResult>.Failure(restricted.Error);
+        var current = restricted.Value;
         var currentRun = request.Run;
         var rootExecutionId = EffectResultContext.ExecutionId(request);
         var executionId = observedParent == null ? rootExecutionId : CanonicalJson.ComputeHash(new

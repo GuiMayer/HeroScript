@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Canonical APPLY_LOADOUT, versioned REST queries/previews, durable retries, recovery and replay; branches preserve item identities and isolate shared inventory ownership.
 - Character equipment contributions use the same calculation providers as gameplay, with inscription provenance in traces and no card rewrites.
 - Opt-in relic resource reactions reuse the canonical effect executor, pinned acquisition revision and actual application outcomes. Shared execution limits and non-reentrant reactions prevent recursive recovery/reflection loops; complete critical/shield conversion relics remain pending.
+- Owner-scoped resource restrictions materialize a current-balance ceiling across canonical gain/reset/mutation/regeneration paths, retain authored maxima and do not refill discarded balances on removal. Conflicting lower bounds reject atomically; completed encounter history is preserved.
 - Deterministic engine version 32 fixes passive owner resolution outside combat. Older histories are preserved, but require their original runtime for semantic execution.
 - The Godot laboratory remains isolated until the later REST integration stage; acquisition, exceptional relic rules and migration certification are not declared complete by these foundations.
 

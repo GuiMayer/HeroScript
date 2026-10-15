@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Core.Resources;
 
 /// <summary>
@@ -65,6 +67,10 @@ public record ResourcePool
     /// Definição do recurso (metadados).
     /// </summary>
     public ResourceDefinition Definition { get; init; } = null!;
+
+    /// <summary>Materialized owner rule. Separate from the authored/base maximum; null is unrestricted.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public float? CurrentCeiling { get; init; }
     
     /// <summary>
     /// Verifica se há recurso suficiente para pagar um custo.
@@ -112,12 +118,16 @@ public record ResourcePool
     {
         if (!IsFinite(value))
             throw new ArgumentOutOfRangeException(nameof(value), "Resource value must be finite");
+        if (CurrentCeiling is { } ceiling && (!IsFinite(ceiling) || !Definition.CanBeNegative && ceiling < Minimum))
+            throw new InvalidOperationException("Resource current ceiling is invalid or below its minimum");
 
         var clamped = value;
         if (!Definition.CanBeNegative)
             clamped = System.Math.Max(Minimum, clamped);
         if (!Definition.CanExceedMax)
             clamped = System.Math.Min(Maximum, clamped);
+        if (CurrentCeiling is { } upper)
+            clamped = System.Math.Min(upper, clamped);
         return this with { Current = clamped };
     }
     
@@ -127,7 +137,7 @@ public record ResourcePool
     /// <returns>Nova instância com recurso no máximo</returns>
     public ResourcePool Reset()
     {
-        return this with { Current = Maximum };
+        return Set(Maximum);
     }
     
     /// <summary>

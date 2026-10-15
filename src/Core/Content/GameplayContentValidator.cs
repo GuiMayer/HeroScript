@@ -162,6 +162,15 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (!Enum.IsDefined(item.Stacking) || item.StackLimit < 1) Error(path, "invalid relic stacking policy");
             Triggers(path, item.Triggers, relic: true);
             Influences(path, item.Influences);
+            var restrictions = RelicResourceRules.Validate(item.ResourceRestrictions ?? []);
+            if (restrictions.IsFailure) Error(path, restrictions.Error);
+            else foreach (var restriction in item.ResourceRestrictions ?? [])
+            {
+                Reference(path, "resources", restriction.ResourceId, required: true);
+                var resource = runtime.GetDefinition<Core.Resources.ResourceDefinition>("resources", restriction.ResourceId);
+                if (resource.IsSuccess && !resource.Value.CanBeNegative && restriction.CurrentCeiling < resource.Value.DefaultMin)
+                    Error(path, "resource restriction ceiling is below its configured minimum");
+            }
             var reactions = EffectReactionPolicies.Validate(item.Reactions ?? []);
             if (reactions.IsFailure) Error(path, reactions.Error);
             else foreach (var reaction in item.Reactions ?? [])
