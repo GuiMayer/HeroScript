@@ -109,3 +109,43 @@ replay/recuperação, descoberta diferencial e recomputação fria/quente.
 Benchmark: cartas p95 727 ms/máximo 850 ms; fim de turno p95 1.024 ms/máximo
 1.142 ms; sessão p95 148 ms/máximo 345 ms. Dois fins de turno ainda excederam
 1 s. Não se considera a meta concluída por arredondamento ou só pelo p95.
+
+## Experimentos posteriores rejeitados
+
+Separar atores/components e registros individuais do histórico em fragmentos
+não trouxe melhora consistente no ato publicado. Aumentar o número de entradas
+e reconhecer a identidade do backing array de `ImmutableArray` também não
+confirmou ganho. Esses caminhos foram removidos, mantendo os testes adicionais
+de equivalência (atores, polimorfismo e histórico crescente).
+Separar o estado de ativação em fragmentos também não confirmou ganho e foi
+removido.
+
+Um profiling temporário por propriedade confirmou que histórico e estado de
+ativação/intenções são folhas relevantes do encoding. A instrumentação detalhada
+foi retirada após a medição; não faz parte dos dados determinísticos nem das
+respostas normais. As medições experimentais não substituem a certificação final.
+
+## Etapa 4 — vida útil dos buffers de serialização
+
+O caminho de hashing usa agora `SerializeToDocument` com descarte explícito do
+documento temporário após escrever seus bytes canônicos. Não guarda elementos
+ou spans do documento em cache. O escritor de referência (`Serialize`) permanece
+independente, no caminho anterior. Nenhum buffer alugado escapa dessa vida útil.
+
+O encoding final já era um buffer privado nunca reutilizado nem alterado após
+publicação. O LRU passa a guardar esse mesmo buffer, evitando uma segunda cópia
+de cada fragmento/snapshot. Mantidos 128 entradas/8 MiB por operação, sem ampliar
+o cache para esconder a regressão. Testes cobrem retenção dos bytes após descarte,
+reuso de buffers temporários, evicção, Unicode, polimorfismo, histórico e 600
+revisões compartilhadas. 1.750 testes Core passaram.
+
+Benchmark sem certificação entre comandos: 172 comandos/9 encontros, mesmo
+resultado final (vida 50), replay e recuperação válidos. Cartas: p95 682 ms,
+máximo 768 ms; fim de turno: p95 818 ms, máximo 862 ms; sessão: p95 158 ms,
+máximo 509 ms. A primeira entrada em combate levou 1.179 ms: a meta geral ainda
+não está concluída. Valores são medições TestServer nesta máquina, não latência
+de ponta a ponta do Godot, nem garantia para conteúdo/hardware arbitrários.
+
+Certificação adicional: cinco testes REST passaram, incluindo o ato inteiro
+comparando cada hash de run/combate com o serializer anterior, replay/recuperação,
+descoberta diferencial, sessão versionada e cache frio/quente/invalidação.

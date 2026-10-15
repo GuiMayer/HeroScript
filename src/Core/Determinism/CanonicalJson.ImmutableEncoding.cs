@@ -101,7 +101,8 @@ public static partial class CanonicalJson
     private static CanonicalEncoding EncodeStandard(object? value, Type declaredType)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_standard_encode");
-        var element = JsonSerializer.SerializeToElement(value, declaredType, DefaultOptions);
+        using var document = JsonSerializer.SerializeToDocument(value, declaredType, DefaultOptions);
+        var element = document.RootElement;
         var buffer = new ArrayBufferWriter<byte>();
         using var writer = new Utf8JsonWriter(buffer);
         var depth = 0;
@@ -142,7 +143,10 @@ public static partial class CanonicalJson
                     _bytes -= _items[first.Value].Encoding.Bytes.Length;
                     _items.Remove(first.Value); _order.RemoveFirst();
                 }
-                var owned = encoding with { Bytes = encoding.Bytes.ToArray() };
+                // Encoders return exclusive, never-reused ArrayBufferWriter storage.
+                // It is not a rented document/array-pool view and is never appended
+                // after publication, so copying every snapshot again is unnecessary.
+                var owned = encoding;
                 _items.Add(key, (owned, _order.AddLast(key)));
                 _bytes += owned.Bytes.Length;
             }

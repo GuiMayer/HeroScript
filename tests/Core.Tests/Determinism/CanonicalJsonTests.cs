@@ -109,7 +109,7 @@ public class CanonicalJsonTests
                 .Add("<escaped>", JsonSerializer.SerializeToElement(new { Value = "ação", Amount = -0.0 }))
         };
         using var scope = CanonicalJson.BeginHashScope();
-        for (var revision = 0; revision < 180; revision++)
+        for (var revision = 0; revision < 600; revision++)
         {
             var next = run with { Sequence = revision, ModeId = revision % 2 == 0 ? null : "mode" };
             Assert.Equal(CanonicalJson.Serialize(next), System.Text.Encoding.UTF8.GetString(
@@ -135,6 +135,90 @@ public class CanonicalJsonTests
         var run = new Core.Run.RunState();
         Assert.Equal(CanonicalJson.Serialize<object>(run), System.Text.Encoding.UTF8.GetString(
             CanonicalJson.Property<object>("run", run).Bytes.Span));
+    }
+
+    [Fact]
+    public void ActorRosterAndPolymorphicComponentsRetainExactBytesWhenOneActorChanges()
+    {
+        var actor = new Core.Combat.Models.CombatActorState
+        {
+            InstanceId = "hero", Name = "Ação <hero>",
+            Components = System.Collections.Immutable.ImmutableDictionary<string, Core.Combat.Models.EntityComponentState>.Empty
+                .Add("stats", new Core.Combat.Models.StatEntityComponentState { ComponentId = "stats", Values =
+                    new Dictionary<string, float> { ["armor"] = 100, ["critical"] = 150 } })
+        };
+        var other = actor with { InstanceId = "enemy" };
+        using var scope = CanonicalJson.BeginHashScope();
+        for (var revision = 0; revision < 100; revision++)
+        {
+            var changed = actor with { Name = $"hero-{revision}" };
+            var combat = new Core.Combat.Models.CombatState { Actors =
+                new Dictionary<string, Core.Combat.Models.CombatActorState> { ["z"] = other, ["<hero>"] = changed } };
+            Assert.Equal(CanonicalJson.Serialize(combat), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("combat", combat).Bytes.Span));
+            var run = new Core.Run.RunState { PlayerEntity = changed };
+            Assert.Equal(CanonicalJson.Serialize(run), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("run", run).Bytes.Span));
+        }
+    }
+
+    [Fact]
+    public void AppendedHistoryRetainsEveryRecordAndMatchesTheOriginalSerializer()
+    {
+        using var scope = CanonicalJson.BeginHashScope();
+        using var diagnostics = Core.Diagnostics.OperationalTiming.Begin();
+        var history = System.Collections.Immutable.ImmutableList<Core.Combat.Models.CombatAction>.Empty;
+        for (var revision = 0; revision < 64; revision++)
+        {
+            history = history.Add(new() { ActorId = "hero", PowerId = $"action-{revision}", Turn = revision,
+                Timestamp = DateTime.UnixEpoch.AddSeconds(revision), TargetIds = ["a", "b"] });
+            var combat = new Core.Combat.Models.CombatState { ActionHistory = history };
+            Assert.Equal(CanonicalJson.Serialize(combat), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("combat", combat).Bytes.Span));
+        }
+        Assert.Contains("canonical_aggregate_encode", diagnostics.Snapshot().Keys);
+    }
+
+    [Fact]
+    public void ActivationRevisionsRetainExactIntentBytes()
+    {
+        using var scope = CanonicalJson.BeginHashScope();
+        var activation = new Core.Combat.Activation.ActivationState
+        {
+            ActiveActorId = "hero", ActivationOrder = ["hero", "enemy"],
+            CompletedActorIds = ["<old>"], StartedAtUtc = DateTime.UnixEpoch,
+            Intents = [new() { ActorId = "enemy", DisplayName = "Ação <enemy>",
+                TargetIds = ["hero"], Tags = ["fire"], PreviewUncertain = true }]
+        };
+        for (var revision = 0; revision < 100; revision++)
+        {
+            var changed = activation with { ActionsTaken = revision, RulesId = revision % 2 == 0 ? null : "rules" };
+            var combat = new Core.Combat.Models.CombatState { ActivationState = changed };
+            Assert.Equal(CanonicalJson.Serialize(combat), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("combat", combat).Bytes.Span));
+        }
+        var replaced = activation with { Intents = [activation.Intents[0] with { PreviewUncertain = false }] };
+        Assert.NotEqual(CanonicalJson.Serialize(activation), CanonicalJson.Serialize(replaced));
+        var final = new Core.Combat.Models.CombatState { ActivationState = replaced };
+        Assert.Equal(CanonicalJson.Serialize(final), System.Text.Encoding.UTF8.GetString(
+            CanonicalJson.Property("combat", final).Bytes.Span));
+    }
+
+    [Fact]
+    public void CanonicalFragmentsOwnTheirBytesAfterTemporaryDocumentsAreDisposedAndBuffersReused()
+    {
+        using var scope = CanonicalJson.BeginHashScope();
+        var run = new Core.Run.RunState { ModeId = "ação <fire>", Sequence = 3 };
+        var fragment = CanonicalJson.Property("run", run);
+        var reference = CanonicalJson.Serialize(run);
+        for (var index = 0; index < 300; index++)
+        {
+            _ = CanonicalJson.ComputeHash(new { text = new string('x', 4096), index });
+            _ = CanonicalJson.Property("run", run with { Sequence = index + 4 });
+        }
+        GC.Collect();
+        Assert.Equal(reference, System.Text.Encoding.UTF8.GetString(fragment.Bytes.Span));
+        Assert.Equal(CanonicalJson.ComputeHash(new { run }), CanonicalJson.ComputeObjectHash(fragment));
     }
 
     [Fact]

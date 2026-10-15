@@ -145,7 +145,11 @@ public static partial class CanonicalJson
     private static ArrayBufferWriter<byte> WriteCanonicalBytes<T>(
         T value, JsonSerializerOptions? options, out int depth, bool fast = false)
     {
-        var element = JsonSerializer.SerializeToElement(value, options ?? DefaultOptions);
+        // The reference writer deliberately retains its old element path. The
+        // hash path owns and disposes the temporary document instead of leaving
+        // its backing storage to GC on every small calculation/fingerprint.
+        using var document = fast ? JsonSerializer.SerializeToDocument(value, options ?? DefaultOptions) : null;
+        var element = fast ? document!.RootElement : JsonSerializer.SerializeToElement(value, options ?? DefaultOptions);
         var buffer = new ArrayBufferWriter<byte>();
         using var writer = new Utf8JsonWriter(
             buffer,
