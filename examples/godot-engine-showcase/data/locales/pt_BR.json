@@ -778,5 +778,17 @@
   "Applies to eligible stacked effects, including healing. It does not grant a condensation action.": "Aplica-se a efeitos de stacks elegíveis, incluindo cura. Não concede uma ação de condensação.",
   "A character bonus to eligible hits; it does not add hits.": "Bônus do personagem aos acertos elegíveis; não adiciona acertos.",
   "Lab sample only; availability in the game is not defined.": "Exemplo exclusivo do laboratório; a disponibilidade no jogo não está definida.",
-  "Tradeoff": "Contrapartida"
+  "Tradeoff": "Contrapartida",
+  "Example (offline)": "Exemplo (offline)",
+  "Connect current run": "Conectar run atual",
+  "Recover / refresh run": "Recuperar / atualizar run",
+  "Preview draft": "Prévia do rascunho",
+  "Confirm equipment": "Confirmar equipamento",
+  "Discard unconfirmed loadout changes?": "Descartar alterações de equipamento não confirmadas?",
+  "Offline examples. No engine state is changed.": "Exemplos offline. Nenhum estado da engine é alterado.",
+  "Loading authoritative loadout…": "Carregando equipamento da engine…",
+  "Engine loadout. Changes require preview and confirmation.": "Equipamento da engine. Alterações exigem prévia e confirmação.",
+  "Equipment budget: %s / %s": "Capacidade de equipamento: %s / %s",
+  "Preview required. Attributes are not calculated locally.": "Prévia necessária. Os atributos não são calculados localmente.",
+  "Authoritative preview ready.": "Prévia da engine pronta."
 }

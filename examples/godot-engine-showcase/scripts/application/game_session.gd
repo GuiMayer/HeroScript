@@ -348,6 +348,34 @@ func execute_run_command(type: String, payload: Dictionary, label := "") -> bool
 	var expected_step := int(advertised.get("expectedStep", _run.get("step", 0)))
 	return await _execute("runs", str(_run.get("runId", "")), type, payload, label, expected_step)
 
+func loadout_context_matches(snapshot: Dictionary) -> bool:
+	return synchronized and not _run.is_empty() and str(snapshot.get("runId", "")) == str(_run.get("runId", "")) \
+		and int(snapshot.get("runSequence", -1)) == int(_run.get("sequence", 0)) \
+		and int(snapshot.get("expectedStep", -1)) == int(_run.get("step", 0)) \
+		and str(snapshot.get("contentRevision", "")) == str(_run.get("contentRevision", "")) \
+		and snapshot.get("_clientContext", replay_context()) == replay_context()
+
+func read_loadout(actor_id: String) -> Dictionary:
+	if busy or has_pending_command or _run.is_empty(): return {"ok": false, "error": "Open a run and recover pending commands first."}
+	var ticket := _generation
+	var response: Dictionary = await _gateway.read_loadout(str(_run.runId), actor_id)
+	if ticket != _generation: return {"ok": false, "error": "Session changed while reading loadout."}
+	if response.ok and (not loadout_context_matches(response.data) or str(response.data.get("actorId", "")) != actor_id):
+		return {"ok": false, "error": "Loadout changed. Refresh before editing."}
+	if response.ok: response.data["_clientContext"] = replay_context()
+	return response
+
+func preview_loadout(snapshot: Dictionary, assignments: Dictionary) -> Dictionary:
+	if busy or has_pending_command or not loadout_context_matches(snapshot): return {"ok": false, "error": "Loadout changed. Refresh before editing."}
+	var response: Dictionary = await _gateway.preview_loadout(snapshot, assignments)
+	if not loadout_context_matches(snapshot): return {"ok": false, "error": "Loadout changed while previewing."}
+	return response
+
+func apply_loadout(snapshot: Dictionary, assignments: Dictionary) -> bool:
+	if not loadout_context_matches(snapshot): return false
+	return await _execute("runs", str(snapshot.runId), "APPLY_LOADOUT", {
+		"actorId": snapshot.actorId, "assignments": assignments.duplicate(true)}, "Apply inscriptions", int(snapshot.expectedStep))
+
 func execute_combat_command(type: String, payload: Dictionary, label := "") -> bool:
 	return await _execute("combats", str(_combat.get("combatId", "")), type, payload, label, int(_combat.get("step", _run.get("step", 0))))
 

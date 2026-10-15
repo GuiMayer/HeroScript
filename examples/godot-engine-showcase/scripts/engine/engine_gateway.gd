@@ -44,6 +44,14 @@ func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: 
 func read_run(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s" % run_id.uri_encode())
 
+func read_loadout(run_id: String, actor_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/loadout?actorId=%s" % [run_id.uri_encode(), actor_id.uri_encode()])
+
+func preview_loadout(snapshot: Dictionary, assignments: Dictionary) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/loadout/preview" % str(snapshot.runId).uri_encode(), {
+		"actorId": snapshot.actorId, "assignments": assignments.duplicate(true),
+		"expectedSequence": snapshot.runSequence, "expectedStep": snapshot.expectedStep})
+
 func read_session(run_id: String, expected_sequence := -1) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/session%s" % [run_id.uri_encode(),
 		"?expectedSequence=%s" % expected_sequence if expected_sequence >= 0 else ""])

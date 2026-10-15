@@ -305,7 +305,8 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 - [ ] Aprovação do autor sobre a cena e as políticas iniciais.
 - [x] Etapas 1–4: contratos, planejamento, gateway/persistência e provider canônico.
 - [x] Etapa 5: regras excepcionais e duas definições executáveis de referência.
-- [ ] Etapas 6–8: integração Godot, aquisição/distribuição/migração do catálogo e certificação/migração de estado.
+- [x] Etapa 6: adapter REST e workspace versionado no laboratório, com confirmação/recuperação e exemplos de dois personagens/escopos.
+- [ ] Etapas 7–8: aquisição/distribuição/migração do catálogo e certificação/migração de estado.
 
 O GDD legado permanece intocado. Inscrições ainda não estão integradas à run jogável; as duas relíquias novas existem no catálogo, mas não nas ofertas normais. As etapas 6–8 não estão concluídas.
 

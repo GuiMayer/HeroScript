@@ -31,6 +31,8 @@ var attributes_view
 var equip_button: Button
 var remove_button: Button
 var _inventory_panel: PanelContainer
+var _identity: Array = []
+var _authority_note: Label
 
 func mount(context) -> void:
 	visual_context = context
@@ -83,7 +85,8 @@ func _build() -> void:
 	header.add_child(heading)
 	header.add_child(_button("BACK", "LoadoutBackButton", back_requested.emit))
 	add_child(header)
-	add_child(_text("Visual prototype only. No items, attributes or runs are changed.", 14, "accent.warm"))
+	_authority_note = _text("Visual prototype only. No items, attributes or runs are changed.", 14, "accent.warm")
+	add_child(_authority_note)
 	var tools := HBoxContainer.new()
 	tools.add_child(_text("Example layout", 14))
 	preset_picker.name = "LoadoutPresetPicker"
@@ -193,6 +196,15 @@ func _tile_text(button: Button, title: String, subtitle: String, active: bool, e
 func present(model: Dictionary) -> void:
 	_model = model.duplicate(true)
 	var t: Callable = visual_context.translator.text
+	var identity: Array = [model.items.map(func(item): return item.instanceId), model.slots, model.get("contextKey", [])]
+	if _choices_built and identity != _identity:
+		for child in inventory_grid.get_children(): inventory_grid.remove_child(child); child.queue_free()
+		for child in slot_grid.get_children(): slot_grid.remove_child(child); child.queue_free()
+		_inventory.clear(); _positions.clear(); preset_picker.clear(); _choices_built = false
+	_identity = identity
+	var remote: bool = model.get("authority") == "REST"
+	_authority_note.text = t.call("Engine loadout. Changes require preview and confirmation.") if remote else t.call("Visual prototype only. No items, attributes or runs are changed.")
+	preset_picker.visible = not remote
 	if not _choices_built:
 		_choices_built = true
 		for preset in model.presets: preset_picker.add_item(t.call(preset.name))
@@ -206,7 +218,7 @@ func present(model: Dictionary) -> void:
 			var button := _tile("LoadoutSlot_" + id, 104, func(): slot_requested.emit(id))
 			slot_grid.add_child(button)
 			_positions[id] = button
-	preset_picker.select(int(model.presetIndex))
+	if int(model.presetIndex) >= 0: preset_picker.select(int(model.presetIndex))
 	var items := {}
 	var stats := {}
 	for stat in model.character.attributes: stats[stat.id] = stat
@@ -237,28 +249,33 @@ func present(model: Dictionary) -> void:
 		_positions[id].item_id = model.assignments.get(id, "")
 		_positions[id].source_slot = id
 	for tile in _inventory.values() + _positions.values():
+		tile.drag_scope = hash(model.get("contextKey", get_instance_id()))
 		tile.revision = JSON.stringify(model.assignments)
 		tile.known_items = items.keys()
-	capacity_label.text = t.call("Display budget: %s / %s") % [visual_context.translator.number(model.usedCapacity), visual_context.translator.number(model.capacity)]
+	capacity_label.text = t.call("Equipment budget: %s / %s" if remote else "Display budget: %s / %s") % [visual_context.translator.number(model.usedCapacity), visual_context.translator.number(model.capacity)]
 	capacity_meter.max_value = maxf(1, float(model.capacity))
 	capacity_meter.value = float(model.usedCapacity)
 	var meter_fill: StyleBoxFlat = capacity_meter.get_theme_stylebox("fill")
 	meter_fill.bg_color = visual_context.styles.color("accent.danger" if model.overBudget else "accent.positive")
 	capacity_meter.tooltip_text = capacity_label.text
 	warning.text = t.call("Over the example budget. This draft is not authoritative.") if model.overBudget else t.call("Illustrative costs only. Engine validation is not connected yet.")
+	if remote: warning.text = t.call(model.get("status", ""))
 	equip_button.disabled = str(model.selectedItem).is_empty() or str(model.selectedSlot).is_empty()
 	remove_button.disabled = not model.assignments.has(model.selectedSlot)
+	if not model.get("canEdit", true): equip_button.disabled = true; remove_button.disabled = true
 	var selected: Dictionary = items.get(model.selectedItem, {})
 	details.text = t.call("Choose an inscription to inspect its benefits and tradeoffs.")
 	if not selected.is_empty():
 		var lines: Array[String] = [t.call(selected.name), t.call("Character attribute bonuses")]
 		lines.append_array(_bonus_lines(selected, stats))
+		if not str(selected.get("description", "")).is_empty(): lines.append(t.call(selected.description))
 		lines.append(t.call("Changes the character's attributes, not a card's base values."))
 		if not selected.tradeoffs.is_empty():
 			lines.append(""); lines.append(t.call("SCOPE"))
 			for value in selected.tradeoffs: lines.append(t.call(value))
 		details.text = "\n".join(lines)
 	attributes_view.present(model.character)
+	attributes_view.visible = model.get("attributesReady", true)
 	_responsive.call_deferred()
 func _bonus_lines(item: Dictionary, stats: Dictionary) -> Array[String]:
 	var rows: Array[String] = []
