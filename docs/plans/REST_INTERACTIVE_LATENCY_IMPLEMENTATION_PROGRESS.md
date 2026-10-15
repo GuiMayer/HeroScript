@@ -33,3 +33,13 @@ dependente do comportamento nativo do HTTPRequest e da medição do probe.
 
 Testes de loopback: cancelamento antes/durante I/O, consumidores compartilhados,
 troca de host, isolamento das respostas e retorno do worker ao pool.
+
+## Etapa 3 — projeção compacta
+
+Contexto de leitura captura uma referência imutável e fingerprint completo,
+incluindo identidade/versão. O contrato de UI não serializa encounters passados,
+manifesto ou regras resolvidas. No combate, envia apenas o nó atual; no mapa,
+envia as rotas necessárias. Atividades de seleção/loja/preparação são filtradas
+pelo nó atual. Histórico de diálogo foi preservado para o menu de conversas.
+Fluxos de ferramentas são opcionais e filtrados. Teste comprova ausência de
+crescimento com 100 encounters passados e preservação do hash original.
