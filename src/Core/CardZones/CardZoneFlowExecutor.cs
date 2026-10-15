@@ -20,6 +20,7 @@ public sealed record CardZoneFlowContext
     public string? ConfigName { get; init; }
     public RunEligibilitySnapshot? Eligibility { get; init; }
     public string? ActiveActorId { get; init; }
+    public string? RunPlayerActorId { get; init; }
     public string? SourceActorId { get; init; }
     public string? TargetActorId { get; init; }
     public string? ExplicitOwnerId { get; init; }
@@ -239,6 +240,18 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         if (!flow.AllowedInvocations.Contains(context.Invocation))
             return Result<(CardZoneTopologyState, DeterministicContext)>.Failure(
                 $"Card-zone flow {flowId} does not allow invocation {context.Invocation}");
+        var eligible = flow.ActorScope switch
+        {
+            CardZoneFlowActorScope.Any => true,
+            CardZoneFlowActorScope.RunPlayer => context.ActiveActorId != null &&
+                context.ActiveActorId == context.RunPlayerActorId,
+            CardZoneFlowActorScope.OtherActors => context.ActiveActorId != null &&
+                context.RunPlayerActorId != null && context.ActiveActorId != context.RunPlayerActorId,
+            CardZoneFlowActorScope.Explicit => context.ActiveActorId != null &&
+                flow.EligibleActorIds.Contains(context.ActiveActorId, StringComparer.Ordinal),
+            _ => false
+        };
+        if (!eligible) return Result<(CardZoneTopologyState, DeterministicContext)>.Success((state, deterministicContext));
         var currentState = state;
         var currentContext = deterministicContext;
         foreach (var step in flow.Steps)

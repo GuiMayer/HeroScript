@@ -251,7 +251,15 @@ public sealed class CombatFlowPlannerTests
         Assert.True(first.Value.Steps.Count >= 3);
         Assert.Equal("enemy", first.Value.Combat.ActivationState!.ActiveActorId);
         Assert.False(first.Value.Combat.ActivationState.WaitingForInput);
-        Assert.Equal(["retain", "future"], first.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
+        Assert.Equal(["retain"], first.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
+        Assert.Equal(["future"], first.Value.Deck.GetZoneDefinitionIds("draw", "$run"));
+        var last = first.Value.Steps.Last();
+        var next = boundaries.AdvanceActivation(last.RunSnapshot!, first.Value.Combat,
+            first.Value.Deck, last.RunDeterminism!, sequence, policies, TurnPolicy());
+        Assert.True(next.IsSuccess, next.IsFailure ? next.Error : null);
+        Assert.Equal("hero", next.Value.Combat.ActivationState!.ActiveActorId);
+        Assert.Equal(["retain", "future"], next.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
+        Assert.Equal(["strike"], next.Value.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.Equal(["strike"], first.Value.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.Equal(["strike", "retain"], run.Deck.GetZoneDefinitionIds("hand", "$run"));
     }
@@ -318,6 +326,7 @@ public sealed class CombatFlowPlannerTests
             new()
             {
                 FlowId = "activation.ethereal", Priority = 50, Triggers = ["activation.ended"],
+                ActorScope = CardZoneFlowActorScope.RunPlayer,
                 AllowedInvocations = [CardZoneFlowInvocation.Boundary],
                 Steps = [new()
                 {
@@ -331,6 +340,7 @@ public sealed class CombatFlowPlannerTests
             new()
             {
                 FlowId = "activation.discard", Priority = 100, Triggers = ["activation.ended"],
+                ActorScope = CardZoneFlowActorScope.RunPlayer,
                 AllowedInvocations = [CardZoneFlowInvocation.Boundary],
                 Steps = [new()
                 {
@@ -344,6 +354,7 @@ public sealed class CombatFlowPlannerTests
             new()
             {
                 FlowId = "activation.draw", Priority = 100, Triggers = ["activation.started"],
+                ActorScope = CardZoneFlowActorScope.RunPlayer,
                 AllowedInvocations = [CardZoneFlowInvocation.Boundary],
                 Steps = [new()
                 {

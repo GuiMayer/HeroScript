@@ -86,6 +86,7 @@ public static class CardZoneRunInitializer
                 FlowOwnerId = ownerId,
                 RunOwnerId = runOwnerId,
                 ActiveActorId = playerActorId,
+                RunPlayerActorId = playerActorId,
                 ContentRevision = contentRevision,
                 ConfigName = configName,
                 Eligibility = eligibility,

@@ -25,6 +25,7 @@ var _transit := {}
 var _entries := {}
 var _preparations := {}
 var _destination_order: Array = []
+var _presentation_order: Array = []
 var _presenting := false
 var _layout: Dictionary = {}
 var relayout_count := 0
@@ -84,7 +85,7 @@ func _init(context = null) -> void:
 	hit_surface.name = "HandHitSurface"
 	hit_surface.hand = self
 	hit_surface.tooltip_text = " "
-	hit_surface.mouse_exited.connect(func(): interaction.hovered = ""; _hover_point = Vector2.INF; _apply_emphasis())
+	hit_surface.mouse_exited.connect(func(): interaction.hovered = ""; _hover_point = Vector2.INF; hit_surface.follow_card(""); _apply_emphasis())
 	surface.add_child(hit_surface)
 	hit_surface.set_as_top_level(true)
 
@@ -131,13 +132,36 @@ func ordered_cards() -> Array: return order.map(func(id): return _cards[id])
 
 func begin_presentation(final_models: Array) -> void:
 	_presenting = true
+	_presentation_order = order.duplicate()
 	_destination_order = final_models.map(func(model): return str(model.cardInstanceId))
-	var merged := final_models.duplicate()
+	var merged := ordered_cards().map(func(card): return card.model)
 	for model in final_models:
-		if not _cards.has(str(model.cardInstanceId)): _transit[str(model.cardInstanceId)] = true
-	for card in ordered_cards():
-		if str(card.model.cardInstanceId) not in _destination_order: merged.append(card.model)
+		if not _cards.has(str(model.cardInstanceId)):
+			_transit[str(model.cardInstanceId)] = true
+			merged.append(model)
 	sync_models(merged, scope)
+	_relayout()
+
+func prepare_zone_beat(steps: Array, role: Callable) -> void:
+	_destination_order = _presentation_order.duplicate()
+	for step in steps:
+		var ids: Array = step.get("instanceIds", []).duplicate()
+		ids.append_array(step.get("createdInstanceIds", []))
+		ids.append_array(step.get("destroyedInstanceIds", []))
+		if role.call(str(step.get("sourceAddress", ""))) == "hand":
+			for id in ids: _destination_order.erase(str(id))
+		if role.call(str(step.get("targetAddress", ""))) == "hand":
+			for id in ids:
+				if _cards.has(str(id)) and str(id) not in _destination_order: _destination_order.append(str(id))
+			# Visible playable zones can publish insertion order; do not assume append.
+			if step.has("targetOrderAfter"):
+				_destination_order = step.targetOrderAfter.filter(func(id): return _cards.has(str(id))).map(func(id): return str(id))
+	for id in _destination_order:
+		if id not in _presentation_order: begin_transit(str(id))
+	_relayout()
+
+func settle_zone_beat() -> void:
+	_presentation_order = _destination_order.duplicate()
 	_relayout()
 
 func begin_transit(id: String) -> void:
@@ -152,6 +176,7 @@ func begin_transit(id: String) -> void:
 		if tween != null and tween.is_valid(): tween.kill()
 		_emphasis.erase(id)
 	if _cards.has(id): _cards[id].hide()
+	if hit_surface._tooltip_id == id: hit_surface.follow_card("")
 	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 
 func finish_transit(id: String, reveal_card := true) -> void:
@@ -163,11 +188,14 @@ func finish_transit(id: String, reveal_card := true) -> void:
 
 func end_presentation() -> void:
 	for id in _destination_order: finish_transit(str(id))
-	_presenting = false; _destination_order.clear()
+	_presenting = false; _destination_order.clear(); _presentation_order.clear()
 	for id in _transit.keys(): finish_transit(id)
 	request_layout()
 
 func destination_center(id: String) -> Vector2:
+	if _presenting and id in _destination_order:
+		var target := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, layout_mode())
+		return surface.global_position + target.positions[_destination_order.find(id)] + _cards[id].size * .5
 	var index := order.find(id)
 	if index >= 0 and index < _layout.get("positions", []).size():
 		return surface.global_position + _layout.positions[index] + _cards[id].size * .5
@@ -287,6 +315,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	_syncing = false
 	_apply_emphasis()
 	_update_counter()
+	if not hit_surface._tooltip_id.is_empty(): hit_surface.follow_card(hit_surface._tooltip_id)
 
 func _remove(id: String) -> void:
 	if _cards.has(id) and _slots.has(id) and _cards[id].get_parent() != _slots[id]:
@@ -307,6 +336,7 @@ func _remove(id: String) -> void:
 func set_selection(id: String) -> void:
 	var previous: String = interaction.selected
 	interaction.selected = id if id in order else ""
+	if not interaction.selected.is_empty(): hit_surface.follow_card(interaction.selected)
 	if interaction.pointer_active and not previous.is_empty() and interaction.selected.is_empty():
 		# Click focus draws its own outline, independently of chosen/button_pressed.
 		# Keep the current hover, but park navigation away from every card face.
@@ -334,7 +364,7 @@ func clear_choice() -> void:
 	_apply_emphasis()
 func set_read_only(value: bool) -> void:
 	read_only = value
-	if value: cancel_gesture()
+	if value: cancel_gesture(); hit_surface.follow_card("")
 func cancel_gesture() -> void:
 	interaction.cancel_pointer()
 	_clear_ghost()
@@ -363,12 +393,17 @@ func _relayout() -> void:
 	_reserved_card_size = dimensions
 	_layout = Layout.calculate(order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
 	if _presenting:
-		var target_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
+		var target_layout := Layout.calculate(_presentation_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
+		var arrival_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
 		for i in order.size():
-			var target_index := _destination_order.find(order[i])
+			var target_index := _presentation_order.find(order[i])
 			if target_index >= 0:
 				_layout.positions[i] = target_layout.positions[target_index]
 				_layout.rotations[i] = target_layout.rotations[target_index]
+			elif order[i] in _destination_order:
+				var arrival_index := _destination_order.find(order[i])
+				_layout.positions[i] = arrival_layout.positions[arrival_index]
+				_layout.rotations[i] = arrival_layout.rotations[arrival_index]
 	scroll.custom_minimum_size.y = _layout.height + 12
 	surface.custom_minimum_size = Vector2(_layout.extent, _layout.height)
 	# Reserve the scroll chrome even when the native bar toggles during layout.
@@ -390,7 +425,7 @@ func _relayout() -> void:
 		if _motions.has(id):
 			if _motions[id].is_valid(): _motions[id].kill()
 			_motions.erase(id)
-		if slot.has_meta("placed") and slot.position != target and duration() > 0:
+		if slot.has_meta("placed") and slot.position != target and duration() > 0 and not _transit.has(id):
 			_motions[id] = create_tween()
 			_motions[id].tween_property(slot, "position", target, duration())
 		else: slot.position = target
@@ -508,6 +543,7 @@ func pick_global(point: Vector2, stable := true) -> String:
 	return best
 func _focus(id: String) -> void:
 	interaction.focused = id
+	hit_surface.follow_card(id)
 	_inspection_anchor = id
 	interaction.pointer_active = false
 	reveal(id)
@@ -551,6 +587,7 @@ func pointer_input(event: InputEvent) -> void:
 		_hover_point = point
 		if id != interaction.hovered or pointer_resumed:
 			interaction.hovered = id
+			hit_surface.follow_card(id)
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
 			if not id.is_empty() and not reading_modal and not interaction.dragging: card_hovered.emit(id)
 		_apply_emphasis()

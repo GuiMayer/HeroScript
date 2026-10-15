@@ -49,8 +49,18 @@ public sealed record CardZoneVisibilityDefinition
     public CardZoneOrderVisibility Order { get; init; } = CardZoneOrderVisibility.Hidden;
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<CardZoneFlowActorScope>))]
+public enum CardZoneFlowActorScope { Any, RunPlayer, OtherActors, Explicit }
+
 public sealed record CardZoneFlowDefinition
 {
+    private ImmutableArray<string> _eligibleActorIds = [];
+    public CardZoneFlowActorScope ActorScope { get; init; } = CardZoneFlowActorScope.Any;
+    public IReadOnlyList<string> EligibleActorIds
+    {
+        get => _eligibleActorIds;
+        init => _eligibleActorIds = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
+    }
     private ImmutableArray<string> _triggers = [];
     private ImmutableArray<CardZoneFlowInvocation> _allowedInvocations = [];
     private ImmutableArray<CardZoneFlowStepDefinition> _steps = [];

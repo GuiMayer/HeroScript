@@ -13,7 +13,9 @@ public sealed class CardZonePackagedGraphFlowTests
     [Fact]
     public void RunInitializer_UsesAuthoredZoneAndInitialBoundaryAtPinnedRevision()
     {
-        var system = Load("spire_zones");
+        var graph = ReadDefinition("spire_zones");
+        var system = CardZoneSystemCompiler.Compile(graph with { Flows = graph.Flows.Select(flow =>
+            flow.FlowId == "run.initial-draw" ? flow with { ActorScope = CardZoneFlowActorScope.RunPlayer } : flow).ToArray() }).Value;
         var formulas = new CountVariableFormulas();
         var executor = new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(
             formulas, new UnusedCardMetadata()));
@@ -166,10 +168,22 @@ public sealed class CardZonePackagedGraphFlowTests
                 ["retained"] = ["retain"], ["ethereal"] = ["ethereal"]
             })));
 
+        foreach (var actor in new[] { "enemy-a", "enemy-b" })
+        foreach (var boundary in new[] { "activation.started", "activation.ended" })
+        {
+            var skipped = executor.ExecuteBoundary(system, initialized.State, initialized.Context,
+                boundary, new CardZoneFlowContext { FlowOwnerId = "run-a", RunOwnerId = "run-a",
+                    ActiveActorId = actor, RunPlayerActorId = "hero", ContentRevision = "content-a" }).Value;
+            Assert.Same(initialized.State, skipped.State);
+            Assert.Empty(skipped.Steps);
+            Assert.Equal(initialized.Context.RandomState.DrawCount, skipped.Context.RandomState.DrawCount);
+        }
+
         var ended = executor.ExecuteBoundary(system, initialized.State, initialized.Context,
             "activation.ended", new CardZoneFlowContext
             {
-                FlowOwnerId = "run-a", RunOwnerId = "run-a", ContentRevision = "content-a"
+                FlowOwnerId = "run-a", RunOwnerId = "run-a", ContentRevision = "content-a",
+                ActiveActorId = "hero", RunPlayerActorId = "hero"
             });
 
         Assert.True(ended.IsSuccess, ended.IsFailure ? ended.Error : null);
@@ -244,7 +258,8 @@ public sealed class CardZonePackagedGraphFlowTests
             new CountVariableFormulas(), new AuthoredTagsMetadata()));
         var context = new CardZoneFlowContext
         {
-            FlowOwnerId = "run-a", RunOwnerId = "run-a", ContentRevision = "content-a"
+            FlowOwnerId = "run-a", RunOwnerId = "run-a", ContentRevision = "content-a",
+            ActiveActorId = "hero", RunPlayerActorId = "hero"
         };
 
         var drawn = executor.ExecuteBoundary(system, initialized.State, initialized.Context,

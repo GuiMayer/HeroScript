@@ -55,7 +55,8 @@ func _build_actions() -> void:
 			model["costsKnown"] = model.has("presentationFacts")
 			model["costUnknownLabel"] = visual_context.translator.text("Cost unavailable")
 			card.configure(model)
-			if primary.get_child_count() == 0: card.set_meta("initial_focus", true)
+			# Offers are not a preselected choice. Navigation may focus them explicitly.
+			card.set_meta("skip_initial_focus", true)
 			card.pressed.connect(func(): _confirm_ref(reference_id))
 			card.name = "Choice_" + reference_id
 			card.set_meta("activity_choice", true)

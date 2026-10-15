@@ -43,10 +43,26 @@ func _run() -> void:
 		await RenderingServer.frame_post_draw
 		check(root.get_texture().get_image().save_png(output_dir.path_join("hover-seam.png")) == OK, "rendered actual highlighted face at the former seam")
 	var text: String = hand.hit_surface._get_tooltip(hand.hit_surface.get_global_transform().affine_inverse() * seam)
-	check(hand.hit_surface._tooltip_id == id and text == hand.card_for(id).tooltip_text, "tooltip resolves the same visible instance as hover")
+	check(hand.hit_surface._tooltip_id == id and text == hand.hit_surface.TOOLTIP_TOKEN, "tooltip resolves the same visible instance with a stable native token")
 	var popup = hand.hit_surface._make_custom_tooltip(text)
 	check(popup != null, "tooltip factory keeps the resolved instance")
-	if popup != null: popup.free()
+	if popup != null:
+		root.add_child(popup)
+		var other_id: String = hand.order.filter(func(candidate): return candidate != id)[0]
+		hand.set_selection(other_id)
+		check(hand.hit_surface._tooltip_id == other_id and hand.hit_surface._tooltip_model == hand.card_for(other_id).model, "selection updates the existing tooltip immediately, without waiting a frame or hover timer")
+		check(popup.get_child_count() == 1 and popup.visible, "tooltip refresh replaces its content without duplicate detail sections")
+		hand._focus(id)
+		check(hand.hit_surface._tooltip_id == id and hand.hit_surface._tooltip_model == hand.card_for(id).model, "keyboard focus refreshes an already open tooltip immediately")
+		var updated: Dictionary = hand.card_for(id).model.duplicate(true)
+		updated["summary"] = "Updated tooltip facts"
+		hand.card_for(id).configure(updated)
+		hand.hit_surface.follow_card(id)
+		check(hand.hit_surface._tooltip_model.summary == "Updated tooltip facts" and popup.get_child_count() == 1, "updated facts refresh the same card tooltip without accumulating content")
+		hand.hit_surface.follow_card("")
+		check(not popup.visible, "leaving cards hides stale tooltip content immediately")
+		popup.free()
+		hand.set_selection("")
 	click(seam, true); click(seam, false); await settle()
 	check(activated == [id], "click on highlighted Fireball cannot select adjacent Heal")
 	for resolution in [Vector2i(1280, 720), Vector2i(2560, 1080)]:

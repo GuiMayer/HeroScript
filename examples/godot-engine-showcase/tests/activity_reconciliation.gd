@@ -54,6 +54,13 @@ func _run() -> void:
 	screen.refresh_state(router.presentation)
 	await settle()
 	var offer_card = screen.view.choice_buttons.filter(func(item): return item is CardView)[0]
+	check(not offer_card.chosen and not offer_card.button_pressed and not offer_card.has_focus(), "card offers open without selection or focus outline")
+	check(offer_card.get_meta("skip_initial_focus", false) and not offer_card.has_meta("initial_focus"), "offered cards never request automatic initial focus")
+	var focus_graph = load("res://scripts/ui/focus_navigation.gd")
+	focus_graph.wire(offer_card, true)
+	check(not offer_card.has_focus(), "even a card-only offer does not gain an automatic outline")
+	offer_card.grab_focus()
+	check(offer_card.has_focus() and not offer_card.chosen, "explicit keyboard focus remains available without selecting an offer")
 	check(not offer_card.model.costsKnown and str(offer_card.model.cost).is_empty() and screen.find_child("AcquisitionPrice", true, false).text.contains("30"), "acquisition price stays outside the face; missing play cost is unknown, never invented")
 	router.queue_free()
 	await settle()

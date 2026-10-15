@@ -6,6 +6,49 @@ namespace Core.Tests.CardZones;
 
 public sealed class CardZoneFlowExecutorTests
 {
+    [Theory]
+    [InlineData(CardZoneFlowActorScope.Any, "hero", true)]
+    [InlineData(CardZoneFlowActorScope.Any, "enemy", true)]
+    [InlineData(CardZoneFlowActorScope.RunPlayer, "hero", true)]
+    [InlineData(CardZoneFlowActorScope.RunPlayer, "enemy", false)]
+    [InlineData(CardZoneFlowActorScope.RunPlayer, null, false)]
+    [InlineData(CardZoneFlowActorScope.OtherActors, "hero", false)]
+    [InlineData(CardZoneFlowActorScope.OtherActors, "enemy", true)]
+    [InlineData(CardZoneFlowActorScope.Explicit, "enemy", true)]
+    [InlineData(CardZoneFlowActorScope.Explicit, "hero", false)]
+    public void ActorEligibility_IsPerFlowAndPreservesSkippedStateAndRandomCursor(
+        CardZoneFlowActorScope scope, string? actor, bool eligible)
+    {
+        var definition = Definition();
+        definition = definition with { Flows = definition.Flows.Select(flow =>
+            flow.FlowId == "draw" ? flow with { ActorScope = scope, EligibleActorIds = ["enemy"] } : flow).ToArray() };
+        var system = CardZoneSystemCompiler.Compile(definition).Value;
+        var empty = CardZoneTransitions.CreateEmpty([Address("library"), Address("spent"), Address("ready")]).Value;
+        var cards = CardZoneTransitions.CreateInstances(empty, Address("spent"), ["a", "b", "c"],
+            new(), new(), null, CardZoneOrdering.Ordered, DeterministicContext.Create(44, "content")).Value;
+        var context = new CardZoneFlowContext { Invocation = CardZoneFlowInvocation.Boundary,
+            FlowOwnerId = "mage", RunOwnerId = "mage", ActiveActorId = actor, RunPlayerActorId = "hero" };
+        var executor = new CardZoneFlowExecutor();
+        var result = executor.ExecuteBoundary(system, cards.State, cards.Context, "activation.started", context).Value;
+        var repeated = executor.ExecuteBoundary(system, cards.State, cards.Context, "activation.started", context).Value;
+        Assert.Equal(result.Fingerprint, repeated.Fingerprint);
+        Assert.Equal(eligible ? 2 : 0, result.State.GetZone(Address("ready"))!.InstanceIds.Count);
+        Assert.Empty(cards.State.GetZone(Address("ready"))!.InstanceIds);
+        if (!eligible)
+        {
+            Assert.Empty(result.Steps);
+            Assert.Same(cards.State, result.State);
+            Assert.Equal(cards.Context.RandomState.DrawCount, result.Context.RandomState.DrawCount);
+        }
+    }
+
+    [Fact]
+    public void ExplicitActorScope_RequiresActorIds()
+    {
+        var definition = Definition();
+        Assert.True(CardZoneSystemCompiler.Compile(definition with { Flows = definition.Flows.Select(
+            flow => flow with { ActorScope = CardZoneFlowActorScope.Explicit }).ToArray() }).IsFailure);
+    }
     [Fact]
     public void Execute_TargetZoneCountMovesOnlyTheMissingAmount()
     {

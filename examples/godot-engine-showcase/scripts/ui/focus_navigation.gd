@@ -43,8 +43,10 @@ static func wire(root: Control, initial := false) -> void:
 	_wire_hands(root)
 	var focused := root.get_viewport().gui_get_focus_owner()
 	if initial or not is_instance_valid(focused) or (root.is_ancestor_of(focused) and focused not in nodes):
-		var preferred: Array[Control] = nodes.filter(func(node): return node.has_meta("initial_focus"))
-		(preferred[0] if not preferred.is_empty() else nodes[0]).grab_focus()
+		var initial_nodes: Array[Control] = nodes.filter(func(node): return not node.get_meta("skip_initial_focus", false))
+		var preferred: Array[Control] = initial_nodes.filter(func(node): return node.has_meta("initial_focus"))
+		if not initial_nodes.is_empty():
+			(preferred[0] if not preferred.is_empty() else initial_nodes[0]).grab_focus()
 
 static func _wire_hands(node: Node) -> void:
 	if node.has_method("wire_focus"): node.wire_focus()

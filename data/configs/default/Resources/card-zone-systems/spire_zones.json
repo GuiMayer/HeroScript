@@ -141,6 +141,7 @@
       },
       {
         "flowId": "activation.draw",
+        "actorScope": "RunPlayer",
         "priority": 100,
         "triggers": ["activation.started"],
         "allowedInvocations": ["Boundary"],
@@ -161,6 +162,7 @@
       },
       {
         "flowId": "activation.ethereal",
+        "actorScope": "RunPlayer",
         "priority": 50,
         "triggers": ["activation.ended"],
         "allowedInvocations": ["Boundary"],
@@ -177,6 +179,7 @@
       },
       {
         "flowId": "activation.discard",
+        "actorScope": "RunPlayer",
         "priority": 100,
         "triggers": ["activation.ended"],
         "allowedInvocations": ["Boundary"],

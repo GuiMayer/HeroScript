@@ -321,6 +321,10 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		if steps.is_empty():
 			for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
 		if not steps.is_empty() and Playback.envelope != null:
+			view.hand.prepare_zone_beat(steps, _zone_role)
+			# Commit before completion releases the cursor or reconciles final state.
+			handle.cleanup(func():
+				if handle.result == "completed" and is_inside_tree(): view.hand.settle_zone_beat())
 			# Card motion owns its arrival milestone; static outcomes still publish
 			# immediately and do not add a second timer to the transfer.
 			var cosmetics = preload("res://scripts/presentation/presentation_handle.gd").new()

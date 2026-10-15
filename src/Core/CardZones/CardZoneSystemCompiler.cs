@@ -93,6 +93,10 @@ public static partial class CardZoneSystemCompiler
         foreach (var flow in definition.Flows)
         {
             var path = $"flows/{flow.FlowId}";
+            if (!Enum.IsDefined(flow.ActorScope)) errors.Add($"{path}: actorScope is invalid");
+            if (flow.ActorScope == CardZoneFlowActorScope.Explicit &&
+                (flow.EligibleActorIds.Count == 0 || flow.EligibleActorIds.Any(string.IsNullOrWhiteSpace)))
+                errors.Add($"{path}: Explicit actorScope requires eligibleActorIds");
             if (!ValidId(flow.FlowId)) errors.Add($"{path}: flowId is invalid");
             if (flow.AllowedInvocations.Count == 0 || flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Unspecified))
                 errors.Add($"{path}: allowedInvocations is required");

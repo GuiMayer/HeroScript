@@ -13,7 +13,7 @@ func reconcile_from(other) -> void:
 	configure(other.model)
 	disabled = other.disabled
 	for key in other.get_meta_list():
-		if key in ["activity_choice", "initial_focus"]: set_meta(key, other.get_meta(key))
+		if key in ["activity_choice", "initial_focus", "skip_initial_focus"]: set_meta(key, other.get_meta(key))
 var animate_entry := true
 var hand_managed := false
 var configuration_count := 0

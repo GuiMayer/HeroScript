@@ -8,6 +8,10 @@ var visual_style: Resource
 var display_mode := DisplayMode.INSPECTION
 
 func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTION) -> void:
+	# The hand reuses an open tooltip when its active instance changes.
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
 	theme = visual_context.theme
 	visual_style = style
 	display_mode = mode

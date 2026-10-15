@@ -21,6 +21,20 @@ not infer rules from names such as `hand`, `draw`, `discard` or `exhaust`.
 
 ## Consequences
 
+Each flow can select `actorScope`: `Any` (default), `RunPlayer` (the run's
+player entity), `OtherActors`, or `Explicit` with `eligibleActorIds`. Eligibility
+is checked by the common executor, including nested and fallback flows. An
+ineligible invocation is a no-op: no movement, records, or random draws. Zone
+ownership and triggering actor are independent; a run-owned pile does not imply
+that every actor should operate it. The Spire activation draw/discard/ethereal
+flows use `RunPlayer`; actor-owned cooldown flows remain unrestricted.
+
+The client stages final card faces without moving the existing hand into final
+slots early. Every zone beat reserves its own destination arrangement and commits
+that arrangement on arrival, keeping discard, enemy actions, and the next draw
+in engine order. Deterministic engine version 31 introduces actor eligibility;
+existing runs retain pinned content and are not silently migrated.
+
 - A mode can implement deckbuilding, cooldown slots, inventories, queues or
   other card organizations without changing engine code.
 - The topology and deterministic context change atomically, including fallback
