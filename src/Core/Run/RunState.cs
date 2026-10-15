@@ -46,6 +46,8 @@ public sealed record RunState : ICanonicalHashMemoizable
     // Absent until acquisition: introducing the inventory does not change existing snapshot hashes.
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Core.Run.Content.CardModifierItemInventory? CardModifierItems { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Loadouts.InscriptionLoadoutState? Loadouts { get; init; }
     // Absent until the first conversation, preserving hashes of snapshots without narrative state.
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Dialogue.RunNarrativeState? Narrative { get; init; }
