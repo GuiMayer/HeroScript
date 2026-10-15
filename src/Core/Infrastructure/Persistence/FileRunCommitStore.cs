@@ -104,6 +104,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(prepared);
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("commit_append");
         var commit = prepared.Commit;
         var path = GetCommitPath(commit.RunId, commit.Sequence);
         var temporaryPath = path + ".tmp";

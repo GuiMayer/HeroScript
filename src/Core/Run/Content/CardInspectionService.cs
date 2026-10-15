@@ -186,6 +186,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
 
     public Result<CardInspectionResult> Inspect(CardInspectionRequest request)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("card_inspection");
         ArgumentNullException.ThrowIfNull(request);
         using var hashes = CanonicalJson.BeginHashScope();
         var resolved = ResolveCombat(request.CombatId);
@@ -201,6 +202,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
         string? costOptionId = null,
         InspectionDetailLevel maximumDetail = InspectionDetailLevel.Full)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("hand_inspection");
         using var hashes = CanonicalJson.BeginHashScope();
         var resolved = ResolveCombat(combatId);
         if (resolved.IsFailure)

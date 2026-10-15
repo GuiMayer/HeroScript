@@ -670,6 +670,7 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseCors();
 app.UseMiddleware<API.Middleware.CorrelationIdMiddleware>();
+app.UseMiddleware<API.Middleware.OperationalTimingMiddleware>();
 app.UseMiddleware<API.Middleware.ApiExceptionMiddleware>();
 app.UseMiddleware<API.Middleware.ApiStatusCodeProblemDetailsMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();

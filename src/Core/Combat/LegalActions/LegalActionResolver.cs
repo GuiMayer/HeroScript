@@ -286,6 +286,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
     private Result<LegalActionSet> ResolveUncached(
         RunState run, CombatState combat, string actorId, CombatCommandOrigin origin)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("legal_discovery");
         if (string.IsNullOrWhiteSpace(actorId))
             return Result<LegalActionSet>.Failure("Actor id is required");
         var actor = combat.GetActor(actorId);

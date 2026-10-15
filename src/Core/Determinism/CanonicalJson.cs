@@ -38,6 +38,7 @@ public static class CanonicalJson
 
     public static string ComputeHash<T>(T value, JsonSerializerOptions? options = null)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
         var effectiveOptions = options ?? DefaultOptions;
         var scope = ActiveHashScope.Value;
         if (scope != null && value is ICanonicalHashMemoizable memoizable)
