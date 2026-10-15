@@ -87,6 +87,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
+        => Execute(request, null, new ExecutionBudget(), suppressReactions: false);
+
+    private sealed class ExecutionBudget { public int Work; }
+
+    private Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request,
+        EffectApplicationRecord? observedParent, ExecutionBudget budget, bool suppressReactions, int baseDepth = 0)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("effect_execute");
         ArgumentNullException.ThrowIfNull(request);
@@ -153,12 +159,19 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         }
         var current = request.Combat;
         var currentRun = request.Run;
-        var executionId = EffectResultContext.ExecutionId(request);
+        var rootExecutionId = EffectResultContext.ExecutionId(request);
+        var executionId = observedParent == null ? rootExecutionId : CanonicalJson.ComputeHash(new
+            { rootExecutionId, parent = observedParent.Identity });
         var resultContext = new EffectResultContext();
         var records = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
-        var work = 0;
+        if (!suppressReactions && request.Run != null)
+            foreach (var relic in request.Run.Relics)
+            {
+                var valid = EffectReactionPolicies.Validate(relic.Reactions ?? []);
+                if (valid.IsFailure) return Result<EffectBatchResult>.Failure(valid.Error);
+            }
         var attemptedRecipes = new Dictionary<string, EffectExecutionIdentity>(StringComparer.Ordinal);
         var activeQuantities = request.Quantities;
         var sharedBudgets = new Dictionary<string, ImmutableArray<EffectSequenceBudget>>(StringComparer.Ordinal);
@@ -168,7 +181,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         (CombatState Combat, RunState? Run)? numericSnapshot = null;
         foreach (var prefix in request.PrefixCommands)
         {
-            if (++work > EffectExecutionLimits.MaximumSteps)
+            if (++budget.Work > EffectExecutionLimits.MaximumSteps)
                 return Result<EffectBatchResult>.Failure("Effect execution limit exceeded");
             var before = CanonicalJson.ComputeHash(current);
             var command = prefix with
@@ -204,7 +217,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             activeTriggerId = component.TriggerId;
             foreach (var (effect, index) in component.Effects.Select((item, index) => (item, index)))
             {
-                var executed = ExecuteEffect(effect, $"{component.TriggerId}:{index}", 0, request.SelectedTargetEntityIds, null, null);
+                var executed = ExecuteEffect(effect, $"{component.TriggerId}:{index}", baseDepth, request.SelectedTargetEntityIds,
+                    observedParent?.Identity?.ProcId, observedParent);
                 if (executed.IsFailure) return Result<EffectBatchResult>.Failure(executed.Error);
             }
         }
@@ -228,7 +242,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             string? definitionPath = null, int continuationHop = 0, ImmutableArray<string> continuationVisited = default,
             IReadOnlyDictionary<string, float>? inheritedRandomFacts = null)
         {
-            if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
+            if (++budget.Work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
                 return Result.Failure("Effect execution limit exceeded");
             var resolvedPolicy = EffectResolutionPolicyResolver.Resolve(effect, resolutionPolicy, policyRuntime, request.Card, request.Tags);
             if (resolvedPolicy.IsFailure) return Result.Failure(resolvedPolicy.Error);
@@ -304,7 +318,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 current = current with { Determinism = targets.Value.Context };
                 foreach (var lostId in targets.Value.LostTargetIds)
                 {
-                    if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                    if (++budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                     var lostIdentity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat,
                         lostId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId);
                     if (forcedProcId != null) lostIdentity = lostIdentity with
@@ -359,7 +373,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 }
                 for (var targetIndex = 0; targetIndex < targets.Value.TargetIds.Length; targetIndex++)
                 {
-                    if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                    if (++budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                     var targetId = targets.Value.TargetIds[targetIndex];
                     var id = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}";
                     var identity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat, targetId,
@@ -419,9 +433,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     var randomInputs = ImmutableArray.CreateBuilder<EffectRandomInputResult>();
                     if (applies)
                     {
-                        work += effect.RandomInputs.Length;
-                        work += effect.RandomInputs.Sum(input => input.Probability?.Captures.Count ?? 0);
-                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                        budget.Work += effect.RandomInputs.Length;
+                        budget.Work += effect.RandomInputs.Sum(input => input.Probability?.Captures.Count ?? 0);
+                        if (budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                         foreach (var input in effect.RandomInputs.OrderBy(input => input.InputId, StringComparer.Ordinal))
                         {
                             var scopeId = input.Scope switch { EffectRandomScope.Action => executionId,
@@ -471,8 +485,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             request with { Combat = current, Run = currentRun }, request.Combat, request.Run,
                             recipes[effect.CondensationRecipeId!], targetId, identity.ProcId);
                         if (plan.IsFailure) return Result.Failure(plan.Error);
-                        work += plan.Value.Work;
-                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                        budget.Work += plan.Value.Work;
+                        if (budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                         condensation = plan.Value.Outcome;
                         condensationSkip = plan.Value.SkipReason;
                         applies = condensation != null;
@@ -509,8 +523,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             capturedBudgets = sequenceBudgets;
                             budgetReady = true;
                             if (fromParent) sharedBudgets.Add(frameId, sequenceBudgets);
-                            work += sequenceBudgets.Sum(budget => budget.Allocation.Shares.Length + 1);
-                            if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                            budget.Work += sequenceBudgets.Sum(item => item.Allocation.Shares.Length + 1);
+                            if (budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                             calculations.AddRange(sequenceBudgets.Select(budget => budget.Capture));
                         }
                         var zeroSlot = Shares(repeat).Any(share => share.Parameter != EffectNumericParameter.Amount && share.Share.Quantity.Value == 0);
@@ -568,8 +582,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         calculation = value.Value.Calculation;
                         resolvedParameters = value.Value.Parameters;
                         payloadCalculations = value.Value.PayloadCalculations;
-                        work += value.Value.PayloadWork;
-                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                        budget.Work += value.Value.PayloadWork;
+                        if (budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                         if (value.Value.ZeroContribution)
                         {
                             applies = false;
@@ -584,8 +598,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 status.Value, targetId, identity.ImpactId, numericVariables);
                             if (payload.IsFailure) return Result.Failure(payload.Error);
                             payloadCalculations = payloadCalculations.AddRange(payload.Value.Calculations);
-                            work += payload.Value.Lot?.Parameters.Count ?? 0;
-                            if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                            budget.Work += payload.Value.Lot?.Parameters.Count ?? 0;
+                            if (budget.Work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                             var command = new ResolvedEffectCommand
                             {
                                 EffectInstanceId = id,
@@ -671,6 +685,48 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
                     if (!applies) continue;
+                    if (!suppressReactions && currentRun != null)
+                    {
+                        var primary = appliedRecords.LastOrDefault(record => record.CalculationInfluenceId == null &&
+                            record.TargetEntityId == targetId && record.ResourceOutcome != null);
+                        if (primary != null)
+                        {
+                            var reactionTags = CalculationResolver.NormalizeTags(effect, request.Tags);
+                            var reactions = currentRun.Relics.SelectMany(relic => (relic.Reactions ?? [])
+                                .Where(reaction => EffectReactionPolicies.Matches(reaction, effect, primary, reactionTags))
+                                .Select(reaction => (Relic: relic, Reaction: reaction)))
+                                .OrderBy(item => item.Reaction.Priority)
+                                .ThenBy(item => item.Relic.RelicInstanceId)
+                                .ThenBy(item => item.Reaction.ReactionId, StringComparer.Ordinal).ToArray();
+                            foreach (var (relic, reaction) in reactions)
+                            {
+                                if (++budget.Work > EffectExecutionLimits.MaximumSteps)
+                                    return Result.Failure("Effect execution limit exceeded");
+                                var ownerId = reaction.OwnerScope == EffectReactionOwnerScope.Source ? request.SourceEntityId : targetId;
+                                var owner = current.GetActor(ownerId);
+                                if (owner == null || !relic.Owner.Includes(owner, current, currentRun) ||
+                                    reaction.RequireLivingOwner && !owner.IsAlive) continue;
+                                var reacted = Execute(new()
+                                {
+                                    Combat = current, Run = currentRun,
+                                    OwnerEntityId = ownerId, SourceEntityId = ownerId,
+                                    ContentRevision = relic.ContentRevision,
+                                    Trigger = new() { TriggerId = reaction.ReactionId, Boundary = "ResourceApplied", Effects = reaction.Effects },
+                                    SelectedTargetEntityIds = [reaction.Selection == EffectReactionSelection.Source ? request.SourceEntityId : targetId],
+                                    Variables = new Dictionary<string, float> { ["stacks"] = relic.Stacks },
+                                    Provenance = new() { Kind = EffectProvenanceKind.Relic,
+                                        SourceId = relic.RelicInstanceId.ToString("D"), ComponentId = reaction.ReactionId }
+                                }, primary, budget, suppressReactions: true, baseDepth: depth + 1);
+                                if (reacted.IsFailure) return Result.Failure(reacted.Error);
+                                current = reacted.Value.State;
+                                currentRun = reacted.Value.Run;
+                                records.AddRange(reacted.Value.Records);
+                                calculations.AddRange(reacted.Value.Calculations);
+                                foreach (var reactionStep in reacted.Value.Steps)
+                                    steps.Add(reactionStep with { Index = steps.Count });
+                            }
+                        }
+                    }
                     if (condensation != null)
                     {
                         var recipe = recipes[effect.CondensationRecipeId!];

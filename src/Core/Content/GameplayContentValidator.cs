@@ -162,6 +162,13 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (!Enum.IsDefined(item.Stacking) || item.StackLimit < 1) Error(path, "invalid relic stacking policy");
             Triggers(path, item.Triggers, relic: true);
             Influences(path, item.Influences);
+            var reactions = EffectReactionPolicies.Validate(item.Reactions ?? []);
+            if (reactions.IsFailure) Error(path, reactions.Error);
+            else foreach (var reaction in item.Reactions ?? [])
+            {
+                Reference(path, "resources", reaction.ResourceId, required: true);
+                Effects($"{path}/reactions/{reaction.ReactionId}", reaction.Effects);
+            }
         });
         Visit<ScriptModifierDefinition>("modifiers", (path, item) =>
         {

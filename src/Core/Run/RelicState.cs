@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Determinism;
 using Core.Calculations;
@@ -16,6 +17,8 @@ public sealed record RelicDefinition
     private ImmutableArray<EffectTriggerDefinition> _triggers = [];
 
     public string RelicId { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<EffectReactionDefinition>? Reactions { get; init; }
     public int StackLimit { get; init; } = 1;
     public StackReapplyPolicy Stacking { get; init; } = StackReapplyPolicy.Add;
     public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
@@ -46,6 +49,8 @@ public sealed record RunRelicState
     private ImmutableArray<EffectTriggerDefinition> _triggers = [];
 
     public Guid RelicInstanceId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<EffectReactionDefinition>? Reactions { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     public GameplayOwner Owner { get; init; } = new();
     public string ContentRevision { get; init; } = string.Empty;
@@ -89,6 +94,8 @@ public static class RelicTransitions
             return Result<RelicTransition>.Failure("Relic stack limit must be positive");
         if (!Enum.IsDefined(definition.Stacking))
             return Result<RelicTransition>.Failure("Invalid relic stacking policy");
+        var reactions = EffectReactionPolicies.Validate(definition.Reactions ?? []);
+        if (reactions.IsFailure) return Result<RelicTransition>.Failure(reactions.Error);
         owner ??= new() { Kind = GameplayOwnerKind.Run, Id = state.RunId.ToString() };
         if (!Enum.IsDefined(owner.Kind) || owner.Kind != GameplayOwnerKind.Global && string.IsNullOrWhiteSpace(owner.Id))
             return Result<RelicTransition>.Failure("Invalid relic owner");
@@ -126,6 +133,7 @@ public static class RelicTransitions
             AcquiredAtStep = state.Determinism.Step,
             Influences = definition.Influences,
             Triggers = definition.Triggers,
+            Reactions = definition.Reactions,
             Properties = definition.Properties
         };
         return Result<RelicTransition>.Success(new RelicTransition(
