@@ -108,24 +108,36 @@ public static partial class CanonicalJson
     internal static string ComputeObjectHash(params CanonicalProperty[] properties)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
-        var buffer = new ArrayBufferWriter<byte>();
-        using var writer = new Utf8JsonWriter(buffer);
-        writer.WriteStartObject();
+        // Stream the identical object bytes, not hashes of its properties. Large
+        // embedded snapshots already have owned canonical storage; copying them
+        // into another growing buffer only adds allocation/GC pressure.
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var nameBuffer = new ArrayBufferWriter<byte>(64);
+        using var nameWriter = new Utf8JsonWriter(nameBuffer);
+        hash.AppendData("{"u8);
         string? previous = null;
+        var first = true;
         foreach (var property in properties.OrderBy(property => property.Name, StringComparer.Ordinal))
         {
             if (property.Name == previous) throw new ArgumentException("Duplicate canonical property");
             // Embedded properties add the outer object to the serializer's depth.
             // Raw writes alone would accidentally accept previously invalid data.
             if (property.Depth >= 64) throw new JsonException("Maximum canonical serialization depth exceeded");
-            writer.WritePropertyName(property.Name);
-            // Factory-only fragments have already been serialized and depth checked.
-            writer.WriteRawValue(property.Bytes.Span, skipInputValidation: true);
+            if (!first) hash.AppendData(","u8);
+            first = false;
+            // Use the writer itself, including its replacement of malformed
+            // UTF-16. JsonEncodedText.Encode rejects inputs it used to accept.
+            nameBuffer.Clear();
+            nameWriter.Reset(nameBuffer);
+            nameWriter.WriteStringValue(property.Name);
+            nameWriter.Flush();
+            hash.AppendData(nameBuffer.WrittenSpan);
+            hash.AppendData(":"u8);
+            hash.AppendData(property.Bytes.Span);
             previous = property.Name;
         }
-        writer.WriteEndObject();
-        writer.Flush();
-        return Convert.ToHexStringLower(SHA256.HashData(buffer.WrittenSpan));
+        hash.AppendData("}"u8);
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
     private static CanonicalEncoding CanonicalBytes<T>(T value, JsonSerializerOptions options)

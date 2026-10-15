@@ -359,6 +359,37 @@ public class CanonicalJsonTests
     }
 
     [Fact]
+    public void StreamedCompositionMatchesTheOriginalObjectBytesForEveryPropertyNameEscape()
+    {
+        using var document = JsonDocument.Parse("{\"z\":1e+03,\"a\":-0}");
+        var keys = Enumerable.Range(0, 128).Select(code => "key-" + (char)code)
+            .Concat(new[] { "ação", "😀", "\uE000", "", "A", "a" }).ToArray();
+        var values = keys.ToDictionary(key => key, _ => document.RootElement.Clone(), StringComparer.Ordinal);
+        var expected = CanonicalJson.ComputeHash(values);
+        Assert.Equal(expected, CanonicalJson.ComputeObjectHash(keys.Reverse()
+            .Select(key => CanonicalJson.Property(key, values[key])).ToArray()));
+        Assert.Equal(CanonicalJson.ComputeHash(new { }), CanonicalJson.ComputeObjectHash());
+        Assert.Throws<ArgumentException>(() => CanonicalJson.ComputeObjectHash(
+            CanonicalJson.Property("same", 1), CanonicalJson.Property("same", 2)));
+        Assert.Throws<ArgumentException>(() => CanonicalJson.ComputeObjectHash(default(CanonicalJson.CanonicalProperty)));
+        var malformed = new[] { "\ud800", "\ud801", "\uE000", "😀" }
+            .Select(key => CanonicalJson.Property(key, 1)).ToArray();
+        var original = new System.Buffers.ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(original))
+        {
+            writer.WriteStartObject();
+            foreach (var property in malformed.OrderBy(property => property.Name, StringComparer.Ordinal))
+            {
+                writer.WritePropertyName(property.Name);
+                writer.WriteRawValue(property.Bytes.Span, skipInputValidation: true);
+            }
+            writer.WriteEndObject();
+        }
+        Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(original.WrittenSpan)),
+            CanonicalJson.ComputeObjectHash(malformed));
+    }
+
+    [Fact]
     public void WeakDefaultMemoMatchesCanonicalBytesAndNeverMemoizesMutableObjects()
     {
         var value = new MemoizableValue(42);

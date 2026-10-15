@@ -225,3 +225,36 @@ não medição de gameplay renderizado contra a API real.
 Seis testes REST adicionais passaram, incluindo a comparação independente após
 cada comando, cache frio/quente, descoberta diferencial, sessão versionada e
 três processos independentes com os mesmos receipts/commits/replay.
+
+## Etapa 7 — composição do fingerprint sem buffer duplicado
+
+`ComputeObjectHash` alimenta SHA-256 incrementalmente com os mesmos delimitadores,
+nomes escapados e bytes canônicos completos das propriedades, na mesma ordem.
+Não é hash de hashes. Evita copiar snapshots grandes para um segundo buffer
+crescente só para hashá-lo. Mantém rejeição de nomes duplicados e profundidade.
+
+O nome da propriedade ainda usa o próprio `Utf8JsonWriter`: o experimento com
+`JsonEncodedText` rejeitava UTF-16 malformado que o escritor anterior aceitava
+com substituição. Testes independentes cobrem cada caractere ASCII, Unicode,
+nomes vazios, caixa, duplicatas, UTF-16 malformado e objeto vazio.
+
+Primeira bateria Kestrel com streaming, 523 interações de comando + sessão:
+nenhuma atingiu 1 s. Máximos por seed 154/250/251: 840/881/707 ms. Replays,
+recuperação e resultados finais permaneceram iguais. A criação da run não
+estava nessa contagem; foi incluída na bateria final ampliada.
+
+O teste tem um gate opcional `HEROSCRIPT_INTERACTION_BUDGET_MS=1000` para a
+execução isolada de `SocketSession_MeasuresCommandsAndRefreshAcrossPublishedSeeds`.
+Ele falha se qualquer interação medida atingir o limite, sem excluir outliers.
+Suites comuns de correção continuam sem limite de tempo absoluto, pois podem
+rodar concorrentes/em hardware de CI diferente. O relatório sempre mostra os
+excessos, independentemente de o gate estar habilitado.
+
+Na bateria ampliada com criação, o gate reprovou a seed executada a frio:
+`START_RUN` levou 1.977 ms no POST/2.279 ms com a primeira sessão. As duas
+criações seguintes levaram 696/690 ms com sessão. Os outros 523 comandos
+continuaram abaixo de 1 s. Logo a meta global continua aberta: a inicialização
+de nova run a frio precisa de uma etapa própria, não de exclusão do relatório.
+
+Certificação do streaming: 1.753 testes Core e seis testes REST passaram,
+incluindo o oráculo de cada comando e os três processos independentes.

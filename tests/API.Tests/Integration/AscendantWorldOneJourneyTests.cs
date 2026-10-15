@@ -28,6 +28,7 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
     public Task CanonicalEncoding_MatchesReferenceAfterEveryWorldOneCommand() => Traverse(true, true);
 
     [Theory]
+    [Trait("Category", "Performance")]
     [InlineData(154)]
     [InlineData(250)]
     [InlineData(251)]
@@ -43,14 +44,23 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
         output.WriteLine($"transport={(useSocket ? "Kestrel loopback" : "TestServer")}; seed={seed}");
         var game = new GameEngineClientSimulator(client);
         const string player = "world-one-pilot";
-        var runId = await game.StartRunAsync("ascendant", "ascendant_world_one_run", player, (ulong)seed,
-            "ascendant_world_one");
+        // The setting/revision is selected before the player presses New run.
+        var revision = await game.GetCurrentContentRevisionAsync("ascendant");
+        var creation = Stopwatch.StartNew();
+        using var created = await client.PostAsJsonAsync("/api/v1/runs", new
+        { settingId = "ascendant", runDefinitionId = "ascendant_world_one_run", playerEntityId = player,
+            seed = (ulong)seed, contentRevision = revision, modeId = "ascendant_world_one" });
+        var initial = await created.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(created.IsSuccessStatusCode, initial.GetRawText());
+        var runId = initial.GetProperty("runId").GetGuid();
+        var creationMs = creation.Elapsed.TotalMilliseconds;
+        output.WriteLine($"creation POST: {creationMs:F2}ms");
         var times = new List<double>();
         var sessionTimes = new List<double>();
         var sessionBytes = new List<int>();
         var phases = new List<(double Ms, string Type, int Bytes, string Timing)>();
         var interactions = new List<(double Ms, string Type)>();
-        (double Ms, string Type)? pendingCommand = null;
+        (double Ms, string Type)? pendingCommand = (creationMs, "START_RUN");
         var authoritativeRuns = factory.Services.GetRequiredService<Core.Run.IRunQueryService>();
         var sessionPhases = new List<(double Ms, string Timing)>();
         if (compact) client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
@@ -244,9 +254,21 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
             output.WriteLine($"slow session: {sample.Ms:F2}ms {sample.Timing}");
         if (compact)
         {
-            Assert.Equal(commandIndex, interactions.Count);
+            Assert.Equal(commandIndex + 1, interactions.Count);
             foreach (var group in interactions.GroupBy(value => value.Type))
                 output.WriteLine($"interaction POST+session {group.Key}: n={group.Count()}; p95={group.OrderBy(value => value.Ms).ElementAt((int)Math.Ceiling(group.Count() * .95) - 1).Ms:F2}ms; max={group.Max(value => value.Ms):F2}ms; over1s={group.Count(value => value.Ms >= 1000)}");
+            // Optional dedicated performance gate: ordinary correctness suites
+            // may run concurrently/on slow CI, so never silently skip an outlier
+            // in the measured report or alter gameplay to satisfy this budget.
+            var limit = Environment.GetEnvironmentVariable("HEROSCRIPT_INTERACTION_BUDGET_MS");
+            if (useSocket && limit != null)
+            {
+                Assert.True(double.TryParse(limit, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var budget) && double.IsFinite(budget) && budget > 0,
+                    "HEROSCRIPT_INTERACTION_BUDGET_MS must be a positive millisecond budget");
+                Assert.All(interactions, sample => Assert.True(sample.Ms < budget,
+                    $"{sample.Type}: {sample.Ms:F2}ms exceeds the exclusive {budget:F2}ms interaction budget"));
+            }
         }
     }
 
