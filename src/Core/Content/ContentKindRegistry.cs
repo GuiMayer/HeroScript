@@ -157,6 +157,8 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("formulas", "formulas", typeof(Core.Math.FormulaDefinition), null),
         new("gambits", "gambits", typeof(Core.Combat.Gambits.GambitDefinition), "gambitId"),
         new("keywords", "keywords", typeof(JsonElement)),
+        new("inscriptions", "inscriptions", typeof(Core.Run.Loadouts.InscriptionDefinition), "inscriptionId"),
+        new("loadout-policies", "loadout-policies", typeof(Core.Run.Loadouts.LoadoutPolicyDefinition), "loadoutPolicyId"),
         new("modes", "modes", typeof(GameModeDefinition), "modeId"),
         new("modifiers", "modifiers", typeof(ScriptModifierDefinition), "modifierId"),
         new("phase-sequences", "phase-sequences", typeof(PhaseSequenceDefinition), "sequenceId"),

@@ -276,6 +276,12 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 
 ## 8. Estado da entrega
 
+### Implementação canônica em andamento
+
+- Etapa 0: laboratório registrado em `296f7f1`; inclui os refinamentos visuais e atributos de exemplo.
+- Etapa 1: contratos imutáveis `InscriptionDefinition`/`LoadoutPolicyDefinition`, registro canônico e validação do grafo implementados. Escopos Actor/Run, duplicatas, catálogo permitido e janelas explícitos; bônus referenciam atributos/pipelines, não cartas. Modos opt-out não serializam o novo vínculo. Guia em `docs/content/inscriptions.md`.
+- Verificação da etapa 1: 64 testes focados de conteúdo/validação passaram. As etapas seguintes ainda não estão certificadas como concluídas.
+
 - [x] Diagnóstico por código e arquitetura documentados.
 - [x] Cena isolada implementada e verificada.
 - [ ] Aprovação do autor sobre a cena e as políticas iniciais.

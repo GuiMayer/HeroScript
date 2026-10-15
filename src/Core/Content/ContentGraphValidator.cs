@@ -85,6 +85,18 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateGambits(runtime, errors);
         ValidateStatusEffects(runtime, errors);
         ValidateRelics(runtime, errors);
+        foreach (var id in runtime.GetDefinitions("inscriptions").Keys)
+        {
+            var item = runtime.GetDefinition<Run.Loadouts.InscriptionDefinition>("inscriptions", id);
+            var valid = item.IsFailure ? Result.Failure(item.Error) : item.Value.Validate(runtime);
+            if (valid.IsFailure) errors.Add($"inscriptions/{id}: {valid.Error}");
+        }
+        foreach (var id in runtime.GetDefinitions("loadout-policies").Keys)
+        {
+            var policy = runtime.GetDefinition<Run.Loadouts.LoadoutPolicyDefinition>("loadout-policies", id);
+            var valid = policy.IsFailure ? Result.Failure(policy.Error) : policy.Value.ValidateBindings(runtime);
+            if (valid.IsFailure) errors.Add($"loadout-policies/{id}: {valid.Error}");
+        }
         ValidateEnemyPools(runtime, errors);
         ValidateCardPools(runtime, errors);
         ValidateCardUpgrades(runtime, errors);
@@ -143,6 +155,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 RequireProperty(runtime, errors, "modes", id, definition, "profileProgressPolicyId", "profile-progress-policies");
             if (TryGetProperty(definition, "cardZoneSystemId", out _))
                 RequireProperty(runtime, errors, "modes", id, definition, "cardZoneSystemId", "card-zone-systems");
+            if (TryGetProperty(definition, "loadoutPolicyId", out _))
+                RequireProperty(runtime, errors, "modes", id, definition, "loadoutPolicyId", "loadout-policies");
             RequireArray(runtime, errors, "modes", id, definition, "cardPoolIds", "card-pools");
             RequireArray(runtime, errors, "modes", id, definition, "enemyPoolIds", "enemy-pools");
 
@@ -163,6 +177,15 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     foreach (var pipelineId in required.Distinct(StringComparer.Ordinal))
                         if (!mode.Value.CalculationPipelineIds.Contains(pipelineId!, StringComparer.Ordinal))
                             errors.Add($"modes/{id}: effect policy requires enabled pipeline {pipelineId}");
+                }
+            }
+            if (mode.Value.LoadoutPolicyId is { } loadoutPolicyId)
+            {
+                var policy = runtime.GetDefinition<Run.Loadouts.LoadoutPolicyDefinition>("loadout-policies", loadoutPolicyId);
+                if (policy.IsSuccess)
+                {
+                    var valid = policy.Value.ValidateBindings(runtime, mode.Value);
+                    if (valid.IsFailure) errors.Add($"modes/{id}: {valid.Error}");
                 }
             }
             if (mode.Value.ProfileProgressProvenance is { } provenance && !Enum.IsDefined(provenance))

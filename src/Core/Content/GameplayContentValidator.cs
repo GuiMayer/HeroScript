@@ -28,6 +28,8 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
     {
         Visit<FormulaDefinition>("formulas", (path, item) =>
             errors.AddRange(FormulaDefinitionValidator.Validate(item).Select(error => $"{path}: {error}")));
+        Visit<Core.Run.Loadouts.InscriptionDefinition>("inscriptions", (path, item) =>
+            Influences(path, item.AttributeBonuses.Select(bonus => bonus.Influence).ToImmutableArray()));
         Visit<GameModeDefinition>("modes", (path, item) =>
         {
             Influences(path, item.Influences);

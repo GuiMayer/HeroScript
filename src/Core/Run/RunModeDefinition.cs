@@ -38,6 +38,8 @@ public sealed record GameModeDefinition
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RunEligibilityRules? EligibilityRules { get; init; }
     public string? CardZoneSystemId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LoadoutPolicyId { get; init; }
     public ImmutableSortedDictionary<string, string> DefaultCalculationPipelines { get; init; } =
         ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
 
