@@ -20,6 +20,7 @@ var _zone_snapshot: Dictionary
 var _scenery_key := ""
 var _zone_reading_states: Dictionary = {}
 var _collection_dialog: Window
+var _collection_loading := false
 var _prepared_card: Dictionary = {}
 var _intro_handle
 var _receipt_departure
@@ -150,10 +151,18 @@ func _update_controls() -> void:
 			_collection_dialog.set_meta("zone_snapshot", zone)
 
 func _open_collection(address: Dictionary) -> void:
-	if not is_inside_tree() or get_tree().paused or view.hand.reading_modal: return
+	if not is_inside_tree() or get_tree().paused or view.hand.reading_modal or _collection_loading: return
+	var expected_context := presenter.context_key()
+	_collection_loading = true
+	var facts: Dictionary = await GameSession.load_collection_presentations()
+	_collection_loading = false
+	if not is_inside_tree() or get_tree().paused or expected_context != presenter.context_key() or not facts.get("ok", false): return
 	var zone: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").find(_zone_snapshot, address)
 	if zone.is_empty(): return
-	var model: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").build(zone, presenter, visual_context.translator)
+	var collection_presenter = Presenter.new(_run_snapshot, _combat_snapshot, GameSession.legal_actions,
+		visual_context.translator, presentation, _zone_snapshot)
+	collection_presenter.accept_presentations(facts.data.get("cards", []))
+	var model: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").build(zone, collection_presenter, visual_context.translator)
 	var scope := JSON.stringify([GameSession.selected_setting_id, _run_snapshot.get("runId"), _run_snapshot.get("branchId"), _combat_snapshot.get("combatId"), address])
 	var dialog = preload("res://scripts/ui/card_zone_dialog.gd").new(visual_context)
 	_collection_dialog = dialog; dialog.setup(model); add_child(dialog)

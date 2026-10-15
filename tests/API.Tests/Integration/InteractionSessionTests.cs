@@ -36,12 +36,17 @@ public sealed class InteractionSessionTests
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         var start = session.GetProperty("commands").GetProperty("commands").EnumerateArray()
             .Single(value => value.GetProperty("type").GetString() == "START_ENCOUNTER");
+        client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
         using var command = await client.PostAsJsonAsync($"/api/v1/runs/{id}/commands", new
         {
             commandId = Guid.NewGuid(), type = "START_ENCOUNTER", payload = start.GetProperty("validPayload"),
             expectedSequence = start.GetProperty("expectedSequence").GetInt32(), expectedStep = start.GetProperty("expectedStep").GetUInt64()
         });
         Assert.True(command.IsSuccessStatusCode, await command.Content.ReadAsStringAsync());
+        Assert.Equal("return=minimal", command.Headers.GetValues("Preference-Applied").Single());
+        var minimal = await command.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(minimal.GetProperty("state").TryGetProperty("encounters", out _));
+        Assert.Equal(JsonValueKind.Object, minimal.GetProperty("state").GetProperty("combat").ValueKind);
         var active = runs.GetRun(id).Value;
         var activeHash = CanonicalJson.ComputeHash(active);
         using var combatResponse = await client.GetAsync($"/api/v1/runs/{id}/session?expectedSequence={active.Sequence}");

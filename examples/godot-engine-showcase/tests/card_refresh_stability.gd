@@ -12,6 +12,8 @@ class Fixture extends RefCounted:
 	var calls := 0
 	var sequence := 1
 	var version_overrides: Dictionary = {}
+	func read_session(id: String, expected := -1) -> Dictionary:
+		return await preload("res://tests/session_fixture_adapter.gd").read(self, id, expected)
 	func read_run(_id: String) -> Dictionary:
 		return {"ok": true, "data": {"runId": "run", "sequence": sequence, "contentRevision": "revision", "activeEncounterId": "combat"}}
 	func read_projections(_run: String, _combat: String, _include: bool) -> Dictionary:

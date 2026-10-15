@@ -22,6 +22,7 @@ var _tool_capabilities: Dictionary = {}
 var _card_zones: Dictionary = {}
 var _character_attributes: Dictionary = {}
 var _card_presentations: Dictionary = {}
+var _collection_presentations: Dictionary = {}
 var _modifier_items: Dictionary = {}
 var _card_evaluations: Array = []
 var _card_evaluation_context: Array = []
@@ -223,64 +224,52 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 	if _run.is_empty():
 		return false
 	var run_id := str(_run.get("runId", ""))
-	var response: Dictionary = await _gateway.read_run(run_id)
+	var response: Dictionary = await _gateway.read_session(run_id, receipt_sequence)
+	# Another authorized client may have advanced the run after our durable
+	# receipt. Read the new head atomically; never relabel it as the old receipt.
+	if _current(ticket) and not response.ok and int(response.get("status", 0)) == 409 and receipt_sequence >= 0:
+		response = await _gateway.read_session(run_id, -1)
+		receipt_sequence = -1
+		committed_combat = {}
 	if not _current(ticket):
 		return false
 	if not response.ok:
 		return _refresh_failed(response)
-	var next_run: Dictionary = response.data
-	var refresh_timings := {"run_loaded": Time.get_ticks_msec()}
-	var next_combat: Dictionary = committed_combat if receipt_sequence == int(next_run.get("sequence", 0)) else {}
-	var encounter_id := str(next_run.get("activeEncounterId", "")) if next_run.get("activeEncounterId") != null else ""
-	var include_combat := not encounter_id.is_empty() and str(next_combat.get("combatId", "")) != encounter_id
-	if encounter_id.is_empty():
-		next_combat = {}
-	var responses: Dictionary
-	var known_actor: String = _input_actor_id(next_combat) if not next_combat.is_empty() and str(next_combat.get("status", "ACTIVE")) == "ACTIVE" else ""
-	if not include_combat and not known_actor.is_empty() and _gateway.has_method("read_combat_projections"):
-		responses = await _gateway.read_combat_projections(run_id, encounter_id, known_actor)
-	else: responses = await _gateway.read_projections(run_id, encounter_id, include_combat)
-	refresh_timings["projections_loaded"] = Time.get_ticks_msec()
-	if not _current(ticket):
-		return false
-	for result in responses.values():
-		if not result.ok:
-			return _refresh_failed(result)
-	if responses.has("combat"):
-		next_combat = responses.combat.data
-	var next_actions: Array = []
-	var next_evaluations: Array = []
-	if not next_combat.is_empty() and str(next_combat.get("status", "ACTIVE")) == "ACTIVE":
-		var actor_id := _input_actor_id(next_combat)
-		if not actor_id.is_empty():
-			var actions_response: Dictionary = responses.actions if responses.has("actions") else await _gateway.read_legal_actions(str(next_combat.get("combatId", "")), actor_id)
-			refresh_timings["actions_loaded"] = Time.get_ticks_msec()
-			if not _current(ticket):
-				return false
-			if not actions_response.ok:
-				return _refresh_failed(actions_response)
-			next_actions = actions_response.data if actions_response.data is Array else actions_response.data.get("candidates", [])
-			# Publish one complete visual revision, not a generic face followed by
-			# a second async rewrite. All values still come from the engine.
-			var targets: Array = []
-			for candidate in next_actions:
-				var command: Dictionary = candidate.get("command", {})
-				var selected: Array = command.get("targetIds", [])
-				if selected.is_empty() and command.get("targetId") != null: selected = [command.targetId]
-				if not selected.is_empty(): targets = [selected[0]]; break
-			var inspection: Dictionary = await _gateway.inspect_hand(str(next_combat.get("combatId", "")), actor_id, targets)
-			refresh_timings["evaluations_loaded"] = Time.get_ticks_msec()
-			if not _current(ticket): return false
-			if not inspection.ok: return _refresh_failed(inspection)
-			next_evaluations = inspection.data.get("cards", [])
-			for card in next_evaluations:
-				var version: Dictionary = card.get("version", {})
-				if int(version.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or \
-					str(version.get("runId", "")) != run_id or \
-					str(version.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
-					int(version.get("combatStep", -1)) != int(next_combat.get("step", 0)) or \
-					str(version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
-					return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	var data: Dictionary = response.data
+	var next_run: Dictionary = data.get("run", {})
+	var version: Dictionary = data.get("version", {})
+	var next_combat: Dictionary = data.combat if data.get("combat") is Dictionary else {}
+	if str(next_run.get("runId", "")) != run_id or str(version.get("runId", "")) != run_id or \
+		int(version.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or \
+		str(version.get("settingId", "")) != str(next_run.get("settingId", next_run.get("configName", ""))) or \
+		str(version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")) or \
+		int(version.get("runStep", -1)) != int(next_run.get("step", 0)) or \
+		str(version.get("engineVersion", "")) != str(next_run.get("engineVersion", "")) or \
+		str(version.get("stateFingerprint", "")) != str(next_run.get("stateHash", "")) or \
+		str(version.get("stateFingerprint", "")).is_empty() or \
+		(receipt_sequence >= 0 and int(next_run.get("sequence", -1)) != receipt_sequence):
+		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	if not next_combat.is_empty() and (str(version.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
+		int(version.get("combatStep", -1)) != int(next_combat.get("step", 0))):
+		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
+	if not committed_combat.is_empty() and receipt_sequence >= 0 and (str(committed_combat.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
+		int(committed_combat.get("step", -1)) != int(next_combat.get("step", 0))):
+		return _refresh_failed({"ok": false, "errorKey": "Presentation was superseded by a newer game revision."})
+	var responses: Dictionary = {}
+	for section in ["commands", "capabilities", "cardZones", "attributes", "cardPresentations", "modifierItems"]:
+		if not data.get(section) is Dictionary: return _refresh_failed({"ok": false, "errorKey": "The engine returned an invalid JSON response."})
+		responses[section] = {"ok": true, "data": data[section]}
+	var refresh_timings := {"session_loaded": Time.get_ticks_msec()}
+	if not data.get("actions") is Dictionary or not data.get("evaluations") is Dictionary:
+		return _refresh_failed({"ok": false, "errorKey": "The engine returned an invalid JSON response."})
+	var next_actions: Array = data.get("actions", {}).get("candidates", [])
+	var next_evaluations: Array = data.get("evaluations", {}).get("cards", [])
+	for card in next_evaluations:
+		var inspection_version: Dictionary = card.get("version", {})
+		if int(inspection_version.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or \
+			str(inspection_version.get("runId", "")) != run_id or str(inspection_version.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
+			int(inspection_version.get("combatStep", -1)) != int(next_combat.get("step", 0)) or str(inspection_version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
+			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
 	var next_attributes: Dictionary = responses.attributes.data if responses.has("attributes") else {}
 	if not next_attributes.is_empty():
 		if str(next_attributes.get("runId", "")) != run_id or int(next_attributes.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_attributes.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
@@ -608,6 +597,20 @@ func inspect_hand(target_ids := []) -> Dictionary:
 	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id(), target_ids)
 func inspect_card(instance_id: String) -> Dictionary:
 	return await _gateway.inspect_card(str(_combat.get("combatId", "")), input_actor_id(), instance_id)
+
+func load_collection_presentations() -> Dictionary:
+	if not synchronized or busy or _run.is_empty(): return {"ok": false}
+	var identity := [_run.get("runId"), _run.get("sequence"), _run.get("contentRevision"), _run.get("stateHash")]
+	if _collection_presentations.get("identity", []) == identity:
+		return {"ok": true, "data": _collection_presentations.data.duplicate(true)}
+	var response: Dictionary = await _gateway.read_card_presentations(str(_run.runId))
+	if identity != [_run.get("runId"), _run.get("sequence"), _run.get("contentRevision"), _run.get("stateHash")]: return {"ok": false, "cancelled": true}
+	if not response.ok: return response
+	var data: Dictionary = response.data
+	if str(data.get("runId", "")) != str(_run.runId) or int(data.get("runSequence", -1)) != int(_run.sequence) or str(data.get("contentRevision", "")) != str(_run.get("contentRevision", "")):
+		return {"ok": false, "cancelled": true}
+	_collection_presentations = {"identity": identity, "data": data.duplicate(true)}
+	return {"ok": true, "data": data.duplicate(true)}
 
 func historical_state(sequence: int) -> Dictionary:
 	if not allows_tool("timeline.inspect_state"):

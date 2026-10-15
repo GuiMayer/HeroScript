@@ -38,6 +38,8 @@ class Fixture extends RefCounted:
 		return {"ok": true, "data": {"sequence": state.sequence, "state": {"combat": combat.duplicate(true), "resolution": {"frames": [
 			{"transitionType": "effect", "applications": [{"effectType": "DAMAGE", "resourceId": "mana", "targetEntityId": "hero", "previousValue": 8, "currentValue": 6}]},
 			{"transitionType": "effect", "applications": [{"effectType": "HEAL", "resourceId": "mana", "targetEntityId": "hero", "previousValue": 6, "currentValue": 7}]}]}}}}
+	func read_session(id: String, expected := -1) -> Dictionary:
+		return await preload("res://tests/session_fixture_adapter.gd").read(self, id, expected)
 	func read_run(_id: String) -> Dictionary:
 		if superseded: state.sequence += 1; superseded = false
 		return {"ok": true, "data": state.duplicate(true)}

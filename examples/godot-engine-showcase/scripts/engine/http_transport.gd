@@ -148,6 +148,7 @@ func _perform_request(method: HTTPClient.Method, path: String, body = null, time
 		completion.finish(HTTPRequest.RESULT_REQUEST_FAILED, 0, PackedStringArray(), PackedByteArray())
 	if read_ticket != null: read_ticket.cancelled.connect(cancel_request, CONNECT_ONE_SHOT)
 	var headers := PackedStringArray(["Accept: application/json"])
+	if method == HTTPClient.METHOD_POST and path.ends_with("/commands"): headers.append("Prefer: return=minimal")
 	var encoded := ""
 	if body != null:
 		headers.append("Content-Type: application/json")

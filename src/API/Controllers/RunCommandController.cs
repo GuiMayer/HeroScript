@@ -71,6 +71,15 @@ public sealed class RunCommandController : BaseApiController
             var result = _commands.Execute(
                 runId,
                 new GameplayCommandEnvelope(identity, envelope.Payload));
+            if (result.IsSuccess && Request.Headers["Prefer"].ToString().Split(',').Any(value => value.Trim() == "return=minimal"))
+            {
+                var receipt = result.Value.Receipt;
+                var encounter = receipt.State.GetActiveEncounter();
+                Response.Headers["Preference-Applied"] = "return=minimal";
+                return Ok(MapReceipt(receipt, new { runStep = receipt.State.Determinism.Step,
+                    combat = encounter == null ? null : API.Models.Combat.CombatStateResponse.From(encounter.Combat),
+                    resolution = receipt.CombatResolution }));
+            }
             return result.IsSuccess
                 ? Ok(MapReceipt(result.Value.Receipt))
                 : MapFailure(

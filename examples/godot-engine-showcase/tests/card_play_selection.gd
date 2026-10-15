@@ -23,6 +23,8 @@ class GatewayFixture extends RefCounted:
 			zones.zones[0].count = zones.zones[0].cards.size()
 		return {"ok": true, "data": {"sequence": state.sequence, "state": {"combat": combat.duplicate(true),
 			"resolution": {"frames": [{"transitionType": "effect", "applications": []}]}}}}
+	func read_session(id: String, expected := -1) -> Dictionary:
+		return await preload("res://tests/session_fixture_adapter.gd").read(self, id, expected)
 	func read_run(_id: String) -> Dictionary: return {"ok": true, "data": state.duplicate(true)}
 	func read_projections(_run: String, _encounter: String, include_combat: bool) -> Dictionary:
 		var result := {"cardZones": {"ok": true, "data": zones.duplicate(true)},

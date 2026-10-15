@@ -99,3 +99,17 @@ algoritmo canônicos não mudaram. O contexto agregado compartilha os hashes.
 Validação: 1.734 testes Core passaram, incluindo concorrência, invalidação,
 runtime diferente com mesmo rótulo e composição com upgrades; três testes REST
 de sessão e equivalência de descoberta passaram. Versão determinística permanece 31.
+
+## Etapa 8 — migração do cliente
+
+GameSession faz uma leitura de sessão por refresh, valida identidade, fingerprint,
+setting, revisão e steps e publica atomicamente. Fan-out antigo foi removido do
+gateway de produção. Conflito após recibo faz uma leitura explícita do novo head,
+sem reenviar a ação nem apresentar o head como resultado antigo. POST de run usa
+`Prefer: return=minimal`; o mesmo executor/commit confirma um recibo sem serializar
+o agregado inteiro. Coleções carregam fatos completos sob demanda e por revisão.
+
+Fixtures antigos foram adaptados somente em `tests/session_fixture_adapter.gd`;
+não há fallback para o refresh antigo em produção. Testes da sessão compacta,
+animação, supersessão, seleção, estabilidade de faces e transporte passaram.
+Inspeção contextual continua no coordenador existente, com cache/epoch limitado.

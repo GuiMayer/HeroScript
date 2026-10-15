@@ -44,6 +44,13 @@ func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: 
 func read_run(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s" % run_id.uri_encode())
 
+func read_session(run_id: String, expected_sequence := -1) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/session%s" % [run_id.uri_encode(),
+		"?expectedSequence=%s" % expected_sequence if expected_sequence >= 0 else ""])
+
+func read_card_presentations(run_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/cards/presentations" % run_id.uri_encode())
+
 func run_history(player_id: String, setting_id: String) -> Dictionary:
 	var response: Dictionary = await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/profiles/%s?settingId=%s" % [player_id.uri_encode(), setting_id.uri_encode()])
@@ -85,23 +92,6 @@ func begin_run_commit(run_id: String, sequence: int):
 func run_commit(run_id: String, sequence: int) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/runs/%s/commits/%s" % [run_id.uri_encode(), sequence])
-
-func read_combat_projections(run_id: String, combat_id: String, actor_id: String) -> Dictionary:
-	return await read_projections(run_id, combat_id, false, actor_id)
-func read_projections(run_id: String, combat_id: String, include_combat: bool, actor_id := "") -> Dictionary:
-	var paths := {
-		"commands": "/api/v1/runs/%s/available-commands" % run_id.uri_encode(),
-		"capabilities": "/api/v1/runs/%s/capabilities" % run_id.uri_encode(),
-		"cardZones": "/api/v1/runs/%s/card-zones" % run_id.uri_encode(),
-		"attributes": "/api/v1/runs/%s/character-attributes" % run_id.uri_encode(),
-		"cardPresentations": "/api/v1/runs/%s/cards/presentations" % run_id.uri_encode(),
-		"modifierItems": "/api/v1/runs/%s/card-modifier-items" % run_id.uri_encode()
-	}
-	if include_combat:
-		paths["combat"] = "/api/v1/combats/%s" % combat_id.uri_encode()
-	if not actor_id.is_empty():
-		paths["actions"] = "/api/v1/combats/%s/legal-actions?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()]
-	return await _transport.request_many(paths)
 
 func read_legal_actions(combat_id: String, actor_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
