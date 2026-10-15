@@ -181,3 +181,47 @@ Nenhuma outra categoria além de carta/fim de turno excedeu 1 s nessas três
 execuções. Isto não certifica o SLO; a conclusão favorável do benchmark isolado
 da etapa anterior não pode ser generalizada. Próximo foco é retirar serialização
 redundante dos encontros históricos imutáveis entre comandos.
+
+## Etapa 6 — escrita direta dos grafos imutáveis
+
+O cache entre comandos para encontros encerrados foi experimentado e rejeitado:
+não houve ganho consistente nas três seeds. Não foi mantido nem introduziu
+retenção global adicional de snapshots.
+
+Folhas abaixo dos agregados profundamente imutáveis passam a ser escritas com
+metadados de propriedades ordenados uma vez, sem construir um DOM do grafo
+inteiro. Dicionários com chave string são ordenados ordinalmente; arrays mantêm
+sua ordem. Conversores atribuídos, polimorfismo, callbacks, extension data,
+number handling e chaves de outros tipos usam o serializer original, seguido de
+normalização. O escritor de referência e inputs públicos mutáveis/desconhecidos
+não usam esse caminho. Um scanner sem DOM mantém o limite de profundidade.
+
+Datas e enums numéricos/string padrão usam tokens do serializer original, com
+até 128 escalares por comando (escopos aninhados compartilham o limite). As
+chaves distinguem tipo, Kind e offset, não só igualdade de instantes. Conversores
+arbitrários não entram nesse reuso. Nada disso faz parte de estados ou fatos.
+
+A primeira variante correta sem reuso dos escalares teve custo excessivo e foi
+ajustada antes da aceitação. O ato com comparação independente após cada comando
+passou; testes adicionais incluem Unicode ordinal versus UTF-8, datas, conversores
+que emitem chaves duplicadas, léxico numérico e políticas de número/ignore.
+
+Novo benchmark Kestrel, mesmas três seeds e 523 comandos/526 sessões/27 encontros,
+sem mudança de resultado/replay/recuperação:
+
+| Seed | Máximo POST | Máximo POST + sessão | Interações ≥ 1 s |
+| --- | ---: | ---: | ---: |
+| 154 | 1.014 ms | 1.081 ms | 1 |
+| 250 | 754 ms | 931 ms | 0 |
+| 251 | 632 ms | 759 ms | 0 |
+
+O tempo total do conjunto caiu de 4 min 32 s para 2 min 46 s. A meta ainda não
+está fechada: não se arredonda o único excesso para declará-la cumprida.
+
+Certificação da variante com escalares: 1.752 testes Core e 64 checks Godot
+passaram (sessão compacta, pool HTTP, envelope de apresentação, troca de conexão
+e estabilidade do texto das cartas). Os testes Godot são contratos/fixtures,
+não medição de gameplay renderizado contra a API real.
+Seis testes REST adicionais passaram, incluindo a comparação independente após
+cada comando, cache frio/quente, descoberta diferencial, sessão versionada e
+três processos independentes com os mesmos receipts/commits/replay.

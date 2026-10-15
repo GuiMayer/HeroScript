@@ -101,14 +101,7 @@ public static partial class CanonicalJson
     private static CanonicalEncoding EncodeStandard(object? value, Type declaredType)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_standard_encode");
-        using var document = JsonSerializer.SerializeToDocument(value, declaredType, DefaultOptions);
-        var element = document.RootElement;
-        var buffer = new ArrayBufferWriter<byte>();
-        using var writer = new Utf8JsonWriter(buffer);
-        var depth = 0;
-        WriteFastElement(writer, element, ref depth);
-        writer.Flush();
-        return new(buffer.WrittenMemory, depth);
+        return EncodeImmutableLeaf(value, declaredType);
     }
 
     // Nested scopes share the operation budget. No cache survives the outer scope.

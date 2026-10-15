@@ -68,6 +68,78 @@ public class CanonicalJsonTests
     private sealed record MemoizableValue(int Value) : ICanonicalHashMemoizable;
 
     [Fact]
+    public void ImmutableDirectWriterPreservesOrdinalKeysDeclaredTypesDatesAndConverterSemantics()
+    {
+        using var document = JsonDocument.Parse("{\"z\":1e+03,\"a\":\"\\u0061\",\"z\":-0}");
+        var probe = new DirectEncodingProbe
+        {
+            Offset = new DateTimeOffset(2026, 10, 15, 12, 34, 56, TimeSpan.FromHours(3)),
+            Values = System.Collections.Immutable.ImmutableDictionary<string, decimal>.Empty
+                .Add("😀", 1.00m).Add("\uE000", 2.50m).Add("<a>", 3m).Add("A", -0m),
+            NumericKeys = System.Collections.Immutable.ImmutableDictionary<int, string>.Empty.Add(2, "two").Add(10, "ten"),
+            Json = document.RootElement.Clone(),
+            Component = new Core.Combat.Models.StatEntityComponentState { ComponentId = "stats" },
+            Converted = new(7), Numbers = new() { Value = 1.25f },
+            Sequence = ["z", "a", "<+>", "ação", "😀"]
+        };
+        using var scope = CanonicalJson.BeginHashScope();
+        for (var revision = 0; revision < 64; revision++)
+        {
+            var value = probe with { Z = revision, Missing = revision % 2 == 0 ? null : "value" };
+            Assert.Equal(CanonicalJson.Serialize(value), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("probe", value).Bytes.Span));
+        }
+        foreach (var offset in new[] { -3, 0, 3 })
+        foreach (var kind in new[] { DateTimeKind.Utc, DateTimeKind.Unspecified, DateTimeKind.Local })
+        {
+            // Equal instants/ticks need not have equal serialized offsets/kinds.
+            var value = probe with { Offset = probe.Offset.ToOffset(TimeSpan.FromHours(offset)),
+                Date = DateTime.SpecifyKind(DateTime.UnixEpoch, kind) };
+            Assert.Equal(CanonicalJson.Serialize(value), System.Text.Encoding.UTF8.GetString(
+                CanonicalJson.Property("probe", value).Bytes.Span));
+        }
+    }
+
+    private sealed record DirectEncodingProbe : ICanonicalHashMemoizable
+    {
+        [JsonPropertyOrder(-99)] public int Z { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Missing { get; init; }
+        public DateTimeOffset Offset { get; init; }
+        public DateTime Date { get; init; } = DateTime.UnixEpoch;
+        public System.Collections.Immutable.ImmutableDictionary<string, decimal> Values { get; init; } =
+            System.Collections.Immutable.ImmutableDictionary<string, decimal>.Empty;
+        public System.Collections.Immutable.ImmutableDictionary<int, string> NumericKeys { get; init; } =
+            System.Collections.Immutable.ImmutableDictionary<int, string>.Empty;
+        public JsonElement Json { get; init; }
+        public Core.Combat.Models.EntityComponentState? Component { get; init; }
+        public ConvertedLeaf Converted { get; init; } = new(0);
+        public NumberPolicyProbe Numbers { get; init; } = new();
+        public System.Collections.Immutable.ImmutableArray<string> Sequence { get; init; } = [];
+    }
+
+    private sealed record NumberPolicyProbe
+    {
+        [JsonNumberHandling(JsonNumberHandling.WriteAsString)] public float Value { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Omitted { get; init; }
+    }
+
+    [JsonConverter(typeof(ReverseObjectConverter))]
+    private sealed record ConvertedLeaf(int Value);
+    private sealed class ReverseObjectConverter : JsonConverter<ConvertedLeaf>
+    {
+        public override ConvertedLeaf Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
+            throw new NotSupportedException();
+        public override void Write(Utf8JsonWriter writer, ConvertedLeaf value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("z", "ação <+> " + value.Value);
+            writer.WritePropertyName("a"); writer.WriteRawValue("1.000");
+            writer.WritePropertyName("a"); writer.WriteRawValue("-0");
+            writer.WriteEndObject();
+        }
+    }
+
+    [Fact]
     public void FastWriterMatchesReferenceForDuplicateNamesEscapesUnicodeAndEveryAsciiCharacter()
     {
         var cases = new[]
@@ -219,6 +291,26 @@ public class CanonicalJsonTests
         GC.Collect();
         Assert.Equal(reference, System.Text.Encoding.UTF8.GetString(fragment.Bytes.Span));
         Assert.Equal(CanonicalJson.ComputeHash(new { run }), CanonicalJson.ComputeObjectHash(fragment));
+    }
+
+    [Fact]
+    public void ImmutableEncodingCannotBypassTheOuterSerializationDepthLimit()
+    {
+        using var document = JsonDocument.Parse(new string('[', 55) + "0" + new string(']', 55));
+        var run = new Core.Run.RunState { Encounters = [new() { Resolved = true, Combat = new() { Board = new()
+        {
+            Zones = new Dictionary<string, Core.Combat.Models.CombatZoneState>
+            {
+                ["board"] = new() { Objects = [new() { Counters = new Dictionary<string, JsonElement>
+                    { ["depth"] = document.RootElement.Clone() } }] }
+            }
+        } } }] };
+        Assert.ThrowsAny<JsonException>(() => CanonicalJson.Serialize(run));
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var scope = CanonicalJson.BeginHashScope();
+            Assert.ThrowsAny<JsonException>(() => CanonicalJson.Property("run", run));
+        }
     }
 
     [Fact]

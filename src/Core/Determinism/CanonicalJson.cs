@@ -219,6 +219,7 @@ public static partial class CanonicalJson
         public HashScope? Previous { get; } = previous;
         public Dictionary<HashCacheKey, string> Hashes { get; } = new(HashCacheKeyComparer.Instance);
         public EncodingCache Encodings { get; } = previous?.Encodings ?? new();
+        public Core.Caching.LruCache<ScalarEncodingKey, CanonicalEncoding> Scalars { get; } = previous?.Scalars ?? new(128);
     }
     private sealed class ImmutableHashes { public Dictionary<Type, string> Values { get; } = new(); }
 
