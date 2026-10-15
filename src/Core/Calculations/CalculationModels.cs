@@ -59,7 +59,8 @@ public enum CalculationSourceKind
     Upgrade,
     GameMode,
     Encounter,
-    Modifier
+    Modifier,
+    Inscription
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

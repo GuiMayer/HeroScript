@@ -288,11 +288,16 @@ Essas escolhas não bloqueiam o laboratório. Precisam ser formalizadas antes da
 - Etapa 3: `APPLY_LOADOUT` pelo codec/gateway existente, inicialização opt-in no lifecycle, consultas/preview versionados, cache derivado limitado e resumo na sessão implementados. Controller delega ao serviço de aplicação; OpenAPI inclui payloads vindos do registry canônico. Branch compartilhada rebasa o inventário sem duplicar instâncias.
 - Verificação da etapa 3: 1.773 testes Core e 13 testes focados de contrato/arquitetura/REST passaram; aquisição inicial dos testes é uma preparação de estado confiável, não um endpoint de grant aberto. Dois testes de durabilidade (Actor/Run) reexecutam replay três vezes, recuperam depois de reiniciar, testam retry, conflito e falha de armazenamento sem alteração parcial. A suíte API completa atingiu o limite configurado de 300 s após 228 casos aprovados, sem falhas reportadas; execução abortada não é certificação da suíte completa.
 - O primeiro teste OpenAPI encontrou artefatos de build antigos carregando OpenApi 3.5.4 apesar de o projeto já fixar 2.7.5. Reconstruir a saída de testes resolveu, sem atualizar dependências. Os endpoints novos permanecem experimentais; provider/atributos reais e as etapas 4–8 não estão concluídos nesta revisão.
+- Etapa 3 registrada em `b82a8d2`.
+- Etapa 4: provider de inscrições registrado no mesmo composite usado pela engine, origem de trace acrescentada sem renumerar enums, projeção canônica em query/preview e correção de owner compartilhada para relíquias/modificadores fora do combate. Bônus usam canais/buckets/tags configurados; não reescrevem cartas nem calculam efeitos na Godot. Validação derivada tem memoização limitada com lifetime fraco por runtime/snapshot; a projeção completa continua limitada a 32 entradas por serviço, com identidade do snapshot/personagem no cache.
+- Versão determinística avançada de 31 para 32: a correção de influência fora de combate muda resultados de regras existentes. Preservar saves antigos e rejeitar execução em runtime incompatível, sem migrar ou reinterpretar journal silenciosamente. Novos settings de inscrições ainda não foram adicionados ao mundo publicado.
+- Verificação da etapa 4: 1.777 testes Core e 13 testes focados de REST/contratos/arquitetura passaram. Cobertura inclui projeção e resolução com o mesmo bônus, remoção sem drift, owner fora de combate, escopo alvo, tags e fórmula na revisão de aquisição. Isso não certifica esquiva, lifesteal ou restrições de recursos ainda não implementadas.
 
 - [x] Diagnóstico por código e arquitetura documentados.
 - [x] Cena isolada implementada e verificada.
 - [ ] Aprovação do autor sobre a cena e as políticas iniciais.
-- [ ] Etapas 1–8 da engine e integração real.
+- [x] Etapas 1–4: contratos, planejamento, gateway/persistência e provider canônico.
+- [ ] Etapas 5–8: regras excepcionais, integração Godot, aquisição e certificação/migração.
 
 O GDD legado permanece intocado. Este plano não anuncia inscrições ou as duas relíquias novas como mecânicas já disponíveis no jogo.
 

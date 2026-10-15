@@ -312,9 +312,8 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
             StringComparer.Ordinal);
         variables["stacks"] = modifier.Stacks;
         variables["duration"] = modifier.Duration;
-        var owner = context.Combat?.GetAllActors().OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
-            .FirstOrDefault(entity => modifier.Owner.Includes(entity, context.Combat, context.Run));
-        if (owner != null) ResourceFormulaVariables.AddOwner(variables, "owner", owner.ResourceState);
+        var owner = CalculationOwnerResolver.FormulaOwner(modifier.Owner, context);
+        if (owner != null) CalculationOwnerResolver.SetResources(variables, owner);
         return !string.IsNullOrWhiteSpace(modifier.ContentRevision) &&
                _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
             ? revisioned.EvaluateAtRevision(definition.Formula!, modifier.ContentRevision, variables)
@@ -329,7 +328,7 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
         var scopedEntity = definition.Scope == CalculationEntityScope.Actor
             ? context.Actor
             : context.Target;
-        return scopedEntity != null && context.Combat != null && modifier.Owner.Includes(scopedEntity, context.Combat, context.Run);
+        return scopedEntity != null && modifier.Owner.Includes(scopedEntity, context.Combat, context.Run);
     }
 
     private static bool TagsMatch(
@@ -457,7 +456,7 @@ public sealed class RelicCalculationInfluenceProvider : ICalculationInfluencePro
                 var scoped = definition.Scope == CalculationEntityScope.Actor
                     ? context.Actor
                     : context.Target;
-                if (scoped == null || context.Combat == null || !relic.Owner.Includes(scoped, context.Combat, context.Run) ||
+                if (scoped == null || !relic.Owner.Includes(scoped, context.Combat, context.Run) ||
                     !definition.RequiredTags.All(context.Tags.Contains) ||
                     definition.ExcludedTags.Any(context.Tags.Contains))
                     continue;
@@ -500,12 +499,8 @@ public sealed class RelicCalculationInfluenceProvider : ICalculationInfluencePro
             pair => pair.Value,
             StringComparer.Ordinal);
         variables["stacks"] = relic.Stacks;
-        if (context.Combat != null)
-        {
-            var owner = context.Combat.GetAllActors().OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
-                .FirstOrDefault(entity => relic.Owner.Includes(entity, context.Combat, context.Run));
-            if (owner != null) ResourceFormulaVariables.AddOwner(variables, "owner", owner.ResourceState);
-        }
+        var owner = CalculationOwnerResolver.FormulaOwner(relic.Owner, context);
+        if (owner != null) CalculationOwnerResolver.SetResources(variables, owner);
         return !string.IsNullOrWhiteSpace(relic.ContentRevision) &&
                _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
             ? revisioned.EvaluateAtRevision(definition.Formula!, relic.ContentRevision, variables)

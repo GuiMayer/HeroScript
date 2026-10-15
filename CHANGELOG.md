@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Character inscription foundations (2026-10-15)
+
+- Revisioned inscription/loadout policies, Actor/Run inventory scopes, immutable ownership and atomic equipment plans.
+- Canonical APPLY_LOADOUT, versioned REST queries/previews, durable retries, recovery and replay; branches preserve item identities and isolate shared inventory ownership.
+- Character equipment contributions use the same calculation providers as gameplay, with inscription provenance in traces and no card rewrites.
+- Deterministic engine version 32 fixes passive owner resolution outside combat. Older histories are preserved, but require their original runtime for semantic execution.
+- The Godot laboratory remains isolated until the later REST integration stage; acquisition, exceptional relic rules and migration certification are not declared complete by these foundations.
+
 #### Stable Godot snapshot rendering (2026-09-20)
 
 - Combat and Journey retain their screen identity while refreshing the same

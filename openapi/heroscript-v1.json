@@ -865,6 +865,7 @@
       "LoadoutSnapshot": {
         "type": "object",
         "properties": {
+          "attributes": {"allOf":[{"$ref":"#/components/schemas/ActorAttributesProjection"}],"nullable":true},
           "runId": {
             "type": "string",
             "format": "uuid"

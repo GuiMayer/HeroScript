@@ -4,7 +4,7 @@
 
 O modo aponta para `effectResolutionPolicyId`. A política está no catálogo revisionado `effect-resolution-policies`, participa da publicação do setting e só afeta modos que a selecionam. O executor comum adapta uma cópia imutável do efeito antes de distribuir orçamento, sortear inputs e calcular impactos. Cartas, habilidades, relíquias e outros produtores não recebem calculadores particulares.
 
-O Mundo 1 usa `w1_global_effect_rules`; o showcase anterior e outros settings conservam suas próprias configurações. Uma run já criada mantém suas referências e revisão. Não se alteram arquivos de revisões publicadas nem se migram valores de histórico silenciosamente. A versão executável atual é `30`; runtimes históricos incompatíveis precisam de sua versão correspondente para execução/replay semântico.
+O Mundo 1 usa `w1_global_effect_rules`; o showcase anterior e outros settings conservam suas próprias configurações. Uma run já criada mantém suas referências e revisão. Não se alteram arquivos de revisões publicadas nem se migram valores de histórico silenciosamente. A versão executável atual é `32`; runtimes históricos incompatíveis precisam de sua versão correspondente para execução/replay semântico. A versão 32 acrescenta contribuições de inscrições e corrige a resolução de owner de relíquias/modificadores fora de combate; não reinterpreta runs antigas sob essa correção.
 
 ## Matemática do Mundo 1
 

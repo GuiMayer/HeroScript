@@ -11,7 +11,11 @@ public sealed record LoadoutPreviewRequest(string ActorId, ImmutableSortedDictio
 public sealed record LoadoutItemView(InscriptionInstance Instance, InscriptionDefinition Definition, string? EquippedActorId, string? SlotId);
 public sealed record LoadoutSnapshot(Guid RunId, int RunSequence, ulong ExpectedStep, string ContentRevision, string ActorId,
     string InventoryId, LoadoutPolicyDefinition Policy, bool CanEquip, float UsedCapacity,
-    ImmutableArray<string> ActorIds, ImmutableArray<LoadoutItemView> Items, ImmutableSortedDictionary<string, Guid> Assignments);
+    ImmutableArray<string> ActorIds, ImmutableArray<LoadoutItemView> Items, ImmutableSortedDictionary<string, Guid> Assignments)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Calculations.ActorAttributesProjection? Attributes { get; init; }
+}
 public sealed record LoadoutPreview(LoadoutSnapshot Before, LoadoutSnapshot After);
 
 public interface ILoadoutQueryService
@@ -22,7 +26,8 @@ public interface ILoadoutQueryService
 }
 
 /// <summary>Read-only versioned projection. The same planner validates preview and commands.</summary>
-public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeResolver runtimes, LoadoutChangePlanner planner) : ILoadoutQueryService, ICacheService
+public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeResolver runtimes, LoadoutChangePlanner planner,
+    Core.Calculations.IActorAttributeProjectionService? attributes = null) : ILoadoutQueryService, ICacheService
 {
     private readonly LruCache<string, LoadoutSnapshot> _cache = new(32);
     public string CacheName => "RunInscriptionLoadouts";
@@ -71,6 +76,12 @@ public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeRe
         var snapshot = new LoadoutSnapshot(run.RunId, run.Sequence, run.Determinism.Step, run.Determinism.ContentRevision,
             actorId, inventoryId, policy.Value, LoadoutContentAccess.CanEquip(run, policy.Value), (float)cost,
             run.Loadouts.Actors.Keys.ToImmutableArray(), items.ToImmutable(), actor.Assignments);
+        if (attributes != null)
+        {
+            var projected = attributes.Project(run, run.GetActiveEncounter()?.Combat, actorId);
+            if (projected.IsFailure) return Fail(projected.Error);
+            snapshot = snapshot with { Attributes = projected.Value };
+        }
         _cache.Set(key, snapshot);
         return Result<LoadoutSnapshot>.Success(snapshot);
     }

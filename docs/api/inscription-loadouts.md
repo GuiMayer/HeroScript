@@ -22,4 +22,8 @@ O gateway persiste o sucessor e o recibo atomicamente antes de publicá-los. Rep
 
 O contrato OpenAPI vivo inclui `x-heroscript-command-payloads`, gerado a partir do registro canônico de comandos. O artefato estático inclui os endpoints e tipos de loadout, sem substituir os metadados curados das rotas anteriores.
 
-Estado desta etapa: equipamento/query/preview e persistência funcionam; nenhum setting publicado foi habilitado automaticamente. Provider de atributos, regras excepcionais, aquisição no mapa e integração Godot continuam etapas posteriores. Hot reload em runs com inscrições permanece conservador até a etapa de migração: não troca o escopo nem a revisão silenciosamente.
+`attributes` é a projeção canônica do personagem, com base/efetivo e traces de origem, tanto na consulta quanto no before/after do preview. Usa o mesmo provider que os cálculos de gameplay; nenhuma fórmula é executada na Godot. Inscrições só alteram cálculos elegíveis pelo contrato de canal/bucket/tags do conteúdo. Um atributo projetado não concede por si uma ação, uma rolagem de esquiva ou uma regra de limite de recurso: esses consumidores também precisam ser configurados pelo setting.
+
+Estado desta etapa: equipamento/query/preview, provider de atributos e persistência funcionam; nenhum setting publicado foi habilitado automaticamente. Regras excepcionais, aquisição no mapa e integração Godot continuam etapas posteriores. Hot reload em runs com inscrições permanece conservador até a etapa de migração: não troca o escopo nem a revisão silenciosamente.
+
+Versão determinística 32: a correção de owner fora de combate altera resultados que antes omitiam relíquias/modificadores. Runs de versões anteriores não são migradas ou apagadas; execução/replay semântico exige a versão executável correspondente. Não remover a guarda de versão para forçar compatibilidade.

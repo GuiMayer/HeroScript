@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using Core.Common;
 using Core.Content;
+using Core.Caching;
+using System.Runtime.CompilerServices;
 
 namespace Core.Run.Loadouts;
 
@@ -10,16 +12,36 @@ public sealed record LoadoutChangePlan(RunState Candidate, string ActorId,
 
 public static class LoadoutContentAccess
 {
+    // Derived validation only: weak runtime/state lifetime, bounded entries, no contextual numerical results.
+    private static readonly ConditionalWeakTable<ContentRuntime, LruCache<GameModeDefinition, Result<LoadoutPolicyDefinition>>> Policies = new();
+    private static readonly ConditionalWeakTable<InscriptionLoadoutState, LruCache<(Guid, LoadoutPolicyDefinition), Result>> States = new();
+
+    internal static Result ValidateState(RunState run, LoadoutPolicyDefinition policy)
+    {
+        if (run.Loadouts == null) return Result.Failure("Loadout state is absent");
+        var cache = States.GetValue(run.Loadouts, _ => new(32));
+        var key = (run.RunId, policy);
+        if (cache.TryGetValue(key, out var cached)) return cached!;
+        var valid = run.Loadouts.Validate(run.RunId, policy);
+        cache.Set(key, valid);
+        return valid;
+    }
+
     public static Result<LoadoutPolicyDefinition> Policy(RunState run, ContentRuntime runtime)
     {
         if (run.Determinism.ContentRevision != runtime.Manifest.Revision || !string.Equals(run.ConfigName, runtime.Manifest.ConfigName, StringComparison.OrdinalIgnoreCase))
             return Result<LoadoutPolicyDefinition>.Failure("Loadout runtime does not match the run's setting and revision");
         var id = run.ResolvedMode?.Definition.LoadoutPolicyId;
         if (string.IsNullOrWhiteSpace(id)) return Result<LoadoutPolicyDefinition>.Failure("Inscriptions are not enabled by this mode");
+        var cache = Policies.GetValue(runtime, _ => new(32));
+        var mode = run.ResolvedMode!.Definition;
+        if (cache.TryGetValue(mode, out var cached)) return cached!;
         var policy = runtime.GetDefinition<LoadoutPolicyDefinition>("loadout-policies", id);
         if (policy.IsFailure) return policy;
-        var valid = policy.Value.ValidateBindings(runtime, run.ResolvedMode!.Definition);
-        return valid.IsFailure ? Result<LoadoutPolicyDefinition>.Failure(valid.Error) : policy;
+        var valid = policy.Value.ValidateBindings(runtime, mode);
+        var result = valid.IsFailure ? Result<LoadoutPolicyDefinition>.Failure(valid.Error) : policy;
+        cache.Set(mode, result);
+        return result;
     }
 
     public static bool CanEquip(RunState run, LoadoutPolicyDefinition policy)

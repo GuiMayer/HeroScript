@@ -59,10 +59,10 @@ public sealed record GameplayOwner
     public GameplayOwnerKind Kind { get; init; } = GameplayOwnerKind.Entity;
     public string Id { get; init; } = string.Empty;
 
-    public bool Includes(CombatActorState entity, CombatState combat, RunState? run) => Kind switch
+    public bool Includes(CombatActorState entity, CombatState? combat, RunState? run) => Kind switch
     {
         GameplayOwnerKind.Entity => StringComparer.Ordinal.Equals(Id, entity.InstanceId),
-        GameplayOwnerKind.Side => StringComparer.Ordinal.Equals(Id, combat.GetSideId(entity)),
+        GameplayOwnerKind.Side => combat != null && StringComparer.Ordinal.Equals(Id, combat.GetSideId(entity)),
         // A run-scoped item belongs to the run's player, not every combat participant.
         GameplayOwnerKind.Run => run != null && StringComparer.Ordinal.Equals(Id, run.RunId.ToString()) &&
             StringComparer.Ordinal.Equals(entity.InstanceId, run.PlayerEntityId),
