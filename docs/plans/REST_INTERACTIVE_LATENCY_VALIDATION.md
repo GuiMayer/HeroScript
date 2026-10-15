@@ -3,6 +3,13 @@
 Plano: [correção da latência](REST_INTERACTIVE_LATENCY_CORRECTION_PLAN.md).
 Implementação: [registro por etapa](REST_INTERACTIVE_LATENCY_IMPLEMENTATION_PROGRESS.md).
 
+**Atualização posterior:** este arquivo preserva a medição histórica da etapa 10.
+As otimizações seguintes e a certificação por socket estão no
+[relatório dos gargalos restantes](REST_LATENCY_REMAINING_BOTTLENECKS.md).
+A etapa 9 desse relatório passou 526 interações de três runs abaixo de 1 s
+(máximo 802 ms), incluindo criação a frio; não é certificação de latência clique-a-tela na Godot
+nem garantia para conteúdo e hardware arbitrários.
+
 ## Escopo e interpretação
 
 As otimizações mantêm REST, os comandos canônicos, os fatos de apresentação,
@@ -153,7 +160,7 @@ dotnet test tests/API.Tests -c Release --no-build --artifacts-path .runtime/rest
 Não executar o benchmark junto da suíte geral para interpretar seus tempos como
 referência isolada. Os testes usam stores e preferências isolados do jogador.
 
-## Metas ainda não certificadas
+## Metas ainda não certificadas na medição histórica da etapa 10
 
 O p95 de sessão inédita ainda excede 150 ms; os de carta e fim de turno não
 estão certificados nos orçamentos de 250/500 ms. O máximo do comando continua

@@ -156,10 +156,18 @@ com sucesso em host isolado (incluindo três processos independentes). A repeti�
 focada final passou 14 testes REST; os 8 testes de JSON canônico também passaram
 novamente após a revisão da fronteira de profundidade.
 
-**Metas de latência ainda abertas:** medição final em Release: cartas p95 759 ms,
+**Metas de latência ainda abertas ao concluir a etapa 10:** medição final em Release: cartas p95 759 ms,
 fim de turno p95 1.550 ms, sessão p95 464 ms. Melhorias não são certificação de
 todas as ações abaixo de 1 s. Hashing e descoberta exata continuam sendo o foco;
 não foram cortadas mecânicas, traces, candidatos ou durabilidade para cumprir SLO.
 
 Método, números, limitações e reprodução no
 [relatório de validação](REST_INTERACTIVE_LATENCY_VALIDATION.md).
+
+### Continuação — gargalos restantes
+
+O [relatório incremental](REST_LATENCY_REMAINING_BOTTLENECKS.md) registra as
+otimizações posteriores, seus experimentos rejeitados e medições mais recentes.
+Depois da etapa 9, a bateria Kestrel passou todas as 526 interações de três runs
+com limite estrito de 1 s (máximo 802 ms), incluindo criação a frio. Mantém-se aberta a medição
+clique-a-tela na Godot e a cobertura de configurações/hardware fora dessa matriz.

@@ -229,6 +229,7 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(bundle);
+        var generation = Volatile.Read(ref _cacheGeneration);
         var validation = Validate(bundle);
         if (!validation.IsValid)
             return Result<ContentBundle>.Failure(string.Join("; ", validation.Errors));
@@ -239,8 +240,8 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
         {
             if (File.Exists(publishedPath))
             {
-                var json = await File.ReadAllTextAsync(publishedPath, cancellationToken).ConfigureAwait(false);
-                var existing = JsonSerializer.Deserialize<ContentBundle>(json, _jsonOptions);
+                var bytes = await File.ReadAllBytesAsync(publishedPath, cancellationToken).ConfigureAwait(false);
+                var existing = DeserializeBundle(bytes);
                 if (existing == null ||
                     !string.Equals(
                         CanonicalJson.ComputeHash(existing),
@@ -250,6 +251,10 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
                     return Result<ContentBundle>.Failure(
                         $"Published content revision collision: {bundle.Manifest.Revision}");
                 }
+                // Startup republishes already persisted settings. A complete
+                // canonical equality check against the freshly validated input
+                // proves this owned bundle has the same built-in validation result.
+                RememberValidated(bytes, existing, generation);
             }
             else
             {
@@ -299,11 +304,7 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
             if (hit)
                 bundle = cached;
             else
-            {
-                // Match ReadAllText's BOM-aware decoding, including existing UTF-16 files.
-                using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-                bundle = JsonSerializer.Deserialize<ContentBundle>(reader.ReadToEnd(), _jsonOptions);
-            }
+                bundle = DeserializeBundle(bytes);
             if (bundle == null)
                 return Result<ContentBundle>.Failure($"Published content revision is invalid: {revision}");
             if (!string.Equals(bundle.Manifest.Revision, revision, StringComparison.Ordinal))
@@ -411,6 +412,21 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
     public CacheServiceStats GetStats() => _validated == null ? new() { CacheName = CacheName } :
         new LruCacheService<(string Revision, string BytesHash), ContentBundle>(_validated, CacheName).GetStats();
 
+    private ContentBundle? DeserializeBundle(byte[] bytes)
+    {
+        // Match ReadAllText's BOM-aware decoding, including existing UTF-16 files.
+        using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        return JsonSerializer.Deserialize<ContentBundle>(reader.ReadToEnd(), _jsonOptions);
+    }
+
+    private void RememberValidated(byte[] bytes, ContentBundle owned, int generation)
+    {
+        if (_validated == null || bytes.Length > MaximumCachedBytes) return;
+        var key = (owned.Manifest.Revision, Convert.ToHexString(SHA256.HashData(bytes)));
+        lock (_cacheGate)
+            if (generation == _cacheGeneration) _validated.Set(key, owned);
+    }
+
     private ContentValidationResult ValidateBundle(ContentBundle bundle)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
@@ -486,15 +502,13 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
             File.Move(tmp, path, overwrite);
             // Publication already validated this immutable bundle. Cache an owned
             // deserialization, never JsonElements backed by the caller's document.
-            if (_validated != null && value is ContentBundle bundle)
+            if (_validated != null && value is ContentBundle)
             {
                 var bytes = Encoding.UTF8.GetBytes(json);
                 if (bytes.Length <= MaximumCachedBytes)
                 {
                     var owned = JsonSerializer.Deserialize<ContentBundle>(json, _jsonOptions)!;
-                    var key = (bundle.Manifest.Revision, Convert.ToHexString(SHA256.HashData(bytes)));
-                    lock (_cacheGate)
-                        if (generation == _cacheGeneration) _validated.Set(key, owned);
+                    RememberValidated(bytes, owned, generation);
                 }
             }
         }

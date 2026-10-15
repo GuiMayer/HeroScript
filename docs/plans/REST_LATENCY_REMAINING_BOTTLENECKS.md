@@ -315,3 +315,80 @@ todos os mods, hardware/carga arbitrários ou cada ferramenta administrativa.
 Certificação da etapa: 1.758 testes Core e sete testes REST focados passaram.
 Incluem hash de referência após cada comando, descoberta diferencial, sessão
 versionada, leitura/cache frio e quente, criação e determinismo em três processos.
+
+## Etapa 9 — publicação já existente e caminho real de lançamento
+
+Uma repetição independente da etapa 8 também passou as 526 interações; máximo
+916 ms (criação a frio). Entretanto, a revisão do método detectou uma cobertura
+insuficiente: `GET /content/revisions` enumera publicações, enquanto a Godot usa
+`GET /content/settings`. O benchmark passou a usar o catálogo de settings para
+não aquecer implicitamente a leitura das publicações históricas.
+
+Outro caso é reiniciar a API com o pacote já persistido. A republicação no boot
+já validava o pacote de entrada e comparava integralmente o hash canônico dele
+com o arquivo existente. Agora essa igualdade também permite admitir a cópia
+própria já desserializada no cache, usando o SHA dos bytes realmente lidos do
+arquivo (inclusive se tiver outro encoding/BOM). Não muda o arquivo nem pula a
+validação da entrada ou a rejeição de colisões; validadores/registries externos
+continuam fora do reuso.
+
+Novo teste comprova admissão no boot, hit na primeira leitura, identidade JSON
+independente do autor e rejeição de colisão/adulteração após o hit. A criação
+REST passa a testar hosts com store novo e após reinício com as mesmas publicações.
+O gate opcional de 1 s também se aplica a esses quatro pares POST + sessão.
+
+Probe do caminho corrigido, isolado: host com publicação existente executado
+primeiro levou 792 ms na primeira criação e 94 ms na seguinte. O host com store
+novo, no mesmo processo já quente, levou 184/64 ms. Esses quatro números não
+devem ser apresentados como quatro processos frios.
+
+Repetição com o gate estrito habilitado: host reiniciado 787/95 ms, host novo
+no mesmo processo 187/79 ms. Ambos os testes passaram sem excluir amostras.
+Certificação de correção da versão final: 1.759 testes Core, 51 testes REST
+focados e 64 checks Godot passaram. Os checks Godot cobrem sessão, transporte,
+envelope, epoch e estabilidade das cartas; continuam sendo fixtures, não uma
+medição de gameplay renderizado com a engine nova.
+
+Bateria final com o catálogo usado pela Godot, gate estrito de 1 s e outro
+processo de testes: três testes passaram, 526 interações sem excessos:
+
+| Seed | Nova run | Carta (máximo) | Fim de turno (máximo) | Maior interação |
+| --- | ---: | ---: | ---: | ---: |
+| 250 (primeira/a frio) | 802 ms | 697 ms | 756 ms | 802 ms |
+| 154 | 146 ms | 579 ms | 701 ms | 701 ms |
+| 251 | 81 ms | 483 ms | 561 ms | 561 ms |
+
+As 13 categorias incluem criar run, entrar/resolver combate, usar carta, terminar
+turno, avançar/resolver nó, ofertas, recompensas, upgrades, relíquias e preparação.
+Os mesmos 27 encontros terminaram com vida final 50/52/50 (154/250/251).
+Replay e recuperação em host novo permaneceram equivalentes. Somando a bateria
+de correção com os dois testes de criação e os três testes de jornada, foram
+56 testes REST aprovados na versão final. Não é uma execução da suíte API inteira.
+
+Assim, o limite de 1 s passou para as interações desta matriz local, incluindo
+as quatro amostras adicionais de criação. Continua aberta a certificação de
+clique-a-tela renderizada na Godot, ferramentas administrativas e conteúdo/hardware
+fora da matriz. Animações não foram encurtadas e nenhum fato, regra, RNG, trace,
+snapshot ou garantia de persistência foi descartado para cumprir o limite.
+
+A API/jogo que já estavam abertos não foram reiniciados e não receberam esta
+build isolada. É necessário reiniciar a API atualizada para usar as otimizações;
+a engineVersion permanece 31 porque as regras e o formato determinístico não mudaram.
+
+### Reprodução isolada
+
+Não executar estas medições em paralelo com builds ou outras suítes pesadas.
+Cada teste cria seu próprio store e listener; não usa a API nem os saves do jogador.
+O custo medido começa depois de o setting estar selecionado e o servidor pronto.
+
+```powershell
+dotnet build tests/Determinism.Probe -c Release --artifacts-path .runtime/rest-optimization-followup
+$env:HEROSCRIPT_INTERACTION_BUDGET_MS = '1000'
+dotnet test tests/API.Tests -c Release --no-build --artifacts-path .runtime/rest-optimization-followup --filter FullyQualifiedName~RunCreationLatencyTests --logger 'console;verbosity=detailed' -- RunConfiguration.TestSessionTimeout=900000
+dotnet test tests/API.Tests -c Release --no-build --artifacts-path .runtime/rest-optimization-followup --filter FullyQualifiedName~SocketSession_MeasuresCommandsAndRefreshAcrossPublishedSeeds --logger 'console;verbosity=detailed' -- RunConfiguration.TestSessionTimeout=900000
+Remove-Item Env:HEROSCRIPT_INTERACTION_BUDGET_MS
+```
+
+`Server-Timing` contém spans inclusivos/aninhados; não se devem somar suas
+durações para obter o tempo total. O gate usa o tempo de parede do cliente para
+POST + sessão, não a soma desses spans nem só o processamento do servidor.

@@ -45,7 +45,10 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
         var game = new GameEngineClientSimulator(client);
         const string player = "world-one-pilot";
         // The setting/revision is selected before the player presses New run.
-        var revision = await game.GetCurrentContentRevisionAsync("ascendant");
+        var catalog = await client.GetFromJsonAsync<JsonElement>("/api/v1/content/settings");
+        var revision = catalog.GetProperty("items").EnumerateArray()
+            .Single(item => item.GetProperty("settingId").GetString() == "ascendant")
+            .GetProperty("currentRevision").GetString()!;
         var creation = Stopwatch.StartNew();
         using var created = await client.PostAsJsonAsync("/api/v1/runs", new
         { settingId = "ascendant", runDefinitionId = "ascendant_world_one_run", playerEntityId = player,

@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using API.Tests.Helpers;
 using Core.Determinism;
 using Core.Run;
 using Microsoft.AspNetCore.Hosting;
@@ -17,17 +16,34 @@ public sealed class RunCreationLatencyTests(ITestOutputHelper output)
 {
     private sealed class TimedFactory : TestWebApplicationFactory
     {
+        public TimedFactory() { }
+        public TimedFactory(string root) : base(root) { }
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         { base.ConfigureWebHost(builder); builder.UseSetting("Performance:DiagnosticsEnabled", "true"); }
     }
 
-    [Fact]
-    public async Task ColdAndWarmCreationPreserveInitialSnapshotAndExposeCompleteInteractionCost()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ColdAndWarmCreationPreserveInitialSnapshotAndExposeCompleteInteractionCost(bool restartPublishedHost)
     {
-        using var factory = new TimedFactory();
+        string? root = null;
+        if (restartPublishedHost)
+        {
+            using var initialHost = new TestWebApplicationFactory();
+            using var initialClient = initialHost.CreateClient();
+            using var catalog = await initialClient.GetAsync("/api/v1/content/settings");
+            catalog.EnsureSuccessStatusCode();
+            root = initialHost.PersistenceRoot;
+        }
+        using var factory = root == null ? new TimedFactory() : new TimedFactory(root);
         factory.UseKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
         using var client = factory.CreateClient();
-        var revision = await new GameEngineClientSimulator(client).GetCurrentContentRevisionAsync("ascendant");
+        // Match the Godot launch path; listing revisions would warm the publication cache.
+        var catalogResponse = await client.GetFromJsonAsync<JsonElement>("/api/v1/content/settings");
+        var revision = catalogResponse.GetProperty("items").EnumerateArray()
+            .Single(item => item.GetProperty("settingId").GetString() == "ascendant")
+            .GetProperty("currentRevision").GetString()!;
         var runs = factory.Services.GetRequiredService<IRunQueryService>();
         for (var sample = 0; sample < 2; sample++)
         {
@@ -54,8 +70,17 @@ public sealed class RunCreationLatencyTests(ITestOutputHelper output)
             Assert.Equal(hash, CanonicalJson.ComputeHash(runs.GetRun(id).Value));
             Assert.Equal(revision, state.Determinism.ContentRevision);
             Assert.Null(state.ActiveEncounterId);
-            output.WriteLine($"creation sample={sample}; POST={creationMs:F2}ms; session={readMs:F2}ms; total={creationMs + readMs:F2}ms");
+            output.WriteLine($"creation persistedHost={restartPublishedHost}; sample={sample}; POST={creationMs:F2}ms; session={readMs:F2}ms; total={creationMs + readMs:F2}ms");
             output.WriteLine("creation timing: " + string.Join(", ", response.Headers.GetValues("Server-Timing")));
+            var limit = Environment.GetEnvironmentVariable("HEROSCRIPT_INTERACTION_BUDGET_MS");
+            if (limit != null)
+            {
+                Assert.True(double.TryParse(limit, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var budget) && double.IsFinite(budget) && budget > 0,
+                    "HEROSCRIPT_INTERACTION_BUDGET_MS must be a positive millisecond budget");
+                Assert.True(creationMs + readMs < budget,
+                    $"Creation persistedHost={restartPublishedHost}, sample={sample}: {creationMs + readMs:F2}ms exceeds {budget:F2}ms");
+            }
         }
     }
 }

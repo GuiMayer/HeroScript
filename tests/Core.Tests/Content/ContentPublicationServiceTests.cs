@@ -143,6 +143,31 @@ public sealed class ContentPublicationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RepublishingIdenticalPersistedBytesSeedsCacheButCollisionCannotPoisonIt()
+    {
+        var bundle = BoardBundle();
+        using (var first = new ContentPublicationService(_directory, new ContentManifestProvider()))
+            Assert.True((await first.PublishBundleAsync(bundle)).IsSuccess);
+        var path = Path.Combine(_directory, "published", $"{bundle.Manifest.Revision}.json");
+        var json = await File.ReadAllTextAsync(path);
+        // Equality is canonical, but the cache must fingerprint actual persisted bytes.
+        await File.WriteAllTextAsync(path, json, System.Text.Encoding.Unicode);
+        using var restarted = new ContentPublicationService(_directory, new ContentManifestProvider());
+        Assert.True((await restarted.PublishBundleAsync(bundle)).IsSuccess);
+        Assert.Equal(1, restarted.GetStats().Count);
+        Assert.Equal(0, restarted.GetStats().Misses);
+        var read = await restarted.GetPublishedAsync(bundle.Manifest.Revision);
+        Assert.True(read.IsSuccess);
+        Assert.Equal(1, restarted.GetStats().Hits);
+        Assert.NotSame(bundle, read.Value);
+        await File.WriteAllTextAsync(path, json.Replace("\"value\": 1", "\"value\": 2", StringComparison.Ordinal));
+        var collision = await restarted.PublishBundleAsync(bundle);
+        Assert.True(collision.IsFailure);
+        Assert.Contains("collision", collision.Error);
+        Assert.True((await restarted.GetPublishedAsync(bundle.Manifest.Revision)).IsFailure);
+    }
+
+    [Fact]
     public async Task GetPublished_CorruptArtifactBytesFailFastAfterRestart()
     {
         var definitions = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
