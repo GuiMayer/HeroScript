@@ -25,7 +25,12 @@ inscriptions and relics retain their separate authorities.
 ## Progress
 
 1. Baseline and taxonomy: complete. Six focused content tests pass.
-2. Shared calculation / payload contracts: pending.
+2. Shared calculation / payload contracts: complete. Utility channel isolated;
+   source bindings require both domain and scaling tags. Recipes select typed
+   tags, retaining explicit consumption permissions. Existing status lifecycle
+   executes triggers before expiry; resource costs and condition components
+   support nonlethal life payment. Dependent execution gates are tested with
+   their card batches before publication.
 3. Energy: pending.
 4. Defense: pending.
 5. Residuals and recovery: pending.

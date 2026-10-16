@@ -20,12 +20,14 @@
       "w1_direct_amount",
       "w1_block_attribute",
       "w1_dot_attribute",
-      "w1_attack_attribute"
+      "w1_attack_attribute",
+      "w1_utility"
     ],
     "defaultCalculationPipelines": {
       "effect_amount": "w1_amount",
       "w1_dot": "w1_dot",
-      "w1_overflow": "w1_overflow"
+      "w1_overflow": "w1_overflow",
+      "w1_utility": "w1_utility"
     },
     "cardPoolIds": [
       "w1_rewards"

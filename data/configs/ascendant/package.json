@@ -277,6 +277,13 @@
       "sourcePath": "Resources/modes/world_one.json",
       "kind": "modes",
       "artifactPath": "modes/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/calculation-pipelines/tag_synergy.json",
+      "kind": "calculation-pipelines",
+      "artifactPath": "calculation-pipelines/tag_synergy.json"
     }
   ]
 }

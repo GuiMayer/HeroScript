@@ -1,0 +1,64 @@
+{
+  "w1_utility": {
+    "pipelineId": "w1_utility",
+    "channel": "w1_utility",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "minimum": 0,
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_utility.block",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "w1_utility",
+        "bucket": "flat",
+        "scale": 0.1,
+        "requiredTags": [
+          "recovery",
+          "block_scaling"
+        ],
+        "missingResource": "Error"
+      },
+      {
+        "bindingId": "w1_utility.max_health",
+        "scope": "Actor",
+        "resourceId": "health",
+        "field": "Maximum",
+        "channel": "w1_utility",
+        "bucket": "flat",
+        "scale": 0.1,
+        "requiredTags": [
+          "recovery",
+          "max_health_scaling"
+        ],
+        "missingResource": "Error"
+      }
+    ]
+  }
+}

@@ -29,7 +29,8 @@
     },
     "tags": [
       "residual",
-      "fire"
+      "fire",
+      "damage_payload"
     ],
     "triggers": [
       {
@@ -94,7 +95,8 @@
     },
     "tags": [
       "residual",
-      "poison"
+      "poison",
+      "damage_payload"
     ],
     "triggers": [
       {
@@ -158,7 +160,8 @@
       ]
     },
     "tags": [
-      "reserve"
+      "reserve",
+      "block_payload"
     ]
   },
   "w1_focus": {

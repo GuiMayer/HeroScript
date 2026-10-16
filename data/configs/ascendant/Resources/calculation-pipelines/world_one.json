@@ -152,6 +152,34 @@
           "field": "Current",
           "useEffectiveValue": true
         }
+      },
+      {
+        "bindingId": "w1_amount.missing_max",
+        "scope": "Actor",
+        "resourceId": "health",
+        "field": "Maximum",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.2,
+        "requiredTags": [
+          "defense",
+          "missing_health_scaling"
+        ],
+        "missingResource": "Error"
+      },
+      {
+        "bindingId": "w1_amount.missing_current",
+        "scope": "Actor",
+        "resourceId": "health",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": -0.2,
+        "requiredTags": [
+          "defense",
+          "missing_health_scaling"
+        ],
+        "missingResource": "Error"
       }
     ]
   },
@@ -319,6 +347,20 @@
           "field": "Current",
           "useEffectiveValue": true
         }
+      },
+      {
+        "bindingId": "w1_critical_amount.block_scaling",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.5,
+        "requiredTags": [
+          "damage",
+          "block_scaling"
+        ],
+        "missingResource": "Error"
       }
     ]
   },
@@ -619,6 +661,20 @@
           "field": "Current",
           "useEffectiveValue": true
         }
+      },
+      {
+        "bindingId": "w1_direct_amount.block_scaling",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.5,
+        "requiredTags": [
+          "damage",
+          "block_scaling"
+        ],
+        "missingResource": "Error"
       }
     ]
   }
