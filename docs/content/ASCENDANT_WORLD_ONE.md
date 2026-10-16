@@ -7,11 +7,11 @@ Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundam
 ## Contratos de conteúdo
 
 - Namespace `w1_`; o showcase antigo permanece como fixture de regressão, não como balanceamento do ato.
-- Vida inicial 100 e persistente; energia 3 por ativação; mão 5. Só energia paga cartas. Ouro paga serviços, não ações de combate.
+- Vida inicial 100 e persistente; energia 3 por ativação; mão 5. Energia é o orçamento de ação. Blood Fuel possui um custo adicional explícito de 4 Vida, deixando ao menos 1. Ouro paga serviços, não ações de combate.
 - Aumento de ataque, magia e elemento entra no mesmo bucket aditivo. Multiplicadores `more`, vulnerabilidade, defesa e crítico têm etapas distintas.
 - Crítico por impacto: níveis garantidos mais fração restante, bônus linear. A etapa crítica Shared só usa fatos do sorteio daquele impacto; não reaplica atributos de origem.
 - Política global `w1_global_effect_rules`: chance inicial 15%, bônus crítico 100% por tier e Armor inicial 0. Armor usa K=100 antes de Block, sem consumir o atributo. [Configuração e API](hero-attribute-scaling.md). `w1_pierce` ignora Block, mas não Armor, e declara que não pode critar.
-- Multi-hit divide um orçamento de origem antes dos sorteios individuais. Área paga por cobertura, calculada separadamente por alvo; não usa a distribuição de sequência de alvo único.
+- Multi-hit pode dividir um orçamento de origem (Twin Blades) ou aplicar o valor completo por impacto (Needle Storm). Ambos sorteiam crítico por impacto. Área paga por cobertura, calculada separadamente por alvo; não usa a distribuição de sequência de alvo único.
 - Residuais capturam potência na aplicação e só executam as etapas do alvo no tick. Não sorteiam crítico novamente.
 - Condensação inicial libera **150% da soma das potências atuais**, consome todos os lotes selecionados e não reaplica scaling de origem. Não corresponde à soma de todos os ticks futuros: ponderação por duração restante ainda não é um agregado da engine. Esta escolha fica explícita no catálogo, em vez de simular suporte inexistente.
 - Reserva defensiva usa a mesma infraestrutura de payload/condensação, mas produz Block. Cura e investimentos permanentes apenas no combate esgotam a carta; não podem ser reciclados infinitamente.
@@ -56,6 +56,47 @@ Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundam
 | w1_renewal | 1 | Rare | A second limited recovery option; unlock, not permanent stats. |
 
 ## Verificação por etapa
+
+### Expansão por tags: 24 novas bases
+
+O catálogo ativo agora contém **57 cartas**: 33 em `cards/world_one.json`
+e 24 nos cinco arquivos `cards/tag_synergy_*.json`. O deck inicial de dez
+cartas permanece inalterado. O pool normal mantém sua curadoria explícita e
+inclui as 24 novas bases por raridade. O laboratório usa um pool por tags
+e cinco cenários isolados; não concede progresso permanente.
+
+| ID | Energia | Raridade | Regra |
+| --- | ---: | --- | --- |
+| w1_power_surge | 0 | Uncommon | Gain 2 Energy, up to its maximum. Exile. |
+| w1_blood_fuel | 0 | Common | Pay 4 Health, leaving at least 1. Gain 2 Energy. Exile. |
+| w1_charge_cell | 1 | Common | Store 2 Energy potency for a later release. Exile. |
+| w1_release_charge | 0 | Uncommon | Consume all your Energy reserves; gain their potency once, up to maximum Energy. |
+| w1_guarded_strike | 1 | Common | Deal 4 + 50% of current Block as damage. Keep your Block. |
+| w1_guard_wave | 2 | Rare | Deal 50% of current Block to each enemy, then consume your Block once. |
+| w1_desperate_guard | 1 | Common | Gain 4 Block + 20% of missing Health. |
+| w1_shelter | 1 | Uncommon | Recover 2 Health + 10% of current Block. Exile. |
+| w1_cinder_brand | 1 | Common | Apply 3 captured fire potency for 4 enemy end activations. |
+| w1_volatile_rot | 1 | Common | Apply 6 captured poison potency for 1 enemy end activation. |
+| w1_caustic_guard | 1 | Common | Gain 3 Block. Apply 2 captured poison potency for 2 enemy end activations. |
+| w1_lingering_aegis | 1 | Uncommon | Gain captured 3 Block at the start of your next 2 activations. |
+| w1_vital_surge | 1 | Uncommon | Recover 10% of maximum Health. Exile. |
+| w1_mending_echo | 1 | Common | Recover captured 2 Health at the start of your next 3 activations. Exile. |
+| w1_release_mending | 0 | Uncommon | Consume all compatible healing payloads for one recovery equal to their potency, not their remaining ticks. |
+| w1_delayed_recovery | 1 | Common | Recover captured 8 Health at the start of your next activation, once. Exile. |
+| w1_seek_attack | 1 | Common | Move up to 1 attack card(s) from draw to hand, in zone order. |
+| w1_gather_defense | 1 | Common | Move up to 2 defense card(s) from draw to hand, in zone order. |
+| w1_recover_trace | 1 | Common | Move up to 1 residual card(s) from discard to hand, in zone order. |
+| w1_prepare_guard | 0 | Common | Move up to 1 defense card(s) from discard to draw, in zone order. |
+| w1_needle_storm | 1 | Common | Deal 2 base damage per hit, 3 hits. Each hit rolls critical tiers separately. |
+| w1_heavy_impact | 3 | Rare | Deal 28 base damage in one impact. |
+| w1_break_guard | 1 | Common | Remove 8 Block (fixed, no critical or Armor), then deal 4 base Health damage. |
+| w1_relay_strike | 2 | Uncommon | Deal 14 base damage. On a kill, excess continues to one more enemy without reapplying source bonuses. |
+
+Reservas e condensação distinguem dano, Bloqueio, cura e Energia por tags de
+payload e autorização de receita. Energia não recebe scaling ofensivo.
+Cura e geração direta de Energia têm produtores de uso único; uma liberação
+vazia não gera recursos. Durações contam ativações do dono, não turnos globais.
+Detalhes e evidências: [registro da expansão](TAG_SYNERGY_EXPANSION.md).
 
 1. Cartas, pipelines, payloads e operador: 33 cartas compiladas (30 originais + 3 opções de uso único); custos exclusivamente em energia; grafo de conteúdo validado e fixtures antigas preservadas. [Queima de exílio e conteúdo adicional](../design/CARD_EXILE_ANIMATION.md).
 2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços e grafo publicados. Desempate de iniciativa favorece o jogador, evitando ataque de entrada não anunciado.

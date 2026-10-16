@@ -11,6 +11,9 @@
   ],
   "conflicts": [],
   "content": [
+    { "schemaVersion": 1, "operation": "definition", "kind": "enemy-pools", "sourcePath": "Resources/enemy-pools/tag_synergy.json", "artifactPath": "enemy-pools/tag_synergy.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "card-pools", "sourcePath": "Resources/card-pools/tag_synergy.json", "artifactPath": "card-pools/tag_synergy.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "modes", "sourcePath": "Resources/modes/tag_synergy.json", "artifactPath": "modes/tag_synergy.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "cards", "sourcePath": "Resources/cards/tag_synergy_offense.json", "artifactPath": "cards/tag_synergy_offense.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "card-zone-systems", "sourcePath": "Resources/card-zone-systems/world_one.json", "artifactPath": "card-zone-systems/world_one.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "cards", "sourcePath": "Resources/cards/tag_synergy_circulation.json", "artifactPath": "cards/tag_synergy_circulation.json" },

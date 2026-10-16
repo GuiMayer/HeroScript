@@ -1,6 +1,6 @@
 # Expansão de cartas por sinergias de tags
 
-Status: proposta de implementação, sem alterações de gameplay nesta etapa.
+Status: etapas 1–9 implementadas; certificação final em andamento.
 
 ## 1. Objetivo e escopo
 
@@ -10,7 +10,8 @@ pipeline, status, condensação e zonas — não apenas aumentar dano ou criar
 pares de cartas que só funcionem juntos.
 
 Meta inicial: **24 cartas novas**, em seis lotes de quatro. O catálogo ativo de
-`cards/world_one.json` passaria de 33 para 57 cartas. Conteúdo antigo de fixture
+`cards/world_one.json` permanece com 33 bases, e cinco arquivos `tag_synergy_*.json`
+adicionam 24 bases, totalizando 57 cartas ativas. Conteúdo antigo de fixture
 não entra nessa conta. Valores deste plano são hipóteses de playtest, não
 balanceamento definitivo nem compromisso de implementar antes de validar.
 

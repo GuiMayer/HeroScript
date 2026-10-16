@@ -7,6 +7,9 @@ var mode_buttons: Dictionary = {}
 var editor: TextEdit
 var seed_input: SpinBox
 var launch_button: Button
+const SYNERGY_PRESETS := "res://data/labs/tag_synergy_scenarios.json"
+var scenario_presets: Array = []
+var scenario_picker: OptionButton
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
@@ -31,7 +34,10 @@ func setup(owner, data: Dictionary) -> void:
 	modes.custom_minimum_size = Vector2(390, 0)
 	modes.add_theme_constant_override("separation", 10)
 	modes.add_child(AppTheme.title(I18n.text("1. Choose the rules"), 22, AppTheme.GOLD))
-	for mode in presentation.get("sandbox_modes", []):
+	var available_modes: Array = presentation.get("sandbox_modes", []).duplicate(true)
+	if GameSession.selected_setting_id == "ascendant":
+		available_modes.append({"id": "w1_synergy_sandbox", "name": I18n.text("World-one tag synergies"), "description": I18n.text("Ascendant rules with the expansion test catalog.")})
+	for mode in available_modes:
 		var choice := Button.new()
 		choice.custom_minimum_size = Vector2(0, 82)
 		choice.text = "%s\n%s" % [mode.name, mode.description]
@@ -47,6 +53,16 @@ func setup(owner, data: Dictionary) -> void:
 	scenario.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scenario.add_theme_constant_override("separation", 10)
 	scenario.add_child(AppTheme.title(I18n.text("2. Edit the JSON scenario"), 22, AppTheme.TEAL))
+	if GameSession.selected_setting_id == "ascendant":
+		var catalog = JSON.parse_string(FileAccess.get_file_as_string(SYNERGY_PRESETS))
+		if catalog is Dictionary and catalog.get("presets") is Array:
+			scenario_presets = catalog.presets.duplicate(true)
+			scenario_picker = OptionButton.new()
+			scenario_picker.add_item(I18n.text("Custom scenario"))
+			for preset in scenario_presets:
+				scenario_picker.add_item(I18n.text(str(preset.name)))
+			scenario_picker.item_selected.connect(_select_scenario)
+			scenario.add_child(scenario_picker)
 	editor = TextEdit.new()
 	editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -77,6 +93,12 @@ func _select_mode(mode_id: String) -> void:
 	for id in mode_buttons:
 		mode_buttons[id].button_pressed = id == selected_mode
 	GameAudio.ui()
+
+func _select_scenario(index: int) -> void:
+	if index < 1 or index > scenario_presets.size(): return
+	var preset: Dictionary = scenario_presets[index - 1]
+	editor.text = JSON.stringify(preset.scenario, "  ")
+	_select_mode("w1_synergy_sandbox")
 
 func _launch() -> void:
 	var parsed = JSON.parse_string(editor.text)

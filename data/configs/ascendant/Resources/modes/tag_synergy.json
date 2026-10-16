@@ -1,0 +1,57 @@
+{
+  "w1_synergy_sandbox": {
+    "modeId": "w1_synergy_sandbox",
+    "loadoutPolicyId": "w1_loadout",
+    "runDefinitionId": "ascendant_world_one_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "sandbox_flow",
+    "combatRulesId": "w1_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_probability",
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_direct_amount",
+      "w1_block_attribute",
+      "w1_dot_attribute",
+      "w1_attack_attribute",
+      "w1_utility",
+      "w1_defense"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "w1_amount",
+      "w1_dot": "w1_dot",
+      "w1_overflow": "w1_overflow",
+      "w1_utility": "w1_utility"
+    },
+    "cardPoolIds": [
+      "w1_all_test"
+    ],
+    "enemyPoolIds": ["w1_synergy_enemies"],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
+    "progressionPolicyId": "sandbox_progression",
+    "actorResourceLifecyclePolicyId": "ascendant_actor_resources",
+    "cardZoneSystemId": "w1_zones",
+    "rules": {
+      "presentation": "ascendant",
+      "scalingModel": "layered-buildcraft",
+      "difficulty": "world-one-alpha",
+      "world": 1,
+      "condensationModel": "current-potency-150-percent",
+      "targetMinutes": [
+        25,
+        40
+      ]
+    },
+    "effectResolutionPolicyId": "w1_global_effect_rules"
+  }
+}

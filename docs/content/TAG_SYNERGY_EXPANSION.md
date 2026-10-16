@@ -13,7 +13,7 @@ files so a content revision pins both original content and additions atomically.
 | Residual producers (effective card) | residual | Zone search / recovery |
 | Defensive producers (effective card) | defense | Zone search / preparation |
 | Offensive status payload | residual, damage_payload | Offensive release, explicit recipe permission |
-| Defensive status payload | residual, block_payload | Defensive release, explicit recipe permission |
+| Defensive status payload | block_payload (reserve or residual) | Defensive release, explicit recipe permission |
 | Healing status payload | residual, healing_payload | Healing release, explicit recipe permission |
 | Energy reserve | reserve, energy_payload | Energy release, explicit recipe permission |
 | Utility effects | resource_gain / recovery | Dedicated utility channel, no offensive scaling |
@@ -66,5 +66,13 @@ inscriptions and relics retain their separate authorities.
    retain their existing tag contract rather than silently changing patch semantics.
    Inscription bonuses already select effect domains/channels; no card IDs added
    to inscriptions and no inventories merged.
-9. Distribution and presentation: pending.
+9. Distribution and presentation: complete. All 24 cards are in the curated
+   reward pool (54 candidates before progression filtering), with a separate
+   tag-based expansion pool and all-world-one sandbox pool. Five Rule Lab presets
+   cover Energy, defense, residuals, circulation and mixed attacks. Select
+   Ascendant Matrix, open Rule Lab and choose a preset; its mode uses world-one
+   rules with sandbox tools. The initial campaign deck is unchanged.
+   Existing art slots/shared CardView are reused; names/descriptions have EN/PT
+   mappings. Godot: 83 catalog checks plus 106 existing presentation/UI checks.
+   Five sandbox launches and reexecuted initial replays passed through REST.
 10. Certification: pending.

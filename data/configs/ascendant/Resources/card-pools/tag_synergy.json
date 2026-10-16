@@ -1,0 +1,27 @@
+{
+  "w1_all_test": {
+    "poolId": "w1_all_test",
+    "includeTags": ["world_one"],
+    "excludeTags": [],
+    "explicitCardIds": [],
+    "rarityWeights": { "Common": 55, "Uncommon": 35, "Rare": 10 },
+    "metadata": { "description": "All world-one bases, including starters, for isolated sandbox fixtures." }
+  },
+  "w1_synergy_test": {
+    "poolId": "w1_synergy_test",
+    "includeTags": [
+      "world_one",
+      "tag_synergy"
+    ],
+    "excludeTags": [],
+    "rarityWeights": {
+      "Common": 55,
+      "Uncommon": 35,
+      "Rare": 10
+    },
+    "explicitCardIds": [],
+    "metadata": {
+      "description": "All 24 certified tag-synergy cards; laboratory only."
+    }
+  }
+}

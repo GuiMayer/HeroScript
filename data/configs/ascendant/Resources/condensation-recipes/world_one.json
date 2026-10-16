@@ -61,7 +61,6 @@
         "Status"
       ],
       "requiredTags": [
-        "residual",
         "block_payload"
       ]
     },

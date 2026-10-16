@@ -10,7 +10,13 @@
     "backgrounds": "battlefield"
   },
   "categories": {
-    "modifier_items": { "fire": "core_scorch_effect", "flurry": "core_multihit_behavior", "cascade": "core_cascade_behavior", "condense": "card_unknown", "guard": "card_unknown" },
+    "modifier_items": {
+      "fire": "core_scorch_effect",
+      "flurry": "core_multihit_behavior",
+      "cascade": "core_cascade_behavior",
+      "condense": "card_unknown",
+      "guard": "card_unknown"
+    },
     "effects": {
       "core_charge": "core_charge_effect",
       "core_ember_damage": "core_scorch_effect",
@@ -88,7 +94,31 @@
       "w1_insight": "card_recall",
       "w1_rehearse": "card_recall",
       "conjure_spark": "card_spark",
-      "w1_momentum": "card_spark"
+      "w1_momentum": "card_spark",
+      "w1_power_surge": "card_spark",
+      "w1_blood_fuel": "card_spark",
+      "w1_charge_cell": "card_spark",
+      "w1_release_charge": "card_condense",
+      "w1_guarded_strike": "card_strike",
+      "w1_guard_wave": "card_strike",
+      "w1_desperate_guard": "card_defend",
+      "w1_shelter": "card_heal",
+      "w1_cinder_brand": "card_fire",
+      "w1_volatile_rot": "card_poison",
+      "w1_caustic_guard": "card_poison",
+      "w1_lingering_aegis": "card_defend",
+      "w1_vital_surge": "card_heal",
+      "w1_mending_echo": "card_heal",
+      "w1_release_mending": "card_condense",
+      "w1_delayed_recovery": "card_heal",
+      "w1_seek_attack": "card_recall",
+      "w1_gather_defense": "card_recall",
+      "w1_recover_trace": "card_recall",
+      "w1_prepare_guard": "card_recall",
+      "w1_needle_storm": "card_multihit",
+      "w1_heavy_impact": "card_strike",
+      "w1_break_guard": "card_strike",
+      "w1_relay_strike": "card_strike"
     },
     "actors": {
       "spire_adept": "actor_adept",

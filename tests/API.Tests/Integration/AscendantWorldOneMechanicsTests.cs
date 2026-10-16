@@ -50,7 +50,10 @@ public sealed class AscendantWorldOneMechanicsTests(TestWebApplicationFactory fa
                 Assert.Equal(entry.Name == "w1_flurry" ? 2 : 4, facts.Select(fact => fact.ScopeId).Distinct().Count());
             }
             if (entry.Name is "w1_release" or "w1_release_guard")
-                Assert.Contains(result.Value.Records, record => record.Condensation != null);
+                Assert.True(result.Value.Records.Any(record => record.Condensation != null),
+                    $"{entry.Name}: expected condensation; source statuses: " + string.Join(", ",
+                        combat.StatusEffects.SelectMany(pair => pair.Value).Select(status =>
+                            $"{status.StatusId}=[{string.Join("/", status.Definition.Tags)}]")));
         }
     }
 

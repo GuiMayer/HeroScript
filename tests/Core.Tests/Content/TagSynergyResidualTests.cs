@@ -7,6 +7,18 @@ namespace Core.Tests.Content;
 
 public sealed class TagSynergyResidualTests
 {
+    [Fact]
+    public async Task ExistingGuardReserve_PreservesItsOriginalReleaseValue()
+    {
+        var f = await TagSynergyExecutionFixture.Create();
+        var reserve = f.Play("w1_reserve");
+        Assert.True(reserve.IsSuccess, reserve.IsFailure ? reserve.Error : null);
+        var release = f.Play("w1_release_guard", reserve.Value.State);
+        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+        Assert.Equal(13, TagSynergyExecutionFixture.Value(release.Value.State, "block"));
+        Assert.Empty(release.Value.State.StatusEffects);
+    }
+
     [Theory]
     [InlineData("w1_cinder_brand", 3, 4)]
     [InlineData("w1_volatile_rot", 6, 1)]

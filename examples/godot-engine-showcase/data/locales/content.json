@@ -1,4 +1,112 @@
 {
+  "w1_power_surge": {
+    "en": "Power Surge",
+    "pt_BR": "Surto de energia"
+  },
+  "w1_blood_fuel": {
+    "en": "Blood Fuel",
+    "pt_BR": "Combustível vital"
+  },
+  "w1_charge_cell": {
+    "en": "Charge Cell",
+    "pt_BR": "Célula de carga"
+  },
+  "w1_release_charge": {
+    "en": "Release Charge",
+    "pt_BR": "Liberar carga"
+  },
+  "w1_guarded_strike": {
+    "en": "Guarded Strike",
+    "pt_BR": "Golpe protegido"
+  },
+  "w1_guard_wave": {
+    "en": "Guard Wave",
+    "pt_BR": "Onda de guarda"
+  },
+  "w1_desperate_guard": {
+    "en": "Desperate Guard",
+    "pt_BR": "Guarda desesperada"
+  },
+  "w1_shelter": {
+    "en": "Shelter",
+    "pt_BR": "Abrigo"
+  },
+  "w1_cinder_brand": {
+    "en": "Cinder Brand",
+    "pt_BR": "Marca de brasa"
+  },
+  "w1_volatile_rot": {
+    "en": "Volatile Rot",
+    "pt_BR": "Podridão volátil"
+  },
+  "w1_caustic_guard": {
+    "en": "Caustic Guard",
+    "pt_BR": "Guarda cáustica"
+  },
+  "w1_lingering_aegis": {
+    "en": "Lingering aegis",
+    "pt_BR": "Égide persistente"
+  },
+  "w1_vital_surge": {
+    "en": "Vital Surge",
+    "pt_BR": "Surto vital"
+  },
+  "w1_mending_echo": {
+    "en": "Mending Echo",
+    "pt_BR": "Eco restaurador"
+  },
+  "w1_release_mending": {
+    "en": "Release Mending",
+    "pt_BR": "Liberar restauração"
+  },
+  "w1_delayed_recovery": {
+    "en": "Delayed Recovery",
+    "pt_BR": "Recuperação adiada"
+  },
+  "w1_seek_attack": {
+    "en": "Seek Attack",
+    "pt_BR": "Buscar ataque"
+  },
+  "w1_gather_defense": {
+    "en": "Gather Defense",
+    "pt_BR": "Reunir defesas"
+  },
+  "w1_recover_trace": {
+    "en": "Recover Trace",
+    "pt_BR": "Recuperar vestígio"
+  },
+  "w1_prepare_guard": {
+    "en": "Prepare Guard",
+    "pt_BR": "Preparar guarda"
+  },
+  "w1_needle_storm": {
+    "en": "Needle Storm",
+    "pt_BR": "Tempestade de agulhas"
+  },
+  "w1_heavy_impact": {
+    "en": "Heavy Impact",
+    "pt_BR": "Impacto pesado"
+  },
+  "w1_break_guard": {
+    "en": "Break Guard",
+    "pt_BR": "Quebrar guarda"
+  },
+  "w1_relay_strike": {
+    "en": "Relay Strike",
+    "pt_BR": "Golpe retransmissor"
+  },
+  "w1_energy_reserve": {
+    "en": "Energy reserve",
+    "pt_BR": "Reserva de Energia"
+  },
+  "w1_cinder": {
+    "en": "Cinder",
+    "pt_BR": "Brasa"
+  },
+  "w1_rot": {
+    "en": "Volatile rot",
+    "pt_BR": "Podridão volátil"
+  },
   "Amount": { "en": "Amount", "pt_BR": "Quantidade" },
   "StatusStacks": { "en": "Status stacks", "pt_BR": "Acúmulos de status" },
   "ModifierStacks": { "en": "Modifier stacks", "pt_BR": "Acúmulos do modificador" },

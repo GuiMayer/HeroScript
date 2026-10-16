@@ -1,0 +1,6 @@
+{
+  "w1_synergy_enemies": {
+    "enemyPoolId": "w1_synergy_enemies",
+    "entityDefinitionIds": ["w1_sentinel", "w1_scout"]
+  }
+}
