@@ -56,6 +56,9 @@ func _run() -> void:
 	await gateway.preview_loadout(source, {"one": "one-item"})
 	check(transport.requests[0][1].contains("run%20%2Fone/loadout?actorId=actor%26two"), "REST adapter escapes run and actor identities")
 	check(transport.requests[1][2].expectedSequence == 2 and transport.requests[1][2].expectedStep == 5, "preview transports captured sequence and step")
+	var decoded = JSON.parse_string(JSON.stringify(source))
+	await gateway.preview_loadout(decoded, {"one": "one-item"})
+	check(typeof(transport.requests[2][2].expectedSequence) == TYPE_INT and typeof(transport.requests[2][2].expectedStep) == TYPE_INT, "JSON-decoded version numbers are normalized to integer request tokens for the REST contract")
 	var lab = load("res://scenes/inscription_loadout_lab.tscn").instantiate()
 	root.add_child(lab)
 	await process_frame

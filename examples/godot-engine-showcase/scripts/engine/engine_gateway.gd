@@ -3,6 +3,7 @@ extends RefCounted
 
 var _transport
 var _campaign_request: Dictionary = {}
+const Numbers = preload("res://scripts/engine/request_numbers.gd")
 
 func _init(transport) -> void:
 	_transport = transport
@@ -38,6 +39,7 @@ func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: 
 	var body := scenario.duplicate(true)
 	body.merge({"schemaVersion": 2, "modeId": mode_id, "contentRevision": revision,
 		"seed": seed, "attemptKey": "godot-%s-%s" % [mode_id, _uuid()]}, true)
+	body = Numbers.fields(body, Numbers.SCENARIO_PATHS)
 	return await _transport.request(HTTPClient.METHOD_POST,
 		"/api/v1/sandbox/runs?configName=%s" % setting_id.uri_encode(), body)
 
@@ -50,7 +52,7 @@ func read_loadout(run_id: String, actor_id: String) -> Dictionary:
 func preview_loadout(snapshot: Dictionary, assignments: Dictionary) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/loadout/preview" % str(snapshot.runId).uri_encode(), {
 		"actorId": snapshot.actorId, "assignments": assignments.duplicate(true),
-		"expectedSequence": snapshot.runSequence, "expectedStep": snapshot.expectedStep})
+		"expectedSequence": Numbers.integer_token(snapshot.runSequence), "expectedStep": Numbers.integer_token(snapshot.expectedStep)})
 
 func read_session(run_id: String, expected_sequence := -1) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/session%s" % [run_id.uri_encode(),
@@ -112,7 +114,7 @@ func prepare_command(scope: String, id: String, type: String, payload: Dictionar
 	assert(scope in ["runs", "combats"])
 	return {"scope": scope, "id": id, "envelope": {
 		"commandId": _uuid(), "expectedSequence": sequence, "expectedStep": step,
-		"type": type, "payload": payload.duplicate(true)}}
+		"type": type, "payload": Numbers.payload(type, payload)}}
 
 func send_prepared(command: Dictionary) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST,
@@ -134,8 +136,12 @@ func verify(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/verify" % run_id.uri_encode(), null, 120.0)
 
 func simulate(run_id: String, sequence: int, commands: Array) -> Dictionary:
+	var normalized: Array = commands.duplicate(true)
+	for command in normalized:
+		if command is Dictionary and command.get("payload") is Dictionary:
+			command.payload = Numbers.payload(str(command.get("type", "")), command.payload)
 	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/simulations", {
-		"sourceRunId": run_id, "sourceSequence": sequence, "commands": commands.duplicate(true)
+		"sourceRunId": run_id, "sourceSequence": sequence, "commands": normalized
 	})
 
 func content(kind: String, revision: String, setting_id: String, limit: int) -> Dictionary:
@@ -168,7 +174,7 @@ func inspect_card(combat_id: String, actor_id: String, instance_id: String) -> D
 func transformation_preview(run_id: String, card_id: String, operation: String, upgrade_id := "", transformation_id = null) -> Dictionary:
 	var path := "/api/v1/runs/%s/cards/%s/transformation-preview?operation=%s" % [run_id.uri_encode(), card_id.uri_encode(), operation.uri_encode()]
 	if not upgrade_id.is_empty(): path += "&upgradeId=" + upgrade_id.uri_encode()
-	if transformation_id != null: path += "&transformationId=" + str(transformation_id).uri_encode()
+	if transformation_id != null: path += "&transformationId=" + str(Numbers.integer_token(transformation_id)).uri_encode()
 	return await _transport.request(HTTPClient.METHOD_GET, path)
 
 func historical_state(combat_id: String, sequence: int) -> Dictionary:
