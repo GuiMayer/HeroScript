@@ -193,7 +193,10 @@ func _inspect(id: String) -> void:
 	var projection: Array = [id, route.nodes, _choices, _run.get("dialogues", []), visual_context.presentation_key()]
 	if projection == _inspector_key: return
 	_inspector_key = projection.duplicate(true)
-	var old_focus := get_viewport().gui_get_focus_owner()
+	# Screens are projected before the router attaches them to the scene tree.
+	# Focus is optional during that construction phase, not a data dependency.
+	var viewport := get_viewport() if is_inside_tree() else null
+	var old_focus: Control = viewport.gui_get_focus_owner() if viewport != null else null
 	var focus_name := str(old_focus.name) if old_focus != null and _inspector.is_ancestor_of(old_focus) else ""
 	for child in _inspector.get_children(): _inspector.remove_child(child); child.queue_free()
 	_action_buttons.clear()
@@ -320,7 +323,7 @@ func _pan_input(event: InputEvent) -> void:
 
 func _remember_camera() -> void: _reading = capture_local_state()
 func _input(event: InputEvent) -> void:
-	if not is_instance_valid(_scroll): return
+	if not is_inside_tree() or not is_instance_valid(_scroll): return
 	if get_tree().paused or get_tree().root.find_children("*", "Window", true, false).any(func(window): return window.visible):
 		cancel_gesture(); return
 	if event.is_action_pressed("pause_game"):

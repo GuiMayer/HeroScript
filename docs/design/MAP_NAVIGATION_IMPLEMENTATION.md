@@ -68,3 +68,7 @@ Pendente: avaliar conforto com mouse/controle físicos, localizar posição em a
 Clique num símbolo ou numa alternativa da faixa para selecionar; confirme **Viajar** nos detalhes. Arraste com botão esquerdo ou central para explorar, use a roda para rolar. **Centralizar posição**, **Próximas escolhas** e **Visão geral** não executam ações. Na visão geral, clique numa região para voltar ao detalhe. A aba lateral recolhe os detalhes sem reservar coluna vazia.
 
 Setas/D-pad percorrem nós, Tab sai da região do grafo para ações/detalhes, confirmar seleciona e a ação Viajar precisa ser confirmada separadamente. Cancelar no controle recolhe detalhes e devolve foco ao nó; o atalho configurado de pausa continua abrindo pausa. O primeiro uso direcional sem foco inicia na posição atual; mouse não recebe foco fabricado na abertura.
+
+## Correção de montagem inicial
+
+O router prepara MapScreen/MapView antes de adicionar a tela à árvore. Uma consulta de foco introduzida no redesign pressupunha viewport disponível e interrompia a construção do inspector. A consulta agora é opcional fora da árvore, e input de componente desmontado é ignorado. MapSelection passou a projetar a tela antes de `add_child`, reproduzindo a ordem de produção e verificando que todos os detalhes foram construídos. Essa regressão acrescenta um check à suíte, totalizando 154 checks funcionais de mapa. Sem alteração de regras ou comandos.

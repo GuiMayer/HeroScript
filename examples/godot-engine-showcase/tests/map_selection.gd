@@ -9,7 +9,12 @@ func _run() -> void:
 	var run := {"runId": "r", "currentNodeId": "a", "map": {"nodes": [{"nodeId": "a", "activity": {"type": "Encounter"}, "nextNodeIds": ["b", "c"]}, {"nodeId": "b", "activity": {"type": "Shop"}, "nextNodeIds": []}, {"nodeId": "c", "activity": {"type": "Custom"}, "nextNodeIds": []}]}}
 	var choice := {"type": "ADVANCE_NODE", "subjectId": "b", "payload": {"targetNodeId": "b"}}
 	var presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [choice], {}, context.translator)
-	var view = load("res://scripts/ui/map_view.gd").new(); view.size = Vector2(1200, 650); root.add_child(view)
+	var view = load("res://scripts/ui/map_view.gd").new(); view.size = Vector2(1200, 650)
+	# Production router calls setup/apply_projection before host.add_child(screen).
+	view.apply_projection(run, [choice], presenter, context)
+	check(not view.is_inside_tree() and view.route.buttons.size() == 3 and view._inspector.get_child_count() >= 4, "detached projection builds full map details without requiring viewport focus")
+	view._input(InputEventMouseMotion.new())
+	root.add_child(view)
 	var intents: Array = []; view.intent_requested.connect(func(action, arguments): intents.append([action, arguments]))
 	view.apply_projection(run, [choice], presenter, context)
 	for _i in 8: await process_frame
