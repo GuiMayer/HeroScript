@@ -96,7 +96,8 @@
     "tags": [
       "world_one",
       "skill",
-      "recovery"
+      "recovery",
+      "defense"
     ],
     "metadata": {
       "nameKey": "card.w1_second_wind",
@@ -195,7 +196,8 @@
     "tags": [
       "world_one",
       "attack",
-      "fire"
+      "fire",
+      "residual"
     ],
     "metadata": {
       "nameKey": "card.w1_solar_burst",
@@ -524,7 +526,8 @@
     "tags": [
       "world_one",
       "attack",
-      "fire"
+      "fire",
+      "residual"
     ],
     "metadata": {
       "nameKey": "card.w1_scorch",
@@ -660,7 +663,8 @@
       "world_one",
       "skill",
       "poison",
-      "dot"
+      "dot",
+      "residual"
     ],
     "metadata": {
       "nameKey": "card.w1_poison",
@@ -1473,7 +1477,8 @@
     "tags": [
       "world_one",
       "attack",
-      "tank"
+      "tank",
+      "defense"
     ],
     "metadata": {
       "nameKey": "card.w1_shield_bash",
@@ -1685,7 +1690,8 @@
     "tags": [
       "world_one",
       "skill",
-      "tank"
+      "tank",
+      "defense"
     ],
     "metadata": {
       "nameKey": "card.w1_bulwark",
@@ -1770,7 +1776,9 @@
       "world_one",
       "skill",
       "tank",
-      "reserve"
+      "reserve",
+      "residual",
+      "defense"
     ],
     "metadata": {
       "nameKey": "card.w1_reserve",
@@ -2087,7 +2095,8 @@
     "tags": [
       "world_one",
       "skill",
-      "control"
+      "control",
+      "defense"
     ],
     "metadata": {
       "nameKey": "card.w1_dampen",
@@ -2347,7 +2356,8 @@
     "tags": [
       "world_one",
       "skill",
-      "recovery"
+      "recovery",
+      "defense"
     ],
     "metadata": {
       "nameKey": "card.w1_mend",
@@ -2619,7 +2629,8 @@
       "world_one",
       "attack",
       "poison",
-      "multihit"
+      "multihit",
+      "residual"
     ],
     "metadata": {
       "nameKey": "card.w1_venom_flurry",
@@ -2755,7 +2766,8 @@
       "world_one",
       "skill",
       "fire",
-      "area"
+      "area",
+      "residual"
     ],
     "metadata": {
       "nameKey": "card.w1_inferno",

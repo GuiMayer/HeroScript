@@ -1,0 +1,2178 @@
+{
+  "w1_last_guard": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_last_guard.0",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 14,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_second_wind": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_second_wind.0",
+        "type": "HEAL",
+        "target": "SELF",
+        "targetResource": "health",
+        "flatValue": 10,
+        "tags": [
+          "recovery"
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_second_wind.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 8,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_solar_burst": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_solar_burst.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 12,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_solar_burst.1",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_burn",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status",
+          "residual"
+        ],
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 4
+          }
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_strike": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_strike.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 8,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_guard": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_guard.0",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 8,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_scorch": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_scorch.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 4,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_scorch.1",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_burn",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status",
+          "residual"
+        ],
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_poison": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_poison.0",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_poison",
+        "statusStacks": 1,
+        "statusDuration": 3,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status",
+          "residual"
+        ],
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 4
+          }
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_release": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_release.0",
+        "type": "CONDENSE_STACKS",
+        "target": "TARGET",
+        "condensationRecipeId": "w1_release_dot"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_precision": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "influence",
+      "componentId": "critical.chance",
+      "order": 15,
+      "channel": "critical_chance",
+      "bucket": "chance",
+      "value": 50,
+      "requiredTags": [
+        "damage"
+      ]
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_precision.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 7,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_focus": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_focus.0",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "w1_focus",
+        "statusStacks": 1,
+        "statusDuration": -1,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_lance": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "influence",
+      "componentId": "critical.chance",
+      "order": 15,
+      "channel": "critical_chance",
+      "bucket": "chance",
+      "value": 75,
+      "requiredTags": [
+        "damage"
+      ]
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_lance.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 17,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_flurry": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_flurry.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 2,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 10,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_barrage": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_barrage.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 4,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 22,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_sweep": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_sweep.0",
+        "type": "DAMAGE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 12,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_origin",
+              "w1_target"
+            ]
+          }
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "ALL_ENEMIES",
+      "minimumTargets": 0,
+      "maximumTargets": 0
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_shield_bash": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_shield_bash.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 4,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_shield_bash.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 5,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_fortify": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_fortify.0",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "w1_guard_mastery",
+        "statusStacks": 1,
+        "statusDuration": -1,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_bulwark": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_bulwark.0",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 19,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_reserve": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_reserve.0",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 4,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_reserve.1",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "w1_reserve",
+        "statusStacks": 1,
+        "statusDuration": -1,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status",
+          "residual"
+        ],
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 6
+          }
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_release_guard": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 0
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_release_guard.0",
+        "type": "CONDENSE_STACKS",
+        "target": "SELF",
+        "condensationRecipeId": "w1_release_guard"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_fracture": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_fracture.0",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_exposed",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_fracture.1",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 4,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_dampen": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_dampen.0",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_weakened",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_dampen.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 3,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_recall": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_recall.0",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 2
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_insight": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 0
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_insight.0",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 2
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_mend": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_mend.0",
+        "type": "HEAL",
+        "target": "SELF",
+        "targetResource": "health",
+        "flatValue": 6,
+        "tags": [
+          "recovery"
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_mend.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 3,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_momentum": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_momentum.0",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "w1_strength",
+        "statusStacks": 1,
+        "statusDuration": -1,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_catalyst": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_catalyst.0",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "w1_dot_mastery",
+        "statusStacks": 1,
+        "statusDuration": -1,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ],
+  "w1_venom_flurry": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_venom_flurry.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 3,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 14,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_venom_flurry.1",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_poison",
+        "statusStacks": 1,
+        "statusDuration": 3,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status",
+          "residual"
+        ],
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 3
+          }
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_inferno": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_inferno.0",
+        "type": "APPLY_STATUS",
+        "target": "ALL_ENEMIES",
+        "statusId": "w1_burn",
+        "statusStacks": 1,
+        "statusDuration": 3,
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "tags": [
+          "status",
+          "residual"
+        ],
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 4
+          }
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "ALL_ENEMIES",
+      "minimumTargets": 0,
+      "maximumTargets": 0
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_detonate": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 2
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_detonate.0",
+        "type": "CONDENSE_STACKS",
+        "target": "TARGET",
+        "condensationRecipeId": "w1_release_dot"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_detonate.1",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 12,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_riposte": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_riposte.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "formulaValue": "source.resources.block.current * 0.75",
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_riposte.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "SET",
+        "flatValue": 0,
+        "tags": [
+          "conversion"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_pierce": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_pierce.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "piercing"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 7,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    },
+    {
+      "type": "effect_rule_override",
+      "componentId": "rule.no-critical",
+      "order": 90,
+      "rule": {
+        "critical": false,
+        "requiredTags": [
+          "effect.damage"
+        ]
+      }
+    }
+  ],
+  "w1_rehearse": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_rehearse.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "physical"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 6,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_direct_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "secondary1",
+      "order": 30,
+      "effect": {
+        "effectId": "w1_rehearse.1",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 1
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "TARGET",
+      "minimumTargets": 1,
+      "maximumTargets": 1
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-discard"
+    }
+  ],
+  "w1_renewal": [
+    {
+      "type": "cost",
+      "componentId": "cost",
+      "order": 10,
+      "costs": {
+        "costs": [
+          {
+            "resourceId": "energy",
+            "amount": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "effect",
+      "componentId": "main",
+      "order": 20,
+      "effect": {
+        "effectId": "w1_renewal.0",
+        "type": "HEAL",
+        "target": "SELF",
+        "targetResource": "health",
+        "flatValue": 9,
+        "tags": [
+          "recovery"
+        ]
+      }
+    },
+    {
+      "type": "targeting",
+      "componentId": "targeting",
+      "order": 80,
+      "target": "SELF",
+      "minimumTargets": 0,
+      "maximumTargets": 0,
+      "allowSelf": true
+    },
+    {
+      "type": "disposition",
+      "componentId": "disposition",
+      "order": 90,
+      "cardZoneResolutionFlowId": "card.played.to-exhaust"
+    }
+  ]
+}
