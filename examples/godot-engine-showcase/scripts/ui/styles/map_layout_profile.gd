@@ -3,6 +3,9 @@ extends Resource
 @export var node_size := Vector2(112, 104)
 @export var hit_size := Vector2(72, 64)
 @export var symbol_size := 42.0
+@export var compact_auxiliary := true
+@export var auxiliary_kinds := PackedStringArray(["CardSelection", "RelicSelection", "CardUpgrade", "InscriptionSelection"])
+@export var auxiliary_symbol_size := 30.0
 @export var padding := Vector2(24, 20)
 @export var lane_gap := 16.0
 @export var layer_gap := 32.0

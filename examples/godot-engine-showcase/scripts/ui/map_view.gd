@@ -45,6 +45,12 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 	_resource_badges.text = "  ·  ".join(counters)
 	for button in find_children("MapTool_*", "Button", true, false): button.text = context.translator.text(str(button.get_meta("label_key")))
 	var nodes: Array = presenter.route()
+	# Optional published display metadata, never inferred from prose or effects.
+	var metadata: Dictionary = {}
+	for source in run.get("map", {}).get("nodes", []): metadata[str(source.get("nodeId", ""))] = source.get("metadata", {})
+	for node in nodes:
+		var display: Dictionary = metadata.get(str(node.id), {})
+		node["benefit"] = str(display.get("reward", ""))
 	navigation.update(nodes)
 	var key: Array = [nodes, choices, context.presentation_key()]
 	if key != _model_key:
@@ -168,7 +174,8 @@ func _update_comparison(nodes: Array) -> void:
 		if not str(node.get("risk", "")).is_empty(): label += " · " + visual_context.translator.text("Risk: %s") % str(node.risk)
 		var button := visual_context.styles.button(label, 160)
 		button.name = "MapCompare_" + id.validate_node_name(); button.set_meta("node_id", id)
-		button.tooltip_text = str(node.get("description", "")); button.add_theme_font_size_override("font_size", 14)
+		button.clip_text = true; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		button.tooltip_text = str(node.name) + "\n" + str(node.get("benefit", "")) + "\n" + str(node.get("description", "")); button.add_theme_font_size_override("font_size", 14)
 		button.pressed.connect(func(): _inspect(id); _set_inspector_open(true))
 		_comparison.add_child(button)
 func _inspect(id: String) -> void:
@@ -188,6 +195,7 @@ func _inspect(id: String) -> void:
 	_inspector.add_child(visual_context.styles.wrap(visual_context.styles.title(str(node.name), 25), 260))
 	_inspector.add_child(visual_context.styles.muted(visual_context.translator.content_name(str(node.kind)), 16, 260))
 	if not str(node.get("risk", "")).is_empty(): _inspector.add_child(visual_context.styles.muted(visual_context.translator.text("Risk: %s") % str(node.risk), 15, 260))
+	if not str(node.get("benefit", "")).is_empty(): _inspector.add_child(visual_context.styles.muted(str(node.benefit), 16, 260))
 	_inspector.add_child(visual_context.styles.muted(str(node.get("description", "")), 17, 260))
 	var status := "YOU ARE HERE" if node.current else ("COMPLETED" if node.resolved else ("Available" if not node.travel.is_empty() else "Unavailable"))
 	_inspector.add_child(visual_context.styles.title(visual_context.translator.text(status), 16))

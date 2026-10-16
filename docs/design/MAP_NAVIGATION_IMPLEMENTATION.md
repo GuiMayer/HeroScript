@@ -23,3 +23,9 @@ Coordenador intercepta drag iniciado também sobre nós. Movimento acima de sete
 ## Etapa 5: Marfim e comparação
 
 Catálogo de ícones existente, estados com símbolos além de cor, conexões realçadas na seleção/hover e filtro que destaca sem esconder nós. Faixa comparativa contém os mesmos IDs e somente emite seleção. Não interpreta descrições para inventar recompensas. Inspector é uma sobreposição lateral (inferior em área estreita), com uma única aba quando recolhido. O canvas mantém sua largura; câmera desconta a área encoberta. Ações continuam explícitas nos detalhes; foco de ação é recuperado quando os dados atualizam. Legenda e filtro são ferramentas secundárias.
+
+## Etapa 6: densidade
+
+Fixture reproduz a topologia e metadados de apresentação dos 50 nós reais do mundo 1, sem instanciar saves. Recompensas/upgrades usam símbolos menores, mantendo hitbox e ID; distinção pode ser desativada no perfil. Metadado opcional `reward` publicado aparece nos detalhes e tooltip comparativo; não é extraído da descrição. Sem metadado, nada é inventado.
+
+Decisão: não agrupar cadeias. A largura caiu para 800 unidades e o modo ato resolve a visão global; colapsar etapas agora esconderia serviços e acrescentaria estado de expansão sem necessidade demonstrada. Todas as 25 camadas e suas transações continuam individualmente inspecionáveis, inclusive em settings desconhecidos/cíclicos.

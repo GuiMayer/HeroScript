@@ -1,0 +1,771 @@
+{
+  "source": "data/configs/ascendant/Resources/runs/world_one.json",
+  "nodes": [
+    {
+      "nodeId": "s01_arrival",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r01"
+      ],
+      "metadata": {
+        "displayName": "Fractured Approach",
+        "description": "Visible attack cycles; current health persists. Rift Scout. Reward: 12 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "arrival",
+        "risk": "Standard",
+        "reward": "12 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r01",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s02_gate"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s02_gate",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r02"
+      ],
+      "metadata": {
+        "displayName": "Gate Calibration",
+        "description": "Visible attack cycles; current health persists. Gate Sentinel. Reward: 14 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "gate",
+        "risk": "Standard",
+        "reward": "14 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r02",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s03_forge"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s03_forge",
+      "activity": {
+        "type": "CardUpgrade"
+      },
+      "nextNodeIds": [
+        "relic_keen",
+        "relic_ward",
+        "relic_dot"
+      ],
+      "metadata": {
+        "displayName": "First Forge",
+        "description": "One card transformation or correction. Unused choices are forfeited on departure."
+      }
+    },
+    {
+      "nodeId": "relic_keen",
+      "activity": {
+        "type": "InscriptionStation"
+      },
+      "nextNodeIds": [
+        "s04_watch",
+        "s04_charge"
+      ],
+      "metadata": {
+        "displayName": "Keen Lens",
+        "description": "+30 critical chance. Choose critical growth instead of defense or residual potency.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "relic_ward",
+      "activity": {
+        "type": "InscriptionStation"
+      },
+      "nextNodeIds": [
+        "s04_watch",
+        "s04_charge"
+      ],
+      "metadata": {
+        "displayName": "Ward Plate",
+        "description": "20% increased Block, additive with Fortification.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "relic_dot",
+      "activity": {
+        "type": "InscriptionStation"
+      },
+      "nextNodeIds": [
+        "s04_watch",
+        "s04_charge"
+      ],
+      "metadata": {
+        "displayName": "Catalytic Coil",
+        "description": "25% increased residual potency, captured once at application.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s04_watch",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r04_watch"
+      ],
+      "metadata": {
+        "displayName": "Watch Patrol",
+        "description": "Visible attack cycles; current health persists. Gate Sentinel + Shard Mite. Reward: 16 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "watch",
+        "risk": "Standard",
+        "reward": "16 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "s04_charge",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r04_charge"
+      ],
+      "metadata": {
+        "displayName": "Charging Passage",
+        "description": "Visible attack cycles; current health persists. Rift Charger. Reward: 16 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "charge",
+        "risk": "Standard",
+        "reward": "16 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r04_watch",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s05_corrosion",
+        "s05_binding"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "r04_charge",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s05_corrosion",
+        "s05_binding"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s05_corrosion",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r05_corrosion"
+      ],
+      "metadata": {
+        "displayName": "Corrosive Nest",
+        "description": "Visible attack cycles; current health persists. Corrosion Spitter + Shard Mite. Reward: 16 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "corrosion",
+        "risk": "Standard",
+        "reward": "16 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "s05_binding",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r05_binding"
+      ],
+      "metadata": {
+        "displayName": "Binding Patrol",
+        "description": "Visible attack cycles; current health persists. Matrix Binder + Rift Scout. Reward: 16 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "binding",
+        "risk": "Standard",
+        "reward": "16 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r05_corrosion",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s06_medic",
+        "s06_cache",
+        "s06_salvage",
+        "s06_shelter",
+        "s06_archive",
+        "s06_rest"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "r05_binding",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s06_medic",
+        "s06_cache",
+        "s06_salvage",
+        "s06_shelter",
+        "s06_archive",
+        "s06_rest"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s06_medic",
+      "activity": {
+        "type": "Dialogue"
+      },
+      "nextNodeIds": [
+        "s07_guarded",
+        "s07_rush"
+      ],
+      "metadata": {
+        "displayName": "Field Medic",
+        "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+      }
+    },
+    {
+      "nodeId": "s06_cache",
+      "activity": {
+        "type": "Dialogue"
+      },
+      "nextNodeIds": [
+        "s07_guarded",
+        "s07_rush"
+      ],
+      "metadata": {
+        "displayName": "Forgotten Cache",
+        "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+      }
+    },
+    {
+      "nodeId": "s06_salvage",
+      "activity": {
+        "type": "Dialogue"
+      },
+      "nextNodeIds": [
+        "s07_guarded",
+        "s07_rush"
+      ],
+      "metadata": {
+        "displayName": "Unstable Salvage",
+        "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+      }
+    },
+    {
+      "nodeId": "s06_shelter",
+      "activity": {
+        "type": "Dialogue"
+      },
+      "nextNodeIds": [
+        "s07_guarded",
+        "s07_rush"
+      ],
+      "metadata": {
+        "displayName": "Quiet Shelter",
+        "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+      }
+    },
+    {
+      "nodeId": "s06_archive",
+      "activity": {
+        "type": "Dialogue"
+      },
+      "nextNodeIds": [
+        "s07_guarded",
+        "s07_rush"
+      ],
+      "metadata": {
+        "displayName": "Old Archive",
+        "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+      }
+    },
+    {
+      "nodeId": "s06_rest",
+      "activity": {
+        "type": "Preparation"
+      },
+      "nextNodeIds": [
+        "s07_guarded",
+        "s07_rush"
+      ],
+      "metadata": {
+        "displayName": "Rest: recover 25 health",
+        "description": "Recover 25 persistent health once. This route forgoes the alternative forge/event."
+      }
+    },
+    {
+      "nodeId": "s07_guarded",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r07_guarded"
+      ],
+      "metadata": {
+        "displayName": "Guarded Venom",
+        "description": "Visible attack cycles; current health persists. Gate Sentinel + Corrosion Spitter. Reward: 16 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "guarded",
+        "risk": "Standard",
+        "reward": "16 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "s07_rush",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r07_rush"
+      ],
+      "metadata": {
+        "displayName": "Shard Rush",
+        "description": "Visible attack cycles; current health persists. Rift Charger + Shard Mite. Reward: 16 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "rush",
+        "risk": "Standard",
+        "reward": "16 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r07_guarded",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s08_market"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "r07_rush",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s08_market"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s08_market",
+      "activity": {
+        "type": "Shop"
+      },
+      "nextNodeIds": [
+        "s09_patrol",
+        "s09_iron",
+        "s09_venom",
+        "s09_prism"
+      ],
+      "metadata": {
+        "displayName": "Rift Market",
+        "description": "Cards cost 25/38/55 gold. Leave without purchasing; rerolls cost 18 gold and increase."
+      }
+    },
+    {
+      "nodeId": "s09_patrol",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r09_patrol"
+      ],
+      "metadata": {
+        "displayName": "Artillery Escort",
+        "description": "Visible attack cycles; current health persists. Crystal Artillery + Rift Scout. Reward: 18 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "patrol",
+        "risk": "Standard",
+        "reward": "18 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r09_patrol",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s10_forge"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s09_iron",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r09_iron"
+      ],
+      "metadata": {
+        "displayName": "Iron Custodian",
+        "description": "Optional elite: higher risk, relic reward. Iron Custodian. Reward: 32 gold + card choice.",
+        "tier": "Elite",
+        "encounterTemplate": "iron",
+        "risk": "High",
+        "reward": "32 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r09_iron",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "elite_relic_iron"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "elite_relic_iron",
+      "activity": {
+        "type": "RelicReward"
+      },
+      "nextNodeIds": [
+        "s10_forge"
+      ],
+      "metadata": {
+        "displayName": "Opening Ward",
+        "description": "8 Block once at combat entry. Not a free defense each turn.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s09_venom",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r09_venom"
+      ],
+      "metadata": {
+        "displayName": "Venom Archivist",
+        "description": "Optional elite: higher risk, relic reward. Venom Archivist. Reward: 32 gold + card choice.",
+        "tier": "Elite",
+        "encounterTemplate": "venom",
+        "risk": "High",
+        "reward": "32 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r09_venom",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "elite_relic_venom"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "elite_relic_venom",
+      "activity": {
+        "type": "InscriptionStation"
+      },
+      "nextNodeIds": [
+        "s10_forge"
+      ],
+      "metadata": {
+        "displayName": "Serrated Core",
+        "description": "20% increased attack damage in the common increased bucket.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s09_prism",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r09_prism"
+      ],
+      "metadata": {
+        "displayName": "Prismatic Hunter",
+        "description": "Optional elite: higher risk, relic reward. Prismatic Hunter. Reward: 32 gold + card choice.",
+        "tier": "Elite",
+        "encounterTemplate": "prism",
+        "risk": "High",
+        "reward": "32 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r09_prism",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "elite_relic_prism"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "elite_relic_prism",
+      "activity": {
+        "type": "InscriptionStation"
+      },
+      "nextNodeIds": [
+        "s10_forge"
+      ],
+      "metadata": {
+        "displayName": "Precision Core",
+        "description": "+0.20 damage bonus for each critical tier.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s10_forge",
+      "activity": {
+        "type": "CardUpgrade"
+      },
+      "nextNodeIds": [
+        "s11_swarm",
+        "s11_siege"
+      ],
+      "metadata": {
+        "displayName": "Build Correction",
+        "description": "One card transformation or correction. Unused choices are forfeited on departure."
+      }
+    },
+    {
+      "nodeId": "s11_swarm",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r11_swarm"
+      ],
+      "metadata": {
+        "displayName": "Sentinel Swarm",
+        "description": "Visible attack cycles; current health persists. Shard Swarm + Gate Sentinel. Reward: 18 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "swarm",
+        "risk": "Standard",
+        "reward": "18 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "s11_siege",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r11_siege"
+      ],
+      "metadata": {
+        "displayName": "Corrosive Siege",
+        "description": "Visible attack cycles; current health persists. Crystal Artillery + Corrosion Spitter. Reward: 18 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "siege",
+        "risk": "Standard",
+        "reward": "18 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r11_swarm",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s12_rest",
+        "s12_forge"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "r11_siege",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "s12_rest",
+        "s12_forge"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s12_rest",
+      "activity": {
+        "type": "Preparation"
+      },
+      "nextNodeIds": [
+        "relic_field",
+        "relic_reserve"
+      ],
+      "metadata": {
+        "displayName": "Final Rest: recover 25 health",
+        "description": "Recover 25 persistent health once. This route forgoes the alternative forge/event."
+      }
+    },
+    {
+      "nodeId": "s12_forge",
+      "activity": {
+        "type": "CardUpgrade"
+      },
+      "nextNodeIds": [
+        "relic_field",
+        "relic_reserve"
+      ],
+      "metadata": {
+        "displayName": "Final Forge: 10 gold",
+        "description": "One card transformation or correction. Unused choices are forfeited on departure."
+      }
+    },
+    {
+      "nodeId": "relic_field",
+      "activity": {
+        "type": "RelicReward"
+      },
+      "nextNodeIds": [
+        "s13_vanguard"
+      ],
+      "metadata": {
+        "displayName": "Field Kit",
+        "description": "Recover 3 health once at combat entry, up to current maximum.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "relic_reserve",
+      "activity": {
+        "type": "RelicReward"
+      },
+      "nextNodeIds": [
+        "s13_vanguard"
+      ],
+      "metadata": {
+        "displayName": "Reserve Coil",
+        "description": "Store 5 guard potency at combat entry. Release Guard is needed to consume it.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "s13_vanguard",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [
+        "r13"
+      ],
+      "metadata": {
+        "displayName": "Prime Vanguard",
+        "description": "Visible attack cycles; current health persists. Rift Charger + Gate Sentinel. Reward: 20 gold + card choice.",
+        "tier": "Common",
+        "encounterTemplate": "vanguard",
+        "risk": "Standard",
+        "reward": "20 gold + card choice"
+      }
+    },
+    {
+      "nodeId": "r13",
+      "activity": {
+        "type": "CardSelection"
+      },
+      "nextNodeIds": [
+        "world_one_boss"
+      ],
+      "metadata": {
+        "displayName": "Choose or decline a card",
+        "description": "Three seeded offers; decline without diluting the deck.",
+        "rewardTransition": true
+      }
+    },
+    {
+      "nodeId": "world_one_boss",
+      "activity": {
+        "type": "Encounter"
+      },
+      "nextNodeIds": [],
+      "metadata": {
+        "displayName": "Ascendant Prime — Act Finale",
+        "description": "Two-state boss; survives strong builds. Ascendant Prime. The demo ends here.",
+        "tier": "Boss",
+        "encounterTemplate": "world_one_boss",
+        "risk": "Boss",
+        "reward": "Act complete"
+      }
+    }
+  ]
+}

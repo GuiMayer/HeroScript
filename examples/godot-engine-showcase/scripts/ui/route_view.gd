@@ -78,6 +78,11 @@ func setup(route: Array) -> void:
 			art.offset_left = -layout_profile.symbol_size * .5; art.offset_right = layout_profile.symbol_size * .5
 			art.offset_top = -layout_profile.symbol_size * .5; art.offset_bottom = layout_profile.symbol_size * .5
 		art.rebind_context(visual_context); art.setup("activities", str(node.kind))
+		var auxiliary: bool = layout_profile.compact_auxiliary and str(node.kind) in layout_profile.auxiliary_kinds
+		var symbol_size: float = layout_profile.auxiliary_symbol_size if auxiliary else layout_profile.symbol_size
+		art.offset_left = -symbol_size * .5; art.offset_right = symbol_size * .5
+		art.offset_top = -symbol_size * .5; art.offset_bottom = symbol_size * .5
+		button.set_meta("auxiliary", auxiliary)
 		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 			var fill := visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked")
 			var border := visual_context.styles.GOLD if node.current or not node.travel.is_empty() else visual_context.styles.color("stroke.route_locked")
