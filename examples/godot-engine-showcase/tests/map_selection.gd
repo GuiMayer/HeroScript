@@ -50,6 +50,11 @@ func _run() -> void:
 	for _i in 4: await process_frame
 	check(intents.size() == before and view._selected == original and not view.camera.pressed, "real pointer drag starting on a node suppresses activation and releases gesture")
 	check(not view.route.buttons.b.focus_neighbor_left.is_empty() and not view.route.buttons.b.focus_neighbor_bottom.is_empty(), "map defines explicit directional focus neighbors")
+	var width_before: float = view._scroll.size.x
+	view._set_inspector_open(false); for _i in 4: await process_frame
+	check(not view._inspector_panel.visible and view._inspector_toggle.visible and view._scroll.size.x == width_before, "collapsed floating inspector leaves only a tab and never reserves a column")
+	view.find_child("MapCompare_b", true, false).pressed.emit()
+	check(view._selected == "b" and view._inspector_panel.visible and intents.size() == before, "comparison selects the same published node without executing travel")
 	run.currentNodeId = "c"; run.map.nodes[2].activity.type = "Dialogue"
 	run["dialogues"] = [{"activityNodeId": "a", "completed": false}]
 	presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [], {}, context.translator)

@@ -19,3 +19,7 @@ Modo decisão enquadra o conjunto publicado mais a posição atual, sem selecion
 ## Etapa 4: gestos e dispositivos
 
 Coordenador intercepta drag iniciado também sobre nós. Movimento acima de sete unidades suprime ativação na soltura; botão central também funciona. Pause, perda de foco e subjanela modal cancelam o gesto. Vizinhos direcionais explícitos com desempate estável; foco fora da viewport é revelado sem alterar a escala. Setas/D-pad e Tab usam as ações UI já reservadas; confirmação utiliza `confirm_action`, existente e remapeável. Não foram criados atalhos paralelos. Hover tem estado próprio e não muda a seleção fixada.
+
+## Etapa 5: Marfim e comparação
+
+Catálogo de ícones existente, estados com símbolos além de cor, conexões realçadas na seleção/hover e filtro que destaca sem esconder nós. Faixa comparativa contém os mesmos IDs e somente emite seleção. Não interpreta descrições para inventar recompensas. Inspector é uma sobreposição lateral (inferior em área estreita), com uma única aba quando recolhido. O canvas mantém sua largura; câmera desconta a área encoberta. Ações continuam explícitas nos detalhes; foco de ação é recuperado quando os dados atualizam. Legenda e filtro são ferramentas secundárias.

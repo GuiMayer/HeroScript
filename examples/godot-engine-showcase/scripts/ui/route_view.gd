@@ -11,6 +11,7 @@ signal hover_changed(node_id: String)
 var suppress_activation := false
 var _selected := ""
 var _highlight_kind := ""
+var _hovered := ""
 var nodes: Array = []
 var markers := {}
 var buttons := {}
@@ -90,6 +91,7 @@ func setup(route: Array) -> void:
 		var text_role := "accent.warm" if str(node.get("risk", "")) == "High" else "text.primary"
 		button.set_meta("text_role", text_role)
 		button.add_theme_color_override("font_color", visual_context.styles.color(text_role))
+		caption.add_theme_color_override("font_color", visual_context.styles.color("text.primary") if node.current or not node.travel.is_empty() else visual_context.styles.MUTED)
 	for id in buttons.keys():
 		if id not in live:
 			remove_child(buttons[id]); buttons[id].queue_free(); buttons.erase(id)
@@ -114,6 +116,11 @@ func _configure_neighbors() -> void:
 func set_selection(id: String) -> void:
 	_selected = id
 	for key in buttons: buttons[key].set_pressed_no_signal(str(key) == id)
+	queue_redraw()
+
+func set_hover(id: String) -> void:
+	if _hovered == id: return
+	_hovered = id; queue_redraw()
 
 func highlight_kind(kind: String) -> void:
 	_highlight_kind = kind
@@ -124,8 +131,10 @@ func _draw() -> void:
 		var source: Array = nodes.filter(func(node): return str(node.get("id", "")) == str(edge.from))
 		var resolved: bool = not source.is_empty() and bool(source[0].get("resolved", false))
 		var color := visual_context.styles.TEAL.darkened(.4) if resolved else visual_context.styles.color("stroke.route")
+		var highlighted: bool = edge.from in [_hovered, _selected] or edge.to in [_hovered, _selected]
+		if highlighted: color = visual_context.styles.color("text.primary")
 		var path: PackedVector2Array = edge.path
-		draw_polyline(path, color, 2, true)
+		draw_polyline(path, color, 3 if highlighted else 1.5, true)
 		var end: Vector2 = path[-1]
 		var direction := (end - path[-2]).normalized()
 		var wing := direction.rotated(PI * .75) * 7
@@ -135,4 +144,4 @@ func _draw() -> void:
 		if not markers.has(str(node.get("id", ""))): continue
 		var point: Vector2 = markers[str(node.get("id", ""))] - Vector2(0, 20)
 		if not _highlight_kind.is_empty() and str(node.get("kind", "")) == _highlight_kind:
-			draw_arc(point, 11, 0, TAU, 24, visual_context.styles.color("text.primary"), 2, true)
+			draw_rect(Rect2(buttons[str(node.id)].position, buttons[str(node.id)].size).grow(5), visual_context.styles.color("text.primary"), false, 3, true)
