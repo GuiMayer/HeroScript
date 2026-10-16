@@ -44,7 +44,11 @@ inscriptions and relics retain their separate authorities.
    Reapplication adds captured lots and preserves the existing duration window;
    no per-lot duration is implied. Energy, damage, Block and healing all use
    the same payload processor with typed selectors and opt-in permissions.
-6. Circulation: pending.
+6. Circulation: complete. Five execution cases verify canonical first-match order,
+   partial/empty selection, unchanged instance identities and exclusion of the
+   resolving card (it remains in hand while sources are draw/discard).
+   World-one zone graph preserves the inherited lifecycle and adds effect-only
+   flows. No manual-selection UI or exiled-card recovery is introduced.
 7. Offensive geometries: pending.
 8. Modifier compatibility: pending.
 9. Distribution and presentation: pending.

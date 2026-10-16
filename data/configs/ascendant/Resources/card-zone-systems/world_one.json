@@ -1,0 +1,705 @@
+{
+  "w1_zones": {
+    "cardZoneSystemId": "w1_zones",
+    "gameplayGrantFlowId": "grant.create-in-discard",
+    "zones": [
+      {
+        "zoneId": "draw",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "visibility": {
+          "contents": "Owner",
+          "order": "Hidden"
+        },
+        "presentation": {
+          "slot": "draw_pile",
+          "labelKey": "Draw pile"
+        }
+      },
+      {
+        "zoneId": "hand",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": true,
+        "capacity": 10,
+        "visibility": {
+          "contents": "Owner",
+          "order": "Visible"
+        },
+        "presentation": {
+          "slot": "playable_cards",
+          "labelKey": "Hand"
+        }
+      },
+      {
+        "zoneId": "discard",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "visibility": {
+          "contents": "All",
+          "order": "Hidden"
+        },
+        "presentation": {
+          "slot": "discard_pile",
+          "labelKey": "Discard pile"
+        }
+      },
+      {
+        "zoneId": "exhaust",
+        "ownerScope": "RunOwner",
+        "ordering": "Unordered",
+        "visibility": {
+          "contents": "All",
+          "order": "Hidden"
+        },
+        "presentation": {
+          "slot": "exile_pile",
+          "labelKey": "Exile"
+        }
+      }
+    ],
+    "flows": [
+      {
+        "flowId": "run.initial-draw",
+        "triggers": [
+          "run.started"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-initial-cards",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Top",
+              "targetZoneCountFormula": "initialPlayableCardCount"
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "encounter.initial-draw",
+        "triggers": [
+          "encounter.started"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "fill-initial-playable-zone",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Top",
+              "targetZoneCount": 5
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "activation.recycle",
+        "allowedInvocations": [
+          "Boundary",
+          "GameplayCommand"
+        ],
+        "steps": [
+          {
+            "stepId": "return-spent",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "selection": {
+              "strategy": "All"
+            },
+            "insertion": {
+              "strategy": "ShuffleAfterInsert"
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "run.draw",
+        "playerInvokable": true,
+        "allowedInvocations": [
+          "GameplayCommand"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-requested-cards",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCount"
+            },
+            "onInsufficient": "ExecuteFallbackAndRetry",
+            "fallbackFlowId": "activation.recycle",
+            "retryAfterFallback": true,
+            "moveAvailableBeforeFallback": true,
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "run.discard",
+        "playerInvokable": true,
+        "allowedInvocations": [
+          "GameplayCommand"
+        ],
+        "steps": [
+          {
+            "stepId": "discard-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Explicit"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "run.exhaust",
+        "playerInvokable": true,
+        "allowedInvocations": [
+          "GameplayCommand"
+        ],
+        "steps": [
+          {
+            "stepId": "exhaust-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Explicit"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "activation.draw",
+        "actorScope": "RunPlayer",
+        "priority": 100,
+        "triggers": [
+          "activation.started"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-five",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "selection": {
+              "strategy": "Top",
+              "count": 5
+            },
+            "onInsufficient": "ExecuteFallbackAndRetry",
+            "fallbackFlowId": "activation.recycle",
+            "retryAfterFallback": true,
+            "moveAvailableBeforeFallback": true,
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "activation.ethereal",
+        "actorScope": "RunPlayer",
+        "priority": 50,
+        "triggers": [
+          "activation.ended"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "exile-ethereal",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "selection": {
+              "strategy": "ByTags",
+              "requiredTags": [
+                "ethereal"
+              ],
+              "selectAllMatches": true
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "activation.discard",
+        "actorScope": "RunPlayer",
+        "priority": 100,
+        "triggers": [
+          "activation.ended"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "discard-unplayed",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "selection": {
+              "strategy": "ByTags",
+              "excludedTags": [
+                "retain",
+                "ethereal"
+              ],
+              "selectAllMatches": true
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "encounter.return-persistent",
+        "triggers": [
+          "encounter.ended"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "return-hand",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "insertion": {
+              "strategy": "CreationOrder"
+            },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "return-discard",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "insertion": {
+              "strategy": "CreationOrder"
+            },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "return-exile",
+            "operation": "Move",
+            "sourceZoneId": "exhaust",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "insertion": {
+              "strategy": "CreationOrder"
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "card.played.to-discard",
+        "allowedInvocations": [
+          "CardResolution"
+        ],
+        "steps": [
+          {
+            "stepId": "move-played-card",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "selection": {
+              "strategy": "Explicit"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.create-in-hand",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "create-requested-cards",
+            "operation": "Create",
+            "targetZoneId": "hand",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCount"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.draw",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-requested-cards",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCount"
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-selected-to-discard",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Explicit",
+              "countFormula": "requestedCount"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-first-to-discard",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-first-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "First",
+              "countFormula": "requestedCount"
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-selected-to-exhaust",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Explicit",
+              "countFormula": "requestedCount"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-first-to-exhaust",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-first-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "First",
+              "countFormula": "requestedCount"
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "grant.create-in-discard",
+        "allowedInvocations": [
+          "GameplayCommand"
+        ],
+        "steps": [
+          {
+            "stepId": "create-awarded-cards",
+            "operation": "Create",
+            "targetZoneId": "discard",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCount"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.create-in-draw",
+        "allowedInvocations": [
+          "Tool"
+        ],
+        "steps": [
+          {
+            "stepId": "create-requested-cards",
+            "operation": "Create",
+            "targetZoneId": "draw",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCardCount"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.create-in-hand",
+        "allowedInvocations": [
+          "Tool"
+        ],
+        "steps": [
+          {
+            "stepId": "create-requested-cards",
+            "operation": "Create",
+            "targetZoneId": "hand",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCardCount"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.move-hand-to-discard",
+        "allowedInvocations": [
+          "Tool"
+        ],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "selection": {
+              "strategy": "Explicit"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.move-hand-to-exhaust",
+        "allowedInvocations": [
+          "Tool"
+        ],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "selection": {
+              "strategy": "Explicit"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "card.played.to-exhaust",
+        "allowedInvocations": [
+          "CardResolution"
+        ],
+        "steps": [
+          {
+            "stepId": "move-played-card",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "selection": {
+              "strategy": "Explicit"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "w1_seek_attack",
+        "actorScope": "RunPlayer",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-matching",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "ByTags",
+              "requiredTags": [
+                "attack"
+              ],
+              "count": 1
+            },
+            "insertion": {
+              "strategy": "Bottom"
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "w1_gather_defense",
+        "actorScope": "RunPlayer",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-matching",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "ByTags",
+              "requiredTags": [
+                "defense"
+              ],
+              "count": 2
+            },
+            "insertion": {
+              "strategy": "Bottom"
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "w1_recover_trace",
+        "actorScope": "RunPlayer",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-matching",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "ByTags",
+              "requiredTags": [
+                "residual"
+              ],
+              "count": 1
+            },
+            "insertion": {
+              "strategy": "Bottom"
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "w1_prepare_guard",
+        "actorScope": "RunPlayer",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "move-matching",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "ByTags",
+              "requiredTags": [
+                "defense"
+              ],
+              "count": 1
+            },
+            "insertion": {
+              "strategy": "Top"
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -11,6 +11,8 @@
   ],
   "conflicts": [],
   "content": [
+    { "schemaVersion": 1, "operation": "definition", "kind": "card-zone-systems", "sourcePath": "Resources/card-zone-systems/world_one.json", "artifactPath": "card-zone-systems/world_one.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "cards", "sourcePath": "Resources/cards/tag_synergy_circulation.json", "artifactPath": "cards/tag_synergy_circulation.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "condensation-recipes", "sourcePath": "Resources/condensation-recipes/tag_synergy_recovery.json", "artifactPath": "condensation-recipes/tag_synergy_recovery.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "status-effects", "sourcePath": "Resources/status-effects/tag_synergy_residuals.json", "artifactPath": "status-effects/tag_synergy_residuals.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "cards", "sourcePath": "Resources/cards/tag_synergy_residuals.json", "artifactPath": "cards/tag_synergy_residuals.json" },

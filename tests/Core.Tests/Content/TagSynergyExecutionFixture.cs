@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Calculations;
+using Core.CardZones;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
@@ -45,14 +46,17 @@ internal sealed record TagSynergyExecutionFixture(ContentRuntime Runtime,
         };
         var run = new RunState { RunId = Guid.Parse("51000000-0000-4000-8000-000000000001"),
             PlayerEntityId = "hero", ConfigName = "ascendant", Determinism = context,
-            ResolvedMode = new() { Definition = runtime.GetDefinition<GameModeDefinition>("modes", "ascendant_world_one").Value } };
+            ResolvedMode = new() { Definition = runtime.GetDefinition<GameModeDefinition>("modes", "ascendant_world_one").Value,
+                CardZoneSystem = runtime.GetDefinition<CardZoneSystemDefinition>("card-zone-systems", "w1_zones").Value } };
         var combat = new CombatState { CombatId = Guid.Parse("52000000-0000-4000-8000-000000000001"),
             Determinism = context, Actors = new Dictionary<string, CombatActorState> {
                 ["hero"] = Actor("hero", "player", health, energy, block),
                 ["enemy"] = Actor("enemy", "enemy", 100, 0, 0),
                 ["enemy2"] = Actor("enemy2", "enemy", 100, 0, 0) } };
         return new(runtime, formulas, new(formulas, new ImmutableEffectProcessor(), runtimes.Object,
-            new CalculationEngine(formulas), providers), run, combat);
+            new CalculationEngine(formulas), providers, cardZoneFlows: new CardZoneFlowExecutor(
+                new CardZoneRuntimeRuleEvaluator(formulas, new RevisionedCardZoneCardMetadataResolver(
+                    runtimes.Object, new CardContentCompiler(), new EffectiveCardResolver())))), run, combat);
     }
 
     internal static ResourcePool Pool(string id, float current, float maximum) =>

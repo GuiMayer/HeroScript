@@ -1,0 +1,322 @@
+{
+  "w1_seek_attack": {
+    "cardId": "w1_seek_attack",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "circulation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_seek_attack",
+      "artKey": "placeholder.w1_seek_attack",
+      "displayName": "Seek Attack",
+      "description": "Move up to 1 attack card(s) from draw to hand, in zone order."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_seek_attack.0",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "w1_seek_attack",
+          "cardCount": 1
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_gather_defense": {
+    "cardId": "w1_gather_defense",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "circulation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_gather_defense",
+      "artKey": "placeholder.w1_gather_defense",
+      "displayName": "Gather Defense",
+      "description": "Move up to 2 defense card(s) from draw to hand, in zone order."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_gather_defense.0",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "w1_gather_defense",
+          "cardCount": 2
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_recover_trace": {
+    "cardId": "w1_recover_trace",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "circulation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_recover_trace",
+      "artKey": "placeholder.w1_recover_trace",
+      "displayName": "Recover Trace",
+      "description": "Move up to 1 residual card(s) from discard to hand, in zone order."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_recover_trace.0",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "w1_recover_trace",
+          "cardCount": 1
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_prepare_guard": {
+    "cardId": "w1_prepare_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "circulation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_prepare_guard",
+      "artKey": "placeholder.w1_prepare_guard",
+      "displayName": "Prepare Guard",
+      "description": "Move up to 1 defense card(s) from discard to draw, in zone order."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_prepare_guard.0",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "w1_prepare_guard",
+          "cardCount": 1
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  }
+}
