@@ -13,7 +13,10 @@
       "w1_shield_bash",
       "w1_venom_flurry",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {
@@ -56,7 +59,10 @@
       "w1_bulwark",
       "w1_venom_flurry",
       "w1_inferno",
-      "w1_detonate"
+      "w1_detonate",
+      "w1_guard_wave",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {
@@ -114,7 +120,13 @@
       "w1_venom_flurry",
       "w1_riposte",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_guard_wave",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike",
+      "w1_break_guard"
     ],
     "patches": [
       {
@@ -151,7 +163,13 @@
       "w1_venom_flurry",
       "w1_riposte",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_guard_wave",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike",
+      "w1_break_guard"
     ],
     "patches": [
       {
@@ -183,7 +201,11 @@
       "w1_lance",
       "w1_shield_bash",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {
@@ -236,7 +258,11 @@
       "w1_lance",
       "w1_shield_bash",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {
@@ -289,7 +315,11 @@
       "w1_lance",
       "w1_shield_bash",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {
@@ -318,7 +348,11 @@
     "maxApplications": 2,
     "cardDefinitionIds": [
       "w1_poison",
-      "w1_inferno"
+      "w1_inferno",
+      "w1_cinder_brand",
+      "w1_volatile_rot",
+      "w1_lingering_aegis",
+      "w1_mending_echo"
     ],
     "patches": [
       {
@@ -342,7 +376,11 @@
       "w1_lance",
       "w1_shield_bash",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {
@@ -376,7 +414,11 @@
       "w1_lance",
       "w1_shield_bash",
       "w1_pierce",
-      "w1_rehearse"
+      "w1_rehearse",
+      "w1_guarded_strike",
+      "w1_needle_storm",
+      "w1_heavy_impact",
+      "w1_relay_strike"
     ],
     "patches": [
       {

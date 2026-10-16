@@ -54,6 +54,17 @@ inscriptions and relics retain their separate authorities.
    New direct effects leave stage selection to the global policy, enabling its
    critical stage instead of accidentally opting out with a partial stage list.
    Critical damage attributes use percentage points (100 = +100% per tier).
-8. Modifier compatibility: pending.
+8. Modifier compatibility: complete. The 12 existing upgrades and local critical
+   override accept structurally compatible new cards; every declared target is
+   composition-tested. Split is deliberately not granted to full-per-hit bases:
+   it currently promises a shared budget. Numeric upgrades avoid utility-main
+   cards; duration upgrades exclude the explicitly one-shot delayed recovery.
+   Published whitelists remain structural compatibility gates, not combo rules.
+   Predicates support effective tags, but the package validator preflights
+   unrestricted upgrades against fixture cards with incompatible slots.
+   Tag patches reject adding an already-present tag, so affinity/ward upgrades
+   retain their existing tag contract rather than silently changing patch semantics.
+   Inscription bonuses already select effect domains/channels; no card IDs added
+   to inscriptions and no inventories merged.
 9. Distribution and presentation: pending.
 10. Certification: pending.
