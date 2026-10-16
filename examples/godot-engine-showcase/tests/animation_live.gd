@@ -17,6 +17,8 @@ class Fixture extends RefCounted:
 	var retained := false
 	var exile := false
 	var superseded := false
+	var null_resolution := false
+	var null_receipt_combat := false
 	var state := {"runId": "animation-fixture", "sequence": 1, "activeEncounterId": "combat"}
 	var combat := {"combatId": "combat", "step": 1, "status": "ACTIVE", "activeActorId": "hero", "actors": [{"instanceId": "hero", "definitionId": "spire_adept", "sideId": "player", "resources": {}}]}
 	var zones := {"zones": [{"zoneId": "custom", "allowsCardPlay": true, "contentsVisible": true, "count": 2, "cards": [
@@ -32,6 +34,8 @@ class Fixture extends RefCounted:
 		if terminal: combat.status = "WON"
 		if not retained:
 			zones.zones[0].cards = zones.zones[0].cards.filter(func(card): return card.cardInstanceId != "played"); zones.zones[0].count = 1
+		if null_resolution:
+			return {"ok": true, "data": {"sequence": state.sequence, "state": {"combat": null if null_receipt_combat else combat.duplicate(true), "resolution": null}}}
 		if exile:
 			zones.zones[1] = {"zoneId": "unrelated-name", "contentsVisible": true, "allowsCardPlay": false, "count": 1, "presentation": {"slot": "exile_pile", "labelKey": "Exile"}, "cards": [{"cardInstanceId": "played", "definitionId": "basic_attack"}]}
 			return {"ok": true, "data": {"sequence": state.sequence, "state": {"combat": combat.duplicate(true), "resolution": {"frames": [{"transitionType": "effect", "cardZoneSteps": [{"flowId": "card.played.to-exhaust", "sourceAddress": "$run::::custom", "targetAddress": "$run::::unrelated-name", "instanceIds": ["played"]}]}]}}}}
@@ -202,6 +206,21 @@ func _run() -> void:
 	await screen._play_candidate(screen.presenter.candidate_for_card("remaining")); await settle()
 	check(fixture.sends == 2 and session.synchronized and not cursor.has_blocking_work(), "the next valid command completes its accepted flight after supersession without orphan locks")
 	screen.presentation_driver.skip(); await settle()
+	# Legal JSON null must not strand either session submission or hand playback.
+	for missing_combat in [false, true]:
+		fixture = Fixture.new(); fixture.null_resolution = true; fixture.null_receipt_combat = missing_combat
+		session.configure(fixture)
+		session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
+		session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
+		session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
+		prefs.reduced_motion = true
+		router.show_combat(); await settle(); screen = router.host.get_child(0)
+		await screen._play_candidate(screen.presenter.candidate_for_card("played")); await settle()
+		check(session.synchronized and not session.busy and not session.has_pending_command and not screen.controller.locked() and not cursor.has_blocking_work(),
+			"null resolution releases session, submission and animation locks; null combat=%s" % missing_combat)
+		check(screen.view.hand.card_for("played") == null and fixture.sends == 1, "null presentation still reconciles the authoritative hand exactly once")
+		await screen._play_candidate(screen.presenter.candidate_for_card("remaining")); await settle()
+		check(fixture.sends == 2 and not screen.controller.locked(), "next card remains usable without leaving and reopening combat")
 	# Terminal outcomes must keep the combat view until its beats are settled.
 	fixture = Fixture.new(); fixture.terminal = true; session.configure(fixture)
 	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)

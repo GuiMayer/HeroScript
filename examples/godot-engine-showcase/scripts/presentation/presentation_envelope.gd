@@ -3,17 +3,22 @@ extends RefCounted
 var _facts: Dictionary = {}
 var _scope: Array = []
 var _trace: Dictionary = {}
+static func dictionary(value) -> Dictionary:
+	# JSON null is not an absent key: Dictionary.get's default does not replace it.
+	return value if value is Dictionary else {}
 static func build(receipt: Dictionary, before: Dictionary, after: Dictionary, endpoint: Array):
-	var previous: Dictionary = before.get("run", {})
-	var current: Dictionary = after.get("run", {})
+	var previous := dictionary(before.get("run"))
+	var current := dictionary(after.get("run"))
+	if str(current.get("runId", "")).is_empty(): return null
 	if previous.get("runId", "") != current.get("runId", "") or previous.get("branchId", "") != current.get("branchId", ""): return null
 	var previous_setting := str(previous.get("settingId", previous.get("configName", "")))
 	if not previous_setting.is_empty() and previous_setting != str(current.get("settingId", current.get("configName", ""))): return null
 	if int(receipt.get("sequence", -1)) != int(current.get("sequence", -2)): return null
-	var resolution: Dictionary = receipt.get("state", {}).get("resolution", {})
-	var combat: Dictionary = receipt.get("state", {}).get("combat", after.get("combat", {}))
+	var state := dictionary(receipt.get("state"))
+	var resolution := dictionary(state.get("resolution"))
+	var final_combat := dictionary(after.get("combat"))
+	var combat: Dictionary = state.combat if state.get("combat") is Dictionary else final_combat
 	if resolution.get("combatId", combat.get("combatId", "")) != combat.get("combatId", ""): return null
-	var final_combat: Dictionary = after.get("combat", {})
 	if not final_combat.is_empty() and final_combat.get("combatId") != combat.get("combatId"): return null
 	var result = load("res://scripts/presentation/presentation_envelope.gd").new()
 	result._scope = [endpoint.duplicate(), current.get("settingId", current.get("configName", "")), current.get("runId", ""), current.get("branchId", ""),

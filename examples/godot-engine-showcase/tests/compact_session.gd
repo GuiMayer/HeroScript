@@ -3,6 +3,9 @@ var failures := 0
 class Gateway extends RefCounted:
 	var calls := 0
 	var overrides: Dictionary = {}
+	func prepare_command(_scope, _id, _type, _payload, _sequence, _step) -> Dictionary: return {"commandId": "confirmed"}
+	func send_prepared(_command: Dictionary) -> Dictionary:
+		return {"ok": true, "data": {"sequence": 1, "state": {"resolution": null, "combat": null}}}
 	func read_session(_id: String, _expected := -1) -> Dictionary:
 		calls += 1
 		var version := {"runId": "run", "settingId": "setting", "runSequence": 1, "runStep": 7,
@@ -32,4 +35,12 @@ func run_checks() -> void:
 		check(not await session.refresh() and session.run.sequence == 1 and not session.synchronized, "inconsistent bundle cannot publish: %s" % change.keys()[0])
 	gateway.overrides = {}
 	check(await session.refresh() and session.synchronized, "recovery publishes a complete coherent revision")
+	var finished: Array = []
+	var presentations: Array = []
+	session.command_finished.connect(func(): finished.append(true))
+	session.presentation_ready.connect(func(value): presentations.append(value))
+	check(await session.execute_run_command("TEST", {}), "accepted command with null optional presentation data completes")
+	check(not session.busy and session.synchronized and not session.has_pending_command and finished.size() == 1, "null resolution releases session operation and pending-command gates without reopening the menu")
+	check(presentations.size() == 1 and presentations[0].snapshot("combat").is_empty(), "no-animation receipt publishes a coherent envelope rather than hanging the caller")
+	check(await session.refresh() and not session.busy, "next session operation is immediately usable")
 	session.queue_free(); await process_frame; root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

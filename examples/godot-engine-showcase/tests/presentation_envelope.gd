@@ -20,6 +20,22 @@ func _run() -> void:
 	check(Envelope.build(receipt, before, later, []) == null, "external sequence advance cannot pair old receipt with a newer result")
 	var foreign := before.duplicate(true); foreign.run.settingId = "foreign"
 	check(Envelope.build(receipt, foreign, after, []) == null, "foreign setting cannot reuse a run-scoped presentation")
+	var optional := receipt.duplicate(true)
+	optional.state.resolution = null
+	var without_resolution = Envelope.build(optional, before, after, [])
+	check(without_resolution != null and without_resolution.snapshot("combat").combatId == "combat", "explicit null resolution does not abort a synchronized combat envelope")
+	optional.state.combat = null
+	check(Envelope.build(optional, before, after, []).snapshot("combat").combatId == "combat", "null receipt combat falls back to the synchronized snapshot")
+	optional.state = null
+	check(Envelope.build(optional, before, after, []) != null, "null optional receipt state never raises a typed assignment error")
+	var outside := after.duplicate(true); outside.combat = null
+	check(Envelope.build(optional, before, outside, []).snapshot("combat").is_empty(), "non-combat commands do not manufacture a combat")
+	check(Envelope.build(receipt, before, {"run": null}, []) == null, "invalid run identity is rejected without raising")
+	var cursor = preload("res://scripts/presentation/playback.gd").new()
+	for nullable in [optional, {"state": {"resolution": null}}]:
+		cursor.load_receipt(nullable)
+		check(not cursor.has_blocking_work(), "absent animation facts create no frames or blocking duration")
+	cursor.free()
 	var steps := [{"instanceIds": ["visible", "hidden"], "sourceOrderBefore": ["hidden", "visible"]}]
 	var zones := {"zones": [{"contentsVisible": true, "cards": [{"cardInstanceId": "visible"}]}]}
 	var projected: Array = Envelope.visible_zone_steps(steps, [zones])

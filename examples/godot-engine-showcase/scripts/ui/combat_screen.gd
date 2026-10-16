@@ -224,12 +224,14 @@ func _on_receipt_received(receipt: Dictionary) -> void:
 	if not is_inside_tree() or _prepared_card.is_empty() or _receipt_departure != null: return
 	if int(receipt.get("sequence", -1)) != int(_prepared_card.get("sequence", -2)) + 1: return
 	if GameSession.run.get("runId") != _run_snapshot.get("runId"): return
-	var combat: Dictionary = receipt.get("state", {}).get("combat", {})
+	var receipt_state := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt.get("state"))
+	var combat := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt_state.get("combat"))
 	if combat.get("combatId") != _combat_snapshot.get("combatId"): return
 	var id := str(_prepared_card.get("cardInstanceId", ""))
 	if not is_instance_valid(view.hand.card_for(id)): return
 	_active_motion = visual_context.capture_motion()
-	if preload("res://scripts/ui/card_zone_motion.gd").uses_burn(receipt.get("state", {}).get("resolution", {}).get("frames", []), id, _active_motion): return
+	var resolution := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt_state.get("resolution"))
+	if preload("res://scripts/ui/card_zone_motion.gd").uses_burn(resolution.get("frames", []), id, _active_motion): return
 	if _active_motion.duration("card_flight", true) <= 0: return
 	_receipt_motion_started = Time.get_ticks_msec()
 	_transits = preload("res://scripts/ui/card_transit_registry.gd").new(view.hand, view.feedback.effects, visual_context)

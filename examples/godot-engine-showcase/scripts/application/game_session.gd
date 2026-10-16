@@ -425,7 +425,7 @@ func _send_pending(ticket: int) -> bool:
 		"endpoint": replay_context() if _gateway.has_method("replay_context") else ["fixture", _generation],
 		"submitted": _command_started_ms, "received": Time.get_ticks_msec()}
 	receipt_received.emit(response.data.duplicate(true))
-	var state: Dictionary = response.data.get("state", {})
+	var state := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(response.data.get("state"))
 	var updated := await _refresh(ticket, state.get("combat", {}) if state.get("combat") is Dictionary else {}, int(response.data.get("sequence", -1)))
 	_finish(ticket)
 	command_finished.emit()

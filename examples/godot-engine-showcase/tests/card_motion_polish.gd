@@ -8,6 +8,12 @@ func check(ok: bool, label: String) -> void:
 	if not ok: failures += 1
 func settle() -> void:
 	for _index in 5: await process_frame
+func settle_fixture_entries(hand) -> void:
+	# Preset setup has its own cosmetic fade. Finish that fixture animation before
+	# measuring a scenario such as reorder, whose director completes immediately.
+	var started := Time.get_ticks_msec()
+	while hand._entries.values().any(func(tween): return tween != null and tween.is_valid() and tween.is_running()) and Time.get_ticks_msec() - started < 2000:
+		await process_frame
 func capture(name: String) -> void:
 	if not visual: return
 	await RenderingServer.frame_post_draw
@@ -29,6 +35,7 @@ func _run() -> void:
 	for preset in ["normal", "fast", "instant"]:
 		for scenario in lab.motion_scenarios:
 			lab.set_preset(0); await settle()
+			await settle_fixture_entries(lab.hand)
 			lab.motion_lab.preset = preset
 			lab.motion_lab.play(scenario, lab.models)
 			if visual and preset == "normal" and scenario.id == "draw_five":
