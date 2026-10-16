@@ -11,3 +11,7 @@ Não foram abertas nem modificadas partidas pessoais. Capturas históricas não 
 ## Etapa 2: geometria compacta
 
 Símbolos de 42, hitboxes de 72 × 64 e células de 112 × 104. Seis ramos ocupam 800 unidades incluindo margens, contra 1710 anteriormente. Camadas centralizadas; quatro passagens baricêntricas com desempate por ID. Rótulos ficam abaixo dos símbolos e as conexões saem após a área reservada ao texto. SCC, ciclos, desconexões e cache por topologia foram preservados. Testes iniciais: 35 checks aprovados nos quatro scripts de mapa, antes das duas novas asserções de seis ramos/sobreposição.
+
+## Etapa 3: câmera
+
+Modo decisão enquadra o conjunto publicado mais a posição atual, sem selecionar a primeira alternativa. Ato inteiro usa escala real e oculta rótulos ilegíveis; seus símbolos não são botões de viagem: clicar escolhe uma região e retorna ao detalhe. Estado local v2 guarda âncora, offset, escala, seleção e filtro. Estados antigos/âncoras ausentes voltam ao contexto atual, não ao pixel zero. Resize reaplica o contexto; refresh comum não enquadra novamente.

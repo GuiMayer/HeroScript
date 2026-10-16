@@ -20,6 +20,11 @@ var _overview := false
 var _base_layout: Resource
 var _filter: OptionButton
 var _filter_kinds: Array[String] = []
+var navigation = preload("res://scripts/presentation/map_navigation_model.gd").new()
+var _canvas: Control
+var _zoom := 1.0
+var _reading: Dictionary = {}
+var _framed := false
 func apply_projection(run: Dictionary, choices: Array, presenter, context: ContextType) -> void:
 	mount(context); theme = context.theme
 	_run = run.duplicate(true); _choices = choices.duplicate(true); _presenter = presenter
@@ -35,16 +40,21 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 	_resource_badges.text = "  ·  ".join(counters)
 	for button in find_children("MapTool_*", "Button", true, false): button.text = context.translator.text(str(button.get_meta("label_key")))
 	var nodes: Array = presenter.route()
+	navigation.update(nodes)
 	var key: Array = [nodes, choices, context.presentation_key()]
 	if key != _model_key:
 		_model_key = key.duplicate(true)
 		route.visual_context = context
 		route.setup(nodes)
 		_update_filter(nodes)
+		_update_extent()
 	if not nodes.any(func(node): return node.id == _selected): _selected = str(run.get("currentNodeId", ""))
 	if _selected.is_empty() and not nodes.is_empty(): _selected = str(nodes[0].id)
 	_inspect(_selected)
 	context.styles.apply_view_preferences(self)
+	if not _framed:
+		_framed = true
+		_next_choices.call_deferred()
 func _build() -> void:
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new(); add_child(header)
@@ -73,13 +83,15 @@ func _build() -> void:
 	_body.add_theme_constant_override("separation", 20); add_child(_body)
 	_scroll = ScrollContainer.new(); _scroll.name = "MapScroll"
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.follow_focus = true
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.follow_focus = false
+	_scroll.resized.connect(_resize_camera)
 	_scroll.gui_input.connect(_pan_input)
 	route = preload("res://scripts/ui/route_view.gd").new()
 	_base_layout = route.layout_profile.duplicate(true)
 	route.mouse_filter = Control.MOUSE_FILTER_PASS
 	route.inspection_requested.connect(_inspect)
-	_scroll.add_child(route); _body.add_child(_scroll)
+	_canvas = Control.new(); _canvas.name = "MapCanvas"; _canvas.mouse_filter = Control.MOUSE_FILTER_PASS
+	_canvas.add_child(route); _scroll.add_child(_canvas); _body.add_child(_scroll)
 	var inspector_scroll := ScrollContainer.new(); inspector_scroll.custom_minimum_size.x = 300
 	inspector_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_inspector = VBoxContainer.new(); _inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -87,6 +99,7 @@ func _build() -> void:
 	inspector_scroll.add_child(_inspector); _body.add_child(inspector_scroll)
 func _inspect(id: String) -> void:
 	_selected = id
+	navigation.inspect(id)
 	route.set_selection(id)
 	var projection: Array = [id, route.nodes, _choices, _run.get("dialogues", []), visual_context.presentation_key()]
 	if projection == _inspector_key: return
@@ -128,7 +141,14 @@ func set_read_only(value: bool) -> void:
 	for button in _action_buttons:
 		if is_instance_valid(button): button.disabled = value
 func capture_local_state() -> Dictionary:
-	return {"selected": _selected, "horizontal": _scroll.scroll_horizontal, "vertical": _scroll.scroll_vertical, "overview": _overview,
+	var point: Vector2 = (Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) + _scroll.size * .5 - route.position) / _zoom
+	var anchor := _selected
+	var distance := INF
+	for id in route._geometry.rects:
+		var candidate: float = route._geometry.rects[id].get_center().distance_squared_to(point)
+		if candidate < distance: distance = candidate; anchor = str(id)
+	return {"version": 2, "anchor": anchor, "offset": point - route._geometry.rects.get(anchor, Rect2()).get_center(), "zoom": _zoom,
+		"selected": _selected, "horizontal": _scroll.scroll_horizontal, "vertical": _scroll.scroll_vertical, "overview": _overview,
 		"filter": _filter_kinds[_filter.selected] if _filter.selected >= 0 else ""}
 func restore_local_state(state: Dictionary) -> void:
 	if state.is_empty(): return
@@ -137,10 +157,62 @@ func restore_local_state(state: Dictionary) -> void:
 	if filter_id >= 0: _filter.select(filter_id); route.highlight_kind(_filter_kinds[filter_id])
 	var id := str(state.get("selected", ""))
 	if route.nodes.any(func(node): return str(node.id) == id): _inspect(id)
-	_scroll.set_deferred("scroll_horizontal", int(state.get("horizontal", 0)))
-	_scroll.set_deferred("scroll_vertical", int(state.get("vertical", 0)))
+	_restore_camera.call_deferred(state.duplicate(true))
+
+func _restore_camera(state: Dictionary) -> void:
+	if _overview: _frame(route.buttons.keys(), true); return
+	var anchor := str(state.get("anchor", ""))
+	if route._geometry.rects.has(anchor):
+		_zoom = clampf(float(state.get("zoom", 1)), .6, 1)
+		_update_extent()
+		var offset: Vector2 = state.get("offset", Vector2.ZERO)
+		_scroll_to(route._geometry.rects[anchor].get_center() + offset)
+	else: _next_choices()
+	_reading = capture_local_state()
+
+func _update_extent() -> void:
+	if not is_instance_valid(_canvas): return
+	route.scale = Vector2.ONE * _zoom
+	_canvas.custom_minimum_size = route.custom_minimum_size * _zoom
+	route.position.x = maxf(0, (_scroll.size.x - _canvas.custom_minimum_size.x) * .5)
+	for button in route.buttons.values():
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE if _overview else Control.MOUSE_FILTER_STOP
+		button.focus_mode = Control.FOCUS_NONE if _overview else Control.FOCUS_ALL
+		button.get_node("Caption").visible = _zoom >= .65
+
+func _scroll_to(point: Vector2) -> void:
+	var offset := camera.offset_for(point * _zoom + route.position, _scroll.size, _canvas.custom_minimum_size.max(_scroll.size))
+	_scroll.scroll_horizontal = int(offset.x); _scroll.scroll_vertical = int(offset.y)
+
+func _frame(ids: Array, whole := false) -> void:
+	var bounds := Rect2(); var first := true
+	for id in ids:
+		if not route._geometry.rects.has(id): continue
+		var rect: Rect2 = route._geometry.rects[id]
+		bounds = rect if first else bounds.merge(rect); first = false
+	if first: return
+	_zoom = camera.fit_scale(bounds, _scroll.size, .01 if whole else .6)
+	_update_extent()
+	# Scroll ranges are updated by the container on the next frame.
+	_place_frame.call_deferred(bounds.get_center())
+
+func _place_frame(point: Vector2) -> void:
+	_scroll_to(point); _reading = capture_local_state()
+
+func _resize_camera() -> void:
+	if not is_instance_valid(route) or route.nodes.is_empty(): return
+	_update_extent()
+	if not _reading.is_empty(): _restore_camera.call_deferred(_reading.duplicate(true))
 
 func _pan_input(event: InputEvent) -> void:
+	if _overview and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var point: Vector2 = route.get_global_transform_with_canvas().affine_inverse() * event.global_position
+		var nearest := ""; var distance := INF
+		for id in route._geometry.rects:
+			var value: float = route._geometry.rects[id].get_center().distance_squared_to(point)
+			if value < distance: nearest = str(id); distance = value
+		if not nearest.is_empty(): _center_node(nearest)
+		_scroll.accept_event(); return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed: camera.begin(event.global_position, Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical))
 		else: camera.cancel()
@@ -153,20 +225,16 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT: camera.cancel()
 func _center_node(id: String) -> void:
 	if not route.buttons.has(id): return
-	var rect: Rect2 = route.buttons[id].get_rect()
-	_scroll.scroll_horizontal = maxi(0, int(rect.get_center().x - _scroll.size.x * .5))
-	_scroll.scroll_vertical = maxi(0, int(rect.get_center().y - _scroll.size.y * .5))
+	_overview = false; _zoom = 1; _update_extent()
+	_place_frame.call_deferred(route._geometry.rects[id].get_center())
 func _center_current() -> void: _center_node(str(_run.get("currentNodeId", "")))
 func _next_choices() -> void:
-	var candidates: Array = route.nodes.filter(func(node): return not node.travel.is_empty())
-	if not candidates.is_empty(): _center_node(str(candidates[0].id)); _inspect(str(candidates[0].id))
+	_overview = false
+	_frame(navigation.decision_ids())
 func _toggle_overview() -> void:
 	_overview = not _overview
-	var profile: Resource = _base_layout.duplicate(true)
-	if _overview:
-		profile.node_size = Vector2(168, 64); profile.lane_gap = 12.; profile.layer_gap = 24.
-	route.layout_profile = profile
-	route.setup(route.nodes); _center_node.call_deferred(_selected)
+	if _overview: _frame(route.buttons.keys(), true)
+	else: _next_choices()
 func _update_filter(nodes: Array) -> void:
 	var previous := _filter_kinds[_filter.selected] if _filter.selected >= 0 and not _filter_kinds.is_empty() else ""
 	_filter_kinds = [""]
