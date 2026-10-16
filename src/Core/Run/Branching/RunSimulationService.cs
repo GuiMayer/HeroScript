@@ -134,7 +134,11 @@ public sealed class RunSimulationService : IRunSimulationService
                 return Result<RunSimulationResult>.Failure($"Unsupported simulation command: {type}");
             var payload = normalized[index].payload;
             var payloadHash = CanonicalJson.ComputeHash(payload);
-            var expectedStep = current.GetActiveEncounter()?.Combat.Determinism.Step ?? current.Determinism.Step;
+            // An active encounter does not change the aggregate addressed by a
+            // run command. Choose the same scope for versioning and dispatch.
+            var expectedStep = TargetsCombat(type)
+                ? current.GetActiveEncounter()?.Combat.Determinism.Step ?? current.Determinism.Step
+                : current.Determinism.Step;
             var identity = new RunCommandIdentity(
                 CreateCommandId(current.RunId, index, type, payloadHash),
                 type,
@@ -208,10 +212,7 @@ public sealed class RunSimulationService : IRunSimulationService
         JsonElement payload,
         RunCommandIdentity identity)
     {
-        var combatId = type is GameplayCommandTypes.PlayCard or
-            GameplayCommandTypes.ExecuteAction or
-            GameplayCommandTypes.EndTurn or
-            RunCommandTypes.ResolveCombat
+        var combatId = TargetsCombat(type)
             ? current.GetActiveEncounter()?.Combat.CombatId
             : null;
         var executed = gateway.Execute(
@@ -222,6 +223,10 @@ public sealed class RunSimulationService : IRunSimulationService
             ? Result<RunState>.Failure(executed.Error)
             : Result<RunState>.Success(executed.Value.Receipt.State);
     }
+
+    private static bool TargetsCombat(string type) => GameplayCommandDescriptors.All
+        .FirstOrDefault(descriptor => descriptor.Type == type)?.Route
+        is GameplayCommandRoute.Combat or GameplayCommandRoute.ResolveEncounter;
 
     private async Task<IReadOnlyList<SimulationTimelineItem>> BuildTimelineAsync(
         RunState state,

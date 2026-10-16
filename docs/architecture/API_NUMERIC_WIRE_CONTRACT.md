@@ -49,10 +49,23 @@ Novos campos inteiros usados pelo cliente precisam de caminho explícito e teste
 Os testes online usam armazenamento próprio; não devem rodar contra o servidor
 ou os saves do jogador.
 
-## Achado separado, não alterado
+## Conflito de versão das simulações — corrigido
 
 Na validação, simular `INVOKE_CARD_ZONE_GAMEPLAY_FLOW` com um encontro ativo
-produziu `VERSION_CONFLICT` entre step da run e step do combate. A causa está na
-escolha do step pelo serviço de simulação, não na conversão de números. Essa
-correção não modifica a engine para contornar esse conflito; o teste de números
-da simulação usa um comando de combate válido (`END_TURN`).
+produzia `VERSION_CONFLICT` entre step da run e step do combate. A causa era a
+escolha incondicional do step do encontro ativo para qualquer tipo de comando.
+O serviço agora consulta `GameplayCommandDescriptors`: comandos da run usam
+o step da run; comandos roteados ao combate usam o step do encontro. A mesma
+classificação determina o `combatId` enviado ao gateway, evitando listas de
+tipos concorrentes para versão e execução.
+
+Nenhuma regra de transição, seed, alocação de ID, conteúdo ou snapshot é alterada.
+A correção é na construção da identidade do comando simulado; comandos antes
+aceitos mantêm o comportamento. Não requer nova versão das regras de gameplay.
+
+`Simulation_RunCommandsDuringCombatUseRunVersion_WithoutMutatingSource` reproduz
+a falha com steps diferentes e cobre comandos apenas da run e sequências mistas
+(comprar carta, jogar carta, encerrar turno). Verifica repetição com mesmo ID e
+hash final, replay reexecutado válido da origem e da simulação, e resposta do
+snapshot original idêntica byte a byte antes/depois. O teste online da Godot
+também inclui comandos mistos, além dos testes do contrato numérico.

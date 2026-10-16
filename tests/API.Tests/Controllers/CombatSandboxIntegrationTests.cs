@@ -527,6 +527,55 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(sourceSequence, run.GetProperty("sequence").GetInt32());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Simulation_RunCommandsDuringCombatUseRunVersion_WithoutMutatingSource(bool mixed)
+    {
+        using var launchResponse = await _client.PostAsJsonAsync("/api/v1/sandbox/runs",
+            CreateScenario($"mixed-simulation-{mixed}-{Guid.NewGuid():N}", startingCards:
+                Enumerable.Range(0, 10).Select(_ => new { definitionId = "basic_attack" }).ToArray()));
+        var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launchResponse.IsSuccessStatusCode, launch.GetRawText());
+        var runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
+        var sourceSequence = launch.GetProperty("run").GetProperty("sequence").GetInt32();
+        var path = $"/api/v1/sandbox/runs/{runId}/snapshot";
+        var original = await _client.GetStringAsync(path);
+        using var snapshot = JsonDocument.Parse(original);
+        Assert.NotEqual(snapshot.RootElement.GetProperty("run").GetProperty("step").GetUInt64(),
+            snapshot.RootElement.GetProperty("combat").GetProperty("step").GetUInt64());
+        var card = snapshot.RootElement.GetProperty("playableCards")[0].GetProperty("cardInstanceId").GetGuid();
+        var commands = new List<object> { new { type = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            payload = new { flowId = "run.draw", requestedCount = 1 } } };
+        if (mixed)
+        {
+            commands.Add(new { type = "PLAY_CARD", payload = new { actorId = "hero", targetIds = new[] { "goblin_a" }, cardInstanceId = card } });
+            commands.Add(new { type = "END_TURN", payload = new { actorId = "hero" } });
+        }
+        var request = new { sourceRunId = runId, sourceSequence, commands };
+        using var response = await _client.PostAsJsonAsync("/api/v1/simulations", request);
+        var simulation = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(response.IsSuccessStatusCode, simulation.GetRawText());
+        Assert.Equal(commands.Count, simulation.GetProperty("commandsExecuted").GetInt32());
+        Assert.Equal(original, await _client.GetStringAsync(path));
+
+        using var repeatedResponse = await _client.PostAsJsonAsync("/api/v1/simulations", request);
+        var repeated = await repeatedResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(repeatedResponse.IsSuccessStatusCode, repeated.GetRawText());
+        Assert.Equal(simulation.GetProperty("simulationId").GetGuid(), repeated.GetProperty("simulationId").GetGuid());
+        Assert.Equal(simulation.GetProperty("finalStateHash").GetString(), repeated.GetProperty("finalStateHash").GetString());
+        var simulationId = simulation.GetProperty("simulationId").GetGuid();
+        foreach (var id in new[] { simulationId, runId })
+        {
+            using var verification = await _client.PostAsync($"/api/v1/runs/{id}/verify", null);
+            var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.True(verification.IsSuccessStatusCode, replay.GetRawText());
+            Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+            Assert.True(replay.GetProperty("reexecuted").GetBoolean());
+        }
+        Assert.Equal(original, await _client.GetStringAsync(path));
+    }
+
     [Fact]
     public async Task PrioritySandbox_ProposesAutoPassesAndResolvesOnlyAfterPlayerPass()
     {
