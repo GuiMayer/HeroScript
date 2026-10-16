@@ -28,7 +28,7 @@ func refresh_state(data: Dictionary) -> void:
 	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations, GameSession.modifier_items)
 	view.apply_projection(run, choices, presenter, visual_context)
 	if changed_scope:
-		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "horizontal": 0, "vertical": 0, "overview": false, "filter": ""}))
+		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "overview": false, "filter": ""}))
 	view.set_read_only(GameSession.busy or not GameSession.synchronized)
 	var workflow: Array = [run.get("runId"), run.get("branchId"), run.get("sequence"), choices]
 	if workflow != _workflow_key:
@@ -44,7 +44,10 @@ func _intent(action: String, arguments: Array) -> void:
 			if router.host.get_child_count() > 0: router.host.get_child(0)._open_items()
 		"resume_dialogue": router.show_dialogue()
 		"command":
-			if get_tree().paused or GameSession.busy: return
+			if get_tree().paused or GameSession.busy or not GameSession.synchronized: return
+			# Revalidate the opaque reference against the latest snapshot, not a
+			# retained button closure from a previous sequence or branch.
+			controller.bind(GameSession.run, GameSession.activity_choices())
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if choice.is_empty(): return
 			view.set_read_only(true)
@@ -63,6 +66,7 @@ func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
 	if not _alive: return
 	_alive = false
+	if is_instance_valid(view): view.cancel_gesture()
 	_store_reading()
 	if controller: controller.dispose()
 func _store_reading() -> void:

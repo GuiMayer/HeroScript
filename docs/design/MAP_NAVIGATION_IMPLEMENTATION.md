@@ -29,3 +29,7 @@ Catálogo de ícones existente, estados com símbolos além de cor, conexões re
 Fixture reproduz a topologia e metadados de apresentação dos 50 nós reais do mundo 1, sem instanciar saves. Recompensas/upgrades usam símbolos menores, mantendo hitbox e ID; distinção pode ser desativada no perfil. Metadado opcional `reward` publicado aparece nos detalhes e tooltip comparativo; não é extraído da descrição. Sem metadado, nada é inventado.
 
 Decisão: não agrupar cadeias. A largura caiu para 800 unidades e o modo ato resolve a visão global; colapsar etapas agora esconderia serviços e acrescentaria estado de expansão sem necessidade demonstrada. Todas as 25 camadas e suas transações continuam individualmente inspecionáveis, inclusive em settings desconhecidos/cíclicos.
+
+## Etapa 7: integração
+
+MapScreen revalida a referência opaca nas escolhas mais recentes antes de enviar; bloqueia estado não sincronizado. Controller, ingresso único de atividades, avanço forçado e barreira de retorno de diálogo permanecem canônicos. Estado de leitura continua segregado por setting/run/branch (limite de 16 contextos). Dispose cancela gesto e invalida respostas tardias. Testes cobrem payload/versão preservados, opção removida, busy, falha, troca de branch e fechamento durante requisição.
