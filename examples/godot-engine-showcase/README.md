@@ -84,12 +84,19 @@ exibição, sem alterar run/save/preferências. As quinze amostras estão em
 `data/labs/inscription_loadout_lab.json`; não são o catálogo publicado do setting.
 
 Para equipamento real, crie/continue uma run Ascendant compatível e abra
-**INSCRIPTIONS** no mapa/atividade (ou **Connect current run** no laboratório).
+**INSCRIPTIONS** no mapa/atividade. Essa rota abre `scenes/run_loadout.tscn`,
+vinculada ao personagem atual da run, sem exemplos, presets ou seletor de personagem.
+Falhas mostram erro e recuperação, nunca um inventário fictício. Uma mudança de
+run/personagem exige reabrir a tela; respostas antigas não são reaproveitadas.
 Arraste/monte o rascunho, solicite **Preview draft** e então **Confirm equipment**.
 A engine calcula atributos e valida posse, slots, orçamento e janela; a Godot
 não soma valores no modo conectado. **Recover / refresh run** recupera uma
 resposta incerta pelo fluxo idempotente existente. Alterações pendentes pedem
-confirmação antes de sair/trocar de personagem.
+confirmação antes de sair ou descartar o rascunho.
+
+O laboratório do menu principal continua separado em
+`scenes/inscription_loadout_lab.tscn`, com exemplos e seletores para testes.
+Sua conexão REST opcional é uma ferramenta de laboratório, não a tela da run.
 
 O mundo 1 distribui inscrições iniciais não equipadas, recompensas com recusa,
 ofertas pagas e crafting dirigido limitado. Os dois escopos de inventário e dois

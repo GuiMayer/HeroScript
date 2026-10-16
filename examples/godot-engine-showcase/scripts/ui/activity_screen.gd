@@ -50,7 +50,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 		"recover": _recover_actions()
 		"confirm": _confirm_ref(str(arguments[0]))
 		"modifier_items": _open_items()
-		"inscriptions": router.show_loadout_lab(true)
+		"inscriptions": router.show_run_loadout()
 		"execute":
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if not choice.is_empty(): _execute(choice)

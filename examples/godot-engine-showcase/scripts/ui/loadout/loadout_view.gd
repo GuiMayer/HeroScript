@@ -80,6 +80,7 @@ func _rich(node_name: String) -> RichTextLabel:
 	return label
 func _build() -> void:
 	var header := HBoxContainer.new()
+	header.name = "LoadoutHeader"
 	var heading := _text("INSCRIPTION WORKBENCH", 27)
 	heading.theme_type_variation = "SectionTitle"
 	header.add_child(heading)
@@ -88,7 +89,7 @@ func _build() -> void:
 	_authority_note = _text("Visual prototype only. No items, attributes or runs are changed.", 14, "accent.warm")
 	add_child(_authority_note)
 	var tools := HBoxContainer.new()
-	tools.add_child(_text("Example layout", 14))
+	var layout_label := _text("Example layout", 14); layout_label.name = "LoadoutLayoutLabel"; tools.add_child(layout_label)
 	preset_picker.name = "LoadoutPresetPicker"
 	preset_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preset_picker.item_selected.connect(preset_requested.emit)
@@ -205,6 +206,8 @@ func present(model: Dictionary) -> void:
 	var remote: bool = model.get("authority") == "REST"
 	_authority_note.text = t.call("Engine loadout. Changes require preview and confirmation.") if remote else t.call("Visual prototype only. No items, attributes or runs are changed.")
 	preset_picker.visible = not remote
+	find_child("LoadoutLayoutLabel", true, false).visible = not remote
+	find_child("LoadoutRestoreButton", true, false).text = t.call("Discard draft" if remote else "Restore example")
 	if not _choices_built:
 		_choices_built = true
 		for preset in model.presets: preset_picker.add_item(t.call(preset.name))

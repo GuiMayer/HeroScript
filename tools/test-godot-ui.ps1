@@ -11,7 +11,7 @@ param(
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
 $ErrorActionPreference = 'Stop'
-if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout') }
 $workspace = Split-Path $PSScriptRoot -Parent
 $source = Join-Path $workspace 'examples/godot-engine-showcase'
 $taskId = [Guid]::NewGuid().ToString('N')

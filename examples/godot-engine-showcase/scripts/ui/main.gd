@@ -322,13 +322,19 @@ func show_timeline() -> void:
 	screen.setup(self)
 	host.add_child(screen)
 
-func show_loadout_lab(from_run := false) -> void:
+func show_loadout_lab() -> void:
 	current_screen = "loadout_lab"
 	_clear_host()
 	var screen = preload("res://scenes/inscription_loadout_lab.tscn").instantiate()
-	screen.back_requested.connect(open_game if from_run else _show_main_menu)
+	screen.back_requested.connect(_show_main_menu)
 	host.add_child(screen)
-	if from_run: screen._connect_run.call_deferred()
+
+func show_run_loadout() -> void:
+	current_screen = "run_loadout"
+	_clear_host()
+	var screen = preload("res://scenes/run_loadout.tscn").instantiate()
+	screen.back_requested.connect(open_game)
+	host.add_child(screen)
 
 func show_history() -> void:
 	if GameSession.busy: return
