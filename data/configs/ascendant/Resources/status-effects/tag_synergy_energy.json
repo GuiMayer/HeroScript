@@ -1,0 +1,39 @@
+{
+  "w1_energy_reserve": {
+    "statusId": "w1_energy_reserve",
+    "displayName": "Energy reserve",
+    "description": "Stores captured potency until released.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "StartActivation",
+    "maxStacks": 99,
+    "stacking": "Add",
+    "durationReapply": "Preserve",
+    "payloadReapply": "PreserveLots",
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_utility",
+          "pipelineId": "w1_utility",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_charge"
+      ]
+    },
+    "tags": [
+      "reserve",
+      "energy_payload"
+    ],
+    "triggers": []
+  }
+}

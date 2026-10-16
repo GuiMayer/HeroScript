@@ -1,0 +1,379 @@
+{
+  "w1_power_surge": {
+    "cardId": "w1_power_surge",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "resource_gain"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_power_surge",
+      "artKey": "placeholder.w1_power_surge",
+      "displayName": "Power Surge",
+      "description": "Gain 2 Energy, up to its maximum. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_power_surge.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "energy",
+          "operation": "ADD",
+          "calculationChannel": "w1_utility",
+          "tags": [
+            "resource_gain"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 2,
+              "unitId": "points",
+              "channel": "w1_utility",
+              "pipelineId": "w1_utility",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_blood_fuel": {
+    "cardId": "w1_blood_fuel",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "resource_gain",
+      "conversion"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_blood_fuel",
+      "artKey": "placeholder.w1_blood_fuel",
+      "displayName": "Blood Fuel",
+      "description": "Pay 4 Health, leaving at least 1. Gain 2 Energy. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            },
+            {
+              "resourceId": "health",
+              "amount": 4
+            }
+          ]
+        }
+      },
+      {
+        "type": "condition",
+        "componentId": "nonlethal_payment",
+        "order": 15,
+        "expression": "W1_NONLETHAL_FUEL",
+        "failureReason": "Requires at least 5 Health to leave 1 after payment."
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_blood_fuel.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "energy",
+          "operation": "ADD",
+          "calculationChannel": "w1_utility",
+          "tags": [
+            "resource_gain"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 2,
+              "unitId": "points",
+              "channel": "w1_utility",
+              "pipelineId": "w1_utility",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_charge_cell": {
+    "cardId": "w1_charge_cell",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "reserve",
+      "energy_payload"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_charge_cell",
+      "artKey": "placeholder.w1_charge_cell",
+      "displayName": "Charge Cell",
+      "description": "Store 2 Energy potency for a later release. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_charge_cell.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_energy_reserve",
+          "statusStacks": 1,
+          "statusDuration": -1,
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_release_charge": {
+    "cardId": "w1_release_charge",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "condensation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_release_charge",
+      "artKey": "placeholder.w1_release_charge",
+      "displayName": "Release Charge",
+      "description": "Consume all your Energy reserves; gain their potency once, up to maximum Energy."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_release_charge.0",
+          "type": "CONDENSE_STACKS",
+          "target": "SELF",
+          "condensationRecipeId": "w1_release_charge"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "W1_NONLETHAL_FUEL": {
+    "description": "True only when paying four Health leaves at least one Health.",
+    "params": { "source.resources.health.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.health.current" },
+      { "op": "SUBTRACT", "value": "4" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  }
+}

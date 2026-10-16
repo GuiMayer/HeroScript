@@ -31,7 +31,10 @@ inscriptions and relics retain their separate authorities.
    executes triggers before expiry; resource costs and condition components
    support nonlethal life payment. Dependent execution gates are tested with
    their card batches before publication.
-3. Energy: pending.
+3. Energy: complete. Eight execution cases cover full/partial/empty Energy,
+   nonlethal life payment (including fractional Health), immutable failure and
+   one-shot reserve consumption. Both generators and the reserve producer exile;
+   release cannot manufacture potency when empty.
 4. Defense: pending.
 5. Residuals and recovery: pending.
 6. Circulation: pending.
