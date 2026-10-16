@@ -242,7 +242,8 @@ public sealed class AscendantWorldOneJourneyTests(ITestOutputHelper output)
         {
             Assert.Equal("Completed", finalRun.GetProperty("lifecycle").GetString());
             Assert.Equal(9, fights);
-            Assert.Equal(70, Health(finalRun)); // Current catalog: inscription rewards declined, Blood Covenant acquired before boss.
+            // The 24-card expansion changes seeded reward offers, not the turn rules.
+            Assert.Equal(65, Health(finalRun)); // Expanded 57-base catalog and final rule descriptions; seed 154.
             Assert.True(sawDecline && sawUpgrade && sawRecovery);
         }
         using var verify = await client.PostAsync($"/api/v1/runs/{runId}/verify", null);

@@ -35,6 +35,29 @@ public sealed class TagSynergySandboxTests(TestWebApplicationFactory factory) : 
             snapshot.GetProperty("run").GetProperty("contentRevision").GetString());
         Assert.Equal("w1_synergy_sandbox", snapshot.GetProperty("run").GetProperty("scenario").GetProperty("modeId").GetString());
         Assert.True(snapshot.GetProperty("combat").GetProperty("activation").GetProperty("waitingForInput").GetBoolean());
+        var combatId = snapshot.GetProperty("combat").GetProperty("combatId").GetGuid();
+        var legal = await client.GetFromJsonAsync<JsonElement>($"/api/v1/combats/{combatId}/legal-actions?actorId=player");
+        var candidate = legal.GetProperty("candidates").EnumerateArray().First(c =>
+            c.GetProperty("command").GetProperty("actionType").GetString() == "PLAY_CARD").GetProperty("command");
+        using var played = await client.PostAsJsonAsync($"/api/v1/combats/{combatId}/commands", new {
+            commandId = Guid.NewGuid(), type = "PLAY_CARD",
+            expectedSequence = snapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
+            expectedStep = snapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
+            payload = new { actorId = "player", cardInstanceId = candidate.GetProperty("cardInstanceId").GetGuid(),
+                targetIds = candidate.GetProperty("targetIds").EnumerateArray().Select(t => t.GetString()).ToArray() } });
+        Assert.True(played.IsSuccessStatusCode, await played.Content.ReadAsStringAsync());
+        var source = await client.GetFromJsonAsync<JsonElement>($"/api/v1/sandbox/runs/{id}/snapshot");
+        var sequence = source.GetProperty("run").GetProperty("sequence").GetInt32();
+        using var forked = await client.PostAsJsonAsync($"/api/v1/combats/{combatId}/timeline/{sequence}/branches",
+            new { branchKey = "certify-" + presetId });
+        var branch = await forked.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(forked.IsSuccessStatusCode, branch.GetRawText());
+        Assert.Equal(source.GetRawText(), (await client.GetFromJsonAsync<JsonElement>(
+            $"/api/v1/sandbox/runs/{id}/snapshot")).GetRawText());
+        using var branchVerify = await client.PostAsync($"/api/v1/runs/{branch.GetProperty("runId").GetGuid()}/verify", null);
+        var branchReplay = await branchVerify.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(branchVerify.IsSuccessStatusCode && branchReplay.GetProperty("isValid").GetBoolean() &&
+            branchReplay.GetProperty("reexecuted").GetBoolean(), branchReplay.GetRawText());
         using var verification = await client.PostAsync($"/api/v1/runs/{id}/verify", null);
         verification.EnsureSuccessStatusCode();
         var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();

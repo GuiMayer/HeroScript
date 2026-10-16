@@ -15,6 +15,7 @@ public sealed class TagSynergyOffenseTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(100 - expected, TagSynergyExecutionFixture.Value(result.Value.State, "health", "enemy"));
         Assert.Equal(3, result.Value.Steps.Count(step => step.TargetEntityId == "enemy" && step.Applied));
+        Assert.Equal(3, result.Value.Steps.SelectMany(step => step.RandomInputs).Select(input => input.ScopeId).Distinct().Count());
     }
 
     [Fact]

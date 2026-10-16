@@ -8,6 +8,17 @@ namespace Core.Tests.Content;
 public sealed class TagSynergyResidualTests
 {
     [Fact]
+    public async Task ResidualDefense_UsesExistingReleaseWithoutReapplyingOrigin()
+    {
+        var f = await TagSynergyExecutionFixture.Create();
+        var defense = f.Play("w1_lingering_aegis").Value.State;
+        var release = f.Play("w1_release_guard", defense);
+        Assert.True(release.IsSuccess, release.IsFailure ? release.Error : null);
+        Assert.Equal(5, TagSynergyExecutionFixture.Value(release.Value.State, "block"));
+        Assert.Empty(release.Value.State.StatusEffects);
+    }
+
+    [Fact]
     public async Task ExistingGuardReserve_PreservesItsOriginalReleaseValue()
     {
         var f = await TagSynergyExecutionFixture.Create();

@@ -1,5 +1,8 @@
 extends SceneTree
 var failures := 0
+class Router extends RefCounted:
+	var visual_context
+	func back_to_menu() -> void: pass
 func _init() -> void: call_deferred("_run")
 func check(ok: bool, label: String) -> void:
 	print("[PASS] " if ok else "[FAIL] ", label)
@@ -21,6 +24,23 @@ func _run() -> void:
 	var Screen = load("res://scripts/ui/sandbox_screen.gd")
 	check(Screen != null, "rules laboratory script compiles")
 	check(seen.size() >= 24, "presets expose expansion and baseline cards together")
+	var session = root.get_node("GameSession")
+	var previous: String = session.selected_setting_id
+	session.selected_setting_id = "ascendant"
+	var router := Router.new()
+	router.visual_context = load("res://scripts/ui/visual_context.gd").new(root.get_node("I18n"), {}, load("res://data/themes/ivory_run.tres"))
+	var screen = Screen.new()
+	root.add_child(screen)
+	screen.setup(router, {"sandbox_modes": [], "default_scenario": {}})
+	check(screen.scenario_picker.item_count == 6, "preset selector includes custom plus five scenes")
+	screen._select_scenario(1)
+	check(screen.selected_mode == catalog.mode_id and screen.mode_buttons[catalog.mode_id].button_pressed, "preset selects canonical world-one mode")
+	var first: Dictionary = JSON.parse_string(screen.editor.text)
+	check(first == catalog.presets[0].scenario, "editor receives the scenario, not visual gameplay rules")
+	first.startingCards.clear()
+	check(not screen.scenario_presets[0].scenario.startingCards.is_empty(), "editing a scenario never mutates the preset catalog")
+	screen.queue_free()
+	session.selected_setting_id = previous
 	root.get_node("GameAudio").shutdown()
 	await create_timer(.12).timeout
 	quit(0 if failures == 0 else 1)

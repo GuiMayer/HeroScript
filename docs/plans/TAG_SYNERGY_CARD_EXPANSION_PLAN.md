@@ -1,6 +1,7 @@
 # Expansão de cartas por sinergias de tags
 
-Status: etapas 1–9 implementadas; certificação final em andamento.
+Status: 10 etapas implementadas e certificadas. Evidências e limites de playtest:
+[registro da expansão](../content/TAG_SYNERGY_EXPANSION.md).
 
 ## 1. Objetivo e escopo
 

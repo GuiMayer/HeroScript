@@ -6,6 +6,17 @@ namespace Core.Tests.Content;
 public sealed class TagSynergyDefenseTests
 {
     [Theory]
+    [InlineData(0, 7)] [InlineData(100, 14)] [InlineData(200, 21)]
+    public async Task BlockDerivedDamage_StillUsesGlobalCriticalAndArmor(float critical, float expected)
+    {
+        var f = await TagSynergyExecutionFixture.Create(block: 20, critical: critical, armor: 100);
+        var result = f.Play("w1_guarded_strike");
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(100 - expected, TagSynergyExecutionFixture.Value(result.Value.State, "health", "enemy"));
+        Assert.Equal(20, TagSynergyExecutionFixture.Value(result.Value.State, "block"));
+    }
+
+    [Theory]
     [InlineData(0, 4)] [InlineData(8, 8)] [InlineData(20, 14)]
     public async Task GuardedStrike_ReadsBlockWithoutSpendingIt(float block, float damage)
     {

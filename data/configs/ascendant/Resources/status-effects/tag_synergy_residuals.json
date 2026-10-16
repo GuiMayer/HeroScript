@@ -2,7 +2,7 @@
   "w1_cinder": {
     "statusId": "w1_cinder",
     "displayName": "Cinder",
-    "description": "Captured potency is applied at the owner's EndActivation.",
+    "description": "At the affected actor's end of activation, reduce Health by captured potency. Condensation consumes potency, not remaining ticks.",
     "defaultDuration": 4,
     "durationTickBoundary": "EndActivation",
     "maxStacks": 99,
@@ -72,7 +72,7 @@
   "w1_rot": {
     "statusId": "w1_rot",
     "displayName": "Volatile rot",
-    "description": "Captured potency is applied at the owner's EndActivation.",
+    "description": "At the affected actor's end of activation, reduce Health by captured potency. Condensation consumes potency, not remaining ticks.",
     "defaultDuration": 1,
     "durationTickBoundary": "EndActivation",
     "maxStacks": 99,
@@ -142,7 +142,7 @@
   "w1_lingering_aegis": {
     "statusId": "w1_lingering_aegis",
     "displayName": "Lingering aegis",
-    "description": "Captured potency is applied at the owner's StartActivation.",
+    "description": "At the start of the owner's activation, gain captured Block. A compatible defensive release consumes the stored potency.",
     "defaultDuration": 2,
     "durationTickBoundary": "StartActivation",
     "maxStacks": 99,
@@ -211,7 +211,7 @@
   "w1_mending_echo": {
     "statusId": "w1_mending_echo",
     "displayName": "Mending echo",
-    "description": "Captured potency is applied at the owner's StartActivation.",
+    "description": "At the start of the owner's activation, recover captured Health. A healing release consumes potency, not remaining ticks.",
     "defaultDuration": 3,
     "durationTickBoundary": "StartActivation",
     "maxStacks": 99,
@@ -279,7 +279,7 @@
   "w1_delayed_recovery": {
     "statusId": "w1_delayed_recovery",
     "displayName": "Delayed recovery",
-    "description": "Captured potency is applied at the owner's StartActivation.",
+    "description": "Recover captured Health at the start of the next owner activation, then expire.",
     "defaultDuration": 1,
     "durationTickBoundary": "StartActivation",
     "maxStacks": 99,
