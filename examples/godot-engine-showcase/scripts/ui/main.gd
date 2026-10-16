@@ -252,19 +252,25 @@ func _recover_session() -> void:
 	var accepted := await GameSession.refresh()
 	if accepted and epoch == navigation_epoch: open_game()
 
-func open_game() -> void:
+func gameplay_route() -> String:
+	# Single UI routing decision, shared by opening a run and the map return tab.
+	# These are presentation routes, not activity eligibility or gameplay rules.
 	if GameSession.run.is_empty():
-		_show_main_menu()
-		return
+		return "menu"
 	if not GameSession.combat.is_empty() and str(GameSession.combat.get("status", "ACTIVE")) == "ACTIVE":
-		show_combat()
-	else:
-		if _has_dialogue_activity(): show_dialogue()
-		else:
-			var types: Array = GameSession.activity_choices().map(func(choice): return str(choice.get("type", "")))
-			var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC", "OPEN_INSCRIPTION_OFFER", "CHOOSE_INSCRIPTION_OFFER"])
-			if detailed or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active": show_activity()
-			else: show_map()
+		return "combat"
+	if _has_dialogue_activity(): return "dialogue"
+	var types: Array = GameSession.activity_choices().map(func(choice): return str(choice.get("type", "")))
+	var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC", "OPEN_INSCRIPTION_OFFER", "CHOOSE_INSCRIPTION_OFFER"])
+	return "activity" if detailed or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active" else "map"
+
+func open_game() -> void:
+	match gameplay_route():
+		"menu": _show_main_menu()
+		"combat": show_combat()
+		"dialogue": show_dialogue()
+		"activity": show_activity()
+		"map": show_map()
 
 func _has_dialogue_activity() -> bool:
 	var run: Dictionary = GameSession.run

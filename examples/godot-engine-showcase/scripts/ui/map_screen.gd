@@ -27,6 +27,7 @@ func refresh_state(data: Dictionary) -> void:
 	controller.bind(run, choices)
 	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations, GameSession.modifier_items)
 	view.apply_projection(run, choices, presenter, visual_context)
+	view.set_resume_target(router.gameplay_route())
 	if changed_scope:
 		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "overview": false, "filter": ""}))
 	view.set_read_only(GameSession.busy or not GameSession.synchronized)
@@ -43,6 +44,8 @@ func _intent(action: String, arguments: Array) -> void:
 			router.show_activity()
 			if router.host.get_child_count() > 0: router.host.get_child(0)._open_items()
 		"resume_dialogue": router.show_dialogue()
+		"resume_run":
+			if not get_tree().paused: router.open_game()
 		"command":
 			if get_tree().paused or GameSession.busy or not GameSession.synchronized: return
 			# Revalidate the opaque reference against the latest snapshot, not a

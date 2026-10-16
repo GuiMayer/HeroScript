@@ -13,6 +13,9 @@ param(
 $ErrorActionPreference = 'Stop'
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout') }
 $workspace = Split-Path $PSScriptRoot -Parent
+if (-not $PSBoundParameters.ContainsKey('Tests')) {
+    $Tests += @('run_screen_lifecycle', 'replay_lifecycle')
+}
 $source = Join-Path $workspace 'examples/godot-engine-showcase'
 $taskId = [Guid]::NewGuid().ToString('N')
 $project = Join-Path $workspace ".runtime/ui-refactor/$taskId"

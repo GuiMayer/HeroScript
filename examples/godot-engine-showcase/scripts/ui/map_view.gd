@@ -31,6 +31,7 @@ var _comparison: HFlowContainer
 var _comparison_key: Array = []
 var _last_current := ""
 var _overview_hint: Label
+var _resume_button: Button
 func apply_projection(run: Dictionary, choices: Array, presenter, context: ContextType) -> void:
 	mount(context); theme = context.theme
 	_run = run.duplicate(true); _choices = choices.duplicate(true); _presenter = presenter
@@ -76,6 +77,10 @@ func _build() -> void:
 	var header := HBoxContainer.new(); add_child(header)
 	_header = visual_context.styles.title("", 27); _header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_header)
+	_resume_button = visual_context.styles.button("", 160); _resume_button.name = "MapResumeRun"
+	_resume_button.visible = false
+	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))
+	header.add_child(_resume_button)
 	_resource_badges = visual_context.styles.muted("", 15)
 	_resource_badges.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_resource_badges)
@@ -186,6 +191,11 @@ func _update_comparison(nodes: Array) -> void:
 		button.tooltip_text = str(node.name) + "\n" + str(node.get("benefit", "")) + "\n" + str(node.get("description", "")); button.add_theme_font_size_override("font_size", 14)
 		button.pressed.connect(func(): _inspect(id); _set_inspector_open(true))
 		_comparison.add_child(button)
+func set_resume_target(target: String) -> void:
+	_resume_button.visible = target in ["activity", "combat", "dialogue"]
+	var label := "Resume conversation" if target == "dialogue" else ("Return to combat" if target == "combat" else "Return to activity")
+	_resume_button.text = visual_context.translator.text(label)
+
 func _inspect(id: String) -> void:
 	_selected = id
 	navigation.inspect(id)

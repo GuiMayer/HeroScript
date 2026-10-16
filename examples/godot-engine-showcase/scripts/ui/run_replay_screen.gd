@@ -58,7 +58,10 @@ func _more() -> void:
 	await controller.load_more()
 	if is_inside_tree() and selected_index < 0 and not entries.is_empty(): await controller.select(0)
 func playback_delay() -> float: return (.18 if Preferences.reduced_motion else .7) / maxf(Preferences.animation_speed, .25)
+func _playback_active(epoch: int) -> bool:
+	return is_inside_tree() and controller != null and controller.valid() and playing and epoch == controller.play_epoch
 func _toggle_play() -> void:
+	if not is_inside_tree() or controller == null or not controller.valid(): return
 	if playing:
 		controller.stop()
 		if _visual_replay != null: _visual_replay.set_paused(true)
@@ -66,13 +69,16 @@ func _toggle_play() -> void:
 	if _visual_replay != null: _visual_replay.set_paused(false)
 	controller.playing = true; _update()
 	var epoch: int = controller.play_epoch
-	while playing and is_inside_tree() and controller.valid() and epoch == controller.play_epoch:
+	while _playback_active(epoch):
 		if _visual_replay != null and _visual_replay.blocking(): await _visual_replay.settled
-		if not playing or epoch != controller.play_epoch: break
+		if not _playback_active(epoch): return
 		if not await controller.navigate(1): break
+		if not _playback_active(epoch): return
 		if _visual_mode: await _watch()
+		if not _playback_active(epoch): return
 		await get_tree().create_timer(playback_delay()).timeout
-	if is_inside_tree() and epoch == controller.play_epoch: controller.stop()
+		if not _playback_active(epoch): return
+	if _playback_active(epoch): controller.stop()
 
 func _cancel_visual() -> void:
 	_visual_epoch += 1
