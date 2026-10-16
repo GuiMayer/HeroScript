@@ -38,7 +38,7 @@ internal sealed record TagSynergyExecutionFixture(ContentRuntime Runtime,
             InstanceId = id, SideId = side,
             Components = new Dictionary<string, EntityComponentState> { ["stats"] = new StatEntityComponentState
             { ComponentId = "stats", Values = new Dictionary<string, float> {
-                ["critical_chance"] = critical, ["critical_damage"] = 1, ["armor"] = armor,
+                ["critical_chance"] = critical, ["critical_damage"] = 100, ["armor"] = armor,
                 ["weapon_damage"] = 0, ["block_efficiency"] = 0 } } },
             ResourceState = new() { OwnerId = id, Resources = new Dictionary<string, ResourcePool> {
                 ["health"] = Pool("health", hp, 100), ["energy"] = Pool("energy", ep, 3),
@@ -60,7 +60,9 @@ internal sealed record TagSynergyExecutionFixture(ContentRuntime Runtime,
     }
 
     internal static ResourcePool Pool(string id, float current, float maximum) =>
-        ResourcePool.Materialize(new ResourceDefinition { ResourceId = id, DisplayName = id }, current, maximum);
+        ResourcePool.Materialize(new ResourceDefinition { ResourceId = id, DisplayName = id,
+            ThresholdPolicies = id == "health" ? [new() { PolicyId = "defeat", Comparison = ResourceThresholdComparison.LessThanOrEqual,
+                ThresholdSource = ResourceThresholdSource.Minimum, Consequence = ResourceThresholdConsequence.DefeatOwner }] : [] }, current, maximum);
     internal EffectiveCardDefinition Card(string id) => new EffectiveCardResolver().Resolve(
         new CardContentCompiler().Compile(id, Runtime).Value, new() {
             DefinitionId = id, CardInstanceId = Guid.Parse("53000000-0000-4000-8000-000000000001") }).Value;

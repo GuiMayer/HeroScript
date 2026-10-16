@@ -49,7 +49,11 @@ inscriptions and relics retain their separate authorities.
    resolving card (it remains in hand while sources are draw/discard).
    World-one zone graph preserves the inherited lifecycle and adds effect-only
    flows. No manual-selection UI or exiled-card recovery is introduced.
-7. Offensive geometries: pending.
+7. Offensive geometries: complete. Six execution cases verify per-hit budgets,
+   guaranteed tiers, energy cost, defense removal ordering and excess-only relay.
+   New direct effects leave stage selection to the global policy, enabling its
+   critical stage instead of accidentally opting out with a partial stage list.
+   Critical damage attributes use percentage points (100 = +100% per tier).
 8. Modifier compatibility: pending.
 9. Distribution and presentation: pending.
 10. Certification: pending.

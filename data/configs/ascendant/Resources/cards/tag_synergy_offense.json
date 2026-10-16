@@ -1,0 +1,434 @@
+{
+  "w1_needle_storm": {
+    "cardId": "w1_needle_storm",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "attack",
+      "multihit"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_needle_storm",
+      "artKey": "placeholder.w1_needle_storm",
+      "displayName": "Needle Storm",
+      "description": "Deal 2 base damage per hit, 3 hits. Each hit rolls critical tiers separately."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_needle_storm.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 2,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": []
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health",
+          "repeat": 3
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_heavy_impact": {
+    "cardId": "w1_heavy_impact",
+    "rarity": "Rare",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 55
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "attack"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_heavy_impact",
+      "artKey": "placeholder.w1_heavy_impact",
+      "displayName": "Heavy Impact",
+      "description": "Deal 28 base damage in one impact."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_heavy_impact.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 28,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": []
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_break_guard": {
+    "cardId": "w1_break_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "attack"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_break_guard",
+      "artKey": "placeholder.w1_break_guard",
+      "displayName": "Break Guard",
+      "description": "Remove 8 Block (fixed, no critical or Armor), then deal 4 base Health damage."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_break_guard.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "TARGET",
+          "targetResource": "block",
+          "operation": "SUBTRACT",
+          "calculationChannel": "w1_utility",
+          "tags": [
+            "resource_loss"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "w1_utility",
+              "pipelineId": "w1_utility",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_break_guard.1",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": []
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_relay_strike": {
+    "cardId": "w1_relay_strike",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "attack"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_relay_strike",
+      "artKey": "placeholder.w1_relay_strike",
+      "displayName": "Relay Strike",
+      "description": "Deal 14 base damage. On a kill, excess continues to one more enemy without reapplying source bonuses."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_relay_strike.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 14,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": []
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health",
+          "continuation": {
+            "maximumHops": 1,
+            "selector": "LOWEST_RESOURCE_ENEMY",
+            "selectionResourceId": "health",
+            "overflowPipelineId": "w1_overflow",
+            "overflowChannel": "w1_overflow",
+            "overflowStageIds": [
+              "w1_remainder"
+            ],
+            "impactStageIds": [
+              "w1_target"
+            ]
+          }
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  }
+}

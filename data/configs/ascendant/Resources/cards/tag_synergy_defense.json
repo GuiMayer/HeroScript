@@ -71,10 +71,7 @@
               "unitId": "points",
               "channel": "effect_amount",
               "pipelineId": "w1_direct_amount",
-              "stageIds": [
-                "w1_origin",
-                "w1_target"
-              ]
+              "stageIds": []
             }
           ],
           "targetLoss": {
@@ -172,10 +169,7 @@
               "unitId": "points",
               "channel": "effect_amount",
               "pipelineId": "w1_direct_amount",
-              "stageIds": [
-                "w1_origin",
-                "w1_target"
-              ]
+              "stageIds": []
             }
           ],
           "targetLoss": {
