@@ -1,0 +1,347 @@
+{
+  "w1_cinder": {
+    "statusId": "w1_cinder",
+    "displayName": "Cinder",
+    "description": "Captured potency is applied at the owner's EndActivation.",
+    "defaultDuration": 4,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "stacking": "Add",
+    "durationReapply": "Preserve",
+    "payloadReapply": "PreserveLots",
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_dot",
+          "pipelineId": "w1_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_dot"
+      ]
+    },
+    "tags": [
+      "residual",
+      "fire",
+      "damage_payload"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_cinder.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetResource": "health",
+            "operation": "ADD",
+            "tags": [
+              "damage",
+              "residual"
+            ],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "w1_dot",
+                "pipelineId": "w1_dot",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "w1_rot": {
+    "statusId": "w1_rot",
+    "displayName": "Volatile rot",
+    "description": "Captured potency is applied at the owner's EndActivation.",
+    "defaultDuration": 1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "stacking": "Add",
+    "durationReapply": "Preserve",
+    "payloadReapply": "PreserveLots",
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_dot",
+          "pipelineId": "w1_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_dot"
+      ]
+    },
+    "tags": [
+      "residual",
+      "poison",
+      "damage_payload"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_rot.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetResource": "health",
+            "operation": "ADD",
+            "tags": [
+              "damage",
+              "residual"
+            ],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "w1_dot",
+                "pipelineId": "w1_dot",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "w1_lingering_aegis": {
+    "statusId": "w1_lingering_aegis",
+    "displayName": "Lingering aegis",
+    "description": "Captured potency is applied at the owner's StartActivation.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "StartActivation",
+    "maxStacks": 99,
+    "stacking": "Add",
+    "durationReapply": "Preserve",
+    "payloadReapply": "PreserveLots",
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "effect_amount",
+          "pipelineId": "w1_defense",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_guard"
+      ]
+    },
+    "tags": [
+      "residual",
+      "block_payload"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_lingering_aegis.tick",
+        "boundary": "StartActivation",
+        "effects": [
+          {
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "tags": [
+              "defense",
+              "block"
+            ],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "w1_defense",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "w1_mending_echo": {
+    "statusId": "w1_mending_echo",
+    "displayName": "Mending echo",
+    "description": "Captured potency is applied at the owner's StartActivation.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "StartActivation",
+    "maxStacks": 99,
+    "stacking": "Add",
+    "durationReapply": "Preserve",
+    "payloadReapply": "PreserveLots",
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_utility",
+          "pipelineId": "w1_utility",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_mending"
+      ]
+    },
+    "tags": [
+      "residual",
+      "healing_payload"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_mending_echo.tick",
+        "boundary": "StartActivation",
+        "effects": [
+          {
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "health",
+            "operation": "ADD",
+            "tags": [
+              "recovery"
+            ],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "w1_utility",
+                "pipelineId": "w1_utility",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "w1_delayed_recovery": {
+    "statusId": "w1_delayed_recovery",
+    "displayName": "Delayed recovery",
+    "description": "Captured potency is applied at the owner's StartActivation.",
+    "defaultDuration": 1,
+    "durationTickBoundary": "StartActivation",
+    "maxStacks": 99,
+    "stacking": "Add",
+    "durationReapply": "Preserve",
+    "payloadReapply": "PreserveLots",
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_utility",
+          "pipelineId": "w1_utility",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_mending"
+      ]
+    },
+    "tags": [
+      "residual",
+      "healing_payload"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_delayed_recovery.tick",
+        "boundary": "StartActivation",
+        "effects": [
+          {
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "health",
+            "operation": "ADD",
+            "tags": [
+              "recovery"
+            ],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "w1_utility",
+                "pipelineId": "w1_utility",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,768 @@
+{
+  "w1_cinder_brand": {
+    "cardId": "w1_cinder_brand",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "fire",
+      "residual"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_cinder_brand",
+      "artKey": "placeholder.w1_cinder_brand",
+      "displayName": "Cinder Brand",
+      "description": "Apply 3 captured fire potency for 4 enemy end activations."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_cinder_brand.0",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_cinder",
+          "statusStacks": 1,
+          "statusDuration": 4,
+          "tags": [
+            "status",
+            "residual",
+            "fire"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 3
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_volatile_rot": {
+    "cardId": "w1_volatile_rot",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "poison",
+      "residual"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_volatile_rot",
+      "artKey": "placeholder.w1_volatile_rot",
+      "displayName": "Volatile Rot",
+      "description": "Apply 6 captured poison potency for 1 enemy end activation."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_volatile_rot.0",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_rot",
+          "statusStacks": 1,
+          "statusDuration": 1,
+          "tags": [
+            "status",
+            "residual",
+            "poison"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 6
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_caustic_guard": {
+    "cardId": "w1_caustic_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "defense",
+      "poison",
+      "residual"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_caustic_guard",
+      "artKey": "placeholder.w1_caustic_guard",
+      "displayName": "Caustic Guard",
+      "description": "Gain 3 Block. Apply 2 captured poison potency for 2 enemy end activations."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_caustic_guard.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "calculationChannel": "effect_amount",
+          "tags": [
+            "defense",
+            "block"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 3,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_defense",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_caustic_guard.1",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_rot",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "tags": [
+            "status",
+            "residual",
+            "poison"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_lingering_aegis": {
+    "cardId": "w1_lingering_aegis",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "defense",
+      "residual"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_lingering_aegis",
+      "artKey": "placeholder.w1_lingering_aegis",
+      "displayName": "Lingering Aegis",
+      "description": "Gain captured 3 Block at the start of your next 2 activations."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_lingering_aegis.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_lingering_aegis",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "tags": [
+            "status",
+            "residual",
+            "defense",
+            "block"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 3
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_vital_surge": {
+    "cardId": "w1_vital_surge",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "recovery",
+      "max_health_scaling"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_vital_surge",
+      "artKey": "placeholder.w1_vital_surge",
+      "displayName": "Vital Surge",
+      "description": "Recover 10% of maximum Health. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_vital_surge.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "health",
+          "operation": "ADD",
+          "calculationChannel": "w1_utility",
+          "tags": [
+            "recovery",
+            "max_health_scaling"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 0,
+              "unitId": "points",
+              "channel": "w1_utility",
+              "pipelineId": "w1_utility",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_mending_echo": {
+    "cardId": "w1_mending_echo",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "recovery",
+      "residual"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_mending_echo",
+      "artKey": "placeholder.w1_mending_echo",
+      "displayName": "Mending Echo",
+      "description": "Recover captured 2 Health at the start of your next 3 activations. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_mending_echo.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_mending_echo",
+          "statusStacks": 1,
+          "statusDuration": 3,
+          "tags": [
+            "status",
+            "residual",
+            "recovery"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_release_mending": {
+    "cardId": "w1_release_mending",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "recovery",
+      "condensation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_release_mending",
+      "artKey": "placeholder.w1_release_mending",
+      "displayName": "Release Mending",
+      "description": "Consume all compatible healing payloads for one recovery equal to their potency, not their remaining ticks."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_release_mending.0",
+          "type": "CONDENSE_STACKS",
+          "target": "SELF",
+          "condensationRecipeId": "w1_release_mending"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_delayed_recovery": {
+    "cardId": "w1_delayed_recovery",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "recovery",
+      "residual"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_delayed_recovery",
+      "artKey": "placeholder.w1_delayed_recovery",
+      "displayName": "Delayed Recovery",
+      "description": "Recover captured 8 Health at the start of your next activation, once. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_delayed_recovery.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_delayed_recovery",
+          "statusStacks": 1,
+          "statusDuration": 1,
+          "tags": [
+            "status",
+            "residual",
+            "recovery"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 8
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "w1_release_mending": {
+    "recipeId": "w1_release_mending",
+    "ownerBinding": "SourceEntity",
+    "selectionTiming": "ActionStart",
+    "evaluationTiming": "AfterConsumption",
+    "emptySelection": "Skip",
+    "selection": {
+      "stores": [
+        "Status"
+      ],
+      "requiredTags": [
+        "healing_payload"
+      ]
+    },
+    "aggregates": [
+      {
+        "parameterId": "potency",
+        "kind": "Payload",
+        "payloadParameterId": "potency"
+      }
+    ],
+    "effects": [
+      {
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "health",
+        "operation": "ADD",
+        "calculationChannel": "w1_utility",
+        "tags": [
+          "recovery"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "inputQuantityId": "condensation.potency",
+            "unitId": "points",
+            "channel": "w1_utility",
+            "pipelineId": "w1_utility",
+            "stageIds": [
+              "w1_target"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -38,7 +38,12 @@ inscriptions and relics retain their separate authorities.
 4. Defense: complete. Eight execution cases cover Block 0/8/20, missing Health,
    full-value area coverage followed by one Block consumption, and utility healing.
    Defense uses a points-typed pipeline; old scalar definitions remain unchanged.
-5. Residuals and recovery: pending.
+5. Residuals and recovery: complete. Eight execution cases verify owner-only
+   boundaries, trigger-before-expiry, no immediate/double tick, novel offensive
+   status selection, and healing condensation based on potency rather than ticks.
+   Reapplication adds captured lots and preserves the existing duration window;
+   no per-lot duration is implied. Energy, damage, Block and healing all use
+   the same payload processor with typed selectors and opt-in permissions.
 6. Circulation: pending.
 7. Offensive geometries: pending.
 8. Modifier compatibility: pending.
