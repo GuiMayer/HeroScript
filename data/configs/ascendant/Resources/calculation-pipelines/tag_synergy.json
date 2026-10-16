@@ -60,5 +60,189 @@
         "missingResource": "Error"
       }
     ]
+  },
+  "w1_defense": {
+    "pipelineId": "w1_defense",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_amount.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "attack"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "spell"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.elemental_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "elemental_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "elemental"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "defense",
+          "block"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "ignore_armor"
+        ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_amount.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      },
+      {
+        "bindingId": "w1_defense.missing_maximum",
+        "scope": "Actor",
+        "resourceId": "health",
+        "field": "Maximum",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.2,
+        "requiredTags": [
+          "defense",
+          "missing_health_scaling"
+        ],
+        "missingResource": "Error"
+      },
+      {
+        "bindingId": "w1_defense.missing_current",
+        "scope": "Actor",
+        "resourceId": "health",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": -0.2,
+        "requiredTags": [
+          "defense",
+          "missing_health_scaling"
+        ],
+        "missingResource": "Error"
+      }
+    ]
   }
 }

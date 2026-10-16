@@ -35,7 +35,9 @@ inscriptions and relics retain their separate authorities.
    nonlethal life payment (including fractional Health), immutable failure and
    one-shot reserve consumption. Both generators and the reserve producer exile;
    release cannot manufacture potency when empty.
-4. Defense: pending.
+4. Defense: complete. Eight execution cases cover Block 0/8/20, missing Health,
+   full-value area coverage followed by one Block consumption, and utility healing.
+   Defense uses a points-typed pipeline; old scalar definitions remain unchanged.
 5. Residuals and recovery: pending.
 6. Circulation: pending.
 7. Offensive geometries: pending.

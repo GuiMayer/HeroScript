@@ -21,7 +21,8 @@
       "w1_block_attribute",
       "w1_dot_attribute",
       "w1_attack_attribute",
-      "w1_utility"
+      "w1_utility",
+      "w1_defense"
     ],
     "defaultCalculationPipelines": {
       "effect_amount": "w1_amount",

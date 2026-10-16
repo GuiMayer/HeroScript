@@ -1,0 +1,430 @@
+{
+  "w1_guarded_strike": {
+    "cardId": "w1_guarded_strike",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "attack",
+      "block_scaling"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_guarded_strike",
+      "artKey": "placeholder.w1_guarded_strike",
+      "displayName": "Guarded Strike",
+      "description": "Deal 4 + 50% of current Block as damage. Keep your Block."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_guarded_strike.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "tags": [
+            "damage",
+            "attack",
+            "block_scaling"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ],
+          "targetLoss": {
+            "policy": "Skip"
+          }
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_guard_wave": {
+    "cardId": "w1_guard_wave",
+    "rarity": "Rare",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 55
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "attack",
+      "area",
+      "block_scaling",
+      "conversion"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_guard_wave",
+      "artKey": "placeholder.w1_guard_wave",
+      "displayName": "Guard Wave",
+      "description": "Deal 50% of current Block to each enemy, then consume your Block once."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_guard_wave.0",
+          "type": "DAMAGE",
+          "target": "ALL_ENEMIES",
+          "targetResource": "health",
+          "tags": [
+            "damage",
+            "attack",
+            "block_scaling"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 0,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_direct_amount",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ],
+          "targetLoss": {
+            "policy": "Skip"
+          }
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_guard_wave.1",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "SET",
+          "calculationChannel": "w1_utility",
+          "tags": [
+            "conversion"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 0,
+              "unitId": "points",
+              "channel": "w1_utility",
+              "pipelineId": "w1_utility",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ],
+          "executionScope": "OncePerAction"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "ALL_ENEMIES",
+        "minimumTargets": 0,
+        "maximumTargets": 0
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_desperate_guard": {
+    "cardId": "w1_desperate_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "defense",
+      "missing_health_scaling"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_desperate_guard",
+      "artKey": "placeholder.w1_desperate_guard",
+      "displayName": "Desperate Guard",
+      "description": "Gain 4 Block + 20% of missing Health."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_desperate_guard.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "tags": [
+            "defense",
+            "block",
+            "missing_health_scaling"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_defense",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_shelter": {
+    "cardId": "w1_shelter",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "tag_synergy",
+      "skill",
+      "recovery",
+      "block_scaling"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_shelter",
+      "artKey": "placeholder.w1_shelter",
+      "displayName": "Shelter",
+      "description": "Recover 2 Health + 10% of current Block. Exile."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_shelter.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "health",
+          "operation": "ADD",
+          "calculationChannel": "w1_utility",
+          "tags": [
+            "recovery",
+            "block_scaling"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 2,
+              "unitId": "points",
+              "channel": "w1_utility",
+              "pipelineId": "w1_utility",
+              "stageIds": [
+                "w1_origin",
+                "w1_target"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  }
+}
