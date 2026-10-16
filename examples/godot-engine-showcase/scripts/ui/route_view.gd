@@ -39,34 +39,47 @@ func setup(route: Array) -> void:
 			buttons[id] = button
 		button.set_meta("travel", node.travel.duplicate(true))
 		button.set_meta("node_id", id)
-		button.position = _geometry.rects[id].position
-		button.size = _geometry.rects[id].size
-		button.text = str(node.name) + "\n" + (visual_context.translator.text("YOU ARE HERE") if node.current else (visual_context.translator.text("COMPLETED") if node.resolved else visual_context.translator.content_name(str(node.kind))))
-		if str(node.get("risk", "")) == "High": button.text += " · " + visual_context.translator.text("High risk")
+		button.position = _geometry.rects[id].position + Vector2((layout_profile.node_size.x - layout_profile.hit_size.x) * .5, 0)
+		button.size = layout_profile.hit_size
+		button.text = ""
+		var caption: Label = button.get_node_or_null("Caption")
+		if caption == null:
+			caption = Label.new(); caption.name = "Caption"; caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			caption.clip_text = true; caption.add_theme_font_size_override("font_size", 13)
+			button.add_child(caption)
+		caption.position = Vector2((layout_profile.hit_size.x - layout_profile.node_size.x) * .5, layout_profile.hit_size.y + 2)
+		caption.size = Vector2(layout_profile.node_size.x, 38)
+		var state_label := "● " if node.current else ("✓ " if node.resolved else ("◇ " if not node.travel.is_empty() else ""))
+		caption.text = state_label + str(node.name)
+		if str(node.get("risk", "")) == "High": caption.text += "\n! " + visual_context.translator.text("High risk")
 		button.add_theme_font_size_override("font_size", 14)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		button.clip_text = true
 		button.disabled = false # Published visibility permits reading, not travel.
 		button.toggle_mode = true
 		button.set_pressed_no_signal(id == _selected)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		var art = button.get_meta("map_art") if button.has_meta("map_art") else null
 		if not is_instance_valid(art):
 			art = preload("res://scripts/ui/art_slot.gd").new(visual_context)
 			button.add_child(art); button.set_meta("map_art", art)
-			art.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-			art.offset_left = 8; art.offset_right = 36; art.offset_top = -14; art.offset_bottom = 14
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			art.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			art.offset_left = -layout_profile.symbol_size * .5; art.offset_right = layout_profile.symbol_size * .5
+			art.offset_top = -layout_profile.symbol_size * .5; art.offset_bottom = layout_profile.symbol_size * .5
 		art.rebind_context(visual_context); art.setup("activities", str(node.kind))
 		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 			var fill := visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked")
 			var border := visual_context.styles.GOLD if node.current or not node.travel.is_empty() else visual_context.styles.color("stroke.route_locked")
 			var box := visual_context.styles.box(fill, visual_context.profile.corner_radius, border, 2 if node.current else 1)
-			box.content_margin_left = 44
+			box.content_margin_left = 0; box.content_margin_right = 0
 			if state in ["hover", "focus", "pressed"]: box.border_color = visual_context.styles.color("text.primary"); box.border_width_left = 2
 			button.add_theme_stylebox_override(state, box)
 		button.add_theme_color_override("font_disabled_color", visual_context.styles.GOLD if node.current else visual_context.styles.MUTED)
 		button.add_theme_stylebox_override("disabled", visual_context.styles.box(visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked"), 9, visual_context.styles.GOLD if node.current else visual_context.styles.color("stroke.route_locked"), 1))
-		button.tooltip_text = str(node.name) + "\n" + str(node.get("description", ""))
+		button.tooltip_text = str(node.name) + "\n" + visual_context.translator.content_name(str(node.kind)) + "\n" + str(node.get("description", ""))
 		var text_role := "accent.warm" if str(node.get("risk", "")) == "High" else "text.primary"
 		button.set_meta("text_role", text_role)
 		button.add_theme_color_override("font_color", visual_context.styles.color(text_role))
@@ -97,7 +110,6 @@ func _draw() -> void:
 		draw_line(end, end + wing.rotated(PI * .5), color, 2, true)
 	for node in nodes:
 		if not markers.has(str(node.get("id", ""))): continue
-		var point: Vector2 = markers[str(node.get("id", ""))]
-		draw_circle(point, 7, visual_context.styles.GOLD if node.current else (visual_context.styles.TEAL if node.resolved else visual_context.styles.color("stroke.route")))
+		var point: Vector2 = markers[str(node.get("id", ""))] - Vector2(0, 20)
 		if not _highlight_kind.is_empty() and str(node.get("kind", "")) == _highlight_kind:
 			draw_arc(point, 11, 0, TAU, 24, visual_context.styles.color("text.primary"), 2, true)

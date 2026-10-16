@@ -28,5 +28,14 @@ func _run() -> void:
 	for i in 100: graph.append({"id": "n%03d" % i, "next": ["n%03d" % (i + 1)] if i < 99 else []})
 	var large: Dictionary = layout.calculate(graph, profile)
 	check(large.rects.size() == 100 and large.edges.size() == 99 and large.bounds.y > 6000, "large custom maps retain all readable nodes and directed edges")
+	var branches: Array = [{"id":"root", "next":["a","b","c","d","e","f"]}]
+	for id in ["a","b","c","d","e","f"]: branches.append({"id":id, "next":[]})
+	var six: Dictionary = layout.calculate(branches, profile)
+	check(six.bounds.x < 900 and is_equal_approx(six.rects.root.get_center().x, six.bounds.x * .5), "six branches fit 1280 viewport and singleton layer is centered")
+	var overlaps := false
+	for a in six.rects:
+		for b in six.rects:
+			if a != b and six.rects[a].intersects(six.rects[b]): overlaps = true
+	check(not overlaps, "compact labels and hitboxes never overlap")
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

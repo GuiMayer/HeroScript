@@ -19,10 +19,10 @@ func _run() -> void:
 	route.setup(nodes); await settle()
 	for resolution in [Vector2i(1280, 720), Vector2i(2560, 1080)]:
 		root.size = resolution; await settle()
-		check(scroll.get_h_scroll_bar().visible and route.buttons.b.size.x >= 230, "wide graph scrolls without shrinking nodes at %s" % resolution)
+		check(not scroll.get_h_scroll_bar().visible and route.buttons.b.size.x >= 64, "compact diamond fits without shrinking hitboxes at %s" % resolution)
 		route.buttons.b.grab_focus(); await settle()
-		check(scroll.scroll_horizontal > 0 and scroll.get_global_rect().intersects(route.buttons.b.get_global_rect()), "focus reveals an offscreen published choice at %s" % resolution)
-	check(not route.buttons.a.disabled and not route.buttons.b.disabled and route.buttons.a.get_meta("travel").is_empty() and route.buttons.b.text.contains("High risk"), "all published nodes are readable but only advertised choices carry travel authority")
+		check(scroll.get_global_rect().intersects(route.buttons.b.get_global_rect()), "published choice stays visible at %s" % resolution)
+	check(not route.buttons.a.disabled and not route.buttons.b.disabled and route.buttons.a.get_meta("travel").is_empty() and route.buttons.b.get_node("Caption").text.contains("High risk"), "all published nodes are readable but only advertised choices carry travel authority")
 	var positions: Dictionary = route.markers.duplicate(true)
 	var retained: Button = route.buttons.b
 	nodes[0].current = true; nodes.reverse(); route.setup(nodes); await settle()

@@ -59,22 +59,40 @@ func calculate(nodes: Array, profile: Resource) -> Dictionary:
 	var rects: Dictionary = {}
 	var markers: Dictionary = {}
 	var bounds := Vector2.ZERO
+	# Bounded barycentric sweeps. Stable ID tie-break makes input order irrelevant.
+	var row_ids: Array = rows.keys(); row_ids.sort()
+	for sweep in 4:
+		var positions: Dictionary = {}
+		for layer in row_ids:
+			for lane in rows[layer].size(): positions[rows[layer][lane]] = float(lane) - (rows[layer].size() - 1) * .5
+		for layer in row_ids:
+			var scores: Dictionary = {}
+			for id in rows[layer]:
+				var adjacent: Array = []
+				for other in ids:
+					if (sweep % 2 == 0 and id in graph[other] and layers[other] < layer) or (sweep % 2 == 1 and other in graph[id] and layers[other] > layer): adjacent.append(float(positions[other]))
+				var total := 0.0
+				for value in adjacent: total += value
+				scores[id] = total / adjacent.size() if not adjacent.is_empty() else float(positions[id])
+			rows[layer].sort_custom(func(a, b): return str(a) < str(b) if is_equal_approx(scores[a], scores[b]) else scores[a] < scores[b])
+	var widest := 1
+	for layer in rows: widest = maxi(widest, rows[layer].size())
 	for layer in rows:
 		var row: Array = rows[layer]
 		for lane in row.size():
 			var id: String = row[lane]
-			var position: Vector2 = profile.padding + Vector2(lane * (profile.node_size.x + profile.lane_gap + 28), layer * (profile.node_size.y + profile.layer_gap))
-			var rect := Rect2(position + Vector2(22, 0), profile.node_size)
+			var position: Vector2 = profile.padding + Vector2((lane + (widest - row.size()) * .5) * (profile.node_size.x + profile.lane_gap), layer * (profile.node_size.y + profile.layer_gap))
+			var rect := Rect2(position, profile.node_size)
 			rects[id] = rect
-			markers[id] = position + Vector2(0, profile.node_size.y * .5)
+			markers[id] = rect.get_center()
 			bounds.x = maxf(bounds.x, rect.end.x + profile.padding.x)
 			bounds.y = maxf(bounds.y, rect.end.y + profile.padding.y)
 	var edges: Array = []
 	for id in ids:
 		for target in graph[id]:
 			if not markers.has(target): continue
-			var origin: Vector2 = markers[id]
-			var destination: Vector2 = markers[target]
+			var origin: Vector2 = rects[id].position + Vector2(profile.node_size.x * .5, profile.node_size.y)
+			var destination: Vector2 = rects[target].position + Vector2(profile.node_size.x * .5, 0)
 			var returning: bool = layers[target] <= layers[id]
 			var path: PackedVector2Array
 			if id == target:
@@ -82,7 +100,7 @@ func calculate(nodes: Array, profile: Resource) -> Dictionary:
 			elif returning:
 				path = PackedVector2Array([origin, origin + Vector2(-14, -44), destination + Vector2(-14, -44), destination])
 			else:
-				path = PackedVector2Array([origin, origin + Vector2(-14, 12), destination + Vector2(-14, -12), destination])
+				path = PackedVector2Array([origin, origin + Vector2(0, profile.layer_gap * .5), destination - Vector2(0, profile.layer_gap * .5), destination])
 			edges.append({"from": id, "to": target, "return": returning, "path": path})
 	_key = key
 	_result = {"rects": rects, "markers": markers, "edges": edges, "bounds": bounds, "cyclic": cyclic, "diagnostics": diagnostics}
