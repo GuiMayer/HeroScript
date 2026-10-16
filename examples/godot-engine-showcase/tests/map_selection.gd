@@ -37,6 +37,19 @@ func _run() -> void:
 	check(view.camera.dragged and target == Vector2(20, 20), "camera pan is independent from gameplay and uses a threshold")
 	view.camera.cancel()
 	check(not view.camera.pressed, "camera releases its gesture")
+	view._overview = false; view._zoom = 1; view._update_extent(); view._center_node("b")
+	for _i in 8: await process_frame
+	var original: String = view._selected
+	var point: Vector2 = view.route.buttons.b.get_global_rect().get_center()
+	var down := InputEventMouseButton.new(); down.button_index = MOUSE_BUTTON_LEFT; down.pressed = true; down.position = point; down.global_position = point
+	root.push_input(down, true); await process_frame
+	var move := InputEventMouseMotion.new(); move.position = point + Vector2(40, 20); move.global_position = move.position; move.button_mask = MOUSE_BUTTON_MASK_LEFT
+	root.push_input(move, true); await process_frame
+	var up := InputEventMouseButton.new(); up.button_index = MOUSE_BUTTON_LEFT; up.position = move.position; up.global_position = move.position
+	root.push_input(up, true)
+	for _i in 4: await process_frame
+	check(intents.size() == before and view._selected == original and not view.camera.pressed, "real pointer drag starting on a node suppresses activation and releases gesture")
+	check(not view.route.buttons.b.focus_neighbor_left.is_empty() and not view.route.buttons.b.focus_neighbor_bottom.is_empty(), "map defines explicit directional focus neighbors")
 	run.currentNodeId = "c"; run.map.nodes[2].activity.type = "Dialogue"
 	run["dialogues"] = [{"activityNodeId": "a", "completed": false}]
 	presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [], {}, context.translator)

@@ -6,6 +6,9 @@ var layout_profile: Resource = preload("res://scripts/ui/styles/map_layout_profi
 var _layout = preload("res://scripts/presentation/map_layout.gd").new()
 var _geometry: Dictionary = {}
 signal inspection_requested(node_id: String)
+signal focus_requested(node_id: String)
+signal hover_changed(node_id: String)
+var suppress_activation := false
 var _selected := ""
 var _highlight_kind := ""
 var nodes: Array = []
@@ -33,8 +36,12 @@ func setup(route: Array) -> void:
 		if button == null:
 			button = Button.new()
 			button.name = "Stop_" + id.validate_node_name()
-			button.pressed.connect(func(): inspection_requested.emit(str(button.get_meta("node_id", ""))))
-			button.focus_entered.connect(func(): inspection_requested.emit(str(button.get_meta("node_id", ""))))
+			button.pressed.connect(func():
+				if not suppress_activation: inspection_requested.emit(str(button.get_meta("node_id", ""))))
+			button.focus_entered.connect(func():
+				var target := str(button.get_meta("node_id", ""))
+				focus_requested.emit(target))
+			button.mouse_entered.connect(func(): hover_changed.emit(str(button.get_meta("node_id", "")))); button.mouse_exited.connect(func(): hover_changed.emit(""))
 			add_child(button)
 			buttons[id] = button
 		button.set_meta("travel", node.travel.duplicate(true))
@@ -86,7 +93,23 @@ func setup(route: Array) -> void:
 	for id in buttons.keys():
 		if id not in live:
 			remove_child(buttons[id]); buttons[id].queue_free(); buttons.erase(id)
+	_configure_neighbors()
 	queue_redraw()
+
+func _configure_neighbors() -> void:
+	for id in buttons:
+		var button: Button = buttons[id]
+		for direction in [["focus_neighbor_left", Vector2.LEFT], ["focus_neighbor_right", Vector2.RIGHT], ["focus_neighbor_top", Vector2.UP], ["focus_neighbor_bottom", Vector2.DOWN]]:
+			var best: String = id; var score := INF
+			for other in buttons:
+				if id == other: continue
+				var delta: Vector2 = _geometry.rects[other].get_center() - _geometry.rects[id].get_center()
+				var forward: float = delta.dot(direction[1])
+				if forward <= 1: continue
+				var sideways: float = absf(delta.cross(direction[1]))
+				var value := forward + sideways * 3.0
+				if value < score or (is_equal_approx(value, score) and str(other) < best): best = str(other); score = value
+			button.set(direction[0], button.get_path_to(buttons[best]))
 
 func set_selection(id: String) -> void:
 	_selected = id

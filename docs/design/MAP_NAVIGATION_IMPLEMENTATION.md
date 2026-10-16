@@ -15,3 +15,7 @@ Símbolos de 42, hitboxes de 72 × 64 e células de 112 × 104. Seis ramos ocupa
 ## Etapa 3: câmera
 
 Modo decisão enquadra o conjunto publicado mais a posição atual, sem selecionar a primeira alternativa. Ato inteiro usa escala real e oculta rótulos ilegíveis; seus símbolos não são botões de viagem: clicar escolhe uma região e retorna ao detalhe. Estado local v2 guarda âncora, offset, escala, seleção e filtro. Estados antigos/âncoras ausentes voltam ao contexto atual, não ao pixel zero. Resize reaplica o contexto; refresh comum não enquadra novamente.
+
+## Etapa 4: gestos e dispositivos
+
+Coordenador intercepta drag iniciado também sobre nós. Movimento acima de sete unidades suprime ativação na soltura; botão central também funciona. Pause, perda de foco e subjanela modal cancelam o gesto. Vizinhos direcionais explícitos com desempate estável; foco fora da viewport é revelado sem alterar a escala. Setas/D-pad e Tab usam as ações UI já reservadas; confirmação utiliza `confirm_action`, existente e remapeável. Não foram criados atalhos paralelos. Hover tem estado próprio e não muda a seleção fixada.

@@ -90,6 +90,10 @@ func _build() -> void:
 	_base_layout = route.layout_profile.duplicate(true)
 	route.mouse_filter = Control.MOUSE_FILTER_PASS
 	route.inspection_requested.connect(_inspect)
+	route.focus_requested.connect(func(id):
+		navigation.focused = id
+		if not camera.pressed: _inspect(id); _reveal_node(id))
+	route.hover_changed.connect(func(id): navigation.hovered = id)
 	_canvas = Control.new(); _canvas.name = "MapCanvas"; _canvas.mouse_filter = Control.MOUSE_FILTER_PASS
 	_canvas.add_child(route); _scroll.add_child(_canvas); _body.add_child(_scroll)
 	var inspector_scroll := ScrollContainer.new(); inspector_scroll.custom_minimum_size.x = 300
@@ -213,16 +217,43 @@ func _pan_input(event: InputEvent) -> void:
 			if value < distance: nearest = str(id); distance = value
 		if not nearest.is_empty(): _center_node(nearest)
 		_scroll.accept_event(); return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed: camera.begin(event.global_position, Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical))
-		else: camera.cancel()
-	elif event is InputEventMouseMotion and camera.pressed:
-		var target := camera.motion(event.global_position)
-		if camera.dragged:
-			_scroll.scroll_horizontal = int(target.x); _scroll.scroll_vertical = int(target.y)
-			_scroll.accept_event()
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT: camera.cancel()
+	if not is_instance_valid(_scroll): return
+	if get_tree().paused or get_tree().root.find_children("*", "Window", true, false).any(func(window): return window.visible):
+		cancel_gesture(); return
+	if event.is_action_pressed("pause_game"):
+		cancel_gesture(); return
+	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
+		if event.pressed and _scroll.get_global_rect().has_point(event.global_position) and not _overview and not _pointer_over_inspector(event.global_position):
+			camera.begin(event.global_position, Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical))
+		elif not event.pressed and camera.pressed:
+			if camera.dragged: get_viewport().set_input_as_handled()
+			cancel_gesture.call_deferred()
+	elif event is InputEventMouseMotion and camera.pressed:
+		var target: Vector2 = camera.motion(event.global_position)
+		if camera.dragged:
+			route.suppress_activation = true
+			_scroll.scroll_horizontal = int(target.x); _scroll.scroll_vertical = int(target.y)
+			_reading = capture_local_state(); get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("confirm_action"):
+		var focus := get_viewport().gui_get_focus_owner()
+		if focus in route.buttons.values():
+			_inspect(str(focus.get_meta("node_id", ""))); get_viewport().set_input_as_handled()
+
+func _pointer_over_inspector(_point: Vector2) -> bool: return false
+
+func cancel_gesture() -> void:
+	camera.cancel()
+	if is_instance_valid(route): route.suppress_activation = false
+
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_PAUSED]: cancel_gesture()
+
+func _reveal_node(id: String) -> void:
+	if not route._geometry.rects.has(id): return
+	var rect: Rect2 = route._geometry.rects[id]
+	var visible_rect := Rect2((Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) - route.position) / _zoom, _scroll.size / _zoom)
+	if not visible_rect.encloses(rect): _place_frame.call_deferred(rect.get_center())
 func _center_node(id: String) -> void:
 	if not route.buttons.has(id): return
 	_overview = false; _zoom = 1; _update_extent()
