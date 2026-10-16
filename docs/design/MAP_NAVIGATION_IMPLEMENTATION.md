@@ -33,3 +33,38 @@ Decisão: não agrupar cadeias. A largura caiu para 800 unidades e o modo ato re
 ## Etapa 7: integração
 
 MapScreen revalida a referência opaca nas escolhas mais recentes antes de enviar; bloqueia estado não sincronizado. Controller, ingresso único de atividades, avanço forçado e barreira de retorno de diálogo permanecem canônicos. Estado de leitura continua segregado por setting/run/branch (limite de 16 contextos). Dispose cancela gesto e invalida respostas tardias. Testes cobrem payload/versão preservados, opção removida, busy, falha, troca de branch e fechamento durante requisição.
+
+## Etapa 8: certificação
+
+Concluída em cópia Godot com dados de usuário isolados e fábrica REST temporária. Nenhum save pessoal foi aberto, migrado ou sobrescrito.
+
+- Core: **1874 testes aprovados**.
+- REST: **PublishedAct_CanTraverseAllNineEncountersServicesAndReplay aprovado**, incluindo campanha completa, replay e retomada persistida (102 s nesta máquina; não é medição de uma ação).
+- Matriz MapView: 4 resoluções × 2 idiomas × 2 escalas de fonte = **16 combinações**; contraste ampliado e movimento reduzido nos contextos de teste. Resoluções: 1280×720, 1920×1080, 2560×1080 e 2560×1440.
+- Validados enquadramento das seis alternativas e posição atual, ausência de pan horizontal nesse caso, 20 refreshes idênticos, restauração no meio do ato, resize e visão geral sem microalvos.
+- Eventos de mouse, teclado e D-pad injetados na viewport validam drag sobre nó, vizinhos explícitos e confirmação separada da seleção. Isso não equivale a playtest físico com controle.
+- Grafos: 50 nós reais, linear de 100 nós, diamante, seis ramos, ciclo/self-loop, desconexão, tipo desconhecido e fallback horizontal com 20 ramos. Nenhum nó ou transação é agrupado/ocultado.
+- Suítes adjacentes: run_graphics_updates, activity_reconciliation, dialogue_contracts, dialogue_coordination, dialogue_reading, activity_ingress e run_graphics_architecture aprovadas (119 checks).
+- Oito scripts de mapa: **153 checks funcionais**; execução renderizada acrescenta oito verificações de gravação de captura. A aprovação é de comportamento automatizado, não de conforto humano.
+- Zero intenções de comando e projeções de entrada inalteradas durante toda a matriz de exploração. O componente não tem transporte nem acesso ao RNG; não se trata de benchmark REST de 30 segundos.
+
+Capturas reproduzíveis em [map-navigation](map-navigation/), usando MapView de produção e topologia real, mas snapshot/opções sintéticos de teste — não uma partida pessoal. Revisão visual resultou em símbolos nativos legíveis para os placeholders; artes não-placeholder do catálogo continuam tendo precedência. Visão geral informa explicitamente que clicar escolhe uma região, sem viajar. Retorno após progresso real enquadra a nova decisão, enquanto reabrir sem progresso preserva a leitura manual.
+
+Reproduzir:
+
+```powershell
+./tools/test-godot-ui.ps1 -Tests @('map_navigation','map_camera','map_geometry','map_graph_view','map_selection','map_world_one','map_flow','map_certification')
+./tools/test-godot-ui.ps1 -Tests @('map_geometry') -VisualTest map_certification -VisualOutputDirectory 'docs/design/map-navigation'
+dotnet test tests/Core.Tests --no-restore --verbosity quiet
+dotnet test tests/API.Tests --no-restore --filter 'FullyQualifiedName~AscendantWorldOneJourneyTests.PublishedAct_CanTraverseAllNineEncountersServicesAndReplay' --verbosity quiet
+```
+
+### Limites e aprovação humana
+
+Pendente: avaliar conforto com mouse/controle físicos, localizar posição em até 2 s e comparar caminhos em até 5 s, especialmente em telas reais pequenas. Não houve sessão humana nem medição desses tempos. Capturas/casos de interface não substituem esse aceite. Não foi necessário alterar engine, geração, conteúdo, balanceamento, persistência, journal, RNG ou contratos REST.
+
+## Uso
+
+Clique num símbolo ou numa alternativa da faixa para selecionar; confirme **Viajar** nos detalhes. Arraste com botão esquerdo ou central para explorar, use a roda para rolar. **Centralizar posição**, **Próximas escolhas** e **Visão geral** não executam ações. Na visão geral, clique numa região para voltar ao detalhe. A aba lateral recolhe os detalhes sem reservar coluna vazia.
+
+Setas/D-pad percorrem nós, Tab sai da região do grafo para ações/detalhes, confirmar seleciona e a ação Viajar precisa ser confirmada separadamente. Cancelar no controle recolhe detalhes e devolve foco ao nó; o atalho configurado de pausa continua abrindo pausa. O primeiro uso direcional sem foco inicia na posição atual; mouse não recebe foco fabricado na abertura.

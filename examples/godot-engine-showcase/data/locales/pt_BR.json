@@ -734,6 +734,7 @@
   "Cannot crit": "Não pode critar",
   "Context": "Contexto",
   "%s guaranteed tiers · %s%% chance of the next tier": "%s tiers garantidos · %s%% de chance do próximo tier",
+  "Click a region to return to detail. Travel is confirmed in the details panel.": "Clique numa região para voltar aos detalhes. A viagem é confirmada no painel de detalhes.",
   "LOADOUT LAB": "LABORATÓRIO DE INSCRIÇÕES",
   "INSCRIPTION WORKBENCH": "BANCADA DE INSCRIÇÕES",
   "Visual prototype only. No items, attributes or runs are changed.": "Protótipo visual. Nenhum item, atributo ou run é alterado.",

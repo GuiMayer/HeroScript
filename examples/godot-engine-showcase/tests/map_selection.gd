@@ -19,6 +19,9 @@ func _run() -> void:
 	view.route.buttons.b.pressed.emit()
 	check(intents.is_empty(), "selecting an available node still does not travel")
 	var travel: Button = view.find_child("MapAction_ADVANCE_NODE", true, false)
+	view.set_read_only(true)
+	check(travel.disabled, "read-only synchronization disables travel without hiding inspection")
+	view.set_read_only(false)
 	travel.pressed.emit()
 	check(intents.size() == 1 and intents[0][1][0] == presenter.option_reference(choice), "explicit travel emits only the published opaque reference")
 	var state: Dictionary = view.capture_local_state()
@@ -39,12 +42,14 @@ func _run() -> void:
 	check(not view.camera.pressed, "camera releases its gesture")
 	view._overview = false; view._zoom = 1; view._update_extent(); view._center_node("b")
 	for _i in 8: await process_frame
+	view._inspect("a")
 	var original: String = view._selected
 	var point: Vector2 = view.route.buttons.b.get_global_rect().get_center()
 	var down := InputEventMouseButton.new(); down.button_index = MOUSE_BUTTON_LEFT; down.pressed = true; down.position = point; down.global_position = point
 	root.push_input(down, true); await process_frame
 	var move := InputEventMouseMotion.new(); move.position = point + Vector2(40, 20); move.global_position = move.position; move.button_mask = MOUSE_BUTTON_MASK_LEFT
 	root.push_input(move, true); await process_frame
+	check(view.camera.dragged and view.route.suppress_activation, "real pointer motion actually enters drag suppression")
 	var up := InputEventMouseButton.new(); up.button_index = MOUSE_BUTTON_LEFT; up.position = move.position; up.global_position = move.position
 	root.push_input(up, true)
 	for _i in 4: await process_frame
@@ -55,10 +60,29 @@ func _run() -> void:
 	check(not view._inspector_panel.visible and view._inspector_toggle.visible and view._scroll.size.x == width_before, "collapsed floating inspector leaves only a tab and never reserves a column")
 	view.find_child("MapCompare_b", true, false).pressed.emit()
 	check(view._selected == "b" and view._inspector_panel.visible and intents.size() == before, "comparison selects the same published node without executing travel")
+	view.route.buttons.b.grab_focus(); await process_frame
+	var key := InputEventKey.new(); key.keycode = KEY_RIGHT; key.pressed = true
+	root.push_input(key, true); await process_frame
+	check(get_viewport_focus() == view.route.buttons.c, "real keyboard direction follows an explicit map neighbor")
+	var pad := InputEventJoypadButton.new(); pad.button_index = JOY_BUTTON_DPAD_LEFT; pad.pressed = true
+	root.push_input(pad, true); await process_frame
+	check(intents.size() == before and get_viewport_focus() == view.route.buttons.b, "controller exploration follows neighbors without confirming travel")
+	view.route.buttons.b.grab_focus(); await process_frame
+	travel = view.find_child("MapAction_ADVANCE_NODE", true, false); travel.grab_focus(); await process_frame
+	var accept := InputEventAction.new(); accept.action = "ui_accept"; accept.pressed = true
+	root.push_input(accept, true); accept = accept.duplicate(); accept.pressed = false; root.push_input(accept, true)
+	await process_frame
+	check(intents.size() == before + 1 and intents[-1][1][0] == presenter.option_reference(choice), "focused travel confirms the same opaque option through UI accept")
+	var cancel := InputEventAction.new(); cancel.action = "ui_cancel"; cancel.pressed = true; root.push_input(cancel, true); await process_frame
+	check(not view._inspector_open and get_viewport_focus() == view.route.buttons.b, "cancel closes details and returns focus to selected node")
+	get_viewport_focus().release_focus()
+	root.push_input(key, true); await process_frame
+	check(get_viewport_focus() == view.route.buttons.a, "first keyboard navigation focuses the current node without manufacturing mouse focus")
 	run.currentNodeId = "c"; run.map.nodes[2].activity.type = "Dialogue"
 	run["dialogues"] = [{"activityNodeId": "a", "completed": false}]
 	presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [], {}, context.translator)
-	view.apply_projection(run, [], presenter, context); view._inspect("c")
+	view.apply_projection(run, [], presenter, context); view.restore_local_state(state)
+	check(view._selected == "c", "return after authoritative progress selects the new current node instead of obsolete reading state")
 	check(view.find_child("MapResumeDialogue", true, false) == null, "conversation at another stop does not create a resume action here")
 	run.dialogues.append({"activityNodeId": "c", "completed": false})
 	view.apply_projection(run, [], presenter, context)
@@ -66,3 +90,4 @@ func _run() -> void:
 	view.queue_free(); for _i in 8: await process_frame
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)
+func get_viewport_focus() -> Control: return root.gui_get_focus_owner()

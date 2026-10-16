@@ -30,6 +30,13 @@ func _run() -> void:
 	nodes.append(node("return", ["b", "return"], true)); route.setup(nodes); await settle()
 	check(route.buttons.has("return") and route._geometry.edges.any(func(edge): return edge.from == "return" and edge.to == "return"), "hotreloaded self/return edges retain their nodes and drawn paths")
 	check(load("res://tests/layout_inspector.gd").vertical_text_issues(scroll).is_empty(), "graph text remains horizontal and readable")
+	var wide: Array = [node("root", [])]
+	for i in 20:
+		var id := "wide_%02d" % i; wide[0].next.append(id); wide.append(node(id, [], true))
+	route.setup(wide); await settle()
+	check(scroll.get_h_scroll_bar().visible and route.buttons.wide_19.size.x >= 64, "arbitrarily wide mod maps retain pan fallback and comfortable hitboxes")
+	route.buttons.wide_19.grab_focus(); await settle()
+	check(scroll.scroll_horizontal > 0, "focus reveals an offscreen node in a wide custom map")
 	scroll.queue_free(); await settle()
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

@@ -1,6 +1,6 @@
 # Redesign da navegação do mapa
 
-Data: 2026-10-16. Status: plano, sem mudanças na interface ou no gameplay nesta entrega.
+Data: 2026-10-16. Status: oito etapas implementadas; certificação automática e capturas em `docs/design/MAP_NAVIGATION_IMPLEMENTATION.md`. Aprovação humana de conforto permanece pendente. Regras de gameplay não foram alteradas.
 
 ## 1. Direção recomendada
 

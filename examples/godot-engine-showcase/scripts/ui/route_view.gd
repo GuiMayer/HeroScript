@@ -82,6 +82,13 @@ func setup(route: Array) -> void:
 		var symbol_size: float = layout_profile.auxiliary_symbol_size if auxiliary else layout_profile.symbol_size
 		art.offset_left = -symbol_size * .5; art.offset_right = symbol_size * .5
 		art.offset_top = -symbol_size * .5; art.offset_bottom = symbol_size * .5
+		var glyph = button.get_node_or_null("MapGlyph")
+		if glyph == null:
+			glyph = preload("res://scripts/ui/components/map_node_glyph.gd").new(); glyph.name = "MapGlyph"
+			glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE; button.add_child(glyph)
+		glyph.kind = str(node.kind); glyph.ink = visual_context.styles.color("text.primary")
+		glyph.position = (layout_profile.hit_size - Vector2.ONE * symbol_size) * .5; glyph.size = Vector2.ONE * symbol_size
+		glyph.visible = art.is_placeholder; art.visible = not art.is_placeholder; glyph.queue_redraw()
 		button.set_meta("auxiliary", auxiliary)
 		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 			var fill := visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked")
@@ -147,6 +154,5 @@ func _draw() -> void:
 		draw_line(end, end + wing.rotated(PI * .5), color, 2, true)
 	for node in nodes:
 		if not markers.has(str(node.get("id", ""))): continue
-		var point: Vector2 = markers[str(node.get("id", ""))] - Vector2(0, 20)
 		if not _highlight_kind.is_empty() and str(node.get("kind", "")) == _highlight_kind:
 			draw_rect(Rect2(buttons[str(node.id)].position, buttons[str(node.id)].size).grow(5), visual_context.styles.color("text.primary"), false, 3, true)
