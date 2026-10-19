@@ -158,8 +158,11 @@ func _inspect(id: String) -> void:
 	if not str(node.get("risk", "")).is_empty(): _inspector.add_child(visual_context.styles.muted(visual_context.translator.text("Risk: %s") % str(node.risk), 15, 260))
 	if not str(node.get("benefit", "")).is_empty(): _inspector.add_child(visual_context.styles.muted(str(node.benefit), 16, 260))
 	_inspector.add_child(visual_context.styles.muted(str(node.get("description", "")), 17, 260))
-	var status := "YOU ARE HERE" if node.current else ("COMPLETED" if node.resolved else ("Available" if not node.travel.is_empty() else "Unavailable"))
-	_inspector.add_child(visual_context.styles.title(visual_context.translator.text(status), 16))
+	var statuses: Array[String] = []
+	if node.current: statuses.append(visual_context.translator.text("YOU ARE HERE"))
+	if node.resolved: statuses.append(visual_context.translator.text("COMPLETED"))
+	if statuses.is_empty(): statuses.append(visual_context.translator.text("Available" if not node.travel.is_empty() else "Unavailable"))
+	_inspector.add_child(visual_context.styles.title(" · ".join(statuses), 16))
 	if not node.travel.is_empty(): _action(visual_context.translator.text("TRAVEL"), node.travel)
 	if node.current:
 		for choice in _choices:

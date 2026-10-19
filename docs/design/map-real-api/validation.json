@@ -1,0 +1,16 @@
+[
+  {
+    "test": "map_rest_flow",
+    "exit_code": 0,
+    "checks": 343,
+    "elapsed_ms": 32254,
+    "diagnostics": []
+  },
+  {
+    "test": "map_rest_flow",
+    "exit_code": 0,
+    "checks": 343,
+    "elapsed_ms": 27641,
+    "diagnostics": []
+  }
+]
