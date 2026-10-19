@@ -41,6 +41,19 @@ func recover() -> bool:
 	return _alive and ticket == _epoch and accepted
 func forced_advance() -> Dictionary:
 	return preload("res://scripts/application/activity_choices.gd").only_forced_advance(_choices).duplicate(true)
+func only_completion() -> Dictionary:
+	return preload("res://scripts/application/activity_choices.gd").only_completion(_choices)
+func finish_for_map() -> bool:
+	# An explicit return may close a visit only through the engine's published
+	# completion option. Never infer completion from a node kind or UI selection.
+	if not _alive or _session.busy or not _session.synchronized: return false
+	var run: Dictionary = _session.run
+	bind(run, _session.activity_choices())
+	var resolutions: Array = _choices.filter(func(choice):
+		return str(choice.get("type", "")) == "RESOLVE_NODE" and str(choice.get("payload", {}).get("currentNodeId", "")) == str(run.get("currentNodeId", "")))
+	if resolutions.is_empty(): return true # Inspection cannot skip a required choice.
+	if resolutions.size() != 1: return false
+	return await execute(resolutions[0])
 func verify() -> Dictionary:
 	if verifying or not _alive: return {"ok": false}
 	verifying = true

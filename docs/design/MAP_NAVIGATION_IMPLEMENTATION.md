@@ -63,11 +63,35 @@ dotnet test tests/API.Tests --no-restore --filter 'FullyQualifiedName~AscendantW
 
 Pendente: avaliar conforto com mouse/controle físicos, localizar posição em até 2 s e comparar caminhos em até 5 s, especialmente em telas reais pequenas. Não houve sessão humana nem medição desses tempos. Capturas/casos de interface não substituem esse aceite. Não foi necessário alterar engine, geração, conteúdo, balanceamento, persistência, journal, RNG ou contratos REST.
 
-## Uso
+## Uso (interface simplificada)
 
-Clique num símbolo ou numa alternativa da faixa para selecionar; confirme **Viajar** nos detalhes. Arraste com botão esquerdo ou central para explorar, use a roda para rolar. **Centralizar posição**, **Próximas escolhas** e **Visão geral** não executam ações. Na visão geral, clique numa região para voltar ao detalhe. A aba lateral recolhe os detalhes sem reservar coluna vazia.
+Esta revisão substitui as decisões anteriores de toolbar, comparação permanente, overview e restauração de câmera manual. As seções de etapas anteriores descrevem o histórico da implementação.
+
+Clique num símbolo para abrir os detalhes flutuantes e confirme **Viajar** ali. A barra de ferramentas, filtro, faixa duplicada de destinos e atalhos externos foram removidos. Pausa continua disponível pelo controle configurado. Arraste com botão esquerdo ou central e use a roda para explorar; ao abrir/retornar ao mapa ou redimensionar a tela, o nó atual fica no centro. A aba lateral abre/recolhe os detalhes, inicialmente recolhidos.
 
 Setas/D-pad percorrem nós, Tab sai da região do grafo para ações/detalhes, confirmar seleciona e a ação Viajar precisa ser confirmada separadamente. Cancelar no controle recolhe detalhes e devolve foco ao nó; o atalho configurado de pausa continua abrindo pausa. O primeiro uso direcional sem foco inicia na posição atual; mouse não recebe foco fabricado na abertura.
+
+### Painel e enquadramento
+
+O inspector é uma sobreposição: sua visibilidade não participa de tamanho do canvas, área útil, zoom ou offset. Margens simétricas de câmera permitem centralizar inclusive o primeiro e o último nó. O foco inicial do roteador usa o nó atual. Estado de leitura v3 mantém seleção/visibilidade, mas não restaura pan/zoom antigo ao retornar. Não há deslocamento lateral ao abrir/recolher detalhes. Capturas atuais em map-centered/.
+
+### Conclusão ao retornar
+
+Ao sair de uma atividade pelo botão MAP, ActivityController reconsulta as opções atuais e envia somente o RESOLVE_NODE publicado para o currentNodeId. O mapa abre após aceitação. Sem esse comando, a visita continua pendente; não se escolhe carta, compra ou diálogo automaticamente. Falha/estado não sincronizado não gera badge local de conclusão.
+
+Quando uma ação de atividade leva de volta ao mapa (por exemplo, após escolher recompensa), o mesmo fechamento ocorre antes da navegação. Ao restaurar uma run em que a única opção restante é RESOLVE_NODE, MapScreen também executa esse fechamento canônico. Inspeção de loja/recompensa com outras opções ainda pendentes não dispara essa segunda automação.
+
+A engine continua dona da conclusão, efeitos de saída e novo snapshot. Nenhuma definição JSON, regra de gameplay, RNG ou implementação de persistência foi alterada. Os comandos permanecem registrados e reproduzíveis no journal.
+
+### Regressões desta revisão
+
+- Matriz de 16 combinações de resolução/idioma/fonte: posição atual exatamente centralizada, primeiro/último nó centralizáveis, retorno/resize, ausência de toolbar e estabilidade absoluta de extensão e posição ao alternar o painel.
+- activity_map_completion: opção exata, snapshot anterior imutável, escolha obrigatória preservada, outra identidade de nó ignorada, rejeição, indisponibilidade, ambiguidade, clique duplo, resposta tardia e fechamento após recompensa.
+- activity_ingress: conclusão única publicada é automática; recompensa/loja pendente não é pulada pela simples entrada no mapa.
+- A suíte padrão inclui activity_map_completion. Componentes de mapa e roteamento real continuam exercitados sem tocar saves pessoais.
+- Validação final: 430 checks Godot aprovados; 20 testes Core de progressão/transições aprovados; campanha REST publicada com replay e retomada aprovada (92 s). Capturas renderizadas nas quatro resoluções foram revisadas separadamente; não equivalem a playtest humano.
+- map_auto_completion cobre o workflow real do mapa, controlando apenas a saída para não enviar rede: opção única, escolhas pendentes, ticket obsoleto, barreira de diálogo, falta de sincronização e identidade diferente do nó atual.
+- A rolagem permanece ativa com barras ocultas, usando o modo nativo [SCROLL_MODE_SHOW_NEVER](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html).
 
 ## Correção de montagem inicial
 

@@ -16,21 +16,13 @@ var _action_buttons: Array[Button] = []
 var _inspector_key: Array = []
 var _resource_badges: Label
 var camera = preload("res://scripts/ui/map_camera.gd").new()
-var _overview := false
-var _filter: OptionButton
-var _filter_kinds: Array[String] = []
 var navigation = preload("res://scripts/presentation/map_navigation_model.gd").new()
 var _canvas: Control
-var _zoom := 1.0
-var _reading: Dictionary = {}
 var _framed := false
 var _inspector_panel: PanelContainer
 var _inspector_toggle: Button
-var _inspector_open := true
-var _comparison: HFlowContainer
-var _comparison_key: Array = []
+var _inspector_open := false
 var _last_current := ""
-var _overview_hint: Label
 var _resume_button: Button
 func apply_projection(run: Dictionary, choices: Array, presenter, context: ContextType) -> void:
 	mount(context); theme = context.theme
@@ -40,7 +32,6 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 	_last_current = current
 	if not is_instance_valid(route): _build()
 	_header.text = context.translator.content_name(str(run.get("runDefinitionId", "")), str(run.get("metadata", {}).get("displayName", context.translator.text("JOURNEY"))))
-	find_child("MapPauseButton", true, false).text = context.translator.text("PAUSE")
 	var counters: Array[String] = []
 	for resource_id in run.get("resources", {}):
 		counters.append("%s %s" % [context.translator.number(float(run.resources[resource_id].get("current", 0))), context.translator.content_name(str(resource_id))])
@@ -48,7 +39,6 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 		var value: Dictionary = run.characterResources.resources[resource_id]
 		counters.append("%s %s" % [context.translator.number(float(value.get("current", 0))), context.translator.content_name(str(resource_id))])
 	_resource_badges.text = "  ·  ".join(counters)
-	for button in find_children("MapTool_*", "Button", true, false): button.text = context.translator.text(str(button.get_meta("label_key")))
 	var nodes: Array = presenter.route()
 	# Optional published display metadata, never inferred from prose or effects.
 	var metadata: Dictionary = {}
@@ -62,16 +52,14 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 		_model_key = key.duplicate(true)
 		route.visual_context = context
 		route.setup(nodes)
-		_update_filter(nodes)
 		_update_extent()
-	_update_comparison(nodes)
 	if progressed or not nodes.any(func(node): return node.id == _selected): _selected = current
 	if _selected.is_empty() and not nodes.is_empty(): _selected = str(nodes[0].id)
 	_inspect(_selected)
 	context.styles.apply_view_preferences(self)
 	if not _framed or progressed:
 		_framed = true
-		_next_choices.call_deferred()
+		_center_current.call_deferred()
 func _build() -> void:
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new(); add_child(header)
@@ -80,39 +68,16 @@ func _build() -> void:
 	_resume_button = visual_context.styles.button("", 160); _resume_button.name = "MapResumeRun"
 	_resume_button.visible = false
 	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))
-	header.add_child(_resume_button)
 	_resource_badges = visual_context.styles.muted("", 15)
 	_resource_badges.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_resource_badges)
-	var toolbar := HFlowContainer.new(); toolbar.add_theme_constant_override("h_separation", 8)
-	for tool in [["Center current", _center_current], ["Next choices", _next_choices], ["Overview", _toggle_overview], ["Legend", _legend]]:
-		var button := visual_context.styles.button(visual_context.translator.text(tool[0]))
-		button.name = "MapTool_" + str(tool[0]).replace(" ", "")
-		button.set_meta("label_key", tool[0]); button.pressed.connect(tool[1]); toolbar.add_child(button)
-	_filter = OptionButton.new(); _filter.name = "MapTypeFilter"; _filter.custom_minimum_size.y = 44
-	_filter.item_selected.connect(func(index): route.highlight_kind(_filter_kinds[index]))
-	toolbar.add_child(_filter); add_child(toolbar)
-	# Secondary tools stay out of the primary navigation row.
-	_filter.visible = false
-	var legend_button := toolbar.get_node("MapTool_Legend")
-	legend_button.pressed.connect(func(): _filter.visible = not _filter.visible)
-	_comparison = HFlowContainer.new(); _comparison.name = "MapAlternatives"
-	_comparison.add_theme_constant_override("h_separation", 8); add_child(_comparison)
-	var pause := visual_context.styles.button(visual_context.translator.text("PAUSE"), 100)
-	pause.name = "MapPauseButton"
-	pause.pressed.connect(func(): intent_requested.emit("pause", [])); header.add_child(pause)
-	var items := visual_context.styles.button(visual_context.translator.text("MODIFIERS"), 140)
-	items.pressed.connect(func(): intent_requested.emit("modifier_items", [])); header.add_child(items)
-	if _run.get("loadout") is Dictionary:
-		var inscriptions := visual_context.styles.button(visual_context.translator.text("INSCRIPTIONS"), 140)
-		inscriptions.pressed.connect(func(): intent_requested.emit("inscriptions", [])); header.add_child(inscriptions)
 	_body = Control.new(); _body.name = "MapWorkspace"; _body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.custom_minimum_size.y = 180; add_child(_body)
 	_scroll = ScrollContainer.new(); _scroll.name = "MapScroll"
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.follow_focus = false
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER; _scroll.follow_focus = false
 	_scroll.resized.connect(_resize_camera)
-	_scroll.gui_input.connect(_pan_input)
 	route = preload("res://scripts/ui/route_view.gd").new()
 	route.mouse_filter = Control.MOUSE_FILTER_PASS
 	route.inspection_requested.connect(func(id): _inspect(id); _set_inspector_open(true))
@@ -133,24 +98,21 @@ func _build() -> void:
 	inspector_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_inspector = VBoxContainer.new(); _inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_inspector.add_theme_constant_override("separation", 12)
-	inspector_scroll.add_child(_inspector); margin.add_child(inspector_scroll)
+	inspector_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var detail_stack := VBoxContainer.new(); detail_stack.add_theme_constant_override("separation", 12)
+	margin.add_child(detail_stack); detail_stack.add_child(inspector_scroll); detail_stack.add_child(_resume_button)
+	inspector_scroll.add_child(_inspector)
 	_inspector_toggle = visual_context.styles.button("›", 44); _inspector_toggle.name = "MapInspectorToggle"
 	_inspector_toggle.custom_minimum_size = Vector2(44,44)
 	_inspector_toggle.pressed.connect(func(): _set_inspector_open(not _inspector_open))
 	_body.add_child(_inspector_toggle)
-	_overview_hint = visual_context.styles.muted("", 14)
-	_overview_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_overview_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_body.add_child(_overview_hint)
 	_body.resized.connect(_layout_inspector)
 	_layout_inspector.call_deferred()
 
 func _set_inspector_open(value: bool) -> void:
 	if _inspector_open == value: return
-	var state := capture_local_state()
 	_inspector_open = value; _layout_inspector()
-	_restore_camera.call_deferred(state)
-	if not value and route.buttons.has(_selected): route.buttons[_selected].grab_focus()
+	if is_inside_tree() and not value and route.buttons.has(_selected): route.buttons[_selected].grab_focus()
 
 func _layout_inspector() -> void:
 	if not is_instance_valid(_inspector_panel): return
@@ -162,35 +124,13 @@ func _layout_inspector() -> void:
 		_inspector_panel.size = Vector2(maxf(0, _body.size.x - 64), 202)
 	else:
 		_inspector_panel.position = Vector2(maxf(0, _body.size.x - width - 52), 8)
-		_inspector_panel.size = Vector2(width, maxf(120, _body.size.y - 16))
+		_inspector_panel.size = Vector2(width, clampf(_body.size.y - 16, 120, 420))
 	_inspector_toggle.position = Vector2(maxf(0, _body.size.x - 44), 8)
 	_inspector_toggle.size = Vector2(44,44)
 	_update_extent()
 
-func _usable_size() -> Vector2:
-	var viewport := _scroll.size
-	if _inspector_open:
-		if _body.size.x < 1000: viewport.y = maxf(100, viewport.y - 218)
-		else: viewport.x = maxf(200, viewport.x - _inspector_panel.size.x - 64)
-	else: viewport.x = maxf(100, viewport.x - 52)
-	return viewport
+func _usable_size() -> Vector2: return _scroll.size
 
-func _update_comparison(nodes: Array) -> void:
-	var key: Array = [nodes, visual_context.presentation_key()]
-	if key == _comparison_key: return
-	_comparison_key = key.duplicate(true)
-	for child in _comparison.get_children(): _comparison.remove_child(child); child.queue_free()
-	for node in nodes:
-		if node.get("travel", {}).is_empty(): continue
-		var id := str(node.id)
-		var label := str(node.name) + "\n" + visual_context.translator.content_name(str(node.kind))
-		if not str(node.get("risk", "")).is_empty(): label += " · " + visual_context.translator.text("Risk: %s") % str(node.risk)
-		var button := visual_context.styles.button(label, 160)
-		button.name = "MapCompare_" + id.validate_node_name(); button.set_meta("node_id", id)
-		button.clip_text = true; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		button.tooltip_text = str(node.name) + "\n" + str(node.get("benefit", "")) + "\n" + str(node.get("description", "")); button.add_theme_font_size_override("font_size", 14)
-		button.pressed.connect(func(): _inspect(id); _set_inspector_open(true))
-		_comparison.add_child(button)
 func set_resume_target(target: String) -> void:
 	_resume_button.visible = target in ["activity", "combat", "dialogue"]
 	var label := "Resume conversation" if target == "dialogue" else ("Return to combat" if target == "combat" else "Return to activity")
@@ -249,89 +189,34 @@ func set_read_only(value: bool) -> void:
 	for button in _action_buttons:
 		if is_instance_valid(button): button.disabled = value
 func capture_local_state() -> Dictionary:
-	var point: Vector2 = (Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) + _usable_size() * .5 - route.position) / _zoom
-	var anchor := _selected
-	var distance := INF
-	for id in route._geometry.rects:
-		var candidate: float = route._geometry.rects[id].get_center().distance_squared_to(point)
-		if candidate < distance: distance = candidate; anchor = str(id)
-	return {"version": 2, "anchor": anchor, "offset": point - route._geometry.rects.get(anchor, Rect2()).get_center(), "zoom": _zoom, "inspector_open": _inspector_open,
-		"selected": _selected, "current": navigation.current, "horizontal": _scroll.scroll_horizontal, "vertical": _scroll.scroll_vertical, "overview": _overview,
-		"filter": _filter_kinds[_filter.selected] if _filter.selected >= 0 else ""}
+	return {"version": 3, "selected": _selected, "current": navigation.current, "inspector_open": _inspector_open}
 func restore_local_state(state: Dictionary) -> void:
-	if state.is_empty(): return
-	if state.has("current") and str(state.current) != navigation.current:
-		_inspect(navigation.current); _next_choices.call_deferred(); return
-	_inspector_open = bool(state.get("inspector_open", true)); _layout_inspector()
-	if bool(state.get("overview", false)) != _overview: _toggle_overview()
-	var filter_id := _filter_kinds.find(str(state.get("filter", "")))
-	if filter_id >= 0: _filter.select(filter_id); route.highlight_kind(_filter_kinds[filter_id])
-	var id := str(state.get("selected", ""))
-	if route.nodes.any(func(node): return str(node.id) == id): _inspect(id)
-	_restore_camera.call_deferred(state.duplicate(true))
-
-func _restore_camera(state: Dictionary) -> void:
-	if _overview: _frame(route.buttons.keys(), true); return
-	var anchor := str(state.get("anchor", ""))
-	if route._geometry.rects.has(anchor):
-		_zoom = clampf(float(state.get("zoom", 1)), .6, 1)
-		_update_extent()
-		var offset: Vector2 = state.get("offset", Vector2.ZERO)
-		_scroll_to(route._geometry.rects[anchor].get_center() + offset)
-	else: _next_choices()
-	_reading = capture_local_state()
+	if not state.is_empty():
+		_inspector_open = bool(state.get("inspector_open", false)); _layout_inspector()
+		var id := str(state.get("selected", navigation.current))
+		if str(state.get("current", navigation.current)) != navigation.current: id = navigation.current
+		if route.buttons.has(id): _inspect(id)
+	_center_current.call_deferred()
 
 func _update_extent() -> void:
 	if not is_instance_valid(_canvas): return
-	route.scale = Vector2.ONE * _zoom
-	var usable := _usable_size()
-	_overview_hint.visible = _overview
-	_overview_hint.text = visual_context.translator.text("Click a region to return to detail. Travel is confirmed in the details panel.")
-	_overview_hint.position = Vector2(12,8); _overview_hint.size = Vector2(maxf(100,usable.x - 24),48)
-	_canvas.custom_minimum_size = route.custom_minimum_size * _zoom + (_scroll.size - usable)
-	route.position.x = maxf(0, (usable.x - route.custom_minimum_size.x * _zoom) * .5)
-	for button in route.buttons.values():
-		button.mouse_filter = Control.MOUSE_FILTER_IGNORE if _overview else Control.MOUSE_FILTER_STOP
-		button.focus_mode = Control.FOCUS_NONE if _overview else Control.FOCUS_ALL
-		button.get_node("Caption").visible = _zoom >= .65
+	# Symmetric camera gutters allow even first/last nodes to occupy screen center.
+	# Inspector visibility never participates in map extent, scale or framing.
+	route.position = _scroll.size * .5
+	_canvas.custom_minimum_size = route.custom_minimum_size + _scroll.size
+	for id in route.buttons:
+		if str(id) == navigation.current: route.buttons[id].set_meta("initial_focus", true)
+		elif route.buttons[id].has_meta("initial_focus"): route.buttons[id].remove_meta("initial_focus")
 
 func _scroll_to(point: Vector2) -> void:
-	var offset := camera.offset_for(point * _zoom + route.position, _usable_size(), (_canvas.custom_minimum_size - (_scroll.size - _usable_size())).max(_usable_size()))
+	var offset := camera.offset_for(point + route.position, _scroll.size, _canvas.custom_minimum_size)
 	_scroll.scroll_horizontal = int(offset.x); _scroll.scroll_vertical = int(offset.y)
-
-func _frame(ids: Array, whole := false) -> void:
-	var bounds := Rect2(); var first := true
-	for id in ids:
-		if not route._geometry.rects.has(id): continue
-		var rect: Rect2 = route._geometry.rects[id]
-		bounds = rect if first else bounds.merge(rect); first = false
-	if first: return
-	_zoom = camera.fit_scale(bounds, _usable_size(), .01 if whole else .6)
-	_update_extent()
-	# Scroll ranges are updated by the container on the next frame.
-	_place_frame.call_deferred(bounds.get_center())
-
 func _place_frame(point: Vector2) -> void:
-	_scroll_to(point); _reading = capture_local_state()
-
+	if is_inside_tree(): _scroll_to(point)
 func _resize_camera() -> void:
 	if not is_instance_valid(route) or route.nodes.is_empty(): return
-	_update_extent()
-	if not _reading.is_empty(): _restore_camera.call_deferred(_reading.duplicate(true))
+	_update_extent(); _center_current.call_deferred()
 
-func _pan_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]:
-		_remember_camera.call_deferred()
-	if _overview and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var point: Vector2 = route.get_global_transform_with_canvas().affine_inverse() * event.global_position
-		var nearest := ""; var distance := INF
-		for id in route._geometry.rects:
-			var value: float = route._geometry.rects[id].get_center().distance_squared_to(point)
-			if value < distance: nearest = str(id); distance = value
-		if not nearest.is_empty(): _center_node(nearest)
-		_scroll.accept_event(); return
-
-func _remember_camera() -> void: _reading = capture_local_state()
 func _input(event: InputEvent) -> void:
 	if not is_inside_tree() or not is_instance_valid(_scroll): return
 	if get_tree().paused or get_tree().root.find_children("*", "Window", true, false).any(func(window): return window.visible):
@@ -349,7 +234,7 @@ func _input(event: InputEvent) -> void:
 		else: _inspector_toggle.grab_focus()
 		get_viewport().set_input_as_handled(); return
 	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
-		if event.pressed and _scroll.get_global_rect().has_point(event.global_position) and not _overview and not _pointer_over_inspector(event.global_position):
+		if event.pressed and _scroll.get_global_rect().has_point(event.global_position) and not _pointer_over_inspector(event.global_position):
 			camera.begin(event.global_position, Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical))
 		elif not event.pressed and camera.pressed:
 			if camera.dragged: get_viewport().set_input_as_handled()
@@ -359,7 +244,7 @@ func _input(event: InputEvent) -> void:
 		if camera.dragged:
 			route.suppress_activation = true
 			_scroll.scroll_horizontal = int(target.x); _scroll.scroll_vertical = int(target.y)
-			_reading = capture_local_state(); get_viewport().set_input_as_handled()
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("confirm_action"):
 		var focus := get_viewport().gui_get_focus_owner()
 		if focus in route.buttons.values():
@@ -378,35 +263,11 @@ func _notification(what: int) -> void:
 func _reveal_node(id: String) -> void:
 	if not route._geometry.rects.has(id): return
 	var rect: Rect2 = route._geometry.rects[id]
-	var visible_rect := Rect2((Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) - route.position) / _zoom, _usable_size() / _zoom)
+	var visible_rect := Rect2(Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) - route.position, _usable_size())
 	if not visible_rect.encloses(rect): _place_frame.call_deferred(rect.get_center())
 func _center_node(id: String) -> void:
-	if not route.buttons.has(id): return
-	_overview = false; _zoom = 1; _update_extent()
-	_place_frame.call_deferred(route._geometry.rects[id].get_center())
-func _center_current() -> void: _center_node(str(_run.get("currentNodeId", "")))
-func _next_choices() -> void:
-	_overview = false
-	_frame(navigation.decision_ids())
-func _toggle_overview() -> void:
-	_overview = not _overview
-	if _overview: _frame(route.buttons.keys(), true)
-	else: _next_choices()
-func _update_filter(nodes: Array) -> void:
-	var previous := _filter_kinds[_filter.selected] if _filter.selected >= 0 and not _filter_kinds.is_empty() else ""
-	_filter_kinds = [""]
-	for node in nodes:
-		if str(node.kind) not in _filter_kinds: _filter_kinds.append(str(node.kind))
-	_filter.clear()
-	for kind in _filter_kinds: _filter.add_item(visual_context.translator.text("All node types") if kind.is_empty() else visual_context.translator.content_name(kind))
-	_filter.select(maxi(0, _filter_kinds.find(previous)))
-	route.highlight_kind(_filter_kinds[_filter.selected])
-func _legend() -> void:
-	cancel_gesture()
-	var dialog = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
-	var lines: Array[String] = [visual_context.translator.text("Selecting a node only inspects it. Travel requires a published option."), ""]
-	for key in ["YOU ARE HERE", "COMPLETED", "Available", "Unavailable"]: lines.append(visual_context.translator.text(key))
-	lines.append("")
-	for kind in _filter_kinds:
-		if not kind.is_empty(): lines.append(visual_context.translator.content_name(kind))
-	dialog.setup(visual_context.translator.text("Legend"), "\n".join(lines)); add_child(dialog); dialog.popup_centered()
+	if not is_inside_tree() or not route.buttons.has(id): return
+	_update_extent()
+	var button: Button = route.buttons[id]
+	_place_frame.call_deferred(button.position + button.size * .5)
+func _center_current() -> void: _center_node(navigation.current)

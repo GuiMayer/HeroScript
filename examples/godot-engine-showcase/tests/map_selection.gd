@@ -34,10 +34,9 @@ func _run() -> void:
 	check(view._selected == "b", "map reading selection restores independently of engine progress")
 	check(run.currentNodeId == "a", "inspection/restoration do not change current node")
 	var before := intents.size()
-	view._next_choices(); view._toggle_overview()
-	check(intents.size() == before and view._selected == "b", "next choices and overview only change reading state")
-	state = view.capture_local_state(); view._toggle_overview(); view.restore_local_state(state)
-	check(view._overview and view.route.nodes.size() == 3, "overview restores without hiding unavailable nodes")
+	view._center_current()
+	check(intents.size() == before and view._selected == "b", "centering current node only changes reading state")
+	check(view.find_children("MapTool_*","Button",true,false).is_empty() and view.find_child("MapAlternatives",true,false) == null, "map has no utility toolbar or duplicate destination buttons")
 	view.camera.begin(Vector2(100, 100), Vector2(40, 50))
 	view.camera.motion(Vector2(102, 101))
 	check(not view.camera.dragged, "small pointer movement is not a pan")
@@ -45,7 +44,7 @@ func _run() -> void:
 	check(view.camera.dragged and target == Vector2(20, 20), "camera pan is independent from gameplay and uses a threshold")
 	view.camera.cancel()
 	check(not view.camera.pressed, "camera releases its gesture")
-	view._overview = false; view._zoom = 1; view._update_extent(); view._center_node("b")
+	view._center_current()
 	for _i in 8: await process_frame
 	view._inspect("a")
 	var original: String = view._selected
@@ -63,8 +62,8 @@ func _run() -> void:
 	var width_before: float = view._scroll.size.x
 	view._set_inspector_open(false); for _i in 4: await process_frame
 	check(not view._inspector_panel.visible and view._inspector_toggle.visible and view._scroll.size.x == width_before, "collapsed floating inspector leaves only a tab and never reserves a column")
-	view.find_child("MapCompare_b", true, false).pressed.emit()
-	check(view._selected == "b" and view._inspector_panel.visible and intents.size() == before, "comparison selects the same published node without executing travel")
+	view.route.buttons.b.pressed.emit()
+	check(view._selected == "b" and view._inspector_panel.visible and intents.size() == before, "node reopens floating details without executing travel")
 	view.route.buttons.b.grab_focus(); await process_frame
 	var key := InputEventKey.new(); key.keycode = KEY_RIGHT; key.pressed = true
 	root.push_input(key, true); await process_frame

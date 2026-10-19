@@ -9,6 +9,10 @@ func _run() -> void:
 	var entry := {"type": "CREATE_SHOP", "payload": {"shopId": "published"}}
 	check(flow.single_entry([entry, {"type": "ABANDON_RUN"}]) == entry, "travel ingress keeps the exact published entry command")
 	check(flow.single_entry([entry, {"type": "CREATE_PREPARATION"}]).is_empty(), "multiple entry choices require explicit player input")
+	var completion := {"type":"RESOLVE_NODE","payload":{"currentNodeId":"published"}}
+	check(flow.only_completion([completion,{"type":"ABANDON_RUN"}]) == completion, "sole published completion is automatically returned unchanged")
+	check(flow.only_completion([completion,{"type":"PICK_CARD_REWARD"}]).is_empty(), "unfinished reward is never automatically skipped on map entry")
+	check(flow.only_completion([completion,{"type":"BUY_SHOP_ITEM"}]).is_empty(), "entering map to inspect a pending shop never automatically skips the visit")
 	for type in ["BUY_SHOP_ITEM", "PICK_CARD_REWARD", "CHOOSE_DIALOGUE_OPTION", "UPGRADE_CARD", "UNKNOWN"]:
 		check(flow.single_entry([{"type": type}]).is_empty(), "ingress never chooses a consequence: " + type)
 	var context = load("res://scripts/ui/visual_context.gd").new()

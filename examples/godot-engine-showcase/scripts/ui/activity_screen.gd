@@ -41,7 +41,7 @@ func _render(data: Dictionary) -> void:
 func _on_intent(action: String, arguments: Array) -> void:
 	GameAudio.ui()
 	match action:
-		"map": router.show_map()
+		"map": _return_to_map()
 		"pause": router.toggle_pause()
 		"replay": router.show_run_replay(str(arguments[0]))
 		"new_journey": router._new_campaign()
@@ -55,6 +55,9 @@ func _on_intent(action: String, arguments: Array) -> void:
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if not choice.is_empty(): _execute(choice)
 func apply_model(model) -> void: refresh_state(model)
+func _return_to_map() -> void:
+	if not is_inside_tree() or get_tree().paused: return
+	if await controller.finish_for_map() and is_inside_tree(): router.show_map()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
 	if controller: controller.dispose()
@@ -124,6 +127,8 @@ func _execute(choice: Dictionary) -> void:
 	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "ACQUIRE_CARD_MODIFIER_ITEM", "APPLY_CARD_MODIFIER_ITEM"]:
 			GameAudio.reward()
+		if router.gameplay_route() == "map":
+			if not await controller.finish_for_map() or not is_inside_tree(): return
 		router.open_game()
 
 

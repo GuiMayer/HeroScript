@@ -77,7 +77,9 @@ func _store_reading() -> void:
 	if router.map_reading_states.size() >= 16 and not router.map_reading_states.has(_scope): router.map_reading_states.erase(router.map_reading_states.keys()[0])
 	router.map_reading_states[_scope] = view.capture_local_state()
 func _auto_advance(ticket: Array) -> void:
-	if not _alive or ticket != _workflow_key or router.dialogue_return_barrier or router.current_screen != "map" or get_tree().paused or GameSession.busy: return
-	var choice: Dictionary = controller.forced_advance()
+	if not _alive or ticket != _workflow_key or router.dialogue_return_barrier or router.current_screen != "map" or get_tree().paused or GameSession.busy or not GameSession.synchronized: return
+	var choice: Dictionary = controller.only_completion()
+	if not choice.is_empty() and str(choice.get("payload", {}).get("currentNodeId", "")) != str(GameSession.run.get("currentNodeId", "")): return
+	if choice.is_empty(): choice = controller.forced_advance()
 	if choice.is_empty(): return
 	_intent("command", [controller.option_reference(choice)])
