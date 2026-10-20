@@ -17,6 +17,8 @@ func effect_player():
 func play_art_effect(effect: String, seconds: float, strength := .7, instant := false) -> Tween:
 	return effect_player().play(effect, seconds, strength, visual_context.reduced_motion, instant)
 
+func set_art_outline(state: String) -> void: effect_player().set_outline(state)
+
 func setup(category: String, content_id: String) -> void:
 	apply_model({"category": category, "contentId": content_id})
 

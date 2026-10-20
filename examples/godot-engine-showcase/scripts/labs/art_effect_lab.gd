@@ -10,10 +10,12 @@ var strength: HSlider
 var result: Label
 var paused: CheckButton
 var reduced: CheckButton
-var _options: Array[String] = ["impact"]
-var _keys := {"impact":"Impact flash"}
+var _options: Array[String] = ["impact","outline_available","outline_selected"]
+var _keys := {"impact":"Impact flash","outline_available":"Outline · available","outline_selected":"Outline · selected"}
 const TEXT := {
 	"Art effects lab":"Laboratório de efeitos",
+	"Outline · available":"Contorno · disponível", "Outline · selected":"Contorno · selecionado",
+	"Static outline — no animation wait":"Contorno estático — sem espera de animação",
 	"Impact flash":"Flash de impacto", "Duration (s)":"Duração (s)",
 	"Intensity":"Intensidade", "Play effect":"Reproduzir efeito", "Reset":"Limpar",
 	"Pause preview":"Pausar prévia", "Reduced motion":"Movimento reduzido",
@@ -31,14 +33,18 @@ func setup(visual_context, _card_model: Dictionary = {}) -> void:
 	intro.custom_minimum_size.x = 620
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; body.add_child(intro)
 	var tools := HFlowContainer.new(); tools.add_theme_constant_override("h_separation",12); body.add_child(tools)
-	picker = OptionButton.new(); picker.name = "ArtEffectPicker"; picker.add_item(_text("Impact flash")); tools.add_child(picker)
-	picker.item_selected.connect(func(_index): reset(); seconds.value = .16)
+	picker = OptionButton.new(); picker.name = "ArtEffectPicker"
+	for id in _options: picker.add_item(_text(_keys[id]))
+	tools.add_child(picker)
+	picker.item_selected.connect(func(_index):
+		reset(); seconds.value = .16; seconds.editable = picker.selected == 0; strength.editable = picker.selected == 0)
 	tools.add_child(context.styles.title(_text("Duration (s)"),14))
 	seconds = SpinBox.new(); seconds.min_value = 0; seconds.max_value = 2; seconds.step = .01; seconds.value = .16; seconds.custom_minimum_size.x = 110; tools.add_child(seconds)
 	tools.add_child(context.styles.title(_text("Intensity"),14))
 	strength = HSlider.new(); strength.min_value = 0; strength.max_value = 1; strength.step = .05; strength.value = .7; strength.custom_minimum_size.x = 140; tools.add_child(strength)
 	var stage := HBoxContainer.new(); stage.add_theme_constant_override("separation",24); body.add_child(stage)
 	var actor_context = preload("res://scripts/ui/visual_context.gd").new(context.translator,{},preload("res://data/themes/ivory_run.tres"))
+	actor_context.set_scenery_profile(preload("res://data/themes/ivory_scenery.tres"))
 	for is_preview in [false,true]:
 		var column := VBoxContainer.new(); column.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stage.add_child(column)
 		column.add_child(context.styles.title(_text("Preview" if is_preview else "Baseline"),18))
@@ -61,6 +67,9 @@ func setup(visual_context, _card_model: Dictionary = {}) -> void:
 	visibility_changed.connect(func(): if not visible: reset())
 func play_effect() -> void:
 	reset()
+	if _options[picker.selected].begins_with("outline_"):
+		sample.set_art_outline(_options[picker.selected].trim_prefix("outline_"))
+		result.text = _text("Static outline — no animation wait"); return
 	var tween: Tween = sample.effect_player().play(_options[picker.selected],seconds.value,strength.value,reduced.button_pressed)
 	result.text = _text("Skipped: no animation or wait") if tween == null else _text("Playing")
 func reset() -> void:

@@ -21,6 +21,21 @@ func _run() -> void:
 	var rect: Rect2 = art.get_global_rect()
 	var player = art.effect_player()
 	check(art.get_script() == load("res://scripts/ui/art_slot.gd"),"lab uses the production actor art component")
+	check(art.texture.resource_path.begins_with("res://assets/ivory/"),"actor preview resolves the actual ivory combat scenery catalog")
+	if not output.is_empty() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		var before_image: Image = panel.get_texture().get_image()
+		player._bind(); await settle(); await RenderingServer.frame_post_draw
+		var image: Image = panel.get_texture().get_image()
+		var first: Rect2 = art.get_global_rect()
+		var maximum := 0.
+		for y in range(20,220,10):
+			for x in range(20,220,10):
+				var a := before_image.get_pixel(int(first.position.x)+x,int(first.position.y)+y)
+				var b := image.get_pixel(int(first.position.x)+x,int(first.position.y)+y)
+				maximum = maxf(maximum,absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b))
+		check(maximum < .03,"neutral shader preserves original artwork instead of multiplying its texture twice")
+		player.clear()
 	check(player.play("impact",0,.7) == null and art.material == previous,"zero duration has no tween, material or wait")
 	check(player.play("impact",.2,.7,true) == null and player.play("impact",.2,.7,false,true) == null,"reduced motion and instant produce no animation")
 	check(player.play("impact",.2,0) == null and player.play("unknown",.2,.7) == null,"disabled/unknown effect is an immediate no-op")
@@ -42,6 +57,25 @@ func _run() -> void:
 	check(art.material == previous,"closing laboratory clears a running effect")
 	panel.popup_centered(); art.play_art_effect("impact",.2); art.apply_model({"category":"actors","contentId":"another"})
 	check(art.material == previous,"changing artwork identity clears stale effects")
+	art.set_art_outline("available")
+	var outline_material: ShaderMaterial = art.material
+	check(float(outline_material.get_shader_parameter("outline_width")) == player.style.available_width and player.tween == null,"available outline is static, no animation wait")
+	art.set_art_outline("selected")
+	check(art.material == outline_material and float(art.material.get_shader_parameter("outline_width")) == player.style.selected_width,"selected outline changes color/width without allocating another material")
+	var outlined: Rect2 = art.get_global_rect()
+	art.size += Vector2(40,20); await settle()
+	check(art.material.get_shader_parameter("quad_size").x > 0 and art.mouse_filter == Control.MOUSE_FILTER_IGNORE,"outline geometry updates on resize without capturing input")
+	art.size = outlined.size; await settle()
+	if not output.is_empty() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		check(panel.get_texture().get_image().save_png(output.path_join("outline.png")) == OK,"rendered outline capture saved")
+	art.play_art_effect("impact",.05); await create_timer(.1).timeout
+	check(art.material == outline_material and player.tween == null,"finishing an impact preserves a persistent target outline")
+	art.set_art_outline("")
+	check(art.material == previous and art.get_global_rect() == rect,"clearing outline restores original material and preserves original input rect")
+	art.set_art_outline("selected"); panel.reduced.set_pressed_no_signal(true); panel.picker.select(1); panel.play_effect()
+	check(player.tween == null and art.material is ShaderMaterial,"reduced motion preserves static outline rather than blinking")
+	panel.reset()
 	var empty = load("res://scripts/ui/art_slot.gd").new(context); root.add_child(empty)
 	check(empty.play_art_effect("impact",.2) == null,"missing texture never creates an empty animation")
 	empty.queue_free()
