@@ -8,11 +8,20 @@ var model: Dictionary:
 var slot_key := ""
 var is_placeholder := true
 var _hit_tween: Tween
+var art_effects
+
+func effect_player():
+	if art_effects == null: art_effects = preload("res://scripts/ui/art_effect_player.gd").new(self)
+	return art_effects
+
+func play_art_effect(effect: String, seconds: float, strength := .7, instant := false) -> Tween:
+	return effect_player().play(effect, seconds, strength, visual_context.reduced_motion, instant)
 
 func setup(category: String, content_id: String) -> void:
 	apply_model({"category": category, "contentId": content_id})
 
 func apply_model(data: Dictionary) -> void:
+	if _model != data and art_effects != null: art_effects.clear()
 	_model = data.duplicate(true)
 	var slot: Dictionary = visual_context.resolve_art(str(_model.get("category", "")), str(_model.get("contentId", "")))
 	slot_key = str(slot.get("key", ""))
@@ -46,6 +55,7 @@ func flash_hit() -> Tween:
 	_hit_tween.tween_property(self, "modulate", Color.WHITE, policy.duration("impact", true))
 	return _hit_tween
 func settle_motion() -> void:
+	if art_effects != null: art_effects.clear()
 	if _hit_tween != null and _hit_tween.is_valid(): _hit_tween.kill()
 	modulate = Color.WHITE
 
@@ -62,6 +72,7 @@ func _on_context_changed() -> void:
 	if not _model.is_empty(): apply_model(_model)
 
 func dispose() -> void:
+	if art_effects != null: art_effects.clear()
 	if visual_context.changed.is_connected(_on_context_changed): visual_context.changed.disconnect(_on_context_changed)
 	if _hit_tween: _hit_tween.kill()
 	_hit_tween = null

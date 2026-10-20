@@ -132,6 +132,10 @@ func _build() -> void:
 	actions.add_child(_button("Rotate sample", func(): _rotation += 1; _refresh()))
 	actions.add_child(_button("Remove selected", remove_selected))
 	actions.add_child(_button("Inspect selected", inspect_selected))
+	var shader_button := _button("Art effects lab", _open_art_effect_lab)
+	shader_button.name = "OpenArtEffectLab"
+	shader_button.set_meta("lab_fx_label", "Art effects lab")
+	actions.add_child(shader_button)
 	column.add_child(actions)
 	var workspace := PanelContainer.new()
 	workspace.name = "SampleDetails"
@@ -225,6 +229,14 @@ func play_selected_animation() -> void:
 		scenario["cardInstanceId"] = selected_id if selected_id in hand.order else str(models[0].cardInstanceId)
 	motion_lab.play(scenario, models)
 
+func _open_art_effect_lab() -> void:
+	var old = get_node_or_null("ArtEffectLab")
+	if old != null: old.queue_free(); remove_child(old)
+	var panel = preload("res://scripts/labs/art_effect_lab.gd").new()
+	panel.setup(visual_context, models[0] if not models.is_empty() else {})
+	add_child(panel)
+	panel.popup_centered_clamped(Vector2i(900,540),.9)
+
 func _animation_selected(_id: String) -> void:
 	var operation := str(animation_picker.selected_scenario().get("operation", ""))
 	var keys: Array = preload("res://scripts/presentation/card_animation_profile.gd").KEYS.get(operation, [])
@@ -312,6 +324,7 @@ func _translate_controls(node: Node) -> void:
 		if node is CheckButton:
 			if key == "High contrast": node.set_pressed_no_signal(Preferences.high_contrast)
 			elif key == "Reduced motion": node.set_pressed_no_signal(Preferences.reduced_motion)
+	if node.has_meta("lab_fx_label"): node.text = preload("res://scripts/labs/art_effect_lab.gd").label_for(I18n.locale,str(node.get_meta("lab_fx_label")))
 	for child in node.get_children(): _translate_controls(child)
 
 func _render_hand() -> void:
