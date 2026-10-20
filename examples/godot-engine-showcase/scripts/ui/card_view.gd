@@ -381,3 +381,9 @@ func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
 	visual_style = visual_context.card_style
 	_context_card_style = visual_style
+
+func artwork() -> TextureRect:
+	# A single shared seam for cosmetic art effects; the printed face stays intact.
+	for item in find_children("*", "TextureRect", true, false):
+		if item.get_script() == preload("res://scripts/ui/art_slot.gd"): return item
+	return null

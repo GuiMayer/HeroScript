@@ -76,6 +76,42 @@ func _run() -> void:
 	art.set_art_outline("selected"); panel.reduced.set_pressed_no_signal(true); panel.picker.select(1); panel.play_effect()
 	check(player.tween == null and art.material is ShaderMaterial,"reduced motion preserves static outline rather than blinking")
 	panel.reset()
+	panel.picker.select(3); panel.picker.item_selected.emit(3); await settle()
+	var card: CardView = panel.card_sample
+	var card_art = card.artwork()
+	var model_json := JSON.stringify(card.model)
+	var effect_text: String = card.find_child("Rules",true,false).text
+	var border: Color = card.get_meta("semantic_border_color")
+	check(panel.card_stage.visible and not panel.actor_stage.visible and card is CardView,"improvement selector shows shared production CardViews, not a separate card drawing")
+	panel.reduced.set_pressed_no_signal(false)
+	panel.play_effect()
+	var sheen: Tween = card_art.art_effects.tween
+	check(sheen != null and card_art.material is ShaderMaterial and card.material == null and panel.card_baseline.artwork().material == null,"improvement affects only preview artwork, never cost/text/rarity or baseline")
+	sheen.pause(); sheen.custom_step(panel.seconds.value * .5)
+	check(is_equal_approx(float(card_art.material.get_shader_parameter("sheen_progress")),.5),"sheen uses explicit progress and does not depend on TIME")
+	card.configure(card.model); await settle()
+	check(card.artwork() == card_art and is_equal_approx(float(card_art.material.get_shader_parameter("sheen_progress")),.5),"reconciliation does not restart or detach an active cosmetic shader")
+	if not output.is_empty() and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		check(panel.get_texture().get_image().save_png(output.path_join("sheen.png")) == OK,"rendered improvement capture saved")
+	panel.reset()
+	check(card_art.material == null and JSON.stringify(card.model) == model_json and card.find_child("Rules",true,false).text == effect_text and card.get_meta("semantic_border_color") == border,"reset preserves card data, rules text, cost and rarity color")
+	panel.reduced.set_pressed_no_signal(true); panel.play_effect()
+	check(card_art.art_effects.tween == null and card_art.material == null,"reduced motion improvement is skipped without material or wait")
+	panel.reduced.set_pressed_no_signal(false); panel.seconds.value = 0; panel.play_effect()
+	check(card_art.art_effects.tween == null,"zero-second improvement is instant")
+	panel.seconds.value = .2; panel.play_effect()
+	var paused_tween: Tween = card_art.art_effects.tween
+	paused_tween.pause(); paused_tween.custom_step(.05); paused_tween.play()
+	var frozen: float = card_art.material.get_shader_parameter("sheen_progress")
+	paused = true; await create_timer(.06).timeout
+	check(is_equal_approx(float(card_art.material.get_shader_parameter("sheen_progress")),frozen),"real SceneTree pause freezes the shader's bound Tween")
+	paused = false; await create_timer(.3).timeout
+	check(card_art.material == null,"resume completes sheen and restores material")
+	art.play_art_effect("impact",.2); card_art.play_art_effect("sheen",.2)
+	check(art.material != card_art.material and art.material.shader == card_art.material.shader,"concurrent artwork shares shader code but never mutable material state")
+	panel.hide(); await settle()
+	check(art.material == previous and card_art.material == null,"closing preview cancels all active shared executors")
 	var empty = load("res://scripts/ui/art_slot.gd").new(context); root.add_child(empty)
 	check(empty.play_art_effect("impact",.2) == null,"missing texture never creates an empty animation")
 	empty.queue_free()

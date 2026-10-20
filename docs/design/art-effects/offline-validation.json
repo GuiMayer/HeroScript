@@ -1,0 +1,53 @@
+[
+  {
+    "test": "art_effects",
+    "exit_code": 0,
+    "checks": 31,
+    "elapsed_ms": 2162,
+    "diagnostics": []
+  },
+  {
+    "test": "art_effect_lab",
+    "exit_code": 0,
+    "checks": 20,
+    "elapsed_ms": 2610,
+    "diagnostics": []
+  },
+  {
+    "test": "animation_contracts",
+    "exit_code": 0,
+    "checks": 8,
+    "elapsed_ms": 749,
+    "diagnostics": []
+  },
+  {
+    "test": "card_animation_parity",
+    "exit_code": 0,
+    "checks": 22,
+    "elapsed_ms": 10219,
+    "diagnostics": []
+  },
+  {
+    "test": "animation_live",
+    "exit_code": 0,
+    "checks": 40,
+    "elapsed_ms": 11999,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab",
+    "exit_code": 0,
+    "checks": 73,
+    "elapsed_ms": 33765,
+    "diagnostics": []
+  },
+  {
+    "test": "run_graphics_architecture",
+    "exit_code": 0,
+    "checks": 28,
+    "elapsed_ms": 3269,
+    "diagnostics": [
+      "WARNING: Combat composition requires a Control root and CombatGameplay slot."
+    ]
+  }
+]

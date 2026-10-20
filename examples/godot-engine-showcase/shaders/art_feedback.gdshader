@@ -7,6 +7,9 @@ uniform vec2 quad_size = vec2(240.0);
 uniform float outline_width : hint_range(0.0, 4.0) = 0.0;
 uniform vec4 outline_color : source_color = vec4(0.12, 0.12, 0.11, 1.0);
 uniform bool expand_outline = true;
+uniform float sheen_progress = -1.0;
+uniform float sheen_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 sheen_color : source_color = vec4(0.84, 0.71, 0.46, 1.0);
 varying vec4 vertex_tint;
 
 void vertex() {
@@ -26,6 +29,12 @@ void fragment() {
 	vec4 modulation = vertex_tint;
 	vec4 source = texture(TEXTURE, clamp(UV, vec2(0.0), vec2(1.0))) * inside_art(UV);
 	source.rgb = mix(source.rgb, impact_color.rgb, impact_amount);
+	if (sheen_progress >= 0.0 && sheen_amount > 0.0) {
+		float diagonal = (UV.x + UV.y * 0.35) / 1.35;
+		float center = mix(-0.2, 1.2, sheen_progress);
+		float band = 1.0 - smoothstep(0.0, 0.13, abs(diagonal - center));
+		source.rgb = mix(source.rgb, sheen_color.rgb, band * sheen_amount * sin(sheen_progress * 3.14159265));
+	}
 	if (outline_width > 0.0) {
 		vec2 offset = vec2(outline_width) / quad_size;
 		float ring = 0.0;

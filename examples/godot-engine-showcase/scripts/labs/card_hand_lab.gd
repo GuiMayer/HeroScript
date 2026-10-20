@@ -233,7 +233,9 @@ func _open_art_effect_lab() -> void:
 	var old = get_node_or_null("ArtEffectLab")
 	if old != null: old.queue_free(); remove_child(old)
 	var panel = preload("res://scripts/labs/art_effect_lab.gd").new()
-	panel.setup(visual_context, models[0] if not models.is_empty() else {})
+	var card_model := selected_model()
+	if card_model.is_empty() and not models.is_empty(): card_model = models[0]
+	panel.setup(visual_context, card_model)
 	add_child(panel)
 	panel.popup_centered_clamped(Vector2i(900,540),.9)
 
