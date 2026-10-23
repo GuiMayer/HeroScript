@@ -2,8 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using API.Tests.Helpers;
+using API.Services;
 using Core.Determinism;
 using Core.Run;
+using Core.Run.Projections;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -28,6 +30,17 @@ public sealed class InteractionSessionTests
         Assert.Equal(before.Sequence, session.GetProperty("cardPresentations").GetProperty("runSequence").GetInt32());
         Assert.False(session.GetProperty("run").TryGetProperty("encounters", out _));
         Assert.Equal(hash, CanonicalJson.ComputeHash(runs.GetRun(id).Value));
+        // A browser/client can retain schema-1 data for this same immutable head.
+        // Its old compact-map response must not survive as a 304 after the fix.
+        var access = factory.Services.GetRequiredService<IToolAccessPolicy>();
+        var context = new InteractionReadContext(before);
+        var granted = access.EffectiveFor(before);
+        var oldETag = "\"" + CanonicalJson.ComputeHash(new { context.Version, granted, access.Snapshot.Profile, schema = 1 }) + "\"";
+        using var oldRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/runs/{id}/session");
+        oldRequest.Headers.TryAddWithoutValidation("If-None-Match", oldETag);
+        using var oldResponse = await client.SendAsync(oldRequest);
+        Assert.Equal(HttpStatusCode.OK, oldResponse.StatusCode);
+        Assert.NotEqual(oldETag, oldResponse.Headers.ETag!.ToString());
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/runs/{id}/session");
         request.Headers.IfNoneMatch.Add(response.Headers.ETag!);
         using var cached = await client.SendAsync(request);

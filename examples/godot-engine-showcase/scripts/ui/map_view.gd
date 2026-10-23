@@ -24,8 +24,14 @@ var _inspector_toggle: Button
 var _inspector_open := false
 var _last_current := ""
 var _resume_button: Button
+var _camera_tween: Tween
+var _camera_target := Vector2.INF
+var _camera_restore_ticket := 0
+var _camera_restore_from := ""
 func apply_projection(run: Dictionary, choices: Array, presenter, context: ContextType) -> void:
 	mount(context); theme = context.theme
+	if context.reduced_motion and _camera_tween != null and _camera_tween.is_valid():
+		_stop_camera_motion(true)
 	_run = run.duplicate(true); _choices = choices.duplicate(true); _presenter = presenter
 	var current := str(run.get("currentNodeId", ""))
 	var progressed := not _last_current.is_empty() and _last_current != current
@@ -48,18 +54,27 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 		node["benefit"] = str(display.get("reward", ""))
 	navigation.update(nodes)
 	var key: Array = [nodes, choices, context.presentation_key()]
+	var geometry_changed := false
 	if key != _model_key:
 		_model_key = key.duplicate(true)
 		route.visual_context = context
+		var previous_geometry: Dictionary = route._geometry
 		route.setup(nodes)
+		geometry_changed = route._geometry.get("rects", {}) != previous_geometry.get("rects", {}) or route._geometry.get("bounds", Vector2.ZERO) != previous_geometry.get("bounds", Vector2.ZERO)
 		_update_extent()
 	if progressed or not nodes.any(func(node): return node.id == _selected): _selected = current
 	if _selected.is_empty() and not nodes.is_empty(): _selected = str(nodes[0].id)
 	_inspect(_selected)
 	context.styles.apply_view_preferences(self)
-	if not _framed or progressed:
+	# A compact combat projection can expand without changing currentNodeId.
+	# Reframe actual geometry changes, not ordinary choice/resource refreshes,
+	# so intentional panning and floating inspector interactions remain stable.
+	if not _framed or progressed or geometry_changed:
 		_framed = true
-		_center_current.call_deferred()
+		if progressed:
+			_camera_restore_ticket += 1
+			_camera_restore_from = ""
+		_center_current.call_deferred(progressed)
 func _build() -> void:
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new(); add_child(header)
@@ -194,12 +209,30 @@ func set_read_only(value: bool) -> void:
 func capture_local_state() -> Dictionary:
 	return {"version": 3, "selected": _selected, "current": navigation.current, "inspector_open": _inspector_open}
 func restore_local_state(state: Dictionary) -> void:
+	_camera_restore_ticket += 1
+	var previous := str(state.get("current", navigation.current))
+	_camera_restore_from = previous if previous != navigation.current and route.buttons.has(previous) else ""
 	if not state.is_empty():
 		_inspector_open = bool(state.get("inspector_open", false)); _layout_inspector()
 		var id := str(state.get("selected", navigation.current))
 		if str(state.get("current", navigation.current)) != navigation.current: id = navigation.current
 		if route.buttons.has(id): _inspect(id)
-	_center_current.call_deferred()
+	if previous != navigation.current and route.buttons.has(previous):
+		_restore_progress_frame.call_deferred(previous, navigation.current, _camera_restore_ticket)
+	else: _center_current.call_deferred()
+
+func _restore_progress_frame(previous: String, current: String, ticket: int) -> void:
+	if not is_inside_tree(): return
+	# A recreated map has no old scroll offset. Use its previous current-node
+	# anchor after containers settle, then interpolate to the new current node.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_inside_tree() or ticket != _camera_restore_ticket or current != navigation.current: return
+	if not route.buttons.has(previous) or not route.buttons.has(current): return
+	_update_extent()
+	_camera_restore_from = ""
+	_scroll_to(route.buttons[previous].position + route.buttons[previous].size * .5)
+	_scroll_to(route.buttons[current].position + route.buttons[current].size * .5, true)
 
 func _update_extent() -> void:
 	if not is_instance_valid(_canvas): return
@@ -211,11 +244,27 @@ func _update_extent() -> void:
 		if str(id) == navigation.current: route.buttons[id].set_meta("initial_focus", true)
 		elif route.buttons[id].has_meta("initial_focus"): route.buttons[id].remove_meta("initial_focus")
 
-func _scroll_to(point: Vector2) -> void:
+func _scroll_to(point: Vector2, smooth := false) -> void:
 	var offset := camera.offset_for(point + route.position, _scroll.size, _canvas.custom_minimum_size)
-	_scroll.scroll_horizontal = int(offset.x); _scroll.scroll_vertical = int(offset.y)
-func _place_frame(point: Vector2) -> void:
-	if is_inside_tree(): _scroll_to(point)
+	var policy = visual_context.capture_motion()
+	var seconds: float = 0 if policy.instant or policy.reduced else route.layout_profile.camera_transition_seconds / policy.speed
+	# Duplicate deferred focus/layout requests must not restart the same pan.
+	if seconds > 0 and _camera_tween != null and _camera_tween.is_valid() and _camera_target.is_equal_approx(offset): return
+	_stop_camera_motion()
+	_camera_target = offset
+	var origin := Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical)
+	if not smooth or seconds <= 0 or origin.distance_to(offset) < 1:
+		_set_camera_offset(offset); return
+	_camera_tween = create_tween()
+	_camera_tween.tween_method(func(weight: float): _set_camera_offset(origin.lerp(offset, weight)), 0., 1., seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+func _set_camera_offset(value: Vector2) -> void:
+	_scroll.scroll_horizontal = roundi(value.x); _scroll.scroll_vertical = roundi(value.y)
+func _stop_camera_motion(finish := false) -> void:
+	if _camera_tween != null and _camera_tween.is_valid(): _camera_tween.kill()
+	_camera_tween = null
+	if finish and _camera_target.is_finite(): _set_camera_offset(_camera_target)
+func _place_frame(point: Vector2, smooth := false) -> void:
+	if is_inside_tree(): _scroll_to(point, smooth)
 func _resize_camera() -> void:
 	if not is_instance_valid(route) or route.nodes.is_empty(): return
 	_update_extent(); _center_current.call_deferred()
@@ -238,6 +287,9 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled(); return
 	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
 		if event.pressed and _scroll.get_global_rect().has_point(event.global_position) and not _pointer_over_inspector(event.global_position):
+			_camera_restore_ticket += 1
+			_camera_restore_from = ""
+			_stop_camera_motion()
 			camera.begin(event.global_position, Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical))
 		elif not event.pressed and camera.pressed:
 			if camera.dragged: get_viewport().set_input_as_handled()
@@ -264,13 +316,23 @@ func _notification(what: int) -> void:
 	if what in [NOTIFICATION_WM_WINDOW_FOCUS_OUT, NOTIFICATION_PAUSED]: cancel_gesture()
 
 func _reveal_node(id: String) -> void:
+	if not _camera_restore_from.is_empty(): return
+	if id == navigation.current and _camera_tween != null and _camera_tween.is_valid(): return
 	if not route._geometry.rects.has(id): return
 	var rect: Rect2 = route._geometry.rects[id]
 	var visible_rect := Rect2(Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) - route.position, _usable_size())
-	if not visible_rect.encloses(rect): _place_frame.call_deferred(rect.get_center())
-func _center_node(id: String) -> void:
+	if not visible_rect.encloses(rect): _place_frame.call_deferred(rect.get_center(), true)
+func _center_node(id: String, smooth := false) -> void:
 	if not is_inside_tree() or not route.buttons.has(id): return
 	_update_extent()
 	var button: Button = route.buttons[id]
-	_place_frame.call_deferred(button.position + button.size * .5)
-func _center_current() -> void: _center_node(navigation.current)
+	_place_frame.call_deferred(button.position + button.size * .5, smooth)
+func _center_current(smooth := false) -> void:
+	# Initial layout/focus callbacks must not flash the new stop for a frame
+	# before the restored transition begins at the previous stop.
+	_center_node(_camera_restore_from if not _camera_restore_from.is_empty() else navigation.current, smooth and _camera_restore_from.is_empty())
+func dispose() -> void:
+	_camera_restore_ticket += 1
+	_camera_restore_from = ""
+	_stop_camera_motion()
+	cancel_gesture()

@@ -29,7 +29,12 @@ representação: regras, persistência e resultado são os mesmos.
 - `actions`: candidatos canônicos com custos e aplicações de preview, sem traces completos;
 - `evaluations`: inspeção detalhada da mão inteira não é requisito do refresh.
 
-No combate, o mapa compacto contém o nó atual. Fora dele, contém as rotas.
+Somente enquanto o combate está `ACTIVE`, o mapa compacto contém o nó atual.
+Em `VICTORY`, `DEFEAT`, `DRAW` ou `ABANDONED`, a sessão já publica o mapa completo,
+mesmo que `activeEncounterId` ainda esteja presente aguardando confirmação do
+resultado. Publicar os nós não resolve o combate nem libera viagens: os comandos
+e `legalNextNodeIds` continuam sendo as únicas autoridades de progressão.
+Sem um snapshot de combate ativo, a projeção também mantém o mapa completo.
 Coleções leem `/cards/presentations` sob demanda. Inspeções continuam em
 `/combats/{id}/cards/{instanceId}/evaluation`. Histórico e replay têm consultas
 próprias, sem uma segunda autoridade.
@@ -41,12 +46,40 @@ esperada incompatível retorna 409. Sem versão esperada, entrega um head inteir
 Nunca etiqueta o head atual como uma sequência passada.
 
 ETag inclui estado, schema e permissões; `If-None-Match` compatível retorna 304.
+O schema interno do ETag é 2 para invalidar respostas que compactavam indevidamente
+o mapa de combates terminados; essa mudança de representação não altera a versão
+de regras, o fingerprint do estado ou os saves.
 O consumidor precisa já ter aquela representação. Não tratar 304 como snapshot
 vazio. A Godot atualmente solicita o corpo compacto completo.
 
 Após POST incerto, recupere o recibo pelo mesmo commandId. Não gere outro ID nem
 reenvie cegamente. Se outro cliente avançou depois do recibo, leia o novo head e
 descarte a apresentação antiga sem repetir a mutação.
+
+## Enquadramento do mapa na Godot
+
+Ao trocar uma projeção compacta pelo mapa completo, a geometria pode mudar sem
+alterar `currentNodeId`. `MapView` recentraliza o nó atual quando os retângulos ou
+os limites calculados mudam, além da montagem inicial, progresso e resize.
+Atualizações apenas de escolhas, recursos, texto ou abertura do inspetor flutuante
+não recentralizam o mapa e preservam o arrasto manual.
+
+Mudanças de nó usam interpolação visual de 0,28 segundo, configurável em
+`MapLayoutProfile.camera_transition_seconds` e ajustada pela velocidade das
+animações. O retorno de uma atividade parte do nó atual registrado na última
+visita ao mapa, mesmo quando a tela foi recriada. O primeiro enquadramento,
+correções de geometria sem progresso e movimento reduzido/instantâneo permanecem
+imediatos. Arrastar o mapa cancela a interpolação; pausa congela seu andamento.
+Isso não atrasa comandos nem altera a posição autoritativa do jogador.
+
+Regressões: `RunInteractionProjectionTests` cobre todos os estados terminais;
+`WorldOneFoundationJourneyTests` consulta a sessão antes de `RESOLVE_COMBAT` em dez
+jornadas isoladas; `InteractionSessionTests` cobre cache novo e ETag antigo.
+Na Godot, `map_topology_refresh.gd` cobre expansão/redução de geometria nas três
+resoluções, e `first_combat_map_transition.gd` cobre a vitória com sessão inicialmente
+compacta, entrada no mapa completo, conexões, confirmação pendente e câmera estável.
+`map_camera_motion.gd` cobre interpolação, troca rápida de destino, refresh,
+pausa, arrasto, retorno com tela recriada, movimento reduzido e descarte da tela.
 
 ## Diagnóstico
 

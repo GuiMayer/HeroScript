@@ -12,7 +12,9 @@ public static class RunInteractionProjection
     {
         var run = context.Run;
         var mode = run.ResolvedMode;
-        var nodes = run.ActiveEncounterId.HasValue
+        // A terminal encounter remains referenced until its result is confirmed.
+        // Navigation is already visible then, so only an ACTIVE combat may compact it.
+        var nodes = run.GetActiveEncounter()?.Combat.IsActive == true
             ? run.Map.Nodes.Where(node => node.NodeId == run.CurrentNodeId) : run.Map.Nodes;
         return JsonSerializer.SerializeToElement(new
         {

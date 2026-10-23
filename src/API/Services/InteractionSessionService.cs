@@ -36,7 +36,7 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
             return Result<InteractionSessionRead>.Failure("VERSION_CONFLICT: The session revision has advanced");
         var context = new InteractionReadContext(run);
         var granted = access.EffectiveFor(run);
-        var etag = "\"" + CanonicalJson.ComputeHash(new { context.Version, granted, access.Snapshot.Profile, schema = 1 }) + "\"";
+        var etag = "\"" + CanonicalJson.ComputeHash(new { context.Version, granted, access.Snapshot.Profile, schema = 2 }) + "\"";
         if (ifNoneMatch == etag) return Result<InteractionSessionRead>.Success(new(etag, null));
         var combat = run.GetActiveEncounter()?.Combat;
         var commands = runs.GetAvailableCommands(run);

@@ -148,6 +148,21 @@ public sealed class WorldOneFoundationJourneyTests(ITestOutputHelper output)
             Assert.Equal("VICTORY", (await Read(client, $"/api/v1/combats/{combatId}")).GetProperty("status").GetString());
             Assert.True(criticalFacts >= 3, "Must execute multiple independently scoped critical impacts");
             var healthAtVictory = Health(await Read(client, $"/api/v1/runs/{runId}"));
+            // Regression: the encounter ID still exists until RESOLVE_COMBAT, but
+            // Godot already displays navigation after the last combat animation.
+            var beforeNavigationRead = (await store.LoadLatestStateAsync(runId))!;
+            var navigationHash = CanonicalJson.ComputeHash(beforeNavigationRead);
+            var victorySession = await Read(client, $"/api/v1/runs/{runId}/session");
+            var completeMap = await Read(client, $"/api/v1/runs/{runId}/map");
+            var navigationMap = victorySession.GetProperty("run").GetProperty("map");
+            Assert.Equal("VICTORY", victorySession.GetProperty("combat").GetProperty("status").GetString());
+            Assert.Equal(combatId, victorySession.GetProperty("run").GetProperty("activeEncounterId").GetGuid());
+            Assert.Equal(completeMap.GetProperty("nodes").EnumerateArray().Select(n => n.GetProperty("nodeId").GetString()),
+                navigationMap.GetProperty("nodes").EnumerateArray().Select(n => n.GetProperty("nodeId").GetString()));
+            Assert.Equal(completeMap.GetProperty("legalNextNodeIds").GetRawText(), navigationMap.GetProperty("legalNextNodeIds").GetRawText());
+            Assert.Contains(victorySession.GetProperty("commands").GetProperty("commands").EnumerateArray(),
+                command => command.GetProperty("type").GetString() == "RESOLVE_COMBAT");
+            Assert.Equal(navigationHash, CanonicalJson.ComputeHash((await store.LoadLatestStateAsync(runId))!));
             await Available("RESOLVE_COMBAT");
             Assert.Equal(healthAtVictory, Health(await Read(client, $"/api/v1/runs/{runId}")));
             await RestartBoundary();
