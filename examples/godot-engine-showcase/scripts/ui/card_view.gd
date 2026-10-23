@@ -58,6 +58,7 @@ func configure(data: Dictionary) -> void:
 		var keyline := InkKeyline.new()
 		keyline.name = "PrintedKeyline"
 		keyline.ink = visual_context.styles.INK
+		keyline.style = visual_style.keyline_style
 		keyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		face.add_child(keyline)
 	var margin := MarginContainer.new()
@@ -361,8 +362,10 @@ class FlightCompletion extends RefCounted:
 
 class InkKeyline extends Control:
 	var ink := Color("#20201c")
+	var style := "frame"
 	func reconcile_from(other) -> void:
 		ink = other.ink
+		style = other.style
 		queue_redraw()
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -371,6 +374,13 @@ class InkKeyline extends Control:
 	func _draw() -> void:
 		var owner_card := get_parent() as CardView
 		var width := 2.0 if owner_card and (owner_card.chosen or owner_card.has_focus()) else 1.0
+		if style == "registration":
+			# Passive ink inside the original keyline rect; no layout or hit-test change.
+			for corner in [Vector2(4, 4), Vector2(size.x - 4, 4), Vector2(4, size.y - 4), size - Vector2(4, 4)]:
+				var direction := Vector2(1 if corner.x < size.x * .5 else -1, 1 if corner.y < size.y * .5 else -1)
+				draw_line(corner, corner + Vector2(direction.x * 12, 0), ink, width)
+				draw_line(corner, corner + Vector2(0, direction.y * 12), ink, width)
+			return
 		draw_rect(Rect2(Vector2(4, 4), (size - Vector2(8, 8)).max(Vector2.ZERO)), ink, false, width)
 
 func _exit_tree() -> void:

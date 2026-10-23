@@ -18,6 +18,7 @@ extends Resource
 @export var art_height := 72.0
 @export_group("Printed face")
 @export var printed_face := false
+@export_enum("frame", "registration") var keyline_style := "frame"
 @export var face_radius := 12
 @export var effect_surface := Color.TRANSPARENT
 @export var effect_ink := Color("#f5ecd8")
