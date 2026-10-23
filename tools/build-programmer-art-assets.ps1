@@ -77,7 +77,7 @@ $manifestText = ($manifest | ConvertTo-Json -Depth 30) + "`n"
 if ($Check) {
     foreach ($name in $generated.Keys) {
         $path = Join-Path $assetRoot $name
-        if (-not (Test-Path -LiteralPath $path) -or [IO.File]::ReadAllText($path) -cne $generated[$name]) { throw "Generated asset differs: $name" }
+        if (-not (Test-Path -LiteralPath $path) -or [IO.File]::ReadAllText($path).Replace("`r`n", "`n") -cne $generated[$name]) { throw "Generated asset differs: $name" }
     }
     # Dictionary property order is not part of the catalogue contract.
     $actual = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -AsHashtable

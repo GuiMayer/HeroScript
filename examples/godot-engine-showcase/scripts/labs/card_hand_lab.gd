@@ -33,7 +33,9 @@ var apply_animation_button: Button
 func _ready() -> void:
 	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
 	_prior_profile = AppTheme.profile
-	AppTheme.set_profile(preload("res://data/themes/ivory_theme.tres"))
+	var lab_profile = preload("res://scripts/ui/styles/programmer_art_profile.gd").create(preload("res://data/themes/ivory_theme.tres"))
+	lab_profile.art_manifest = "res://data/labs/programmer_art_manifest.json"
+	AppTheme.set_profile(lab_profile)
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
 	var appearance = JSON.parse_string(FileAccess.get_file_as_string("res://data/presentation.json"))
 	if appearance is Dictionary: visual_context.set_resource_styles(appearance.get("resources", {}))
@@ -52,6 +54,7 @@ func _build() -> void:
 	add_child(background)
 	var trace := preload("res://scripts/ui/components/circuit_trace.gd").new()
 	trace.name = "PrintedCircuit"
+	trace.tracks = 3
 	trace.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	trace.position = Vector2(-510, 18)
 	trace.size = Vector2(480, 78)

@@ -53,3 +53,23 @@ O catálogo isolado fica em `data/labs/programmer_art_manifest.json`; os SVGs em
 `tools/build-programmer-art-assets.ps1` contém as receitas vetoriais; `-Check` verifica os arquivos produzidos. Não há geração em runtime, novas dependências ou consumo de RNG. As variações não codificam a quantidade real de acertos/stacks. Os ícones de objetos e atividades ficam preparados no catálogo, sem alterar os consumidores da run nesta etapa. Canvas e preenchimento dos símbolos de custo atuais permanecem intactos.
 
 `programmer_art_catalog.gd`: 312 verificações aprovadas de importação, cobertura das fixtures, fallback, dimensões e preservação do catálogo de cenário. Atores, retratos e fundos continuam com as mesmas associações e arquivos da etapa anterior.
+
+## Etapa 4: disponível para validação
+
+Abra **Laboratório de cartas** pelo menu existente ou execute `scenes/card_hand_lab.tscn` na Godot. A aparência nova já é a aparência padrão dessa cena. Alterne os quatro presets no seletor existente; idioma, escala de texto, alto contraste, quantidade de cartas, inspeção e animações continuam nos controles atuais.
+
+A cena deriva `ivory_theme.tres`, injeta o catálogo novo e desenha três trilhas no ornamento existente. Nenhum controle ou rótulo foi acrescentado, retirado ou reposicionado. `CardView`/`ArtSlot` são os componentes do combate. A run conserva seus perfis e catálogos; sair do laboratório restaura o perfil anterior.
+
+Capturas renderizadas:
+
+- [Mão inicial / depois](after/lab-1920x1080.png) e [antes](baseline/lab-1920x1080.png).
+- [Transformações](after/volatile.png).
+- [Conteúdo personalizado e textos longos](after/stress.png).
+
+Os 40 digests de geometria coincidem com a referência original, incluindo matrizes de transformação do fan, mínimos nativos, foco e filtro de input. A geometria é verificada a 0,01 unidade da UI, depois de estabilizar a montagem. A medição ajusta tanto o tamanho da janela quanto `content_scale_size`, para exercitar resoluções lógicas distintas mesmo em monitor menor que ultrawide.
+
+Certificação da rodada principal: dez suítes, 762 verificações distintas aprovadas; o relatório também registra uma segunda execução renderizada do teste de geometria (+42). Inclui 73 verificações do laboratório marfim, 22 de paridade de animações, 19 de seleção, 72 de geometria da mão e os testes dos shaders existentes. Não houve diagnósticos de script/shader nessa rodada. Evidência: [validation.json](validation.json).
+
+Rodada final após normalizar hashes de texto entre LF/CRLF: 42 verificações de geometria em headless e 35 verificações renderizadas dos efeitos, incluindo impacto, contorno e sheen sobre a carta real, sem diagnósticos. Evidência: [rendered-validation.json](rendered-validation.json). Os SVGs também passaram na verificação de reprodução do gerador.
+
+Limite: esta entrega certifica o laboratório e os componentes compartilhados nos testes isolados. Não foi aplicada a nova arte ao combate real nem realizada uma jornada online com a API. Essa expansão depende da validação visual deste marco e das etapas seguintes do plano.

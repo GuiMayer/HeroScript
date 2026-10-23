@@ -1,0 +1,79 @@
+[
+  {
+    "test": "programmer_art_lab",
+    "exit_code": 0,
+    "checks": 42,
+    "elapsed_ms": 13496,
+    "diagnostics": []
+  },
+  {
+    "test": "programmer_art_profile",
+    "exit_code": 0,
+    "checks": 161,
+    "elapsed_ms": 684,
+    "diagnostics": []
+  },
+  {
+    "test": "programmer_art_catalog",
+    "exit_code": 0,
+    "checks": 312,
+    "elapsed_ms": 958,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab",
+    "exit_code": 0,
+    "checks": 73,
+    "elapsed_ms": 34333,
+    "diagnostics": []
+  },
+  {
+    "test": "card_animation_parity",
+    "exit_code": 0,
+    "checks": 22,
+    "elapsed_ms": 10517,
+    "diagnostics": []
+  },
+  {
+    "test": "art_effect_lab",
+    "exit_code": 0,
+    "checks": 20,
+    "elapsed_ms": 2537,
+    "diagnostics": []
+  },
+  {
+    "test": "art_effects",
+    "exit_code": 0,
+    "checks": 31,
+    "elapsed_ms": 1877,
+    "diagnostics": []
+  },
+  {
+    "test": "hand_selection",
+    "exit_code": 0,
+    "checks": 19,
+    "elapsed_ms": 2273,
+    "diagnostics": []
+  },
+  {
+    "test": "reference_hand_geometry",
+    "exit_code": 0,
+    "checks": 72,
+    "elapsed_ms": 15224,
+    "diagnostics": []
+  },
+  {
+    "test": "theme_contracts",
+    "exit_code": 0,
+    "checks": 10,
+    "elapsed_ms": 581,
+    "diagnostics": []
+  },
+  {
+    "test": "programmer_art_lab",
+    "exit_code": 0,
+    "checks": 42,
+    "elapsed_ms": 13774,
+    "diagnostics": []
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "test": "programmer_art_lab",
+    "exit_code": 0,
+    "checks": 42,
+    "elapsed_ms": 7895,
+    "diagnostics": []
+  },
+  {
+    "test": "art_effects",
+    "exit_code": 0,
+    "checks": 35,
+    "elapsed_ms": 5278,
+    "diagnostics": []
+  }
+]

@@ -25,7 +25,7 @@ func geometry(node: Node, path := "root", rows: Array = []) -> Array:
 func motion_sources() -> Dictionary:
 	var result := {}
 	for path in ["res://scripts/ui/card_hand_view.gd", "res://scripts/presentation/card_choreography.gd", "res://scripts/presentation/card_animation_profile.gd", "res://scripts/presentation/motion_policy.gd", "res://data/motion_manifest.json", "res://data/labs/card_animation_catalog.json", "res://scripts/labs/card_motion_lab.gd", "res://shaders/card_burn.gdshader"]:
-		if FileAccess.file_exists(path): result[path] = FileAccess.get_sha256(path)
+		if FileAccess.file_exists(path): result[path] = FileAccess.get_file_as_string(path).replace("\r\n", "\n").sha256_text()
 	return result
 func run() -> void:
 	for arg in OS.get_cmdline_user_args():
