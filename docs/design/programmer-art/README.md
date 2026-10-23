@@ -43,3 +43,13 @@ Para capturas, adicionar `-VisualTest programmer_art_lab -VisualOutputDirectory 
 SVGs estáticos, cores planas, formas geométricas e três trilhas a 45°. Mapeamentos explícitos por ID e fallback neutro; sem sorteio, API ou interpretação de regras. O número de formas da ilustração é decorativo e não substitui os valores da carta.
 
 O novo perfil é opt-in no laboratório. As configurações e os assets antigos continuam disponíveis para a run. Nenhum recurso já utilizado pelo combate deve ser sobrescrito nesta entrega.
+
+## Etapas 2 e 3
+
+`ProgrammerArtProfile.create(base)` deriva um perfil sem duplicar fontes ou alterar métricas. A paleta fica no perfil, e `CardVisualStyle.keyline_style` seleciona entre a moldura anterior e marcas de registro. `CardView` continua sendo o único componente de carta: a variação muda somente o desenho passivo dentro do mesmo rect. Verificação do perfil: 161 checks de herança, mínimos dos estilos e preservação dos Resources de origem.
+
+O catálogo isolado fica em `data/labs/programmer_art_manifest.json`; os SVGs em `assets/programmer-art`. São 22 famílias, cada uma com três composições de carta 320×150 e um símbolo quadrado 128×128 (88 arquivos), com 94 associações explícitas de cartas. As amostras conhecidas têm associação explícita; conteúdo de mod desconhecido recebe um documento com núcleo geométrico neutro. O nome de placeholder impresso abaixo da arte é preservado.
+
+`tools/build-programmer-art-assets.ps1` contém as receitas vetoriais; `-Check` verifica os arquivos produzidos. Não há geração em runtime, novas dependências ou consumo de RNG. As variações não codificam a quantidade real de acertos/stacks. Os ícones de objetos e atividades ficam preparados no catálogo, sem alterar os consumidores da run nesta etapa. Canvas e preenchimento dos símbolos de custo atuais permanecem intactos.
+
+`programmer_art_catalog.gd`: 312 verificações aprovadas de importação, cobertura das fixtures, fallback, dimensões e preservação do catálogo de cenário. Atores, retratos e fundos continuam com as mesmas associações e arquivos da etapa anterior.
