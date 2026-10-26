@@ -23,6 +23,9 @@ var scope := ""
 var order: Array[String] = []
 var arrangement = preload("res://scripts/ui/hand_arrangement.gd").new()
 var _arrangement_bound := false
+var reorder_enabled := true
+var reorder_drop_filter: Callable
+var _preview_slot := -1
 var _cards := {}
 var _slots := {}
 var _motions := {}
@@ -385,7 +388,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	if not _presenting:
 		var was_dragging: bool = interaction.dragging
 		if arrangement.sync(incoming) and was_dragging: cancel_gesture()
-	for id in order:
+	for id in _cards.keys():
 		if id not in incoming: _remove(id)
 	order = incoming if _presenting else arrangement.confirmed.duplicate()
 	if interaction.selected not in order: interaction.selected = ""
@@ -454,6 +457,7 @@ func set_read_only(value: bool) -> void:
 	if value: cancel_gesture(); hit_surface.follow_card("")
 func cancel_gesture() -> void:
 	interaction.cancel_pointer()
+	_cancel_reorder_preview()
 	_clear_ghost()
 	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 func duration() -> float:
@@ -539,7 +543,7 @@ func _apply_emphasis() -> void:
 		if not _cards.has(id): continue
 		if _transit.has(id): continue
 		if i >= _layout.rotations.size(): continue
-		var raised := id == active
+		var raised: bool = id == active and not interaction.dragging
 		var target := Vector2(0, -visual_style.lift * visual_context.hand_emphasis) if raised else Vector2.ZERO
 		var angle: float = 0 if raised else _layout.rotations[i]
 		var card: CardView = _cards[id]
@@ -728,13 +732,36 @@ func _drag_visual(point: Vector2) -> void:
 	preload("res://scripts/ui/card_motion_pose.gd").apply(_ghost, point + _grip_offset,
 		float(_drag_pose.rotation) + deg_to_rad(_drag_tilt), _drag_pose.scale)
 	_last_drag_point = point; _last_drag_usec = now
+	_update_reorder_preview(point)
 	drag_previewed.emit(_ghost_id, point)
+func contains_reorder_point(point: Vector2) -> bool:
+	if not reorder_enabled or read_only or reading_modal or _presenting or not is_inside_tree(): return false
+	if not hit_surface.is_visible_in_tree(): return false
+	if toolbar.is_visible_in_tree() and toolbar.get_global_rect().has_point(point): return false
+	var bar := scroll.get_h_scroll_bar()
+	if bar.is_visible_in_tree() and bar.get_global_rect().has_point(point): return false
+	if reorder_drop_filter.is_valid() and not reorder_drop_filter.call(point): return false
+	return Rect2(Vector2.ZERO, hit_surface.size).has_point(hit_surface.get_global_transform().affine_inverse() * point)
+func _update_reorder_preview(point: Vector2) -> void:
+	if not contains_reorder_point(point) or not is_instance_valid(_ghost): _cancel_reorder_preview(); return
+	if arrangement.dragged != _ghost_id: arrangement.begin(_ghost_id); _preview_slot = order.find(_ghost_id)
+	var geometry := Layout.calculate(order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, layout_mode())
+	var centers: Array = geometry.positions.map(func(position): return position.x + _reserved_card_size.x * .5)
+	var center: Vector2 = surface.get_global_transform().affine_inverse() * preload("res://scripts/ui/card_motion_pose.gd").read(_ghost).center
+	_preview_slot = Layout.insertion_index(centers, center.x, _preview_slot, visual_style.pointer_hysteresis)
+	if arrangement.move(_preview_slot): order = arrangement.preview.duplicate(); request_layout()
+func _cancel_reorder_preview() -> void:
+	_preview_slot = -1
+	if arrangement.dragged.is_empty(): return
+	arrangement.cancel()
+	if order != arrangement.confirmed: order = arrangement.confirmed.duplicate(); request_layout()
 func _process(delta: float) -> void:
 	if not interaction.dragging or not is_instance_valid(_ghost): return
 	if Time.get_ticks_usec() - _last_drag_usec > 35000:
 		_drag_tilt *= exp(-12.0 * delta)
 		_ghost.rotation = float(_drag_pose.rotation) + deg_to_rad(_drag_tilt)
 func _return_ghost() -> void:
+	_cancel_reorder_preview()
 	if not is_instance_valid(_ghost): return
 	var id := _ghost_id
 	var start := preload("res://scripts/ui/card_motion_pose.gd").read(_ghost)
@@ -749,6 +776,7 @@ func _return_ghost() -> void:
 				preload("res://scripts/ui/card_motion_pose.gd").blend(start, target, policy.progress("drag_return", raw))), 0.0, 1.0, seconds)
 	_return_tween.finished.connect(_clear_ghost, CONNECT_ONE_SHOT)
 func _clear_ghost() -> void:
+	_cancel_reorder_preview()
 	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
 	_return_tween = null
 	var ghost := _ghost; var id := _ghost_id

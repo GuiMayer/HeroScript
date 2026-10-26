@@ -1,4 +1,18 @@
 extends RefCounted
+static func insertion_index(centers: Array, x: float, previous: int, hysteresis: float) -> int:
+	if centers.is_empty(): return 0
+	var index := clampi(previous, 0, centers.size()-1)
+	while index < centers.size()-1:
+		var boundary: float = (float(centers[index]) + float(centers[index+1])) * .5
+		var margin := minf(hysteresis, (float(centers[index+1])-float(centers[index])) * .15)
+		if x <= boundary + margin: break
+		index += 1
+	while index > 0:
+		var boundary: float = (float(centers[index-1]) + float(centers[index])) * .5
+		var margin := minf(hysteresis, (float(centers[index])-float(centers[index-1])) * .15)
+		if x >= boundary - margin: break
+		index -= 1
+	return index
 ## Pure presentation geometry, not an engine calculation.
 static func calculate(count: int, available: float, card: Vector2, style: Resource, mode: String) -> Dictionary:
 	var angle := deg_to_rad(maxf(style.minimum_fan_angle_degrees, style.maximum_angle_degrees * minf(1., (count - 1) / 3.))) if mode == "adaptive" and count > 1 else 0.0
