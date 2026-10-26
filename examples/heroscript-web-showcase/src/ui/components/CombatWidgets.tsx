@@ -19,28 +19,47 @@ export const ResourceView: React.FC<{
     ? Math.min(1, Math.max(0, (current - min) / (max - min)))
     : 1;
 
-  const isHealth = resourceId.toLowerCase().includes("health") || resourceId.toLowerCase().includes("hp");
-  const isShield = resourceId.toLowerCase().includes("shield") || resourceId.toLowerCase().includes("guard") || resourceId.toLowerCase().includes("block");
-  const barColor = isHealth
-    ? "#a4322c"
+  const lowerId = resourceId.toLowerCase();
+  const isHealth = lowerId.includes("health") || lowerId.includes("hp");
+  const isShield =
+    lowerId.includes("shield") ||
+    lowerId.includes("guard") ||
+    lowerId.includes("block");
+  const barGradient = isHealth
+    ? "linear-gradient(90deg, #8c201b 0%, #c93b32 100%)"
     : isShield
-    ? "#286853"
-    : "#b83e25";
+    ? "linear-gradient(90deg, #1b5c46 0%, #2d8f6e 100%)"
+    : "linear-gradient(90deg, #9c3119 0%, #d45335 100%)";
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between text-xs font-semibold">
-        <span className="text-[#5b574f] truncate">{name}</span>
-        <span className="font-mono font-bold text-[#20201c]">
+        <span className="text-[#59544b] truncate flex items-center gap-1">
+          <span
+            className="inline-block w-2 h-2 rounded-full shrink-0"
+            style={{
+              background: isHealth
+                ? "#c93b32"
+                : isShield
+                ? "#2d8f6e"
+                : "#c99e3a",
+            }}
+          />
+          {name}
+        </span>
+        <span className="font-mono font-bold text-[#1e1d19]">
           {translator.number(current)}
           {hasBounds ? ` / ${translator.number(max)}` : ""}
         </span>
       </div>
       {hasBounds && !compact && (
-        <div className="w-full h-2 rounded-sm bg-[#eee4d1] border border-[#8d8270]/60 overflow-hidden">
+        <div className="w-full h-2.5 rounded-full bg-[#ded2bc] border border-[#8d806b]/70 overflow-hidden shadow-inner">
           <div
-            className="h-full transition-all duration-200"
-            style={{ width: `${Math.round(ratio * 100)}%`, backgroundColor: barColor }}
+            className="h-full rounded-full transition-all duration-200"
+            style={{
+              width: `${Math.round(ratio * 100)}%`,
+              background: barGradient,
+            }}
           />
         </div>
       )}
@@ -66,8 +85,13 @@ export const ActorPanel: React.FC<{
   const actor = isPlainObject(item.actor) ? item.actor : item;
   const instanceId = String(actor.instanceId ?? "");
   const definitionId = String(actor.definitionId ?? instanceId);
-  const name = translator.contentName(definitionId, String(actor.name ?? instanceId));
-  const relationship = String(item.relationship ?? actor.relationship ?? "Neutral");
+  const name = translator.contentName(
+    definitionId,
+    String(actor.name ?? instanceId)
+  );
+  const relationship = String(
+    item.relationship ?? actor.relationship ?? "Neutral"
+  );
   const isInputActor = Boolean(actor.isInputActor);
   const intent = String(item.intent ?? "");
   const resources = Array.isArray(actor.resources)
@@ -81,6 +105,11 @@ export const ActorPanel: React.FC<{
     : [];
 
   const isHostile = relationship === "Hostile";
+  const accentColor = isInputActor
+    ? "#1f6f54"
+    : isHostile
+    ? "#a92e28"
+    : "#5f4b8b";
 
   return (
     <div
@@ -89,19 +118,17 @@ export const ActorPanel: React.FC<{
           onSelectTarget(instanceId);
         }
       }}
-      className={`relative ivory-panel rounded-md p-3.5 flex flex-col gap-2.5 transition-all duration-150 ${
+      className={`relative ivory-panel rounded-lg p-3.5 flex flex-col gap-2.5 transition-all duration-150 ${
         validTarget
-          ? "cursor-pointer ring-2 ring-[#b83e25] hover:bg-[#eee4d1]/60"
+          ? "cursor-pointer target-reticle-glow hover:-translate-y-0.5"
           : ""
-      } ${selectedTarget ? "ring-4 ring-[#b83e25] bg-[#eee4d1]" : ""}`}
+      } ${
+        selectedTarget
+          ? "ring-4 ring-[#c03d22] bg-[#f4ead7]"
+          : ""
+      }`}
       style={{
-        borderTop: `4px solid ${
-          isInputActor
-            ? "#286853"
-            : isHostile
-            ? "#a4322c"
-            : "#625383"
-        }`,
+        borderTop: `4px solid ${accentColor}`,
       }}
     >
       {/* Floating combat feedback */}
@@ -110,7 +137,7 @@ export const ActorPanel: React.FC<{
           {floatingTexts.map((ft) => (
             <span
               key={ft.id}
-              className="px-2 py-0.5 rounded text-xs font-bold shadow bg-[#20201c] text-[#faf5eb] animate-bounce"
+              className="px-2.5 py-0.5 rounded-full text-xs font-bold shadow-md bg-[#1e1d19] text-[#edd282] border border-[#c99e3a] animate-bounce"
             >
               {ft.text}
             </span>
@@ -120,37 +147,47 @@ export const ActorPanel: React.FC<{
 
       {/* Actor Header */}
       <div className="flex items-center gap-3">
-        <ArtSlot
-          category="actors"
-          contentId={definitionId}
-          fallbackLabel={name}
-          aspectRatio="1/1"
-          className="w-14 h-14 rounded shrink-0"
-        />
+        <div
+          className="p-0.5 rounded-md shadow-xs shrink-0"
+          style={{
+            background: `linear-gradient(135deg, ${accentColor} 0%, #c99e3a 100%)`,
+          }}
+        >
+          <ArtSlot
+            category="actors"
+            contentId={definitionId}
+            fallbackLabel={name}
+            aspectRatio="1/1"
+            className="w-14 h-14 rounded-[5px] border-0"
+          />
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <h4 className="font-display font-semibold text-sm m-0 truncate text-[#20201c]">
+            <h4 className="font-display font-bold text-sm m-0 truncate text-[#1e1d19]">
               {name}
             </h4>
             {isInputActor && (
-              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#286853] text-[#faf5eb]">
+              <span className="px-1.5 py-0.5 text-[9px] font-display font-bold uppercase rounded-full bg-[#1f6f54] text-[#faf5eb] shadow-2xs">
                 {translator.text("ACTIVE")}
               </span>
             )}
           </div>
-          <span className="text-[11px] text-[#5b574f] uppercase tracking-wider">
+          <span
+            className="text-[10px] font-display font-bold uppercase tracking-widest"
+            style={{ color: accentColor }}
+          >
             {translator.text(relationship.toUpperCase())}
           </span>
         </div>
       </div>
 
-      {/* Intent Box */}
+      {/* Telegraphed Intent Box */}
       {intent && (
-        <div className="px-2.5 py-1.5 rounded bg-[#20201c] text-[#faf5eb] text-xs border-l-3 border-[#b83e25]">
-          <div className="text-[10px] uppercase tracking-wider text-[#f2ebdd]/70 font-semibold">
+        <div className="px-3 py-1.5 rounded-md bg-gradient-to-r from-[#1e1d19] to-[#2c2922] text-[#faf5eb] text-xs border-l-3 border-[#c99e3a] shadow-inner">
+          <div className="text-[9px] font-display uppercase tracking-widest text-[#edd282] font-bold">
             {translator.text("INTENT")}
           </div>
-          <div className="whitespace-pre-line font-medium">{intent}</div>
+          <div className="whitespace-pre-line font-semibold">{intent}</div>
         </div>
       )}
 
@@ -169,14 +206,14 @@ export const ActorPanel: React.FC<{
 
       {/* Statuses & Modifiers */}
       {(statuses.length > 0 || modifiers.length > 0) && (
-        <div className="flex flex-wrap gap-1 pt-1 border-t border-[#8d8270]/40">
+        <div className="flex flex-wrap gap-1 pt-1.5 border-t border-[#8d8270]/40">
           {statuses.map((st, idx) => {
             const stId = String(st.statusId ?? "");
             const stacks = Number(st.stacks ?? 1);
             return (
               <span
                 key={`st-${idx}`}
-                className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[#eee4d1] border border-[#8d8270] text-[#20201c]"
+                className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#e8dcc4] border border-[#8d8270] text-[#1e1d19] shadow-2xs"
                 title={stId}
               >
                 {translator.contentName(stId)} {stacks > 1 ? `×${stacks}` : ""}
@@ -189,7 +226,7 @@ export const ActorPanel: React.FC<{
             return (
               <span
                 key={`mod-${idx}`}
-                className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[#625383]/15 border border-[#625383]/40 text-[#625383]"
+                className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#5f4b8b]/15 border border-[#5f4b8b]/45 text-[#5f4b8b]"
                 title={modId}
               >
                 {translator.contentName(modId)} {stacks > 1 ? `×${stacks}` : ""}
@@ -200,7 +237,7 @@ export const ActorPanel: React.FC<{
       )}
 
       {validTarget && (
-        <div className="mt-1 text-center py-1 rounded bg-[#b83e25] text-[#faf5eb] font-display text-[11px] font-semibold tracking-wider">
+        <div className="mt-1 text-center py-1 rounded-md bg-gradient-to-r from-[#c03d22] to-[#9c2d17] text-[#faf5eb] font-display text-[11px] font-bold tracking-widest shadow-sm">
           {translator.text("SELECT TARGET")}
         </div>
       )}
@@ -229,12 +266,12 @@ export const CharacterSidebarView: React.FC<{
     : [];
 
   return (
-    <div className="ivory-panel rounded-md p-4 flex flex-col gap-4">
+    <div className="ivory-panel rounded-lg p-4 flex flex-col gap-4 border-t-4 border-t-[#c99e3a]">
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-[#5b574f]">
+        <div className="text-[10px] font-display font-bold uppercase tracking-widest text-[#b83e25]">
           {translator.text("EXPEDITION STATUS")}
         </div>
-        <h3 className="font-display text-base font-bold m-0 text-[#20201c]">
+        <h3 className="font-display text-lg font-bold m-0 text-[#1e1d19]">
           {translator.contentName(
             String(run.playerEntityId ?? "player"),
             translator.text("Wayfarer")
@@ -244,7 +281,7 @@ export const CharacterSidebarView: React.FC<{
 
       {resources.length > 0 && (
         <div className="space-y-2">
-          <div className="text-[11px] font-display font-semibold uppercase tracking-wider text-[#5b574f] border-b border-[#8d8270]/40 pb-1">
+          <div className="text-[11px] font-display font-bold uppercase tracking-wider text-[#59544b] border-b border-[#8d8270]/40 pb-1">
             {translator.text("RESOURCES")}
           </div>
           {resources.map((pool, idx) => (
@@ -258,11 +295,11 @@ export const CharacterSidebarView: React.FC<{
       )}
 
       <div className="space-y-1.5">
-        <div className="text-[11px] font-display font-semibold uppercase tracking-wider text-[#5b574f] border-b border-[#8d8270]/40 pb-1">
+        <div className="text-[11px] font-display font-bold uppercase tracking-wider text-[#59544b] border-b border-[#8d8270]/40 pb-1">
           {translator.text("RELICS")} ({relics.length})
         </div>
         {relics.length === 0 ? (
-          <div className="text-xs text-[#5b574f] italic">
+          <div className="text-xs text-[#59544b] italic">
             {translator.text("No relics claimed yet.")}
           </div>
         ) : (
@@ -272,9 +309,9 @@ export const CharacterSidebarView: React.FC<{
               return (
                 <span
                   key={id}
-                  className="px-2 py-1 text-xs font-semibold rounded bg-[#eee4d1] border border-[#8d8270] text-[#20201c]"
+                  className="px-2.5 py-1 text-xs font-bold rounded-full bg-[#e8dcc4] border border-[#c99e3a] text-[#1e1d19] shadow-2xs"
                 >
-                  {translator.contentName(id)}
+                  ✦ {translator.contentName(id)}
                 </span>
               );
             })}
@@ -283,10 +320,10 @@ export const CharacterSidebarView: React.FC<{
       </div>
 
       <div className="pt-2 border-t border-[#8d8270]/40 flex items-center justify-between text-xs">
-        <span className="font-semibold text-[#5b574f]">
+        <span className="font-display font-bold text-[#59544b]">
           {translator.text("DECK CARDS")}
         </span>
-        <span className="font-mono font-bold text-[#20201c]">
+        <span className="px-2 py-0.5 rounded-full bg-[#1e1d19] text-[#edd282] font-mono font-bold">
           {cards.length}
         </span>
       </div>
@@ -301,21 +338,22 @@ export const CardDetailsModal: React.FC<{
   onClose: () => void;
 }> = ({ model, inspectionText = "", translator, onClose }) => {
   if (!model || Object.keys(model).length === 0) return null;
-  const text = inspectionText || String(model.inspectionText ?? model.summary ?? "");
+  const text =
+    inspectionText || String(model.inspectionText ?? model.summary ?? "");
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+      className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="ivory-panel max-w-3xl w-full rounded-md overflow-hidden flex flex-col max-h-[88vh]"
+        className="ivory-panel max-w-3xl w-full rounded-lg overflow-hidden flex flex-col max-h-[88vh] border-2 border-[#c99e3a]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270]">
-          <h3 className="font-display text-lg font-semibold m-0">
+        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50">
+          <h3 className="font-display text-lg font-bold m-0 text-[#edd282]">
             {translator.text("CARD INSPECTION")} — {String(model.name ?? "")}
           </h3>
           <button
@@ -327,15 +365,15 @@ export const CardDetailsModal: React.FC<{
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start">
+        <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start bg-[#f4ebd9]">
           <div className="flex justify-center">
             <CardView model={model} playable={true} />
           </div>
           <div className="space-y-3">
-            <div className="text-xs font-display font-semibold uppercase tracking-wider text-[#5b574f]">
+            <div className="text-xs font-display font-bold uppercase tracking-wider text-[#59544b]">
               {translator.text("PUBLISHED ENGINE FACTS")}
             </div>
-            <pre className="p-3.5 rounded bg-[#20201c] text-[#faf5eb] font-mono text-xs whitespace-pre-wrap leading-relaxed m-0 overflow-x-auto">
+            <pre className="p-4 rounded-lg bg-[#1c1b18] text-[#faf5eb] border border-[#8d806b]/50 font-mono text-xs whitespace-pre-wrap leading-relaxed m-0 overflow-x-auto shadow-inner">
               {text || translator.text("Detailed inspection is unavailable.")}
             </pre>
           </div>
@@ -362,17 +400,17 @@ export const CardZoneDialog: React.FC<{
 }) => {
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+      className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="ivory-panel max-w-5xl w-full max-h-[86vh] rounded-md flex flex-col overflow-hidden"
+        className="ivory-panel max-w-5xl w-full max-h-[86vh] rounded-lg flex flex-col overflow-hidden border-2 border-[#c99e3a]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270]">
-          <h3 className="font-display text-lg font-semibold m-0">
+        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50">
+          <h3 className="font-display text-lg font-bold m-0 text-[#edd282]">
             {title} ({cards.length})
           </h3>
           <button
@@ -384,17 +422,19 @@ export const CardZoneDialog: React.FC<{
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto flex-1">
+        <div className="p-6 overflow-y-auto flex-1 bg-[#f4ebd9]">
           {!visible ? (
-            <div className="py-12 text-center text-sm text-[#5b574f] italic">
-              {translator.text("Contents of this zone are hidden by game rules.")}
+            <div className="py-12 text-center text-sm text-[#59544b] italic">
+              {translator.text(
+                "Contents of this zone are hidden by game rules."
+              )}
             </div>
           ) : cards.length === 0 ? (
-            <div className="py-12 text-center text-sm text-[#5b574f] italic">
+            <div className="py-12 text-center text-sm text-[#59544b] italic">
               {translator.text("This zone is currently empty.")}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-4 justify-center">
+            <div className="flex flex-wrap gap-5 justify-center">
               {cards.map((card, idx) => {
                 const instanceId = String(
                   card.cardInstanceId ?? card.definitionId ?? idx

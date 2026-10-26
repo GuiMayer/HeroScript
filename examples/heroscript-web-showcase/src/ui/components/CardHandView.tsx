@@ -50,7 +50,7 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  const cardSize = { x: 224, y: 324 };
+  const cardSize = { x: 230, y: 336 };
   const style = new HandVisualStyle();
   const layout = HandLayout.calculate(
     cards.length,
@@ -64,13 +64,14 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
 
   return (
     <div className="flex flex-col w-full select-none" ref={containerRef}>
-      {/* Hand Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#eee4d1]/90 border-t border-b border-[#8d8270]/60 text-xs">
-        <div className="flex items-center gap-3">
-          <span className="font-display font-semibold tracking-wider text-[#20201c]">
+      {/* Tabletop Hand Rail Header */}
+      <div className="flex items-center justify-between px-4 py-1.5 bg-gradient-to-r from-[#24221d] via-[#2d2a23] to-[#24221d] text-[#faf5eb] border-t border-b border-[#c99e3a]/40 text-xs shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-block w-2 h-2 rounded-full bg-[#c99e3a]" />
+          <span className="font-display font-bold tracking-wider text-[#edd282]">
             {label || translator.text("PLAYABLE CARDS")}
           </span>
-          <span className="text-[#5b574f] font-semibold">
+          <span className="px-2 py-0.5 rounded-full bg-[#faf5eb]/12 text-[#faf5eb] font-mono text-[11px] font-bold">
             ({cards.length})
           </span>
         </div>
@@ -80,7 +81,7 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
             <button
               type="button"
               onClick={() => onInspectCard(activeId)}
-              className="ivory-button px-2.5 py-1 text-[11px] rounded"
+              className="ivory-button px-2.5 py-0.5 text-[11px] rounded"
             >
               {translator.text("Inspect card")}
             </button>
@@ -89,7 +90,7 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
             <button
               type="button"
               onClick={() => setOverviewOpen(true)}
-              className="ivory-button px-2.5 py-1 text-[11px] rounded"
+              className="ivory-button px-2.5 py-0.5 text-[11px] rounded"
             >
               {translator.text("Hand overview")}
             </button>
@@ -99,11 +100,11 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
 
       {/* Hand Fan / Reading Surface */}
       {cards.length === 0 ? (
-        <div className="h-[220px] flex items-center justify-center text-[#5b574f] italic text-sm bg-[#f2ebdd]/50">
+        <div className="h-[220px] flex items-center justify-center text-[#5b574f] italic text-sm bg-[#e8dcc6]/60 inner-shadow">
           {translator.text("No cards in hand.")}
         </div>
       ) : (
-        <div className="w-full overflow-x-auto overflow-y-hidden pb-2 pt-2">
+        <div className="w-full overflow-x-auto overflow-y-hidden pb-3 pt-3 bg-gradient-to-b from-[#e4d7be]/70 to-[#d8c8aa]/90">
           <div
             className="relative mx-auto transition-all duration-150"
             style={{
@@ -123,12 +124,12 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
 
               const liftY =
                 isSelected || isHovered
-                  ? -style.lift * Math.max(0.35, emphasis)
+                  ? -style.lift * Math.max(0.4, emphasis)
                   : 0;
               const rot = isSelected || isHovered ? 0 : deg;
               const scale =
                 isSelected || isHovered
-                  ? 1 + 0.06 * Math.max(0.3, emphasis)
+                  ? 1 + 0.065 * Math.max(0.3, emphasis)
                   : 1;
               const zIndex = isHovered
                 ? 200
@@ -152,7 +153,7 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
                     transformOrigin: "center bottom",
                     zIndex,
                     transition:
-                      "transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), left 0.14s cubic-bezier(0.22, 1, 0.36, 1), top 0.14s cubic-bezier(0.22, 1, 0.36, 1)",
+                      "transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), left 0.16s cubic-bezier(0.22, 1, 0.36, 1), top 0.16s cubic-bezier(0.22, 1, 0.36, 1)",
                   }}
                   onMouseEnter={() => {
                     setHoveredId(instanceId);
@@ -187,17 +188,17 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
       {/* Hand Overview Modal */}
       {overviewOpen && (
         <div
-          className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+          className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
           onClick={() => setOverviewOpen(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
-            className="ivory-panel max-w-6xl w-full max-h-[88vh] rounded-md flex flex-col overflow-hidden"
+            className="ivory-panel max-w-6xl w-full max-h-[88vh] rounded-lg flex flex-col overflow-hidden border-2 border-[#c99e3a]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270]">
-              <h3 className="font-display text-lg font-semibold m-0">
+            <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50">
+              <h3 className="font-display text-lg font-bold m-0 text-[#edd282]">
                 {translator.text("Hand overview")} ({cards.length})
               </h3>
               <button
@@ -208,7 +209,7 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
                 {translator.text("Close")}
               </button>
             </div>
-            <div className="p-5 overflow-y-auto flex flex-wrap gap-4 justify-center">
+            <div className="p-6 overflow-y-auto flex flex-wrap gap-5 justify-center bg-[#efe5d2]">
               {cards.map((card, idx) => {
                 const instanceId = String(
                   card.cardInstanceId ?? card.definitionId ?? idx

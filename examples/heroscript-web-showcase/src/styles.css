@@ -15,21 +15,23 @@
 }
 
 :root {
-  --ivory-night: #05060b;
-  --ivory-canvas: #f2ebdd;
-  --ivory-panel: #faf5eb;
-  --ivory-raised: #eee4d1;
-  --ivory-ink: #20201c;
-  --ivory-muted: #5b574f;
-  --ivory-primary: #b83e25;
-  --ivory-warm: #98311d;
-  --ivory-positive: #286853;
-  --ivory-danger: #a4322c;
-  --ivory-power: #625383;
-  --ivory-border: #8d8270;
-  --ivory-gold: #c49b3b;
-  --ivory-effects-bg: #20201c;
-  --ivory-effects-ink: #faf5eb;
+  --ivory-night: #0c0d12;
+  --ivory-table: #181715;
+  --ivory-canvas: #ece2cf;
+  --ivory-panel: #fbf6ec;
+  --ivory-raised: #e6dac3;
+  --ivory-ink: #1e1d19;
+  --ivory-muted: #59544b;
+  --ivory-primary: #c03d22;
+  --ivory-warm: #9c2d17;
+  --ivory-positive: #1f6f54;
+  --ivory-danger: #a92e28;
+  --ivory-power: #5f4b8b;
+  --ivory-border: #8d806b;
+  --ivory-gold: #c99e3a;
+  --ivory-gold-light: #edd282;
+  --ivory-effects-bg: #1c1b18;
+  --ivory-effects-ink: #fbf6ec;
   --text-scale: 1;
 }
 
@@ -39,9 +41,9 @@
   --ivory-raised: #f0ece1;
   --ivory-ink: #0a0a08;
   --ivory-muted: #262420;
-  --ivory-border: #20201c;
+  --ivory-border: #1e1d19;
   --ivory-primary: #9e2912;
-  --ivory-positive: #164f3c;
+  --ivory-positive: #13523d;
   --ivory-danger: #8c1d18;
 }
 
@@ -73,70 +75,149 @@ body,
   font-family: "Source Sans 3", system-ui, sans-serif;
 }
 
-/* Ivory Editorial Paper & Circuit Surface Utilities */
+/* Tabletop & Ivory Surface System */
 .ivory-surface {
   background-color: var(--ivory-canvas);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(255, 250, 238, 0.72) 0%, rgba(230, 218, 195, 0.35) 55%, rgba(190, 174, 146, 0.28) 100%),
+    repeating-linear-gradient(90deg, rgba(141, 128, 107, 0.04) 0px, rgba(141, 128, 107, 0.04) 1px, transparent 1px, transparent 36px),
+    repeating-linear-gradient(0deg, rgba(141, 128, 107, 0.04) 0px, rgba(141, 128, 107, 0.04) 1px, transparent 1px, transparent 36px);
   color: var(--ivory-ink);
+}
+
+.tabletop-arena {
+  background-color: #1e1c18;
+  background-image:
+    radial-gradient(ellipse at 50% 38%, rgba(62, 54, 43, 0.78) 0%, rgba(27, 25, 21, 0.94) 68%, #12110e 100%),
+    repeating-linear-gradient(45deg, rgba(201, 158, 58, 0.03) 0px, rgba(201, 158, 58, 0.03) 1px, transparent 1px, transparent 28px);
+  color: var(--ivory-panel);
 }
 
 .ivory-panel {
-  background-color: var(--ivory-panel);
+  background: linear-gradient(180deg, #fdfaf3 0%, var(--ivory-panel) 100%);
+  color: var(--ivory-ink);
   border: 1.5px solid var(--ivory-border);
-  box-shadow: 0 2px 8px rgba(32, 32, 28, 0.06);
+  box-shadow:
+    0 6px 20px rgba(24, 22, 18, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .ivory-raised {
-  background-color: var(--ivory-raised);
+  background: linear-gradient(180deg, #f3ead8 0%, var(--ivory-raised) 100%);
   border: 1px solid var(--ivory-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .ivory-button {
-  background-color: var(--ivory-panel);
+  background: linear-gradient(180deg, #fdfaf2 0%, #efe5d2 100%);
   color: var(--ivory-ink);
-  border: 1.5px solid var(--ivory-ink);
+  border: 1.5px solid #2b2923;
   font-family: "Cinzel", Georgia, serif;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  box-shadow:
+    0 2px 0 #2b2923,
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition: all 0.14s cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
 }
 
 .ivory-button:hover:not(:disabled) {
-  background-color: var(--ivory-raised);
+  background: linear-gradient(180deg, #fffdf8 0%, #f5ebd8 100%);
   border-color: var(--ivory-primary);
   color: var(--ivory-primary);
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 3.5px 0 var(--ivory-primary),
+    0 6px 14px rgba(192, 61, 34, 0.16);
 }
 
 .ivory-button:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0.5px);
+  box-shadow: 0 1px 0 #2b2923;
 }
 
 .ivory-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .ivory-button-primary {
-  background-color: var(--ivory-primary);
+  background: linear-gradient(180deg, #d1482b 0%, #a53118 100%);
   color: var(--ivory-effects-ink);
-  border: 1.5px solid var(--ivory-ink);
+  border: 1.5px solid #1e1d19;
   font-family: "Cinzel", Georgia, serif;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 2.5px 0 #1e1d19,
+    0 4px 12px rgba(192, 61, 34, 0.28),
+    inset 0 1px 0 rgba(255, 220, 200, 0.35);
   transition: all 0.14s cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
 }
 
 .ivory-button-primary:hover:not(:disabled) {
-  background-color: var(--ivory-warm);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(184, 62, 37, 0.25);
+  background: linear-gradient(180deg, #df5234 0%, #b4361b 100%);
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 4px 0 #1e1d19,
+    0 8px 20px rgba(192, 61, 34, 0.42),
+    inset 0 1px 0 rgba(255, 235, 220, 0.5);
+}
+
+.ivory-button-primary:active:not(:disabled) {
+  transform: translateY(0.5px);
+  box-shadow: 0 1px 0 #1e1d19;
 }
 
 .ivory-button-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Modern Physical Card Frame */
+.tcg-card-frame {
+  background: linear-gradient(165deg, #fcf8ef 0%, #f2e8d5 52%, #e6d9c0 100%);
+  position: relative;
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s ease;
+}
+
+.tcg-card-frame::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 7px;
+  border: 1px solid rgba(201, 158, 58, 0.38);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.tcg-cost-orb {
+  background: radial-gradient(circle at 32% 28%, #48453e 0%, #1e1d19 68%, #0e0d0b 100%);
+  border: 1.5px solid #d4af4c;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.38),
+    inset 0 1px 1px rgba(255, 244, 214, 0.35);
+}
+
+/* Target Reticle Pulse */
+@keyframes targetPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #c03d22, 0 0 16px rgba(192, 61, 34, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px #e05336, 0 0 26px rgba(224, 83, 54, 0.72);
+  }
+}
+
+.target-reticle-glow {
+  animation: targetPulse 1.6s ease-in-out infinite;
 }
 
 /* Card Burn Dissolve Animation */
@@ -176,7 +257,7 @@ body,
 
 ::-webkit-scrollbar-thumb {
   background: var(--ivory-border);
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
