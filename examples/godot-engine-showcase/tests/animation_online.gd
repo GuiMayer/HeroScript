@@ -13,6 +13,7 @@ func _run() -> void:
 	var cursor = root.get_node("Playback")
 	var prefs = root.get_node("Preferences")
 	prefs.auto_animations = true; prefs.animation_preset = "fast"
+	prefs.reduced_motion = false; prefs.animation_speed = 1.0
 	if not check(await session.connect_engine(), "connect real engine"): quit(1); return
 	var seed := int(Time.get_unix_time_from_system()) % 1000000000
 	for setting in ["default", "ascendant", "volatile-core"]:
@@ -36,6 +37,12 @@ func _run() -> void:
 			if str(option.get("source", "")) == "Card": candidate = option; break
 		if check(not candidate.is_empty(), setting + ": receive legal card"):
 			var sequence := int(session.run.sequence)
+			var trace = screen._interaction_trace
+			if setting == "ascendant":
+				var card_id := str(candidate.command.cardInstanceId)
+				var center: Vector2 = preload("res://scripts/ui/card_motion_pose.gd").read(screen.view.hand.card_for(card_id)).center
+				screen.view.hand.interaction.pressed = card_id; screen.view.hand.interaction.press_position = center; screen.view.hand.interaction.dragging = true
+				screen.view.hand._drag_visual(center + Vector2(70, -40))
 			await screen._play_candidate(candidate)
 			var published: String = JSON.stringify(session.run)
 			var started := Time.get_ticks_msec()
@@ -43,6 +50,10 @@ func _run() -> void:
 			await settle()
 			check(not cursor.has_blocking_work() and int(session.run.sequence) == sequence + 1, setting + ": real receipt settles without a second command")
 			check(JSON.stringify(session.run) == published, setting + ": animation leaves authoritative state unchanged")
+			var marks: Dictionary = trace.snapshot()
+			check(marks.has("receipt") and marks.has("envelope") and marks.has("settled") and marks.sent >= marks.input and marks.receipt >= marks.sent and marks.settled >= marks.envelope,
+				setting + ": correlated input, REST and settlement milestones")
+			print("INTERACTION_METRIC=", JSON.stringify(marks))
 			check(not cursor.measurements().is_empty(), setting + ": record separate synchronization and visual timings")
 			print("PRESENTATION_METRIC=", JSON.stringify(cursor.measurements()[-1]) if not cursor.measurements().is_empty() else "none")
 			var verification: Dictionary = await session.verify()

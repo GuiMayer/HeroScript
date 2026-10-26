@@ -1,6 +1,9 @@
 {
   "scenarios": [
     {"id":"use","label":"Use card","operation":"use","count":1},
+    {"id":"use_swift","label":"Swift card motion","operation":"use","count":1,"timing":"swift"},
+    {"id":"use_smooth","label":"Smooth card motion","operation":"use","count":1,"timing":"smooth"},
+    {"id":"use_linear","label":"Linear timing comparison","operation":"use","count":1,"timing":"linear"},
     {"id":"retained","label":"Use retained card","operation":"retained","count":1},
     {"id":"draw_one","label":"Draw 1","operation":"draw","count":1},
     {"id":"draw_five","label":"Draw 5","operation":"draw","count":5},

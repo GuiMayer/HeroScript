@@ -77,6 +77,11 @@ func random_labels() -> Dictionary: return _random.duplicate(true)
 func curve(key: String) -> int: return CURVES.get(str(_easings.get(key, {}).get("curve", "linear")), Tween.TRANS_LINEAR)
 func easing(key: String) -> int: return EASES.get(str(_easings.get(key, {}).get("ease", "in_out")), Tween.EASE_IN_OUT)
 func shape(key: String) -> Dictionary: return as_dictionary(_shapes.get(key, {})).duplicate()
+func set_timing(name: String) -> void:
+	if name not in ["linear", "swift", "smooth"]: return
+	for key in ["card_flight", "retain", "zone_transfer"]:
+		var value: Dictionary = _shapes.get(key, {}).duplicate()
+		value.timing = name; _shapes[key] = value
 func progress(key: String, value: float) -> float:
 	if _shapes.get(key, {}).has("timing"):
 		return preload("res://scripts/presentation/motion_curves.gd").sample(str(_shapes[key].timing), value)

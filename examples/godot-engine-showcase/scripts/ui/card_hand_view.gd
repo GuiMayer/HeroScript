@@ -8,6 +8,8 @@ signal card_hovered(instance_id: String)
 signal inspection_requested(instance_id: String)
 signal selection_requested(instance_id: String)
 signal drop_requested(instance_id: String, global_point: Vector2)
+signal drag_previewed(instance_id: String, global_point: Vector2)
+signal drag_ended
 const Layout = preload("res://scripts/ui/hand_layout.gd")
 const Retarget = preload("res://scripts/ui/hand_retarget_motion.gd")
 @export var visual_style: HandVisualStyle = preload("res://data/default_hand_visual_style.tres")
@@ -43,6 +45,7 @@ var previous: Button
 var next: Button
 var _ghost: CardView
 var _ghost_id := ""
+var _parked_drag := ""
 var _drag_pose: Dictionary = {}
 var _grip_offset := Vector2.ZERO
 var _last_drag_point := Vector2.ZERO
@@ -247,6 +250,8 @@ func borrow_card(id: String, overlay: Control) -> Control:
 	var pose := preload("res://scripts/ui/card_motion_pose.gd").read(card)
 	begin_transit(id)
 	card.reparent(overlay, false)
+	card.set_as_top_level(false)
+	if _parked_drag == id: _parked_drag = ""
 	preload("res://scripts/ui/card_motion_pose.gd").apply(card, pose.center, pose.rotation, pose.scale)
 	card.process_mode = Node.PROCESS_MODE_PAUSABLE
 	card.show()
@@ -279,6 +284,11 @@ func prepare_use(id: String, lift := true) -> void:
 
 func reject_use(id: String) -> void:
 	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
+	if _parked_drag == id and _cards.has(id):
+		_preparations.erase(id); _parked_drag = ""
+		_ghost = _cards[id]; _ghost_id = id; _ghost.modulate.a = 1.0
+		_return_ghost()
+		return
 	_preparations.erase(id); _transit.erase(id); _emphasis.erase(id)
 	if _cards.has(id): _cards[id].modulate.a = 1.0
 	_apply_emphasis()
@@ -290,9 +300,12 @@ func _park_drag(id: String) -> bool:
 	var card := _ghost
 	var pose := preload("res://scripts/ui/card_motion_pose.gd").read(card)
 	_ghost = null; _ghost_id = ""; _drag_pose.clear()
-	card.set_as_top_level(false); card.reparent(_slots[id], false); card.z_index = 0
+	# Stay outside ScrollContainer clipping while the REST command is pending.
+	# The registry will borrow this exact pose only after acceptance.
+	_parked_drag = id
 	preload("res://scripts/ui/card_motion_pose.gd").write(card, pose)
 	interaction.cancel_pointer()
+	drag_ended.emit()
 	return true
 
 func set_tools_below_cards(value: bool) -> void:
@@ -376,6 +389,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	if not hit_surface._tooltip_id.is_empty(): hit_surface.follow_card(hit_surface._tooltip_id)
 
 func _remove(id: String) -> void:
+	if _parked_drag == id: _parked_drag = ""
 	if _cards.has(id) and _slots.has(id) and _cards[id].get_parent() != _slots[id]:
 		_cards[id].hide(); _cards[id].queue_free()
 	if _entries.has(id) and _entries[id].is_valid(): _entries[id].kill()
@@ -699,6 +713,7 @@ func _drag_visual(point: Vector2) -> void:
 	preload("res://scripts/ui/card_motion_pose.gd").apply(_ghost, point + _grip_offset,
 		float(_drag_pose.rotation) + deg_to_rad(_drag_tilt), _drag_pose.scale)
 	_last_drag_point = point; _last_drag_usec = now
+	drag_previewed.emit(_ghost_id, point)
 func _process(delta: float) -> void:
 	if not interaction.dragging or not is_instance_valid(_ghost): return
 	if Time.get_ticks_usec() - _last_drag_usec > 35000:
@@ -724,6 +739,7 @@ func _clear_ghost() -> void:
 	var ghost := _ghost; var id := _ghost_id
 	_ghost = null; _ghost_id = ""; _drag_pose.clear()
 	if is_instance_valid(ghost) and _cards.get(id) == ghost and _slots.has(id): return_card(id, ghost, true)
+	if not id.is_empty(): drag_ended.emit()
 func show_overview() -> void:
 	if reading_modal or not overview_enabled: return
 	var dialog = load("res://scripts/ui/hand_overview_dialog.gd").new(visual_context)

@@ -199,6 +199,8 @@ func _build_hand() -> void:
 			if _locked() or id not in card_buttons: return
 			intent_requested.emit("select_card", [id]))
 		hand.drop_requested.connect(_drop_card)
+		hand.drag_previewed.connect(_preview_drag_targets)
+		hand.drag_ended.connect(_restore_drag_targets)
 		hand_section.add_child(hand)
 	if not is_instance_valid(pile_controls):
 		pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
@@ -590,6 +592,18 @@ func _apply_preview_composition() -> void:
 
 func _drop_card(id: String, point: Vector2) -> void:
 	intent_requested.emit("_drop_card", [id, point])
+
+func _preview_drag_targets(card_id: String, point: Vector2) -> void:
+	# Only decorate targets from published candidates; do not select or submit.
+	var hovered := target_at(point)
+	for id in target_buttons:
+		var allowed := _candidates(card_id).any(func(candidate): return id in _targets(candidate))
+		target_buttons[id].modulate = (visual_context.styles.GOLD if id == hovered else visual_context.styles.GOLD.lightened(.18)) if allowed else Color.WHITE
+
+func _restore_drag_targets() -> void:
+	for id in target_buttons:
+		var allowed := not selected_card.is_empty() and _candidates(selected_card).any(func(candidate): return id in _targets(candidate))
+		target_buttons[id].modulate = visual_context.styles.GOLD if allowed else Color.WHITE
 
 func _select_target(actor_id: String) -> void:
 	intent_requested.emit("_select_target", [actor_id])

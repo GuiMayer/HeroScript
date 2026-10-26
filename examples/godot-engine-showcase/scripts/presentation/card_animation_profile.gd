@@ -8,6 +8,7 @@ static func read() -> Dictionary:
 	return value if value is Dictionary else {}
 static func apply(policy) -> void:
 	var profile := read()
+	policy.set_timing(str(profile.get("timing", "")))
 	for operation in KEYS:
 		var entry = profile.get("use", profile.get("retained")) if operation in ["use", "retained"] else profile.get(operation)
 		if not entry is Dictionary: continue
@@ -20,9 +21,10 @@ static func apply(policy) -> void:
 			for flow in flows:
 				if flows[flow].get("animation") == "burn": flows[flow]["direction"] = str(entry.get("direction", "center"))
 			policy._cues["card_flows"] = flows
-static func save(operation: String, seconds: float, direction: String) -> Error:
+static func save(operation: String, seconds: float, direction: String, timing := "") -> Error:
 	if not KEYS.has(operation) or not is_finite(seconds) or seconds < 0 or seconds > 30: return ERR_INVALID_PARAMETER
 	var profile := read()
+	if timing in ["linear", "swift", "smooth"]: profile["timing"] = timing
 	profile[operation] = {"seconds": seconds, "direction": direction}
 	# Both are the same two-phase use family; the early accepted flight must
 	# have the same duration before post-command inspection knows retention.

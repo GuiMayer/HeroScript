@@ -37,6 +37,7 @@ func play(scenario: Dictionary, initial: Array) -> void:
 	_active_preset = preset
 	context.motion = preload("res://scripts/presentation/motion_policy.gd").capture(context.setting_id,
 		{"animation_preset": preset, "reduced_motion": context.reduced_motion, "animation_speed": context.animation_speed})
+	context.motion.set_timing(str(scenario.get("timing", "")))
 	final_models = initial.duplicate(true); _models.clear()
 	for model in initial: _models[str(model.cardInstanceId)] = model
 	var frames: Array = []; var reservations: Array = []

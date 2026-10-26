@@ -257,7 +257,7 @@ func _animation_selected(_id: String) -> void:
 func apply_animation_to_combat() -> void:
 	var scenario: Dictionary = animation_picker.selected_scenario()
 	var policy = visual_context.capture_motion()
-	var result: Error = preload("res://scripts/presentation/card_animation_profile.gd").save(str(scenario.get("operation", "")), animation_cycle.value * policy.speed, str(scenario.get("direction", "center")))
+	var result: Error = preload("res://scripts/presentation/card_animation_profile.gd").save(str(scenario.get("operation", "")), animation_cycle.value * policy.speed, str(scenario.get("direction", "center")), str(scenario.get("timing", "")))
 	status.text = I18n.text("Animation applied to combat. Active animations keep their captured settings.") if result == OK else I18n.text("Could not save the animation profile.")
 
 func enrich_selected() -> void:

@@ -16,6 +16,7 @@ func _run() -> void:
 	var release := Pose.read(card)
 	hand.prepare_use(id); hand.set_read_only(true)
 	check(hand._ghost == null and Pose.read(card).center.distance_to(release.center) < .01 and hand.is_in_transit(id), "pending submission preserves dragged release pose through input locking")
+	check(card.get_parent() == hand and card.is_set_as_top_level() and hand._parked_drag == id, "pending dragged face stays outside the clipped hand container")
 	await create_timer(.12).timeout
 	check(Pose.read(card).center.distance_to(release.center) < .01 and JSON.stringify(card.model) == model, "slow network cannot move a pending drag into a game destination or mutate its model")
 	hand.reject_use(id); hand.set_read_only(false); await create_timer(.18).timeout

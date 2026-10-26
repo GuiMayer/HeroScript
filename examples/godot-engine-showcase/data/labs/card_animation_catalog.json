@@ -7,6 +7,11 @@
         {"id": "burn_edges", "label": "From edges", "scenario": {"operation": "burn", "direction": "edges"}}
       ]},
       {"id": "use", "label": "Use card", "scenarioId": "use"},
+      {"label": "Motion style (shared with combat)", "items": [
+        {"id": "use_swift", "label": "Swift", "scenarioId": "use_swift"},
+        {"id": "use_smooth", "label": "Smooth", "scenarioId": "use_smooth"},
+        {"id": "use_linear", "label": "Linear comparison", "scenarioId": "use_linear"}
+      ]},
       {"id": "retained", "label": "Use retained card", "scenarioId": "retained"}
     ]},
     {"label": "Card piles", "items": [
