@@ -15,6 +15,11 @@
       {"id": "retained", "label": "Use retained card", "scenarioId": "retained"}
     ]},
     {"label": "Card piles", "items": [
+      {"label": "Hand arrangement", "items": [
+        {"id": "arrange_first_last", "label": "Move first to last", "scenarioId": "arrange_first_last"},
+        {"id": "arrange_last_first", "label": "Move last to first", "scenarioId": "arrange_last_first"},
+        {"id": "arrange_cancel", "label": "Cancel insertion", "scenarioId": "arrange_cancel"}
+      ]},
       {"label": "Draw cards", "items": [
         {"id": "draw_one", "label": "Draw 1", "scenarioId": "draw_one"},
         {"id": "draw_five", "label": "Draw 5", "scenarioId": "draw_five"},

@@ -1,7 +1,7 @@
 extends RefCounted
 ## Optional local visual override. Only an explicit lab action writes it.
 const PATH := "user://card_animation_profile.json"
-const KEYS := {"burn": ["exile_burn"], "use": ["card_flight", "staged_discard"], "retained": ["card_flight", "retain"], "draw": ["draw"], "discard": ["discard"], "create": ["create"], "destroy": ["destroy"]}
+const KEYS := {"burn": ["exile_burn"], "use": ["card_flight", "staged_discard"], "retained": ["card_flight", "retain"], "draw": ["draw"], "discard": ["discard"], "create": ["create"], "destroy": ["destroy"], "arrange": ["hand_transition"]}
 static func read() -> Dictionary:
 	if not FileAccess.file_exists(PATH): return {}
 	var value = JSON.parse_string(FileAccess.get_file_as_string(PATH))

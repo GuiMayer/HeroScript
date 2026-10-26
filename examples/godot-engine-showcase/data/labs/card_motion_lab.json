@@ -1,5 +1,8 @@
 {
   "scenarios": [
+    {"id":"arrange_first_last","label":"Move first to last","operation":"arrange","fromIndex":0,"toIndex":99},
+    {"id":"arrange_last_first","label":"Move last to first","operation":"arrange","fromIndex":99,"toIndex":0},
+    {"id":"arrange_cancel","label":"Cancel hand insertion","operation":"arrange","fromIndex":0,"toIndex":99,"cancel":true},
     {"id":"use","label":"Use card","operation":"use","count":1},
     {"id":"use_swift","label":"Swift card motion","operation":"use","count":1,"timing":"swift"},
     {"id":"use_smooth","label":"Smooth card motion","operation":"use","count":1,"timing":"smooth"},

@@ -42,7 +42,9 @@ func play(scenario: Dictionary, initial: Array) -> void:
 	for model in initial: _models[str(model.cardInstanceId)] = model
 	var frames: Array = []; var reservations: Array = []
 	var operation := str(scenario.operation); var count: int = int(scenario.get("count", 1))
-	if operation in ["draw", "draw_discard", "create"] and not initial.is_empty():
+	if operation == "arrange":
+		frames.append({"presentationOnly": "hand_reorder", "fromIndex": scenario.get("fromIndex", 0), "toIndex": scenario.get("toIndex", initial.size()-1), "cancel": scenario.get("cancel", false)})
+	elif operation in ["draw", "draw_discard", "create"] and not initial.is_empty():
 		var arrivals: Array = []
 		for index in count:
 			var model: Dictionary = initial[index % initial.size()].duplicate(true)
@@ -76,12 +78,16 @@ func play(scenario: Dictionary, initial: Array) -> void:
 		_fit_cycle(frames, seconds)
 		director.watchdog_seconds = maxf(12, seconds + 2)
 	else: director.watchdog_seconds = 12
-	hand.clear_choice(); hand.set_read_only(true); hand.begin_presentation(reservations if not reservations.is_empty() else final_models)
+	hand.clear_choice(); hand.set_read_only(operation != "arrange")
+	if operation != "arrange": hand.begin_presentation(reservations if not reservations.is_empty() else final_models)
 	registry = preload("res://scripts/ui/card_transit_registry.gd").new(hand, overlay, context)
 	_running = true
 	playback.load_receipt({"state": {"resolution": {"frames": frames}}}); director._process(0)
 
 func _fit_cycle(frames: Array, seconds: float) -> void:
+	if not frames.is_empty() and frames[0].get("presentationOnly") == "hand_reorder":
+		context.motion._values.hand_transition = seconds * context.motion.speed
+		return
 	preload("res://scripts/presentation/card_choreography.gd").fit_cycle(frames, context.motion, seconds, _zones, _anchor, _role, Burn.enabled(context, _active_preset))
 func _flow(source: String, destination: String, ids: Array, key := "instanceIds") -> Dictionary:
 	var step := {"sourceAddress": "lab::actor::" + source, "targetAddress": "lab::actor::" + destination}; step[key] = ids
@@ -93,13 +99,16 @@ func _anchor(address: String, id: String) -> Vector2:
 	return Vector2.INF
 func _role(address: String) -> String: return "hand" if address == "lab::actor::hand" else "pile"
 func _can_animate(frame: Dictionary) -> bool:
+	if frame.get("presentationOnly") == "hand_reorder": return context.motion.duration("hand_transition", true) > 0 and hand.order.size() > 1
 	if frame.get("presentationOnly") == "card_burn":
 		return Burn.enabled(context, _active_preset, float(frame.durationSeconds)) and is_instance_valid(hand.card_for(str(frame.cardInstanceId)))
 	if frame.get("presentationOnly") == "card_departure": return context.motion.duration("card_flight", true) > 0
 	return not preload("res://scripts/ui/card_zone_motion.gd").resolve(frame.get("cardZoneSteps", []), _zones, _anchor, context.motion, _role).is_empty()
 func _execute(frame: Dictionary, handle) -> void:
 	_last_instant = not _can_animate(frame)
-	if frame.get("presentationOnly") == "card_burn":
+	if frame.get("presentationOnly") == "hand_reorder":
+		preload("res://scripts/labs/hand_reorder_lab.gd").execute(frame, hand, handle)
+	elif frame.get("presentationOnly") == "card_burn":
 		GameAudio.card()
 		Burn.execute(str(frame.cardInstanceId), str(frame.direction), hand, registry, context, overlay, handle, _active_preset, float(frame.durationSeconds))
 	elif frame.get("presentationOnly") == "card_departure":
