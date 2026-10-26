@@ -23,11 +23,15 @@ public static class EntityDefinitionValidator
             return Result.Failure($"Duplicate entity componentId: {duplicate.Key}");
         if (definition.Components.OfType<ResourceEntityComponentDefinition>().Count() > 1)
             return Result.Failure("An entity may define only one resources component");
+        if (definition.Components.OfType<DeckCompartmentProfileComponentDefinition>().Count() > 1)
+            return Result.Failure("An entity may define only one deck compartment profile");
 
         foreach (var component in definition.Components)
         {
             switch (component)
             {
+                case DeckCompartmentProfileComponentDefinition profile when string.IsNullOrWhiteSpace(profile.ProfileId):
+                    return Result.Failure("Deck compartment profile ID is required");
                 case ResourceEntityComponentDefinition resources:
                     foreach (var (resourceId, pool) in resources.Pools)
                     {
@@ -52,6 +56,7 @@ public static class EntityDefinitionValidator
                     HasInvalidOrDuplicateIds(abilities.AbilityIds):
                     return Result.Failure("Entity ability IDs must be non-empty and unique");
                 case not ResourceEntityComponentDefinition and
+                    not DeckCompartmentProfileComponentDefinition and
                     not StatEntityComponentDefinition and
                     not InventoryEntityComponentDefinition and
                     not AbilityEntityComponentDefinition:

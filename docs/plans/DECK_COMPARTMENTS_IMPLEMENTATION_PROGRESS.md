@@ -34,7 +34,7 @@ CardBundleCompiler suporta custos, condições, targeting, disposition, triggers
 ## Situação das etapas
 
 1. Contratos e inventário: concluída.
-2. Conteúdo e vínculo: pendente.
+2. Conteúdo e vínculo: concluída. Profiles/policies revisionados, grants referenciando bundles genéricos, vínculo tipado da entidade e materialização. 20 testes de conteúdo/entidade aprovados; modo sem política omite o campo novo. Nenhum setting existente foi habilitado.
 3. Estado/transições: pendente.
 4. Composição: pendente.
 5. Consumidores: pendente.

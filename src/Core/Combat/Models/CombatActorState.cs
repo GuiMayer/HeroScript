@@ -10,9 +10,15 @@ namespace Core.Combat.Models;
 [JsonDerivedType(typeof(StatEntityComponentState), "stats")]
 [JsonDerivedType(typeof(InventoryEntityComponentState), "inventory")]
 [JsonDerivedType(typeof(AbilityEntityComponentState), "abilities")]
+[JsonDerivedType(typeof(DeckCompartmentProfileComponentState), "deck_compartments")]
 public abstract record EntityComponentState
 {
     public string ComponentId { get; init; } = string.Empty;
+}
+
+public sealed record DeckCompartmentProfileComponentState : EntityComponentState
+{
+    public string ProfileId { get; init; } = string.Empty;
 }
 
 public sealed record ResourceEntityComponentState : EntityComponentState

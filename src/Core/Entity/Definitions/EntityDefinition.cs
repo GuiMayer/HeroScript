@@ -41,9 +41,16 @@ public sealed record EntityDefinition
 [JsonDerivedType(typeof(StatEntityComponentDefinition), "stats")]
 [JsonDerivedType(typeof(InventoryEntityComponentDefinition), "inventory")]
 [JsonDerivedType(typeof(AbilityEntityComponentDefinition), "abilities")]
+[JsonDerivedType(typeof(DeckCompartmentProfileComponentDefinition), "deck_compartments")]
 public abstract record EntityComponentDefinition
 {
     public string ComponentId { get; init; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record DeckCompartmentProfileComponentDefinition : EntityComponentDefinition
+{
+    public string ProfileId { get; init; } = string.Empty;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

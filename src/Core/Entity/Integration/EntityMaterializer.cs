@@ -66,6 +66,10 @@ public sealed class EntityMaterializer
     {
         return component switch
         {
+            DeckCompartmentProfileComponentDefinition profile => Result<EntityComponentState>.Success(new DeckCompartmentProfileComponentState
+            {
+                ComponentId = profile.ComponentId, ProfileId = profile.ProfileId
+            }),
             ResourceEntityComponentDefinition resources => MaterializeResources(resources, ownerId, contentRevision, configName),
             StatEntityComponentDefinition stats => Result<EntityComponentState>.Success(new StatEntityComponentState
             {

@@ -149,6 +149,8 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("content-binding-policies", "content-binding-policies", typeof(ContentBindingPolicyDefinition), "contentBindingPolicyId"),
         new("daily-challenges", "daily-challenges", typeof(DailyChallengeDefinition), "challengeId"),
         new("decks", "decks", typeof(JsonElement)),
+        new("deck-compartment-profiles", "deck-compartment-profiles", typeof(Core.Run.DeckCompartments.DeckCompartmentProfileDefinition), "profileId"),
+        new("deck-compartment-policies", "deck-compartment-policies", typeof(Core.Run.DeckCompartments.DeckCompartmentPolicyDefinition), "policyId"),
         new("dialogues", "dialogues", typeof(Core.Run.Dialogue.DialogueDefinition), "dialogueId"),
         new("enemies", "enemies", typeof(JsonElement)),
         new("enemy-pools", "enemy-pools", typeof(EnemyPoolDefinition), "enemyPoolId"),

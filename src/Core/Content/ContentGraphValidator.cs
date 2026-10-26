@@ -63,6 +63,18 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         }
 
         var runtime = created.Value;
+        foreach (var id in runtime.GetDefinitions("deck-compartment-profiles").Keys)
+        {
+            var profile = runtime.GetDefinition<Run.DeckCompartments.DeckCompartmentProfileDefinition>("deck-compartment-profiles", id);
+            var valid = profile.IsFailure ? Result.Failure(profile.Error) : profile.Value.Validate(runtime);
+            if (valid.IsFailure) errors.Add($"deck-compartment-profiles/{id}: {valid.Error}");
+        }
+        foreach (var id in runtime.GetDefinitions("deck-compartment-policies").Keys)
+        {
+            var policy = runtime.GetDefinition<Run.DeckCompartments.DeckCompartmentPolicyDefinition>("deck-compartment-policies", id);
+            var valid = policy.IsFailure ? Result.Failure(policy.Error) : policy.Value.Validate();
+            if (valid.IsFailure) errors.Add($"deck-compartment-policies/{id}: {valid.Error}");
+        }
         ValidateModes(runtime, errors);
         foreach (var id in runtime.GetDefinitions("effect-resolution-policies").Keys)
         {
@@ -188,6 +200,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     if (valid.IsFailure) errors.Add($"modes/{id}: {valid.Error}");
                 }
             }
+            if (mode.Value.DeckCompartmentPolicyId is { } compartmentPolicyId)
+                Require(runtime, errors, "modes", id, compartmentPolicyId, "deck-compartment-policies");
             if (mode.Value.ProfileProgressProvenance is { } provenance && !Enum.IsDefined(provenance))
                 errors.Add($"modes/{id}: invalid profile progress provenance");
             if (!string.IsNullOrWhiteSpace(mode.Value.ActorResourceLifecyclePolicyId))
@@ -728,6 +742,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 }
                 foreach (var actionId in entity.Component<AbilityEntityComponentDefinition>()?.AbilityIds ?? [])
                     Require(runtime, errors, "entities", id, actionId, "actions");
+                if (entity.Component<DeckCompartmentProfileComponentDefinition>() is { } profile)
+                    Require(runtime, errors, "entities", id, profile.ProfileId, "deck-compartment-profiles");
             }
             catch (Exception exception)
             {
