@@ -123,14 +123,19 @@ export const CombatScreen: React.FC<{
     const fromZones = zonePresenter.playableCards();
     if (fromZones.length > 0) return fromZones;
     const deck = isPlainObject(snapshot.run.deck) ? snapshot.run.deck : {};
-    const handIds: string[] = Array.isArray(deck.hand) ? deck.hand.map(String) : [];
+    const handIds: string[] = Array.isArray(deck.hand)
+      ? deck.hand.map(String)
+      : [];
     return handIds
       .map((id: string) => presenter.cardInstance(id))
       .filter((c: JsonObject) => Object.keys(c).length > 0);
   }, [zonePresenter, snapshot.run, presenter]);
 
   const handCardIds = useMemo(
-    () => playableInstances.map((c: JsonObject) => String(c.cardInstanceId ?? "")),
+    () =>
+      playableInstances.map((c: JsonObject) =>
+        String(c.cardInstanceId ?? "")
+      ),
     [playableInstances]
   );
 
@@ -255,24 +260,24 @@ export const CombatScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      {/* Top Combat Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <div className="flex items-center gap-4">
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
-            {String(headerModel.title ?? "COMBAT")}
-          </h2>
-          <span className="px-2.5 py-0.5 rounded bg-[#20201c] text-[#faf5eb] font-display text-xs font-semibold">
+      {/* Top Obsidian & Gold Combat HUD Bar */}
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-2.5 bg-gradient-to-r from-[#1c1b17] via-[#28251e] to-[#1c1b17] text-[#faf5eb] border-b-2 border-[#c99e3a] shadow-md">
+        <div className="flex items-center gap-3.5">
+          <span className="px-3 py-1 rounded-full bg-gradient-to-b from-[#d4af4c] to-[#a88225] text-[#1e1d19] font-display text-xs font-extrabold tracking-wider shadow-xs">
             {String(headerModel.round ?? "ROUND 1")}
           </span>
-          <span className="text-xs font-mono text-[#5b574f] hidden sm:inline">
+          <h2 className="font-display text-lg font-bold m-0 text-[#edd282] tracking-wide">
+            {String(headerModel.title ?? "COMBAT")}
+          </h2>
+          <span className="text-xs font-mono text-[#faf5eb]/70 hidden sm:inline">
             {String(headerModel.context ?? "")}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {Boolean(hud.has_frames) && (
-            <div className="flex items-center gap-1.5 bg-[#faf5eb] px-2.5 py-1 rounded border border-[#8d8270]">
-              <span className="text-xs font-semibold text-[#b83e25]">
+            <div className="flex items-center gap-1.5 bg-[#faf5eb]/10 px-2.5 py-1 rounded-md border border-[#c99e3a]/50">
+              <span className="text-xs font-semibold text-[#edd282]">
                 {i18n.text("Frames")}: {Number(hud.remaining_frames ?? 0)}
               </span>
               {!preferences.autoAnimations && (
@@ -332,16 +337,22 @@ export const CombatScreen: React.FC<{
         </div>
       </header>
 
-      {/* Main Battlefield Area */}
+      {/* Main Battlefield Arena */}
       <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-between gap-4">
-        {/* Actors Grid: Friendly vs Hostile */}
+        {/* Combatants Formation Grid: Allied Party vs Hostile Opposition */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Allied Side */}
-          <div className="space-y-3">
-            <div className="text-xs font-display font-semibold uppercase tracking-widest text-[#286853] border-b border-[#286853]/30 pb-1">
-              {i18n.text("EXPEDITION PARTY")}
+          {/* Allied Formation */}
+          <div className="rounded-lg p-3.5 bg-[#f7f0e2]/70 border border-[#1f6f54]/30 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-[#1f6f54]/30 pb-1.5">
+              <span className="text-xs font-display font-bold uppercase tracking-widest text-[#1f6f54] flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#1f6f54]" />
+                {i18n.text("EXPEDITION PARTY")}
+              </span>
+              <span className="text-[11px] font-mono font-bold text-[#59544b]">
+                {friendlyActors.length}
+              </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {friendlyActors.map((item, idx) => {
                 const actor = isPlainObject(item.actor) ? item.actor : item;
                 const id = String(actor.instanceId ?? idx);
@@ -360,12 +371,18 @@ export const CombatScreen: React.FC<{
             </div>
           </div>
 
-          {/* Hostile Side */}
-          <div className="space-y-3">
-            <div className="text-xs font-display font-semibold uppercase tracking-widest text-[#a4322c] border-b border-[#a4322c]/30 pb-1">
-              {i18n.text("OPPOSITION")}
+          {/* Hostile Formation */}
+          <div className="rounded-lg p-3.5 bg-[#f7f0e2]/70 border border-[#a92e28]/30 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-[#a92e28]/30 pb-1.5">
+              <span className="text-xs font-display font-bold uppercase tracking-widest text-[#a92e28] flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#a92e28]" />
+                {i18n.text("OPPOSITION")}
+              </span>
+              <span className="text-[11px] font-mono font-bold text-[#59544b]">
+                {hostileActors.length}
+              </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {hostileActors.map((item, idx) => {
                 const actor = isPlainObject(item.actor) ? item.actor : item;
                 const id = String(actor.instanceId ?? idx);
@@ -385,26 +402,32 @@ export const CombatScreen: React.FC<{
           </div>
         </div>
 
-        {/* Action Preview & Control Dock */}
-        <div className="ivory-panel rounded-md px-4 py-2.5 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex-1 min-w-[240px]">
-            <div className="text-[10px] font-display font-semibold uppercase tracking-wider text-[#5b574f]">
-              {i18n.text("TACTICAL PREVIEW")}
-            </div>
-            <div className="text-xs font-medium text-[#20201c] whitespace-pre-line">
-              {activeCardId
-                ? presenter.actionPreview(
-                    activeCardId,
-                    String(hud.selected_target ?? "")
-                  )
-                : selectedCardId
-                ? i18n.text("Choose a highlighted target.")
-                : i18n.text("Select a card from your hand to preview its outcome.")}
+        {/* Tactical Command Dock (Piles + Action Teleprompter + End Turn Seal) */}
+        <div className="ivory-panel rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-4 border-2 border-[#8d806b]">
+          {/* Tactical Teleprompter */}
+          <div className="flex-1 min-w-[240px] flex items-start gap-3">
+            <div className="w-1.5 self-stretch rounded-full bg-gradient-to-b from-[#c03d22] to-[#c99e3a]" />
+            <div>
+              <div className="text-[10px] font-display font-bold uppercase tracking-widest text-[#b83e25]">
+                {i18n.text("TACTICAL PREVIEW")}
+              </div>
+              <div className="text-xs font-semibold text-[#1e1d19] whitespace-pre-line">
+                {activeCardId
+                  ? presenter.actionPreview(
+                      activeCardId,
+                      String(hud.selected_target ?? "")
+                    )
+                  : selectedCardId
+                  ? i18n.text("Choose a highlighted target.")
+                  : i18n.text(
+                      "Select a card from your hand to preview its outcome."
+                    )}
+              </div>
             </div>
           </div>
 
-          {/* Auxiliary Piles (Draw / Discard / Exile) */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Auxiliary Piles & Turn Controls */}
+          <div className="flex flex-wrap items-center gap-2.5">
             {auxZones.length > 0 ? (
               auxZones.map((zone) => {
                 const zId = String(zone.zoneId ?? "");
@@ -414,10 +437,10 @@ export const CombatScreen: React.FC<{
                     key={zId}
                     type="button"
                     onClick={() => setOpenZoneId(zId)}
-                    className="ivory-button px-2.5 py-1 text-xs rounded flex items-center gap-1.5"
+                    className="ivory-button px-3 py-1.5 text-xs rounded-md flex items-center gap-2"
                   >
                     <span>{zonePresenter.zoneLabel(zone)}</span>
-                    <span className="px-1.5 py-0.2 rounded bg-[#20201c] text-[#faf5eb] font-mono text-[11px]">
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#1e1d19] text-[#edd282] font-mono text-[11px] font-bold">
                       {count}
                     </span>
                   </button>
@@ -433,10 +456,10 @@ export const CombatScreen: React.FC<{
                         key={pileKey}
                         type="button"
                         onClick={() => setOpenZoneId(pileKey)}
-                        className="ivory-button px-2.5 py-1 text-xs rounded flex items-center gap-1.5"
+                        className="ivory-button px-3 py-1.5 text-xs rounded-md flex items-center gap-2"
                       >
                         <span>{i18n.text(pileKey)}</span>
-                        <span className="px-1.5 py-0.2 rounded bg-[#20201c] text-[#faf5eb] font-mono text-[11px]">
+                        <span className="px-1.5 py-0.5 rounded-full bg-[#1e1d19] text-[#edd282] font-mono text-[11px] font-bold">
                           {cards.length}
                         </span>
                       </button>
@@ -453,7 +476,7 @@ export const CombatScreen: React.FC<{
                   audio.cancel();
                   controller.cancel();
                 }}
-                className="ivory-button px-3 py-1.5 text-xs rounded text-[#a4322c]"
+                className="ivory-button px-3.5 py-1.5 text-xs rounded-md text-[#a92e28]"
               >
                 {i18n.text("CANCEL")}
               </button>
@@ -467,7 +490,7 @@ export const CombatScreen: React.FC<{
                   await session.submitActivity(resolveChoice);
                   onNavigate("journey");
                 }}
-                className="ivory-button-primary px-4 py-1.5 text-xs rounded"
+                className="ivory-button-primary px-5 py-2 text-xs rounded-md"
               >
                 {i18n.text("CONFIRM RESULT")}
               </button>
@@ -482,7 +505,7 @@ export const CombatScreen: React.FC<{
                   audio.turn();
                   await session.submitCandidate(endTurnCandidate);
                 }}
-                className="ivory-button-primary px-4 py-1.5 text-xs rounded"
+                className="ivory-button-primary px-5 py-2 text-xs rounded-md"
               >
                 {i18n.text("END TURN")} [{preferences.actionLabel("end_turn")}]
               </button>
@@ -492,7 +515,7 @@ export const CombatScreen: React.FC<{
       </div>
 
       {/* Bottom Floating Hand Dock */}
-      <div className="bg-[#f2ebdd] border-t border-[#8d8270]">
+      <div className="bg-[#e8dcc6] border-t border-[#8d8270]">
         <CardHandView
           cards={handViewModels}
           selectedId={selectedCardId}
@@ -510,15 +533,17 @@ export const CombatScreen: React.FC<{
       {/* Alternative Cost / Option Selector Modal */}
       {optionChoices && (
         <div
-          className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+          className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
           onClick={() => setOptionChoices(null)}
         >
           <div
-            className="ivory-panel max-w-lg w-full rounded-md overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            className="ivory-panel max-w-lg w-full rounded-lg overflow-hidden border-2 border-[#c99e3a]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270] flex items-center justify-between">
-              <h3 className="font-display text-base font-semibold m-0">
+            <div className="px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold m-0 text-[#edd282]">
                 {i18n.text("CHOOSE ACTION OPTION")}
               </h3>
               <button
@@ -529,7 +554,7 @@ export const CombatScreen: React.FC<{
                 {i18n.text("Cancel")}
               </button>
             </div>
-            <div className="p-4 space-y-2.5">
+            <div className="p-4 space-y-2.5 bg-[#f4ebd9]">
               {optionChoices.options.map((opt) => {
                 const cand = opt.read<JsonObject>("candidate", {});
                 return (
@@ -543,12 +568,12 @@ export const CombatScreen: React.FC<{
                       audio.card();
                       await controller.submitOption(ref, cId);
                     }}
-                    className="w-full text-left ivory-button p-3 rounded flex flex-col gap-1"
+                    className="w-full text-left ivory-button p-3.5 rounded-md flex flex-col gap-1"
                   >
-                    <div className="font-display text-xs font-bold text-[#b83e25]">
+                    <div className="font-display text-xs font-bold text-[#c03d22]">
                       {presenter.costText(cand)}
                     </div>
-                    <div className="text-xs font-body text-[#20201c]">
+                    <div className="text-xs font-body text-[#1e1d19]">
                       {presenter.preview(cand)}
                     </div>
                   </button>
@@ -580,15 +605,17 @@ export const CombatScreen: React.FC<{
       {/* Zone Tools Modal */}
       {zoneToolsOpen && toolFlows.length > 0 && (
         <div
-          className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+          className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
           onClick={() => setZoneToolsOpen(false)}
         >
           <div
-            className="ivory-panel max-w-md w-full rounded-md overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            className="ivory-panel max-w-md w-full rounded-lg overflow-hidden border-2 border-[#c99e3a]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270] flex items-center justify-between">
-              <h3 className="font-display text-base font-semibold m-0">
+            <div className="px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold m-0 text-[#edd282]">
                 {i18n.text("CARD ZONE TOOLS")}
               </h3>
               <button
@@ -599,7 +626,7 @@ export const CombatScreen: React.FC<{
                 {i18n.text("Close")}
               </button>
             </div>
-            <div className="p-5 space-y-3 text-xs">
+            <div className="p-5 space-y-3 text-xs bg-[#f4ebd9]">
               <div>
                 <label className="block font-semibold mb-1">Flow</label>
                 <select

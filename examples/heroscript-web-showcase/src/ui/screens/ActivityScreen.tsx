@@ -96,20 +96,23 @@ export const ActivityScreen: React.FC<{
     }
   };
 
-  const lifecycle = String(snapshot.run.lifecycle ?? snapshot.run.status ?? "Active");
+  const lifecycle = String(
+    snapshot.run.lifecycle ?? snapshot.run.status ?? "Active"
+  );
   const isEnded = ["Completed", "Victory", "Defeat", "Abandoned"].includes(
     lifecycle
   );
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
+      {/* Top Expedition Header */}
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-gradient-to-r from-[#1c1b17] via-[#28251e] to-[#1c1b17] text-[#faf5eb] border-b-2 border-[#c99e3a] shadow-md">
         <div>
-          <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
-            {i18n.text("EXPEDITION STAGE")} · SEQ {Number(snapshot.run.sequence ?? 0)}
+          <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+            {i18n.text("EXPEDITION STAGE")} · SEQ{" "}
+            {Number(snapshot.run.sequence ?? 0)}
           </span>
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
+          <h2 className="font-display text-lg font-bold m-0 text-[#faf5eb]">
             {nodeTitle || i18n.text("JOURNEY")}
           </h2>
         </div>
@@ -161,7 +164,7 @@ export const ActivityScreen: React.FC<{
       </header>
 
       {verificationResult && (
-        <div className="px-6 py-2 bg-[#286853] text-[#faf5eb] text-xs font-semibold flex items-center justify-between">
+        <div className="px-6 py-2 bg-[#1f6f54] text-[#faf5eb] text-xs font-semibold flex items-center justify-between">
           <span>{verificationResult}</span>
           <button
             type="button"
@@ -179,31 +182,31 @@ export const ActivityScreen: React.FC<{
 
         <div className="space-y-6">
           {/* Stage Banner */}
-          <div className="ivory-panel rounded-md p-6 space-y-3">
+          <div className="ivory-panel rounded-lg p-6 space-y-3 border-t-4 border-t-[#c03d22]">
             <div className="flex items-center justify-between">
-              <span className="px-2 py-0.5 text-[10px] font-display font-bold uppercase rounded bg-[#20201c] text-[#faf5eb]">
+              <span className="px-2.5 py-0.5 text-[10px] font-display font-bold uppercase rounded-full bg-[#1e1d19] text-[#edd282]">
                 {String(
                   isPlainObject(currentNode.activity)
                     ? currentNode.activity.type ?? "STAGE"
                     : "STAGE"
                 )}
               </span>
-              <span className="text-xs font-mono text-[#5b574f]">
+              <span className="text-xs font-mono text-[#59544b]">
                 {String(snapshot.run.runId ?? "")}
               </span>
             </div>
-            <h3 className="font-display text-2xl font-bold m-0 text-[#20201c]">
+            <h3 className="font-display text-2xl font-bold m-0 text-[#1e1d19]">
               {nodeTitle}
             </h3>
             {nodeDesc && (
-              <p className="text-sm text-[#5b574f] m-0 leading-relaxed">
+              <p className="text-sm text-[#59544b] m-0 leading-relaxed">
                 {nodeDesc}
               </p>
             )}
 
             {isEnded && (
-              <div className="p-4 rounded bg-[#20201c] text-[#faf5eb] space-y-2">
-                <div className="font-display text-lg font-bold text-[#f5c26b]">
+              <div className="p-4 rounded-lg bg-[#1e1d19] text-[#faf5eb] border border-[#c99e3a] space-y-2">
+                <div className="font-display text-lg font-bold text-[#edd282]">
                   {i18n.text("EXPEDITION CONCLUDED")} — {lifecycle}
                 </div>
                 <div className="flex gap-3 pt-1">
@@ -228,11 +231,11 @@ export const ActivityScreen: React.FC<{
 
           {/* Card Rewards / Shop Card Offers / Upgrade Candidates */}
           {cardOffers.length > 0 && (
-            <div className="ivory-panel rounded-md p-5 space-y-4">
-              <div className="text-xs font-display font-semibold uppercase tracking-widest text-[#b83e25]">
+            <div className="ivory-panel rounded-lg p-5 space-y-4">
+              <div className="text-xs font-display font-bold uppercase tracking-widest text-[#c03d22]">
                 {i18n.text("PUBLISHED CARD OFFERS")} ({cardOffers.length})
               </div>
-              <div className="flex flex-wrap gap-5 justify-center sm:justify-start">
+              <div className="flex flex-wrap gap-6 justify-center sm:justify-start">
                 {cardOffers.map((offer, idx) => {
                   const choice = isPlainObject(offer.choice)
                     ? offer.choice
@@ -240,7 +243,7 @@ export const ActivityScreen: React.FC<{
                   return (
                     <div
                       key={idx}
-                      className="flex flex-col items-center gap-2"
+                      className="flex flex-col items-center gap-2.5"
                     >
                       <CardView
                         model={offer}
@@ -251,7 +254,7 @@ export const ActivityScreen: React.FC<{
                         type="button"
                         disabled={session.busy}
                         onClick={() => handleExecuteChoice(choice)}
-                        className="w-full ivory-button-primary py-1.5 px-3 text-xs rounded"
+                        className="w-full ivory-button-primary py-1.5 px-3 text-xs rounded-md"
                       >
                         {presenter.choiceLabel(choice, offer)}
                       </button>
@@ -264,11 +267,11 @@ export const ActivityScreen: React.FC<{
 
           {/* Action / Activity / Relic / Preparation Offers */}
           {actionOffers.length > 0 && (
-            <div className="ivory-panel rounded-md p-5 space-y-3">
-              <div className="text-xs font-display font-semibold uppercase tracking-widest text-[#5b574f]">
+            <div className="ivory-panel rounded-lg p-5 space-y-3">
+              <div className="text-xs font-display font-bold uppercase tracking-widest text-[#59544b]">
                 {i18n.text("STAGE ACTIONS")}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {actionOffers.map((offer, idx) => {
                   const choice = isPlainObject(offer.choice)
                     ? offer.choice
@@ -280,19 +283,19 @@ export const ActivityScreen: React.FC<{
                       type="button"
                       disabled={session.busy}
                       onClick={() => handleExecuteChoice(choice)}
-                      className="ivory-button p-4 rounded text-left flex flex-col justify-between gap-2"
+                      className="ivory-button p-4 rounded-lg text-left flex flex-col justify-between gap-2"
                     >
                       <div className="flex items-center justify-between gap-2 w-full">
-                        <span className="font-display font-bold text-sm text-[#b83e25]">
+                        <span className="font-display font-bold text-sm text-[#c03d22]">
                           {presenter.choiceLabel(choice, offer)}
                         </span>
                         {cost && (
-                          <span className="px-2 py-0.5 rounded bg-[#20201c] text-[#faf5eb] font-mono text-xs">
+                          <span className="px-2 py-0.5 rounded-full bg-[#1e1d19] text-[#edd282] font-mono text-xs font-bold">
                             {cost}
                           </span>
                         )}
                       </div>
-                      <div className="font-body text-xs text-[#5b574f] font-normal">
+                      <div className="font-body text-xs text-[#59544b] font-normal">
                         {String(offer.summary ?? "")}
                       </div>
                     </button>
@@ -304,11 +307,11 @@ export const ActivityScreen: React.FC<{
 
           {/* Next Route Stops */}
           {travelChoices.length > 0 && (
-            <div className="ivory-panel rounded-md p-5 space-y-3">
-              <div className="text-xs font-display font-semibold uppercase tracking-widest text-[#286853]">
+            <div className="ivory-panel rounded-lg p-5 space-y-3">
+              <div className="text-xs font-display font-bold uppercase tracking-widest text-[#1f6f54]">
                 {i18n.text("AVAILABLE DESTINATIONS")}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {travelChoices.map((choice, idx) => {
                   const offer = presenter.offer(choice);
                   return (
@@ -325,7 +328,7 @@ export const ActivityScreen: React.FC<{
                             onNavigate("dialogue");
                         }
                       }}
-                      className="ivory-button-primary p-3.5 rounded text-left flex flex-col gap-1"
+                      className="ivory-button-primary p-3.5 rounded-lg text-left flex flex-col gap-1"
                     >
                       <span className="font-display text-sm font-bold">
                         {presenter.choiceLabel(choice, offer)}
@@ -345,15 +348,17 @@ export const ActivityScreen: React.FC<{
       {/* Before / After Card Transformation Modal */}
       {transformPreview && (
         <div
-          className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+          className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
           onClick={() => setTransformPreview(null)}
         >
           <div
-            className="ivory-panel max-w-3xl w-full rounded-md overflow-hidden flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            className="ivory-panel max-w-3xl w-full rounded-lg overflow-hidden flex flex-col border-2 border-[#c99e3a]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270] flex items-center justify-between">
-              <h3 className="font-display text-base font-semibold m-0">
+            <div className="px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold m-0 text-[#edd282]">
                 {i18n.text("TRANSFORMATION PREVIEW")}
               </h3>
               <button
@@ -364,27 +369,27 @@ export const ActivityScreen: React.FC<{
                 {i18n.text("Cancel")}
               </button>
             </div>
-            <div className="p-6 space-y-4 overflow-y-auto">
+            <div className="p-6 space-y-4 overflow-y-auto bg-[#f4ebd9]">
               {transformPreview.models.length === 2 ? (
                 <div className="flex flex-wrap items-center justify-center gap-8">
                   <div className="text-center space-y-2">
-                    <div className="font-display text-xs font-bold uppercase text-[#5b574f]">
+                    <div className="font-display text-xs font-bold uppercase text-[#59544b]">
                       {i18n.text("BEFORE")}
                     </div>
                     <CardView model={transformPreview.models[0]} />
                   </div>
-                  <div className="font-display text-2xl font-bold text-[#b83e25]">
+                  <div className="font-display text-2xl font-bold text-[#c03d22]">
                     →
                   </div>
                   <div className="text-center space-y-2">
-                    <div className="font-display text-xs font-bold uppercase text-[#286853]">
+                    <div className="font-display text-xs font-bold uppercase text-[#1f6f54]">
                       {i18n.text("AFTER")}
                     </div>
                     <CardView model={transformPreview.models[1]} />
                   </div>
                 </div>
               ) : (
-                <pre className="p-4 rounded bg-[#20201c] text-[#faf5eb] font-mono text-xs whitespace-pre-wrap">
+                <pre className="p-4 rounded bg-[#1e1d19] text-[#faf5eb] font-mono text-xs whitespace-pre-wrap">
                   {transformPreview.text}
                 </pre>
               )}

@@ -77,23 +77,24 @@ export const MapScreen: React.FC<{
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-gradient-to-r from-[#1c1b17] via-[#28251e] to-[#1c1b17] text-[#faf5eb] border-b-2 border-[#c99e3a] shadow-md">
         <div className="flex items-center gap-3">
-          <h2 className="font-display text-lg font-bold m-0">
+          <h2 className="font-display text-lg font-bold m-0 text-[#edd282]">
             {i18n.text("EXPEDITION ATLAS")}
           </h2>
           {geometry.cyclic && (
-            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-[#625383] text-[#faf5eb]">
+            <span className="px-2.5 py-0.5 text-[10px] font-display font-bold uppercase rounded-full bg-[#5f4b8b] text-[#faf5eb] border border-[#edd282]/40">
               {i18n.text("NON-LINEAR ROUTE")}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <select
+            aria-label={i18n.text("Filter stops")}
             value={filterKind}
             onChange={(e) => setFilterKind(e.target.value)}
-            className="px-2.5 py-1 text-xs rounded border border-[#8d8270] bg-[#faf5eb]"
+            className="px-2.5 py-1 text-xs rounded border border-[#c99e3a]/60 bg-[#faf5eb] text-[#1e1d19] font-semibold"
           >
             {kinds.map((k) => (
               <option key={k} value={k}>
@@ -115,11 +116,11 @@ export const MapScreen: React.FC<{
       {/* Main Content: Graph Canvas + Inspection Sidebar */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] overflow-hidden">
         {/* Scrollable SVG Map Graph */}
-        <div className="overflow-auto p-6 bg-[#f2ebdd] flex items-start justify-center">
+        <div className="overflow-auto p-6 flex items-start justify-center">
           <svg
             width={Math.max(640, geometry.bounds.x + 48)}
             height={Math.max(480, geometry.bounds.y + 48)}
-            className="ivory-panel rounded-md shadow-inner"
+            className="ivory-panel rounded-lg shadow-md border-2 border-[#c99e3a]/70"
           >
             <defs>
               <marker
@@ -142,7 +143,7 @@ export const MapScreen: React.FC<{
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 1 L 10 5 L 0 9 z" fill="#b83e25" />
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#c03d22" />
               </marker>
             </defs>
 
@@ -157,8 +158,8 @@ export const MapScreen: React.FC<{
                   key={idx}
                   points={points}
                   fill="none"
-                  stroke={isFromCurrent ? "#b83e25" : "#8d8270"}
-                  strokeWidth={isFromCurrent ? 2.5 : 1.5}
+                  stroke={isFromCurrent ? "#c03d22" : "#8d8270"}
+                  strokeWidth={isFromCurrent ? 2.75 : 1.6}
                   strokeDasharray={edge.return ? "5,4" : undefined}
                   markerEnd={
                     isFromCurrent
@@ -184,17 +185,17 @@ export const MapScreen: React.FC<{
                 filterKind !== "ALL" && String(node.kind ?? "") !== filterKind;
 
               const fill = isCurrent
-                ? "#20201c"
+                ? "#1e1d19"
                 : canTravel
-                ? "#faf5eb"
+                ? "#fbf6ec"
                 : isResolved
-                ? "#eee4d1"
-                : "#f2ebdd";
+                ? "#e6dac3"
+                : "#efe5d2";
               const stroke = isSelected
-                ? "#b83e25"
+                ? "#c03d22"
                 : canTravel
-                ? "#286853"
-                : "#20201c";
+                ? "#1f6f54"
+                : "#1e1d19";
 
               return (
                 <g
@@ -214,16 +215,16 @@ export const MapScreen: React.FC<{
                     y={rect.y}
                     width={rect.width}
                     height={rect.height}
-                    rx={6}
+                    rx={8}
                     fill={fill}
                     stroke={stroke}
-                    strokeWidth={isSelected || canTravel ? 2.5 : 1.5}
+                    strokeWidth={isSelected || canTravel ? 2.75 : 1.5}
                   />
                   <text
                     x={rect.center.x}
                     y={rect.y + 26}
                     textAnchor="middle"
-                    fill={isCurrent ? "#faf5eb" : "#5b574f"}
+                    fill={isCurrent ? "#edd282" : "#59544b"}
                     fontSize="9"
                     fontWeight="bold"
                     fontFamily="Cinzel, serif"
@@ -234,7 +235,7 @@ export const MapScreen: React.FC<{
                     x={rect.center.x}
                     y={rect.y + 52}
                     textAnchor="middle"
-                    fill={isCurrent ? "#faf5eb" : "#20201c"}
+                    fill={isCurrent ? "#faf5eb" : "#1e1d19"}
                     fontSize="11"
                     fontWeight="bold"
                   >
@@ -245,7 +246,7 @@ export const MapScreen: React.FC<{
                       x={rect.center.x}
                       y={rect.y + 82}
                       textAnchor="middle"
-                      fill="#286853"
+                      fill="#1f6f54"
                       fontSize="9"
                       fontWeight="bold"
                     >
@@ -257,7 +258,7 @@ export const MapScreen: React.FC<{
                       x={rect.center.x}
                       y={rect.y + 82}
                       textAnchor="middle"
-                      fill="#f5c26b"
+                      fill="#edd282"
                       fontSize="9"
                       fontWeight="bold"
                     >
@@ -270,31 +271,31 @@ export const MapScreen: React.FC<{
           </svg>
         </div>
 
-        {/* Right Node Details Panel */}
-        <aside className="ivory-panel border-l border-[#8d8270] p-5 flex flex-col justify-between overflow-y-auto">
+        {/* Right Node Dossier Sidebar */}
+        <aside className="ivory-panel border-l-2 border-[#c99e3a] p-6 flex flex-col justify-between overflow-y-auto">
           {inspectedNode ? (
             <div className="space-y-4">
-              <div>
-                <div className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
+              <div className="border-b border-[#8d8270]/40 pb-3">
+                <div className="text-[10px] font-display font-bold uppercase tracking-widest text-[#c03d22]">
                   {String(inspectedNode.kind ?? "STAGE")}
                 </div>
-                <h3 className="font-display text-xl font-bold m-0 mt-1 text-[#20201c]">
+                <h3 className="font-display text-xl font-bold m-0 mt-1 text-[#1e1d19]">
                   {String(inspectedNode.name ?? inspectedNode.id)}
                 </h3>
               </div>
 
               {String(inspectedNode.description ?? "").length > 0 && (
-                <p className="text-sm text-[#5b574f] leading-relaxed">
+                <p className="text-sm text-[#59544b] leading-relaxed">
                   {String(inspectedNode.description)}
                 </p>
               )}
 
-              <div className="space-y-1 text-xs border-t border-[#8d8270]/40 pt-3">
-                <div>
-                  <span className="font-semibold text-[#5b574f]">
-                    {i18n.text("Status")}:{" "}
+              <div className="space-y-1.5 text-xs border-t border-[#8d8270]/40 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[#59544b]">
+                    {i18n.text("Status")}:
                   </span>
-                  <span className="font-bold">
+                  <span className="font-bold text-[#1e1d19]">
                     {inspectedNode.current
                       ? i18n.text("Current Stop")
                       : inspectedNode.resolved
@@ -306,11 +307,11 @@ export const MapScreen: React.FC<{
                   </span>
                 </div>
                 {String(inspectedNode.risk ?? "").length > 0 && (
-                  <div>
-                    <span className="font-semibold text-[#5b574f]">
-                      {i18n.text("Risk")}:{" "}
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#59544b]">
+                      {i18n.text("Risk")}:
                     </span>
-                    <span className="font-bold text-[#a4322c]">
+                    <span className="font-bold text-[#a92e28]">
                       {String(inspectedNode.risk)}
                     </span>
                   </div>
@@ -323,20 +324,20 @@ export const MapScreen: React.FC<{
                     type="button"
                     disabled={session.busy}
                     onClick={() => handleTravel(inspectedNode)}
-                    className="w-full ivory-button-primary py-2.5 px-4 text-xs rounded mt-4"
+                    className="w-full ivory-button-primary py-2.5 px-4 text-xs rounded-md mt-4"
                   >
                     {presenter.choiceLabel(inspectedNode.travel, inspectedNode)}
                   </button>
                 )}
             </div>
           ) : (
-            <div className="text-sm text-[#5b574f] italic">
+            <div className="text-sm text-[#59544b] italic">
               {i18n.text("Select a stop on the map to inspect its details.")}
             </div>
           )}
 
           {geometry.diagnostics.length > 0 && (
-            <div className="mt-6 p-3 rounded bg-[#a4322c]/10 border border-[#a4322c]/40 text-xs text-[#a4322c]">
+            <div className="mt-6 p-3 rounded bg-[#a92e28]/10 border border-[#a92e28]/40 text-xs text-[#a92e28]">
               {geometry.diagnostics.map((d, i) => (
                 <div key={i}>• {d}</div>
               ))}

@@ -52,7 +52,12 @@ export const DialogueScreen: React.FC<{
       });
     }, 18);
     return () => clearInterval(interval);
-  }, [fullText, model.nodeId, preferences.revealTextGradually, preferences.reducedMotion]);
+  }, [
+    fullText,
+    model.nodeId,
+    preferences.revealTextGradually,
+    preferences.reducedMotion,
+  ]);
 
   const options = Array.isArray(model.options)
     ? (model.options as JsonObject[])
@@ -76,12 +81,12 @@ export const DialogueScreen: React.FC<{
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
+      <header className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-[#1c1b17] via-[#28251e] to-[#1c1b17] text-[#faf5eb] border-b-2 border-[#c99e3a] shadow-md">
         <div>
-          <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
+          <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
             {i18n.text("NARRATIVE ENCOUNTER")}
           </span>
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
+          <h2 className="font-display text-lg font-bold m-0 text-[#faf5eb]">
             {String(model.title || i18n.text("DIALOGUE"))}
           </h2>
         </div>
@@ -106,23 +111,27 @@ export const DialogueScreen: React.FC<{
 
       {/* Main Dialogue Stage */}
       <div className="flex-1 overflow-y-auto p-6 md:p-10 flex items-center justify-center">
-        <div className="max-w-4xl w-full ivory-panel rounded-md p-6 md:p-8 space-y-6">
+        <div className="max-w-4xl w-full ivory-panel rounded-lg p-6 md:p-8 space-y-6 border-2 border-[#c99e3a]/70">
           {/* Speaker & Portrait */}
           <div className="flex flex-col sm:flex-row items-start gap-6">
-            <ArtSlot
-              category="actors"
-              contentId={String(model.portrait || model.speakerId || "speaker")}
-              fallbackLabel={String(model.speaker ?? "NPC")}
-              aspectRatio="1/1"
-              className="w-24 h-24 rounded-md shrink-0"
-            />
-            <div className="space-y-2 flex-1">
-              <div className="font-display text-base font-bold text-[#b83e25] uppercase tracking-wider">
+            <div className="p-1 rounded-lg bg-gradient-to-b from-[#c99e3a] to-[#7c5f1f] shadow-md shrink-0">
+              <ArtSlot
+                category="actors"
+                contentId={String(
+                  model.portrait || model.speakerId || "speaker"
+                )}
+                fallbackLabel={String(model.speaker ?? "NPC")}
+                aspectRatio="1/1"
+                className="w-24 h-24 rounded-md border-0"
+              />
+            </div>
+            <div className="space-y-2.5 flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-[#1e1d19] text-[#edd282] font-display text-xs font-bold uppercase tracking-widest">
                 {String(model.speaker || i18n.text("Speaker"))}
               </div>
               <div
                 onClick={() => setRevealedCount(fullText.length)}
-                className="text-base md:text-lg text-[#20201c] leading-relaxed whitespace-pre-line min-h-[96px] cursor-pointer"
+                className="text-base md:text-lg text-[#1e1d19] leading-relaxed whitespace-pre-line min-h-[96px] cursor-pointer p-4 rounded-md bg-[#f4ead7]/80 border border-[#8d8270]/40 shadow-inner"
               >
                 {fullText.slice(0, revealedCount)}
               </div>
@@ -141,20 +150,20 @@ export const DialogueScreen: React.FC<{
                   type="button"
                   disabled={!available || controller.locked()}
                   onClick={() => handleChooseOption(opt)}
-                  className="w-full text-left ivory-button p-3.5 rounded flex items-center justify-between gap-4"
+                  className="w-full text-left ivory-button p-3.5 rounded-lg flex items-center justify-between gap-4"
                 >
                   <div className="space-y-0.5">
-                    <div className="font-body font-semibold text-sm text-[#20201c]">
+                    <div className="font-body font-bold text-sm text-[#1e1d19]">
                       › {String(opt.text ?? "")}
                     </div>
                     {!available && reason && (
-                      <div className="text-xs text-[#a4322c] font-normal">
+                      <div className="text-xs text-[#a92e28] font-normal">
                         {reason}
                       </div>
                     )}
                   </div>
                   {cost && (
-                    <span className="px-2 py-0.5 rounded bg-[#20201c] text-[#faf5eb] font-mono text-xs shrink-0">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#1e1d19] text-[#edd282] font-mono text-xs font-bold shrink-0">
                       {cost}
                     </span>
                   )}
@@ -170,7 +179,7 @@ export const DialogueScreen: React.FC<{
                   const ok = await controller.executePublished("RESOLVE_NODE");
                   if (ok) onNavigate("journey");
                 }}
-                className="ivory-button-primary px-6 py-2.5 text-xs rounded"
+                className="ivory-button-primary px-6 py-2.5 text-xs rounded-md"
               >
                 {i18n.text("COMPLETE STAGE")}
               </button>
@@ -182,15 +191,17 @@ export const DialogueScreen: React.FC<{
       {/* Transcript History Modal */}
       {historyOpen && (
         <div
-          className="fixed inset-0 z-50 bg-[#05060b]/75 flex items-center justify-center p-6"
+          className="fixed inset-0 z-50 bg-[#05060b]/80 backdrop-blur-xs flex items-center justify-center p-6"
           onClick={() => setHistoryOpen(false)}
         >
           <div
-            className="ivory-panel max-w-2xl w-full max-h-[82vh] rounded-md flex flex-col overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            className="ivory-panel max-w-2xl w-full max-h-[82vh] rounded-lg flex flex-col overflow-hidden border-2 border-[#c99e3a]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-3 bg-[#eee4d1] border-b border-[#8d8270] flex items-center justify-between">
-              <h3 className="font-display text-base font-semibold m-0">
+            <div className="px-5 py-3 bg-gradient-to-r from-[#24221d] to-[#322e26] text-[#faf5eb] border-b border-[#c99e3a]/50 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold m-0 text-[#edd282]">
                 {i18n.text("CONVERSATION HISTORY")}
               </h3>
               <button
@@ -201,9 +212,9 @@ export const DialogueScreen: React.FC<{
                 {i18n.text("Close")}
               </button>
             </div>
-            <div className="p-5 overflow-y-auto space-y-3 text-sm">
+            <div className="p-5 overflow-y-auto space-y-3 text-sm bg-[#f4ebd9]">
               {history.length === 0 ? (
-                <div className="text-[#5b574f] italic">
+                <div className="text-[#59544b] italic">
                   {i18n.text("No prior transcript lines recorded.")}
                 </div>
               ) : (
@@ -214,10 +225,10 @@ export const DialogueScreen: React.FC<{
                       key={idx}
                       className="border-b border-[#8d8270]/30 pb-2"
                     >
-                      <div className="font-display text-xs font-bold text-[#b83e25]">
+                      <div className="font-display text-xs font-bold text-[#c03d22]">
                         {String(entry.speaker ?? "")}
                       </div>
-                      <div className="text-[#20201c] whitespace-pre-line">
+                      <div className="text-[#1e1d19] whitespace-pre-line">
                         {String(entry.text ?? "")}
                       </div>
                     </div>
