@@ -36,3 +36,6 @@ func setup(title_text: String, summary: String, data: Dictionary = {}, card_mode
 		body.add_child(technical)
 	confirmed.connect(queue_free)
 	canceled.connect(queue_free)
+	visibility_changed.connect(func():
+		if visible: preload("res://scripts/ui/panel_motion.gd").enter(content, visual_context)
+		else: preload("res://scripts/ui/panel_motion.gd").cancel(content))

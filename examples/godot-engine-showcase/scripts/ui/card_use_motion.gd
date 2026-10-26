@@ -19,9 +19,9 @@ static func execute(id: String, retained: bool, continued: bool, hand, registry,
 	registry.mark_staged(id)
 	handle.completed.connect(func(result):
 		if not is_instance_valid(hand): return
-		if not retained and not continued:
+		if result == "completed" and not retained and not continued:
 			hand.sync_models(hand.ordered_cards().filter(func(item): return str(item.model.cardInstanceId) != id).map(func(item): return item.model), hand.scope)
-		if not continued or result != "completed": registry.release(id, ghost, retained), CONNECT_ONE_SHOT)
+		if not continued or result != "completed": registry.release(id, ghost, retained or result != "completed"), CONNECT_ONE_SHOT)
 	var duration: float = 0.0 if skip_departure else context.motion.duration("card_flight", true)
 	var retain_duration: float = context.motion.duration("retain", true) if retained and not continued else 0.0
 	if duration <= 0 and retain_duration <= 0: handle.hit(); handle.finish(); return

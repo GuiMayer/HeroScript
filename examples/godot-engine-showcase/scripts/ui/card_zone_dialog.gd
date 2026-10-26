@@ -12,6 +12,9 @@ func setup(model: Dictionary) -> void:
 	collection.card_requested.connect(card_requested.emit); add_child(collection); collection.apply_model(model)
 	ok_button_text = visual_context.translator.text("CLOSE")
 	confirmed.connect(queue_free); canceled.connect(queue_free)
+	visibility_changed.connect(func():
+		if visible: preload("res://scripts/ui/panel_motion.gd").enter(collection, visual_context)
+		else: preload("res://scripts/ui/panel_motion.gd").cancel(collection))
 func show_detail(id: String, card_model: Dictionary, inspection: Dictionary = {}, status := "") -> void:
 	if is_instance_valid(detail): detail.queue_free()
 	detail = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)

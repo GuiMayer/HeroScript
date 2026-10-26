@@ -135,7 +135,7 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 			remaining.count -= 1
 			if remaining.count == 0: handle.hit(); handle.finish())
 		handle.cleanup(func():
-			if handle.result != "completed": owner.release(item.id, ghost_ref.get_ref()))
+			if handle.result != "completed": owner.release(item.id, ghost_ref.get_ref(), hand_source(owner, item.id)))
 
 static func hand_source(owner, id: String) -> bool:
 	return owner.hand != null and is_instance_valid(owner.hand) and is_instance_valid(owner.hand.card_for(id))

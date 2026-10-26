@@ -658,6 +658,7 @@ func pointer_input(event: InputEvent) -> void:
 			page(-1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1)
 			return
 		if event.button_index != MOUSE_BUTTON_LEFT: return
+		if event.pressed and _return_tween != null and _return_tween.is_valid(): _clear_ghost()
 		var id := pick_global(hit_surface.get_global_transform() * event.position)
 		if event.pressed:
 			if not read_only: interaction.pressed = id; interaction.press_position = event.global_position
