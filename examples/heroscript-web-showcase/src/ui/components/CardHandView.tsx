@@ -191,6 +191,8 @@ export const CardHandView: React.FC<CardHandViewProps> = ({
           onClick={() => setOverviewOpen(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
             className="ivory-panel max-w-6xl w-full max-h-[88vh] rounded-md flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >

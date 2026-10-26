@@ -309,6 +309,8 @@ export const CardDetailsModal: React.FC<{
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         className="ivory-panel max-w-3xl w-full rounded-md overflow-hidden flex flex-col max-h-[88vh]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -364,6 +366,8 @@ export const CardZoneDialog: React.FC<{
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         className="ivory-panel max-w-5xl w-full max-h-[86vh] rounded-md flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
