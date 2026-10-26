@@ -11,6 +11,7 @@ signal drop_requested(instance_id: String, global_point: Vector2)
 signal drag_previewed(instance_id: String, global_point: Vector2)
 signal drag_ended
 signal visual_order_changed(ids: Array)
+signal reorder_settled
 const Layout = preload("res://scripts/ui/hand_layout.gd")
 const Retarget = preload("res://scripts/ui/hand_retarget_motion.gd")
 @export var visual_style: HandVisualStyle = preload("res://data/default_hand_visual_style.tres")
@@ -28,6 +29,7 @@ var reorder_enabled := true
 var reorder_drop_filter: Callable
 var _preview_slot := -1
 var _reorder_scroll_fraction := 0.0
+var _reorder_settling := false
 var _cards := {}
 var _slots := {}
 var _motions := {}
@@ -152,7 +154,7 @@ func active_card_id() -> String:
 func cards() -> Dictionary: return _cards.duplicate()
 func ordered_cards() -> Array: return order.map(func(id): return _cards[id])
 func move_visual_card(id: String, index: int) -> bool:
-	if read_only or reading_modal or _presenting or id not in order: return false
+	if not reorder_enabled or read_only or reading_modal or _presenting or interaction.dragging or is_instance_valid(_ghost) or id not in order: return false
 	arrangement.begin(id); arrangement.move(index)
 	if not arrangement.commit(): return false
 	order = arrangement.confirmed.duplicate()
@@ -289,6 +291,10 @@ func return_card(id: String, card: Control, reveal_card: bool) -> void:
 	card.process_mode = Node.PROCESS_MODE_INHERIT
 	var destination := destination_pose(id)
 	if reveal_card and not destination.is_empty(): preload("res://scripts/ui/card_motion_pose.gd").write(card, destination)
+	if reveal_card and _reorder_settling and not _presenting and card.position.length() <= 1.0:
+		var index := order.find(id)
+		if index >= 0 and index < _layout.get("rotations", []).size():
+			card.position = Vector2.ZERO; card.rotation = _layout.rotations[index]; card.scale = Vector2.ONE
 	finish_transit(id, reveal_card)
 	if is_inside_tree(): wire_focus()
 
@@ -752,6 +758,7 @@ func _drag_visual(point: Vector2) -> void:
 		_ghost.set_as_top_level(true)
 		preload("res://scripts/ui/card_motion_pose.gd").write(_ghost, _drag_pose)
 		_ghost.z_index = 500
+		hit_surface.follow_card("")
 		_apply_emphasis()
 	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
 	var now := Time.get_ticks_usec()
@@ -785,11 +792,18 @@ func _cancel_reorder_preview() -> void:
 	arrangement.cancel()
 	if order != arrangement.confirmed: order = arrangement.confirmed.duplicate(); request_layout()
 func _process(delta: float) -> void:
+	_check_reorder_settled()
 	if not interaction.dragging or not is_instance_valid(_ghost): return
 	_auto_scroll_reorder(delta)
 	if Time.get_ticks_usec() - _last_drag_usec > 35000:
 		_drag_tilt *= exp(-12.0 * delta)
 		_ghost.rotation = float(_drag_pose.rotation) + deg_to_rad(_drag_tilt)
+func _check_reorder_settled() -> void:
+	if not _reorder_settling or _layout_pending or is_instance_valid(_ghost): return
+	if _motions.values().any(func(tween): return tween != null and tween.is_valid() and tween.is_running()): return
+	if _emphasis.values().any(func(state): return state.tween != null and state.tween.is_valid() and state.tween.is_running()): return
+	_reorder_settling = false
+	reorder_settled.emit()
 func _auto_scroll_reorder(delta: float) -> void:
 	if not contains_reorder_point(_last_drag_point): _reorder_scroll_fraction = 0; return
 	var bar := scroll.get_h_scroll_bar()
@@ -809,8 +823,13 @@ func _auto_scroll_reorder(delta: float) -> void:
 func _return_ghost() -> void:
 	_cancel_reorder_preview()
 	if not is_instance_valid(_ghost): return
+	_reorder_settling = true
 	var id := _ghost_id
 	var start := preload("res://scripts/ui/card_motion_pose.gd").read(_ghost)
+	var destination := destination_pose(id)
+	if not destination.is_empty() and start.center.distance_to(destination.center) < .1 and absf(angle_difference(start.rotation, destination.rotation)) < .001 and start.scale.distance_to(destination.scale) < .001:
+		_clear_ghost()
+		return
 	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
 	var seconds: float = policy.duration("hand_transition", true)
 	if seconds <= 0 or not _cards.has(id): _clear_ghost(); return
@@ -830,6 +849,7 @@ func _clear_ghost() -> void:
 	_ghost = null; _ghost_id = ""; _drag_pose.clear()
 	if is_instance_valid(ghost) and _cards.get(id) == ghost and _slots.has(id): return_card(id, ghost, true)
 	if not id.is_empty(): drag_ended.emit()
+	_check_reorder_settled()
 func show_overview() -> void:
 	if reading_modal or not overview_enabled: return
 	var dialog = load("res://scripts/ui/hand_overview_dialog.gd").new(visual_context)

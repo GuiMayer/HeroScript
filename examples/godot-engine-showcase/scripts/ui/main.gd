@@ -160,6 +160,7 @@ func _is_menu_route() -> bool:
 	return current_screen in MENU_ROUTES or (current_screen == "run_replay" and replay_from_history)
 
 func _show_main_menu() -> void:
+	_prune_hand_arrangements()
 	current_screen = "menu"
 	continuation_run_id = ""
 	_clear_host()
@@ -265,12 +266,17 @@ func gameplay_route() -> String:
 	return "activity" if detailed or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active" else "map"
 
 func open_game() -> void:
+	_prune_hand_arrangements()
 	match gameplay_route():
 		"menu": _show_main_menu()
 		"combat": show_combat()
 		"dialogue": show_dialogue()
 		"activity": show_activity()
 		"map": show_map()
+
+func _prune_hand_arrangements() -> void:
+	if GameSession.run.is_empty() or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active":
+		visual_context.hand_arrangements.clear()
 
 func _has_dialogue_activity() -> bool:
 	var run: Dictionary = GameSession.run
