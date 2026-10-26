@@ -26,11 +26,15 @@ func _run() -> void:
 	check(load("res://scripts/engine/deck_compartment_gateway.gd") != null, "REST adapter parses")
 	check(load("res://scenes/deck_compartment_lab.tscn") != null, "isolated lab scene parses")
 	var editor = load("res://scripts/ui/deck_compartment_editor.gd").new()
+	editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(editor); await process_frame
 	editor.workspace.load_snapshot(source); editor._render(); await process_frame
 	check(editor._body.get_child_count() == 2, "neutral area and configured compartment render independently")
 	check(editor.find_children("*", "Button", true, false).any(func(button): return button.get_script() == load("res://scripts/ui/card_view.gd")), "editor uses the same CardView as combat")
 	check(editor._apply.disabled, "confirmed state cannot submit a redundant command")
 	check(not editor._error({"data": null}).is_empty(), "null transport body cannot crash editor")
+	check(load("res://scripts/ui/run_deck_compartments.gd") != null, "run editor reuses the laboratory editor without character picker")
+	var choices = load("res://scripts/application/activity_choices.gd").build({}, [{"type": "APPLY_DECK_COMPARTMENTS", "validPayload": {"actorId": "hero"}}])
+	check(choices.is_empty(), "generic activity auto-flow never invents a compartment command payload")
 	editor.queue_free(); await process_frame
 	root.get_node("GameAudio").shutdown(); quit(1 if failures else 0)

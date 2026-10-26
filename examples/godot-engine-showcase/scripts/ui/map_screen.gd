@@ -31,6 +31,7 @@ func refresh_state(data: Dictionary) -> void:
 	if changed_scope:
 		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "overview": false, "filter": ""}))
 	view.set_read_only(GameSession.busy or not GameSession.synchronized)
+	view.set_compartments_available(not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	var workflow: Array = [run.get("runId"), run.get("branchId"), run.get("sequence"), choices]
 	if workflow != _workflow_key:
 		_workflow_key = workflow.duplicate(true)
@@ -39,6 +40,7 @@ func _intent(action: String, arguments: Array) -> void:
 	if not _alive or not is_inside_tree(): return
 	match action:
 		"inscriptions": router.show_run_loadout()
+		"deck_compartments": router.show_run_deck_compartments()
 		"pause": router.toggle_pause()
 		"modifier_items":
 			router.show_activity()

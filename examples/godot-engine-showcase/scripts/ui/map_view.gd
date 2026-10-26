@@ -24,6 +24,10 @@ var _inspector_toggle: Button
 var _inspector_open := false
 var _last_current := ""
 var _resume_button: Button
+var _compartments_button: Button
+
+func set_compartments_available(value: bool) -> void:
+	if is_instance_valid(_compartments_button): _compartments_button.visible = value
 var _camera_tween: Tween
 var _camera_target := Vector2.INF
 var _camera_restore_ticket := 0
@@ -80,6 +84,9 @@ func _build() -> void:
 	var header := HBoxContainer.new(); add_child(header)
 	_header = visual_context.styles.title("", 27); _header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_header)
+	_compartments_button = visual_context.styles.button(visual_context.translator.text("DECK BUILD"), 140)
+	_compartments_button.name = "DeckCompartmentsButton"; _compartments_button.visible = false
+	_compartments_button.pressed.connect(func(): intent_requested.emit("deck_compartments", [])); header.add_child(_compartments_button)
 	_resume_button = visual_context.styles.button("", 160); _resume_button.name = "MapResumeRun"
 	_resume_button.visible = false
 	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))

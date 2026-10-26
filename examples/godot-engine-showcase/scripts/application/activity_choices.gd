@@ -7,7 +7,7 @@ static func build(run: Dictionary, commands: Array) -> Array:
 		var type := str(command.get("type", ""))
 		var valid: Dictionary = command.get("validPayload", {}) if command.get("validPayload") is Dictionary else {}
 		match type:
-			"APPLY_LOADOUT", "TRANSFER_INSCRIPTION": continue # Dedicated workspace; never invent an equipment payload.
+			"APPLY_LOADOUT", "TRANSFER_INSCRIPTION", "APPLY_DECK_COMPARTMENTS": continue # Dedicated workspaces; never invent a build payload.
 			"OPEN_INSCRIPTION_OFFER":
 				choices.append(_choice(type, {"actorId": run.get("playerEntityId", ""), "stationId": valid.get("stationId", "")}, str(valid.get("stationId", "")), "inscription"))
 			"CHOOSE_INSCRIPTION_OFFER":

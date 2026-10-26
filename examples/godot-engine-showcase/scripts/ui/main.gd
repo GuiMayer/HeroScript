@@ -342,6 +342,15 @@ func show_run_loadout() -> void:
 	screen.back_requested.connect(open_game)
 	host.add_child(screen)
 
+func show_run_deck_compartments() -> void:
+	if GameSession.busy or GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty(): return
+	current_screen = "deck_compartments"
+	_clear_host()
+	var screen = preload("res://scripts/ui/run_deck_compartments.gd").new()
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.back_requested.connect(open_game)
+	host.add_child(screen)
+
 func show_history() -> void:
 	if GameSession.busy: return
 	current_screen = "history"

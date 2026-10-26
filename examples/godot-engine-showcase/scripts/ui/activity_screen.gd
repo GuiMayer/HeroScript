@@ -31,6 +31,7 @@ func _render(data: Dictionary) -> void:
 		_projection_key = key; render_epoch += 1
 		presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, presentation, I18n, GameSession.card_presentations, GameSession.modifier_items)
 		view.apply_projection(run, choices, zones, presentation, presenter, visual_context)
+	view.set_compartments_available(not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	var workflow_key: Array = [run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0), choices]
 	if workflow_key != _workflow_key:
 		_workflow_key = workflow_key.duplicate(true)
@@ -51,6 +52,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 		"confirm": _confirm_ref(str(arguments[0]))
 		"modifier_items": _open_items()
 		"inscriptions": router.show_run_loadout()
+		"deck_compartments": router.show_run_deck_compartments()
 		"execute":
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if not choice.is_empty(): _execute(choice)

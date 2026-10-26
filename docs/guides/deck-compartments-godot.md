@@ -18,3 +18,7 @@ Conteúdo demonstrativo: Ward acrescenta um efeito de block; Recovery acrescenta
 Conexão indisponível não é substituída por exemplos offline. Em falha de resposta de um commit, Retry Same Command reutiliza a identidade para evitar duplicar operações. Em conflito de versão, reabra a tela para revisar o estado real antes de reenviar.
 
 Contrato REST: [deck-compartments](../api/deck-compartments.md). Arquitetura: [plano](../plans/DECK_COMPARTMENTS_ARCHITECTURE_AND_PLAN.md).
+
+## Dentro da run
+
+Selecione Deck Workshop no menu de settings e crie uma run. No mapa ou na tela da atividade, o botão **Deck Build** aparece somente quando a engine anuncia a janela de alocação. A tela é o mesmo editor do laboratório, mas lê e altera somente o personagem da run atual através de GameSession. Fora dessa janela, não existe comando executável anunciado e a API também rejeita a alteração.

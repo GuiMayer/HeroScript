@@ -49,6 +49,13 @@ func read_run(run_id: String) -> Dictionary:
 func read_loadout(run_id: String, actor_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/loadout?actorId=%s" % [run_id.uri_encode(), actor_id.uri_encode()])
 
+func read_deck_compartments(run_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/deck-compartments" % run_id.uri_encode())
+
+func preview_deck_compartments(snapshot: Dictionary, allocations: Array) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/deck-compartments/preview" % str(snapshot.runId).uri_encode(), {
+		"expectedSequence": Numbers.integer_token(snapshot.runSequence), "expectedStep": Numbers.integer_token(snapshot.expectedStep), "allocations": allocations.duplicate(true)})
+
 func preview_loadout(snapshot: Dictionary, assignments: Dictionary) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/loadout/preview" % str(snapshot.runId).uri_encode(), {
 		"actorId": snapshot.actorId, "assignments": assignments.duplicate(true),

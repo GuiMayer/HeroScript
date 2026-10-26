@@ -348,6 +348,28 @@ func execute_run_command(type: String, payload: Dictionary, label := "") -> bool
 	var expected_step := int(advertised.get("expectedStep", _run.get("step", 0)))
 	return await _execute("runs", str(_run.get("runId", "")), type, payload, label, expected_step)
 
+func read_deck_compartments() -> Dictionary:
+	if busy or has_pending_command or _run.is_empty(): return {"ok": false, "error": "Open a run and recover pending commands first."}
+	var ticket := _generation
+	var response: Dictionary = await _gateway.read_deck_compartments(str(_run.runId))
+	if ticket != _generation: return {"ok": false, "error": "Session changed while reading compartments."}
+	if response.get("ok", false):
+		if not loadout_context_matches(response.data) or str(response.data.get("actorId", "")) != str(_run.get("playerEntityId", "")):
+			return {"ok": false, "status": 409, "error": "Compartment context changed. Reopen the editor."}
+		response.data["_clientContext"] = replay_context()
+	return response
+
+func preview_deck_compartments(snapshot: Dictionary, allocations: Array) -> Dictionary:
+	if busy or has_pending_command or not loadout_context_matches(snapshot): return {"ok": false, "status": 409, "error": "Compartment context changed. Reopen the editor."}
+	var response: Dictionary = await _gateway.preview_deck_compartments(snapshot, allocations)
+	if not loadout_context_matches(snapshot): return {"ok": false, "status": 409, "error": "Session changed while previewing."}
+	return response
+
+func apply_deck_compartments(snapshot: Dictionary, allocations: Array) -> bool:
+	if not loadout_context_matches(snapshot) or str(snapshot.get("actorId", "")) != str(_run.get("playerEntityId", "")): return false
+	return await _execute("runs", str(snapshot.runId), "APPLY_DECK_COMPARTMENTS", {
+		"actorId": snapshot.actorId, "allocations": allocations.duplicate(true)}, "Apply deck compartments", int(snapshot.expectedStep))
+
 func loadout_context_matches(snapshot: Dictionary) -> bool:
 	return synchronized and not _run.is_empty() and str(snapshot.get("runId", "")) == str(_run.get("runId", "")) \
 		and int(snapshot.get("runSequence", -1)) == int(_run.get("sequence", 0)) \

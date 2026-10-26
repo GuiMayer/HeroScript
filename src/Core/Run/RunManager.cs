@@ -500,6 +500,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Concat([new RunAvailableCommand
                 {
                     Type = RunCommandTypes.ApplyDeckCompartments, CurrentNodeId = snapshot.CurrentNodeId ?? string.Empty,
+                    ExpectedSequence = snapshot.Sequence, ExpectedStep = snapshot.Determinism.Step,
+                    PayloadSchema = JsonSerializer.SerializeToElement(new { actorId = "string", allocations = new[] { new { cardInstanceId = "guid", compartmentId = "string" } } }),
                     ValidPayload = JsonSerializer.SerializeToElement(new { actorId = snapshot.PlayerEntityId, requiresCompleteDistribution = true })
                 }]).ToArray());
         }

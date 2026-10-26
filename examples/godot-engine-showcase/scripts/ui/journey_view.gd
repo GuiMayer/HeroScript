@@ -19,6 +19,9 @@ var _summary: Control
 var _ending: Control
 var _lifecycle := ""
 var _region_keys: Dictionary = {}
+func set_compartments_available(value: bool) -> void:
+	var button := find_child("DeckCompartmentsButton", true, false)
+	if button is Button: button.visible = value
 func _scroll_value(name: String) -> int:
 	var scroll := find_child(name, true, false)
 	return scroll.scroll_vertical if scroll is ScrollContainer else 0
@@ -57,6 +60,8 @@ func _build_header() -> Control:
 	row.add_child(_button(visual_context.translator.text("MODIFIERS"), func(): intent_requested.emit("modifier_items", []), 140))
 	if _run_snapshot.get("loadout") is Dictionary: row.add_child(_button(visual_context.translator.text("INSCRIPTIONS"), func(): intent_requested.emit("inscriptions", []), 140))
 	row.add_child(_button(visual_context.translator.text("PAUSE"), _pause, 100))
+	var compartments := _button(visual_context.translator.text("DECK BUILD"), func(): intent_requested.emit("deck_compartments", []), 140)
+	compartments.name = "DeckCompartmentsButton"; compartments.visible = false; row.add_child(compartments)
 	header.add_child(row)
 	var badges := HFlowContainer.new()
 	badges.alignment = FlowContainer.ALIGNMENT_END
