@@ -39,7 +39,7 @@ CardBundleCompiler suporta custos, condições, targeting, disposition, triggers
 4. Composição: concluída. Contexto genérico de fontes, expansão com namespace estável, trace separado do ledger, fingerprint/cache contextual e validação do candidato. Custos, condições, alvos, triggers e efeitos entram pelo compilador comum; duplicatas/singletons incompatíveis são rejeitados. 24 testes focados aprovados, incluindo equivalência estrutural com carta autorada e retorno ao fingerprint original sem alocação.
 5. Consumidores: concluída. Resolução da run, execução, inspeção, projeções, transformação e seleção por tags consomem o contexto. Projeção expõe proveniência sem chamar concessões de upgrade. Compatibilidade de conteúdo valida os compartimentos contra revisão/personagem candidatos. 88 testes de cartas/zonas/compatibilidade e um teste integrado de consumidores aprovados.
 6. Comandos/persistência: implementada. `APPLY_DECK_COMPARTMENTS` usa codec/dispatcher/commit/journal canônicos, discovery respeita perfil/janela e destruição limpa associações na persistência de run e batches de combate. Snapshot opcional round-trip e cópias de estado independentes testados. 78 testes focados de compartimentos/codec/commit/replay aprovados; jornada semântica específica com API fica para a certificação final.
-7. REST: pendente.
+7. REST: concluída. GET read-only do personagem atual e POST preview; mutação via comando canônico. Projeção antes/depois com componentes efetivos e permissões. Preview rejeita versão antiga e lista ausente. Dois testes HTTP/OpenAPI/controller e teste do serviço aprovados. Contrato em `docs/api/deck-compartments.md`.
 8. Conteúdo demonstrativo: pendente.
 9. Laboratório: pendente.
 10. Integração da run: pendente.
