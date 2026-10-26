@@ -17,4 +17,5 @@ public sealed record DeckCompartmentState : Core.Determinism.ICanonicalHashMemoi
 }
 
 public sealed record DeckCompartmentAllocation(Guid CardInstanceId, string CompartmentId);
+public sealed record ApplyDeckCompartmentsCommand(string ActorId, ImmutableArray<DeckCompartmentAllocation> Allocations);
 public sealed record DeckCompartmentChangePlan(RunState Candidate, ActorDeckCompartmentState Before, ActorDeckCompartmentState After);

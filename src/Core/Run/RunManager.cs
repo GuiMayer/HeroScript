@@ -491,6 +491,18 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var commands = _progression.GetAvailableCommands(run.Value);
         if (commands.IsFailure)
             return commands;
+        if (_contentRuntimes != null && snapshot.ResolvedMode?.Definition.DeckCompartmentPolicyId != null)
+        {
+            var runtime = _contentRuntimes.Resolve(snapshot.Determinism.ContentRevision, snapshot.ConfigName);
+            if (runtime.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(runtime.Error);
+            var profile = DeckCompartments.DeckCompartmentAccess.Profile(snapshot, runtime.Value, snapshot.PlayerEntityId);
+            if (profile.IsSuccess && DeckCompartments.DeckCompartmentAccess.CanChange(snapshot, runtime.Value).IsSuccess)
+                commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Concat([new RunAvailableCommand
+                {
+                    Type = RunCommandTypes.ApplyDeckCompartments, CurrentNodeId = snapshot.CurrentNodeId ?? string.Empty,
+                    ValidPayload = JsonSerializer.SerializeToElement(new { actorId = snapshot.PlayerEntityId, requiresCompleteDistribution = true })
+                }]).ToArray());
+        }
         if (_contentRuntimes != null && run.Value.Loadouts != null)
         {
             var runtime = _contentRuntimes.Resolve(run.Value.Determinism.ContentRevision, run.Value.ConfigName);
@@ -746,6 +758,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
             RunCommandTypes.ApplyLoadout => ExecuteApplyLoadout(runId, payload),
+            RunCommandTypes.ApplyDeckCompartments => ExecuteApplyDeckCompartments(runId, payload),
             RunCommandTypes.OpenInscriptionOffer => ExecuteInscriptionOffer(runId, payload, false),
             RunCommandTypes.ChooseInscriptionOffer => ExecuteInscriptionOffer(runId, payload, true),
             RunCommandTypes.TransferInscription => ExecuteTransferInscription(runId, payload),
@@ -1035,6 +1048,18 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var request = DeserializePayload<Loadouts.ApplyLoadoutCommand>(payload);
         var planned = new Loadouts.LoadoutChangePlanner(_contentRuntimes).Plan(_runs[runId], request.ActorId, request.Assignments);
         return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyLoadout, payload));
+    }
+
+    private Result ExecuteApplyDeckCompartments(Guid runId, JsonElement payload)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var run = _runs[runId];
+        var request = DeserializePayload<DeckCompartments.ApplyDeckCompartmentsCommand>(payload);
+        if (request.Allocations.IsDefault) return Result.Failure("Complete compartment allocation list is required");
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var plan = DeckCompartments.DeckCompartmentPlanner.Plan(run, runtime.Value, request.ActorId, request.Allocations);
+        return plan.IsFailure ? Result.Failure(plan.Error) : ToResult(Persist(plan.Value.Candidate, RunCommandTypes.ApplyDeckCompartments, payload));
     }
 
     private Result ExecuteInscriptionOffer(Guid runId, JsonElement payload, bool choose)
@@ -2428,6 +2453,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
             var nextSequence = checked((previous?.Sequence ?? 0) + 1);
             state = PersistentPlayerTransitions.ApplyResourceConsequences(state);
+            state = DeckCompartments.DeckCompartmentPlanner.ReconcileDestroyedCards(state);
             state = state with
             {
                 Sequence = nextSequence,
@@ -2529,6 +2555,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (candidates.Count == 0)
                 return Result<RunState>.Failure("A run commit requires at least one transition frame");
+            if (candidates.Any(candidate => candidate.State.DeckCompartments != null))
+                candidates = candidates.Select(candidate => (DeckCompartments.DeckCompartmentPlanner.ReconcileDestroyedCards(candidate.State), candidate.Step)).ToArray();
             foreach (var candidate in candidates)
             {
                 var eligible = RunEligibility.ValidateCandidate(previous, candidate.State);

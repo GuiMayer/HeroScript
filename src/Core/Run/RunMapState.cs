@@ -110,6 +110,7 @@ public static class RunCommandTypes
     public const string UpgradeCard = "UPGRADE_CARD";
     public const string ApplyCardModifierItem = "APPLY_CARD_MODIFIER_ITEM";
     public const string ApplyLoadout = "APPLY_LOADOUT";
+    public const string ApplyDeckCompartments = "APPLY_DECK_COMPARTMENTS";
     public const string OpenInscriptionOffer = "OPEN_INSCRIPTION_OFFER";
     public const string ChooseInscriptionOffer = "CHOOSE_INSCRIPTION_OFFER";
     public const string TransferInscription = "TRANSFER_INSCRIPTION";
