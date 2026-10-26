@@ -19,6 +19,7 @@ public sealed record DeckCompartmentDefinition
 {
     public string CompartmentId { get; init; } = string.Empty;
     public string NameKey { get; init; } = string.Empty;
+    public string DescriptionKey { get; init; } = string.Empty;
     public int Capacity { get; init; }
     public ImmutableArray<DeckComponentGrant> Grants { get; init; } = [];
     public ImmutableArray<string> GrantedTags { get; init; } = [];

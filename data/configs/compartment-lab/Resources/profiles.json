@@ -1,0 +1,15 @@
+{
+  "compartment_lab_balanced": {
+    "profileId": "compartment_lab_balanced",
+    "compartments": [
+      { "compartmentId": "ward", "nameKey": "Ward compartment", "descriptionKey": "Grants an additional effect: gain 3 Block when the card is played.", "capacity": 3, "grants": [{ "grantId": "ward", "bundleId": "compartment_lab_ward" }] },
+      { "compartmentId": "recovery", "nameKey": "Recovery compartment", "descriptionKey": "Adds a cost of 1 Energy and heals 4 Health. Requires positive Energy before play.", "capacity": 2, "grants": [{ "grantId": "recovery", "bundleId": "compartment_lab_recovery" }] }
+    ]
+  },
+  "compartment_lab_defensive": {
+    "profileId": "compartment_lab_defensive",
+    "compartments": [
+      { "compartmentId": "ward", "nameKey": "Ward compartment", "descriptionKey": "Grants an additional effect: gain 3 Block when the card is played.", "capacity": 5, "grants": [{ "grantId": "ward", "bundleId": "compartment_lab_ward" }] }
+    ]
+  }
+}

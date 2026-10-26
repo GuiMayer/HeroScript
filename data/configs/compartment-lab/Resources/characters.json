@@ -1,0 +1,18 @@
+{
+  "compartment_lab_hero": {
+    "definitionId": "compartment_lab_hero", "displayName": "Workshop Adept",
+    "components": [
+      { "type": "resources", "componentId": "resources", "pools": { "health": { "current": 60, "max": 72 }, "energy": { "current": 3, "max": 3 }, "block": { "current": 0, "max": 999 }, "mana": { "current": 4, "max": 4 } } },
+      { "type": "stats", "componentId": "attributes", "values": { "power": 2 } },
+      { "type": "deck_compartments", "componentId": "deck_build", "profileId": "compartment_lab_balanced" }
+    ]
+  },
+  "compartment_lab_sentinel": {
+    "definitionId": "compartment_lab_sentinel", "displayName": "Workshop Sentinel",
+    "components": [
+      { "type": "resources", "componentId": "resources", "pools": { "health": { "current": 60, "max": 72 }, "energy": { "current": 3, "max": 3 }, "block": { "current": 0, "max": 999 } } },
+      { "type": "stats", "componentId": "attributes", "values": { "power": 2 } },
+      { "type": "deck_compartments", "componentId": "deck_build", "profileId": "compartment_lab_defensive" }
+    ]
+  }
+}

@@ -40,6 +40,8 @@ public static class PersistentPlayerTransitions
         var valid = EntityDefinitionValidator.Validate(definition.Value);
         if (valid.IsFailure) return Result<EntityState>.Failure(valid.Error);
         var components = ImmutableDictionary.CreateBuilder<string, EntityComponentState>(StringComparer.Ordinal);
+        foreach (var profile in definition.Value.Components.OfType<DeckCompartmentProfileComponentDefinition>())
+            components.Add(profile.ComponentId, new DeckCompartmentProfileComponentState { ComponentId = profile.ComponentId, ProfileId = profile.ProfileId });
         foreach (var stats in definition.Value.Components.OfType<StatEntityComponentDefinition>())
             components.Add(stats.ComponentId, new StatEntityComponentState { ComponentId = stats.ComponentId,
                 Values = stats.Values, ValueRules = stats.ValueRules });
@@ -93,6 +95,11 @@ public static class PersistentPlayerTransitions
         var components = ImmutableDictionary.CreateBuilder<string, EntityComponentState>(StringComparer.Ordinal);
         foreach (var (id, stored) in player.Components)
         {
+            if (stored is DeckCompartmentProfileComponentState && declared.Value.Components[id] is DeckCompartmentProfileComponentState profile)
+            {
+                components.Add(id, profile);
+                continue;
+            }
             if (stored is ResourceEntityComponentState pools && declared.Value.Components[id] is ResourceEntityComponentState resourceSchema)
             {
                 if (pools.State.OwnerId != player.InstanceId ||

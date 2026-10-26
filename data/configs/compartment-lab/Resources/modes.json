@@ -1,0 +1,10 @@
+{
+  "compartment_lab": {
+    "modeId": "compartment_lab", "runDefinitionId": "compartment_lab_run", "allowCustomSeed": true,
+    "flowRulesId": "standard_flow", "combatRulesId": "standard_combat", "deckCompartmentPolicyId": "compartment_lab_outside",
+    "calculationPipelineIds": ["default_effect_amount", "signed_resource_delta", "core_magnitude", "core_counts", "core_overflow", "core_attributes"],
+    "cardPoolIds": ["core_rewards"], "enemyPoolIds": ["core_enemies"],
+    "replayPolicyId": "standard_replay", "timelinePolicyId": "standard_timeline", "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay", "progressionPolicyId": "standard_progression", "cardZoneSystemId": "spire_zones"
+  }
+}

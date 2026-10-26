@@ -1,0 +1,19 @@
+{
+  "compartment_lab_run": {
+    "runId": "compartment_lab_run", "playerDefinitionId": "compartment_lab_hero", "startingResources": { "gold": 60 },
+    "initialPlayableCardCount": 5, "initialCardZoneId": "draw", "initialCardOwner": "RunOwner",
+    "startingCards": ["core_strike", "core_strike", "core_guard", "core_heal", "core_charge_card", "core_release", "core_recover", "core_guard"],
+    "mapNodes": [
+      { "nodeId": "workshop", "activity": { "type": "Preparation", "definitionId": "core_training" }, "completionPolicy": "Optional", "nextNodeIds": ["trial"] },
+      { "nodeId": "trial", "activity": { "type": "Encounter", "parameters": { "participants": [
+        { "instanceId": "player", "identityBinding": "RunPlayer", "definitionId": "compartment_lab_hero", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+        { "instanceId": "enemy_0", "definitionId": "core_spark", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
+      ] } }, "completionPolicy": "Required", "nextNodeIds": ["workshop_return"] },
+      { "nodeId": "workshop_return", "activity": { "type": "Preparation", "definitionId": "core_training" }, "completionPolicy": "Optional", "nextNodeIds": ["final"] },
+      { "nodeId": "final", "activity": { "type": "Encounter", "parameters": { "participants": [
+        { "instanceId": "player", "identityBinding": "RunPlayer", "definitionId": "compartment_lab_hero", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+        { "instanceId": "enemy_0", "definitionId": "core_echo", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
+      ] } }, "completionPolicy": "Required", "nextNodeIds": [] }
+    ]
+  }
+}

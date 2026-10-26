@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.compartment-lab",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [{ "packageId": "heroscript.volatile-core", "versionRange": "1.0.0" }],
+  "content": [
+    { "schemaVersion": 1, "operation": "definition", "kind": "deck-compartment-profiles", "sourcePath": "Resources/profiles.json", "artifactPath": "deck-compartment-profiles/lab.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "deck-compartment-policies", "sourcePath": "Resources/policies.json", "artifactPath": "deck-compartment-policies/lab.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "card-component-bundles", "sourcePath": "Resources/bundles.json", "artifactPath": "card-component-bundles/compartment-lab.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "entities", "sourcePath": "Resources/characters.json", "artifactPath": "entities/compartment-lab.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "modes", "sourcePath": "Resources/modes.json", "artifactPath": "modes/compartment-lab.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "runs", "sourcePath": "Resources/runs.json", "artifactPath": "runs/compartment-lab.json" }
+  ]
+}

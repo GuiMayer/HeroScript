@@ -1,0 +1,16 @@
+{
+  "compartment_lab_ward": {
+    "bundleId": "compartment_lab_ward",
+    "components": [
+      { "type": "effect", "componentId": "ward", "order": 40, "effect": { "type": "MODIFY_RESOURCE", "target": "SELF", "targetResource": "block", "operation": "ADD", "flatValue": 3 } }
+    ]
+  },
+  "compartment_lab_recovery": {
+    "bundleId": "compartment_lab_recovery",
+    "components": [
+      { "type": "cost", "componentId": "cost", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] } },
+      { "type": "condition", "componentId": "condition", "order": 5, "expression": "source.resources.energy.current", "failureReason": "Requires positive Energy" },
+      { "type": "effect", "componentId": "recovery", "order": 40, "effect": { "type": "MODIFY_RESOURCE", "target": "SELF", "targetResource": "health", "operation": "ADD", "flatValue": 4 } }
+    ]
+  }
+}
