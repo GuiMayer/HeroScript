@@ -1,4 +1,5 @@
 extends RefCounted
+const Pose = preload("res://scripts/ui/card_motion_pose.gd")
 ## Consumes published retention/transfer facts. Shared by combat and the lab.
 static func execute(id: String, retained: bool, continued: bool, hand, registry, context, staging: Callable, handle, skip_departure := false) -> void:
 	var card = hand.card_for(id)
@@ -13,18 +14,18 @@ static func execute(id: String, retained: bool, continued: bool, hand, registry,
 	var duration: float = 0.0 if skip_departure else context.motion.duration("card_flight", true)
 	var retain_duration: float = context.motion.duration("retain", true) if retained and not continued else 0.0
 	if duration <= 0 and retain_duration <= 0: handle.hit(); handle.finish(); return
-	var pose := {"center": ghost.global_position + ghost.size * .5, "rotation": ghost.rotation, "scale": ghost.scale.x}
+	var pose := Pose.read(ghost)
+	var base_scale: Vector2 = hand.surface.get_global_transform().get_scale()
 	var tween := ghost.create_tween(); handle.own(tween)
 	if duration > 0:
 		tween.tween_method(func(progress: float):
-			var center: Vector2 = pose.center.lerp(staging.call(), progress)
-			ghost.global_position = center - ghost.size * .5
-			ghost.rotation = lerpf(float(pose.rotation), 0, progress)
-			ghost.scale = Vector2.ONE * lerpf(float(pose.scale), .82, progress), 0.0, 1.0, duration).set_trans(context.motion.curve("card_flight")).set_ease(context.motion.easing("card_flight"))
+			Pose.write(ghost, Pose.blend(pose, {"center": staging.call(), "rotation": 0.0, "scale": base_scale * .82}, progress)),
+			0.0, 1.0, duration).set_trans(context.motion.curve("card_flight")).set_ease(context.motion.easing("card_flight"))
 	if retain_duration > 0:
-		var return_pose := {"center": Vector2.ZERO}
-		tween.tween_callback(func(): return_pose.center = ghost.global_position + ghost.size * .5)
+		var return_pose := {}
+		tween.tween_callback(func(): return_pose.merge(Pose.read(ghost), true))
 		tween.tween_method(func(progress: float):
-			ghost.global_position = return_pose.center.lerp(hand.destination_center(id), progress) - ghost.size * .5
-			ghost.scale = Vector2.ONE * lerpf(.82, 1, progress), 0.0, 1.0, retain_duration).set_trans(context.motion.curve("retain")).set_ease(context.motion.easing("retain"))
+			var target: Dictionary = hand.destination_pose(id)
+			if not target.is_empty(): Pose.write(ghost, Pose.blend(return_pose, target, progress)),
+			0.0, 1.0, retain_duration).set_trans(context.motion.curve("retain")).set_ease(context.motion.easing("retain"))
 	tween.finished.connect(func(): handle.hit(); handle.finish(), CONNECT_ONE_SHOT)

@@ -219,6 +219,8 @@ func return_card(id: String, card: Control, reveal_card: bool) -> void:
 	card.position = Vector2.ZERO; card.rotation = 0; card.scale = Vector2.ONE
 	card.z_index = 0
 	card.process_mode = Node.PROCESS_MODE_INHERIT
+	var destination := destination_pose(id)
+	if reveal_card and not destination.is_empty(): preload("res://scripts/ui/card_motion_pose.gd").write(card, destination)
 	finish_transit(id, reveal_card)
 
 func prepare_use(id: String, lift := true) -> void:
