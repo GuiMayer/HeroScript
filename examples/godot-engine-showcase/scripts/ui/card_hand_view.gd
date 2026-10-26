@@ -235,10 +235,12 @@ func return_card(id: String, card: Control, reveal_card: bool) -> void:
 
 func prepare_use(id: String, lift := true) -> void:
 	if not _cards.has(id): return
+	var dragged := _park_drag(id)
 	if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 	var card: CardView = _cards[id]
 	_transit[id] = true
-	if not lift: return
+	card.modulate.a = .94
+	if not lift or dragged: return
 	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
 	if policy.duration("prepare", true) <= 0: return
 	var tween := create_tween().set_parallel(); _preparations[id] = tween
@@ -248,7 +250,20 @@ func prepare_use(id: String, lift := true) -> void:
 func reject_use(id: String) -> void:
 	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
 	_preparations.erase(id); _transit.erase(id); _emphasis.erase(id)
+	if _cards.has(id): _cards[id].modulate.a = 1.0
 	_apply_emphasis()
+
+func _park_drag(id: String) -> bool:
+	if id != _ghost_id or not is_instance_valid(_ghost): return false
+	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
+	_return_tween = null
+	var card := _ghost
+	var pose := preload("res://scripts/ui/card_motion_pose.gd").read(card)
+	_ghost = null; _ghost_id = ""; _drag_pose.clear()
+	card.set_as_top_level(false); card.reparent(_slots[id], false); card.z_index = 0
+	preload("res://scripts/ui/card_motion_pose.gd").write(card, pose)
+	interaction.cancel_pointer()
+	return true
 
 func set_tools_below_cards(value: bool) -> void:
 	# Combat uses a floating bottom hand; labs and overview retain their toolbar.

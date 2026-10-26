@@ -22,6 +22,8 @@ var _zone_reading_states: Dictionary = {}
 var _collection_dialog: Window
 var _collection_loading := false
 var _prepared_card: Dictionary = {}
+var _interaction_trace = preload("res://scripts/presentation/interaction_trace.gd").new()
+func interaction_metrics() -> Dictionary: return _interaction_trace.snapshot()
 var _intro_handle
 var _receipt_departure
 var _receipt_motion_started := 0
@@ -227,6 +229,7 @@ func _on_receipt_received(receipt: Dictionary) -> void:
 	var receipt_state := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt.get("state"))
 	var combat := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt_state.get("combat"))
 	if combat.get("combatId") != _combat_snapshot.get("combatId"): return
+	_interaction_trace.mark("receipt")
 	var id := str(_prepared_card.get("cardInstanceId", ""))
 	if not is_instance_valid(view.hand.card_for(id)): return
 	_active_motion = visual_context.capture_motion()
@@ -234,6 +237,7 @@ func _on_receipt_received(receipt: Dictionary) -> void:
 	if preload("res://scripts/ui/card_zone_motion.gd").uses_burn(resolution.get("frames", []), id, _active_motion): return
 	if _active_motion.duration("card_flight", true) <= 0: return
 	_receipt_motion_started = Time.get_ticks_msec()
+	_interaction_trace.mark("first_motion")
 	_transits = preload("res://scripts/ui/card_transit_registry.gd").new(view.hand, view.feedback.effects, visual_context)
 	_receipt_departure = preload("res://scripts/presentation/presentation_handle.gd").new()
 	_receipt_departure.begin()
@@ -244,6 +248,7 @@ func _on_receipt_received(receipt: Dictionary) -> void:
 
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
+	_interaction_trace.mark("envelope")
 	controller.presentation_pending = true
 	if _active_motion == null: _active_motion = visual_context.capture_motion()
 	visual_context.motion = _active_motion
@@ -292,6 +297,8 @@ func _process(_delta: float) -> void:
 	if Playback.index == 0: presentation_driver.advance()
 
 func _execute_beat(frame: Dictionary, handle) -> void:
+	if not _prepared_card.is_empty():
+		handle.impact.connect(func(): _interaction_trace.mark("contact"), CONNECT_ONE_SHOT)
 	if _active_motion != null: visual_context.motion = _active_motion
 	if frame.get("presentationOnly", "") == "card_departure":
 		_intro_handle = handle
@@ -370,6 +377,7 @@ func _zone_role(address: String) -> String:
 
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
+	if not _prepared_card.is_empty(): _interaction_trace.mark("settled")
 	_prepared_card = {}; _intro_handle = null
 	_resume_card_prefix = false
 	_receipt_motion_started = 0; _active_motion = null
@@ -428,12 +436,14 @@ func _play_candidate(candidate: Dictionary) -> void:
 	if _locked() or candidate.is_empty():
 		return
 	var id := str(candidate.command.get("cardInstanceId", ""))
+	_interaction_trace.begin()
 	_active_motion = null; _receipt_motion_started = 0
 	_prepared_card = {"cardInstanceId": id, "targets": presenter.targets(candidate), "costs": candidate.get("costs", []),
 		"sequence": _run_snapshot.get("sequence", 0)}
-	# Freeze the existing face while pending. The canonical executor alone moves
-	# it after acceptance, exactly as in the laboratory; rejection restores it.
-	view.hand.prepare_use(id, false)
+	# Reversible local acknowledgement only: no costs, destination or game effects.
+	# A dragged face is parked at its release pose until the receipt authorizes departure.
+	view.hand.prepare_use(id)
+	_interaction_trace.mark("sent")
 	var success: bool = await controller.submit(candidate)
 	if not is_inside_tree():
 		return
