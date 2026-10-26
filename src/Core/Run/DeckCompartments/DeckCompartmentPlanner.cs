@@ -77,6 +77,8 @@ public static class DeckCompartmentPlanner
             return Result<DeckCompartmentChangePlan>.Failure("Character compartment profile changed; explicit reconciliation is required");
         var after = before with { Allocations = distribution.ToImmutableSortedDictionary(a => a.CardInstanceId, a => a.CompartmentId) };
         var candidate = run with { DeckCompartments = state with { Actors = state.Actors.SetItem(actorId, after) } };
+        var valid = DeckCompartmentComposition.Validate(candidate, runtime);
+        if (valid.IsFailure) return Result<DeckCompartmentChangePlan>.Failure(valid.Error);
         return Result<DeckCompartmentChangePlan>.Success(new(candidate, before, after));
     }
 

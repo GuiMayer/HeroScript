@@ -26,6 +26,7 @@ internal static class CompartmentFixture
         new() { CompartmentId = "other", Capacity = 1, Grants = [new() { GrantId = "grant", BundleId = "utility" }] }
     ] };
     internal static ContentRuntime Runtime => ContentRuntime.Create(Bundle(
+        ("cards", "card", new CardContentDefinition { CardId = "card", Components = [new CardConditionComponentDefinition { ComponentId = "base", Expression = "1" }] }),
         ("card-component-bundles", "utility", GrantBundle),
         ("deck-compartment-profiles", "layout", Profile),
         ("deck-compartment-policies", "outside", new DeckCompartmentPolicyDefinition { PolicyId = "outside" })

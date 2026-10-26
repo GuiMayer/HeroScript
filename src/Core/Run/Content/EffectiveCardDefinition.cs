@@ -20,6 +20,8 @@ public sealed record EffectiveCardDefinition
     public string DefinitionFingerprint { get; init; } = string.Empty;
     public ImmutableArray<string> Tags { get; init; } = [];
     public ImmutableArray<CardCompositionApplicationTrace> CompositionTrace { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardComponentContributionTrace>? ComponentContributions { get; init; }
     public ImmutableArray<string> Capabilities => CardCompositionGrammar.Capabilities(Components);
     public IReadOnlyList<CardUpgradeState> AppliedUpgrades
     {

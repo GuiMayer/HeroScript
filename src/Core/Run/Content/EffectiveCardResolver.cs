@@ -9,6 +9,10 @@ namespace Core.Run.Content;
 
 public interface IEffectiveCardResolver
 {
+    Result<EffectiveCardDefinition> ResolveWithContributions(CompiledCardDefinition definition, CardInstanceState instance,
+        IReadOnlyList<CardComponentContribution> contributions) => contributions.Count == 0
+            ? Resolve(definition, instance)
+            : new EffectiveCardResolver().ResolveWithContributions(definition, instance, contributions);
     Result<EffectiveCardDefinition> Resolve(
         CompiledCardDefinition definition,
         CardInstanceState instance);
@@ -29,7 +33,13 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         CardInstanceState instance) => Resolve(definition, instance, null);
 
     public Result<EffectiveCardDefinition> Resolve(CompiledCardDefinition definition, CardInstanceState instance,
-        ICollection<CardCompositionDiagnostic>? diagnostics)
+        ICollection<CardCompositionDiagnostic>? diagnostics) => ResolveCore(definition, instance, diagnostics, []);
+
+    public Result<EffectiveCardDefinition> ResolveWithContributions(CompiledCardDefinition definition, CardInstanceState instance,
+        IReadOnlyList<CardComponentContribution> contributions) => ResolveCore(definition, instance, null, contributions);
+
+    private Result<EffectiveCardDefinition> ResolveCore(CompiledCardDefinition definition, CardInstanceState instance,
+        ICollection<CardCompositionDiagnostic>? diagnostics, IReadOnlyList<CardComponentContribution> contributions)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(instance);
@@ -106,6 +116,21 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             }
         }
 
+        if (contributions.Count > 32 || contributions.Any(c => c == null || string.IsNullOrWhiteSpace(c.SourceId) ||
+            string.IsNullOrWhiteSpace(c.ContentRevision) || c.Components.IsDefault || c.Components.Length > 64 ||
+            c.Components.Any(component => component == null) || !CardCompositionGrammar.ValidSymbols(c.Tags)) ||
+            contributions.Select(c => c.SourceId).Distinct(StringComparer.Ordinal).Count() != contributions.Count)
+            return Result<EffectiveCardDefinition>.Failure("Invalid card component contribution sources or budgets");
+        var contributionTrace = ImmutableArray.CreateBuilder<CardComponentContributionTrace>();
+        foreach (var contribution in contributions.OrderBy(c => c.Priority).ThenBy(c => c.SourceId, StringComparer.Ordinal))
+        {
+            components = components.AddRange(contribution.Components);
+            tags = tags.Concat(contribution.Tags).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToImmutableArray();
+            contributionTrace.Add(new(contribution.SourceId, contribution.ContentRevision,
+                contribution.Components.Select(c => c.ComponentId).Order(StringComparer.Ordinal).ToImmutableArray(),
+                contribution.Tags.Order(StringComparer.Ordinal).ToImmutableArray()));
+        }
+
         // Use the same closed-container compiler as authored cards. Structural
         // mutations cannot bypass binding, alias, trigger or singleton checks.
         var recompiled = new CardContentCompiler().Compile(new CardContentDefinition
@@ -151,6 +176,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         try { fingerprint = payload.ComputeFingerprint(); }
         catch (Exception exception) when (exception is ArgumentException or JsonException or NotSupportedException)
         { return Result<EffectiveCardDefinition>.Failure($"Invalid transformation ledger snapshot: {exception.Message}"); }
+        if (contributionTrace.Count > 0)
+            fingerprint = CanonicalJson.ComputeHash(new { fingerprint, contributions = contributionTrace.ToImmutable() });
         return Result<EffectiveCardDefinition>.Success(new EffectiveCardDefinition
         {
             CardInstanceId = instance.CardInstanceId,
@@ -162,6 +189,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             TransformationLedger = instance.Upgrades,
             UpgradeTrace = upgradeTrace.ToImmutable(),
             CompositionTrace = composition.Trace,
+            ComponentContributions = contributionTrace.Count == 0 ? null : contributionTrace.ToImmutable(),
             Components = components,
             Fingerprint = fingerprint
         });
