@@ -131,6 +131,7 @@ public static class RunContentCompatibilityValidator
     }
 
     public static bool RequiresRuntime(RunState run) =>
+        run.DeckCompartments != null ||
         run.Loadouts != null ||
         run.PlayerEntity != null ||
         run.Deck.Topology.Instances.Count > 0 ||

@@ -20,9 +20,10 @@ func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 			var definition: Dictionary = effect.get("definition", {}).duplicate(true)
 			definition["chainedEffects"] = []
 			components.append({"type": "effect", "componentId": effect.get("effectPath", ""), "effect": definition})
-		components.append_array(facts.get("conditions", []))
-		components.append_array(facts.get("dispositions", []))
-		components.append_array(facts.get("ruleOverrides", []))
+		# Concrete arrays in the REST facts contract need no polymorphic discriminator.
+		for entry in [["conditions", "condition"], ["dispositions", "disposition"], ["ruleOverrides", "effect_rule_override"]]:
+			for item in facts.get(entry[0], []):
+				var typed: Dictionary = item.duplicate(true); typed["type"] = entry[1]; components.append(typed)
 		inspection["effectiveBase"] = {"components": components, "tags": facts.get("tags", [])}
 		inspection["baseContainer"] = {"rarity": facts.get("rarity", "Common")}
 	var original: Dictionary = inspection.get("compiledContainer", {})

@@ -21,5 +21,7 @@ func apply(snapshot: Dictionary, allocations: Array) -> Dictionary:
 		pending = _commands.prepare_command("runs", run_id, "APPLY_DECK_COMPARTMENTS", {
 			"actorId": snapshot.actorId, "allocations": allocations.duplicate(true)}, int(snapshot.runSequence), int(snapshot.expectedStep))
 	var result: Dictionary = await _commands.send_prepared(pending)
+	if result.get("ok", false) and (not result.get("data") is Dictionary or not typeof(result.data.get("sequence")) in [TYPE_INT, TYPE_FLOAT]):
+		return {"ok": false, "status": 0, "error": "Invalid command receipt. Retry the same command to recover."}
 	if result.get("ok", false) or int(result.get("status", 0)) in range(400, 500): pending = {}
 	return result

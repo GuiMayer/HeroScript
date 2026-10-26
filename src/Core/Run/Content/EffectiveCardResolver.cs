@@ -128,7 +128,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             tags = tags.Concat(contribution.Tags).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToImmutableArray();
             contributionTrace.Add(new(contribution.SourceId, contribution.ContentRevision,
                 contribution.Components.Select(c => c.ComponentId).Order(StringComparer.Ordinal).ToImmutableArray(),
-                contribution.Tags.Order(StringComparer.Ordinal).ToImmutableArray()));
+                contribution.Tags.Order(StringComparer.Ordinal).ToImmutableArray())
+                { NameKey = contribution.NameKey, DescriptionKey = contribution.DescriptionKey });
         }
 
         // Use the same closed-container compiler as authored cards. Structural

@@ -13,13 +13,45 @@ namespace Core.Tests.DeckCompartments;
 public sealed class CompartmentShippedContentTests
 {
     internal static async Task<ContentRuntime> Compile()
+        => ContentRuntime.Create(await CompileBundle()).Value;
+
+    internal static async Task<ContentBundle> CompileBundle()
     {
         var compiler = new SettingCompiler([new DirectoryPackageProvider("shipped", Path.Combine(ResourceProviderFactory.FindProjectRoot()!, "data", "configs"))]);
         var compilation = await compiler.CompileAsync("compartment-lab");
         Assert.True(compilation.IsSuccess, compilation.IsFailure ? compilation.Error : null);
         var validation = new ContentGraphValidator().Validate(compilation.Value.Bundle);
         Assert.True(validation.IsValid, string.Join("; ", validation.Errors));
-        return ContentRuntime.Create(compilation.Value.Bundle).Value;
+        return compilation.Value.Bundle;
+    }
+
+    [Fact]
+    public async Task IncompatibleCapacityReloadRejectsAtomicallyAndDoesNotPolluteProfileCache()
+    {
+        var original = await CompileBundle();
+        var runtime = ContentRuntime.Create(original).Value;
+        var instance = new CardInstanceState { CardInstanceId = CompartmentPlannerTests.First, DefinitionId = "core_strike" };
+        var run = new RunState { ConfigName = "compartment-lab", PlayerEntityId = "hero",
+            PlayerEntity = PersistentPlayerTransitions.Create("hero", "compartment_lab_hero", runtime).Value,
+            ResolvedMode = new() { Definition = runtime.GetDefinition<GameModeDefinition>("modes", "compartment_lab").Value },
+            Determinism = DeterministicContext.Create(1, runtime.Manifest.Revision),
+            Deck = new() { Topology = new() { Instances = new Dictionary<Guid, CardInstanceState> { [instance.CardInstanceId] = instance } } } };
+        var installed = DeckCompartmentPlanner.Plan(run, runtime, "hero", [new(instance.CardInstanceId, "ward")]);
+        Assert.True(installed.IsSuccess, installed.IsFailure ? installed.Error : null);
+        var before = CanonicalJson.ComputeHash(installed.Value.Candidate);
+        var path = "deck-compartment-profiles/lab.json";
+        var changed = System.Text.Json.Nodes.JsonNode.Parse(original.Artifacts[path].GetRawText())!;
+        changed["compartment_lab_balanced"]!["compartments"]![0]!["capacity"] = 0;
+        var payload = System.Text.Json.JsonSerializer.SerializeToElement(changed);
+        var candidateBundle = original with { Artifacts = original.Artifacts.SetItem(path, payload),
+            Manifest = original.Manifest with { Revision = new string('b', 64), Artifacts = original.Manifest.Artifacts.Select(a => a.Path == path ? a with { Hash = CanonicalJson.ComputeHash(payload) } : a).ToArray() } };
+        var candidate = ContentRuntime.Create(candidateBundle).Value;
+        var valid = RunContentCompatibilityValidator.ValidateForActivation(installed.Value.Candidate, candidate);
+        Assert.True(valid.IsFailure);
+        Assert.Contains("capacity", valid.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(before, CanonicalJson.ComputeHash(installed.Value.Candidate));
+        Assert.Equal(3, DeckCompartmentAccess.Profile(installed.Value.Candidate, runtime, "hero").Value.Compartments[0].Capacity);
+        Assert.True(RunContentCompatibilityValidator.ValidateForActivation(installed.Value.Candidate with { ActiveEncounterId = instance.CardInstanceId }, runtime).IsFailure);
     }
 
     [Fact]

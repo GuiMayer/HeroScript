@@ -1,5 +1,13 @@
 extends SceneTree
 var failures := 0
+class ReceiptFixture extends RefCounted:
+	var prepared := 0
+	var sent: Array = []
+	func prepare_command(_scope, _id, _type, _payload, _sequence, _step) -> Dictionary:
+		prepared += 1; return {"identity": prepared}
+	func send_prepared(command: Dictionary) -> Dictionary:
+		sent.append(command.duplicate(true))
+		return {"ok": true, "data": null} if sent.size() == 1 else {"ok": true, "data": {"sequence": 3}}
 func _init() -> void: call_deferred("_run")
 func check(value: bool, label: String) -> void:
 	print("[PASS] " if value else "[FAIL] ", label)
@@ -36,5 +44,16 @@ func _run() -> void:
 	check(load("res://scripts/ui/run_deck_compartments.gd") != null, "run editor reuses the laboratory editor without character picker")
 	var choices = load("res://scripts/application/activity_choices.gd").build({}, [{"type": "APPLY_DECK_COMPARTMENTS", "validPayload": {"actorId": "hero"}}])
 	check(choices.is_empty(), "generic activity auto-flow never invents a compartment command payload")
+	var facts := {"identity": {"definitionId": "card"}, "conditions": [{"componentId": "source.requirement", "failureReason": "Requires positive Energy"}],
+		"componentContributions": [{"nameKey": "Ward compartment", "descriptionKey": "Grants Block"}]}
+	var model: Dictionary = load("res://scripts/presentation/card_facts_presenter.gd").new(editor.visual_context.translator, {}).project(facts)
+	check(model.requirements.size() == 1 and model.requirements[0].text == "Requires positive Energy", "typed REST condition arrays render without an artificial discriminator")
+	check(model.changeBadges.size() == 1 and not model.upgraded, "source contribution is presented separately from permanent upgrades")
+	var receipts := ReceiptFixture.new()
+	var gateway = load("res://scripts/engine/deck_compartment_gateway.gd").new(null, receipts, "run")
+	var invalid: Dictionary = await gateway.apply(source, [])
+	check(not invalid.ok and not gateway.pending.is_empty(), "malformed successful receipt is uncertain and retains the command identity")
+	var recovered: Dictionary = await gateway.apply(source, [])
+	check(recovered.ok and gateway.pending.is_empty() and receipts.prepared == 1 and receipts.sent[0] == receipts.sent[1], "retry reuses the exact command instead of submitting a second mutation")
 	editor.queue_free(); await process_frame
 	root.get_node("GameAudio").shutdown(); quit(1 if failures else 0)

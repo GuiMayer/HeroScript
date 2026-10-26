@@ -26,10 +26,13 @@ public static class DeckCompartmentComposition
             return Result<EffectiveCardDefinition>.Failure("Allocated profile no longer matches the character");
         var compartment = profile.Value.Compartments.SingleOrDefault(c => c.CompartmentId == actor.Allocations[instance.CardInstanceId]);
         if (compartment == null) return Result<EffectiveCardDefinition>.Failure("Allocated compartment no longer exists");
-        var own = resolver.Resolve(definition, instance);
-        if (own.IsFailure) return own;
-        if (!compartment.RequiredTags.All(own.Value.Tags.Contains) || compartment.ExcludedTags.Any(own.Value.Tags.Contains))
-            return Result<EffectiveCardDefinition>.Failure("Card is incompatible with compartment requirements");
+        if (!compartment.RequiredTags.IsEmpty || !compartment.ExcludedTags.IsEmpty)
+        {
+            var own = resolver.Resolve(definition, instance);
+            if (own.IsFailure) return own;
+            if (!compartment.RequiredTags.All(own.Value.Tags.Contains) || compartment.ExcludedTags.Any(own.Value.Tags.Contains))
+                return Result<EffectiveCardDefinition>.Failure("Card is incompatible with compartment requirements");
+        }
         var sources = ImmutableArray.CreateBuilder<CardComponentContribution>();
         foreach (var grant in compartment.Grants.OrderBy(g => g.Priority).ThenBy(g => g.GrantId, StringComparer.Ordinal))
         {
@@ -42,7 +45,7 @@ public static class DeckCompartmentComposition
             var expanded = CardBundleCompiler.Expand(bundle.Value, scope, grant.EffectBindings);
             if (expanded.IsFailure) return Result<EffectiveCardDefinition>.Failure(expanded.Error);
             sources.Add(new() { SourceId = source, ContentRevision = runtime.Manifest.Revision, Priority = grant.Priority,
-                Components = expanded.Value, Tags = compartment.GrantedTags });
+                Components = expanded.Value, Tags = compartment.GrantedTags, NameKey = compartment.NameKey, DescriptionKey = compartment.DescriptionKey });
         }
         return resolver.ResolveWithContributions(definition, instance, sources.ToImmutable());
     }
@@ -69,6 +72,8 @@ public static class DeckCompartmentComposition
                 if (compiled.IsFailure) return Result.Failure(compiled.Error);
                 var effective = Resolve(run, runtime, compiled.Value, card, new EffectiveCardResolver());
                 if (effective.IsFailure) return Result.Failure(effective.Error);
+                var executable = GameplayContentValidator.ValidateCardContainer(runtime, $"compartment-card/{id}", effective.Value.Components);
+                if (executable.IsFailure) return executable;
             }
         }
         return Result.Success();

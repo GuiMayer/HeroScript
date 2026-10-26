@@ -34,6 +34,12 @@ func project(facts: Dictionary) -> Dictionary:
 		if category in seen: continue
 		seen.append(category)
 		badges.append({"kind": "upgraded" if category == "Base" else "modified", "label": _i18n.text("UPGRADED" if category == "Base" else "MODIFIED"), "symbol": "↑" if category == "Base" else "~", "sources": []})
+	var contributions: Array = facts.get("componentContributions", []) if facts.get("componentContributions") is Array else []
+	for source in contributions:
+		var label := str(source.get("nameKey", ""))
+		if label.is_empty(): label = "COMPONENT GRANT"
+		var description := str(source.get("descriptionKey", ""))
+		badges.append({"kind": "contribution", "label": _i18n.text(label), "symbol": "+", "sources": [_i18n.text(description)] if not description.is_empty() else []})
 	model["changeBadges"] = badges
 	model["upgraded"] = not seen.is_empty()
 	for influence in facts.get("influences", []):

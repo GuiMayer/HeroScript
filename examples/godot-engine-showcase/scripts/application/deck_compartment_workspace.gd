@@ -37,5 +37,6 @@ func clear() -> void:
 
 func accept_preview(response: Dictionary, ticket: int) -> bool:
 	if ticket != revision or str(response.get("runId", "")) != str(source.get("runId", "")) or int(response.get("runSequence", -1)) != int(source.get("runSequence", 0)): return false
+	if str(response.get("contentRevision", "")) != str(source.get("contentRevision", "")) or str(response.get("actorId", "")) != str(source.get("actorId", "")): return false
 	preview = response.duplicate(true)
 	return true

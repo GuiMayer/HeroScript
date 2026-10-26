@@ -3,6 +3,7 @@ extends Control
 signal back_requested
 var service
 var visual_context
+var appearance: Dictionary = {}
 var workspace = preload("res://scripts/application/deck_compartment_workspace.gd").new()
 var selected_id := ""
 var busy := false
@@ -18,6 +19,13 @@ var _alive := true
 func _ready() -> void:
 	if visual_context == null: visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(preload("res://data/themes/ivory_theme.tres"))
 	theme = visual_context.theme
+	if appearance.is_empty():
+		for path in ["res://data/presentation.json", "res://data/volatile_core_presentation.json", "res://data/world_one_presentation.json"]:
+			var overlay = JSON.parse_string(FileAccess.get_file_as_string(path))
+			if not overlay is Dictionary: continue
+			for category in overlay:
+				if not appearance.has(category): appearance[category] = {}
+				if overlay[category] is Dictionary: appearance[category].merge(overlay[category], true)
 	var background := ColorRect.new(); background.color = visual_context.styles.PANEL
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); background.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(background)
 	var margin := MarginContainer.new(); margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -57,7 +65,7 @@ func read_state() -> void:
 	var response: Dictionary = await service.read()
 	if not _alive: return
 	busy = false
-	if not response.get("ok", false): _status.text = _error(response); return
+	if not response.get("ok", false) or not response.get("data") is Dictionary: _status.text = _error(response); return
 	workspace.load_snapshot(response.data); selected_id = ""; _render()
 
 func _stage(id: String, target: String) -> void:
@@ -71,7 +79,8 @@ func _request_preview() -> void:
 	if not _alive or ticket != workspace.revision: return
 	var response: Dictionary = await service.preview(workspace.source.duplicate(true), workspace.allocations())
 	if not _alive or ticket != workspace.revision: return
-	if response.get("ok", false) and workspace.accept_preview(response.data.after, ticket): _render()
+	var payload = response.get("data")
+	if response.get("ok", false) and payload is Dictionary and payload.get("after") is Dictionary and workspace.accept_preview(payload.after, ticket): _render()
 	else: _status.text = _error(response); _apply.disabled = true
 
 func _commit() -> void:
@@ -100,7 +109,7 @@ func _render() -> void:
 		var used: int = workspace.draft.values().count(id)
 		columns[id] = _column("%s · %d/%d" % [_text(str(compartment.get("nameKey", id))), used, int(compartment.capacity)], _text(str(compartment.get("descriptionKey", ""))), id)
 		_target.add_item(_text(str(compartment.get("nameKey", id)))); _target.set_item_metadata(_target.item_count - 1, id)
-	var presenter = preload("res://scripts/presentation/card_facts_presenter.gd").new(visual_context.translator, {})
+	var presenter = preload("res://scripts/presentation/card_facts_presenter.gd").new(visual_context.translator, appearance)
 	for entry in snapshot.get("cards", []):
 		var id := str(entry.cardInstanceId)
 		var target := str(workspace.draft.get(id, ""))

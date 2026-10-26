@@ -353,6 +353,7 @@ func read_deck_compartments() -> Dictionary:
 	var ticket := _generation
 	var response: Dictionary = await _gateway.read_deck_compartments(str(_run.runId))
 	if ticket != _generation: return {"ok": false, "error": "Session changed while reading compartments."}
+	if response.get("ok", false) and not response.get("data") is Dictionary: return {"ok": false, "error": "Invalid compartment response."}
 	if response.get("ok", false):
 		if not loadout_context_matches(response.data) or str(response.data.get("actorId", "")) != str(_run.get("playerEntityId", "")):
 			return {"ok": false, "status": 409, "error": "Compartment context changed. Reopen the editor."}
