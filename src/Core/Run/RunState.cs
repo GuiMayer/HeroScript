@@ -48,6 +48,8 @@ public sealed record RunState : ICanonicalHashMemoizable
     public Core.Run.Content.CardModifierItemInventory? CardModifierItems { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Loadouts.InscriptionLoadoutState? Loadouts { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public DeckCompartments.DeckCompartmentState? DeckCompartments { get; init; }
     // Absent until the first conversation, preserving hashes of snapshots without narrative state.
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Dialogue.RunNarrativeState? Narrative { get; init; }
