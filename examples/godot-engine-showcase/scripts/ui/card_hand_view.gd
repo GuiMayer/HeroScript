@@ -9,6 +9,7 @@ signal inspection_requested(instance_id: String)
 signal selection_requested(instance_id: String)
 signal drop_requested(instance_id: String, global_point: Vector2)
 const Layout = preload("res://scripts/ui/hand_layout.gd")
+const Retarget = preload("res://scripts/ui/hand_retarget_motion.gd")
 @export var visual_style: HandVisualStyle = preload("res://data/default_hand_visual_style.tres")
 var interaction = preload("res://scripts/ui/hand_interaction.gd").new()
 var read_only := false
@@ -167,6 +168,7 @@ func settle_zone_beat() -> void:
 
 func begin_transit(id: String) -> void:
 	_transit[id] = true
+	if _cards.has(id): Retarget.reset(_cards[id])
 	if _preparations.has(id) and _preparations[id].is_valid(): _preparations[id].kill()
 	_preparations.erase(id)
 	if _entries.has(id):
@@ -430,8 +432,8 @@ func _relayout() -> void:
 			_motions.erase(id)
 		if slot.has_meta("placed") and slot.position != target and duration() > 0 and not _transit.has(id):
 			_motions[id] = create_tween()
-			_motions[id].tween_property(slot, "position", target, duration())
-		else: slot.position = target
+			Retarget.append(_motions[id], slot, "position", target, duration())
+		else: slot.position = target; Retarget.reset(slot)
 		slot.set_meta("placed", true)
 		if _emphasis.has(id): _emphasis[id].rotation = -999.0
 	if is_instance_valid(empty): empty.position = Vector2(0, visual_style.lift); empty.size = Vector2(scroll.size.x, dimensions.y)
@@ -465,9 +467,9 @@ func _apply_emphasis() -> void:
 		var tween: Tween = null
 		if duration() > 0 and is_inside_tree():
 			tween = create_tween().set_parallel()
-			tween.tween_property(card, "position", target, duration())
-			tween.tween_property(card, "rotation", angle, duration())
-		else: card.position = target; card.rotation = angle
+			Retarget.append(tween, card, "position", target, duration())
+			Retarget.append(tween, card, "rotation", angle, duration())
+		else: card.position = target; card.rotation = angle; Retarget.reset(card)
 		_emphasis[id] = {"position": target, "rotation": angle, "tween": tween}
 	_update_reading_proxy()
 
