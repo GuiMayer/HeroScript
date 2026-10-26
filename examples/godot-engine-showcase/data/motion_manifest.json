@@ -1,5 +1,12 @@
 {
   "version": 1,
+  "shapes": {
+    "card_flight": {"timing": "swift", "lift_ratio": 0.12, "tilt_degrees": 4, "settle_scale": 0.025},
+    "retain": {"timing": "smooth", "lift_ratio": 0.08, "settle_scale": 0.015},
+    "zone_transfer": {"timing": "swift", "lift_ratio": 0.12, "settle_scale": 0.02},
+    "drag_return": {"timing": "swift", "lift_ratio": 0.06},
+    "hover": {"timing": "swift"}
+  },
   "easings": {"card_flight": {"curve": "cubic", "ease": "out"}, "retain": {"curve": "cubic", "ease": "in_out"}, "zone_transfer": {"curve": "cubic", "ease": "in_out"}, "hover": {"curve": "cubic", "ease": "out"}, "hand_transition": {"curve": "cubic", "ease": "out"}},
   "durations": {"prepare": 0.075, "retain": 0.5, "draw": 1, "discard": 1, "staged_discard": 0.5, "create": 1, "destroy": 1, "exile_burn": 0.5, "stagger": 0, "batch_span": 0, "card_flight": 0.5, "card_entry": 1, "impact": 1, "float": 1, "zone_transfer": 1, "hand_transition": 0.11, "hover": 0.085, "watchdog": 12, "max_floats": 24, "max_transfers": 12},
   "cues": {

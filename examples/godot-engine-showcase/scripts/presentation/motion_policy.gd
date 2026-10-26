@@ -9,6 +9,7 @@ var _easings: Dictionary = {}
 var _values: Dictionary = {}
 var _cues: Dictionary = {}
 var _random: Dictionary = {}
+var _shapes: Dictionary = {}
 var speed := 1.0
 var instant := false
 var reduced := false
@@ -48,6 +49,17 @@ static func capture(setting: String, options: Dictionary, path := PATH):
 	policy.instant = str(options.get("animation_preset", "normal")) == "instant"
 	policy.speed = 2.0 if options.get("animation_preset") == "fast" else clampf(float(options.get("animation_speed", 1)), .25, 2.)
 	policy.reduced = bool(options.get("reduced_motion", false))
+	for layer in [document.get("shapes", {}), override.get("shapes", {})]:
+		if not layer is Dictionary: continue
+		for key in layer:
+			var shape := as_dictionary(layer[key])
+			var clean: Dictionary = policy._shapes.get(key, {}).duplicate()
+			if str(shape.get("timing", "")) in ["linear", "swift", "smooth"]: clean.timing = str(shape.timing)
+			for parameter in ["lift_ratio", "tilt_degrees", "settle_scale"]:
+				var value = shape.get(parameter)
+				if (value is float or value is int) and is_finite(float(value)):
+					clean[parameter] = clampf(float(value), 0.0, 12.0 if parameter == "tilt_degrees" else (.06 if parameter == "settle_scale" else .25))
+			policy._shapes[key] = clean
 	preload("res://scripts/presentation/card_animation_profile.gd").apply(policy)
 	# A long explicitly applied lab cycle must not hit the old twelve-second
 	# watchdog. Keep the guard outside the animation's own active budget.
@@ -64,3 +76,8 @@ func cue(kind: String) -> Dictionary: return as_dictionary(_cues.get(kind, {})).
 func random_labels() -> Dictionary: return _random.duplicate(true)
 func curve(key: String) -> int: return CURVES.get(str(_easings.get(key, {}).get("curve", "linear")), Tween.TRANS_LINEAR)
 func easing(key: String) -> int: return EASES.get(str(_easings.get(key, {}).get("ease", "in_out")), Tween.EASE_IN_OUT)
+func shape(key: String) -> Dictionary: return as_dictionary(_shapes.get(key, {})).duplicate()
+func progress(key: String, value: float) -> float:
+	if _shapes.get(key, {}).has("timing"):
+		return preload("res://scripts/presentation/motion_curves.gd").sample(str(_shapes[key].timing), value)
+	return Tween.interpolate_value(0.0, 1.0, clampf(value, 0.0, 1.0), 1.0, curve(key), easing(key))
