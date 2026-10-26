@@ -7,6 +7,9 @@ namespace Core.CardZones;
 
 public sealed record CardZoneFlowContext
 {
+    // Captured structural context only. Not persisted or hashed as part of zone flow input.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public RunState? RunSnapshot { get; init; }
     private ImmutableArray<Guid> _cardInstanceIds = [];
     private ImmutableArray<string> _cardDefinitionIds = [];
     private ImmutableDictionary<string, double> _variables =

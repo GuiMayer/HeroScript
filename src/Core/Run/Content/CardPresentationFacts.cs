@@ -87,6 +87,8 @@ public sealed record CardPresentationFacts
     public ImmutableArray<CardEffectRuleOverrideComponentDefinition> RuleOverrides { get; init; } = [];
     public ImmutableArray<CardInfluenceComponentDefinition> Influences { get; init; } = [];
     public ImmutableArray<CardUpgradeApplicationTrace> PermanentChanges { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardComponentContributionTrace>? ComponentContributions { get; init; }
     public ImmutableArray<CardValueExplanation> Explanations { get; init; } = [];
     public ImmutableArray<CardImpactExplanation> Impacts { get; init; } = [];
     public bool ImpactsTruncated { get; init; }

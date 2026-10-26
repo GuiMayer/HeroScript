@@ -39,6 +39,7 @@ public static class CardZoneRunFlowDispatcher
                 ContentRevision = context.ContentRevision,
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
+                RunSnapshot = run,
                 CardInstanceIds = cardInstanceIds ?? [],
                 Variables = variables ?? new Dictionary<string, double>()
             });
@@ -70,6 +71,7 @@ public static class CardZoneRunFlowDispatcher
                 ContentRevision = context.ContentRevision,
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
+                RunSnapshot = run,
                 CardInstanceIds = [cardInstanceId]
             });
     }
@@ -99,6 +101,7 @@ public static class CardZoneRunFlowDispatcher
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
+                RunSnapshot = run,
                 CardInstanceIds = cardInstanceIds,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
@@ -137,6 +140,7 @@ public static class CardZoneRunFlowDispatcher
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
+                RunSnapshot = run,
                 CardInstanceIds = cardInstanceIds,
                 Variables = new Dictionary<string, double>
                 {
@@ -175,6 +179,7 @@ public static class CardZoneRunFlowDispatcher
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
+                RunSnapshot = run,
                 CardInstanceIds = cardInstanceIds,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
@@ -207,6 +212,7 @@ public static class CardZoneRunFlowDispatcher
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
+                RunSnapshot = run,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
                 {

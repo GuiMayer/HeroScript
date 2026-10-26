@@ -17,6 +17,20 @@ public static class RunContentCompatibilityValidator
         using var timing = Core.Diagnostics.OperationalTiming.Measure("content_compatibility");
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
+        if (run.DeckCompartments != null)
+        {
+            var window = DeckCompartments.DeckCompartmentAccess.CanChange(run, runtime);
+            if (window.IsFailure) return window;
+            var player = run.PlayerEntity == null ? null : PersistentPlayerTransitions.Rebind(run.PlayerEntity, runtime);
+            if (player?.IsFailure == true) return Result.Failure(player.Error);
+            var modeId = run.ResolvedMode?.Definition.ModeId;
+            var mode = modeId == null ? null : runtime.GetDefinition<GameModeDefinition>("modes", modeId);
+            if (mode?.IsFailure == true) return Result.Failure(mode.Error);
+            var candidate = run with { Determinism = run.Determinism.WithContentRevision(runtime.Manifest.Revision),
+                PlayerEntity = player?.Value, ResolvedMode = run.ResolvedMode == null ? null : run.ResolvedMode with { Definition = mode!.Value } };
+            var compartments = DeckCompartments.DeckCompartmentComposition.Validate(candidate, runtime);
+            if (compartments.IsFailure) return compartments;
+        }
         var loadouts = Loadouts.LoadoutMigration.Prepare(run, runtime);
         if (loadouts.IsFailure) return Result.Failure(loadouts.Error);
         var eligibility = RunEligibility.ValidateSnapshot(run);

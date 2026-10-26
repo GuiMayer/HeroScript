@@ -77,7 +77,7 @@ public sealed class CardPresentationQueryService(IRunQueryService runs, IContent
             }
             var composed = subject.Instance == null
                 ? Result<EffectiveCardDefinition>.Success(CardBasePresentationProjector.DefinitionBase(definition))
-                : effectiveCards.Resolve(definition, subject.Instance);
+                : DeckCompartments.DeckCompartmentComposition.Resolve(run, runtime, definition, subject.Instance, effectiveCards);
             if (composed.IsFailure) return Result<CardPresentationBatch>.Failure(composed.Error);
             var facts = CardBasePresentationProjector.Project(definition, composed.Value, subject.Identity,
                 new() { RunId = run.RunId, RunSequence = run.Sequence, ContentRevision = run.Determinism.ContentRevision });

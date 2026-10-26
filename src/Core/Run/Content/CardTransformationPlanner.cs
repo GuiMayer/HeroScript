@@ -20,6 +20,8 @@ public sealed record CardTransformationAssessment(Guid RunId, Guid CardInstanceI
 {
     public EffectiveCardDefinition? Before { get; init; }
     public EffectiveCardDefinition? After { get; init; }
+    public CardPresentationFacts? BeforePresentation { get; init; }
+    public CardPresentationFacts? AfterPresentation { get; init; }
     public ImmutableArray<ResourceAmount> Costs { get; init; } = [];
 }
 
@@ -150,6 +152,8 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
         var compiled = _cards.GetOrAdd(card.DefinitionId, id => new CardContentCompiler().Compile(id, runtime));
         if (compiled.IsFailure) return Result<CardInstanceState>.Failure(compiled.Error);
         var effective = new EffectiveCardResolver().Resolve(compiled.Value, transition.Value, diagnostics);
+        if (effective.IsSuccess && run.DeckCompartments != null)
+            effective = DeckCompartments.DeckCompartmentComposition.Resolve(run, runtime, compiled.Value, transition.Value, new EffectiveCardResolver());
         if (effective.IsFailure) return Result<CardInstanceState>.Failure(effective.Error);
         var references = GameplayContentValidator.ValidateCardContainer(runtime,
             $"card-instances/{card.CardInstanceId}", effective.Value.Components);
@@ -191,8 +195,18 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
                     CanonicalJson.ComputeHash(before.Value.CompositionTrace.Where(item => item.AnchorComponentId == id).ToArray()) !=
                     CanonicalJson.ComputeHash(after.CompositionTrace.Where(item => item.AnchorComponentId == id).ToArray())))
             .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToImmutableArray();
+        var identity = new CardPresentationIdentity { Kind = CardPresentationSubjectKind.Transformation,
+            DefinitionId = compiled.CardId, CardInstanceId = cardInstanceId };
+        var version = new CardPresentationVersion { RunId = run.RunId, RunSequence = run.Sequence,
+            ContentRevision = run.Determinism.ContentRevision };
+        var beforeFacts = CardBasePresentationProjector.Project(compiled, before.Value, identity, version, runtime);
+        var afterFacts = CardBasePresentationProjector.Project(compiled, after, identity, version, runtime);
+        if (beforeFacts.IsFailure || afterFacts.IsFailure)
+            return new(run.RunId, cardInstanceId, run.Determinism.ContentRevision, run.Sequence, run.Determinism.Step,
+                false, [new("presentation_unavailable", beforeFacts.IsFailure ? beforeFacts.Error : afterFacts.Error)], [], []);
         return new(run.RunId, cardInstanceId, run.Determinism.ContentRevision, run.Sequence, run.Determinism.Step,
             true, [], changed, after.CompositionTrace) { Before = before.Value, After = after,
+            BeforePresentation = beforeFacts.Value, AfterPresentation = afterFacts.Value,
             Costs = run.Map.Nodes.FirstOrDefault(node => node.NodeId == run.CurrentNodeId)?.Activity is { Type: RunActivityType.CardUpgrade } activity
                 ? CardTransformationAccess.ReadCosts(activity).Value : [] };
     }

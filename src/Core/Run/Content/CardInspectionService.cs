@@ -274,7 +274,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
         var compiled = _compiler.Compile(instance.DefinitionId, runtime.Value);
         if (compiled.IsFailure)
             return Result<CardInspectionResult>.Failure(compiled.Error);
-        var effective = _effectiveCards.Resolve(compiled.Value, instance);
+        var effective = DeckCompartments.DeckCompartmentComposition.Resolve(run, runtime.Value, compiled.Value, instance, _effectiveCards);
         if (effective.IsFailure)
             return Result<CardInspectionResult>.Failure(effective.Error);
         var command = new CombatActionCommand

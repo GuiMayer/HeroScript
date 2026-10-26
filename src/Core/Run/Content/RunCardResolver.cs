@@ -39,6 +39,6 @@ public sealed class RunCardResolver : IRunCardResolver
         var compiled = _compiler.Compile(instance.DefinitionId, runtime.Value);
         if (compiled.IsFailure)
             return Result<EffectiveCardDefinition>.Failure(compiled.Error);
-        return _effectiveCards.Resolve(compiled.Value, instance);
+        return DeckCompartments.DeckCompartmentComposition.Resolve(run, runtime.Value, compiled.Value, instance, _effectiveCards);
     }
 }

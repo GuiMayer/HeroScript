@@ -113,7 +113,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
         var compiled = _compiler.Compile(instance.DefinitionId, runtime.Value);
         if (compiled.IsFailure)
             return Result<CardPlayExecutionResult>.Failure(compiled.Error);
-        var effective = _effectiveCards.Resolve(compiled.Value, instance);
+        var effective = DeckCompartments.DeckCompartmentComposition.Resolve(request.Run, runtime.Value, compiled.Value, instance, _effectiveCards);
         if (effective.IsFailure)
             return Result<CardPlayExecutionResult>.Failure(effective.Error);
 

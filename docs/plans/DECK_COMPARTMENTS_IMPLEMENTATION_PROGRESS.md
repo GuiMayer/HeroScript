@@ -37,7 +37,7 @@ CardBundleCompiler suporta custos, condições, targeting, disposition, triggers
 2. Conteúdo e vínculo: concluída. Profiles/policies revisionados, grants referenciando bundles genéricos, vínculo tipado da entidade e materialização. 20 testes de conteúdo/entidade aprovados; modo sem política omite o campo novo. Nenhum setting existente foi habilitado.
 3. Estado/transições: concluída na camada estrutural. Associação opcional por ator, distribuição final atômica, swap, capacidade, propriedade, janelas e reconciliação de destruição. Validação da composição é conectada na etapa 4 antes de expor comandos. 10 testes de compartimentos aprovados, incluindo round-trip/hash, ordem de inputs e ausência serializada.
 4. Composição: concluída. Contexto genérico de fontes, expansão com namespace estável, trace separado do ledger, fingerprint/cache contextual e validação do candidato. Custos, condições, alvos, triggers e efeitos entram pelo compilador comum; duplicatas/singletons incompatíveis são rejeitados. 24 testes focados aprovados, incluindo equivalência estrutural com carta autorada e retorno ao fingerprint original sem alocação.
-5. Consumidores: pendente.
+5. Consumidores: concluída. Resolução da run, execução, inspeção, projeções, transformação e seleção por tags consomem o contexto. Projeção expõe proveniência sem chamar concessões de upgrade. Compatibilidade de conteúdo valida os compartimentos contra revisão/personagem candidatos. 88 testes de cartas/zonas/compatibilidade e um teste integrado de consumidores aprovados.
 6. Comandos/persistência: pendente.
 7. REST: pendente.
 8. Conteúdo demonstrativo: pendente.

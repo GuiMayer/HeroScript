@@ -39,7 +39,9 @@ public sealed class RevisionedCardZoneCardMetadataResolver : ICardZoneCardMetada
         if (runtime.IsFailure) return Result<IReadOnlyList<string>>.Failure(runtime.Error);
         var compiled = _compiler.Compile(instance.DefinitionId, runtime.Value);
         if (compiled.IsFailure) return Result<IReadOnlyList<string>>.Failure(compiled.Error);
-        var effective = _effectiveCards.Resolve(compiled.Value, instance);
+        var effective = context.RunSnapshot is { } snapshot
+            ? Core.Run.DeckCompartments.DeckCompartmentComposition.Resolve(snapshot, runtime.Value, compiled.Value, instance, _effectiveCards)
+            : _effectiveCards.Resolve(compiled.Value, instance);
         return effective.IsFailure
             ? Result<IReadOnlyList<string>>.Failure(effective.Error)
             : Result<IReadOnlyList<string>>.Success(effective.Value.Tags);
