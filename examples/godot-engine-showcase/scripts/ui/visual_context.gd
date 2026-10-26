@@ -25,6 +25,7 @@ var _options: Dictionary = {}
 var _revision_key: Array = []
 var _resource_styles: Dictionary = {}
 var motion
+var hand_arrangements = preload("res://scripts/ui/hand_arrangement_store.gd").new()
 func capture_motion():
 	motion = preload("res://scripts/presentation/motion_policy.gd").capture(setting_id, _options)
 	return motion

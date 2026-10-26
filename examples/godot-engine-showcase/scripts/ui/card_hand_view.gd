@@ -21,6 +21,8 @@ var mode_override := ""
 var drag_enabled := true
 var scope := ""
 var order: Array[String] = []
+var arrangement = preload("res://scripts/ui/hand_arrangement.gd").new()
+var _arrangement_bound := false
 var _cards := {}
 var _slots := {}
 var _motions := {}
@@ -143,6 +145,13 @@ func active_card_id() -> String:
 	return id if id in order else (_inspection_anchor if _inspection_anchor in order else "")
 func cards() -> Dictionary: return _cards.duplicate()
 func ordered_cards() -> Array: return order.map(func(id): return _cards[id])
+func move_visual_card(id: String, index: int) -> bool:
+	if read_only or reading_modal or _presenting or id not in order: return false
+	arrangement.begin(id); arrangement.move(index)
+	if not arrangement.commit(): return false
+	order = arrangement.confirmed.duplicate()
+	request_layout(); wire_focus()
+	return true
 
 func begin_presentation(final_models: Array) -> void:
 	_presenting = true
@@ -322,7 +331,8 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 	var anchor: String = focus_id if not focus_id.is_empty() else interaction.selected
 	var old_index := order.find(anchor)
 	var old_order := order.duplicate()
-	if context != scope:
+	if context != scope or not _arrangement_bound:
+		cancel_gesture()
 		for id in order: _remove(id)
 		order.clear()
 		interaction.clear()
@@ -330,6 +340,8 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 		_inspection_anchor = ""
 		scroll.scroll_horizontal = 0
 		scope = context
+		arrangement = visual_context.hand_arrangements.state_for(scope)
+		_arrangement_bound = true
 		anchor = ""
 		focus_id = ""
 	var incoming: Array[String] = []
@@ -370,9 +382,12 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 			var before := card.custom_minimum_size
 			card.configure(model)
 			geometry_changed = geometry_changed or before != card.custom_minimum_size
+	if not _presenting:
+		var was_dragging: bool = interaction.dragging
+		if arrangement.sync(incoming) and was_dragging: cancel_gesture()
 	for id in order:
 		if id not in incoming: _remove(id)
-	order = incoming
+	order = incoming if _presenting else arrangement.confirmed.duplicate()
 	if interaction.selected not in order: interaction.selected = ""
 	if interaction.hovered not in order: interaction.hovered = ""
 	if interaction.pressed not in order: interaction.cancel_pointer(); _clear_ghost()

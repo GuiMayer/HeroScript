@@ -105,9 +105,11 @@ func _render(data: Dictionary) -> void:
 	if not GameSession.card_evaluations_ready: _load_inspection.call_deferred(render_epoch)
 
 func _hand_scope() -> String:
-	return JSON.stringify([_run_snapshot.get("runId", ""), _run_snapshot.get("branchId", ""),
-		_combat_snapshot.get("combatId", ""), GameSession.input_actor_id(),
-		_zone_snapshot.get("zones", []).filter(func(zone): return zone.get("allowsCardPlay", false)).map(func(zone): return zone.get("zoneId", ""))])
+	var addresses: Array = _zone_snapshot.get("zones", []).filter(func(zone): return zone.get("allowsCardPlay", false)).map(
+		func(zone): return preload("res://scripts/ui/card_zone_motion.gd").address_key(zone))
+	addresses.sort()
+	return JSON.stringify([Preferences.api_url, GameSession.selected_setting_id, _run_snapshot.get("runId", ""), _run_snapshot.get("branchId", ""),
+		_combat_snapshot.get("combatId", ""), GameSession.input_actor_id(), addresses])
 
 
 func _on_intent(action: String, arguments: Array) -> void:
