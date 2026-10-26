@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Cinzel";
+  src: url("/assets/fonts/Cinzel.ttf") format("truetype");
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("/assets/fonts/SourceSans3.ttf") format("truetype");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+:root {
+  --ivory-night: #05060b;
+  --ivory-canvas: #f2ebdd;
+  --ivory-panel: #faf5eb;
+  --ivory-raised: #eee4d1;
+  --ivory-ink: #20201c;
+  --ivory-muted: #5b574f;
+  --ivory-primary: #b83e25;
+  --ivory-warm: #98311d;
+  --ivory-positive: #286853;
+  --ivory-danger: #a4322c;
+  --ivory-power: #625383;
+  --ivory-border: #8d8270;
+  --ivory-gold: #c49b3b;
+  --ivory-effects-bg: #20201c;
+  --ivory-effects-ink: #faf5eb;
+  --text-scale: 1;
+}
+
+.high-contrast {
+  --ivory-canvas: #ffffff;
+  --ivory-panel: #ffffff;
+  --ivory-raised: #f0ece1;
+  --ivory-ink: #0a0a08;
+  --ivory-muted: #262420;
+  --ivory-border: #20201c;
+  --ivory-primary: #9e2912;
+  --ivory-positive: #164f3c;
+  --ivory-danger: #8c1d18;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--ivory-canvas);
+  color: var(--ivory-ink);
+  font-family: "Source Sans 3", system-ui, -apple-system, sans-serif;
+  font-size: calc(15px * var(--text-scale, 1));
+  overflow-x: hidden;
+  user-select: none;
+}
+
+.font-display {
+  font-family: "Cinzel", Georgia, serif;
+  letter-spacing: 0.04em;
+}
+
+.font-body {
+  font-family: "Source Sans 3", system-ui, sans-serif;
+}
+
+/* Ivory Editorial Paper & Circuit Surface Utilities */
+.ivory-surface {
+  background-color: var(--ivory-canvas);
+  color: var(--ivory-ink);
+}
+
+.ivory-panel {
+  background-color: var(--ivory-panel);
+  border: 1.5px solid var(--ivory-border);
+  box-shadow: 0 2px 8px rgba(32, 32, 28, 0.06);
+}
+
+.ivory-raised {
+  background-color: var(--ivory-raised);
+  border: 1px solid var(--ivory-border);
+}
+
+.ivory-button {
+  background-color: var(--ivory-panel);
+  color: var(--ivory-ink);
+  border: 1.5px solid var(--ivory-ink);
+  font-family: "Cinzel", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: all 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+
+.ivory-button:hover:not(:disabled) {
+  background-color: var(--ivory-raised);
+  border-color: var(--ivory-primary);
+  color: var(--ivory-primary);
+  transform: translateY(-1px);
+}
+
+.ivory-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ivory-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ivory-button-primary {
+  background-color: var(--ivory-primary);
+  color: var(--ivory-effects-ink);
+  border: 1.5px solid var(--ivory-ink);
+  font-family: "Cinzel", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: all 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+
+.ivory-button-primary:hover:not(:disabled) {
+  background-color: var(--ivory-warm);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(184, 62, 37, 0.25);
+}
+
+.ivory-button-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Card Burn Dissolve Animation */
+@keyframes cardBurnDissolve {
+  0% {
+    filter: brightness(1) sepia(0) contrast(1);
+    clip-path: inset(0% 0% 0% 0%);
+    opacity: 1;
+    transform: scale(1);
+  }
+  40% {
+    filter: brightness(1.35) sepia(0.85) hue-rotate(-25deg) saturate(3);
+    box-shadow: 0 0 24px #ff5d1f, inset 0 0 18px #b83e25;
+  }
+  100% {
+    filter: brightness(2.2) sepia(1) hue-rotate(-35deg) saturate(5) blur(3px);
+    clip-path: inset(48% 48% 48% 48%);
+    opacity: 0;
+    transform: scale(0.84) translateY(-14px);
+  }
+}
+
+.card-burning {
+  animation: cardBurnDissolve 0.55s cubic-bezier(0.32, 0, 0.67, 0) forwards;
+  pointer-events: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ivory-raised);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ivory-border);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ivory-muted);
+}

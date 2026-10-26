@@ -1,0 +1,462 @@
+{
+	"cases": {
+		"1280x720/en/1.0/0": {
+			"controls": 54,
+			"digest": "2c2f2df9f37ffd8e30609d9bc5aeb9c2bb649b1ae6a82380fe0ab63b658d464f",
+			"hand_position": [
+				24.0,
+				295.0
+			],
+			"hand_size": [
+				1232.0,
+				526.0
+			]
+		},
+		"1280x720/en/1.0/2": {
+			"controls": 100,
+			"digest": "fadc00a22f1cd8fb9314aa7e36f94135d130f261ec5d63bc91618a3601751151",
+			"hand_position": [
+				24.0,
+				295.0
+			],
+			"hand_size": [
+				1232.0,
+				526.0
+			]
+		},
+		"1280x720/en/1.0/5": {
+			"controls": 179,
+			"digest": "35740dccce53a900e961648faceecfa8be2ce6d369872ed9fc439bc7eba95b50",
+			"hand_position": [
+				24.0,
+				295.0
+			],
+			"hand_size": [
+				1232.0,
+				526.0
+			]
+		},
+		"1280x720/en/1.2/0": {
+			"controls": 54,
+			"digest": "8fcce59c3c1eeeb4136a9df827a31bbd549613470bd006433d10dfdc252f5612",
+			"hand_position": [
+				24.0,
+				300.0
+			],
+			"hand_size": [
+				1232.0,
+				551.0
+			]
+		},
+		"1280x720/en/1.2/2": {
+			"controls": 100,
+			"digest": "ca8e405d183a5ff31066339a2917bc6566897f98729e8e84e39e6220084160e3",
+			"hand_position": [
+				24.0,
+				300.0
+			],
+			"hand_size": [
+				1232.0,
+				551.0
+			]
+		},
+		"1280x720/en/1.2/5": {
+			"controls": 179,
+			"digest": "b4d12afc7057dccd7e008b5fabbd115a7685a26aec44a6c704e1936fa1c3591b",
+			"hand_position": [
+				24.0,
+				300.0
+			],
+			"hand_size": [
+				1232.0,
+				551.0
+			]
+		},
+		"1280x720/pt_BR/1.0/0": {
+			"controls": 54,
+			"digest": "4f7f43b066124ba5680bfdfdd1cb73036f24671d2840beccc5b8d4e4d8cb5aa2",
+			"hand_position": [
+				24.0,
+				295.0
+			],
+			"hand_size": [
+				1232.0,
+				526.0
+			]
+		},
+		"1280x720/pt_BR/1.0/2": {
+			"controls": 100,
+			"digest": "22c3a38b2952886203996a402ac7e35d071a283a1840e24a0434b62cf2fac528",
+			"hand_position": [
+				24.0,
+				295.0
+			],
+			"hand_size": [
+				1232.0,
+				526.0
+			]
+		},
+		"1280x720/pt_BR/1.0/5": {
+			"controls": 179,
+			"digest": "5038d8c6bed0eb621037a18a07a9e015a4da6e5945bc84a1e2cef6b4e844d013",
+			"hand_position": [
+				24.0,
+				295.0
+			],
+			"hand_size": [
+				1232.0,
+				526.0
+			]
+		},
+		"1280x720/pt_BR/1.2/0": {
+			"controls": 54,
+			"digest": "094e529d7138aa678063ac79b598740dd6a19fba7f877886acbdfd20b1b7e150",
+			"hand_position": [
+				24.0,
+				300.0
+			],
+			"hand_size": [
+				1232.0,
+				551.0
+			]
+		},
+		"1280x720/pt_BR/1.2/2": {
+			"controls": 100,
+			"digest": "196a038594817d89b2ae679e9a5b7ec28ab99292db703922598be1e7fee64469",
+			"hand_position": [
+				24.0,
+				300.0
+			],
+			"hand_size": [
+				1232.0,
+				551.0
+			]
+		},
+		"1280x720/pt_BR/1.2/5": {
+			"controls": 179,
+			"digest": "a2f0f301a376fd8fc2656f3e11f74750d0ccc232d0d492d58fb0a3afd3d328d6",
+			"hand_position": [
+				24.0,
+				300.0
+			],
+			"hand_size": [
+				1232.0,
+				551.0
+			]
+		},
+		"1920x1080/en/1.0/0": {
+			"controls": 54,
+			"digest": "4662537ec386a1263a99105a3867113fca2cae4618235ad0c9aa87f81fd958a7",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				1872.0,
+				526.0
+			]
+		},
+		"1920x1080/en/1.0/2": {
+			"controls": 100,
+			"digest": "c6cf12d6824f9dabeb7131df0541bef2809bd0c5020cea6d16fd6a40e91b6be1",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				1872.0,
+				526.0
+			]
+		},
+		"1920x1080/en/1.0/5": {
+			"controls": 179,
+			"digest": "2619359d010ee1dab9fd662dca6ede8bdaab8904be40601d48ddb6c7072e3435",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				1872.0,
+				526.0
+			]
+		},
+		"1920x1080/en/1.2/0": {
+			"controls": 54,
+			"digest": "0f0670377348bbfa14d99c5811a07ae87fe85ed490901885ecbd7d6ed37671f2",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				1872.0,
+				551.0
+			]
+		},
+		"1920x1080/en/1.2/2": {
+			"controls": 100,
+			"digest": "84feadd571695adc88c645cdf62ed90e369564bb909ce4cc0036476e241c03cf",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				1872.0,
+				551.0
+			]
+		},
+		"1920x1080/en/1.2/5": {
+			"controls": 179,
+			"digest": "3c76eeb77b9cc7f771c11cb2b516a7ae048db0be6a548184233dfecdbbedbf83",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				1872.0,
+				551.0
+			]
+		},
+		"1920x1080/pt_BR/1.0/0": {
+			"controls": 54,
+			"digest": "fcfd6d6eccbc5d79d24a54b91e805084583e3baee26af12883bdcc0368f55f99",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				1872.0,
+				526.0
+			]
+		},
+		"1920x1080/pt_BR/1.0/2": {
+			"controls": 100,
+			"digest": "15d68350caa41863e175494a81b3892c3fca4b216e9c6f42e8004984699eb9ea",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				1872.0,
+				526.0
+			]
+		},
+		"1920x1080/pt_BR/1.0/5": {
+			"controls": 179,
+			"digest": "40c9a535dc24c4b8f29bd3a417dfb2dab00afb5753230f9d94dae97be57fc7a2",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				1872.0,
+				526.0
+			]
+		},
+		"1920x1080/pt_BR/1.2/0": {
+			"controls": 54,
+			"digest": "a371d83d157285dd2221074673db1d96c8980d9b9c3cd443a79917045b2f912f",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				1872.0,
+				551.0
+			]
+		},
+		"1920x1080/pt_BR/1.2/2": {
+			"controls": 100,
+			"digest": "b0e286fa9b812e535e7a71d86a4d9151e36765a6a1be8192bd96394d4553cda8",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				1872.0,
+				551.0
+			]
+		},
+		"1920x1080/pt_BR/1.2/5": {
+			"controls": 179,
+			"digest": "b7dee91e102fecaafd52f8039ffe802e89332210473f5241503a022be28578f2",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				1872.0,
+				551.0
+			]
+		},
+		"2560x1080/en/1.0/0": {
+			"controls": 54,
+			"digest": "17cfccab85f3cdb44532776b4912c9b67a6b088d8e6b79070922610092409686",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				2512.0,
+				526.0
+			]
+		},
+		"2560x1080/en/1.0/2": {
+			"controls": 100,
+			"digest": "ff28e7468fbc52ebd23aaf4be21addebb21d97073b98db259044c63328ef67d6",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				2512.0,
+				526.0
+			]
+		},
+		"2560x1080/en/1.0/5": {
+			"controls": 179,
+			"digest": "12252e3f6f96a8c20fafda82288b6d49bf7c6ef7f7b2289a58104b9041b01a96",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				2512.0,
+				526.0
+			]
+		},
+		"2560x1080/en/1.2/0": {
+			"controls": 54,
+			"digest": "4ab6e0428fdbff787aec582f27e3b54b256efa92c045ff7c1e09939f5ba9eb48",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				2512.0,
+				551.0
+			]
+		},
+		"2560x1080/en/1.2/2": {
+			"controls": 100,
+			"digest": "b806cac20705ef83fa6eba20a5bbdebf4e68909c4cadd7f484c067faf019b809",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				2512.0,
+				551.0
+			]
+		},
+		"2560x1080/en/1.2/5": {
+			"controls": 179,
+			"digest": "54cddb93fb5802e9bc3e9776d8d129a33a87ff2749bf3a4bca5277755d92ccc7",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				2512.0,
+				551.0
+			]
+		},
+		"2560x1080/pt_BR/1.0/0": {
+			"controls": 54,
+			"digest": "eda878b67ae37999fbaf7639608c0b4706d768fe6659277ec83beea46cec7f6d",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				2512.0,
+				526.0
+			]
+		},
+		"2560x1080/pt_BR/1.0/2": {
+			"controls": 100,
+			"digest": "8fad1401c23811a9efbe05f5621088e23712d521a82a8679ef9d6e4d58eb8002",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				2512.0,
+				526.0
+			]
+		},
+		"2560x1080/pt_BR/1.0/5": {
+			"controls": 179,
+			"digest": "5340fa478e5ade298e4e2577bc380a20134eb5131f1db666261ecda55b150a08",
+			"hand_position": [
+				24.0,
+				530.0
+			],
+			"hand_size": [
+				2512.0,
+				526.0
+			]
+		},
+		"2560x1080/pt_BR/1.2/0": {
+			"controls": 54,
+			"digest": "5ba8f81fdf8559860a93d44eebb3c46424b11225eaf01fd62d9002c385db9a9e",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				2512.0,
+				551.0
+			]
+		},
+		"2560x1080/pt_BR/1.2/2": {
+			"controls": 100,
+			"digest": "45c3145f7ce81ff186b14c3413c09a9f284a5f7365ad74306c87b2fc63f1d21c",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				2512.0,
+				551.0
+			]
+		},
+		"2560x1080/pt_BR/1.2/5": {
+			"controls": 179,
+			"digest": "6a79cc9070f279620b4e7acc44adb92c2be412ec56683cd300314e1619eb9c76",
+			"hand_position": [
+				24.0,
+				505.0
+			],
+			"hand_size": [
+				2512.0,
+				551.0
+			]
+		},
+		"preset/0": {
+			"controls": 179,
+			"digest": "2619359d010ee1dab9fd662dca6ede8bdaab8904be40601d48ddb6c7072e3435"
+		},
+		"preset/1": {
+			"controls": 178,
+			"digest": "be91b14099c240ce75a74ae578328aeaad84cd1148d531aa71e146fff39ab1a5"
+		},
+		"preset/2": {
+			"controls": 210,
+			"digest": "dd028fef8064e616d93f1deef88a56cee3db8fca7b86b0d9dc3044a8d142dcdc"
+		},
+		"preset/3": {
+			"controls": 253,
+			"digest": "e15702c6b7448d13c2ccd983fa327562843bb79b951f2f733ce426bb150609f0"
+		}
+	},
+	"motion_sources": {
+		"res://data/labs/card_animation_catalog.json": "5d094de85c222304c4051e235b87e8f95c6807dae4c04abd961e06112199d27f",
+		"res://data/motion_manifest.json": "53af0a121b76717558a004eb3af19d67792fa18504995a2ea571ef67f8c75723",
+		"res://scripts/labs/card_motion_lab.gd": "19c2aba44dcf8f8df46e1e777264eb9698daebd72b92bfcb512853927ac31434",
+		"res://scripts/presentation/card_animation_profile.gd": "0a95f6f6bca94259e95854a008992bfbbf63446d1d3927575331631ebe9f1a4c",
+		"res://scripts/presentation/card_choreography.gd": "2f58ce6ca0b22fdb1cc86bb4c8a55ad3a01c87655677354162bd00f372589753",
+		"res://scripts/presentation/motion_policy.gd": "7666c78bf59beb2470b7772352d81e732202fbb9197e248aa5e2db2f736a1204",
+		"res://scripts/ui/card_hand_view.gd": "d2e0c35004d302c861cf3c8bca0ca4b1544c5810cfd9e3e025b0b609bbfb71e0",
+		"res://shaders/card_burn.gdshader": "c40fca9203dfbb4a7d478945e3b5cb3c9233797ffd85ae7824308c03a0fac9b8"
+	}
+}

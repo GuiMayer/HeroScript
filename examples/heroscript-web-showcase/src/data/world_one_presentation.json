@@ -1,0 +1,302 @@
+{
+  "cards": {
+    "w1_last_guard": {
+      "name": "Last Guard",
+      "text": "One-use defensive burst. Exiled after play.",
+      "tone": "skill"
+    },
+    "w1_second_wind": {
+      "name": "Second Wind",
+      "text": "One-use recovery and protection. Exiled after play.",
+      "tone": "skill"
+    },
+    "w1_solar_burst": {
+      "name": "Solar Burst",
+      "text": "One-use strike with a stronger residual. Exiled after play.",
+      "tone": "attack"
+    },
+    "w1_strike": {
+      "name": "Matrix Strike",
+      "text": "Reliable single-target damage.",
+      "tone": "attack"
+    },
+    "w1_guard": {
+      "name": "Kinetic Guard",
+      "text": "Baseline mitigation.",
+      "tone": "skill"
+    },
+    "w1_scorch": {
+      "name": "Scorch Cut",
+      "text": "Immediate damage plus a short residual.",
+      "tone": "attack"
+    },
+    "w1_poison": {
+      "name": "Corrosion",
+      "text": "Delayed single-target pressure.",
+      "tone": "power"
+    },
+    "w1_release": {
+      "name": "Condense",
+      "text": "Consume all Scorch/Corrosion potency in one proc at 150%; not remaining-duration damage.",
+      "tone": "skill"
+    },
+    "w1_precision": {
+      "name": "Precision",
+      "text": "Card-local +50 critical chance.",
+      "tone": "attack"
+    },
+    "w1_focus": {
+      "name": "Focus",
+      "text": "One-time combat investment: +80 critical chance.",
+      "tone": "skill"
+    },
+    "w1_lance": {
+      "name": "Critical Lance",
+      "text": "Card-local +75 critical chance; supports guaranteed tiers.",
+      "tone": "attack"
+    },
+    "w1_flurry": {
+      "name": "Twin Blades",
+      "text": "One shared budget split into two independent crit rolls.",
+      "tone": "attack"
+    },
+    "w1_barrage": {
+      "name": "Shard Barrage",
+      "text": "Shared source budget; four per-impact rolls.",
+      "tone": "attack"
+    },
+    "w1_sweep": {
+      "name": "Arc Sweep",
+      "text": "Pays for coverage rather than single-target burst.",
+      "tone": "attack"
+    },
+    "w1_shield_bash": {
+      "name": "Shield Bash",
+      "text": "Bridge between defense and offense.",
+      "tone": "attack"
+    },
+    "w1_fortify": {
+      "name": "Fortify",
+      "text": "35% increased Block for this encounter.",
+      "tone": "skill"
+    },
+    "w1_bulwark": {
+      "name": "Bulwark",
+      "text": "Efficient defense, at the cost of offensive tempo.",
+      "tone": "skill"
+    },
+    "w1_reserve": {
+      "name": "Guard reserve",
+      "text": "Defend now and store a future Block proc.",
+      "tone": "skill"
+    },
+    "w1_release_guard": {
+      "name": "Release Guard",
+      "text": "Consumes defense reserve, not damage stacks.",
+      "tone": "skill"
+    },
+    "w1_fracture": {
+      "name": "Expose Weakness",
+      "text": "Makes following impacts more effective.",
+      "tone": "attack"
+    },
+    "w1_dampen": {
+      "name": "Dampen",
+      "text": "Reduce one actor's outgoing damage instead of racing it.",
+      "tone": "skill"
+    },
+    "w1_recall": {
+      "name": "Tactical Recall",
+      "text": "Convert energy into hand options.",
+      "tone": "skill"
+    },
+    "w1_insight": {
+      "name": "Brief Insight",
+      "text": "Exhausts; cannot cycle forever.",
+      "tone": "skill"
+    },
+    "w1_mend": {
+      "name": "Field Dressing",
+      "text": "Limited recovery; exhausts each encounter.",
+      "tone": "skill"
+    },
+    "w1_momentum": {
+      "name": "Gather Momentum",
+      "text": "One-time 30% increased damage investment.",
+      "tone": "power"
+    },
+    "w1_catalyst": {
+      "name": "Volatile Catalyst",
+      "text": "Captured residual potency scales at application, not again on release.",
+      "tone": "power"
+    },
+    "w1_venom_flurry": {
+      "name": "Venom Flurry",
+      "text": "Multiple hits plus one status application, not one free payload per hit.",
+      "tone": "attack"
+    },
+    "w1_inferno": {
+      "name": "Spreading Embers",
+      "text": "Delayed coverage for multi-actor encounters.",
+      "tone": "skill"
+    },
+    "w1_detonate": {
+      "name": "Detonating Cut",
+      "text": "Cash-out before attacking; avoids a duplicate tick.",
+      "tone": "attack"
+    },
+    "w1_riposte": {
+      "name": "Guard Conversion",
+      "text": "Consumes own Block after converting 75% into an attack.",
+      "tone": "attack"
+    },
+    "w1_pierce": {
+      "name": "Piercing Ray",
+      "text": "Trade base damage for ignoring Block.",
+      "tone": "attack"
+    },
+    "w1_rehearse": {
+      "name": "Rehearsed Strike",
+      "text": "Critical/draw sidegrade unlocked after reaching world-one completion.",
+      "tone": "attack"
+    },
+    "w1_renewal": {
+      "name": "Lasting Renewal",
+      "text": "A second limited recovery option; unlock, not permanent stats.",
+      "tone": "skill"
+    },
+    "w1_power_surge": {
+      "name": "Power Surge",
+      "text": "Gain 2 Energy, up to its maximum. Exile.",
+      "tone": "skill"
+    },
+    "w1_blood_fuel": {
+      "name": "Blood Fuel",
+      "text": "Pay 4 Health, leaving at least 1. Gain 2 Energy. Exile.",
+      "tone": "skill"
+    },
+    "w1_charge_cell": {
+      "name": "Charge Cell",
+      "text": "Store 2 Energy potency for a later release. Exile.",
+      "tone": "skill"
+    },
+    "w1_release_charge": {
+      "name": "Release Charge",
+      "text": "Consume all your Energy reserves; gain their potency once, up to maximum Energy.",
+      "tone": "skill"
+    },
+    "w1_guarded_strike": {
+      "name": "Guarded Strike",
+      "text": "Deal 4 + 50% of current Block as damage. Keep your Block.",
+      "tone": "attack"
+    },
+    "w1_guard_wave": {
+      "name": "Guard Wave",
+      "text": "Deal 50% of current Block to each enemy, then consume your Block once.",
+      "tone": "attack"
+    },
+    "w1_desperate_guard": {
+      "name": "Desperate Guard",
+      "text": "Gain 4 Block + 20% of missing Health.",
+      "tone": "skill"
+    },
+    "w1_shelter": {
+      "name": "Shelter",
+      "text": "Recover 2 Health + 10% of current Block. Exile.",
+      "tone": "skill"
+    },
+    "w1_cinder_brand": {
+      "name": "Cinder Brand",
+      "text": "Apply 3 captured fire potency for 4 enemy end activations.",
+      "tone": "skill"
+    },
+    "w1_volatile_rot": {
+      "name": "Volatile Rot",
+      "text": "Apply 6 captured poison potency for 1 enemy end activation.",
+      "tone": "skill"
+    },
+    "w1_caustic_guard": {
+      "name": "Caustic Guard",
+      "text": "Gain 3 Block. Apply 2 captured poison potency for 2 enemy end activations.",
+      "tone": "skill"
+    },
+    "w1_lingering_aegis": {
+      "name": "Lingering Aegis",
+      "text": "Gain captured 3 Block at the start of your next 2 activations.",
+      "tone": "skill"
+    },
+    "w1_vital_surge": {
+      "name": "Vital Surge",
+      "text": "Recover 10% of maximum Health. Exile.",
+      "tone": "skill"
+    },
+    "w1_mending_echo": {
+      "name": "Mending Echo",
+      "text": "Recover captured 2 Health at the start of your next 3 activations. Exile.",
+      "tone": "skill"
+    },
+    "w1_release_mending": {
+      "name": "Release Mending",
+      "text": "Consume all compatible healing payloads for one recovery equal to their potency, not their remaining ticks.",
+      "tone": "skill"
+    },
+    "w1_delayed_recovery": {
+      "name": "Delayed Recovery",
+      "text": "Recover captured 8 Health at the start of your next activation, once. Exile.",
+      "tone": "skill"
+    },
+    "w1_seek_attack": {
+      "name": "Seek Attack",
+      "text": "Move up to 1 attack card(s) from draw to hand, in zone order.",
+      "tone": "skill"
+    },
+    "w1_gather_defense": {
+      "name": "Gather Defense",
+      "text": "Move up to 2 defense card(s) from draw to hand, in zone order.",
+      "tone": "skill"
+    },
+    "w1_recover_trace": {
+      "name": "Recover Trace",
+      "text": "Move up to 1 residual card(s) from discard to hand, in zone order.",
+      "tone": "skill"
+    },
+    "w1_prepare_guard": {
+      "name": "Prepare Guard",
+      "text": "Move up to 1 defense card(s) from discard to draw, in zone order.",
+      "tone": "skill"
+    },
+    "w1_needle_storm": {
+      "name": "Needle Storm",
+      "text": "Deal 2 base damage per hit, 3 hits. Each hit rolls critical tiers separately.",
+      "tone": "attack"
+    },
+    "w1_heavy_impact": {
+      "name": "Heavy Impact",
+      "text": "Deal 28 base damage in one impact.",
+      "tone": "attack"
+    },
+    "w1_break_guard": {
+      "name": "Break Guard",
+      "text": "Remove 8 Block (fixed, no critical or Armor), then deal 4 base Health damage.",
+      "tone": "attack"
+    },
+    "w1_relay_strike": {
+      "name": "Relay Strike",
+      "text": "Deal 14 base damage. On a kill, excess continues to one more enemy without reapplying source bonuses.",
+      "tone": "attack"
+    }
+  },
+  "condensation_labels": {
+    "w1_release_dot": "Consume compatible offensive residuals: release 150% of captured potency once.",
+    "w1_release_guard": "Consume all Guard reserve stacks: gain 150% of stored potency as Block.",
+    "w1_release_charge": "Consume your Energy reserves: gain their captured potency once.",
+    "w1_release_mending": "Consume your healing payloads: recover their captured potency once."
+  },
+  "card_flow_labels": {
+    "effect.draw": "Draw",
+    "w1_seek_attack": "Find an Attack in the draw pile",
+    "w1_gather_defense": "Find up to two Defense cards in the draw pile",
+    "w1_recover_trace": "Recover a residual producer from discard",
+    "w1_prepare_guard": "Put a Defense card from discard on top of the draw pile"
+  }
+}

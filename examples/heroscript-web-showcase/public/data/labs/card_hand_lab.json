@@ -1,0 +1,120 @@
+{
+  "description": "Presentation fixtures only. These are not executable engine definitions or legal-action previews.",
+  "presets": [
+    { "id": "starter", "name": "Ember Archive · familiar cards", "cards": ["strike", "ward", "fireball", "heal", "arcane"] },
+    { "id": "volatile", "name": "Volatile Crucible · transformations", "cards": ["volatile", "charge", "release", "recover", "empower"] },
+    { "id": "scaling", "name": "Ascendant Matrix · layered costs", "cards": ["arcane", "volatile", "many_resources", "modified", "long_rules"] },
+    { "id": "stress", "name": "Stress · custom content / mods", "cards": ["long_title", "long_rules", "many_resources", "modified", "unavailable", "free", "custom_type"] }
+  ],
+  "cards": {
+    "strike": {
+      "definitionId": "basic_attack", "name": "Strike", "tone": "attack", "cardType": "ATTACK", "rarity": "COMMON",
+      "effects": ["Deal 6 Health damage."], "availability": "SELECT TO PLAY",
+      "effectRows": [{"segments": [{"text": "Deal "}, {"text": "6", "value": 6, "baseValue": 6}, {"text": " Health damage."}]}],
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }],
+      "pt_BR": { "name": "Golpe", "cardType": "ATAQUE", "effects": ["Cause 6 de dano à Vida."], "availability": "SELECIONE PARA JOGAR", "effectRows": [{"segments": [{"text": "Cause "}, {"text": "6", "value": 6, "baseValue": 6}, {"text": " de dano à Vida."}]}] }
+    },
+    "ward": {
+      "definitionId": "defend", "name": "Ward", "tone": "skill", "cardType": "SKILL", "rarity": "COMMON",
+      "effects": ["Gain 5 Block."], "availability": "SELECT TO PLAY",
+      "effectRows": [{"segments": [{"text": "Gain "}, {"text": "5", "value": 5, "baseValue": 5}, {"text": " Block."}]}],
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }],
+      "pt_BR": { "name": "Proteção", "cardType": "HABILIDADE", "effects": ["Ganhe 5 de Bloqueio."], "availability": "SELECIONE PARA JOGAR", "effectRows": [{"segments": [{"text": "Ganhe "}, {"text": "5", "value": 5, "baseValue": 5}, {"text": " de Bloqueio."}]}] }
+    },
+    "fireball": {
+      "definitionId": "fireball", "name": "Fireball", "tone": "attack", "cardType": "ATTACK", "rarity": "UNCOMMON",
+      "effects": ["Deal 10 Health damage.", "Apply 2 Burning."], "availability": "SELECT TO PLAY",
+      "effectRows": [{"segments": [{"text": "Deal "}, {"text": "10", "value": 10, "baseValue": 10}, {"text": " Health damage."}]}, {"segments": [{"text": "Apply "}, {"text": "2", "value": 2, "baseValue": 2}, {"text": " Burning."}]}],
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }, { "resourceId": "mana", "name": "Mana", "symbol": "M", "color": "#62a7f1", "amount": 2 }],
+      "pt_BR": { "name": "Bola de Fogo", "cardType": "ATAQUE", "effects": ["Cause 10 de dano à Vida.", "Aplique 2 de Queimadura."], "effectRows": [{"segments": [{"text": "Cause "}, {"text": "10", "value": 10, "baseValue": 10}, {"text": " de dano à Vida."}]}, {"segments": [{"text": "Aplique "}, {"text": "2", "value": 2, "baseValue": 2}, {"text": " de Queimadura."}]}] }
+    },
+    "heal": {
+      "definitionId": "heal", "name": "Renewal", "tone": "skill", "cardType": "SKILL", "rarity": "COMMON",
+      "effects": ["Restore 8 Health."], "availability": "SELECT TO PLAY",
+      "effectRows": [{"segments": [{"text": "Restore "}, {"text": "8", "value": 8, "baseValue": 8}, {"text": " Health."}]}],
+      "costs": [{ "resourceId": "mana", "name": "Mana", "symbol": "M", "color": "#62a7f1", "amount": 2 }],
+      "pt_BR": { "name": "Renovação", "effects": ["Recupere 8 de Vida."], "effectRows": [{"segments": [{"text": "Recupere "}, {"text": "8", "value": 8, "baseValue": 8}, {"text": " de Vida."}]}] }
+    },
+    "arcane": {
+      "definitionId": "arcane_bolt", "name": "Arcane Bolt", "tone": "attack", "cardType": "ATTACK", "rarity": "RARE",
+      "effects": ["Deal 12 Mana damage."], "availability": "SELECT TO PLAY",
+      "effectRows": [{"segments": [{"text": "Deal "}, {"text": "12", "value": 12, "baseValue": 18}, {"text": " Mana damage."}]}],
+      "costs": [{ "resourceId": "mana", "name": "Mana", "symbol": "M", "color": "#62a7f1", "amount": 3 }],
+      "pt_BR": { "name": "Raio Arcano", "effects": ["Cause 12 de dano à Mana."], "effectRows": [{"segments": [{"text": "Cause "}, {"text": "12", "value": 12, "baseValue": 18}, {"text": " de dano à Mana."}]}] }
+    },
+    "volatile": {
+      "definitionId": "core_strike", "name": "Volatile Strike", "upgraded": true, "tone": "attack", "cardType": "ATTACK", "rarity": "RARE",
+      "effects": ["Divide 15 damage across 3 impacts.", "Apply Scorch. Excess continues on defeat."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }],
+      "changeBadges": [{ "kind": "upgrade", "label": "UPGRADED", "symbol": "↑", "sources": ["Sharpen +3"] }, { "kind": "modified", "label": "MODIFIED", "symbol": "~", "sources": ["Ember", "Multihit", "Cascade"] }],
+      "pt_BR": { "name": "Golpe Volátil", "effects": ["Divida 15 de dano em 3 impactos.", "Aplique Brasa. O excedente continua após derrotar."] }
+    },
+    "charge": {
+      "definitionId": "core_charge_card", "name": "Prepare Charge", "tone": "skill", "cardType": "SKILL", "rarity": "COMMON",
+      "effects": ["Accumulate 2 Charge stacks.", "Capture potency at preparation time."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }],
+      "pt_BR": { "name": "Preparar Carga", "effects": ["Acumule 2 stacks de Carga.", "Capture a potência ao preparar."] }
+    },
+    "release": {
+      "definitionId": "core_release", "name": "Release", "tone": "attack", "cardType": "ATTACK", "rarity": "UNCOMMON",
+      "effects": ["Consume all eligible Charge stacks.", "Activate their captured potency in one proc."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }],
+      "pt_BR": { "name": "Liberar", "effects": ["Consuma todos os stacks elegíveis de Carga.", "Ative a potência capturada em um proc."] }
+    },
+    "recover": {
+      "definitionId": "core_recover", "name": "Recover", "tone": "skill", "cardType": "SKILL", "rarity": "UNCOMMON",
+      "effects": ["Consume Charge in a single recovery proc."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "mana", "name": "Mana", "symbol": "M", "color": "#62a7f1", "amount": 1 }],
+      "pt_BR": { "name": "Recuperar", "effects": ["Consuma Carga em um único proc de recuperação."] }
+    },
+    "empower": {
+      "definitionId": "core_empower_card", "name": "Empower", "tone": "power", "cardType": "POWER", "rarity": "RARE",
+      "effects": ["Convert Charge stacks into a temporary modifier."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 2 }],
+      "pt_BR": { "name": "Fortalecer", "effects": ["Converta stacks de Carga em um modificador temporário."] }
+    },
+    "long_title": {
+      "definitionId": "lab_unknown_long_title", "name": "The Unreasonably Long Name of a Volatile Convergence", "tone": "power", "cardType": "CUSTOM SPELL", "rarity": "LEGENDARY",
+      "effects": ["A long title must not turn into a vertical column."], "availability": "SELECT TO PLAY", "costs": [],
+      "pt_BR": { "name": "A Convergência Volátil de Nome Deliberadamente Muito Longo", "effects": ["Um nome longo não deve virar uma coluna vertical."] }
+    },
+    "long_rules": {
+      "definitionId": "lab_unknown_long_rules", "name": "Convergence", "tone": "attack", "cardType": "ATTACK", "rarity": "RARE",
+      "effects": ["Deal damage to the selected resource, then apply a captured residual effect that inherits the original potency without recalculating the player's contribution.", "If the target is defeated by this impact, transport the configured excess to another eligible target.", "Resolve children according to their authored timing and proc scope.", "This fourth line intentionally exceeds the current three-line face limit."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 1 }],
+      "pt_BR": { "name": "Convergência", "effects": ["Cause dano ao recurso escolhido e aplique um efeito residual capturado, preservando a potência de origem sem recalcular a contribuição do jogador.", "Se este impacto derrotar o alvo, transporte o excedente configurado para outro alvo elegível.", "Resolva os filhos conforme seu momento de execução e escopo de proc.", "A quarta linha excede intencionalmente o limite atual da face."] }
+    },
+    "many_resources": {
+      "definitionId": "lab_unknown_many_resources", "name": "Prismatic Exchange", "tone": "skill", "cardType": "CONVERSION", "rarity": "RARE",
+      "effects": ["A visual stress case with four unrelated resource costs."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 2 }, { "resourceId": "mana", "name": "Mana", "symbol": "M", "color": "#62a7f1", "amount": 3 }, { "resourceId": "heat", "name": "Heat", "symbol": "H", "color": "#ee8653", "amount": 12 }, { "resourceId": "focus", "name": "Focus", "symbol": "F", "color": "#ab84e9", "amount": 100 }],
+      "pt_BR": { "name": "Troca Prismática", "effects": ["Amostra visual com custos em quatro recursos independentes."] }
+    },
+    "modified": {
+      "definitionId": "core_strike", "name": "Altered Strike", "tone": "attack", "cardType": "ATTACK", "rarity": "UNCOMMON",
+      "effects": ["Deal 18 Health damage (base 9).", "Apply 2 Scorch (base 3)."], "availability": "SELECT TO PLAY",
+      "upgraded": true,
+      "effectRows": [{"segments": [{"text": "Deal "}, {"text": "18", "value": 18, "baseValue": 9}, {"text": " Health damage."}]}, {"segments": [{"text": "Apply "}, {"text": "2", "value": 2, "baseValue": 3}, {"text": " Scorch."}]}],
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 0 }],
+      "changeBadges": [{ "kind": "upgrade", "label": "UPGRADED", "symbol": "↑", "sources": ["Sharpen"] }, { "kind": "buff", "label": "BUFFED", "symbol": "+", "sources": ["Empower", "Relic"] }, { "kind": "debuff", "label": "DEBUFFED", "symbol": "−", "sources": ["Weak"] }, { "kind": "modified", "label": "MODIFIED", "symbol": "~", "sources": ["Frost"] }],
+      "pt_BR": { "name": "Golpe Alterado", "effects": ["Cause 18 de dano à Vida (base 9).", "Aplique 2 de Brasa (base 3)."], "effectRows": [{"segments": [{"text": "Cause "}, {"text": "18", "value": 18, "baseValue": 9}, {"text": " de dano à Vida."}]}, {"segments": [{"text": "Aplique "}, {"text": "2", "value": 2, "baseValue": 3}, {"text": " de Brasa."}]}] }
+    },
+    "unavailable": {
+      "definitionId": "fireball", "name": "Unavailable Fireball", "tone": "attack", "cardType": "ATTACK", "rarity": "UNCOMMON",
+      "effects": ["Published costs remain visible even when input is unavailable."], "availability": "NOT ENOUGH RESOURCES", "labUnavailable": true,
+      "costs": [{ "resourceId": "energy", "name": "Energy", "symbol": "E", "color": "#e7b75d", "amount": 4 }, { "resourceId": "mana", "name": "Mana", "symbol": "M", "color": "#62a7f1", "amount": 5 }],
+      "pt_BR": { "name": "Bola de Fogo Indisponível", "availability": "RECURSOS INSUFICIENTES", "effects": ["Os custos publicados permanecem visíveis mesmo quando a carta não pode ser jogada."] }
+    },
+    "free": {
+      "definitionId": "lab_unknown_free", "name": "Free Thought", "tone": "skill", "cardType": "SKILL", "rarity": "COMMON",
+      "effects": ["No resource cost. Unknown art uses the normal fallback."], "availability": "SELECT TO PLAY", "costs": [],
+      "pt_BR": { "name": "Pensamento Livre", "effects": ["Sem custo de recurso. Arte desconhecida usa o fallback normal."] }
+    },
+    "custom_type": {
+      "definitionId": "lab_unknown_custom", "name": "Echo Protocol", "tone": "ritual", "cardType": "CONFIGURABLE RITUAL", "rarity": "SPECIAL",
+      "effects": ["Arbitrary setting labels; no attack/skill/power assumptions in this fixture."], "availability": "SELECT TO PLAY",
+      "costs": [{ "resourceId": "resonance", "name": "Resonance", "symbol": "R", "color": "#7cb9bb", "amount": 0.5 }],
+      "pt_BR": { "name": "Protocolo de Eco", "cardType": "RITUAL CONFIGURÁVEL", "effects": ["Rótulos arbitrários do setting, sem presumir attack/skill/power na amostra."] }
+    }
+  }
+}

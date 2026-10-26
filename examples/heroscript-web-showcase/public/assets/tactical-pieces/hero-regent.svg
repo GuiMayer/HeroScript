@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <title>hero-regent</title>
+<g transform="translate(10 0)"><path fill="#24241F" d="m57 49 31 21 22-45 22 45 31-21-10 80-24 17 10 79 20 35 15 16V287L190 297V310H30V297L46 287V276L61 260 81 225 91 146 67 129Z"/>
+      <path fill="#F2EBDD" d="M102 84H118V120H102Z"/>
+      <path fill="#BC3D27" d="M70 128H150L141 147H79Z"/>
+      <path fill="#BC3D27" d="m110 179 16 19-16 19-16-19Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M59 280H161M44 293H176"/></g>
+</svg>

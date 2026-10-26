@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <title>enemy-striker</title>
+<path fill="#24241F" d="M69 95 163 40 150 109 133 124 140 208 159 244 174 260 174 274 190 284 190 300 50 300 50 284 66 274 66 260 81 244 100 208 107 129 83 119Z"/>
+      <path fill="#F2EBDD" d="m96 96 43-25-5 14-34 20Z"/>
+      <path fill="#BC3D27" d="m88 117 53-18-7 20-32 11Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M78 261H162M64 282H176"/>
+</svg>

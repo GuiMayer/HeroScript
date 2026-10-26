@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150">
+<path fill="#20201c" d="M160 8L222 32V79L160 138 98 79V32Z"/><path fill="#eee4d1" d="M160 19L211 40V75L160 124 109 75V40Z"/>
+<path fill="#b83e25" d="M160 26V116L202 73V46Z"/>
+<g fill="none" stroke="#20201c" stroke-width="1.2"><path d="M0 103H64L103 142H154"/><path d="M0 108H62L101 147H152"/><path d="M0 98H66L105 137H156"/><path d="M213 41H320"/><path d="M213 46H320"/><path d="M213 51H320"/></g></svg>

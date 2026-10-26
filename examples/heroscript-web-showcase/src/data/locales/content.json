@@ -1,0 +1,1383 @@
+{
+  "w1_power_surge": {
+	"en": "Power Surge",
+	"pt_BR": "Surto de energia"
+  },
+  "w1_blood_fuel": {
+	"en": "Blood Fuel",
+	"pt_BR": "Combustível vital"
+  },
+  "w1_charge_cell": {
+	"en": "Charge Cell",
+	"pt_BR": "Célula de carga"
+  },
+  "w1_release_charge": {
+	"en": "Release Charge",
+	"pt_BR": "Liberar carga"
+  },
+  "w1_guarded_strike": {
+	"en": "Guarded Strike",
+	"pt_BR": "Golpe protegido"
+  },
+  "w1_guard_wave": {
+	"en": "Guard Wave",
+	"pt_BR": "Onda de guarda"
+  },
+  "w1_desperate_guard": {
+	"en": "Desperate Guard",
+	"pt_BR": "Guarda desesperada"
+  },
+  "w1_shelter": {
+	"en": "Shelter",
+	"pt_BR": "Abrigo"
+  },
+  "w1_cinder_brand": {
+	"en": "Cinder Brand",
+	"pt_BR": "Marca de brasa"
+  },
+  "w1_volatile_rot": {
+	"en": "Volatile Rot",
+	"pt_BR": "Podridão volátil"
+  },
+  "w1_caustic_guard": {
+	"en": "Caustic Guard",
+	"pt_BR": "Guarda cáustica"
+  },
+  "w1_lingering_aegis": {
+	"en": "Lingering aegis",
+	"pt_BR": "Égide persistente"
+  },
+  "w1_vital_surge": {
+	"en": "Vital Surge",
+	"pt_BR": "Surto vital"
+  },
+  "w1_mending_echo": {
+	"en": "Mending Echo",
+	"pt_BR": "Eco restaurador"
+  },
+  "w1_release_mending": {
+	"en": "Release Mending",
+	"pt_BR": "Liberar restauração"
+  },
+  "w1_delayed_recovery": {
+	"en": "Delayed Recovery",
+	"pt_BR": "Recuperação adiada"
+  },
+  "w1_seek_attack": {
+	"en": "Seek Attack",
+	"pt_BR": "Buscar ataque"
+  },
+  "w1_gather_defense": {
+	"en": "Gather Defense",
+	"pt_BR": "Reunir defesas"
+  },
+  "w1_recover_trace": {
+	"en": "Recover Trace",
+	"pt_BR": "Recuperar vestígio"
+  },
+  "w1_prepare_guard": {
+	"en": "Prepare Guard",
+	"pt_BR": "Preparar guarda"
+  },
+  "w1_needle_storm": {
+	"en": "Needle Storm",
+	"pt_BR": "Tempestade de agulhas"
+  },
+  "w1_heavy_impact": {
+	"en": "Heavy Impact",
+	"pt_BR": "Impacto pesado"
+  },
+  "w1_break_guard": {
+	"en": "Break Guard",
+	"pt_BR": "Quebrar guarda"
+  },
+  "w1_relay_strike": {
+	"en": "Relay Strike",
+	"pt_BR": "Golpe retransmissor"
+  },
+  "w1_energy_reserve": {
+	"en": "Energy reserve",
+	"pt_BR": "Reserva de Energia"
+  },
+  "w1_cinder": {
+	"en": "Cinder",
+	"pt_BR": "Brasa"
+  },
+  "w1_rot": {
+	"en": "Volatile rot",
+	"pt_BR": "Podridão volátil"
+  },
+  "w1_focus.description": { "en": "Gain 80 percentage points of critical chance for this combat. Does not stack.", "pt_BR": "Ganha 80 pontos percentuais de chance crítica neste combate. Não acumula." },
+  "w1_reserve.description": { "en": "Stores defense potency until you release it with Release Guard. It does not grant Block each turn.", "pt_BR": "Armazena potência defensiva até ser liberada com Liberar guarda. Não concede Bloqueio a cada turno." },
+  "w1_release_guard.description": { "en": "Consumes your stored Guard reserve and converts its accumulated potency into Block in one proc. Does nothing without a reserve.", "pt_BR": "Consome sua reserva de guarda e converte a potência acumulada em Bloqueio em um único proc. Sem reserva, não produz efeito." },
+  "w1_release_dot.description": { "en": "Consumes eligible Scorch and Corrosion stacks and releases their accumulated potency as damage in one proc.", "pt_BR": "Consome os acúmulos elegíveis de Queimadura e Corrosão e libera a potência acumulada como dano em um único proc." },
+  "Amount": { "en": "Amount", "pt_BR": "Quantidade" },
+  "StatusStacks": { "en": "Status stacks", "pt_BR": "Acúmulos de status" },
+  "ModifierStacks": { "en": "Modifier stacks", "pt_BR": "Acúmulos do modificador" },
+  "CardCount": { "en": "Card count", "pt_BR": "Quantidade de cartas" },
+  "w1_fire_item": { "en": "Ember imprint", "pt_BR": "Marca de brasa" },
+  "w1_poison_item": { "en": "Venom imprint", "pt_BR": "Marca de veneno" },
+  "w1_split_item": { "en": "Split matrix", "pt_BR": "Matriz de divisão" },
+  "w1_cascade_item": { "en": "Cascade link", "pt_BR": "Elo de cascata" },
+  "w1_efficiency_item": { "en": "Efficiency matrix", "pt_BR": "Matriz de eficiência" },
+  "w1_calibration_item": { "en": "Calibration matrix", "pt_BR": "Matriz de calibração" },
+  "w1_amplify_item": { "en": "Amplification matrix", "pt_BR": "Matriz de amplificação" },
+  "w1_recall_item": { "en": "Recall link", "pt_BR": "Elo de compra" },
+  "w1_ward_item": { "en": "Ward link", "pt_BR": "Elo de defesa" },
+  "w1_condense_item": { "en": "Condensation seal", "pt_BR": "Selo de condensação" },
+  "w1_no_critical_item": { "en": "Stable matrix", "pt_BR": "Matriz estável" },
+  "w1_efficiency_item.description": { "en": "Reduces this card's Energy cost by 1.", "pt_BR": "Reduz o custo de Energia desta carta em 1." },
+  "w1_calibration_item.description": { "en": "Adds 40 percentage points of critical chance to this card's damage effects.", "pt_BR": "Adiciona 40 pontos percentuais de chance crítica aos efeitos de dano desta carta." },
+  "w1_amplify_item.description": { "en": "Multiplies this card's damage by 1.2 (20% more damage).", "pt_BR": "Multiplica o dano desta carta por 1,2 (20% mais dano)." },
+  "w1_recall_item.description": { "en": "Adds: draw 1 card after the card's other effects.", "pt_BR": "Adiciona: compre 1 carta após os demais efeitos da carta." },
+  "w1_ward_item.description": { "en": "Adds: gain 4 base Block after the card's other effects.", "pt_BR": "Adiciona: ganhe 4 de Bloqueio base após os demais efeitos da carta." },
+  "w1_condense_item.description": { "en": "Replaces the main effect: consume the target's eligible residual stacks and release their accumulated potency in one proc.", "pt_BR": "Substitui o efeito principal: consome os acúmulos residuais elegíveis do alvo e libera a potência acumulada em um único proc." },
+  "w1_fire_item.description": { "en": "Adds the Fire tag and applies 1 Scorch stack with base potency 2 for 2 activations.", "pt_BR": "Adiciona a tag Fogo e aplica 1 acúmulo de Queimadura com potência base 2 por 2 ativações." },
+  "w1_poison_item.description": { "en": "Adds the Poison tag and applies 1 Corrosion stack with base potency 2 for 2 activations.", "pt_BR": "Adiciona a tag Veneno e aplica 1 acúmulo de Corrosão com potência base 2 por 2 ativações." },
+  "w1_split_item.description": { "en": "Repeats the main effect 3 times and adds the Multihit tag. The shared amount is split across hits.", "pt_BR": "Repete o efeito principal 3 vezes e adiciona a tag Múltiplos acertos. O valor compartilhado é dividido entre os acertos." },
+  "w1_cascade_item.description": { "en": "Carries excess damage to the enemy with the lowest Health, for up to 3 jumps. Additional effects do not jump.", "pt_BR": "Transfere o dano excedente ao inimigo com menos Vida, por até 3 saltos. Efeitos adicionais não saltam." },
+  "w1_no_critical_item.description": { "en": "Prevents damage effects from rolling critical tiers.", "pt_BR": "Impede que os efeitos de dano desta carta causem críticos." },
+  "core_strike": {
+	"en": "Volatile Strike",
+	"pt_BR": "Golpe volátil"
+  },
+  "core_guard": {
+	"en": "Ward",
+	"pt_BR": "Proteção"
+  },
+  "core_heal": {
+	"en": "Renewal",
+	"pt_BR": "Renovação"
+  },
+  "core_charge_card": {
+	"en": "Prepare Charge",
+	"pt_BR": "Preparar carga"
+  },
+  "core_release": {
+	"en": "Release",
+	"pt_BR": "Liberação"
+  },
+  "core_recover": {
+	"en": "Recover",
+	"pt_BR": "Recuperação"
+  },
+  "core_empower_card": {
+	"en": "Empower",
+	"pt_BR": "Fortalecer"
+  },
+  "core_ember": {
+	"en": "Ember affinity",
+	"pt_BR": "Afinidade de brasa"
+  },
+  "core_frost": {
+	"en": "Frost affinity",
+	"pt_BR": "Afinidade de gelo"
+  },
+  "core_multihit": {
+	"en": "Multiple impacts",
+	"pt_BR": "Múltiplos impactos"
+  },
+  "core_cascade": {
+	"en": "Causal cascade",
+	"pt_BR": "Cascata causal"
+  },
+  "core_sharpen": {
+	"en": "Sharpen",
+	"pt_BR": "Afiar"
+  },
+  "core_charge": {
+	"en": "Charge",
+	"pt_BR": "Carga"
+  },
+  "core_overcharge": {
+	"en": "Overcharge",
+	"pt_BR": "Sobrecarga"
+  },
+  "core_adept": {
+	"en": "Crucible Adept",
+	"pt_BR": "Adepto do cadinho"
+  },
+  "core_spark": {
+	"en": "Spark",
+	"pt_BR": "Faísca"
+  },
+  "core_echo": {
+	"en": "Echo",
+	"pt_BR": "Eco"
+  },
+  "core_prime": {
+	"en": "Prime",
+	"pt_BR": "Primordial"
+  },
+  "keeper": {
+	"en": "The Keeper",
+	"pt_BR": "A Guardiã"
+  },
+  "return": {
+	"en": "A familiar face",
+	"pt_BR": "Um rosto conhecido"
+  },
+  "Dialogue": {
+	"en": "Conversation",
+	"pt_BR": "Conversa"
+  },
+  "Encounter": {
+	"en": "Encounter",
+	"pt_BR": "Encontro"
+  },
+  "RelicReward": {
+	"en": "Relic",
+	"pt_BR": "Relíquia"
+  },
+  "CardSelection": {
+	"en": "Card reward",
+	"pt_BR": "Recompensa de carta"
+  },
+  "Shop": {
+	"en": "Shop",
+	"pt_BR": "Loja"
+  },
+  "Preparation": {
+	"en": "Preparation",
+	"pt_BR": "Preparação"
+  },
+  "CardUpgrade": {
+	"en": "Upgrade",
+	"pt_BR": "Melhoria"
+  },
+  "enemy_basic_attack": {
+	"pt_BR": "Ataque",
+	"en": "Attack"
+  },
+  "combat.initialized": {
+	"pt_BR": "Começo do combate",
+	"en": "Combat start"
+  },
+  "card.played": {
+	"pt_BR": "Carta jogada",
+	"en": "Card played"
+  },
+  "turn.ended": {
+	"pt_BR": "Fim do turno",
+	"en": "Turn ended"
+  },
+  "health": {
+	"pt_BR": "Vida",
+	"en": "Health"
+  },
+  "block": {
+	"pt_BR": "Bloqueio",
+	"en": "Block"
+  },
+  "energy": {
+	"pt_BR": "Energia",
+	"en": "Energy"
+  },
+  "mana": {
+	"pt_BR": "Mana",
+	"en": "Mana"
+  },
+  "gold": {
+	"pt_BR": "Ouro",
+	"en": "Gold"
+  },
+  "power_points": {
+	"pt_BR": "Pontos de poder",
+	"en": "Power points"
+  },
+  "basic_attack": {
+	"pt_BR": "Golpe",
+	"en": "Strike"
+  },
+  "defend": {
+	"pt_BR": "Guarda",
+	"en": "Defend"
+  },
+  "fireball": {
+	"pt_BR": "Orbe Ígneo",
+	"en": "Fire Orb"
+  },
+  "heal": {
+	"pt_BR": "Centelha Vital",
+	"en": "Vital Spark"
+  },
+  "arcane_bolt": {
+	"pt_BR": "Dardo Arcano",
+	"en": "Arcane Bolt"
+  },
+  "venom_cut": {
+	"pt_BR": "Corte Venenoso",
+	"en": "Venom Cut"
+  },
+  "battle_focus": {
+	"pt_BR": "Foco de Batalha",
+	"en": "Battle Focus"
+  },
+  "expose_weakness": {
+	"pt_BR": "Expor Fraqueza",
+	"en": "Expose Weakness"
+  },
+  "chain_lightning": {
+	"pt_BR": "Relâmpago em Cadeia",
+	"en": "Chain Lightning"
+  },
+  "execution": {
+	"pt_BR": "Execução",
+	"en": "Execution"
+  },
+  "tactical_recall": {
+	"pt_BR": "Recordação Tática",
+	"en": "Tactical Recall"
+  },
+  "conjure_spark": {
+	"pt_BR": "Conjurar Centelha",
+	"en": "Conjure Spark"
+  },
+  "fading_guard": {
+	"pt_BR": "Guarda Efêmera",
+	"en": "Fading Guard"
+  },
+  "equilibrium": {
+	"pt_BR": "Equilíbrio",
+	"en": "Equilibrium"
+  },
+  "piercing_ray": {
+	"pt_BR": "Raio Perfurante",
+	"en": "Piercing Ray"
+  },
+  "cleanse": {
+	"pt_BR": "Purificar",
+	"en": "Cleanse"
+  },
+  "prismatic_burst": {
+	"pt_BR": "Explosão Prismática",
+	"en": "Prismatic Burst"
+  },
+  "cull_weakest": {
+	"pt_BR": "Abater o Mais Fraco",
+	"en": "Cull the Weakest"
+  },
+  "renewal": {
+	"pt_BR": "Renovação",
+	"en": "Renewal"
+  },
+  "spire_adept": {
+	"pt_BR": "Adepto das Brasas",
+	"en": "Ember Adept"
+  },
+  "spire_wisp": {
+	"pt_BR": "Fagulha Errante",
+	"en": "Wandering Wisp"
+  },
+  "spire_sentinel": {
+	"pt_BR": "Sentinela de Obsidiana",
+	"en": "Obsidian Sentinel"
+  },
+  "spire_venomling": {
+	"pt_BR": "Peçonhento",
+	"en": "Venomling"
+  },
+  "spire_hexer": {
+	"pt_BR": "Feiticeiro das Cinzas",
+	"en": "Cinder Hexer"
+  },
+  "spire_bulwark": {
+	"pt_BR": "Baluarte Vivo",
+	"en": "Living Bulwark"
+  },
+  "player_warrior": {
+	"pt_BR": "Guerreiro",
+	"en": "Warrior"
+  },
+  "burning": {
+	"pt_BR": "Queimando",
+	"en": "Burning"
+  },
+  "poison": {
+	"pt_BR": "Veneno",
+	"en": "Poison"
+  },
+  "poisoned": {
+	"pt_BR": "Envenenado",
+	"en": "Poisoned"
+  },
+  "strength": {
+	"pt_BR": "Força",
+	"en": "Strength"
+  },
+  "vulnerable": {
+	"pt_BR": "Vulnerável",
+	"en": "Vulnerable"
+  },
+  "regeneration": {
+	"pt_BR": "Regeneração",
+	"en": "Regeneration"
+  },
+  "fortified": {
+	"pt_BR": "Fortificado",
+	"en": "Fortified"
+  },
+  "silenced": {
+	"pt_BR": "Silenciado",
+	"en": "Silenced"
+  },
+  "weak": {
+	"pt_BR": "Fraqueza",
+	"en": "Weak"
+  },
+  "enemy_attack": {
+	"pt_BR": "Ataque",
+	"en": "Attack"
+  },
+  "ember_core": {
+	"pt_BR": "Núcleo de Brasa",
+	"en": "Ember Core"
+  },
+  "mana_prism": {
+	"pt_BR": "Prisma de Mana",
+	"en": "Mana Prism"
+  },
+  "venom_lens": {
+	"pt_BR": "Lente de Peçonha",
+	"en": "Venom Lens"
+  },
+  "sharpened_edge": {
+	"pt_BR": "Fio Afiado",
+	"en": "Sharpened Edge"
+  },
+  "venom_edge": {
+	"pt_BR": "Fio Venenoso",
+	"en": "Venom Edge"
+  },
+  "amplified_chain": {
+	"pt_BR": "Cadeia Amplificada",
+	"en": "Amplified Chain"
+  },
+  "reinforced_guard": {
+	"pt_BR": "Guarda Reforçada",
+	"en": "Reinforced Guard"
+  },
+  "enemy_poison_spit": {
+	"pt_BR": "Cuspe Venenoso",
+	"en": "Poison Spit"
+  },
+  "enemy_arcane_lock": {
+	"pt_BR": "Selo Arcano",
+	"en": "Arcane Lock"
+  },
+  "enemy_draining_touch": {
+	"pt_BR": "Toque Drenante",
+	"en": "Draining Touch"
+  },
+  "enemy_bulwark": {
+	"pt_BR": "Baluarte de Obsidiana",
+	"en": "Obsidian Bulwark"
+  },
+  "enemy_crushing_blow": {
+	"pt_BR": "Golpe Esmagador",
+	"en": "Crushing Blow"
+  },
+  "rest": {
+	"pt_BR": "Descansar",
+	"en": "Rest"
+  },
+  "train": {
+	"pt_BR": "Treinar",
+	"en": "Train"
+  },
+  "pack_supplies": {
+	"pt_BR": "Preparar suprimentos",
+	"en": "Pack supplies"
+  },
+  "train_spell": {
+	"pt_BR": "Treinar feitiço",
+	"en": "Train spell"
+  },
+  "prepare_antidote": {
+	"pt_BR": "Preparar antídoto",
+	"en": "Prepare antidote"
+  },
+  "study_venom": {
+	"pt_BR": "Estudar veneno",
+	"en": "Study venom"
+  },
+  "buy_attack": {
+	"pt_BR": "Golpe",
+	"en": "Strike"
+  },
+  "buy_defend": {
+	"pt_BR": "Guarda",
+	"en": "Defend"
+  },
+  "buy_heal": {
+	"pt_BR": "Centelha Vital",
+	"en": "Vital Spark"
+  },
+  "ascendant_strike": {
+	"pt_BR": "Golpe Calibrado",
+	"en": "Calibrated Strike"
+  },
+  "ascendant_elemental_burst": {
+	"pt_BR": "Explosão Elemental",
+	"en": "Elemental Burst"
+  },
+  "ascendant_critical_lance": {
+	"pt_BR": "Lança Crítica",
+	"en": "Critical Lance"
+  },
+  "ascendant_support_cascade": {
+	"pt_BR": "Cascata de Suportes",
+	"en": "Support Cascade"
+  },
+  "ascendant_fracture": {
+	"pt_BR": "Fratura",
+	"en": "Fracture"
+  },
+  "ascendant_kinetic_guard": {
+	"pt_BR": "Guarda Cinética",
+	"en": "Kinetic Guard"
+  },
+  "ascendant_operator": {
+	"pt_BR": "Operador da Matriz",
+	"en": "Matrix Operator"
+  },
+  "ascendant_drone": {
+	"pt_BR": "Drone de Calibração",
+	"en": "Calibration Drone"
+  },
+  "ascendant_prime": {
+	"pt_BR": "Prime Ascendente",
+	"en": "Ascendant Prime"
+  },
+  "ascendant_fractured": {
+	"pt_BR": "Fraturado",
+	"en": "Fractured"
+  },
+  "ascendant_serration_matrix": {
+	"pt_BR": "Matriz de Serrilha",
+	"en": "Serration Matrix"
+  },
+  "ascendant_ranked_edge": {
+	"pt_BR": "Fio Graduado",
+	"en": "Ranked Edge"
+  },
+  "ascendant_prime_element": {
+	"pt_BR": "Elemento Primário",
+	"en": "Prime Element"
+  },
+  "ascendant_critical_calibration": {
+	"pt_BR": "Calibração Crítica",
+	"en": "Critical Calibration"
+  },
+  "ascendant_support_link": {
+	"pt_BR": "Vínculo de Suporte",
+	"en": "Support Link"
+  },
+  "w1_strike": {
+	"en": "Matrix Strike",
+	"pt_BR": "Golpe da matriz"
+  },
+  "w1_last_guard": {"en": "Last Guard", "pt_BR": "Última guarda"},
+  "w1_second_wind": {"en": "Second Wind", "pt_BR": "Novo fôlego"},
+  "w1_solar_burst": {"en": "Solar Burst", "pt_BR": "Explosão solar"},
+  "w1_guard": {
+	"en": "Kinetic Guard",
+	"pt_BR": "Guarda cinética"
+  },
+  "w1_scorch": {
+	"en": "Scorch Cut",
+	"pt_BR": "Corte abrasador"
+  },
+  "w1_poison": {
+	"en": "Corrosive Mark",
+	"pt_BR": "Marca corrosiva"
+  },
+  "w1_release": {
+	"en": "Condense",
+	"pt_BR": "Condensar"
+  },
+  "w1_precision": {
+	"en": "Calibrated Shot",
+	"pt_BR": "Tiro calibrado"
+  },
+  "w1_focus": {
+	"en": "Perfect Focus",
+	"pt_BR": "Foco perfeito"
+  },
+  "w1_lance": {
+	"en": "Critical Lance",
+	"pt_BR": "Lança crítica"
+  },
+  "w1_flurry": {
+	"en": "Twin Blades",
+	"pt_BR": "Lâminas gêmeas"
+  },
+  "w1_barrage": {
+	"en": "Shard Barrage",
+	"pt_BR": "Rajada de fragmentos"
+  },
+  "w1_sweep": {
+	"en": "Arc Sweep",
+	"pt_BR": "Varredura de arco"
+  },
+  "w1_shield_bash": {
+	"en": "Shield Bash",
+	"pt_BR": "Golpe de escudo"
+  },
+  "w1_fortify": {
+	"en": "Fortify",
+	"pt_BR": "Fortificar"
+  },
+  "w1_bulwark": {
+	"en": "Bulwark",
+	"pt_BR": "Baluarte"
+  },
+  "w1_reserve": {
+	"en": "Store Guard",
+	"pt_BR": "Armazenar guarda"
+  },
+  "w1_release_guard": {
+	"en": "Release Guard",
+	"pt_BR": "Liberar guarda"
+  },
+  "w1_fracture": {
+	"en": "Expose Weakness",
+	"pt_BR": "Expor fraqueza"
+  },
+  "w1_dampen": {
+	"en": "Dampen",
+	"pt_BR": "Enfraquecer"
+  },
+  "w1_recall": {
+	"en": "Tactical Recall",
+	"pt_BR": "Recuperação tática"
+  },
+  "w1_insight": {
+	"en": "Brief Insight",
+	"pt_BR": "Breve percepção"
+  },
+  "w1_mend": {
+	"en": "Field Dressing",
+	"pt_BR": "Curativo de campo"
+  },
+  "w1_momentum": {
+	"en": "Gather Momentum",
+	"pt_BR": "Acumular ímpeto"
+  },
+  "w1_catalyst": {
+	"en": "Volatile Catalyst",
+	"pt_BR": "Catalisador volátil"
+  },
+  "w1_venom_flurry": {
+	"en": "Venom Flurry",
+	"pt_BR": "Rajada venenosa"
+  },
+  "w1_inferno": {
+	"en": "Spreading Embers",
+	"pt_BR": "Brasas dispersas"
+  },
+  "w1_detonate": {
+	"en": "Detonating Cut",
+	"pt_BR": "Corte detonador"
+  },
+  "w1_riposte": {
+	"en": "Guard Conversion",
+	"pt_BR": "Conversão de guarda"
+  },
+  "w1_pierce": {
+	"en": "Piercing Ray",
+	"pt_BR": "Raio perfurante"
+  },
+  "w1_rehearse": {
+	"en": "Rehearsed Strike",
+	"pt_BR": "Golpe ensaiado"
+  },
+  "w1_renewal": {
+	"en": "Lasting Renewal",
+	"pt_BR": "Renovação duradoura"
+  },
+  "w1_scout": {
+	"en": "Rift Scout",
+	"pt_BR": "Batedor da fenda"
+  },
+  "w1_mite": {
+	"en": "Shard Mite",
+	"pt_BR": "Ácaro de fragmentos"
+  },
+  "w1_sentinel": {
+	"en": "Gate Sentinel",
+	"pt_BR": "Sentinela do portão"
+  },
+  "w1_spitter": {
+	"en": "Corrosion Spitter",
+	"pt_BR": "Cuspidor corrosivo"
+  },
+  "w1_charger": {
+	"en": "Rift Charger",
+	"pt_BR": "Investidor da fenda"
+  },
+  "w1_binder": {
+	"en": "Matrix Binder",
+	"pt_BR": "Tecelão da matriz"
+  },
+  "w1_swarm": {
+	"en": "Shard Swarm",
+	"pt_BR": "Enxame de fragmentos"
+  },
+  "w1_artillery": {
+	"en": "Crystal Artillery",
+	"pt_BR": "Artilharia de cristal"
+  },
+  "w1_bulwark_elite": {
+	"en": "Iron Custodian",
+	"pt_BR": "Custódio de ferro"
+  },
+  "w1_corrosion_elite": {
+	"en": "Venom Archivist",
+	"pt_BR": "Arquivista do veneno"
+  },
+  "w1_prism_elite": {
+	"en": "Prismatic Hunter",
+	"pt_BR": "Caçador prismático"
+  },
+  "w1_prime": {
+	"en": "Ascendant Prime",
+	"pt_BR": "Ascendente prime"
+  },
+  "w1_ranked_edge": {
+	"en": "Ranked Edge",
+	"pt_BR": "Fio aprimorado"
+  },
+  "w1_ranked_ward": {
+	"en": "Ranked Ward",
+	"pt_BR": "Guarda aprimorada"
+  },
+  "w1_efficiency": {
+	"en": "Efficient Support",
+	"pt_BR": "Suporte eficiente"
+  },
+  "w1_split": {
+	"en": "Split Impacts",
+	"pt_BR": "Impactos divididos"
+  },
+  "w1_calibration": {
+	"en": "Critical Calibration",
+	"pt_BR": "Calibração crítica"
+  },
+  "w1_amplify": {
+	"en": "Amplifying Support",
+	"pt_BR": "Suporte amplificador"
+  },
+  "w1_fire_affinity": {
+	"en": "Ember Affinity",
+	"pt_BR": "Afinidade de brasa"
+  },
+  "w1_poison_affinity": {
+	"en": "Corrosive Affinity",
+	"pt_BR": "Afinidade corrosiva"
+  },
+  "w1_cascade": {
+	"en": "Causal Cascade",
+	"pt_BR": "Cascata causal"
+  },
+  "w1_lasting": {
+	"en": "Lingering Residual",
+	"pt_BR": "Residual prolongado"
+  },
+  "w1_recall_link": {
+	"en": "Recall Link",
+	"pt_BR": "Vínculo de recuperação"
+  },
+  "w1_ward_link": {
+	"en": "Ward Link",
+	"pt_BR": "Vínculo de guarda"
+  },
+  "w1_keen_lens": {
+	"en": "Keen Lens",
+	"pt_BR": "Lente aguçada"
+  },
+  "w1_ward_plate": {
+	"en": "Ward Plate",
+	"pt_BR": "Placa protetora"
+  },
+  "w1_catalytic_coil": {
+	"en": "Catalytic Coil",
+	"pt_BR": "Bobina catalítica"
+  },
+  "w1_serrated_core": {
+	"en": "Serrated Core",
+	"pt_BR": "Núcleo serrilhado"
+  },
+  "w1_opening_ward": {
+	"en": "Opening Ward",
+	"pt_BR": "Guarda inicial"
+  },
+  "w1_field_kit": {
+	"en": "Field Kit",
+	"pt_BR": "Kit de campo"
+  },
+  "w1_precision_core": {
+	"en": "Precision Core",
+	"pt_BR": "Núcleo de precisão"
+  },
+  "w1_reserve_coil": {
+	"en": "Reserve Coil",
+	"pt_BR": "Bobina de reserva"
+  },
+  "w1_medic": {
+	"en": "Field Medic",
+	"pt_BR": "Médico de campo"
+  },
+  "w1_cache": {
+	"en": "Forgotten Cache",
+	"pt_BR": "Reserva esquecida"
+  },
+  "w1_salvage": {
+	"en": "Unstable Salvage",
+	"pt_BR": "Sucata instável"
+  },
+  "w1_shelter": {
+	"en": "Quiet Shelter",
+	"pt_BR": "Abrigo tranquilo"
+  },
+  "w1_archive": {
+	"en": "Old Archive",
+	"pt_BR": "Arquivo antigo"
+  },
+  "s01_arrival": {
+	"en": "Fractured Approach",
+	"pt_BR": "Entrada fraturada"
+  },
+  "r01": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s02_gate": {
+	"en": "Gate Calibration",
+	"pt_BR": "Calibração do portão"
+  },
+  "r02": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s03_forge": {
+	"en": "First Forge",
+	"pt_BR": "Primeira forja"
+  },
+  "relic_keen": {
+	"en": "Keen Lens",
+	"pt_BR": "Lente aguçada"
+  },
+  "relic_ward": {
+	"en": "Ward Plate",
+	"pt_BR": "Placa protetora"
+  },
+  "relic_dot": {
+	"en": "Catalytic Coil",
+	"pt_BR": "Bobina catalítica"
+  },
+  "s04_watch": {
+	"en": "Watch Patrol",
+	"pt_BR": "Patrulha vigilante"
+  },
+  "s04_charge": {
+	"en": "Charging Passage",
+	"pt_BR": "Passagem do investidor"
+  },
+  "r04_watch": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "r04_charge": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s05_corrosion": {
+	"en": "Corrosive Nest",
+	"pt_BR": "Ninho corrosivo"
+  },
+  "s05_binding": {
+	"en": "Binding Patrol",
+	"pt_BR": "Patrulha vinculadora"
+  },
+  "r05_corrosion": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "r05_binding": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s06_medic": {
+	"en": "Field Medic",
+	"pt_BR": "Médico de campo"
+  },
+  "s06_cache": {
+	"en": "Forgotten Cache",
+	"pt_BR": "Reserva esquecida"
+  },
+  "s06_salvage": {
+	"en": "Unstable Salvage",
+	"pt_BR": "Sucata instável"
+  },
+  "s06_shelter": {
+	"en": "Quiet Shelter",
+	"pt_BR": "Abrigo tranquilo"
+  },
+  "s06_archive": {
+	"en": "Old Archive",
+	"pt_BR": "Arquivo antigo"
+  },
+  "s06_rest": {
+	"en": "Rest: recover 25 health",
+	"pt_BR": "Descanso: recuperar 25 vida"
+  },
+  "s07_guarded": {
+	"en": "Guarded Venom",
+	"pt_BR": "Veneno protegido"
+  },
+  "s07_rush": {
+	"en": "Shard Rush",
+	"pt_BR": "Investida de fragmentos"
+  },
+  "r07_guarded": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "r07_rush": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s08_market": {
+	"en": "Rift Market",
+	"pt_BR": "Mercado da fenda"
+  },
+  "s09_patrol": {
+	"en": "Artillery Escort",
+	"pt_BR": "Escolta de artilharia"
+  },
+  "r09_patrol": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s09_iron": {
+	"en": "Iron Custodian",
+	"pt_BR": "Custódio de ferro"
+  },
+  "r09_iron": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "elite_relic_iron": {
+	"en": "Opening Ward",
+	"pt_BR": "Guarda inicial"
+  },
+  "s09_venom": {
+	"en": "Venom Archivist",
+	"pt_BR": "Arquivista do veneno"
+  },
+  "r09_venom": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "elite_relic_venom": {
+	"en": "Serrated Core",
+	"pt_BR": "Núcleo serrilhado"
+  },
+  "s09_prism": {
+	"en": "Prismatic Hunter",
+	"pt_BR": "Caçador prismático"
+  },
+  "r09_prism": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "elite_relic_prism": {
+	"en": "Precision Core",
+	"pt_BR": "Núcleo de precisão"
+  },
+  "s10_forge": {
+	"en": "Build Correction",
+	"pt_BR": "Correção de build"
+  },
+  "s11_swarm": {
+	"en": "Sentinel Swarm",
+	"pt_BR": "Enxame da sentinela"
+  },
+  "s11_siege": {
+	"en": "Corrosive Siege",
+	"pt_BR": "Cerco corrosivo"
+  },
+  "r11_swarm": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "r11_siege": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "s12_rest": {
+	"en": "Final Rest: recover 25 health",
+	"pt_BR": "Último descanso: recuperar 25 vida"
+  },
+  "s12_forge": {
+	"en": "Final Forge: 10 gold",
+	"pt_BR": "Última forja: 10 ouro"
+  },
+  "relic_field": {
+	"en": "Field Kit",
+	"pt_BR": "Kit de campo"
+  },
+  "relic_reserve": {
+	"en": "Reserve Coil",
+	"pt_BR": "Bobina de reserva"
+  },
+  "s13_vanguard": {
+	"en": "Prime Vanguard",
+	"pt_BR": "Vanguarda prime"
+  },
+  "r13": {
+	"en": "Choose or decline a card",
+	"pt_BR": "Escolher ou recusar uma carta"
+  },
+  "world_one_boss": {
+	"en": "Ascendant Prime — Act Finale",
+	"pt_BR": "Ascendente prime — final do ato"
+  },
+  "ascendant_world_one_run": {
+	"en": "Ascendant — World One",
+	"pt_BR": "Ascendant — Mundo um"
+  },
+  "w1_burn": {
+	"en": "Scorch",
+	"pt_BR": "Queimação"
+  },
+  "w1_exposed": {
+	"en": "Exposed",
+	"pt_BR": "Exposto"
+  },
+  "w1_weakened": {
+	"en": "Weakened",
+	"pt_BR": "Enfraquecido"
+  },
+  "w1_strength": {
+	"en": "Momentum",
+	"pt_BR": "Ímpeto"
+  },
+  "w1_dot_mastery": {
+	"en": "Catalyst",
+	"pt_BR": "Catalisador"
+  },
+  "w1_guard_mastery": {
+	"en": "Fortification",
+	"pt_BR": "Fortificação"
+  },
+  "s01_arrival.description": {
+	"en": "Visible attack cycles; current health persists. Rift Scout. Reward: 12 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Batedor da fenda. 12 ouro + escolha de carta"
+  },
+  "r01.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s02_gate.description": {
+	"en": "Visible attack cycles; current health persists. Gate Sentinel. Reward: 14 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Sentinela do portão. 14 ouro + escolha de carta"
+  },
+  "r02.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s03_forge.description": {
+	"en": "One card transformation or correction. Unused choices are forfeited on departure.",
+	"pt_BR": "Uma transformação ou correção de carta por visita. Partir descarta as opções restantes."
+  },
+  "relic_keen.description": {
+	"en": "+30 critical chance. Choose critical growth instead of defense or residual potency.",
+	"pt_BR": "+30 pontos de chance crítica. Escolha crítico em vez de defesa ou potência residual."
+  },
+  "relic_ward.description": {
+	"en": "20% increased Block, additive with Fortification.",
+	"pt_BR": "20% de aumento de Block, aditivo com Fortificação."
+  },
+  "relic_dot.description": {
+	"en": "25% increased residual potency, captured once at application.",
+	"pt_BR": "25% de aumento de potência residual, capturada uma vez na aplicação."
+  },
+  "s04_watch.description": {
+	"en": "Visible attack cycles; current health persists. Gate Sentinel + Shard Mite. Reward: 16 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Sentinela do portão + Ácaro de fragmentos. 16 ouro + escolha de carta"
+  },
+  "s04_charge.description": {
+	"en": "Visible attack cycles; current health persists. Rift Charger. Reward: 16 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Investidor da fenda. 16 ouro + escolha de carta"
+  },
+  "r04_watch.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "r04_charge.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s05_corrosion.description": {
+	"en": "Visible attack cycles; current health persists. Corrosion Spitter + Shard Mite. Reward: 16 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Cuspidor corrosivo + Ácaro de fragmentos. 16 ouro + escolha de carta"
+  },
+  "s05_binding.description": {
+	"en": "Visible attack cycles; current health persists. Matrix Binder + Rift Scout. Reward: 16 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Tecelão da matriz + Batedor da fenda. 16 ouro + escolha de carta"
+  },
+  "r05_corrosion.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "r05_binding.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s06_medic.description": {
+	"en": "Choose a one-time recovery/economy tradeoff. No persistent power bonus.",
+	"pt_BR": "Escolha uma troca de recuperação/economia de uso único. Não concede poder permanente."
+  },
+  "s06_cache.description": {
+	"en": "Choose a one-time recovery/economy tradeoff. No persistent power bonus.",
+	"pt_BR": "Escolha uma troca de recuperação/economia de uso único. Não concede poder permanente."
+  },
+  "s06_salvage.description": {
+	"en": "Choose a one-time recovery/economy tradeoff. No persistent power bonus.",
+	"pt_BR": "Escolha uma troca de recuperação/economia de uso único. Não concede poder permanente."
+  },
+  "s06_shelter.description": {
+	"en": "Choose a one-time recovery/economy tradeoff. No persistent power bonus.",
+	"pt_BR": "Escolha uma troca de recuperação/economia de uso único. Não concede poder permanente."
+  },
+  "s06_archive.description": {
+	"en": "Choose a one-time recovery/economy tradeoff. No persistent power bonus.",
+	"pt_BR": "Escolha uma troca de recuperação/economia de uso único. Não concede poder permanente."
+  },
+  "s06_rest.description": {
+	"en": "Recover 25 persistent health once. This route forgoes the alternative forge/event.",
+	"pt_BR": "Recupere 25 de vida persistente uma vez. Esta rota substitui a forja ou o evento alternativo."
+  },
+  "s07_guarded.description": {
+	"en": "Visible attack cycles; current health persists. Gate Sentinel + Corrosion Spitter. Reward: 16 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Sentinela do portão + Cuspidor corrosivo. 16 ouro + escolha de carta"
+  },
+  "s07_rush.description": {
+	"en": "Visible attack cycles; current health persists. Rift Charger + Shard Mite. Reward: 16 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Investidor da fenda + Ácaro de fragmentos. 16 ouro + escolha de carta"
+  },
+  "r07_guarded.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "r07_rush.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s08_market.description": {
+	"en": "Cards cost 25/38/55 gold. Leave without purchasing; rerolls cost 18 gold and increase.",
+	"pt_BR": "Cartas por 25/38/55 ouro. Você pode sair sem comprar. Rerolls começam em 18 ouro e aumentam."
+  },
+  "s09_patrol.description": {
+	"en": "Visible attack cycles; current health persists. Crystal Artillery + Rift Scout. Reward: 18 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Artilharia de cristal + Batedor da fenda. 18 ouro + escolha de carta"
+  },
+  "r09_patrol.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s09_iron.description": {
+	"en": "Optional elite: higher risk, relic reward. Iron Custodian. Reward: 32 gold + card choice.",
+	"pt_BR": "Elite opcional: risco alto, relíquia adicional. Custódio de ferro. 32 ouro + escolha de carta"
+  },
+  "r09_iron.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "elite_relic_iron.description": {
+	"en": "8 Block once at combat entry. Not a free defense each turn.",
+	"pt_BR": "8 Block uma vez na entrada do combate. Não é defesa grátis a cada turno."
+  },
+  "s09_venom.description": {
+	"en": "Optional elite: higher risk, relic reward. Venom Archivist. Reward: 32 gold + card choice.",
+	"pt_BR": "Elite opcional: risco alto, relíquia adicional. Arquivista do veneno. 32 ouro + escolha de carta"
+  },
+  "r09_venom.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "elite_relic_venom.description": {
+	"en": "20% increased attack damage in the common increased bucket.",
+	"pt_BR": "20% de aumento de dano de ataque no bucket aditivo comum."
+  },
+  "s09_prism.description": {
+	"en": "Optional elite: higher risk, relic reward. Prismatic Hunter. Reward: 32 gold + card choice.",
+	"pt_BR": "Elite opcional: risco alto, relíquia adicional. Caçador prismático. 32 ouro + escolha de carta"
+  },
+  "r09_prism.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "elite_relic_prism.description": {
+	"en": "+0.20 damage bonus for each critical tier.",
+	"pt_BR": "+0,20 de bônus de dano por nível crítico."
+  },
+  "s10_forge.description": {
+	"en": "One card transformation or correction. Unused choices are forfeited on departure.",
+	"pt_BR": "Uma transformação ou correção de carta por visita. Partir descarta as opções restantes."
+  },
+  "s11_swarm.description": {
+	"en": "Visible attack cycles; current health persists. Shard Swarm + Gate Sentinel. Reward: 18 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Enxame de fragmentos + Sentinela do portão. 18 ouro + escolha de carta"
+  },
+  "s11_siege.description": {
+	"en": "Visible attack cycles; current health persists. Crystal Artillery + Corrosion Spitter. Reward: 18 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Artilharia de cristal + Cuspidor corrosivo. 18 ouro + escolha de carta"
+  },
+  "r11_swarm.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "r11_siege.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "s12_rest.description": {
+	"en": "Recover 25 persistent health once. This route forgoes the alternative forge/event.",
+	"pt_BR": "Recupere 25 de vida persistente uma vez. Esta rota substitui a forja ou o evento alternativo."
+  },
+  "s12_forge.description": {
+	"en": "One card transformation or correction. Unused choices are forfeited on departure.",
+	"pt_BR": "Uma transformação ou correção de carta por visita. Custa 10 ouro e substitui o descanso."
+  },
+  "relic_field.description": {
+	"en": "Recover 3 health once at combat entry, up to current maximum.",
+	"pt_BR": "Recupere 3 vida uma vez na entrada do combate, até o máximo atual."
+  },
+  "relic_reserve.description": {
+	"en": "Store 5 guard potency at combat entry. Release Guard is needed to consume it.",
+	"pt_BR": "Armazene 5 de potência defensiva na entrada. Liberar guarda é necessário para consumi-la."
+  },
+  "s13_vanguard.description": {
+	"en": "Visible attack cycles; current health persists. Rift Charger + Gate Sentinel. Reward: 20 gold + card choice.",
+	"pt_BR": "Ciclos anunciados; vida atual persiste. Investidor da fenda + Sentinela do portão. 20 ouro + escolha de carta"
+  },
+  "r13.description": {
+	"en": "Three seeded offers; decline without diluting the deck.",
+	"pt_BR": "Três ofertas determinadas pela seed; escolha ou recuse sem diluir seu deck."
+  },
+  "world_one_boss.description": {
+	"en": "Two-state boss; survives strong builds. Ascendant Prime. The demo ends here.",
+	"pt_BR": "Chefe com dois estados e escalada anunciada no round 12. Ascendente prime. Final do ato."
+  },
+  "w1_scout.cycle0": {
+	"en": "Probe: 8",
+	"pt_BR": "Sondar: 8"
+  },
+  "w1_mite.cycle0": {
+	"en": "Double bite: 4 × 2",
+	"pt_BR": "Mordida dupla: 4 × 2"
+  },
+  "w1_sentinel.cycle0": {
+	"en": "Brace: 5 + 8 Block",
+	"pt_BR": "Firmar: 5 + 8 Block"
+  },
+  "w1_sentinel.cycle1": {
+	"en": "Strike: 10",
+	"pt_BR": "Golpe: 10"
+  },
+  "w1_spitter.cycle0": {
+	"en": "Corrosive spit: 4 + residual 2",
+	"pt_BR": "Cuspe corrosivo: 4 + residual 2"
+  },
+  "w1_spitter.cycle1": {
+	"en": "Bite: 7",
+	"pt_BR": "Mordida: 7"
+  },
+  "w1_charger.cycle0": {
+	"en": "Wind-up: 5",
+	"pt_BR": "Preparar: 5"
+  },
+  "w1_charger.cycle1": {
+	"en": "Charge: 14",
+	"pt_BR": "Investir: 14"
+  },
+  "w1_binder.cycle0": {
+	"en": "Bind: 6 + Weakened",
+	"pt_BR": "Vincular: 6 + Enfraquecido"
+  },
+  "w1_binder.cycle1": {
+	"en": "Pulse: 8",
+	"pt_BR": "Pulso: 8"
+  },
+  "w1_swarm.cycle0": {
+	"en": "Swarm: 4 × 3",
+	"pt_BR": "Enxame: 4 × 3"
+  },
+  "w1_artillery.cycle0": {
+	"en": "Stabilize: 7 + 4 Block",
+	"pt_BR": "Estabilizar: 7 + 4 Block"
+  },
+  "w1_artillery.cycle1": {
+	"en": "Crystal shell: 15",
+	"pt_BR": "Projétil de cristal: 15"
+  },
+  "w1_bulwark_elite.cycle0": {
+	"en": "Bastion: 8 + 12 Block",
+	"pt_BR": "Bastião: 8 + 12 Block"
+  },
+  "w1_bulwark_elite.cycle1": {
+	"en": "Crushing blow: 18",
+	"pt_BR": "Golpe esmagador: 18"
+  },
+  "w1_corrosion_elite.cycle0": {
+	"en": "Archive venom: 7 + residual 3",
+	"pt_BR": "Arquivar veneno: 7 + residual 3"
+  },
+  "w1_corrosion_elite.cycle1": {
+	"en": "Toxic strike: 14",
+	"pt_BR": "Golpe tóxico: 14"
+  },
+  "w1_prism_elite.cycle0": {
+	"en": "Prism volley: 6 × 3",
+	"pt_BR": "Rajada prismática: 6 × 3"
+  },
+  "w1_prism_elite.cycle1": {
+	"en": "Shatter: 24",
+	"pt_BR": "Estilhaçar: 24"
+  },
+  "w1_prism_elite.cycle2": {
+	"en": "Refract: 9 + 6 Block",
+	"pt_BR": "Refratar: 9 + 6 Block"
+  },
+  "w1_prime.cycle0": {
+	"en": "Survey: 12",
+	"pt_BR": "Observar: 12"
+  },
+  "w1_prime.cycle1": {
+	"en": "World fracture: 20",
+	"pt_BR": "Fratura do mundo: 20"
+  },
+  "w1_prime.cycle2": {
+	"en": "Rebuild: 10 + 10 Block",
+	"pt_BR": "Reconstruir: 10 + 10 Block"
+  },
+  "w1_prime.enraged0": {
+	"en": "Rupture: 16",
+	"pt_BR": "Ruptura: 16"
+  },
+  "w1_prime.enraged1": {
+	"en": "Cataclysm wind-up: 26",
+	"pt_BR": "Preparar cataclismo: 26"
+  },
+  "w1_prime.enraged2": {
+	"en": "Reconstitute: 12 + 8 Block",
+	"pt_BR": "Reconstituir: 12 + 8 Block"
+  },
+  "w1_prime.cataclysm": {
+	"en": "Cataclysm: 34",
+	"pt_BR": "Cataclismo: 34"
+  }
+}

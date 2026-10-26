@@ -1,0 +1,363 @@
+{
+  "intent_icons": {"Attack": "attack", "Guard": "guard", "Poison Spit": "unknown"},
+  "card_tag_labels": {"fire": "Fire", "poison": "Poison", "frost": "Frost", "ember": "Ember", "volatile": "Volatile"},
+  "card_flow_labels": {"run.draw": "Draw", "run.discard": "Discard", "run.exhaust": "Exhaust", "card.played.to-discard": "Discard after play", "card.played.to-exhaust": "Exhaust after play"},
+  "resource_order": [
+    "health",
+    "block",
+    "energy",
+    "mana"
+  ],
+  "cards": {
+    "basic_attack": {
+      "name": "Strike",
+      "text": "Attack an enemy. See the preview for current values.",
+      "tone": "attack"
+    },
+    "defend": {
+      "name": "Defend",
+      "text": "Protect yourself. See the preview for current values.",
+      "tone": "skill"
+    },
+    "fireball": {
+      "name": "Fire Orb",
+      "text": "Attack and apply Burning. See the preview.",
+      "tone": "power"
+    },
+    "heal": {
+      "name": "Vital Spark",
+      "text": "Restore your resources. See the preview.",
+      "tone": "skill"
+    },
+    "arcane_bolt": {
+      "name": "Arcane Bolt",
+      "text": "Attack an enemy using mana. See the preview for current values.",
+      "tone": "power"
+    },
+    "venom_cut": {
+      "name": "Venom Cut",
+      "text": "Deal damage and apply a damage-over-time status.",
+      "tone": "attack"
+    },
+    "battle_focus": {
+      "name": "Battle Focus",
+      "text": "Gain persistent offensive scaling, then leave the encounter cycle.",
+      "tone": "power"
+    },
+    "expose_weakness": {
+      "name": "Expose Weakness",
+      "text": "Damage a target and increase subsequent damage taken.",
+      "tone": "attack"
+    },
+    "chain_lightning": {
+      "name": "Chain Lightning",
+      "text": "Spend Mana to damage every enemy.",
+      "tone": "power"
+    },
+    "execution": {
+      "name": "Execution",
+      "text": "A high-damage attack usable only against a wounded target.",
+      "tone": "attack"
+    },
+    "tactical_recall": {
+      "name": "Tactical Recall",
+      "text": "Move two cards into the playable zone using a configured flow.",
+      "tone": "skill"
+    },
+    "conjure_spark": {
+      "name": "Conjure Spark",
+      "text": "Create an Arcane Bolt in the playable zone, then exhaust.",
+      "tone": "power"
+    },
+    "fading_guard": {
+      "name": "Fading Guard",
+      "text": "Gain Block. If left unplayed, its ethereal tag moves it to exile.",
+      "tone": "skill"
+    },
+    "equilibrium": {
+      "name": "Equilibrium",
+      "text": "Gain Block. Its retain tag keeps it between activations.",
+      "tone": "skill"
+    },
+    "piercing_ray": {
+      "name": "Piercing Ray",
+      "text": "Damage bypasses Block through a calculation-pipeline tag rule.",
+      "tone": "power"
+    },
+    "cleanse": {
+      "name": "Cleanse",
+      "text": "Remove up to two debuffs from yourself.",
+      "tone": "skill"
+    },
+    "prismatic_burst": {
+      "name": "Prismatic Burst",
+      "text": "Choose between Energy and Mana as the payment resource.",
+      "tone": "power"
+    },
+    "cull_weakest": {
+      "name": "Cull the Weakest",
+      "text": "Automatically targets the enemy with the least Health.",
+      "tone": "attack"
+    },
+    "renewal": {
+      "name": "Renewal",
+      "text": "Apply a status that restores Health over several activations.",
+      "tone": "skill"
+    },
+    "ascendant_strike": {
+      "name": "Calibrated Strike",
+      "text": "A physical attack scaled by additive weapon bonuses.",
+      "tone": "attack"
+    },
+    "ascendant_elemental_burst": {
+      "name": "Elemental Burst",
+      "text": "A spell with elemental scaling and a separate support multiplier.",
+      "tone": "power"
+    },
+    "ascendant_critical_lance": {
+      "name": "Critical Lance",
+      "text": "A physical attack multiplied by critical scaling.",
+      "tone": "attack"
+    },
+    "ascendant_support_cascade": {
+      "name": "Support Cascade",
+      "text": "Hits every enemy through two independent support multipliers.",
+      "tone": "power"
+    },
+    "ascendant_fracture": {
+      "name": "Fracture",
+      "text": "Applies a vulnerability layer before dealing physical damage.",
+      "tone": "attack"
+    },
+    "ascendant_kinetic_guard": {
+      "name": "Kinetic Guard",
+      "text": "Build Block without invoking damage scaling.",
+      "tone": "skill"
+    }
+  },
+  "nodes": {
+    "embers": {
+      "name": "Ash Clearing",
+      "icon": "⚔",
+      "hint": "Encounter"
+    },
+    "relic": {
+      "name": "Ember Core",
+      "icon": "⬢",
+      "hint": "Relic"
+    },
+    "reward": {
+      "name": "Lost Memory",
+      "icon": "✦",
+      "hint": "Choose a card"
+    },
+    "merchant": {
+      "name": "Wandering Merchant",
+      "icon": "◆",
+      "hint": "Shop"
+    },
+    "camp": {
+      "name": "Campfire",
+      "icon": "♨",
+      "hint": "Preparation"
+    },
+    "forge": {
+      "name": "Ancient Forge",
+      "icon": "⬆",
+      "hint": "Upgrade"
+    },
+    "prism": {
+      "name": "Prismatic Shrine",
+      "icon": "◈",
+      "hint": "Mana relic"
+    },
+    "swarm": {
+      "name": "Infested Gallery",
+      "icon": "♞",
+      "hint": "Multiple enemies"
+    },
+    "lens": {
+      "name": "Venom Lens",
+      "icon": "◉",
+      "hint": "Synergy relic"
+    },
+    "hexer": {
+      "name": "Cinder Archive",
+      "icon": "✧",
+      "hint": "Resource control"
+    },
+    "summit": {
+      "name": "Living Bulwark",
+      "icon": "♛",
+      "hint": "Boss"
+    },
+    "calibration": {
+      "name": "Calibration Chamber",
+      "icon": "⚔",
+      "hint": "Scaling trial"
+    },
+    "serration": {
+      "name": "Serration Matrix",
+      "icon": "⬢",
+      "hint": "Additive relic"
+    },
+    "matrix_reward": {
+      "name": "Build Matrix",
+      "icon": "✦",
+      "hint": "Choose a scaling card"
+    },
+    "matrix_forge": {
+      "name": "Mod Foundry",
+      "icon": "⬆",
+      "hint": "Upgrade a scaling layer"
+    },
+    "ascension": {
+      "name": "Ascendant Prime",
+      "icon": "♛",
+      "hint": "Full build trial"
+    }
+  },
+  "sandbox_modes": [
+    {
+      "id": "combat_sandbox",
+      "name": "Energy roguelike",
+      "description": "Play cards using energy; AI activations resolve automatically."
+    },
+    {
+      "id": "combat_sandbox_fixed_actions",
+      "name": "Action tactics",
+      "description": "The same cards follow a fixed action budget per activation."
+    },
+    {
+      "id": "combat_sandbox_priority",
+      "name": "Priority duel",
+      "description": "Respond to your opponent and resolve actions through a deterministic stack."
+    }
+  ],
+  "default_scenario": {
+    "participants": [
+      {
+        "instanceId": "player",
+        "entityDefinitionId": "spire_adept",
+        "sideId": "player",
+        "controllerBinding": {
+          "kind": "Player"
+        }
+      },
+      {
+        "instanceId": "hexer",
+        "entityDefinitionId": "spire_hexer",
+        "sideId": "opposition",
+        "controllerBinding": {
+          "kind": "AI",
+          "policyId": "gambit"
+        }
+      },
+      {
+        "instanceId": "venomling",
+        "entityDefinitionId": "spire_venomling",
+        "sideId": "opposition",
+        "controllerBinding": {
+          "kind": "AI",
+          "policyId": "gambit"
+        }
+      }
+    ],
+    "startingCards": [
+      {
+        "definitionId": "chain_lightning"
+      },
+      {
+        "definitionId": "venom_cut"
+      },
+      {
+        "definitionId": "expose_weakness"
+      },
+      {
+        "definitionId": "piercing_ray"
+      },
+      {
+        "definitionId": "fading_guard"
+      },
+      {
+        "definitionId": "equilibrium"
+      },
+      {
+        "definitionId": "tactical_recall"
+      },
+      {
+        "definitionId": "prismatic_burst"
+      },
+      {
+        "definitionId": "cleanse"
+      },
+      {
+        "definitionId": "execution"
+      },
+      {
+        "definitionId": "battle_focus"
+      },
+      {
+        "definitionId": "renewal"
+      }
+    ],
+    "initialState": {
+      "resourcesByActor": {
+        "player": {
+          "health": 72,
+          "energy": 3,
+          "mana": 4
+        },
+        "hexer": {
+          "health": 38,
+          "mana": 6
+        },
+        "venomling": {
+          "health": 24,
+          "mana": 0
+        }
+      },
+      "effects": []
+    }
+  },
+  "resources": {
+    "health": {
+      "display": "bar",
+      "color": "#ce5269",
+      "symbol": "H",
+      "cost_color": "#d85f68"
+    },
+    "block": {
+      "display": "counter",
+      "color": "#e7b75d",
+      "symbol": "B",
+      "cost_color": "#8395b8"
+    },
+    "energy": {
+      "display": "counter",
+      "color": "#e7b75d",
+      "symbol": "E",
+      "cost_color": "#e29b45",
+      "cost_icon": "res://assets/ivory/cost-energy.svg"
+    },
+    "mana": {
+      "display": "counter",
+      "color": "#e7b75d",
+      "symbol": "M",
+      "cost_color": "#5d87dc",
+      "cost_icon": "res://assets/ivory/cost-mana.svg"
+    },
+    "gold": {
+      "display": "counter",
+      "color": "#e7b75d",
+      "symbol": "G",
+      "cost_color": "#d6b759"
+    },
+    "power_points": {
+      "display": "counter",
+      "color": "#e7b75d",
+      "symbol": "P",
+      "cost_color": "#b077d1"
+    }
+  }
+}

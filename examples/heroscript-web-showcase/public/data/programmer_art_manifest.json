@@ -1,0 +1,855 @@
+{
+  "version": 1,
+  "defaults": {
+    "cards": "card_unknown",
+    "effects": "effect_unknown",
+    "behaviors": "behavior_unknown",
+    "actors": "actor_unknown",
+    "portraits": "actor_unknown",
+    "activities": "activity_unknown",
+    "backgrounds": "battlefield",
+    "relics": "relic",
+    "inscriptions": "inscription",
+    "modifier_items": "modifier"
+  },
+  "categories": {
+    "modifier_items": {
+      "fire": "modifier_fire",
+      "flurry": "core_multihit_behavior",
+      "cascade": "core_cascade_behavior",
+      "condense": "card_unknown",
+      "guard": "card_unknown"
+    },
+    "effects": {
+      "core_charge": "core_charge_effect",
+      "core_ember_damage": "core_scorch_effect",
+      "core_ember_heal": "core_afterglow_effect"
+    },
+    "behaviors": {
+      "core_multihit": "core_multihit_behavior",
+      "core_cascade": "core_cascade_behavior"
+    },
+    "portraits": {
+      "ember_keeper": "actor_adept"
+    },
+    "cards": {
+      "core_strike": "card_core_strike",
+      "core_guard": "card_core_guard",
+      "core_heal": "card_core_heal",
+      "core_charge_card": "card_core_charge_card",
+      "core_release": "card_core_release",
+      "core_recover": "card_core_recover",
+      "core_empower_card": "card_core_empower_card",
+      "basic_attack": "card_basic_attack",
+      "defend": "card_defend",
+      "fireball": "card_fireball",
+      "heal": "card_heal",
+      "arcane_bolt": "sample_arcane_bolt",
+      "ascendant_strike": "card_ascendant_strike",
+      "ascendant_fracture": "card_ascendant_fracture",
+      "expose_weakness": "card_expose_weakness",
+      "execution": "card_execution",
+      "cull_weakest": "card_cull_weakest",
+      "w1_strike": "card_w1_strike",
+      "w1_last_guard": "card_w1_last_guard",
+      "w1_second_wind": "card_w1_second_wind",
+      "w1_solar_burst": "card_w1_solar_burst",
+      "w1_sweep": "card_w1_sweep",
+      "w1_shield_bash": "card_w1_shield_bash",
+      "w1_fracture": "card_w1_fracture",
+      "w1_riposte": "card_w1_riposte",
+      "w1_pierce": "card_w1_pierce",
+      "ascendant_kinetic_guard": "card_ascendant_kinetic_guard",
+      "fading_guard": "card_fading_guard",
+      "equilibrium": "card_equilibrium",
+      "w1_guard": "card_w1_guard",
+      "w1_fortify": "card_w1_fortify",
+      "w1_bulwark": "card_w1_bulwark",
+      "w1_reserve": "card_w1_reserve",
+      "w1_dampen": "card_w1_dampen",
+      "ascendant_elemental_burst": "card_ascendant_elemental_burst",
+      "prismatic_burst": "card_prismatic_burst",
+      "w1_scorch": "card_w1_scorch",
+      "w1_inferno": "card_w1_inferno",
+      "cleanse": "card_cleanse",
+      "renewal": "card_renewal",
+      "w1_mend": "card_w1_mend",
+      "w1_renewal": "card_w1_renewal",
+      "w1_release": "card_w1_release",
+      "w1_release_guard": "card_w1_release_guard",
+      "w1_catalyst": "card_w1_catalyst",
+      "w1_detonate": "card_w1_detonate",
+      "venom_cut": "card_venom_cut",
+      "w1_poison": "card_w1_poison",
+      "chain_lightning": "card_chain_lightning",
+      "ascendant_support_cascade": "card_ascendant_support_cascade",
+      "w1_flurry": "card_w1_flurry",
+      "w1_barrage": "card_w1_barrage",
+      "w1_venom_flurry": "card_w1_venom_flurry",
+      "piercing_ray": "card_piercing_ray",
+      "ascendant_critical_lance": "card_ascendant_critical_lance",
+      "battle_focus": "card_battle_focus",
+      "w1_precision": "card_w1_precision",
+      "w1_focus": "card_w1_focus",
+      "w1_lance": "card_w1_lance",
+      "tactical_recall": "card_tactical_recall",
+      "w1_recall": "card_w1_recall",
+      "w1_insight": "card_w1_insight",
+      "w1_rehearse": "card_w1_rehearse",
+      "conjure_spark": "card_conjure_spark",
+      "w1_momentum": "card_w1_momentum",
+      "w1_power_surge": "card_w1_power_surge",
+      "w1_blood_fuel": "card_w1_blood_fuel",
+      "w1_charge_cell": "card_w1_charge_cell",
+      "w1_release_charge": "card_w1_release_charge",
+      "w1_guarded_strike": "card_w1_guarded_strike",
+      "w1_guard_wave": "card_w1_guard_wave",
+      "w1_desperate_guard": "card_w1_desperate_guard",
+      "w1_shelter": "card_w1_shelter",
+      "w1_cinder_brand": "card_w1_cinder_brand",
+      "w1_volatile_rot": "card_w1_volatile_rot",
+      "w1_caustic_guard": "card_w1_caustic_guard",
+      "w1_lingering_aegis": "card_w1_lingering_aegis",
+      "w1_vital_surge": "card_w1_vital_surge",
+      "w1_mending_echo": "card_w1_mending_echo",
+      "w1_release_mending": "card_w1_release_mending",
+      "w1_delayed_recovery": "card_w1_delayed_recovery",
+      "w1_seek_attack": "card_w1_seek_attack",
+      "w1_gather_defense": "card_w1_gather_defense",
+      "w1_recover_trace": "card_w1_recover_trace",
+      "w1_prepare_guard": "card_w1_prepare_guard",
+      "w1_needle_storm": "card_w1_needle_storm",
+      "w1_heavy_impact": "card_w1_heavy_impact",
+      "w1_break_guard": "card_w1_break_guard",
+      "w1_relay_strike": "card_w1_relay_strike",
+      "lab_unknown_many_resources": "sample_lab_unknown_many_resources",
+      "lab_unknown_long_rules": "sample_lab_unknown_long_rules",
+      "lab_unknown_free": "sample_lab_unknown_free",
+      "lab_unknown_custom": "sample_lab_unknown_custom",
+      "lab_unknown_long_title": "sample_lab_unknown_long_title"
+    },
+    "actors": {
+      "spire_adept": "actor_adept",
+      "player_warrior": "actor_adept",
+      "spire_wisp": "actor_wisp",
+      "enemy_goblin": "actor_wisp",
+      "spire_sentinel": "actor_sentinel",
+      "enemy_orc_warrior": "actor_sentinel",
+      "ascendant_operator": "actor_adept",
+      "w1_operator": "actor_adept",
+      "core_adept": "actor_adept",
+      "ascendant_drone": "actor_wisp",
+      "w1_scout": "actor_wisp",
+      "w1_charger": "actor_wisp",
+      "core_spark": "actor_wisp",
+      "ascendant_prime": "actor_sentinel",
+      "w1_sentinel": "actor_sentinel",
+      "w1_bulwark_elite": "actor_sentinel",
+      "w1_prime": "actor_sentinel",
+      "spire_bulwark": "actor_sentinel",
+      "core_prime": "actor_sentinel",
+      "w1_spitter": "actor_channeler",
+      "w1_binder": "actor_channeler",
+      "w1_artillery": "actor_channeler",
+      "w1_corrosion_elite": "actor_channeler",
+      "w1_prism_elite": "actor_channeler",
+      "spire_hexer": "actor_channeler",
+      "core_echo": "actor_channeler",
+      "w1_mite": "actor_swarm",
+      "w1_swarm": "actor_swarm",
+      "spire_venomling": "actor_swarm"
+    },
+    "activities": {
+      "Encounter": "activity_encounter",
+      "RelicReward": "activity_relic",
+      "CardSelection": "activity_reward",
+      "Shop": "activity_shop",
+      "Preparation": "activity_camp",
+      "CardUpgrade": "activity_forge",
+      "Dialogue": "activity_camp",
+      "Victory": "activity_victory"
+    },
+    "backgrounds": {
+      "combat": "battlefield"
+    },
+    "relics": {},
+    "inscriptions": {}
+  },
+  "slots": {
+    "effect_unknown": {
+      "path": "res://assets/programmer-art/icon-unknown.svg",
+      "placeholder": true
+    },
+    "behavior_unknown": {
+      "path": "res://assets/programmer-art/icon-unknown.svg",
+      "placeholder": true
+    },
+    "core_charge_effect": {
+      "path": "res://assets/programmer-art/icon-charge.svg",
+      "placeholder": true
+    },
+    "core_scorch_effect": {
+      "path": "res://assets/programmer-art/icon-fire.svg",
+      "placeholder": true
+    },
+    "core_afterglow_effect": {
+      "path": "res://assets/programmer-art/icon-recovery.svg",
+      "placeholder": true
+    },
+    "core_multihit_behavior": {
+      "path": "res://assets/programmer-art/icon-multihit.svg",
+      "placeholder": true
+    },
+    "core_cascade_behavior": {
+      "path": "res://assets/programmer-art/icon-release.svg",
+      "placeholder": true
+    },
+    "core_strike": {
+      "path": "res://assets/programmer-art/multihit-1.svg",
+      "placeholder": true
+    },
+    "core_guard": {
+      "path": "res://assets/programmer-art/guard-1.svg",
+      "placeholder": true
+    },
+    "core_heal": {
+      "path": "res://assets/programmer-art/recovery-1.svg",
+      "placeholder": true
+    },
+    "core_charge_card": {
+      "path": "res://assets/programmer-art/charge-1.svg",
+      "placeholder": true
+    },
+    "core_release": {
+      "path": "res://assets/programmer-art/release-1.svg",
+      "placeholder": true
+    },
+    "core_recover": {
+      "path": "res://assets/programmer-art/recover-1.svg",
+      "placeholder": true
+    },
+    "core_empower_card": {
+      "path": "res://assets/programmer-art/empower-1.svg",
+      "placeholder": true
+    },
+    "card_unknown": {
+      "path": "res://assets/programmer-art/unknown-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_strike": {
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_defend": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-2.svg",
+      "fit": "contain"
+    },
+    "card_fire": {
+      "path": "res://assets/programmer-art/fire-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_heal": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-2.svg",
+      "fit": "contain"
+    },
+    "card_condense": {
+      "path": "res://assets/programmer-art/condense-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_poison": {
+      "path": "res://assets/programmer-art/poison-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_multihit": {
+      "path": "res://assets/programmer-art/multihit-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_precision": {
+      "path": "res://assets/programmer-art/precision-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_recall": {
+      "path": "res://assets/programmer-art/recall-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_spark": {
+      "path": "res://assets/programmer-art/energy-1.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_unknown": {
+      "path": "res://assets/tactical-pieces/enemy-striker.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_adept": {
+      "path": "res://assets/tactical-pieces/hero-wanderer.svg",
+      "fit": "contain",
+      "placeholder": false,
+      "variants": [
+        "res://assets/tactical-pieces/hero-wanderer.svg",
+        "res://assets/tactical-pieces/hero-regent.svg",
+        "res://assets/tactical-pieces/hero-shard.svg"
+      ]
+    },
+    "actor_wisp": {
+      "path": "res://assets/tactical-pieces/enemy-striker.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_sentinel": {
+      "path": "res://assets/tactical-pieces/enemy-bulwark.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_channeler": {
+      "path": "res://assets/tactical-pieces/enemy-channeler.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_swarm": {
+      "path": "res://assets/tactical-pieces/enemy-swarm.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "activity_unknown": {
+      "path": "res://assets/programmer-art/icon-unknown.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_encounter": {
+      "path": "res://assets/programmer-art/icon-strike.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_relic": {
+      "path": "res://assets/programmer-art/icon-relic.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_reward": {
+      "path": "res://assets/programmer-art/icon-reward.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_shop": {
+      "path": "res://assets/programmer-art/icon-shop.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_camp": {
+      "path": "res://assets/programmer-art/icon-camp.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_forge": {
+      "path": "res://assets/programmer-art/icon-forge.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_victory": {
+      "path": "res://assets/programmer-art/icon-empower.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "battlefield": {
+      "path": "res://assets/ivory/battlefield.svg",
+      "fit": "cover",
+      "placeholder": true
+    },
+    "card_arcane_bolt": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-0.svg",
+      "fit": "contain"
+    },
+    "card_ascendant_critical_lance": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-1.svg",
+      "fit": "contain"
+    },
+    "card_ascendant_elemental_burst": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-2.svg",
+      "fit": "contain"
+    },
+    "card_ascendant_fracture": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-0.svg",
+      "fit": "contain"
+    },
+    "card_ascendant_kinetic_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-1.svg",
+      "fit": "contain"
+    },
+    "card_ascendant_strike": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-2.svg",
+      "fit": "contain"
+    },
+    "card_ascendant_support_cascade": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-0.svg",
+      "fit": "contain"
+    },
+    "card_basic_attack": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_battle_focus": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-2.svg",
+      "fit": "contain"
+    },
+    "card_chain_lightning": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-0.svg",
+      "fit": "contain"
+    },
+    "card_cleanse": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-1.svg",
+      "fit": "contain"
+    },
+    "card_conjure_spark": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/energy-2.svg",
+      "fit": "contain"
+    },
+    "card_core_charge_card": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/charge-0.svg",
+      "fit": "contain"
+    },
+    "card_core_empower_card": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/empower-1.svg",
+      "fit": "contain"
+    },
+    "card_core_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-2.svg",
+      "fit": "contain"
+    },
+    "card_core_heal": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-0.svg",
+      "fit": "contain"
+    },
+    "card_core_recover": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recover-1.svg",
+      "fit": "contain"
+    },
+    "card_core_release": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/release-2.svg",
+      "fit": "contain"
+    },
+    "card_core_strike": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-0.svg",
+      "fit": "contain"
+    },
+    "card_cull_weakest": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_equilibrium": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-0.svg",
+      "fit": "contain"
+    },
+    "card_execution": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_expose_weakness": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-2.svg",
+      "fit": "contain"
+    },
+    "card_fading_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-0.svg",
+      "fit": "contain"
+    },
+    "card_fireball": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-1.svg",
+      "fit": "contain"
+    },
+    "card_piercing_ray": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-0.svg",
+      "fit": "contain"
+    },
+    "card_prismatic_burst": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-1.svg",
+      "fit": "contain"
+    },
+    "card_renewal": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-2.svg",
+      "fit": "contain"
+    },
+    "card_tactical_recall": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-0.svg",
+      "fit": "contain"
+    },
+    "card_venom_cut": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/poison-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_barrage": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_blood_fuel": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/energy-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_break_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_bulwark": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_catalyst": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/condense-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_caustic_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/poison-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_charge_cell": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/energy-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_cinder_brand": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_dampen": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_delayed_recovery": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_desperate_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_detonate": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/condense-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_flurry": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_focus": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_fortify": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_fracture": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_gather_defense": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_guard_wave": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_guarded_strike": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_heavy_impact": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_inferno": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_insight": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_lance": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_last_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_lingering_aegis": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_mend": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_mending_echo": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_momentum": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/energy-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_needle_storm": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_pierce": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_poison": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/poison-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_power_surge": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/energy-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_precision": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_prepare_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_recall": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_recover_trace": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_rehearse": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_relay_strike": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_release": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/condense-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_release_charge": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/condense-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_release_guard": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/condense-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_release_mending": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/condense-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_renewal": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_reserve": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/guard-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_riposte": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_scorch": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_second_wind": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_seek_attack": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_shelter": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_shield_bash": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_solar_burst": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/fire-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_strike": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_sweep": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/strike-1.svg",
+      "fit": "contain"
+    },
+    "card_w1_venom_flurry": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/multihit-2.svg",
+      "fit": "contain"
+    },
+    "card_w1_vital_surge": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-0.svg",
+      "fit": "contain"
+    },
+    "card_w1_volatile_rot": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/poison-1.svg",
+      "fit": "contain"
+    },
+    "sample_lab_unknown_many_resources": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/energy-1.svg",
+      "fit": "contain"
+    },
+    "sample_lab_unknown_long_rules": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recall-1.svg",
+      "fit": "contain"
+    },
+    "sample_lab_unknown_free": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/recovery-1.svg",
+      "fit": "contain"
+    },
+    "sample_lab_unknown_custom": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/empower-1.svg",
+      "fit": "contain"
+    },
+    "sample_lab_unknown_long_title": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/unknown-1.svg",
+      "fit": "contain"
+    },
+    "sample_arcane_bolt": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/precision-1.svg",
+      "fit": "contain"
+    },
+    "relic": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/icon-relic.svg",
+      "fit": "contain"
+    },
+    "inscription": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/icon-inscription.svg",
+      "fit": "contain"
+    },
+    "modifier": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/icon-modifier.svg",
+      "fit": "contain"
+    },
+    "modifier_fire": {
+      "placeholder": true,
+      "path": "res://assets/programmer-art/icon-fire.svg"
+    }
+  }
+}

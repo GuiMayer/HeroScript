@@ -1,0 +1,356 @@
+{
+  "setting_id": "ascendant",
+  "mode_id": "w1_synergy_sandbox",
+  "presets": [
+    {
+      "id": "energy",
+      "name": "Tag synergy: energy",
+      "scenario": {
+        "participants": [
+          {
+            "instanceId": "player",
+            "entityDefinitionId": "w1_operator",
+            "sideId": "player",
+            "controllerBinding": {
+              "kind": "Player"
+            }
+          },
+          {
+            "instanceId": "sentinel",
+            "entityDefinitionId": "w1_sentinel",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          },
+          {
+            "instanceId": "scout",
+            "entityDefinitionId": "w1_scout",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          }
+        ],
+        "startingCards": [
+          {
+            "definitionId": "w1_power_surge"
+          },
+          {
+            "definitionId": "w1_blood_fuel"
+          },
+          {
+            "definitionId": "w1_charge_cell"
+          },
+          {
+            "definitionId": "w1_release_charge"
+          },
+          {
+            "definitionId": "w1_heavy_impact"
+          },
+          {
+            "definitionId": "w1_guard"
+          },
+          {
+            "definitionId": "w1_strike"
+          },
+          {
+            "definitionId": "w1_recall"
+          }
+        ],
+        "initialState": {
+          "resourcesByActor": {
+            "player": {
+              "health": 50,
+              "energy": 3,
+              "block": 20
+            }
+          },
+          "effects": []
+        }
+      }
+    },
+    {
+      "id": "defense",
+      "name": "Tag synergy: defense",
+      "scenario": {
+        "participants": [
+          {
+            "instanceId": "player",
+            "entityDefinitionId": "w1_operator",
+            "sideId": "player",
+            "controllerBinding": {
+              "kind": "Player"
+            }
+          },
+          {
+            "instanceId": "sentinel",
+            "entityDefinitionId": "w1_sentinel",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          },
+          {
+            "instanceId": "scout",
+            "entityDefinitionId": "w1_scout",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          }
+        ],
+        "startingCards": [
+          {
+            "definitionId": "w1_guard"
+          },
+          {
+            "definitionId": "w1_guarded_strike"
+          },
+          {
+            "definitionId": "w1_guard_wave"
+          },
+          {
+            "definitionId": "w1_desperate_guard"
+          },
+          {
+            "definitionId": "w1_shelter"
+          },
+          {
+            "definitionId": "w1_lingering_aegis"
+          },
+          {
+            "definitionId": "w1_riposte"
+          },
+          {
+            "definitionId": "w1_release_guard"
+          }
+        ],
+        "initialState": {
+          "resourcesByActor": {
+            "player": {
+              "health": 50,
+              "energy": 3,
+              "block": 20
+            }
+          },
+          "effects": []
+        }
+      }
+    },
+    {
+      "id": "residual",
+      "name": "Tag synergy: residual",
+      "scenario": {
+        "participants": [
+          {
+            "instanceId": "player",
+            "entityDefinitionId": "w1_operator",
+            "sideId": "player",
+            "controllerBinding": {
+              "kind": "Player"
+            }
+          },
+          {
+            "instanceId": "sentinel",
+            "entityDefinitionId": "w1_sentinel",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          },
+          {
+            "instanceId": "scout",
+            "entityDefinitionId": "w1_scout",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          }
+        ],
+        "startingCards": [
+          {
+            "definitionId": "w1_cinder_brand"
+          },
+          {
+            "definitionId": "w1_volatile_rot"
+          },
+          {
+            "definitionId": "w1_caustic_guard"
+          },
+          {
+            "definitionId": "w1_release"
+          },
+          {
+            "definitionId": "w1_mending_echo"
+          },
+          {
+            "definitionId": "w1_release_mending"
+          },
+          {
+            "definitionId": "w1_delayed_recovery"
+          },
+          {
+            "definitionId": "w1_vital_surge"
+          }
+        ],
+        "initialState": {
+          "resourcesByActor": {
+            "player": {
+              "health": 50,
+              "energy": 3,
+              "block": 20
+            }
+          },
+          "effects": []
+        }
+      }
+    },
+    {
+      "id": "circulation",
+      "name": "Tag synergy: circulation",
+      "scenario": {
+        "participants": [
+          {
+            "instanceId": "player",
+            "entityDefinitionId": "w1_operator",
+            "sideId": "player",
+            "controllerBinding": {
+              "kind": "Player"
+            }
+          },
+          {
+            "instanceId": "sentinel",
+            "entityDefinitionId": "w1_sentinel",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          },
+          {
+            "instanceId": "scout",
+            "entityDefinitionId": "w1_scout",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          }
+        ],
+        "startingCards": [
+          {
+            "definitionId": "w1_seek_attack"
+          },
+          {
+            "definitionId": "w1_gather_defense"
+          },
+          {
+            "definitionId": "w1_recover_trace"
+          },
+          {
+            "definitionId": "w1_prepare_guard"
+          },
+          {
+            "definitionId": "w1_strike"
+          },
+          {
+            "definitionId": "w1_guard"
+          },
+          {
+            "definitionId": "w1_caustic_guard"
+          },
+          {
+            "definitionId": "w1_mending_echo"
+          }
+        ],
+        "initialState": {
+          "resourcesByActor": {
+            "player": {
+              "health": 50,
+              "energy": 3,
+              "block": 20
+            }
+          },
+          "effects": []
+        }
+      }
+    },
+    {
+      "id": "mixed",
+      "name": "Tag synergy: mixed",
+      "scenario": {
+        "participants": [
+          {
+            "instanceId": "player",
+            "entityDefinitionId": "w1_operator",
+            "sideId": "player",
+            "controllerBinding": {
+              "kind": "Player"
+            }
+          },
+          {
+            "instanceId": "sentinel",
+            "entityDefinitionId": "w1_sentinel",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          },
+          {
+            "instanceId": "scout",
+            "entityDefinitionId": "w1_scout",
+            "sideId": "opposition",
+            "controllerBinding": {
+              "kind": "AI",
+              "policyId": "gambit"
+            }
+          }
+        ],
+        "startingCards": [
+          {
+            "definitionId": "w1_needle_storm"
+          },
+          {
+            "definitionId": "w1_heavy_impact"
+          },
+          {
+            "definitionId": "w1_break_guard"
+          },
+          {
+            "definitionId": "w1_relay_strike"
+          },
+          {
+            "definitionId": "w1_power_surge"
+          },
+          {
+            "definitionId": "w1_guarded_strike"
+          },
+          {
+            "definitionId": "w1_caustic_guard"
+          },
+          {
+            "definitionId": "w1_vital_surge"
+          }
+        ],
+        "initialState": {
+          "resourcesByActor": {
+            "player": {
+              "health": 50,
+              "energy": 3,
+              "block": 20
+            }
+          },
+          "effects": []
+        }
+      }
+    }
+  ]
+}

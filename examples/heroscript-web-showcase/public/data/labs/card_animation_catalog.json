@@ -1,0 +1,31 @@
+{
+  "defaultAnimationId": "burn_center",
+  "categories": [
+    {"label": "Card use", "items": [
+      {"label": "Burn", "items": [
+        {"id": "burn_center", "label": "From center", "scenario": {"operation": "burn", "direction": "center"}},
+        {"id": "burn_edges", "label": "From edges", "scenario": {"operation": "burn", "direction": "edges"}}
+      ]},
+      {"id": "use", "label": "Use card", "scenarioId": "use"},
+      {"id": "retained", "label": "Use retained card", "scenarioId": "retained"}
+    ]},
+    {"label": "Card piles", "items": [
+      {"label": "Draw cards", "items": [
+        {"id": "draw_one", "label": "Draw 1", "scenarioId": "draw_one"},
+        {"id": "draw_five", "label": "Draw 5", "scenarioId": "draw_five"},
+        {"id": "draw_ten", "label": "Draw 10", "scenarioId": "draw_ten"}
+      ]},
+      {"id": "discard", "label": "Discard hand", "scenarioId": "discard"},
+      {"id": "draw_discard", "label": "Draw then discard", "scenarioId": "draw_discard"},
+      {"id": "create", "label": "Create card", "scenarioId": "create"},
+      {"id": "destroy", "label": "Destroy card", "scenarioId": "destroy"},
+      {"id": "reorder", "label": "Reorder hand", "scenarioId": "reorder"}
+    ]},
+    {"label": "Instant facts", "items": [
+      {"id": "empty", "label": "100 instant facts", "scenarioId": "empty"},
+      {"id": "missing_target", "label": "Absent effect target", "scenarioId": "missing_target"},
+      {"id": "zero_delta", "label": "Effect with no change", "scenarioId": "zero_delta"},
+      {"id": "lifecycle", "label": "100 lifecycle facts", "scenarioId": "lifecycle"}
+    ]}
+  ]
+}

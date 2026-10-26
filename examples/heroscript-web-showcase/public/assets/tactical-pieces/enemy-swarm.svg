@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <title>enemy-swarm</title>
+<g transform="translate(0 168)"><path fill="#24241F" d="M31 6H59L67 22 59 42H54L59 86 69 105V116H77V132H13V116H21V105L31 86 36 42H31L23 22Z"/>
+      <path fill="#BC3D27" d="M32 30H58L54 40H36Z"/>
+      <path stroke="#F2EBDD" stroke-width="3" d="M25 115H65"/></g><g transform="translate(69 141) scale(1.2)"><path fill="#24241F" d="M31 6H59L67 22 59 42H54L59 86 69 105V116H77V132H13V116H21V105L31 86 36 42H31L23 22Z"/>
+      <path fill="#BC3D27" d="M32 30H58L54 40H36Z"/>
+      <path stroke="#F2EBDD" stroke-width="3" d="M25 115H65"/></g><g transform="translate(150 168)"><path fill="#24241F" d="M31 6H59L67 22 59 42H54L59 86 69 105V116H77V132H13V116H21V105L31 86 36 42H31L23 22Z"/>
+      <path fill="#BC3D27" d="M32 30H58L54 40H36Z"/>
+      <path stroke="#F2EBDD" stroke-width="3" d="M25 115H65"/></g>
+</svg>
