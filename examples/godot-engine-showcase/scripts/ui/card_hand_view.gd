@@ -40,6 +40,13 @@ var toolbar := HBoxContainer.new()
 var previous: Button
 var next: Button
 var _ghost: CardView
+var _ghost_id := ""
+var _drag_pose: Dictionary = {}
+var _grip_offset := Vector2.ZERO
+var _last_drag_point := Vector2.ZERO
+var _last_drag_usec := 0
+var _drag_tilt := 0.0
+var _return_tween: Tween
 var _reading_proxy: CardView
 var _layout_pending := false
 var _syncing := false
@@ -217,6 +224,7 @@ func borrow_card(id: String, overlay: Control) -> Control:
 
 func return_card(id: String, card: Control, reveal_card: bool) -> void:
 	if _cards.get(id) != card or not _slots.has(id): return
+	card.set_as_top_level(false)
 	card.reparent(_slots[id], false)
 	card.position = Vector2.ZERO; card.rotation = 0; card.scale = Vector2.ONE
 	card.z_index = 0
@@ -612,9 +620,10 @@ func pointer_input(event: InputEvent) -> void:
 			var pressed: String = interaction.pressed
 			var dragging: bool = interaction.dragging
 			interaction.cancel_pointer()
-			_clear_ghost()
-			if read_only or pressed not in order: return
-			if dragging: drop_requested.emit(pressed, event.global_position)
+			if read_only or pressed not in order: _clear_ghost(); return
+			if dragging:
+				drop_requested.emit(pressed, event.global_position)
+				_return_ghost()
 			elif id == pressed:
 				_cards[id].grab_focus()
 				# _focus is shared with keyboard navigation; a mouse click stays pointer-driven.
@@ -624,27 +633,51 @@ func _input(event: InputEvent) -> void:
 	if interaction.pressed.is_empty(): return
 	if event.is_action_pressed("ui_cancel") or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT):
 		interaction.cancel_pointer()
-		_clear_ghost()
+		_return_ghost()
 		get_viewport().set_input_as_handled()
 func _drag_visual(point: Vector2) -> void:
 	if not is_instance_valid(_ghost):
-		_ghost = CardView.new(visual_context)
-		_ghost.hand_managed = true
-		_ghost.animate_entry = false
-		_ghost.visual_style = _cards[interaction.pressed].visual_style
-		_ghost.configure(_cards[interaction.pressed].model)
-		_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_ghost.focus_mode = Control.FOCUS_NONE
-		_ghost.tooltip_text = ""
-		add_child(_ghost)
+		_ghost_id = interaction.pressed
+		_drag_pose = preload("res://scripts/ui/card_motion_pose.gd").read(_cards[_ghost_id])
+		_grip_offset = _drag_pose.center - interaction.press_position
+		_last_drag_point = point; _last_drag_usec = Time.get_ticks_usec(); _drag_tilt = 0
+		_ghost = borrow_card(_ghost_id, self)
 		_ghost.set_as_top_level(true)
+		preload("res://scripts/ui/card_motion_pose.gd").write(_ghost, _drag_pose)
 		_ghost.z_index = 500
-		_ghost.size = _cards[interaction.pressed].size
-		_ghost.modulate.a = .85
-	_ghost.global_position = point - _ghost.size * .5
+	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
+	var now := Time.get_ticks_usec()
+	var dt := maxf(.001, (now - _last_drag_usec) / 1000000.0)
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	_drag_tilt = 0.0 if policy.reduced or policy.instant else lerpf(_drag_tilt, clampf((point.x-_last_drag_point.x) / dt * .004, -8, 8), 1.0-exp(-24.0*dt))
+	preload("res://scripts/ui/card_motion_pose.gd").apply(_ghost, point + _grip_offset,
+		float(_drag_pose.rotation) + deg_to_rad(_drag_tilt), _drag_pose.scale)
+	_last_drag_point = point; _last_drag_usec = now
+func _process(delta: float) -> void:
+	if not interaction.dragging or not is_instance_valid(_ghost): return
+	if Time.get_ticks_usec() - _last_drag_usec > 35000:
+		_drag_tilt *= exp(-12.0 * delta)
+		_ghost.rotation = float(_drag_pose.rotation) + deg_to_rad(_drag_tilt)
+func _return_ghost() -> void:
+	if not is_instance_valid(_ghost): return
+	var id := _ghost_id
+	var start := preload("res://scripts/ui/card_motion_pose.gd").read(_ghost)
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	var seconds: float = policy.duration("hand_transition", true)
+	if seconds <= 0 or not _cards.has(id): _clear_ghost(); return
+	_return_tween = create_tween()
+	_return_tween.tween_method(func(raw: float):
+		var target := destination_pose(id)
+		if is_instance_valid(_ghost) and not target.is_empty():
+			preload("res://scripts/ui/card_motion_pose.gd").write(_ghost,
+				preload("res://scripts/ui/card_motion_pose.gd").blend(start, target, policy.progress("drag_return", raw))), 0.0, 1.0, seconds)
+	_return_tween.finished.connect(_clear_ghost, CONNECT_ONE_SHOT)
 func _clear_ghost() -> void:
-	if is_instance_valid(_ghost): remove_child(_ghost); _ghost.queue_free()
-	_ghost = null
+	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
+	_return_tween = null
+	var ghost := _ghost; var id := _ghost_id
+	_ghost = null; _ghost_id = ""; _drag_pose.clear()
+	if is_instance_valid(ghost) and _cards.get(id) == ghost and _slots.has(id): return_card(id, ghost, true)
 func show_overview() -> void:
 	if reading_modal or not overview_enabled: return
 	var dialog = load("res://scripts/ui/hand_overview_dialog.gd").new(visual_context)
