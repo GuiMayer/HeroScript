@@ -12,10 +12,13 @@ static func append(tween: Tween, target: Control, property: String, destination:
 		velocity = clampf(float(velocity), -absf(float(delta)) * 2.0 / seconds, absf(float(delta)) * 2.0 / seconds)
 		if float(velocity) * float(delta) < 0: velocity = 0.0
 	var tangent: Variant = velocity * seconds
+	var reference: WeakRef = weakref(target)
 	tween.tween_method(func(t: float):
+		var node = reference.get_ref()
+		if not is_instance_valid(node): return
 		var t2 := t*t; var t3 := t2*t
-		target.set(property, start + delta * (-2.0*t3+3.0*t2) + tangent * (t3-2.0*t2+t))
-		target.set_meta(key, (delta * (-6.0*t2+6.0*t) + tangent * (3.0*t2-4.0*t+1.0)) / seconds),
+		node.set(property, start + delta * (-2.0*t3+3.0*t2) + tangent * (t3-2.0*t2+t))
+		node.set_meta(key, (delta * (-6.0*t2+6.0*t) + tangent * (3.0*t2-4.0*t+1.0)) / seconds),
 		0.0, 1.0, seconds).set_trans(Tween.TRANS_LINEAR)
 static func reset(target: Control) -> void:
 	for property in ["position", "rotation"]:

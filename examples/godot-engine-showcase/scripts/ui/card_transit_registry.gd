@@ -1,5 +1,6 @@
 extends RefCounted
 ## One visual per instance for the lifetime of a published presentation.
+const Pose = preload("res://scripts/ui/card_motion_pose.gd")
 var hand
 var overlay: Control
 var context
@@ -30,8 +31,10 @@ func acquire(id: String, model: Dictionary, source_visible: bool, start: Vector2
 	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE; ghost.process_mode = Node.PROCESS_MODE_PAUSABLE
 	if not borrowed:
 		if is_instance_valid(card): hand.begin_transit(id)
-		overlay.add_child(ghost); ghost.global_position = start - ghost.size * .5
-	elif not copy_pose: ghost.global_position = start - ghost.size * .5
+		overlay.add_child(ghost)
+	if not borrowed or not copy_pose:
+		var transform := ghost.get_global_transform()
+		Pose.apply(ghost, start, transform.get_rotation(), transform.get_scale())
 	ghost.pivot_offset = ghost.size * .5; ghost.z_index = 100
 	if not id.is_empty(): _records[id] = ghost
 	return ghost

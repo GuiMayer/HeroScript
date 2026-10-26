@@ -29,6 +29,8 @@ var _preparations := {}
 var _destination_order: Array = []
 var _presentation_order: Array = []
 var _presenting := false
+var _aligning_arrivals := false
+var _arrival_transition_limit := INF
 var _layout: Dictionary = {}
 var relayout_count := 0
 var scroll := ScrollContainer.new()
@@ -153,6 +155,10 @@ func begin_presentation(final_models: Array) -> void:
 
 func prepare_zone_beat(steps: Array, role: Callable) -> void:
 	_destination_order = _presentation_order.duplicate()
+	_aligning_arrivals = false
+	_arrival_transition_limit = INF
+	var arrival_duration := 0.0
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
 	for step in steps:
 		var ids: Array = step.get("instanceIds", []).duplicate()
 		ids.append_array(step.get("createdInstanceIds", []))
@@ -160,6 +166,8 @@ func prepare_zone_beat(steps: Array, role: Callable) -> void:
 		if role.call(str(step.get("sourceAddress", ""))) == "hand":
 			for id in ids: _destination_order.erase(str(id))
 		if role.call(str(step.get("targetAddress", ""))) == "hand":
+			_aligning_arrivals = true
+			arrival_duration = maxf(arrival_duration, policy.duration("create" if not step.get("createdInstanceIds", []).is_empty() else "draw", true))
 			for id in ids:
 				if _cards.has(str(id)) and str(id) not in _destination_order: _destination_order.append(str(id))
 			# Visible playable zones can publish insertion order; do not assume append.
@@ -167,10 +175,13 @@ func prepare_zone_beat(steps: Array, role: Callable) -> void:
 				_destination_order = step.targetOrderAfter.filter(func(id): return _cards.has(str(id))).map(func(id): return str(id))
 	for id in _destination_order:
 		if id not in _presentation_order: begin_transit(str(id))
+	if _aligning_arrivals: _arrival_transition_limit = arrival_duration
 	_relayout()
 
 func settle_zone_beat() -> void:
 	_presentation_order = _destination_order.duplicate()
+	_aligning_arrivals = false
+	_arrival_transition_limit = INF
 	_relayout()
 
 func begin_transit(id: String) -> void:
@@ -190,6 +201,13 @@ func begin_transit(id: String) -> void:
 	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 
 func finish_transit(id: String, reveal_card := true) -> void:
+	if reveal_card and _presenting and _aligning_arrivals and id in _destination_order and _cards.has(id):
+		var index := order.find(id)
+		if index >= 0 and index < _layout.get("rotations", []).size():
+			_cards[id].position = Vector2.ZERO
+			_cards[id].rotation = _layout.rotations[index]
+			_cards[id].scale = Vector2.ONE
+			_emphasis[id] = {"position": Vector2.ZERO, "rotation": _layout.rotations[index], "tween": null}
 	_transit.erase(id)
 	if _cards.has(id):
 		_cards[id].modulate.a = 1.0
@@ -199,26 +217,38 @@ func finish_transit(id: String, reveal_card := true) -> void:
 func end_presentation() -> void:
 	for id in _destination_order: finish_transit(str(id))
 	_presenting = false; _destination_order.clear(); _presentation_order.clear()
+	_aligning_arrivals = false; _arrival_transition_limit = INF
 	for id in _transit.keys(): finish_transit(id)
 	request_layout()
 
 func destination_center(id: String) -> Vector2:
+	return destination_pose(id).get("center", scroll.get_global_rect().get_center())
+
+func destination_pose(id: String) -> Dictionary:
+	if not _cards.has(id): return {}
+	var position: Vector2
+	var rotation: float
 	if _presenting and id in _destination_order:
 		var target := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, layout_mode())
-		return surface.global_position + target.positions[_destination_order.find(id)] + _cards[id].size * .5
-	var index := order.find(id)
-	if index >= 0 and index < _layout.get("positions", []).size():
-		return surface.global_position + _layout.positions[index] + _cards[id].size * .5
-	return scroll.get_global_rect().get_center()
+		var index := _destination_order.find(id)
+		position = target.positions[index]; rotation = target.rotations[index]
+	else:
+		var index := order.find(id)
+		if index < 0 or index >= _layout.get("positions", []).size(): return {}
+		position = _layout.positions[index]; rotation = _layout.rotations[index]
+	var transform := surface.get_global_transform()
+	var basis := transform * Transform2D(rotation, Vector2.ZERO)
+	return {"center": transform * (position + _cards[id].size * .5), "rotation": basis.get_rotation(), "scale": basis.get_scale(), "size": _cards[id].size}
 
 func is_in_transit(id: String) -> bool: return _transit.has(id)
 
 func borrow_card(id: String, overlay: Control) -> Control:
 	var card: CardView = _cards[id]
-	var origin: Vector2 = card.global_position
+	var pose := preload("res://scripts/ui/card_motion_pose.gd").read(card)
 	begin_transit(id)
 	card.reparent(overlay, false)
-	card.global_position = origin; card.process_mode = Node.PROCESS_MODE_PAUSABLE
+	preload("res://scripts/ui/card_motion_pose.gd").apply(card, pose.center, pose.rotation, pose.scale)
+	card.process_mode = Node.PROCESS_MODE_PAUSABLE
 	card.show()
 	return card
 
@@ -399,7 +429,7 @@ func cancel_gesture() -> void:
 	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 func duration() -> float:
 	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
-	return policy.duration("hand_transition", true)
+	return minf(policy.duration("hand_transition", true), _arrival_transition_limit) if _aligning_arrivals else policy.duration("hand_transition", true)
 
 func request_layout() -> void:
 	if _layout_pending: return
@@ -424,10 +454,10 @@ func _relayout() -> void:
 		var target_layout := Layout.calculate(_presentation_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
 		var arrival_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
 		for i in order.size():
-			var target_index := _presentation_order.find(order[i])
+			var target_index := _destination_order.find(order[i]) if _aligning_arrivals else _presentation_order.find(order[i])
 			if target_index >= 0:
-				_layout.positions[i] = target_layout.positions[target_index]
-				_layout.rotations[i] = target_layout.rotations[target_index]
+				_layout.positions[i] = arrival_layout.positions[target_index] if _aligning_arrivals else target_layout.positions[target_index]
+				_layout.rotations[i] = arrival_layout.rotations[target_index] if _aligning_arrivals else target_layout.rotations[target_index]
 			elif order[i] in _destination_order:
 				var arrival_index := _destination_order.find(order[i])
 				_layout.positions[i] = arrival_layout.positions[arrival_index]
@@ -488,7 +518,7 @@ func _apply_emphasis() -> void:
 		if _emphasis.has(id) and _emphasis[id].position == target and is_equal_approx(_emphasis[id].rotation, angle): continue
 		if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 		var tween: Tween = null
-		if duration() > 0 and is_inside_tree():
+		if duration() > 0 and is_inside_tree() and (not card.position.is_equal_approx(target) or not is_equal_approx(card.rotation, angle)):
 			tween = create_tween().set_parallel()
 			Retarget.append(tween, card, "position", target, duration())
 			Retarget.append(tween, card, "rotation", angle, duration())
