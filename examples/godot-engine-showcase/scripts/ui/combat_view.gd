@@ -201,6 +201,8 @@ func _build_hand() -> void:
 		hand.drop_requested.connect(_drop_card)
 		hand.drag_previewed.connect(_preview_drag_targets)
 		hand.drag_ended.connect(_restore_drag_targets)
+		hand.reorder_drop_filter = _hand_drop_allowed
+		hand.visual_order_changed.connect(func(_ids): intent_requested.emit("_cancel_selection", []))
 		hand_section.add_child(hand)
 	if not is_instance_valid(pile_controls):
 		pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
@@ -594,6 +596,7 @@ func _drop_card(id: String, point: Vector2) -> void:
 	intent_requested.emit("_drop_card", [id, point])
 
 func _preview_drag_targets(card_id: String, point: Vector2) -> void:
+	if hand.contains_reorder_point(point): _restore_drag_targets(); return
 	# Only decorate targets from published candidates; do not select or submit.
 	var hovered := target_at(point)
 	for id in target_buttons:
@@ -604,6 +607,11 @@ func _restore_drag_targets() -> void:
 	for id in target_buttons:
 		var allowed := not selected_card.is_empty() and _candidates(selected_card).any(func(candidate): return id in _targets(candidate))
 		target_buttons[id].modulate = visual_context.styles.GOLD if allowed else Color.WHITE
+
+func _hand_drop_allowed(point: Vector2) -> bool:
+	for control in [header_view, pile_controls, right_pile_controls, turn_view, candidate_panel, character_sidebar, character_sidebar_reopen, _feedback_column]:
+		if is_instance_valid(control) and control is Control and control.is_visible_in_tree() and control.get_global_rect().has_point(point): return false
+	return true
 
 func _select_target(actor_id: String) -> void:
 	intent_requested.emit("_select_target", [actor_id])

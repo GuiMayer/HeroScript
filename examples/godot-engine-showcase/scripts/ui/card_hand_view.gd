@@ -10,6 +10,7 @@ signal selection_requested(instance_id: String)
 signal drop_requested(instance_id: String, global_point: Vector2)
 signal drag_previewed(instance_id: String, global_point: Vector2)
 signal drag_ended
+signal visual_order_changed(ids: Array)
 const Layout = preload("res://scripts/ui/hand_layout.gd")
 const Retarget = preload("res://scripts/ui/hand_retarget_motion.gd")
 @export var visual_style: HandVisualStyle = preload("res://data/default_hand_visual_style.tres")
@@ -154,6 +155,7 @@ func move_visual_card(id: String, index: int) -> bool:
 	if not arrangement.commit(): return false
 	order = arrangement.confirmed.duplicate()
 	request_layout(); wire_focus()
+	visual_order_changed.emit(order.duplicate())
 	return true
 
 func begin_presentation(final_models: Array) -> void:
@@ -671,6 +673,9 @@ func _update_counter() -> void:
 
 func pointer_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
+		if interaction.dragging:
+			if not read_only: _drag_visual(event.global_position)
+			return
 		var pointer_resumed: bool = not interaction.pointer_active
 		interaction.pointer_active = true
 		var point: Vector2 = hit_surface.get_global_transform() * event.position
@@ -701,8 +706,7 @@ func pointer_input(event: InputEvent) -> void:
 			interaction.cancel_pointer()
 			if read_only or pressed not in order: _clear_ghost(); return
 			if dragging:
-				drop_requested.emit(pressed, event.global_position)
-				_return_ghost()
+				finish_drag(pressed, event.global_position)
 			elif id == pressed:
 				_cards[id].grab_focus()
 				# _focus is shared with keyboard navigation; a mouse click stays pointer-driven.
@@ -714,6 +718,20 @@ func _input(event: InputEvent) -> void:
 		interaction.cancel_pointer()
 		_return_ghost()
 		get_viewport().set_input_as_handled()
+func finish_drag(id: String, point: Vector2) -> void:
+	interaction.cancel_pointer()
+	if read_only or reading_modal or id not in order: cancel_gesture(); return
+	if contains_reorder_point(point):
+		_update_reorder_preview(point)
+		var changed: bool = arrangement.commit()
+		order = arrangement.confirmed.duplicate()
+		_relayout()
+		if changed: visual_order_changed.emit(order.duplicate())
+		_return_ghost()
+		return
+	_cancel_reorder_preview()
+	drop_requested.emit(id, point)
+	_return_ghost()
 func _drag_visual(point: Vector2) -> void:
 	if not is_instance_valid(_ghost):
 		_ghost_id = interaction.pressed
@@ -724,6 +742,7 @@ func _drag_visual(point: Vector2) -> void:
 		_ghost.set_as_top_level(true)
 		preload("res://scripts/ui/card_motion_pose.gd").write(_ghost, _drag_pose)
 		_ghost.z_index = 500
+		_apply_emphasis()
 	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
 	var now := Time.get_ticks_usec()
 	var dt := maxf(.001, (now - _last_drag_usec) / 1000000.0)
