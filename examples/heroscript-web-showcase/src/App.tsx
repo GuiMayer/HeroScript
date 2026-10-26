@@ -19,8 +19,11 @@ import {
 import { MainMenuScreen } from "./ui/screens/MainMenuScreen";
 import { MapScreen } from "./ui/screens/MapScreen";
 
-export const App: React.FC = () => {
-  const { services } = useAppServices();
+export const App: React.FC<{ services?: import("./bootstrap").AppServices }> = ({
+  services: propServices,
+}) => {
+  const defaultHook = useAppServices();
+  const services = propServices ?? defaultHook.services;
   const { session, preferences, i18n } = services;
 
   const [screen, setScreen] = useState<ScreenId>("menu");
@@ -125,20 +128,32 @@ export const App: React.FC = () => {
     <div className="relative w-full h-full flex flex-col overflow-hidden">
       {/* Toast Banners */}
       {toastError && (
-        <div className="fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded shadow-lg bg-[#a4322c] text-[#faf5eb] text-xs font-semibold flex items-center justify-between gap-3">
-          <span>{toastError}</span>
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-lg shadow-2xl bg-[#181715] border-2 border-[#a92e28] text-[#faf5eb] text-xs font-semibold flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-ping shrink-0" />
+            <span>{toastError}</span>
+          </div>
           <button
             type="button"
             onClick={() => setToastError("")}
-            className="font-bold underline"
+            className="font-bold underline text-[#edd282] hover:text-[#fff] shrink-0"
           >
             {i18n.text("Dismiss")}
           </button>
         </div>
       )}
       {toastNotice && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-md px-4 py-2.5 rounded shadow-lg bg-[#20201c] text-[#faf5eb] text-xs font-semibold">
-          {toastNotice}
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 right-4 z-50 max-w-md px-4 py-2.5 rounded-lg shadow-2xl bg-[#181715] border-2 border-[#c99e3a]/60 text-[#fbf6ec] text-xs font-semibold flex items-center gap-2"
+        >
+          <span className="w-2 h-2 rounded-full bg-[#c99e3a] shrink-0" />
+          <span>{toastNotice}</span>
         </div>
       )}
 

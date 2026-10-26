@@ -45,17 +45,22 @@ export const TimelineScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <div>
-          <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
-            CAUSAL COMMAND JOURNAL
-          </span>
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
-            {i18n.text("TIMELINE & BRANCHES")}
-          </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            TL
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              CAUSAL COMMAND JOURNAL
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("TIMELINE & BRANCHES")}
+            </h2>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {session.hasActiveCombat() && (
             <button
               type="button"
@@ -65,7 +70,7 @@ export const TimelineScreen: React.FC<{
                 });
                 setSimResult(JSON.stringify(sim, null, 2));
               }}
-              className="ivory-button px-3 py-1 text-xs rounded"
+              className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
             >
               {i18n.text("SIMULATE END TURN")}
             </button>
@@ -75,7 +80,7 @@ export const TimelineScreen: React.FC<{
             onClick={() =>
               onNavigate(session.hasActiveCombat() ? "combat" : "journey")
             }
-            className="ivory-button px-3.5 py-1 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("BACK")}
           </button>
@@ -205,14 +210,24 @@ export const RunHistoryScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <h2 className="font-display text-lg font-bold m-0">
-          {i18n.text("EXPEDITION ARCHIVE & RUN HISTORY")}
-        </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            RH
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              EXPEDITION ARCHIVE
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("EXPEDITION ARCHIVE & RUN HISTORY")}
+            </h2>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => onNavigate("menu")}
-          className="ivory-button px-3.5 py-1 text-xs rounded"
+          className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
         >
           {i18n.text("MAIN MENU")}
         </button>
@@ -308,29 +323,39 @@ export const RunReplayScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <h2 className="font-display text-lg font-bold m-0">
-          {i18n.text("DETERMINISTIC REPLAY")} — {runId || String(session.run.runId ?? "")}
-        </h2>
-        <div className="flex items-center gap-2">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            RP
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              DETERMINISTIC PLAYBACK
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("DETERMINISTIC REPLAY")} — {runId || String(session.run.runId ?? "")}
+            </h2>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => controllerRef.current?.navigate(-1)}
-            className="ivory-button px-3 py-1 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             ‹ {i18n.text("Prev")}
           </button>
           <button
             type="button"
             onClick={() => controllerRef.current?.navigate(1)}
-            className="ivory-button px-3 py-1 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("Next")} ›
           </button>
           <button
             type="button"
             onClick={() => onNavigate("history")}
-            className="ivory-button px-3.5 py-1 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("BACK")}
           </button>
@@ -398,14 +423,24 @@ export const SandboxScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <h2 className="font-display text-lg font-bold m-0">
-          {i18n.text("RULES LAB & SYNERGY SANDBOX")}
-        </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            SB
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              RULES LABORATORY
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("RULES LAB & SYNERGY SANDBOX")}
+            </h2>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => onNavigate("menu")}
-          className="ivory-button px-3.5 py-1 text-xs rounded"
+          className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
         >
           {i18n.text("MAIN MENU")}
         </button>
@@ -526,14 +561,24 @@ export const CodexScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <h2 className="font-display text-lg font-bold m-0">
-          {i18n.text("PUBLISHED CONTENT CODEX")}
-        </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            CX
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              LORE & RULES DICTIONARY
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("PUBLISHED CONTENT CODEX")}
+            </h2>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => onNavigate("menu")}
-          className="ivory-button px-3.5 py-1 text-xs rounded"
+          className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
         >
           {i18n.text("MAIN MENU")}
         </button>
@@ -640,14 +685,24 @@ export const SettingsScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <h2 className="font-display text-lg font-bold m-0">
-          {i18n.text("PREFERENCES & SYSTEM CONFIGURATION")}
-        </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            CF
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              SYSTEM PREFERENCES
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("PREFERENCES & SYSTEM CONFIGURATION")}
+            </h2>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => onNavigate("menu")}
-          className="ivory-button px-3.5 py-1 text-xs rounded"
+          className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
         >
           {i18n.text("MAIN MENU")}
         </button>
@@ -655,7 +710,7 @@ export const SettingsScreen: React.FC<{
 
       <div className="flex-1 overflow-y-auto p-6 max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start">
         {/* Category Tabs */}
-        <div className="ivory-panel rounded-md p-3 space-y-1.5">
+        <div className="ivory-panel rounded-lg p-3 space-y-1.5 border-2 border-[#8d806b]/60 shadow-lg">
           {Object.entries(SETTINGS_CATEGORIES).map(([key, [title, desc]]) => (
             <button
               key={key}
@@ -664,10 +719,10 @@ export const SettingsScreen: React.FC<{
                 audio.ui();
                 setActiveTab(key);
               }}
-              className={`w-full text-left p-2.5 rounded transition-colors ${
+              className={`w-full text-left p-2.5 rounded-lg transition-all ${
                 activeTab === key
-                  ? "bg-[#20201c] text-[#faf5eb]"
-                  : "hover:bg-[#eee4d1]"
+                  ? "bg-[#181715] text-[#edd282] border-2 border-[#c99e3a]/60 shadow-sm font-semibold"
+                  : "hover:bg-[#eee4d1] border border-transparent"
               }`}
             >
               <div className="font-display text-xs font-bold">
@@ -679,7 +734,7 @@ export const SettingsScreen: React.FC<{
         </div>
 
         {/* Settings Panel */}
-        <div className="ivory-panel rounded-md p-6 space-y-5 text-sm">
+        <div className="ivory-panel rounded-lg p-6 space-y-5 text-sm border-2 border-[#8d806b]/60 shadow-lg">
           {activeTab === "general" && (
             <div className="space-y-4">
               <div>

@@ -34,17 +34,22 @@ export const DeckCompartmentScreen: React.FC<{
 
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
-      <header className="flex items-center justify-between px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <div>
-          <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
-            DECK COMPARTMENT ALLOCATOR
-          </span>
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
-            {i18n.text("DECK COMPARTMENTS")}
-          </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            DC
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              DECK COMPARTMENT ALLOCATOR
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("DECK COMPARTMENTS")}
+            </h2>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             disabled={!deckCompartmentWorkspace.configured || deckCompartmentWorkspace.busy}
@@ -53,7 +58,7 @@ export const DeckCompartmentScreen: React.FC<{
               await deckCompartmentWorkspace.preview();
               setTick((t) => t + 1);
             }}
-            className="ivory-button px-3.5 py-1.5 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("VALIDATE ALLOCATION")}
           </button>
@@ -73,14 +78,14 @@ export const DeckCompartmentScreen: React.FC<{
                 }
               }
             }}
-            className="ivory-button-primary px-4 py-1.5 text-xs rounded"
+            className="ivory-button-primary px-4 py-1.5 text-xs rounded shadow-md"
           >
             {i18n.text("START WITH COMPARTMENTS")}
           </button>
           <button
             type="button"
             onClick={() => onNavigate("menu")}
-            className="ivory-button px-3.5 py-1.5 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("MAIN MENU")}
           </button>
@@ -89,7 +94,7 @@ export const DeckCompartmentScreen: React.FC<{
 
       <div className="flex-1 overflow-y-auto p-6 max-w-5xl w-full mx-auto space-y-4">
         {!deckCompartmentWorkspace.configured ? (
-          <div className="ivory-panel rounded-md p-8 text-center text-sm text-[#5b574f]">
+          <div className="ivory-panel rounded-lg p-8 text-center text-sm text-[#59544b] border-2 border-[#8d806b]/50 shadow-md">
             {deckCompartmentWorkspace.error ||
               i18n.text("No deck compartment schema published for the current setting.")}
           </div>
@@ -101,12 +106,15 @@ export const DeckCompartmentScreen: React.FC<{
               return (
                 <div
                   key={compId}
-                  className="ivory-panel rounded-md p-4 space-y-3"
+                  className="ivory-panel rounded-lg p-5 space-y-3.5 border-2 border-[#8d806b]/60 shadow-md"
                 >
-                  <div className="flex items-center justify-between border-b border-[#8d8270]/50 pb-2">
-                    <h3 className="font-display text-sm font-bold m-0">
+                  <div className="flex items-center justify-between border-b-2 border-[#8d806b]/30 pb-2.5">
+                    <h3 className="font-display text-sm font-bold m-0 text-[#1e1d19] uppercase tracking-wide">
                       {String(comp.name ?? compId)}
                     </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e1d19] text-[#edd282] font-bold">
+                      COMPARTMENT
+                    </span>
                   </div>
                   <div className="space-y-2">
                     {cards.map((card) => {
@@ -115,9 +123,9 @@ export const DeckCompartmentScreen: React.FC<{
                       return (
                         <div
                           key={defId}
-                          className="flex items-center justify-between text-xs py-1 border-b border-[#8d8270]/20"
+                          className="flex items-center justify-between text-xs py-1.5 px-2 rounded bg-[#faf5eb] border border-[#8d806b]/30"
                         >
-                          <span className="font-medium">
+                          <span className="font-semibold text-[#1e1d19]">
                             {i18n.contentName(defId)}
                           </span>
                           <div className="flex items-center gap-2">
@@ -131,11 +139,11 @@ export const DeckCompartmentScreen: React.FC<{
                                 );
                                 setTick((t) => t + 1);
                               }}
-                              className="ivory-button px-2 py-0.5 rounded"
+                              className="ivory-button w-6 h-6 p-0 flex items-center justify-center rounded font-bold text-xs"
                             >
                               -
                             </button>
-                            <span className="font-mono font-bold w-6 text-center">
+                            <span className="font-mono font-bold w-6 text-center text-sm text-[#1e1d19]">
                               {count}
                             </span>
                             <button
@@ -148,7 +156,7 @@ export const DeckCompartmentScreen: React.FC<{
                                 );
                                 setTick((t) => t + 1);
                               }}
-                              className="ivory-button px-2 py-0.5 rounded"
+                              className="ivory-button w-6 h-6 p-0 flex items-center justify-center rounded font-bold text-xs"
                             >
                               +
                             </button>

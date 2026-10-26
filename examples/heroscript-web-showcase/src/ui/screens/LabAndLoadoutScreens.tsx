@@ -94,30 +94,35 @@ export const CardHandLabScreen: React.FC<{
       />
 
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c] z-10">
-        <div>
-          <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
-            OFFLINE VISUAL HARNESS · ZERO API CALLS
-          </span>
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
-            {i18n.text("IVORY / CARD HAND LAB")}
-          </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            HL
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              OFFLINE VISUAL HARNESS · ZERO API CALLS
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("IVORY / CARD HAND LAB")}
+            </h2>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() =>
               i18n.setLocale(i18n.locale === "en" ? "pt_BR" : "en")
             }
-            className="ivory-button px-3 py-1 text-xs rounded"
+            className="ivory-button px-3 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.locale === "en" ? "PT-BR" : "EN"}
           </button>
           <button
             type="button"
             onClick={() => onNavigate("menu")}
-            className="ivory-button px-3.5 py-1 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("MAIN MENU")}
           </button>
@@ -126,16 +131,16 @@ export const CardHandLabScreen: React.FC<{
 
       {/* Controls Bar */}
       <div className="p-5 overflow-y-auto flex-1 space-y-5">
-        <div className="ivory-panel rounded-md p-4 flex flex-wrap items-end gap-4 text-xs">
+        <div className="ivory-panel rounded-lg p-5 flex flex-wrap items-end gap-4 text-xs border-2 border-[#8d806b]/60 shadow-lg">
           {presets.length > 0 && (
             <div>
-              <label className="block font-display font-semibold mb-1">
+              <label className="block font-display font-bold mb-1 text-[#1e1d19]">
                 {i18n.text("Fixture Preset")}
               </label>
               <select
                 value={presetIdx}
                 onChange={(e) => setPresetIdx(Number(e.target.value))}
-                className="p-2 rounded border border-[#20201c] bg-[#faf5eb] font-semibold"
+                className="p-2 rounded border-2 border-[#1e1d19] bg-[#faf5eb] font-semibold"
               >
                 {presets.map((p, idx) => (
                   <option key={idx} value={idx}>
@@ -147,7 +152,7 @@ export const CardHandLabScreen: React.FC<{
           )}
 
           <div>
-            <label className="block font-display font-semibold mb-1">
+            <label className="block font-display font-bold mb-1 text-[#1e1d19]">
               {i18n.text("Card Count")} (0–100)
             </label>
             <input
@@ -160,12 +165,12 @@ export const CardHandLabScreen: React.FC<{
                   Math.min(100, Math.max(0, Math.trunc(Number(e.target.value))))
                 )
               }
-              className="w-24 p-2 rounded border border-[#20201c] bg-[#faf5eb] font-mono font-bold"
+              className="w-24 p-2 rounded border-2 border-[#1e1d19] bg-[#faf5eb] font-mono font-bold"
             />
           </div>
 
           <div>
-            <label className="block font-display font-semibold mb-1">
+            <label className="block font-display font-bold mb-1 text-[#1e1d19]">
               {i18n.text("Hand Layout")}
             </label>
             <select
@@ -173,7 +178,7 @@ export const CardHandLabScreen: React.FC<{
               onChange={(e) =>
                 setMode(e.target.value as "adaptive" | "reading")
               }
-              className="p-2 rounded border border-[#20201c] bg-[#faf5eb] font-semibold"
+              className="p-2 rounded border-2 border-[#1e1d19] bg-[#faf5eb] font-semibold"
             >
               <option value="adaptive">{i18n.text("Adaptive Fan Arc")}</option>
               <option value="reading">{i18n.text("Flat Reading Strip")}</option>
@@ -181,7 +186,7 @@ export const CardHandLabScreen: React.FC<{
           </div>
 
           <div>
-            <label className="block font-display font-semibold mb-1">
+            <label className="block font-display font-bold mb-1 text-[#1e1d19]">
               {i18n.text("Burn Duration (s)")}
             </label>
             <input
@@ -191,12 +196,12 @@ export const CardHandLabScreen: React.FC<{
               max={5}
               value={burnSeconds}
               onChange={(e) => setBurnSeconds(Number(e.target.value))}
-              className="w-24 p-2 rounded border border-[#20201c] bg-[#faf5eb] font-mono"
+              className="w-24 p-2 rounded border-2 border-[#1e1d19] bg-[#faf5eb] font-mono"
             />
           </div>
 
           <div>
-            <label className="block font-display font-semibold mb-1">
+            <label className="block font-display font-bold mb-1 text-[#1e1d19]">
               {i18n.text("Burn Origin")}
             </label>
             <select
@@ -204,7 +209,7 @@ export const CardHandLabScreen: React.FC<{
               onChange={(e) =>
                 setBurnDirection(e.target.value as "center" | "edges")
               }
-              className="p-2 rounded border border-[#20201c] bg-[#faf5eb]"
+              className="p-2 rounded border-2 border-[#1e1d19] bg-[#faf5eb]"
             >
               <option value="center">Center</option>
               <option value="edges">Edges</option>
@@ -214,7 +219,7 @@ export const CardHandLabScreen: React.FC<{
           <button
             type="button"
             onClick={triggerBurnDemo}
-            className="ivory-button-primary px-4 py-2 rounded"
+            className="ivory-button-primary px-4 py-2 rounded shadow-md"
           >
             {i18n.text("TEST EXILE BURN")}
           </button>
@@ -233,21 +238,21 @@ export const CardHandLabScreen: React.FC<{
                   : i18n.text("Could not save profile.")
               );
             }}
-            className="ivory-button px-3.5 py-2 rounded"
+            className="ivory-button px-3.5 py-2 rounded shadow-sm"
           >
             {i18n.text("SAVE PROFILE")}
           </button>
         </div>
 
         {statusMsg && (
-          <div className="text-xs font-semibold text-[#286853] px-2">
+          <div className="text-xs font-semibold text-[#1f6f54] px-2">
             {statusMsg}
           </div>
         )}
       </div>
 
       {/* Hand Preview Dock */}
-      <div className="bg-[#f2ebdd] border-t border-[#8d8270]">
+      <div className="bg-[#181715] border-t-2 border-[#c99e3a]/40 shadow-inner">
         <CardHandView
           cards={cards}
           selectedId={selectedId}
@@ -333,19 +338,24 @@ export const InscriptionLoadoutScreen: React.FC<{
   return (
     <div className="flex flex-col h-full w-full ivory-surface overflow-hidden">
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 bg-[#eee4d1] border-b-2 border-[#20201c]">
-        <div>
-          <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
-            {isOnline
-              ? i18n.text("AUTHORITATIVE LOADOUT WORKSPACE")
-              : i18n.text("IVORY / INSCRIPTION LOADOUT LAB")}
-          </span>
-          <h2 className="font-display text-lg font-bold m-0 text-[#20201c]">
-            {i18n.text("INSCRIPTION & EQUIPMENT SLOTS")}
-          </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#181715] border-b-2 border-[#c99e3a]/40 text-[#fbf6ec] shadow-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c99e3a] to-[#8d6219] flex items-center justify-center shadow border border-[#edd282]/40 text-[#181715] font-display font-bold text-xs shrink-0">
+            IN
+          </div>
+          <div>
+            <span className="text-[10px] font-display font-bold uppercase tracking-widest text-[#edd282]">
+              {isOnline
+                ? i18n.text("AUTHORITATIVE LOADOUT WORKSPACE")
+                : i18n.text("IVORY / INSCRIPTION LOADOUT LAB")}
+            </span>
+            <h2 className="font-display text-lg font-bold m-0 text-[#fbf6ec] tracking-wide">
+              {i18n.text("INSCRIPTION & EQUIPMENT SLOTS")}
+            </h2>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {!isOnline && presets.length > 0 && (
             <select
               value={draft.presetIndex}
@@ -353,7 +363,7 @@ export const InscriptionLoadoutScreen: React.FC<{
                 draft.applyPreset(Number(e.target.value));
                 refresh();
               }}
-              className="px-2.5 py-1 text-xs rounded border border-[#20201c] bg-[#faf5eb] font-semibold"
+              className="px-2.5 py-1.5 text-xs rounded border-2 border-[#8d806b] bg-[#faf5eb] font-semibold text-[#1e1d19]"
             >
               {presets.map((p, idx) => (
                 <option key={idx} value={idx}>
@@ -372,7 +382,7 @@ export const InscriptionLoadoutScreen: React.FC<{
                 refresh();
               }
             }}
-            className="ivory-button px-3 py-1 text-xs rounded"
+            className="ivory-button px-3 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("CLEAR")}
           </button>
@@ -388,7 +398,7 @@ export const InscriptionLoadoutScreen: React.FC<{
                   else onNavigate("journey");
                 }
               }}
-              className="ivory-button-primary px-4 py-1.5 text-xs rounded"
+              className="ivory-button-primary px-4 py-1.5 text-xs rounded shadow-md"
             >
               {i18n.text("LAUNCH EXPEDITION")}
             </button>
@@ -397,7 +407,7 @@ export const InscriptionLoadoutScreen: React.FC<{
           <button
             type="button"
             onClick={() => onNavigate("menu")}
-            className="ivory-button px-3.5 py-1 text-xs rounded"
+            className="ivory-button px-3.5 py-1.5 text-xs rounded shadow-sm"
           >
             {i18n.text("MAIN MENU")}
           </button>
@@ -407,11 +417,14 @@ export const InscriptionLoadoutScreen: React.FC<{
       {/* 3-Column Editorial Layout: Inventory | 6 Slots | Character Attributes */}
       <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-[1.15fr_1.15fr_1fr] gap-6 items-start">
         {/* Column 1: Available Inscriptions Inventory */}
-        <div className="ivory-panel rounded-md p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b border-[#8d8270]/50 pb-2">
-            <h3 className="font-display text-sm font-bold m-0">
+        <div className="ivory-panel rounded-lg p-5 flex flex-col gap-3.5 border-2 border-[#8d806b]/60 shadow-lg">
+          <div className="flex items-center justify-between border-b-2 border-[#8d806b]/30 pb-2.5">
+            <h3 className="font-display text-sm font-bold m-0 text-[#1e1d19] uppercase tracking-wide">
               {i18n.text("INSCRIPTION ARCHIVE")} ({filteredItems.length})
             </h3>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e1d19] text-[#edd282] font-bold">
+              RUNES
+            </span>
           </div>
 
           <input
@@ -419,7 +432,7 @@ export const InscriptionLoadoutScreen: React.FC<{
             placeholder={i18n.text("Filter inscriptions…")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full p-2 text-xs rounded border border-[#8d8270] bg-[#faf5eb]"
+            className="w-full p-2.5 text-xs rounded border-2 border-[#8d806b] bg-[#faf5eb] focus:outline-none focus:ring-2 focus:ring-[#c03d22]"
           />
 
           <div className="space-y-2 max-h-[540px] overflow-y-auto pr-1">
@@ -438,28 +451,28 @@ export const InscriptionLoadoutScreen: React.FC<{
                     draft.selectItem(id);
                     refresh();
                   }}
-                  className={`p-3 rounded border cursor-pointer transition-all ${
+                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                     isSelected
-                      ? "bg-[#eee4d1] border-[#b83e25] ring-2 ring-[#b83e25]/30"
-                      : "bg-[#faf5eb] border-[#8d8270]/60 hover:border-[#20201c]"
+                      ? "bg-[#eee4d1] border-[#c03d22] ring-2 ring-[#c03d22]/30 shadow-md"
+                      : "bg-[#faf5eb] border-[#8d806b]/40 hover:border-[#1e1d19] shadow-sm"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-display font-bold text-xs text-[#20201c]">
+                    <span className="font-display font-bold text-xs text-[#1e1d19]">
                       {String(item.name ?? id)}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {equippedSlot && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#286853] text-[#faf5eb]">
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[#1f6f54] text-[#faf5eb]">
                           {equippedSlot}
                         </span>
                       )}
-                      <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-[#20201c] text-[#faf5eb]">
+                      <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-[#1e1d19] text-[#edd282]">
                         {Number(item.cost ?? 0)} CP
                       </span>
                     </div>
                   </div>
-                  <p className="text-xs text-[#5b574f] mt-1 mb-0">
+                  <p className="text-xs text-[#59544b] mt-1 mb-0 leading-relaxed">
                     {String(item.description ?? "")}
                   </p>
                 </div>
@@ -469,23 +482,23 @@ export const InscriptionLoadoutScreen: React.FC<{
         </div>
 
         {/* Column 2: 6 Equipment Slots & Capacity Meter */}
-        <div className="ivory-panel rounded-md p-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-[#8d8270]/50 pb-2">
-            <h3 className="font-display text-sm font-bold m-0">
+        <div className="ivory-panel rounded-lg p-5 flex flex-col gap-4 border-2 border-[#8d806b]/60 shadow-lg">
+          <div className="flex items-center justify-between border-b-2 border-[#8d806b]/30 pb-2.5">
+            <h3 className="font-display text-sm font-bold m-0 text-[#1e1d19] uppercase tracking-wide">
               {i18n.text("ACTIVE VESSEL SLOTS")}
             </h3>
             <span
-              className={`px-2 py-0.5 rounded font-mono text-xs font-bold ${
+              className={`px-2.5 py-1 rounded-full font-mono text-xs font-bold shadow-sm ${
                 overBudget
-                  ? "bg-[#a4322c] text-[#faf5eb]"
-                  : "bg-[#20201c] text-[#faf5eb]"
+                  ? "bg-[#a92e28] text-[#faf5eb]"
+                  : "bg-[#1e1d19] text-[#edd282]"
               }`}
             >
               {usedCapacity} / {capacity} CP
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {slots.map((slotId) => {
               const assignedId = assignments[slotId] ?? "";
               const assignedItem = items.find(
@@ -504,15 +517,15 @@ export const InscriptionLoadoutScreen: React.FC<{
                     }
                     refresh();
                   }}
-                  className={`p-3.5 rounded border-2 min-h-[104px] flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-3.5 rounded-lg border-2 min-h-[108px] flex flex-col justify-between cursor-pointer transition-all shadow-sm ${
                     isSlotSelected
-                      ? "border-[#b83e25] bg-[#eee4d1]"
+                      ? "border-[#c03d22] bg-[#eee4d1] ring-2 ring-[#c03d22]/30"
                       : assignedItem
-                      ? "border-[#20201c] bg-[#faf5eb]"
-                      : "border-dashed border-[#8d8270] bg-[#f2ebdd]/50"
+                      ? "border-[#1e1d19] bg-[#faf5eb]"
+                      : "border-dashed border-[#8d806b] bg-[#f2ebdd]/50 hover:border-[#1e1d19]"
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[10px] font-display font-bold uppercase tracking-wider text-[#5b574f]">
+                  <div className="flex items-center justify-between text-[10px] font-display font-bold uppercase tracking-wider text-[#59544b]">
                     <span>{slotId}</span>
                     {assignedItem && (
                       <button
@@ -523,7 +536,7 @@ export const InscriptionLoadoutScreen: React.FC<{
                           draft.removeSelected();
                           refresh();
                         }}
-                        className="text-[#a4322c] hover:underline"
+                        className="text-[#a92e28] hover:scale-125 transition-transform font-bold"
                       >
                         ✕
                       </button>
@@ -532,15 +545,15 @@ export const InscriptionLoadoutScreen: React.FC<{
 
                   {assignedItem ? (
                     <div>
-                      <div className="font-display font-bold text-xs text-[#20201c]">
+                      <div className="font-display font-bold text-xs text-[#1e1d19]">
                         {String(assignedItem.name ?? assignedId)}
                       </div>
-                      <div className="text-[11px] text-[#5b574f] truncate">
+                      <div className="text-[11px] text-[#59544b] truncate">
                         {String(assignedItem.description ?? "")}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-xs italic text-[#5b574f]">
+                    <div className="text-xs italic text-[#59544b]">
                       {selectedItem
                         ? i18n.text("Click to assign selected")
                         : i18n.text("Empty slot")}
@@ -553,17 +566,17 @@ export const InscriptionLoadoutScreen: React.FC<{
         </div>
 
         {/* Column 3: Character Attributes Table */}
-        <div className="ivory-panel rounded-md p-4 flex flex-col gap-3">
-          <div className="border-b border-[#8d8270]/50 pb-2">
-            <div className="text-[10px] font-display font-semibold uppercase tracking-widest text-[#b83e25]">
+        <div className="ivory-panel rounded-lg p-5 flex flex-col gap-3.5 border-2 border-[#8d806b]/60 shadow-lg">
+          <div className="border-b-2 border-[#8d806b]/30 pb-2.5">
+            <div className="text-[10px] font-display font-bold uppercase tracking-widest text-[#9c2d17]">
               {String(character.title ?? "WAYFARER")}
             </div>
-            <h3 className="font-display text-sm font-bold m-0">
+            <h3 className="font-display text-sm font-bold m-0 text-[#1e1d19] uppercase tracking-wide">
               {String(character.name ?? i18n.text("ATTRIBUTES SUMMARY"))}
             </h3>
           </div>
 
-          <div className="divide-y divide-[#8d8270]/30 text-xs">
+          <div className="divide-y divide-[#8d806b]/30 text-xs">
             {attributes.map((stat) => {
               const id = String(stat.id ?? "");
               const label = String(stat.label ?? id);
@@ -576,21 +589,21 @@ export const InscriptionLoadoutScreen: React.FC<{
               return (
                 <div
                   key={id}
-                  className="py-2 flex items-center justify-between gap-2"
+                  className="py-2.5 flex items-center justify-between gap-2"
                 >
-                  <span className="font-medium text-[#20201c]">{label}</span>
+                  <span className="font-semibold text-[#1e1d19]">{label}</span>
                   <div className="flex items-center gap-2 font-mono">
                     {Math.abs(change) > 1e-6 && (
                       <span
                         className={`text-[11px] font-bold ${
-                          change > 0 ? "text-[#286853]" : "text-[#a4322c]"
+                          change > 0 ? "text-[#1f6f54]" : "text-[#a92e28]"
                         }`}
                       >
                         ({change > 0 ? "+" : ""}
                         {fmt(change)})
                       </span>
                     )}
-                    <span className="font-bold text-[#20201c]">{fmt(val)}</span>
+                    <span className="font-bold text-[#1e1d19]">{fmt(val)}</span>
                   </div>
                 </div>
               );
