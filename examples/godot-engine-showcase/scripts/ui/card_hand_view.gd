@@ -35,6 +35,7 @@ var _transit := {}
 var _entries := {}
 var _preparations := {}
 var _destination_order: Array = []
+var _final_canonical_order: Array = []
 var _presentation_order: Array = []
 var _presenting := false
 var _aligning_arrivals := false
@@ -159,9 +160,11 @@ func move_visual_card(id: String, index: int) -> bool:
 	return true
 
 func begin_presentation(final_models: Array) -> void:
+	cancel_gesture()
 	_presenting = true
 	_presentation_order = order.duplicate()
-	_destination_order = final_models.map(func(model): return str(model.cardInstanceId))
+	_final_canonical_order = final_models.map(func(model): return str(model.cardInstanceId))
+	_destination_order = arrangement.project(_final_canonical_order)
 	var merged := ordered_cards().map(func(card): return card.model)
 	for model in final_models:
 		if not _cards.has(str(model.cardInstanceId)):
@@ -189,7 +192,8 @@ func prepare_zone_beat(steps: Array, role: Callable) -> void:
 				if _cards.has(str(id)) and str(id) not in _destination_order: _destination_order.append(str(id))
 			# Visible playable zones can publish insertion order; do not assume append.
 			if step.has("targetOrderAfter"):
-				_destination_order = step.targetOrderAfter.filter(func(id): return _cards.has(str(id))).map(func(id): return str(id))
+				var published: Array = step.targetOrderAfter.filter(func(id): return _cards.has(str(id))).map(func(id): return str(id))
+				_destination_order = preload("res://scripts/ui/hand_arrangement.gd").reconcile(published, _destination_order) if arrangement.manual else published
 	for id in _destination_order:
 		if id not in _presentation_order: begin_transit(str(id))
 	if _aligning_arrivals: _arrival_transition_limit = arrival_duration
@@ -232,8 +236,12 @@ func finish_transit(id: String, reveal_card := true) -> void:
 	_apply_emphasis()
 
 func end_presentation() -> void:
+	if _presenting:
+		arrangement.sync(_final_canonical_order)
+		order = arrangement.confirmed.filter(func(id): return _cards.has(id))
 	for id in _destination_order: finish_transit(str(id))
 	_presenting = false; _destination_order.clear(); _presentation_order.clear()
+	_final_canonical_order.clear()
 	_aligning_arrivals = false; _arrival_transition_limit = INF
 	for id in _transit.keys(): finish_transit(id)
 	request_layout()
