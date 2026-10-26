@@ -12,6 +12,8 @@ extends Resource
 @export var pointer_hysteresis := 4.0
 @export var drag_threshold := 16.0
 @export var padding := 6.0
+@export var reorder_edge_band := 32.0
+@export var reorder_scroll_speed := 480.0
 func presentation_key() -> String:
 	var values := {}
 	for property in get_property_list():

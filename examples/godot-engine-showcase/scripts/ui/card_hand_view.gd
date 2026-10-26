@@ -27,6 +27,7 @@ var _arrangement_bound := false
 var reorder_enabled := true
 var reorder_drop_filter: Callable
 var _preview_slot := -1
+var _reorder_scroll_fraction := 0.0
 var _cards := {}
 var _slots := {}
 var _motions := {}
@@ -289,6 +290,7 @@ func return_card(id: String, card: Control, reveal_card: bool) -> void:
 	var destination := destination_pose(id)
 	if reveal_card and not destination.is_empty(): preload("res://scripts/ui/card_motion_pose.gd").write(card, destination)
 	finish_transit(id, reveal_card)
+	if is_inside_tree(): wire_focus()
 
 func prepare_use(id: String, lift := true) -> void:
 	if not _cards.has(id): return
@@ -784,9 +786,26 @@ func _cancel_reorder_preview() -> void:
 	if order != arrangement.confirmed: order = arrangement.confirmed.duplicate(); request_layout()
 func _process(delta: float) -> void:
 	if not interaction.dragging or not is_instance_valid(_ghost): return
+	_auto_scroll_reorder(delta)
 	if Time.get_ticks_usec() - _last_drag_usec > 35000:
 		_drag_tilt *= exp(-12.0 * delta)
 		_ghost.rotation = float(_drag_pose.rotation) + deg_to_rad(_drag_tilt)
+func _auto_scroll_reorder(delta: float) -> void:
+	if not contains_reorder_point(_last_drag_point): _reorder_scroll_fraction = 0; return
+	var bar := scroll.get_h_scroll_bar()
+	var maximum := maxf(0, bar.max_value - bar.page)
+	if maximum <= 0: _reorder_scroll_fraction = 0; return
+	var point: Vector2 = hit_surface.get_global_transform().affine_inverse() * _last_drag_point
+	var band := clampf(visual_style.reorder_edge_band, 1, maxf(1, hit_surface.size.x * .25))
+	var direction := clampf((point.x - (hit_surface.size.x-band)) / band, 0, 1) - clampf((band-point.x) / band, 0, 1)
+	_reorder_scroll_fraction += direction * maxf(0, visual_style.reorder_scroll_speed) * maxf(0, delta)
+	var step := int(_reorder_scroll_fraction)
+	_reorder_scroll_fraction -= step
+	if step == 0: return
+	var before := scroll.scroll_horizontal
+	scroll.scroll_horizontal = clampi(before + step, 0, int(maximum))
+	if scroll.scroll_horizontal == before: _reorder_scroll_fraction = 0
+	else: _update_reorder_preview(_last_drag_point)
 func _return_ghost() -> void:
 	_cancel_reorder_preview()
 	if not is_instance_valid(_ghost): return
@@ -804,6 +823,7 @@ func _return_ghost() -> void:
 	_return_tween.finished.connect(_clear_ghost, CONNECT_ONE_SHOT)
 func _clear_ghost() -> void:
 	_cancel_reorder_preview()
+	_reorder_scroll_fraction = 0
 	if _return_tween != null and _return_tween.is_valid(): _return_tween.kill()
 	_return_tween = null
 	var ghost := _ghost; var id := _ghost_id
