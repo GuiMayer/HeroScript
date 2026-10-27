@@ -83,4 +83,55 @@ public sealed class MultiActorPoolTests
         Assert.True(projection.Zones.Single(zone => zone.ZoneId == "table").PlayerCanPlayFrom);
         Assert.False(projection.Zones.Single(zone => zone.ZoneId == "pool").PlayerCanPlayFrom);
     }
+
+    [Fact]
+    public void ReusedActorKeepsCardsUntilAnExplicitJsonCleanupAndRoundTripsWithoutMutation()
+    {
+        var dealt = Boundary(Seed(), "dealer", "activation.started");
+        var card = Assert.Single(dealt.Deck.Topology.GetZone("pocket", "dealer")!.InstanceIds);
+        var provisioned = CardZoneRunFlowDispatcher.EnsureParticipants(dealt, ["hero", "dealer", "later"]).Value;
+        Assert.Equal(card, Assert.Single(provisioned.State.GetZone("pocket", "dealer")!.InstanceIds));
+        var next = dealt with { Deck = dealt.Deck with { Topology = provisioned.State } };
+        var hash = CanonicalJson.ComputeHash(next);
+        var serialized = JsonSerializer.Serialize(next);
+        var restored = JsonSerializer.Deserialize<RunState>(serialized)!;
+        Assert.Equal(hash, CanonicalJson.ComputeHash(restored));
+        Assert.Empty(CardZoneRunFlowDispatcher.EnsureParticipants(restored, ["later", "dealer", "hero"]).Value.CreatedAddresses);
+        var cleaned = Boundary(restored, "dealer", "test.cleanup");
+        Assert.Empty(cleaned.Deck.Topology.GetZone("pocket", "dealer")!.InstanceIds);
+        Assert.Equal(3, cleaned.Deck.Topology.GetZone("pool", "$run")!.InstanceIds.Count);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(next));
+        Assert.Equal(card, Assert.Single(dealt.Deck.Topology.GetZone("pocket", "dealer")!.InstanceIds));
+    }
+
+    [Fact]
+    public void SameRevisionSeedAndBoundariesReproduceTheWholeImmutableRun()
+    {
+        string? baseline = null;
+        for (var repetition = 0; repetition < 3; repetition++)
+        {
+            var run = Seed(); var before = CanonicalJson.ComputeHash(run);
+            var provisioned = CardZoneRunFlowDispatcher.EnsureParticipants(run, ["later", "hero", "dealer"]).Value;
+            Assert.Equal(before, CanonicalJson.ComputeHash(run));
+            run = run with { Deck = run.Deck with { Topology = provisioned.State } };
+            foreach (var actor in new[] { "hero", "dealer", "later" }) run = Boundary(run, actor, "activation.started");
+            var hash = CanonicalJson.ComputeHash(run);
+            baseline ??= hash;
+            Assert.Equal(baseline, hash);
+        }
+    }
+
+    [Fact]
+    public void ProvisioningUsesOnlyTheGraphPinnedInTheRun()
+    {
+        var pinned = Seed();
+        var latestGraph = Graph() with { Zones = Graph().Zones.Concat([new CardZoneDefinition
+            { ZoneId = "new-revision-only", OwnerScope = CardZoneOwnerScope.Actor, Ordering = CardZoneOrdering.Ordered }]).ToArray() };
+        var pinnedResult = CardZoneRunFlowDispatcher.EnsureParticipants(pinned, ["hero", "dealer", "later"]).Value;
+        Assert.Null(pinnedResult.State.GetZone("new-revision-only", "later"));
+        var explicitlyRebound = pinned with { ResolvedMode = pinned.ResolvedMode! with { CardZoneSystem = latestGraph } };
+        Assert.NotNull(CardZoneRunFlowDispatcher.EnsureParticipants(explicitlyRebound, ["later"]).Value.State.GetZone("new-revision-only", "later"));
+        Assert.Equal("pinned-revision", pinned.Determinism.ContentRevision);
+        Assert.Null(pinned.Deck.Topology.GetZone("pocket", "later"));
+    }
 }

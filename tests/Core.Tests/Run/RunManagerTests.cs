@@ -48,7 +48,13 @@ public sealed class RunManagerTests
                 {
                     StepId = "deal", Operation = CardZoneOperation.Move, SourceZoneId = "hand", SourceOwner = CardZoneOwnerBinding.RunOwner,
                     TargetZoneId = "actor-pocket", TargetOwner = CardZoneOwnerBinding.ActiveActor,
-                    Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = rejectFlow ? 99 : 1 }
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = 1 }
+                }, new()
+                {
+                    StepId = "after-first-move", Operation = CardZoneOperation.Move,
+                    SourceZoneId = "hand", SourceOwner = CardZoneOwnerBinding.RunOwner,
+                    TargetZoneId = "actor-pocket", TargetOwner = CardZoneOwnerBinding.ActiveActor,
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = rejectFlow ? 99 : 0 }
                 }]
             }]).ToArray()
         };
@@ -232,6 +238,20 @@ public sealed class RunManagerTests
         Assert.Equal(manifest, started.Value.ContentManifest);
         Assert.True(mismatch.IsFailure);
         Assert.Contains("not active", mismatch.Error);
+    }
+
+    [Fact]
+    public void GetRun_RejectsPreviousEngineVersionWithoutRewritingItsStoredState()
+    {
+        var state = new RunState { RunId = Guid.NewGuid(), ConfigName = "test",
+            Determinism = DeterministicContext.Create(4, "revision", "32") };
+        var before = CanonicalJson.ComputeHash(state);
+        var repository = new Mock<IRunCommitStore>();
+        repository.Setup(store => store.LoadLatestStateAsync(state.RunId, It.IsAny<CancellationToken>())).ReturnsAsync(state);
+        var result = CreateManager(repository: repository.Object).GetRun(state.RunId);
+        Assert.True(result.IsFailure); Assert.Contains("Engine version unavailable", result.Error);
+        Assert.Equal(before, CanonicalJson.ComputeHash(state));
+        repository.Verify(store => store.AppendAsync(It.IsAny<RunCommit>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
