@@ -73,14 +73,14 @@ static func from_nodes(preferences, i18n):
 	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_emphasis"]:
 		options[key] = preferences.get(key)
 	options["action_labels"] = {}
-	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game"]: options.action_labels[action] = preferences.action_label(action)
+	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game", "open_character"]: options.action_labels[action] = preferences.action_label(action)
 	return load("res://scripts/ui/visual_context.gd").new(i18n, options, AppTheme.profile)
 func update_from(preferences, i18n, theme_profile: Resource) -> void:
 	var next := {}
 	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_emphasis"]:
 		next[key] = preferences.get(key)
 	next["action_labels"] = {}
-	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game"]: next.action_labels[action] = preferences.action_label(action)
+	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game", "open_character"]: next.action_labels[action] = preferences.action_label(action)
 	var revision: Array = [next, i18n.locale, theme_profile.presentation_key()]
 	if revision == _revision_key: return
 	_revision_key = revision.duplicate(true)

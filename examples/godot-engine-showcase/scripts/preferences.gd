@@ -5,17 +5,17 @@ signal changed
 const SAVE_PATH := "user://heroscript_showcase.cfg"
 const Schema = preload("res://scripts/ui/styles/settings_schema.gd")
 const DEFAULT_API_URL := "http://127.0.0.1:5271"
-const ACTIONS := ["pause_game", "end_turn", "open_timeline", "confirm_action", "inspect_card"]
+const ACTIONS := ["pause_game", "end_turn", "open_timeline", "confirm_action", "inspect_card", "open_character"]
 const DEFAULT_KEYS := {
 	"pause_game": KEY_ESCAPE,
 	"end_turn": KEY_E,
 	"open_timeline": KEY_T,
-	"confirm_action": KEY_F, "inspect_card": KEY_I
+	"confirm_action": KEY_F, "inspect_card": KEY_V, "open_character": KEY_I
 }
 
 const DEFAULT_BUTTONS := {"pause_game": JOY_BUTTON_START, "end_turn": JOY_BUTTON_Y,
 	"open_timeline": JOY_BUTTON_BACK, "confirm_action": JOY_BUTTON_RIGHT_SHOULDER,
-	"inspect_card": JOY_BUTTON_X}
+	"inspect_card": JOY_BUTTON_X, "open_character": JOY_BUTTON_LEFT_STICK}
 const RESERVED_KEYS := [KEY_ENTER, KEY_KP_ENTER, KEY_TAB, KEY_SPACE, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]
 const RESERVED_BUTTONS := [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]
 var text_scale := 1.0
@@ -89,6 +89,9 @@ func load_settings() -> void:
 	selected_setting_id = str(config.get_value("session", "selected_setting_id", selected_setting_id))
 	campaign_counter = int(config.get_value("session", "campaign_counter", campaign_counter))
 	resume_index.load_config(config)
+	# Transfer the former default inspection key only for pre-drawer preferences.
+	if not config.has_section_key("input", "open_character") and config.get_value("input", "inspect_card", KEY_V) == KEY_I:
+		config.set_value("input", "inspect_card", KEY_V)
 	var keys := _load_bindings(config, "input", DEFAULT_KEYS, _valid_key)
 	var buttons := _load_bindings(config, "gamepad", DEFAULT_BUTTONS, _valid_button)
 	for action in ACTIONS:

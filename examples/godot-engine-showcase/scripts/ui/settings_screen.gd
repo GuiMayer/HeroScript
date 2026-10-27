@@ -251,7 +251,8 @@ func _build_controls_page() -> void:
 		"end_turn": I18n.text("End turn"),
 		"open_timeline": I18n.text("Open timeline"),
 		"confirm_action": I18n.text("Next animation"),
-		"inspect_card": I18n.text("Inspect card")
+		"inspect_card": I18n.text("Inspect card"),
+		"open_character": I18n.text("Character attributes")
 	}
 	for action in controller.actions():
 		var button := AppTheme.button(_binding_label(action), 235)

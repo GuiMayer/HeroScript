@@ -128,27 +128,31 @@ func _run() -> void:
 	await get_tree().process_frame
 	var screen = router.host.get_child(0)
 	var character_sidebar: PanelContainer = screen.find_child("CharacterSidebar", true, false)
-	var sidebar_content: ScrollContainer = screen.find_child("CharacterSidebarContent", true, false)
+	screen._toggle_character_sidebar()
+	await get_tree().create_timer(.25).timeout
+	var sidebar_content: ScrollContainer = screen.view.character_sidebar.content_scroll
 	check(is_instance_valid(character_sidebar) and is_instance_valid(sidebar_content) and sidebar_content.visible,
-		"combat exposes the expanded character status panel")
-	var player_actor: Dictionary = screen._player_actor()
+		"combat exposes the shared character attribute panel")
+	var player_actor: Dictionary = {}
+	for actor in screen.presenter.actors():
+		if str(actor.get("instanceId", "")) == str(GameSession.run.get("playerEntityId", "")) or str(actor.get("controllerBinding", {}).get("kind", "")).to_lower() == "player":
+			player_actor = actor
+			break
 	var published_resources: Dictionary = player_actor.get("resources", {}) if player_actor.get("resources", {}) is Dictionary else {}
-	var rendered_resources: Array = screen.find_children("CharacterResource_*", "HBoxContainer", true, false)
+	var rendered_resources: Array = screen.view.character_sidebar.attributes_view._rows.keys().filter(func(id): return str(id).begins_with("resource:"))
 	check(rendered_resources.size() == published_resources.size() and rendered_resources.all(
-		func(view): return published_resources.has(str(view.get_meta("resource_id", "")))),
+		func(id): return published_resources.has(str(id).trim_prefix("resource:"))),
 		"character panel renders every engine-defined resource without hardcoded resource rules")
 	screen._toggle_character_sidebar()
-	await get_tree().process_frame
-	check(not character_sidebar.visible and screen.view.character_sidebar_reopen.visible,
-		"character panel collapses to a floating arrow without reserving a column")
+	await get_tree().create_timer(.25).timeout
+	check(not character_sidebar.visible and screen.find_child("CharacterSidebarReopen", true, false) == null,
+		"character panel closes without reserving a column or showing the former button")
 	screen.refresh_state(screen.presentation)
 	await get_tree().process_frame
-	check(not screen.find_child("CharacterSidebarContent", true, false).visible,
-		"character panel preserves its collapsed state across combat snapshots")
+	check(not character_sidebar.visible, "character panel preserves collapsed state across combat snapshots")
 	screen._toggle_character_sidebar()
-	await get_tree().process_frame
-	check(screen.find_child("CharacterSidebarContent", true, false).visible,
-		"character panel can be expanded again")
+	await get_tree().create_timer(.25).timeout
+	check(character_sidebar.visible, "character panel can be expanded again")
 	for button in screen.view.action_buttons:
 		check(button.get_global_rect().end.y <= router.get_global_rect().end.y, "action button remains inside viewport")
 	var candidate: Dictionary = {}

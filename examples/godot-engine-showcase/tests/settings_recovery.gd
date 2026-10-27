@@ -47,6 +47,13 @@ func _run() -> void:
 	if original.load(prefs.SAVE_PATH) != OK: prefs.save(false); original.load(prefs.SAVE_PATH)
 	var saved := {"gateway": session._gateway, "url": prefs.api_url, "saved_url": prefs._saved_api_url, "override": prefs._api_override}
 	var requests: int = services.diagnostics().size()
+	var legacy := ConfigFile.new()
+	legacy.set_value("input", "inspect_card", KEY_I)
+	legacy.save(prefs.SAVE_PATH); prefs.load_settings()
+	check(prefs.action_key("open_character") == KEY_I and prefs.action_key("inspect_card") == KEY_V, "old inspection default migrates without colliding with the attribute shortcut")
+	legacy.set_value("input", "inspect_card", KEY_F2)
+	legacy.save(prefs.SAVE_PATH); prefs.load_settings()
+	check(prefs.action_key("inspect_card") == KEY_F2 and prefs.action_key("open_character") == KEY_I, "custom inspection binding survives attribute shortcut introduction")
 	var malformed := ConfigFile.new()
 	malformed.set_value("game", "locale", "unsupported")
 	malformed.set_value("game", "animation_speed", 999.)

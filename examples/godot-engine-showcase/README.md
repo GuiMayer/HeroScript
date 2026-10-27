@@ -452,3 +452,9 @@ condensação genérica, múltiplos impactos e continuação causal. Transforma�
 confirmadas com before/after consultado na API; tooltip e inspector mostram o
 consumo e os procs. [Guia específico](../../docs/guides/volatile-core-godot.md).
 Teste adicional offline: `godot --headless --path . --script tests/volatile_core.gd`.
+
+### Atributos durante o combate
+
+O painel de atributos reutiliza `scripts/ui/loadout/character_attributes_view.gd`, o mesmo componente do loadout. Aproxime o mouse da borda esquerda para abrir temporariamente; ao sair do painel ele recolhe. **I** abre/fecha mantendo-o visível; **Escape** fecha antes de abrir a pausa. O painel flutua sobre o combate sem reservar espaço para uma coluna e apresenta os recursos/atributos atuais do personagem do jogador, inclusive durante ativações inimigas.
+
+A transição usa 0,22 s e respeita movimento reduzido. **Inspecionar carta** passa a **V** por padrão, conservando o acesso pelo mouse e pelo controle. Preferências antigas com a inspeção padrão em I são migradas em memória; atalhos podem ser remapeados nas configurações. A navegação do painel não envia comandos à engine nem altera a run.

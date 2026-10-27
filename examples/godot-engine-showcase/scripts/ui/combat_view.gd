@@ -61,7 +61,6 @@ var _gameplay_layout_pending := false
 var character_sidebar: PanelContainer
 var character_sidebar_content: ScrollContainer
 var character_sidebar_title: Label
-var character_sidebar_reopen: Button
 var character_sidebar_expanded := false
 var pile_controls
 var right_pile_controls
@@ -120,8 +119,7 @@ func _layout_gameplay() -> void:
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
 		if is_instance_valid(character_sidebar):
-			character_sidebar.offset_bottom = minf(layout_profile.sidebar_height, gameplay_column.size.y - 84)
-			character_sidebar.offset_left = -layout_profile.sidebar_width
+			character_sidebar.fit_bounds(gameplay_column.get_global_rect(), layout_profile.sidebar_width, layout_profile.sidebar_height)
 		if is_instance_valid(candidate_panel):
 			var dock_height: float = hand.toolbar.get_combined_minimum_size().y + bottom_hud.get_node("TurnControls").get_combined_minimum_size().y + 10
 			candidate_panel.offset_bottom = -dock_height
@@ -298,33 +296,18 @@ func _build_footer() -> void:
 
 func _build_character_sidebar() -> Control:
 	_ensure_floating_hud()
-	if not is_instance_valid(character_sidebar_reopen):
-		character_sidebar_reopen = _button("‹", _toggle_character_sidebar, 36)
-		character_sidebar_reopen.name = "CharacterSidebarReopen"
-		character_sidebar_reopen.add_theme_font_size_override("font_size", 18)
-		character_sidebar_reopen.clip_text = true
-		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
-			var style: StyleBox = visual_context.theme.get_stylebox(state, "Button").duplicate()
-			for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]: style.set_content_margin(side, 6)
-			character_sidebar_reopen.add_theme_stylebox_override(state, style)
-		character_sidebar_reopen.z_index = 1
-		floating_hud.replace_slot("sidebar_handle", character_sidebar_reopen)
-		character_sidebar_reopen.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		character_sidebar_reopen.offset_left = -layout_profile.handle_width
-		character_sidebar_reopen.offset_bottom = 44
 	var view = character_sidebar
 	if not is_instance_valid(view):
-		view = preload("res://scripts/ui/components/character_sidebar_view.gd").new()
-		view.collapse_requested.connect(_toggle_character_sidebar)
+		view = preload("res://scripts/ui/components/combat_attributes_drawer.gd").new()
+		view.mount(visual_context)
+		view.open_changed.connect(func(value): character_sidebar_expanded = value)
 		floating_hud.replace_slot("sidebar", view)
 	view.visual_context = visual_context
-	view.apply_model({"presentation": presentation, "run": _run_snapshot, "combat": _combat_snapshot,
+	view.present({"presentation": presentation, "run": _run_snapshot, "combat": _combat_snapshot,
 		"actors": presenter.actors(), "input_actor": _input_actor, "zones": _zone_snapshot,
-		"setting": _setting, "setting_id": _setting_id, "attributes": _attribute_snapshot}, visual_context.translator)
+		"setting": _setting, "setting_id": _setting_id, "attributes": _attribute_snapshot}, visual_context)
 	character_sidebar = view
-	view.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	view.offset_left = -layout_profile.sidebar_width
-	view.offset_bottom = layout_profile.sidebar_height
+	view.fit_bounds(gameplay_column.get_global_rect(), layout_profile.sidebar_width, layout_profile.sidebar_height)
 	character_sidebar_content = view.content_scroll
 	character_sidebar_title = view.title_label
 	_apply_character_sidebar_state()
@@ -332,29 +315,26 @@ func _build_character_sidebar() -> Control:
 
 
 func _toggle_character_sidebar() -> void:
-	character_sidebar_expanded = not character_sidebar_expanded
-	_apply_character_sidebar_state()
-
+	if is_instance_valid(character_sidebar): character_sidebar.set_open(not character_sidebar_expanded)
 
 func _apply_character_sidebar_state() -> void:
-	if not is_instance_valid(character_sidebar) or not is_instance_valid(character_sidebar_content):
-		return
-	var toggle: Button = character_sidebar.toggle_button
-	var transfer_focus := (is_instance_valid(toggle) and toggle.has_focus()) or character_sidebar_reopen.has_focus()
-	character_sidebar.custom_minimum_size.x = 328
-	character_sidebar.visible = character_sidebar_expanded
-	character_sidebar_reopen.visible = not character_sidebar_expanded
-	character_sidebar_reopen.tooltip_text = visual_context.translator.text("EXPAND CHARACTER PANEL")
-	character_sidebar_content.visible = character_sidebar_expanded
-	character_sidebar_title.visible = character_sidebar_expanded
-	if is_instance_valid(toggle):
-		toggle.tooltip_text = visual_context.translator.text("COLLAPSE CHARACTER PANEL")
-	if transfer_focus and is_inside_tree():
-		(toggle if character_sidebar_expanded else character_sidebar_reopen).grab_focus()
-	preload("res://scripts/ui/focus_navigation.gd").queue(self)
+	if is_instance_valid(character_sidebar): character_sidebar.set_open(character_sidebar_expanded)
 
 
 func _input(event: InputEvent) -> void:
+	if not is_inside_tree() or get_tree().paused or not is_visible_in_tree() or hand.reading_modal: return
+	if event is InputEventMouseMotion and not hand.interaction.dragging and is_instance_valid(character_sidebar):
+		character_sidebar.pointer_moved(event.position)
+	if event.is_action_pressed("open_character") and not event.is_echo():
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused is LineEdit or focused is TextEdit: return
+		_toggle_character_sidebar()
+		get_viewport().set_input_as_handled()
+		return
+	if character_sidebar_expanded and event.is_action_pressed("ui_cancel"):
+		character_sidebar.set_open(false)
+		get_viewport().set_input_as_handled()
+		return
 	# Consume cancel before the router handles pause; the first Escape cancels targeting.
 	if not get_tree().paused and not hand.reading_modal and not selected_card.is_empty() and event.is_action_pressed("ui_cancel"):
 		_cancel_selection()
@@ -609,7 +589,7 @@ func _restore_drag_targets() -> void:
 		target_buttons[id].modulate = visual_context.styles.GOLD if allowed else Color.WHITE
 
 func _hand_drop_allowed(point: Vector2) -> bool:
-	for control in [header_view, pile_controls, right_pile_controls, turn_view, candidate_panel, character_sidebar, character_sidebar_reopen, _feedback_column]:
+	for control in [header_view, pile_controls, right_pile_controls, turn_view, candidate_panel, character_sidebar, _feedback_column]:
 		if is_instance_valid(control) and control is Control and control.is_visible_in_tree() and control.get_global_rect().has_point(point): return false
 	return true
 

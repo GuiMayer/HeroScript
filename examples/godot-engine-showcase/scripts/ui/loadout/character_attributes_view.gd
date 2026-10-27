@@ -2,6 +2,8 @@ extends VBoxContainer
 ## Passive attribute projection, independent from cards, REST and the lab adapter.
 var visual_context
 var editorial_layout := false
+var fill_available_height := false
+var value_heading := "Equipped"
 var _rows := {}
 var _character_name := Label.new()
 var _table := VBoxContainer.new()
@@ -14,6 +16,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_scroll)
 
 func _fit_scroll() -> void:
+	if fill_available_height:
+		_scroll.custom_minimum_size.y = 0
+		return
 	if is_inside_tree(): _scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - (450 if editorial_layout else 340), 270 if editorial_layout else 300, 650 if editorial_layout else 700)
 
 func mount(context) -> void:
@@ -33,7 +38,8 @@ func mount(context) -> void:
 	var scroll := _scroll
 	scroll.name = "LoadoutAttributeScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size.y = 300
+	scroll.custom_minimum_size.y = 0 if fill_available_height else 300
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL if fill_available_height else Control.SIZE_FILL
 	_table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_table.add_theme_constant_override("separation", 7)
 	scroll.add_child(_table)
@@ -43,7 +49,7 @@ func mount(context) -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	for key in ["Base", "Equipped"]:
-		var caption := _label(key, 12)
+		var caption := _label(value_heading if key == "Equipped" else key, 12)
 		if editorial_layout and key == "Base": caption.hide()
 		caption.custom_minimum_size.x = 65 * context.text_scale
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -53,6 +59,7 @@ func mount(context) -> void:
 
 func _label(key: String, font_size: int) -> Label:
 	var label := Label.new()
+	label.set_meta("attribute_translation_key", key)
 	label.text = visual_context.translator.text(key)
 	label.add_theme_font_size_override("font_size", roundi(font_size * visual_context.text_scale))
 	label.add_theme_color_override("font_color", visual_context.styles.color("text.primary"))
@@ -61,6 +68,8 @@ func _label(key: String, font_size: int) -> Label:
 
 func present(character: Dictionary) -> void:
 	var translator = visual_context.translator
+	for label in find_children("*", "Label", true, false):
+		if label.has_meta("attribute_translation_key"): label.text = translator.text(str(label.get_meta("attribute_translation_key")))
 	_character_name.text = translator.text(character.name)
 	var schema: Array = character.attributes.map(func(stat): return [stat.id, stat.group, stat.label])
 	if schema != _schema:

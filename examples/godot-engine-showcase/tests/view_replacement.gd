@@ -39,6 +39,8 @@ func _run() -> void:
 	var reads: int = gateway.inspections
 	screen._toggle_character_sidebar()
 	playback.load_receipt({"state": {"resolution": {"frames": [{"transitionType": "fixture", "applications": []}]}}})
+	# Hold the fixture cursor: passive frames otherwise drain automatically by design.
+	playback.dispatch_ready = false
 	var cursor: int = playback.index
 	router.apply_visual_profile(load("res://data/themes/contrast_test.tres"))
 	screen.replace_composition(load("res://scenes/ui/combat_lateral_test.tscn"), load("res://data/themes/lateral_preview_test.tres"))

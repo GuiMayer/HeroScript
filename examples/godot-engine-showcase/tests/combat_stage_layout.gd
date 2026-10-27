@@ -56,7 +56,7 @@ func _run() -> void:
 	await settle()
 	var screen = router.host.get_child(0)
 	var hand = screen.view.hand
-	check(not screen.view.character_sidebar.visible and screen.view.character_sidebar_reopen.visible, "character details start collapsed, leaving enemy intents unobstructed")
+	check(not screen.view.character_sidebar.visible, "character details start collapsed, leaving enemy intents unobstructed")
 	screen._toggle_character_sidebar()
 	await settle()
 	for resolution in [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1920, 1080), Vector2i(2560, 1080)]:
@@ -122,29 +122,25 @@ func _run() -> void:
 				await settle()
 				check(screen.view.bottom_hud.get_global_rect() == before, "collapsing character details does not move or resize any hand slots")
 				check(screen.view.hand == hand and screen.view.bottom_hud.get_global_rect().end.x <= screen.view.gameplay_column.get_global_rect().end.x + 1, "sidebar toggle preserves the hand and anchored layout")
-				check(not screen.view.character_sidebar.visible and screen.view.character_sidebar_reopen.visible, "collapsed sidebar displays only its arrow")
-				check(screen.view.character_sidebar_reopen.has_focus(), "closing sidebar transfers keyboard focus to the arrow")
-				var arrow = screen.view.character_sidebar_reopen
+				check(not screen.view.character_sidebar.visible, "collapsed drawer leaves no visible panel")
+				check(screen.view.character_sidebar.toggle_button.has_focus() == false, "closing drawer releases hidden keyboard focus")
+				var drawer = screen.view.character_sidebar
 				var refreshed: Dictionary = router.presentation.duplicate(true)
 				refreshed["sidebar_refresh_fixture"] = str([resolution, locale, scale])
 				screen.refresh_state(refreshed)
 				await settle()
-				check(screen.view.character_sidebar_reopen == arrow and not screen.view.character_sidebar.visible and arrow.has_focus(), "snapshot refresh preserves collapsed state, arrow and keyboard focus")
-				check(screen.view.gameplay_column.get_global_rect() == screen.find_child("CombatBody", true, false).get_global_rect(), "collapsed sidebar reserves zero layout space")
-				var arrow_rect: Rect2 = screen.view.character_sidebar_reopen.get_global_rect()
-				check(arrow_rect.size.x <= 50 and arrow_rect.size.y <= 50 and screen.view.gameplay_column.get_global_rect().encloses(arrow_rect), "reopen arrow is a small top-right overlay")
-				if resolution == Vector2i(2560, 1080) and locale == "en" and scale == 1.0 and DisplayServer.get_name() != "headless":
-					await RenderingServer.frame_post_draw
-					for argument in OS.get_cmdline_user_args():
-						if argument.begins_with("--sidebar-screenshot="):
-							check(root.get_texture().get_image().save_png(argument.trim_prefix("--sidebar-screenshot=")) == OK, "collapsed sidebar screenshot saved")
-				for pressed in [true, false]:
-					var event := InputEventMouseButton.new()
-					event.button_index = MOUSE_BUTTON_LEFT; event.pressed = pressed
-					event.position = arrow_rect.get_center(); event.global_position = event.position
-					root.push_input(event, true)
+				check(screen.view.character_sidebar == drawer and not drawer.visible, "snapshot refresh preserves the collapsed drawer")
+				check(screen.view.gameplay_column.get_global_rect() == screen.find_child("CombatBody", true, false).get_global_rect(), "collapsed drawer reserves zero layout space")
+				check(screen.find_child("CharacterSidebarReopen", true, false) == null, "old top-right toggle is absent")
+				var motion := InputEventMouseMotion.new()
+				motion.position = Vector2(100, 200); screen.view._input(motion)
+				motion.position = Vector2(2, 200); screen.view._input(motion)
+				check(drawer.visible and drawer.expanded, "pointer proximity reopens the complete drawer")
+				# Resize/OS mouse events may legitimately close a hover-only drawer.
+				# Pin it explicitly for the remaining geometry and modal checks.
+				drawer.set_open(false)
+				screen._toggle_character_sidebar()
 				await settle()
-				check(screen.view.character_sidebar.visible and not screen.view.character_sidebar_reopen.visible, "real pointer reopens the complete sidebar")
 				check(screen.view.bottom_hud.get_global_rect() == before, "opening character details does not move the hand or turn controls")
 				if screen.view.bottom_hud.get_global_rect() != before: print("[DOCK_DELTA] ", before, " -> ", screen.view.bottom_hud.get_global_rect(), " hand=", hand.scroll.size, " bar=", hand.scroll.get_h_scroll_bar().visible, " layout=", hand._layout.height, " min=", hand.scroll.get_combined_minimum_size())
 	# A high-z gameplay button must not receive clicks through the reading overlay.
@@ -198,7 +194,7 @@ func _run() -> void:
 	router.toggle_pause()
 	await settle()
 	check(router.pause_canvas.layer > screen.view.floating_hud.layer and router.pause_layer.can_process() and not hand.can_process(), "pause remains above both floating panels and the hand")
-	check(not screen.view.character_sidebar.can_process() and not screen.view.character_sidebar_reopen.can_process(), "floating details cannot receive input while paused")
+	check(not screen.view.character_sidebar.can_process(), "floating details cannot receive input while paused")
 	router.toggle_pause()
 	router.queue_free()
 	await settle()
