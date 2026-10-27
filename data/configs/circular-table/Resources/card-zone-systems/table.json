@@ -1,0 +1,178 @@
+{
+  "table_zones": {
+    "cardZoneSystemId": "table_zones",
+    "zones": [
+      {
+        "zoneId": "draw",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": false,
+        "visibility": {
+          "contents": "None",
+          "order": "Hidden"
+        }
+      },
+      {
+        "zoneId": "hand",
+        "ownerScope": "Actor",
+        "ordering": "Ordered",
+        "allowsCardPlay": true,
+        "visibility": {
+          "contents": "Owner",
+          "order": "Visible"
+        }
+      },
+      {
+        "zoneId": "discard",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": false,
+        "visibility": {
+          "contents": "All",
+          "order": "Visible"
+        }
+      },
+      {
+        "zoneId": "table",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": false,
+        "visibility": {
+          "contents": "All",
+          "order": "Visible"
+        },
+        "capacity": 1
+      }
+    ],
+    "flows": [
+      {
+        "flowId": "table.setup",
+        "triggers": [
+          "encounter.started"
+        ],
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-to-table",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "table",
+            "selection": {
+              "strategy": "ByDefinition",
+              "definitionIds": [
+                "t_red_0"
+              ],
+              "count": 1
+            }
+          },
+          {
+            "stepId": "shuffle",
+            "operation": "Shuffle",
+            "sourceZoneId": "draw"
+          },
+          {
+            "stepId": "deal-all",
+            "operation": "ForEachParticipant",
+            "nestedFlowId": "table.deal-one",
+            "participants": {
+              "order": "Ordinal",
+              "distribution": "RoundRobin",
+              "repetitions": 7
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "table.deal-one",
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-to-hand",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "selection": {
+              "strategy": "First",
+              "count": 1
+            },
+            "targetOwner": "IterationActor"
+          }
+        ]
+      },
+      {
+        "flowId": "table.recycle",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "discard-to-draw",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "selection": {
+              "strategy": "All"
+            },
+            "insertion": {
+              "strategy": "ShuffleAfterInsert"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "table.draw",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "draw-to-hand",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCount"
+            },
+            "targetOwner": "TargetActor",
+            "onInsufficient": "ExecuteFallbackAndRetry",
+            "fallbackFlowId": "table.recycle",
+            "retryAfterFallback": true,
+            "moveAvailableBeforeFallback": true
+          }
+        ]
+      },
+      {
+        "flowId": "table.played",
+        "allowedInvocations": [
+          "CardResolution"
+        ],
+        "steps": [
+          {
+            "stepId": "table-to-discard",
+            "operation": "Move",
+            "sourceZoneId": "table",
+            "targetZoneId": "discard",
+            "selection": {
+              "strategy": "All"
+            }
+          },
+          {
+            "stepId": "hand-to-table",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "table",
+            "selection": {
+              "strategy": "Explicit"
+            },
+            "sourceOwner": "ActiveActor"
+          }
+        ]
+      }
+    ]
+  }
+}

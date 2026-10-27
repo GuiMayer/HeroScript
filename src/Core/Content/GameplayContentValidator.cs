@@ -563,6 +563,11 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
 
     private bool IsGameplayVariable(string token)
     {
+        if (runtime.GetDefinitions("combat-rules").Values.Any(definition =>
+            definition.TryGetProperty("flow", out var flow) && (
+                flow.TryGetProperty("queries", out var queries) && queries.EnumerateArray().Any(query => query.TryGetProperty("variable", out var name) && name.GetString() == token) ||
+                flow.TryGetProperty("commandConditions", out var conditions) && conditions.EnumerateArray().Any(condition =>
+                    condition.TryGetProperty("inputs", out var inputs) && inputs.EnumerateArray().Any(query => query.TryGetProperty("variable", out var name) && name.GetString() == token))))) return true;
         if (EffectInputNamespaces.IsFactVariable(token)) return true;
         if (token is "stacks" or "duration" or "repeat_index" or "target_index") return true;
         if (token is "turn" or "round" or "activation" or "actions_taken" or "phase_order" or

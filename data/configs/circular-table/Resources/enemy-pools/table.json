@@ -1,0 +1,8 @@
+{
+  "table_actors": {
+    "enemyPoolId": "table_actors",
+    "entityDefinitionIds": [
+      "table_actor"
+    ]
+  }
+}

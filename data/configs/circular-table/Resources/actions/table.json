@@ -1,0 +1,585 @@
+{
+  "t_draw": {
+    "actionId": "t_draw",
+    "displayName": "Draw one",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "table.draw",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "table.draw",
+        "cardCount": 1,
+        "condition": "availableCards",
+        "tags": [
+          "table"
+        ]
+      },
+      {
+        "effectId": "t_called.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_called",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      }
+    ],
+    "requiresTarget": false
+  },
+  "t_accept": {
+    "actionId": "t_accept",
+    "displayName": "Accept accumulated draw",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "table.draw",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "table.draw",
+        "cardCount": 1,
+        "condition": "availableCards",
+        "tags": [
+          "table"
+        ],
+        "parameters": [
+          {
+            "parameter": "CardCount",
+            "formulaValue": "source.resources.t_debt.current",
+            "channel": "effect_amount",
+            "unitId": "scalar",
+            "conversion": {
+              "requireInteger": true
+            }
+          }
+        ]
+      },
+      {
+        "effectId": "t_debt.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_debt",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_energy.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_energy",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_called.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_called",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      }
+    ],
+    "requiresTarget": false
+  },
+  "t_call": {
+    "actionId": "t_call",
+    "displayName": "Declare one card",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "t_called.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_called",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      }
+    ],
+    "requiresTarget": false
+  },
+  "t_catch": {
+    "actionId": "t_catch",
+    "displayName": "Catch undeclared hand",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "table.draw",
+        "type": "CARD_ZONE_FLOW",
+        "target": "TARGET",
+        "cardZoneFlowId": "table.draw",
+        "cardCount": 2,
+        "condition": "availableCards",
+        "tags": [
+          "table"
+        ]
+      }
+    ],
+    "requiresTarget": true
+  },
+  "t_choose_red": {
+    "actionId": "t_choose_red",
+    "displayName": "Choose red",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "requiresTarget": false,
+    "effects": [
+      {
+        "effectId": "t_color_red.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_red.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_blue.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_blue.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_green.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_green.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_yellow.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_yellow.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_choice.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_choice",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      }
+    ]
+  },
+  "t_choose_blue": {
+    "actionId": "t_choose_blue",
+    "displayName": "Choose blue",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "requiresTarget": false,
+    "effects": [
+      {
+        "effectId": "t_color_red.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_red.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_blue.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_blue.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_green.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_green.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_yellow.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_yellow.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_choice.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_choice",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      }
+    ]
+  },
+  "t_choose_green": {
+    "actionId": "t_choose_green",
+    "displayName": "Choose green",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "requiresTarget": false,
+    "effects": [
+      {
+        "effectId": "t_color_red.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_red.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_blue.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_blue.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_green.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_green.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_yellow.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_yellow.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_choice.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_choice",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      }
+    ]
+  },
+  "t_choose_yellow": {
+    "actionId": "t_choose_yellow",
+    "displayName": "Choose yellow",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "requiresTarget": false,
+    "effects": [
+      {
+        "effectId": "t_color_red.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_red.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_red",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_blue.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_blue.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_blue",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_green.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_green.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_green",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "t_color_yellow.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_color_yellow.ALL_ENEMIES",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "t_color_yellow",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "t_choice.SELF",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "t_choice",
+        "operation": "SET",
+        "tags": [
+          "table"
+        ],
+        "flatValue": 0
+      }
+    ]
+  }
+}

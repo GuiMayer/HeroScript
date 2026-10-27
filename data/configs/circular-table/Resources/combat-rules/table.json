@@ -1,0 +1,384 @@
+{
+  "table_combat": {
+    "combatRulesId": "table_combat",
+    "defaultPhaseSequenceId": "classic-style",
+    "turnOrder": {
+      "strategy": "Fixed",
+      "recalculateAt": "CombatStart",
+      "tieBreak": {
+        "strategy": "StableActorId",
+        "epoch": "Unspecified"
+      }
+    },
+    "flow": {
+      "automaticResolution": {
+        "strategy": "ToNextPlayerInput",
+        "maxAutomaticSteps": 100
+      },
+      "actionBudget": {
+        "strategy": "ResourceLimited",
+        "actionCosts": "Configured",
+        "actorScope": "All",
+        "resourceId": "t_energy",
+        "consumingCommands": [
+          "PLAY_CARD"
+        ]
+      },
+      "ai": {
+        "enabled": true,
+        "autoEndAfterAction": false,
+        "publishIntents": true,
+        "decisionIds": [
+          "g_t_choose_red",
+          "g_t_choose_blue",
+          "g_t_choose_green",
+          "g_t_choose_yellow",
+          "g_t_accept",
+          "g_t_call",
+          "g_t_catch",
+          "g_play",
+          "g_draw",
+          "g_end"
+        ],
+        "intent": {
+          "refresh": "RecomputeOnPublish",
+          "whenInvalid": "Recompute"
+        }
+      },
+      "resourceCycle": {
+        "resourceId": "t_energy",
+        "actorScope": "All",
+        "startActivation": "Set",
+        "amount": 1
+      },
+      "statusTiming": {
+        "boundaries": [
+          "StartActivation",
+          "EndActivation"
+        ],
+        "ordering": "PriorityThenInstanceId"
+      },
+      "outcome": {
+        "evaluationBoundary": "AfterCurrentAction",
+        "tieBreak": "Draw",
+        "participantVictory": {
+          "ruleId": "empty-hand",
+          "inputs": [
+            {
+              "variable": "myHand",
+              "kind": "ZoneCount",
+              "zones": [
+                {
+                  "zoneId": "hand",
+                  "ownerScope": "Actor",
+                  "actor": "Source"
+                }
+              ]
+            }
+          ],
+          "condition": "t_empty",
+          "tieBreak": "ActiveActorThenOrdinal"
+        }
+      },
+      "encounterResolution": {
+        "strategy": "ManualAck"
+      },
+      "animation": {
+        "mode": "CompactWithSnapshotLookup"
+      },
+      "journal": {
+        "granularity": "Full"
+      },
+      "reactions": {
+        "strategy": "Disabled"
+      },
+      "activationSequence": {
+        "strategy": "Circular",
+        "circular": {
+          "initialDirection": "Forward",
+          "firstActor": "RunOwner",
+          "roundPolicy": "Disabled",
+          "allowSelfSuccessor": true
+        }
+      },
+      "queries": [
+        {
+          "variable": "myHand",
+          "kind": "ZoneCount",
+          "zones": [
+            {
+              "zoneId": "hand",
+              "ownerScope": "Actor",
+              "actor": "Source"
+            }
+          ]
+        },
+        {
+          "variable": "availableCards",
+          "kind": "SumZoneCounts",
+          "zones": [
+            {
+              "zoneId": "draw",
+              "ownerScope": "RunOwner"
+            },
+            {
+              "zoneId": "discard",
+              "ownerScope": "RunOwner"
+            }
+          ]
+        }
+      ],
+      "commandConditions": [
+        {
+          "ruleId": "draw.required",
+          "commands": [
+            "END_TURN",
+            "PASS"
+          ],
+          "actorScope": "All",
+          "inputs": [
+            {
+              "variable": "availableCards",
+              "kind": "SumZoneCounts",
+              "zones": [
+                {
+                  "zoneId": "draw",
+                  "ownerScope": "RunOwner"
+                },
+                {
+                  "zoneId": "discard",
+                  "ownerScope": "RunOwner"
+                }
+              ]
+            },
+            {
+              "variable": "drawAttempts",
+              "kind": "ActivationCommandCount",
+              "actionId": "t_draw"
+            },
+            {
+              "variable": "hasCard",
+              "kind": "HasBaseLegalCard"
+            }
+          ],
+          "allowCondition": "t_can_end",
+          "failureCode": "DRAW_REQUIRED",
+          "messageKey": "draw.required"
+        },
+        {
+          "ruleId": "choice.required",
+          "commands": [
+            "END_TURN",
+            "PASS"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "1 - source.resources.t_choice.current",
+          "failureCode": "CHOICE_REQUIRED",
+          "messageKey": "choice.required"
+        },
+        {
+          "ruleId": "debt.required",
+          "commands": [
+            "END_TURN",
+            "PASS"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "t_no_debt",
+          "failureCode": "DEBT_REQUIRED",
+          "messageKey": "debt.required"
+        },
+        {
+          "ruleId": "draw.once",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [
+            {
+              "variable": "drawAttempts",
+              "kind": "ActivationCommandCount",
+              "actionId": "t_draw"
+            }
+          ],
+          "allowCondition": "1 - drawAttempts",
+          "failureCode": "DRAW_ONCE",
+          "messageKey": "draw.once",
+          "actionId": "t_draw"
+        },
+        {
+          "ruleId": "draw.available",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [
+            {
+              "variable": "availableCards",
+              "kind": "SumZoneCounts",
+              "zones": [
+                {
+                  "zoneId": "draw",
+                  "ownerScope": "RunOwner"
+                },
+                {
+                  "zoneId": "discard",
+                  "ownerScope": "RunOwner"
+                }
+              ]
+            }
+          ],
+          "allowCondition": "availableCards",
+          "failureCode": "DRAW_AVAILABLE",
+          "messageKey": "draw.available",
+          "actionId": "t_draw"
+        },
+        {
+          "ruleId": "draw.budget",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "source.resources.t_energy.current",
+          "failureCode": "DRAW_BUDGET",
+          "messageKey": "draw.budget",
+          "actionId": "t_draw"
+        },
+        {
+          "ruleId": "draw.no-debt",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "t_no_debt",
+          "failureCode": "DRAW_NO-DEBT",
+          "messageKey": "draw.no-debt",
+          "actionId": "t_draw"
+        },
+        {
+          "ruleId": "draw.no-choice",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "1 - source.resources.t_choice.current",
+          "failureCode": "DRAW_NO-CHOICE",
+          "messageKey": "draw.no-choice",
+          "actionId": "t_draw"
+        },
+        {
+          "ruleId": "accept.debt",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "source.resources.t_debt.current",
+          "failureCode": "ACCEPT_DEBT",
+          "messageKey": "accept.debt",
+          "actionId": "t_accept"
+        },
+        {
+          "ruleId": "declare.one",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [
+            {
+              "variable": "myHand",
+              "kind": "ZoneCount",
+              "zones": [
+                {
+                  "zoneId": "hand",
+                  "ownerScope": "Actor",
+                  "actor": "Source"
+                }
+              ]
+            }
+          ],
+          "allowCondition": "t_one_card",
+          "failureCode": "DECLARE_ONE",
+          "messageKey": "declare.one",
+          "actionId": "t_call"
+        },
+        {
+          "ruleId": "catch.one",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [
+            {
+              "variable": "targetHand",
+              "kind": "ZoneCount",
+              "zones": [
+                {
+                  "zoneId": "hand",
+                  "ownerScope": "Actor",
+                  "actor": "Target"
+                }
+              ]
+            }
+          ],
+          "allowCondition": "t_catchable",
+          "failureCode": "CATCH_ONE",
+          "messageKey": "catch.one",
+          "actionId": "t_catch"
+        },
+        {
+          "ruleId": "choose.red",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "source.resources.t_choice.current",
+          "failureCode": "CHOOSE_RED",
+          "messageKey": "choose.red",
+          "actionId": "t_choose_red"
+        },
+        {
+          "ruleId": "choose.blue",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "source.resources.t_choice.current",
+          "failureCode": "CHOOSE_BLUE",
+          "messageKey": "choose.blue",
+          "actionId": "t_choose_blue"
+        },
+        {
+          "ruleId": "choose.green",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "source.resources.t_choice.current",
+          "failureCode": "CHOOSE_GREEN",
+          "messageKey": "choose.green",
+          "actionId": "t_choose_green"
+        },
+        {
+          "ruleId": "choose.yellow",
+          "commands": [
+            "POWER"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "source.resources.t_choice.current",
+          "failureCode": "CHOOSE_YELLOW",
+          "messageKey": "choose.yellow",
+          "actionId": "t_choose_yellow"
+        }
+      ]
+    }
+  }
+}
