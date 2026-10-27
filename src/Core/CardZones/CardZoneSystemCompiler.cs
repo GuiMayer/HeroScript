@@ -190,7 +190,12 @@ public static partial class CardZoneSystemCompiler
             ValidateFlow(step.OverflowFlowId, "overflowFlowId");
         else if (!string.IsNullOrWhiteSpace(step.OverflowFlowId))
             errors.Add($"{path}: overflowFlowId requires RedirectOverflow");
-        if (step.Operation == CardZoneOperation.ExecuteFlow)
+        if (step.Operation == CardZoneOperation.ForEachParticipant && (step.Participants is not { } participants ||
+            participants.Order == ParticipantIterationOrder.Unspecified || !Enum.IsDefined(participants.Order) ||
+            participants.Distribution == ParticipantDistribution.Unspecified || !Enum.IsDefined(participants.Distribution) ||
+            participants.Repetitions is < 1 or > 256))
+            errors.Add($"{path}: participant iteration requires explicit order, distribution and bounded repetitions");
+        if (step.Operation is CardZoneOperation.ExecuteFlow or CardZoneOperation.ForEachParticipant)
             ValidateFlow(step.NestedFlowId, "nestedFlowId");
         foreach (var referencedFlowId in new[] { step.FallbackFlowId, step.OverflowFlowId, step.NestedFlowId }
                      .Where(id => !string.IsNullOrWhiteSpace(id)))

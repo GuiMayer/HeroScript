@@ -1532,7 +1532,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             {
                 var prepared = state with { Deck = encounterDeck.Value.State };
                 var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, prepared,
-                    prepared.Deck, seed.Context, "encounter.started");
+                    prepared.Deck, seed.Context, "encounter.started", combatSnapshot: combatState);
                 if (flowed.IsFailure)
                     return Result<RunState>.Failure(flowed.Error);
                 encounterDeck = Result<CardZoneRunTransition>.Success(new CardZoneRunTransition(

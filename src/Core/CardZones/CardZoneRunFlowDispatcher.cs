@@ -31,7 +31,8 @@ public static class CardZoneRunFlowDispatcher
         string trigger,
         string? activeActorId = null,
         IReadOnlyList<Guid>? cardInstanceIds = null,
-        IReadOnlyDictionary<string, double>? variables = null)
+        IReadOnlyDictionary<string, double>? variables = null,
+        Core.Combat.Models.CombatState? combatSnapshot = null)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(deck);
@@ -52,6 +53,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                CombatSnapshot = combatSnapshot ?? run.GetActiveEncounter()?.Combat,
                 CardInstanceIds = cardInstanceIds ?? [],
                 Variables = variables ?? new Dictionary<string, double>()
             });

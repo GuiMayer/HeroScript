@@ -29,6 +29,7 @@ public sealed record CardZoneFlowContext
     public string? SourceActorId { get; init; }
     public string? TargetActorId { get; init; }
     public string? ExplicitOwnerId { get; init; }
+    public string? IterationActorId { get; init; }
     public string? ScopeId { get; init; }
     public IReadOnlyList<Guid> CardInstanceIds
     {
@@ -289,6 +290,28 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
     {
         if (context.RunSnapshot is { } snapshot)
             context = context with { RunSnapshot = snapshot with { Deck = snapshot.Deck with { Topology = state } } };
+        if (step.Operation == CardZoneOperation.ForEachParticipant)
+        {
+            if (context.CombatSnapshot == null || step.Participants == null) return Fail("Participant iteration requires a captured combat roster");
+            var policy = step.Participants;
+            var actors = context.CombatSnapshot.GetAllActors().Where(actor => actor.IsAlive &&
+                (policy.Relationship == null || context.CombatSnapshot.GetActor(context.ActiveActorId ?? "") is { } anchor &&
+                    context.CombatSnapshot.Relationship(anchor, actor) == policy.Relationship)).Select(actor => actor.InstanceId).ToHashSet(StringComparer.Ordinal);
+            var participantIds = policy.Order == ParticipantIterationOrder.Ordinal ? actors.OrderBy(id => id, StringComparer.Ordinal).ToArray() :
+                context.CombatSnapshot.TurnOrderState.Order.Where(actors.Contains).ToArray();
+            if (participantIds.Length != actors.Count || participantIds.Length == 0 || (long)participantIds.Length * policy.Repetitions > MaximumSteps)
+                return Fail("Participant iteration order/size is invalid or exceeds limits");
+            var visits = policy.Distribution == ParticipantDistribution.RoundRobin
+                ? Enumerable.Range(0, policy.Repetitions).SelectMany(_ => participantIds)
+                : participantIds.SelectMany(id => Enumerable.Repeat(id, policy.Repetitions));
+            var candidate = state; var random = deterministicContext;
+            foreach (var id in visits) {
+                var nested = ExecuteInternal(system, candidate, random, step.NestedFlowId!, context with { IterationActorId = id }, records, depth + 1);
+                if (nested.IsFailure) return nested;
+                (candidate, random) = nested.Value;
+            }
+            return Result<(CardZoneTopologyState, DeterministicContext)>.Success((candidate, random));
+        }
         if (step.Operation == CardZoneOperation.ExecuteFlow)
             return ExecuteInternal(system, state, deterministicContext, step.NestedFlowId!, context, records, depth + 1);
         var source = ResolveAddress(step.SourceZoneId, step.SourceOwner, context);
@@ -535,6 +558,7 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             CardZoneOwnerBinding.SourceActor => context.SourceActorId,
             CardZoneOwnerBinding.TargetActor => context.TargetActorId,
             CardZoneOwnerBinding.Explicit => context.ExplicitOwnerId,
+            CardZoneOwnerBinding.IterationActor => context.IterationActorId,
             _ => null
         };
         return string.IsNullOrWhiteSpace(owner) ? null : new CardZoneAddress

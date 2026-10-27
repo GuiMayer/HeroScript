@@ -121,7 +121,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var phaseTransitions = new List<PhaseTransitionRecord>();
         var cardZoneSteps = new List<CardZoneFlowStepRecord>();
         var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, run, run.Deck,
-            run.Determinism, "encounter.started");
+            run.Determinism, "encounter.started", combatSnapshot: combat);
         if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
         cardZoneSteps.AddRange(flowed.Value.Steps);
         run = run with

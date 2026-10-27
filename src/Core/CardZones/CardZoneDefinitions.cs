@@ -92,6 +92,7 @@ public sealed record CardZoneFlowDefinition
 
 public sealed record CardZoneFlowStepDefinition
 {
+    public ParticipantIterationDefinition? Participants { get; init; }
     public string StepId { get; init; } = string.Empty;
     public CardZoneOperation Operation { get; init; }
     public string? SourceZoneId { get; init; }
@@ -171,7 +172,7 @@ public sealed record CardInstanceLifetimeDefinition
 public enum CardZoneOwnerScope { Unspecified, Global, RunOwner, Actor }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum CardZoneOwnerBinding { Unspecified, Global, RunOwner, FlowOwner, ActiveActor, SourceActor, TargetActor, Explicit }
+public enum CardZoneOwnerBinding { Unspecified, Global, RunOwner, FlowOwner, ActiveActor, SourceActor, TargetActor, Explicit, IterationActor }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CardZoneOrdering { Unspecified, Ordered, Unordered }
@@ -186,7 +187,19 @@ public enum CardZoneOrderVisibility { Unspecified, Hidden, Visible, ToolCapabili
 public enum CardZoneFlowInvocation { Unspecified, Boundary, Effect, CardResolution, GameplayCommand, Tool }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum CardZoneOperation { Unspecified, Create, Move, Destroy, Shuffle, Reorder, ExecuteFlow }
+public enum CardZoneOperation { Unspecified, Create, Move, Destroy, Shuffle, Reorder, ExecuteFlow, ForEachParticipant }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ParticipantIterationOrder { Unspecified, Ordinal, SeatOrder }
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ParticipantDistribution { Unspecified, BatchPerActor, RoundRobin }
+public sealed record ParticipantIterationDefinition
+{
+    public ParticipantIterationOrder Order { get; init; }
+    public ParticipantDistribution Distribution { get; init; }
+    public int Repetitions { get; init; }
+    public Core.Combat.Models.SideRelationship? Relationship { get; init; }
+}
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CardZoneSelectionStrategy { Unspecified, Explicit, Top, Bottom, First, Last, All, Random, ByDefinition, ByTags, ByCondition }
