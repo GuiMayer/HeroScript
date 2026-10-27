@@ -51,7 +51,8 @@ func _on_intent(action: String, arguments: Array) -> void:
 		"recover": _recover_actions()
 		"confirm": _confirm_ref(str(arguments[0]))
 		"modifier_items": _open_items()
-		"inscriptions": router.show_run_loadout()
+		"loadout": router.show_run_loadout()
+		"inscriptions": router.show_run_loadout("inscriptions")
 		"deck_compartments": router.show_run_deck_compartments()
 		"execute":
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))

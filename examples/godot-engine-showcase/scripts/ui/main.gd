@@ -337,25 +337,23 @@ func show_timeline() -> void:
 func show_loadout_lab() -> void:
 	current_screen = "loadout_lab"
 	_clear_host()
-	var screen = preload("res://scenes/inscription_loadout_lab.tscn").instantiate()
+	var screen = preload("res://scenes/unified_loadout_lab.tscn").instantiate()
 	screen.back_requested.connect(_show_main_menu)
 	host.add_child(screen)
 
-func show_run_loadout() -> void:
+func show_run_loadout(initial_tab := "overview") -> void:
+	if GameSession.busy or GameSession.has_pending_command: return
 	current_screen = "run_loadout"
 	_clear_host()
-	var screen = preload("res://scenes/run_loadout.tscn").instantiate()
+	var screen = preload("res://scripts/ui/unified_loadout_screen.gd").new()
+	screen.initial_tab = initial_tab
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.back_requested.connect(open_game)
 	host.add_child(screen)
 
 func show_run_deck_compartments() -> void:
 	if GameSession.busy or GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty(): return
-	current_screen = "deck_compartments"
-	_clear_host()
-	var screen = preload("res://scripts/ui/run_deck_compartments.gd").new()
-	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	screen.back_requested.connect(open_game)
-	host.add_child(screen)
+	show_run_loadout("deck")
 
 func show_history() -> void:
 	if GameSession.busy: return

@@ -58,10 +58,8 @@ func _build_header() -> Control:
 	row.add_child(_button(visual_context.translator.text("VERIFY REPLAY"), _verify, 185))
 	row.add_child(_button(visual_context.translator.text("MAP"), _map, 100))
 	row.add_child(_button(visual_context.translator.text("MODIFIERS"), func(): intent_requested.emit("modifier_items", []), 140))
-	if _run_snapshot.get("loadout") is Dictionary: row.add_child(_button(visual_context.translator.text("INSCRIPTIONS"), func(): intent_requested.emit("inscriptions", []), 140))
+	row.add_child(_button(visual_context.translator.text("LOADOUT"), func(): intent_requested.emit("loadout", []), 140))
 	row.add_child(_button(visual_context.translator.text("PAUSE"), _pause, 100))
-	var compartments := _button(visual_context.translator.text("DECK BUILD"), func(): intent_requested.emit("deck_compartments", []), 140)
-	compartments.name = "DeckCompartmentsButton"; compartments.visible = false; row.add_child(compartments)
 	header.add_child(row)
 	var badges := HFlowContainer.new()
 	badges.alignment = FlowContainer.ALIGNMENT_END

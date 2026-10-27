@@ -45,9 +45,7 @@ func _ready() -> void:
 	overview_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); overview_view.mount(context)
 	overview_view.module_requested.connect(_select_tab); shell.install("overview", overview_view)
 	relics_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); relics_view.relics_only = true; relics_view.mount(context); shell.install("relics", relics_view)
-	for entry in preload("res://scripts/ui/loadout/module_catalog.gd").entries():
-		if entry.id in ["inscriptions", "deck", "overview", "relics"]: continue
-		var page := VBoxContainer.new(); page.add_child(context.styles.title(I18n.text(entry.label), 24)); shell.install(entry.id, page)
+	var planned = preload("res://scripts/ui/loadout/planned_companions_view.gd").new(); planned.mount(context); shell.install("companions", planned)
 	controller.changed.connect(_render)
 	_select_tab(initial_tab); _render(); controller.refresh()
 func _select_tab(id: String) -> void:
