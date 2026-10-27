@@ -98,6 +98,7 @@ public sealed record StatusTimingPolicyDefinition
 
 public sealed record OutcomePolicyDefinition
 {
+    public ParticipantVictoryPolicy? ParticipantVictory { get; init; }
     public OutcomeEvaluationBoundary EvaluationBoundary { get; init; }
     public OutcomeTieBreak TieBreak { get; init; }
 }
@@ -255,6 +256,10 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Outcome evaluationBoundary is required");
         if (policies.Outcome.TieBreak == OutcomeTieBreak.Unspecified)
             return Result.Failure("Outcome tieBreak is required");
+        if (policies.Outcome.ParticipantVictory is { } victory && (string.IsNullOrWhiteSpace(victory.RuleId) ||
+            string.IsNullOrWhiteSpace(victory.Condition) || victory.TieBreak == ParticipantVictoryTieBreak.Unspecified || !Enum.IsDefined(victory.TieBreak) ||
+            victory.Inputs.Any(input => input.Kind == GameplayQueryKind.HasBaseLegalCard)))
+            return Result.Failure("Participant victory requires explicit ruleId, condition, supported inputs and tieBreak");
         if (policies.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
             return Result.Failure("Only encounter resolution strategy 'ManualAck' is implemented");
         if (policies.Animation.Mode == AnimationFrameMode.Unspecified)

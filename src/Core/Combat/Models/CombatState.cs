@@ -25,6 +25,8 @@ public sealed record CombatState : ICanonicalHashMemoizable
     public DeterministicContext Determinism { get; init; } = DeterministicContext.Create(0, "combat");
     public int CurrentTurn { get; init; } = 1;
     public CombatStatus Status { get; init; } = CombatStatus.ACTIVE;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Combat.Flow.ParticipantVictoryResult? ParticipantVictory { get; init; }
     public CombatRelationshipPolicy Relationships { get; init; } = new();
     public ImmutableSortedSet<string> CompletedLifecycleBoundaries
     {

@@ -113,12 +113,14 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             }
             combat = combat with { ActivationState = factsActivation with { Facts = facts } };
         }
-        combat = _outcomes.Evaluate(
+        var outcome = _outcomes.EvaluateWithContext(run,
             combat,
             policies.Outcome,
             resolvedCommand?.ActorId ?? rootCommand.ActorId,
             CombatOutcomeEvaluationPoint.ActionResolution,
             resolvedCommand != null || candidate.ReactionTransition == ReactionTransitionKind.StackActionFizzled);
+        if (outcome.IsFailure) return Result<CombatActionReduction>.Failure(outcome.Error);
+        combat = outcome.Value;
         run = ModifierTransitions.Tick(
             run,
             ModifierDurationBoundary.Command,
