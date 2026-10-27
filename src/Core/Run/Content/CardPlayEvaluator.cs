@@ -307,6 +307,9 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         var allies = entities.Where(entity => combat.Relationship(actor, entity) == SideRelationship.Ally);
         IEnumerable<CombatActorState> legal = targeting.Target switch
         {
+            EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT or EffectTarget.NEXT_SCHEDULED_PARTICIPANT =>
+                Core.Combat.Flow.RelativeParticipantSelector.Resolve(combat, actor.InstanceId,
+                    targeting.Target == EffectTarget.PREVIOUS_PARTICIPANT ? -1 : 1, targeting.Target == EffectTarget.NEXT_SCHEDULED_PARTICIPANT) is { IsSuccess: true } next ? [combat.GetActor(next.Value)!] : [],
             EffectTarget.SELF => [actor],
             EffectTarget.TARGET => targeting.AllowSelf
                 ? entities
@@ -337,6 +340,9 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         }
 
         var legalIds = legalEntities.Select(entity => entity.InstanceId).ToImmutableArray();
+        if (targeting.Target is EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT or EffectTarget.NEXT_SCHEDULED_PARTICIPANT)
+            return Result<TargetResolution>.Success(new(legalIds, legalIds, legalIds.IsEmpty ? ["Relative selection has no eligible participant"] :
+                selectedTargetIds.Any(id => !legalIds.Contains(id, StringComparer.Ordinal)) ? ["Selection does not match the relative participant"] : []));
         if (targeting.Target == EffectTarget.SELF)
             return Result<TargetResolution>.Success(new TargetResolution(legalIds, [actor.InstanceId], []));
         if (targeting.Target is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES or

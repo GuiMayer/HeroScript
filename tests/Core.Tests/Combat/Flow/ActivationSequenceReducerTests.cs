@@ -9,6 +9,22 @@ namespace Core.Tests.Combat.Flow;
 
 public sealed class ActivationSequenceReducerTests
 {
+    [Theory]
+    [InlineData(Core.Effects.EffectProvenanceKind.Card)]
+    [InlineData(Core.Effects.EffectProvenanceKind.Status)]
+    [InlineData(Core.Effects.EffectProvenanceKind.Ability)]
+    public void SequenceEffectsHaveIdenticalSemanticsRegardlessOfProvenance(Core.Effects.EffectProvenanceKind kind)
+    {
+        var state = State(); var before = CanonicalJson.ComputeHash(state);
+        var result = new Core.Effects.ImmutableEffectProcessor().Apply(state, [new() {
+            EffectInstanceId = "reverse", SourceEntityId = "B", TargetEntityIds = ["B"], Provenance = new() { Kind = kind },
+            Definition = new() { Type = Core.Effects.EffectType.TURN_SEQUENCE, Target = Core.Effects.EffectTarget.SELF,
+                SequenceMutation = new() { Operation = SequenceOperation.ReverseDirection } } }]);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal("A", RelativeParticipantSelector.Resolve(result.Value.State, "B").Value);
+        Assert.Equal("A", ActivationSequenceReducer.Next(result.Value.State, Policy()).Value.ActorId);
+        Assert.Equal(before, CanonicalJson.ComputeHash(state));
+    }
     internal static ActivationSequencePolicy Policy() => new() { Strategy = ActivationSequenceStrategy.Circular,
         Circular = new() { InitialDirection = SequenceDirection.Forward, FirstActor = SequenceFirstActor.FirstInOrder,
             RoundPolicy = SequenceRoundStrategy.Disabled, AllowSelfSuccessor = true } };

@@ -56,6 +56,7 @@ public record EffectDefinition
     /// Tipo do efeito
     /// </summary>
     public EffectType Type { get; init; }
+    public Core.Combat.Flow.SequenceMutation? SequenceMutation { get; init; }
     
     /// <summary>
     /// Alvo do efeito

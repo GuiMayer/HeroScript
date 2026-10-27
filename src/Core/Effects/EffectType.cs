@@ -48,7 +48,8 @@ public enum EffectType
     APPLY_MODIFIER,
     REMOVE_MODIFIER,
     CONDENSE_STACKS,
-    MODIFY_ATTRIBUTE
+    MODIFY_ATTRIBUTE,
+    TURN_SEQUENCE
 }
 
 /// <summary>
@@ -89,5 +90,8 @@ public enum EffectTarget
     /// <summary>
     /// Inimigo com o maior valor no recurso de seleção configurado
     /// </summary>
-    HIGHEST_RESOURCE_ENEMY
+    HIGHEST_RESOURCE_ENEMY,
+    NEXT_PARTICIPANT,
+    PREVIOUS_PARTICIPANT,
+    NEXT_SCHEDULED_PARTICIPANT
 }

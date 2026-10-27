@@ -10,7 +10,7 @@ public static class EffectDefinitionValidator
         EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE or
         EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS or
         EffectType.CARD_ZONE_FLOW or
-        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER or EffectType.CONDENSE_STACKS or EffectType.MODIFY_ATTRIBUTE;
+        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER or EffectType.CONDENSE_STACKS or EffectType.MODIFY_ATTRIBUTE or EffectType.TURN_SEQUENCE;
 
     public static ImmutableArray<string> Validate(IEnumerable<EffectDefinition> effects,
         Action<EffectDefinition, string>? inspect = null)
@@ -47,6 +47,13 @@ public static class EffectDefinitionValidator
                 if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
             }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
+            if (effect.Type == EffectType.TURN_SEQUENCE) {
+                var mutation = effect.SequenceMutation;
+                if (effect.Target != EffectTarget.SELF || mutation == null || mutation.Operation == Core.Combat.Flow.SequenceOperation.Unspecified ||
+                    !Enum.IsDefined(mutation.Operation) || mutation.Operation == Core.Combat.Flow.SequenceOperation.AddAdvance && mutation.Amount is < 1 or > 9999 ||
+                    mutation.Operation == Core.Combat.Flow.SequenceOperation.SetDirection && mutation.Direction is not (Core.Combat.Flow.SequenceDirection.Forward or Core.Combat.Flow.SequenceDirection.Reverse))
+                    Error("TURN_SEQUENCE requires SELF and a valid sequenceMutation");
+            } else if (effect.SequenceMutation != null) Error("sequenceMutation requires TURN_SEQUENCE");
             foreach (var rule in effect.RuleOverrides)
             {
                 var valid = EffectResolutionPolicyResolver.ValidateOverride(rule);

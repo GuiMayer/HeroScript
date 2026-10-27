@@ -270,6 +270,23 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             }));
     }
 
+    private static Result<EffectTargetApplication> ApplySequence(CombatState state, CombatActorState target, ResolvedEffectCommand effect)
+    {
+        var circular = state.ActivationState?.Circular;
+        var mutation = effect.Definition.SequenceMutation;
+        if (circular == null || mutation == null) return Result<EffectTargetApplication>.Failure("Sequence mutation requires Circular activation");
+        var updated = mutation.Operation switch {
+            Core.Combat.Flow.SequenceOperation.ReverseDirection => circular with { Direction = circular.Direction == Core.Combat.Flow.SequenceDirection.Forward ? Core.Combat.Flow.SequenceDirection.Reverse : Core.Combat.Flow.SequenceDirection.Forward },
+            Core.Combat.Flow.SequenceOperation.SetDirection => circular with { Direction = mutation.Direction },
+            Core.Combat.Flow.SequenceOperation.AddAdvance => circular with { PendingAdvance = checked(circular.PendingAdvance + mutation.Amount) },
+            _ => null
+        };
+        if (updated == null || updated.PendingAdvance is < 1 or > 10000) return Result<EffectTargetApplication>.Failure("Invalid sequence mutation");
+        return Result<EffectTargetApplication>.Success(new(state with { ActivationState = state.ActivationState! with { Circular = updated } },
+            new() { EffectInstanceId = effect.EffectInstanceId, Identity = effect.Identity, EffectType = effect.Definition.Type,
+                TargetEntityId = target.InstanceId, Provenance = effect.Provenance }));
+    }
+
     private Result<EffectTargetApplication> ApplyToTarget(
         CombatState state,
         ResolvedEffectCommand effect,
@@ -280,6 +297,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             return Result<EffectTargetApplication>.Failure($"Effect target not found: {targetId}");
         return effect.Definition.Type switch
         {
+            EffectType.TURN_SEQUENCE => ApplySequence(state, target, effect),
             EffectType.MODIFY_ATTRIBUTE => ApplyAttribute(state, target, effect),
             EffectType.DAMAGE => ApplyResource(
                 state,

@@ -79,6 +79,9 @@ public static class EffectTargetResolver
         var owner = state.GetActor(ownerId)!;
         return selector switch
         {
+            EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT or EffectTarget.NEXT_SCHEDULED_PARTICIPANT =>
+                Core.Combat.Flow.RelativeParticipantSelector.Resolve(state, ownerId,
+                    selector == EffectTarget.PREVIOUS_PARTICIPANT ? -1 : 1, selector == EffectTarget.NEXT_SCHEDULED_PARTICIPANT) is { IsSuccess: true } next ? [next.Value] : [],
             EffectTarget.SELF => [ownerId],
             EffectTarget.TARGET => selection.Distinct(StringComparer.Ordinal).ToImmutableArray(),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or

@@ -76,5 +76,8 @@ public enum DecisionTargetSelection
     Self,
     FirstOrdinal,
     LowestResource,
-    HighestResource
+    HighestResource,
+    NextParticipant,
+    PreviousParticipant,
+    NextScheduledParticipant
 }

@@ -256,6 +256,12 @@ public sealed class GambitDecisionReducer
         IReadOnlyList<LegalActionCandidate> candidates)
     {
         IEnumerable<LegalActionCandidate> eligible = candidates;
+        if (selector.Strategy is DecisionTargetSelection.NextParticipant or DecisionTargetSelection.PreviousParticipant or DecisionTargetSelection.NextScheduledParticipant) {
+            var next = Core.Combat.Flow.RelativeParticipantSelector.Resolve(combat, actor.InstanceId,
+                selector.Strategy == DecisionTargetSelection.PreviousParticipant ? -1 : 1, selector.Strategy == DecisionTargetSelection.NextScheduledParticipant);
+            if (next.IsFailure) return Result<IReadOnlyList<LegalActionCandidate>>.Failure(next.Error);
+            eligible = eligible.Where(candidate => Targets(candidate).Contains(next.Value, StringComparer.Ordinal));
+        }
         if (selector.Strategy == DecisionTargetSelection.Self)
             eligible = eligible.Where(candidate => Targets(candidate).Contains(actor.InstanceId, StringComparer.Ordinal));
         if (selector.Relationship.HasValue)
