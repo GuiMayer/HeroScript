@@ -1,0 +1,676 @@
+{
+  "hand_count": {
+    "resourceId": "hand_count",
+    "displayName": "Cartas na mao",
+    "shortName": "Cartas na mao",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 108,
+    "defaultCurrent": 7,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "opponent_hand_count": {
+    "resourceId": "opponent_hand_count",
+    "displayName": "Cartas do adversario",
+    "shortName": "Cartas do adversario",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 108,
+    "defaultCurrent": 7,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ],
+    "thresholdPolicies": [
+      {
+        "policyId": "opponent_empty_wins",
+        "comparison": "LessThanOrEqual",
+        "thresholdSource": "Minimum",
+        "consequence": "DefeatOwner",
+        "priority": 100
+      }
+    ]
+  },
+  "uno_energy": {
+    "resourceId": "uno_energy",
+    "displayName": "Jogada",
+    "shortName": "Jogada",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 10,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_voice": {
+    "resourceId": "uno_voice",
+    "displayName": "Declarar UNO",
+    "shortName": "Declarar UNO",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": true,
+      "amountPerTurn": 1,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_called": {
+    "resourceId": "uno_called",
+    "displayName": "UNO declarado",
+    "shortName": "UNO declarado",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "wild_color_token": {
+    "resourceId": "wild_color_token",
+    "displayName": "Escolher cor",
+    "shortName": "Escolher cor",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_draw_available": {
+    "resourceId": "uno_draw_available",
+    "displayName": "Compra disponivel",
+    "shortName": "Compra disponivel",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": true,
+      "amountPerTurn": 1,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_draw2_pending": {
+    "resourceId": "uno_draw2_pending",
+    "displayName": "+2 acumulado",
+    "shortName": "+2 acumulado",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 108,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_draw2_due": {
+    "resourceId": "uno_draw2_due",
+    "displayName": "Penalidade pendente",
+    "shortName": "Penalidade pendente",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_draw_amount": {
+    "resourceId": "uno_draw_amount",
+    "displayName": "Compra efetiva",
+    "shortName": "Compra efetiva",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 108,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_setup": {
+    "resourceId": "uno_setup",
+    "displayName": "Distribuir mesa",
+    "shortName": "Distribuir mesa",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "table_card_code": {
+    "resourceId": "table_card_code",
+    "displayName": "Carta na mesa",
+    "shortName": "Carta na mesa",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 999,
+    "defaultCurrent": 100,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "color_red": {
+    "resourceId": "color_red",
+    "displayName": "red",
+    "shortName": "red",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "color_blue": {
+    "resourceId": "color_blue",
+    "displayName": "blue",
+    "shortName": "blue",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "color_green": {
+    "resourceId": "color_green",
+    "displayName": "green",
+    "shortName": "green",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "color_yellow": {
+    "resourceId": "color_yellow",
+    "displayName": "yellow",
+    "shortName": "yellow",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_0": {
+    "resourceId": "val_0",
+    "displayName": "0",
+    "shortName": "0",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_1": {
+    "resourceId": "val_1",
+    "displayName": "1",
+    "shortName": "1",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_2": {
+    "resourceId": "val_2",
+    "displayName": "2",
+    "shortName": "2",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_3": {
+    "resourceId": "val_3",
+    "displayName": "3",
+    "shortName": "3",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_4": {
+    "resourceId": "val_4",
+    "displayName": "4",
+    "shortName": "4",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_5": {
+    "resourceId": "val_5",
+    "displayName": "5",
+    "shortName": "5",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_6": {
+    "resourceId": "val_6",
+    "displayName": "6",
+    "shortName": "6",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_7": {
+    "resourceId": "val_7",
+    "displayName": "7",
+    "shortName": "7",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_8": {
+    "resourceId": "val_8",
+    "displayName": "8",
+    "shortName": "8",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_9": {
+    "resourceId": "val_9",
+    "displayName": "9",
+    "shortName": "9",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_skip": {
+    "resourceId": "val_skip",
+    "displayName": "skip",
+    "shortName": "skip",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_reverse": {
+    "resourceId": "val_reverse",
+    "displayName": "reverse",
+    "shortName": "reverse",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_draw2": {
+    "resourceId": "val_draw2",
+    "displayName": "draw2",
+    "shortName": "draw2",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "val_wild": {
+    "resourceId": "val_wild",
+    "displayName": "wild",
+    "shortName": "wild",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "prefer_red": {
+    "resourceId": "prefer_red",
+    "displayName": "Preferencia red",
+    "shortName": "Preferencia red",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "prefer_blue": {
+    "resourceId": "prefer_blue",
+    "displayName": "Preferencia blue",
+    "shortName": "Preferencia blue",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "prefer_green": {
+    "resourceId": "prefer_green",
+    "displayName": "Preferencia green",
+    "shortName": "Preferencia green",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "prefer_yellow": {
+    "resourceId": "prefer_yellow",
+    "displayName": "Preferencia yellow",
+    "shortName": "Preferencia yellow",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_catch_available": {
+    "resourceId": "uno_catch_available",
+    "displayName": "Cobrar UNO disponivel",
+    "shortName": "Cobrar UNO",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 1,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": true,
+      "amountPerTurn": 1,
+      "timing": "START_TURN"
+    },
+    "tags": [
+      "uno"
+    ]
+  }
+}

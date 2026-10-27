@@ -144,7 +144,7 @@ public static class RunEffectReducer
             ? [] : Enumerable.Repeat(effect.CardDefinitionId, effect.CardCount).ToArray();
         var flowed = CardZoneRunFlowDispatcher.InvokeEffect(cardZoneFlows, run,
             effect.CardZoneFlowId, command.SourceEntityId, targetId,
-            effect.CardInstanceIds, definitions, effect.CardCount);
+            effect.CardInstanceIds, definitions, effect.CardCount, combat);
         if (flowed.IsFailure) return Result<RunEffectApplication>.Failure(flowed.Error);
         var zoneAffected = flowed.Value.Steps
             .SelectMany(step => step.InstanceIds.Concat(step.CreatedInstanceIds).Concat(step.DestroyedInstanceIds))

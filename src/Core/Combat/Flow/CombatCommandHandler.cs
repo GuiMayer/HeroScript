@@ -79,7 +79,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
                 run, run.Deck, run.Determinism, flowId,
                 resolvedCommand?.ActorId ?? rootCommand.ActorId,
-                Guid.Parse(consumedCardId));
+                Guid.Parse(consumedCardId), candidate.SuccessorCombat);
             if (flowed.IsFailure)
                 return Result<CombatActionReduction>.Failure(flowed.Error);
             run = run with
@@ -107,7 +107,8 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             var facts = factsActivation.Facts;
             var actionId = resolvedCommand.PowerId ?? resolvedCommand.ActionType.ToString();
             facts = facts.SetItem("command:" + actionId, checked(facts.GetValueOrDefault("command:" + actionId) + 1));
-            foreach (var step in cardZoneSteps.Concat(candidate.Applications.SelectMany(application => application.CardZoneSteps))) {
+            foreach (var step in cardZoneSteps.Concat(candidate.Applications.SelectMany(application => application.CardZoneSteps))
+                .Where(step => step.Operation == CardZoneOperation.Move && step.PreviousStateHash != step.StateHash)) {
                 var key = "moved:" + step.FlowId;
                 facts = facts.SetItem(key, checked(facts.GetValueOrDefault(key) + step.InstanceIds.Length));
             }

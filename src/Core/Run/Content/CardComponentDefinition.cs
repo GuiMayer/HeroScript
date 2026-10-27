@@ -53,6 +53,8 @@ public sealed record CardConditionComponentDefinition : CardComponentDefinition
 
 public sealed record CardTargetingComponentDefinition : CardComponentDefinition
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? RelativeOffset { get; init; }
     public EffectTarget Target { get; init; } = EffectTarget.TARGET;
     public int MinimumTargets { get; init; } = 1;
     public int MaximumTargets { get; init; } = 1;

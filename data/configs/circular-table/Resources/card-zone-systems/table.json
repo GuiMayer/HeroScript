@@ -59,6 +59,8 @@
             "operation": "Move",
             "sourceZoneId": "draw",
             "targetZoneId": "table",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
             "selection": {
               "strategy": "ByDefinition",
               "definitionIds": [
@@ -70,7 +72,8 @@
           {
             "stepId": "shuffle",
             "operation": "Shuffle",
-            "sourceZoneId": "draw"
+            "sourceZoneId": "draw",
+            "sourceOwner": "RunOwner"
           },
           {
             "stepId": "deal-all",
@@ -95,11 +98,12 @@
             "operation": "Move",
             "sourceZoneId": "draw",
             "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "IterationActor",
             "selection": {
               "strategy": "First",
               "count": 1
-            },
-            "targetOwner": "IterationActor"
+            }
           }
         ]
       },
@@ -114,6 +118,8 @@
             "operation": "Move",
             "sourceZoneId": "discard",
             "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
             "selection": {
               "strategy": "All"
             },
@@ -134,11 +140,12 @@
             "operation": "Move",
             "sourceZoneId": "draw",
             "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "TargetActor",
             "selection": {
               "strategy": "Top",
               "countFormula": "requestedCount"
             },
-            "targetOwner": "TargetActor",
             "onInsufficient": "ExecuteFallbackAndRetry",
             "fallbackFlowId": "table.recycle",
             "retryAfterFallback": true,
@@ -157,6 +164,8 @@
             "operation": "Move",
             "sourceZoneId": "table",
             "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
             "selection": {
               "strategy": "All"
             }
@@ -166,10 +175,11 @@
             "operation": "Move",
             "sourceZoneId": "hand",
             "targetZoneId": "table",
+            "sourceOwner": "ActiveActor",
+            "targetOwner": "RunOwner",
             "selection": {
               "strategy": "Explicit"
-            },
-            "sourceOwner": "ActiveActor"
+            }
           }
         ]
       }

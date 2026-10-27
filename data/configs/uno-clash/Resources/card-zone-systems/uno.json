@@ -1,0 +1,238 @@
+{
+  "uno_zones": {
+    "cardZoneSystemId": "uno_zones",
+    "zones": [
+      {
+        "zoneId": "draw",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": false,
+        "visibility": {
+          "contents": "None",
+          "order": "Hidden"
+        },
+        "presentation": {
+          "slot": "draw",
+          "labelKey": "draw"
+        }
+      },
+      {
+        "zoneId": "hand",
+        "ownerScope": "Actor",
+        "ordering": "Ordered",
+        "allowsCardPlay": true,
+        "visibility": {
+          "contents": "All",
+          "order": "Visible"
+        },
+        "presentation": {
+          "slot": "hand",
+          "labelKey": "hand"
+        }
+      },
+      {
+        "zoneId": "table",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": false,
+        "visibility": {
+          "contents": "All",
+          "order": "Visible"
+        },
+        "presentation": {
+          "slot": "table",
+          "labelKey": "table"
+        },
+        "capacity": 1
+      },
+      {
+        "zoneId": "discard",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "allowsCardPlay": false,
+        "visibility": {
+          "contents": "All",
+          "order": "Visible"
+        },
+        "presentation": {
+          "slot": "discard",
+          "labelKey": "discard"
+        }
+      }
+    ],
+    "flows": [
+      {
+        "flowId": "run.shuffle",
+        "allowedInvocations": [
+          "Boundary"
+        ],
+        "steps": [
+          {
+            "stepId": "shuffle",
+            "operation": "Shuffle",
+            "sourceZoneId": "draw",
+            "sourceOwner": "RunOwner"
+          }
+        ],
+        "triggers": [
+          "run.started"
+        ]
+      },
+      {
+        "flowId": "setup.return-hand",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "return",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "draw",
+            "sourceOwner": "TargetActor",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "setup.prepare",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "return-table",
+            "operation": "Move",
+            "sourceZoneId": "table",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "return-discard",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "shuffle",
+            "operation": "Shuffle",
+            "sourceZoneId": "draw",
+            "sourceOwner": "RunOwner"
+          },
+          {
+            "stepId": "initial-table",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "table",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "ByDefinition",
+              "definitionIds": [
+                "uno_red_0"
+              ],
+              "count": 1
+            },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "RejectTransaction"
+          }
+        ]
+      },
+      {
+        "flowId": "activation.recycle",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "recycle",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "onInsufficient": "AllowPartial",
+            "insertion": {
+              "strategy": "ShuffleAfterInsert"
+            }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.draw",
+        "allowedInvocations": [
+          "Effect"
+        ],
+        "steps": [
+          {
+            "stepId": "take",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "TargetActor",
+            "selection": {
+              "strategy": "Top",
+              "countFormula": "requestedCount"
+            },
+            "onInsufficient": "ExecuteFallbackAndRetry",
+            "fallbackFlowId": "activation.recycle",
+            "retryAfterFallback": true,
+            "moveAvailableBeforeFallback": true
+          }
+        ]
+      },
+      {
+        "flowId": "card.played.to-table",
+        "allowedInvocations": [
+          "CardResolution"
+        ],
+        "steps": [
+          {
+            "stepId": "bury-table",
+            "operation": "Move",
+            "sourceZoneId": "table",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "All"
+            },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "play",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "table",
+            "sourceOwner": "ActiveActor",
+            "targetOwner": "RunOwner",
+            "selection": {
+              "strategy": "Explicit"
+            },
+            "onInsufficient": "RejectTransaction",
+            "onOverflow": "RejectTransaction"
+          }
+        ]
+      }
+    ]
+  }
+}

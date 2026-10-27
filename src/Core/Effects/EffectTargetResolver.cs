@@ -33,13 +33,13 @@ public static class EffectTargetResolver
     {
         if (initial.GetActor(ownerId) == null || current.GetActor(ownerId) == null)
             return Result<EffectTargetResolution>.Failure("Trigger owner not found");
-        var original = Candidates(initial, ownerId, selection, effect.Target);
+        var original = Candidates(initial, ownerId, selection, effect.Target, effect.RelativeOffset ?? 1);
         if (original.Length == 0)
             return Result<EffectTargetResolution>.Failure($"Trigger target {effect.Target} resolved no entities");
         if (effect.Target != EffectTarget.SELF && original.Any(id => initial.GetActor(id)?.IsAlive != true))
             return Result<EffectTargetResolution>.Failure("Selection contains an invalid or defeated target");
 
-        var candidates = Candidates(current, ownerId, selection, effect.Target);
+        var candidates = Candidates(current, ownerId, selection, effect.Target, effect.RelativeOffset ?? 1);
         var lost = original.Where(id => current.GetActor(id)?.IsAlive != true).ToImmutableArray();
         if (effect.Target == EffectTarget.SELF) lost = [];
         // Automatic selectors already omit defeated actors. They only need a loss policy
@@ -62,7 +62,7 @@ public static class EffectTargetResolver
         var selector = effect.TargetLoss.Retarget;
         if (selector == null || selector is EffectTarget.TARGET or EffectTarget.SELF)
             return Result<EffectTargetResolution>.Failure("Retarget requires an automatic target selector");
-        var remaining = Candidates(current, ownerId, [], selector.Value);
+        var remaining = Candidates(current, ownerId, [], selector.Value, effect.RelativeOffset ?? 1);
         var retained = candidates.Where(id => current.GetActor(id)?.IsAlive == true).ToImmutableArray();
         remaining = remaining.Where(id => !retained.Contains(id, StringComparer.Ordinal)).ToImmutableArray();
         if (remaining.Length == 0)
@@ -74,14 +74,14 @@ public static class EffectTargetResolver
     }
 
     private static ImmutableArray<string> Candidates(CombatState state, string ownerId,
-        IReadOnlyList<string> selection, EffectTarget selector)
+        IReadOnlyList<string> selection, EffectTarget selector, int relativeOffset)
     {
         var owner = state.GetActor(ownerId)!;
         return selector switch
         {
             EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT or EffectTarget.NEXT_SCHEDULED_PARTICIPANT =>
                 Core.Combat.Flow.RelativeParticipantSelector.Resolve(state, ownerId,
-                    selector == EffectTarget.PREVIOUS_PARTICIPANT ? -1 : 1, selector == EffectTarget.NEXT_SCHEDULED_PARTICIPANT) is { IsSuccess: true } next ? [next.Value] : [],
+                    relativeOffset * (selector == EffectTarget.PREVIOUS_PARTICIPANT ? -1 : 1), selector == EffectTarget.NEXT_SCHEDULED_PARTICIPANT) is { IsSuccess: true } next ? [next.Value] : [],
             EffectTarget.SELF => [ownerId],
             EffectTarget.TARGET => selection.Distinct(StringComparer.Ordinal).ToImmutableArray(),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or

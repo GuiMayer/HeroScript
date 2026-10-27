@@ -26,6 +26,15 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
 
     public void Validate()
     {
+        Visit<CombatRulesDefinition>("combat-rules", (path, item) => {
+            foreach (var condition in item.Flow.CommandConditions) Formula($"{path}/commandConditions/{condition.RuleId}", condition.AllowCondition, required: true);
+            if (item.Flow.Outcome.ParticipantVictory is { } victory) {
+                var syntax = RuntimeFormulaEvaluator.ValidateSyntax(victory.Condition,
+                    token => IsGameplayVariable(token) || victory.Inputs.Any(input => input.Variable == token),
+                    id => runtime.GetDefinitions("formulas").ContainsKey(id));
+                if (syntax.IsFailure) Error($"{path}/participantVictory", syntax.Error);
+            }
+        });
         Visit<FormulaDefinition>("formulas", (path, item) =>
             errors.AddRange(FormulaDefinitionValidator.Validate(item).Select(error => $"{path}: {error}")));
         Visit<Core.Run.Loadouts.InscriptionDefinition>("inscriptions", (path, item) =>
@@ -303,6 +312,9 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                     break;
                 case CardTargetingComponentDefinition targeting:
                     if (!Enum.IsDefined(targeting.Target)) Error(address, "invalid targeting policy");
+                    if (targeting.RelativeOffset is < 1 or > 10000 || targeting.RelativeOffset != null &&
+                        targeting.Target is not (EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT))
+                        Error(address, "relativeOffset requires Next/Previous and must be between 1 and 10000");
                     Reference(address, "resources", targeting.SelectionResourceId);
                     break;
                 case CardDispositionComponentDefinition disposition:

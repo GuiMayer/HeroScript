@@ -5,8 +5,12 @@ using Core.Run;
 
 namespace Core.CardZones;
 
+internal sealed class CardZoneExecutionWork { public int Calls; }
+
 public sealed record CardZoneFlowContext
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal CardZoneExecutionWork? Work { get; init; }
     // Captured structural context only. Not persisted or hashed as part of zone flow input.
     [System.Text.Json.Serialization.JsonIgnore]
     public RunState? RunSnapshot { get; init; }
@@ -139,7 +143,7 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         var valid = CardZoneTopologyValidator.ValidateAgainstSystem(state, system, context.RunOwnerId);
         if (valid.IsFailure) return Result<CardZoneFlowResult>.Failure(valid.Error);
         var records = ImmutableArray.CreateBuilder<CardZoneFlowStepRecord>();
-        var result = ExecuteInternal(system, state, deterministicContext, flowId, context, records, 0);
+        var result = ExecuteInternal(system, state, deterministicContext, flowId, context with { Work = new() }, records, 0);
         if (result.IsFailure) return Result<CardZoneFlowResult>.Failure(result.Error);
         valid = CardZoneTopologyValidator.ValidateAgainstSystem(result.Value.State, system, context.RunOwnerId);
         if (valid.IsFailure) return Result<CardZoneFlowResult>.Failure(valid.Error);
@@ -238,7 +242,7 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         ImmutableArray<CardZoneFlowStepRecord>.Builder records,
         int depth)
     {
-        if (depth > MaximumSteps || records.Count > MaximumSteps)
+        if (depth > MaximumSteps || records.Count > MaximumSteps || context.Work != null && ++context.Work.Calls > MaximumSteps)
             return Result<(CardZoneTopologyState, DeterministicContext)>.Failure("Card-zone flow execution limit exceeded");
         var flowResult = system.GetFlow(flowId);
         if (flowResult.IsFailure) return Result<(CardZoneTopologyState, DeterministicContext)>.Failure(flowResult.Error);

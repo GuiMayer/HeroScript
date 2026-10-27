@@ -32,7 +32,13 @@ jobs:
         timeout-minutes: 5
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests&FullyQualifiedName!~AscendantWorldOneJourneyTests" --no-build -c Release
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests&FullyQualifiedName!~AscendantWorldOneJourneyTests&FullyQualifiedName!~WholeCircularJourney" --no-build -c Release
+
+      - name: Circular table full journey and semantic replay
+        timeout-minutes: 30
+        env:
+          HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~WholeCircularJourney" --no-build -c Release -- RunConfiguration.TestSessionTimeout=1800000
 
       - name: Published Ascendant world one journey and replay
         timeout-minutes: 10

@@ -316,7 +316,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         {
             EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT or EffectTarget.NEXT_SCHEDULED_PARTICIPANT =>
                 Core.Combat.Flow.RelativeParticipantSelector.Resolve(combat, actor.InstanceId,
-                    targeting.Target == EffectTarget.PREVIOUS_PARTICIPANT ? -1 : 1, targeting.Target == EffectTarget.NEXT_SCHEDULED_PARTICIPANT) is { IsSuccess: true } next ? [combat.GetActor(next.Value)!] : [],
+                    (targeting.RelativeOffset ?? 1) * (targeting.Target == EffectTarget.PREVIOUS_PARTICIPANT ? -1 : 1), targeting.Target == EffectTarget.NEXT_SCHEDULED_PARTICIPANT) is { IsSuccess: true } next ? [combat.GetActor(next.Value)!] : [],
             EffectTarget.SELF => [actor],
             EffectTarget.TARGET => targeting.AllowSelf
                 ? entities

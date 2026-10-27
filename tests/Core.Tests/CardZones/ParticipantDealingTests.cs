@@ -34,6 +34,27 @@ public sealed class ParticipantDealingTests
         Assert.Equal(before, CanonicalJson.ComputeHash(seed.State));
         Assert.All(new[] { "A", "B", "C", "D" }, id => Assert.Empty(seed.State.GetZone("pocket", id)!.InstanceIds));
     }
+    [Fact]
+    public void NestedParticipantIterationIsBoundedEvenWithoutCardMovements()
+    {
+        var graph = Graph(ParticipantDistribution.RoundRobin);
+        graph = graph with { Flows = [
+            new() { FlowId = "setup", AllowedInvocations = [CardZoneFlowInvocation.Boundary], Steps = [
+                new() { StepId = "outer", Operation = CardZoneOperation.ForEachParticipant, NestedFlowId = "middle",
+                    Participants = new() { Order = ParticipantIterationOrder.Ordinal, Distribution = ParticipantDistribution.RoundRobin, Repetitions = 16 } }] },
+            new() { FlowId = "middle", AllowedInvocations = [CardZoneFlowInvocation.Boundary], Steps = [
+                new() { StepId = "inner", Operation = CardZoneOperation.ForEachParticipant, NestedFlowId = "empty",
+                    Participants = new() { Order = ParticipantIterationOrder.Ordinal, Distribution = ParticipantDistribution.RoundRobin, Repetitions = 16 } }] },
+            new() { FlowId = "empty", AllowedInvocations = [CardZoneFlowInvocation.Boundary], Steps = [
+                new() { StepId = "not-executed", Operation = CardZoneOperation.Shuffle, SourceZoneId = "pool", Condition = "false" } ] } ] };
+        var compiled = CardZoneSystemCompiler.Compile(graph);
+        Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
+        var seed = Seed(compiled.Value, 1); var before = CanonicalJson.ComputeHash(seed.State);
+        var result = new CardZoneFlowExecutor().Execute(compiled.Value, seed.State, seed.Context, "setup", Context());
+        Assert.True(result.IsFailure);
+        Assert.Contains("limit", result.Error);
+        Assert.Equal(before, CanonicalJson.ComputeHash(seed.State));
+    }
     private static CardZoneFlowContext Context() => new() { Invocation = CardZoneFlowInvocation.Boundary, RunOwnerId = "$run", FlowOwnerId = "$run", ActiveActorId = "A",
         CombatSnapshot = new() { Actors = new[] { "D", "B", "A", "C" }.ToDictionary(id => id, id => new CombatActorState { InstanceId = id }) } };
     private static CardZoneBootstrapResult Seed(CompiledCardZoneSystem graph, int count) => CardZoneBootstrapper.Create(graph,

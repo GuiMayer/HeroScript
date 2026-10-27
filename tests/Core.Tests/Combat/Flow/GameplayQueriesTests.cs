@@ -33,5 +33,14 @@ public sealed class GameplayQueriesTests
             new() { Variable = "attempts", Kind = GameplayQueryKind.ActivationCommandCount, ActionId = "draw-action" }
         ], new RunState(), combat, "B").Value;
         Assert.Equal(2, values["drawn"]); Assert.Equal(1, values["attempts"]);
+        Assert.Equal(0, GameplayQueries.Evaluate([new() { Variable = "other", Kind = GameplayQueryKind.ActivationCommandCount,
+            ActionId = "draw-action", Actor = QueryActor.Source }], new RunState(), combat, "A").Value["other"]);
+    }
+
+    [Fact]
+    public void QueryAliasesCannotShadowResourcesOrRecursivelyInvokeCardLegality()
+    {
+        Assert.True(GameplayQueries.Validate([new() { Variable = "source.resources.any.current", Kind = GameplayQueryKind.ParticipantCount }]).IsFailure);
+        Assert.True(GameplayQueries.Validate([new() { Variable = "card", Kind = GameplayQueryKind.HasBaseLegalCard }]).IsFailure);
     }
 }

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.uno-clash",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.base",
+      "versionRange": "1.0.0"
+    }
+  ],
+  "conflicts": [],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/resources/uno.json",
+      "kind": "resources",
+      "artifactPath": "resources/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-zone-systems/uno.json",
+      "kind": "card-zone-systems",
+      "artifactPath": "card-zone-systems/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/cards/uno.json",
+      "kind": "cards",
+      "artifactPath": "cards/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/actions/uno.json",
+      "kind": "actions",
+      "artifactPath": "actions/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/gambits/uno.json",
+      "kind": "gambits",
+      "artifactPath": "gambits/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/entities/uno.json",
+      "kind": "entities",
+      "artifactPath": "entities/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/combat-rules/uno.json",
+      "kind": "combat-rules",
+      "artifactPath": "combat-rules/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-pools/uno.json",
+      "kind": "card-pools",
+      "artifactPath": "card-pools/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/enemy-pools/uno.json",
+      "kind": "enemy-pools",
+      "artifactPath": "enemy-pools/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/runs/uno.json",
+      "kind": "runs",
+      "artifactPath": "runs/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/modes/uno.json",
+      "kind": "modes",
+      "artifactPath": "modes/uno.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/formulas/uno.json",
+      "kind": "formulas",
+      "artifactPath": "formulas/uno.json"
+    }
+  ]
+}

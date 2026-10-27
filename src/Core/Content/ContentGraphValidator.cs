@@ -649,6 +649,9 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 continue;
             }
             var gambit = parsed.Value;
+            if (gambit.Action.TargetSelector.RelativeOffset is < 1 or > 10000 || gambit.Action.TargetSelector.RelativeOffset != null &&
+                gambit.Action.TargetSelector.Strategy is not (DecisionTargetSelection.NextParticipant or DecisionTargetSelection.PreviousParticipant))
+                errors.Add($"gambits/{id}: relativeOffset requires Next/Previous and must be between 1 and 10000");
             if (gambit.Predicates.Count == 0)
                 errors.Add($"gambits/{id} requires at least one predicate");
             if (!gambit.Action.ActionType.HasValue)

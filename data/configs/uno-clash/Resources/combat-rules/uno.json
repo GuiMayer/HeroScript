@@ -1,0 +1,187 @@
+{
+  "uno_combat": {
+    "combatRulesId": "uno_combat",
+    "defaultPhaseSequenceId": "classic-style",
+    "turnOrder": {
+      "strategy": "Fixed",
+      "recalculateAt": "CombatStart",
+      "tieBreak": {
+        "strategy": "StableActorId",
+        "epoch": "Unspecified"
+      }
+    },
+    "flow": {
+      "automaticResolution": {
+        "strategy": "ToNextPlayerInput",
+        "maxAutomaticSteps": 100
+      },
+      "actionBudget": {
+        "strategy": "ResourceLimited",
+        "actionCosts": "Configured",
+        "actorScope": "All",
+        "resourceId": "uno_energy",
+        "consumingCommands": [
+          "PLAY_CARD",
+          "EXECUTE_ACTION"
+        ]
+      },
+      "ai": {
+        "enabled": true,
+        "autoEndAfterAction": false,
+        "publishIntents": true,
+        "decisionIds": [
+          "uno_choose_red",
+          "uno_choose_blue",
+          "uno_choose_green",
+          "uno_choose_yellow",
+          "uno_call",
+          "uno_respond_red",
+          "uno_respond_blue",
+          "uno_respond_green",
+          "uno_respond_yellow",
+          "uno_accept",
+          "uno_catch",
+          "play_uno_red_0",
+          "play_uno_red_1",
+          "play_uno_red_2",
+          "play_uno_red_3",
+          "play_uno_red_4",
+          "play_uno_red_5",
+          "play_uno_red_6",
+          "play_uno_red_7",
+          "play_uno_red_8",
+          "play_uno_red_9",
+          "play_uno_red_skip",
+          "play_uno_red_reverse",
+          "play_uno_red_draw2",
+          "play_uno_blue_0",
+          "play_uno_blue_1",
+          "play_uno_blue_2",
+          "play_uno_blue_3",
+          "play_uno_blue_4",
+          "play_uno_blue_5",
+          "play_uno_blue_6",
+          "play_uno_blue_7",
+          "play_uno_blue_8",
+          "play_uno_blue_9",
+          "play_uno_blue_skip",
+          "play_uno_blue_reverse",
+          "play_uno_blue_draw2",
+          "play_uno_green_0",
+          "play_uno_green_1",
+          "play_uno_green_2",
+          "play_uno_green_3",
+          "play_uno_green_4",
+          "play_uno_green_5",
+          "play_uno_green_6",
+          "play_uno_green_7",
+          "play_uno_green_8",
+          "play_uno_green_9",
+          "play_uno_green_skip",
+          "play_uno_green_reverse",
+          "play_uno_green_draw2",
+          "play_uno_yellow_0",
+          "play_uno_yellow_1",
+          "play_uno_yellow_2",
+          "play_uno_yellow_3",
+          "play_uno_yellow_4",
+          "play_uno_yellow_5",
+          "play_uno_yellow_6",
+          "play_uno_yellow_7",
+          "play_uno_yellow_8",
+          "play_uno_yellow_9",
+          "play_uno_yellow_skip",
+          "play_uno_yellow_reverse",
+          "play_uno_yellow_draw2",
+          "play_uno_wild",
+          "play_uno_wild_draw4",
+          "uno_draw",
+          "uno_end"
+        ],
+        "intent": {
+          "refresh": "RecomputeOnPublish",
+          "whenInvalid": "Recompute"
+        }
+      },
+      "resourceCycle": {
+        "resourceId": "uno_energy",
+        "actorScope": "All",
+        "startActivation": "Set",
+        "amount": 1
+      },
+      "statusTiming": {
+        "boundaries": [
+          "StartRound",
+          "StartActivation",
+          "EndActivation",
+          "EndRound"
+        ],
+        "ordering": "PriorityThenInstanceId"
+      },
+      "outcome": {
+        "evaluationBoundary": "AfterCurrentAction",
+        "tieBreak": "PlayerControlledWins"
+      },
+      "encounterResolution": {
+        "strategy": "ManualAck"
+      },
+      "animation": {
+        "mode": "CompactWithSnapshotLookup"
+      },
+      "journal": {
+        "granularity": "Full"
+      },
+      "reactions": {
+        "strategy": "Disabled"
+      },
+      "activationSequence": {
+        "strategy": "PerRound"
+      },
+      "commandConditions": [
+        {
+          "ruleId": "duel.require-draw",
+          "commands": [
+            "END_TURN",
+            "PASS"
+          ],
+          "actorScope": "All",
+          "inputs": [
+            {
+              "variable": "duelAvailable",
+              "kind": "SumZoneCounts",
+              "zones": [
+                {
+                  "zoneId": "draw",
+                  "ownerScope": "RunOwner"
+                },
+                {
+                  "zoneId": "discard",
+                  "ownerScope": "RunOwner"
+                }
+              ]
+            },
+            {
+              "variable": "duelHasCard",
+              "kind": "HasBaseLegalCard"
+            }
+          ],
+          "allowCondition": "uno_server_can_end",
+          "failureCode": "DRAW_REQUIRED",
+          "messageKey": "uno.draw_required"
+        },
+        {
+          "ruleId": "duel.choose-color",
+          "commands": [
+            "END_TURN",
+            "PASS"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "1 - source.resources.wild_color_token.current",
+          "failureCode": "COLOR_REQUIRED",
+          "messageKey": "uno.color_required"
+        }
+      ]
+    }
+  }
+}

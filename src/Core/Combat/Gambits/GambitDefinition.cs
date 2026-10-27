@@ -64,6 +64,8 @@ public sealed record GambitActionMatcher
 
 public sealed record DecisionTargetSelectorDefinition
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? RelativeOffset { get; init; }
     public DecisionTargetSelection Strategy { get; init; } = DecisionTargetSelection.None;
     public SideRelationship? Relationship { get; init; }
     public string? ResourceId { get; init; }

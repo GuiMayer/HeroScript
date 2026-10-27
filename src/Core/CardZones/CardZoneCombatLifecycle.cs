@@ -26,11 +26,11 @@ public static class CardZoneCombatLifecycle
 {
     public static Result<CardZoneActivationStartResult> Start(
         ICardZoneFlowExecutor? flows, RunState run, DeckState deck,
-        DeterministicContext context, string actorId)
+        DeterministicContext context, string actorId, Core.Combat.Models.CombatState? combatSnapshot = null)
     {
         var previousPlayable = CardZonePlaySource.CardsForActor(run with { Deck = deck }, actorId).ToHashSet();
         var flowed = CardZoneRunFlowDispatcher.Execute(flows, run, deck,
-            context, "activation.started", actorId);
+            context, "activation.started", actorId, combatSnapshot: combatSnapshot);
         if (flowed.IsFailure) return Result<CardZoneActivationStartResult>.Failure(flowed.Error);
         var next = new DeckState { Topology = flowed.Value.State };
         return Result<CardZoneActivationStartResult>.Success(new CardZoneActivationStartResult(
@@ -45,10 +45,10 @@ public static class CardZoneCombatLifecycle
 
     public static Result<CardZoneActivationEndResult> End(
         ICardZoneFlowExecutor? flows, RunState run, DeckState deck,
-        DeterministicContext context, string actorId)
+        DeterministicContext context, string actorId, Core.Combat.Models.CombatState? combatSnapshot = null)
     {
         var flowed = CardZoneRunFlowDispatcher.Execute(flows, run, deck,
-            context, "activation.ended", actorId);
+            context, "activation.ended", actorId, combatSnapshot: combatSnapshot);
         if (flowed.IsFailure) return Result<CardZoneActivationEndResult>.Failure(flowed.Error);
         var next = new DeckState { Topology = flowed.Value.State };
         return Result<CardZoneActivationEndResult>.Success(new CardZoneActivationEndResult(

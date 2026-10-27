@@ -5,6 +5,7 @@ using Core.Content;
 using Core.Determinism;
 using Core.Math;
 using Core.Run;
+using System.Collections.Immutable;
 
 namespace Core.Combat.Gambits;
 
@@ -117,6 +118,7 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
             {
                 ActiveActorId = actorId,
                 WaitingForInput = false,
+                Facts = ImmutableSortedDictionary<string, int>.Empty.WithComparers(StringComparer.Ordinal),
                 ActionsTaken = 0
             }
         };
@@ -184,7 +186,9 @@ public sealed class GambitDecisionReducer
         if (priorityPass == null)
         {
             return Result<DecisionPolicyResult>.Failure(
-                $"No configured decision matched a legal action for actor '{request.ActorId}'");
+                $"No configured decision matched a legal action for actor '{request.ActorId}'; " +
+                $"legal: {string.Join(',', legalActions.Candidates.Select(candidate => candidate.Command.ActionType + ":" + candidate.Command.PowerId))}; " +
+                $"blocked: {string.Join(',', legalActions.BlockedCommands.Select(item => item.Code + ":" + item.ActionId + ":" + item.Reason))}");
         }
         var passFingerprint = CanonicalJson.ComputeHash(new
         {
@@ -262,7 +266,7 @@ public sealed class GambitDecisionReducer
         IEnumerable<LegalActionCandidate> eligible = candidates;
         if (selector.Strategy is DecisionTargetSelection.NextParticipant or DecisionTargetSelection.PreviousParticipant or DecisionTargetSelection.NextScheduledParticipant) {
             var next = Core.Combat.Flow.RelativeParticipantSelector.Resolve(combat, actor.InstanceId,
-                selector.Strategy == DecisionTargetSelection.PreviousParticipant ? -1 : 1, selector.Strategy == DecisionTargetSelection.NextScheduledParticipant);
+                (selector.RelativeOffset ?? 1) * (selector.Strategy == DecisionTargetSelection.PreviousParticipant ? -1 : 1), selector.Strategy == DecisionTargetSelection.NextScheduledParticipant);
             if (next.IsFailure) return Result<IReadOnlyList<LegalActionCandidate>>.Failure(next.Error);
             eligible = eligible.Where(candidate => Targets(candidate).Contains(next.Value, StringComparer.Ordinal));
         }

@@ -55,4 +55,23 @@ public sealed class ActivationSequenceReducerTests
         Assert.Equal("C", ActivationSequenceReducer.Next(state, new() { Strategy = ActivationSequenceStrategy.PerRound }).Value.ActorId);
         Assert.False(ActivationSequenceReducer.StartsNewRound(state, Policy()));
     }
+    [Fact]
+    public void RoundCountingUsesRealActivationsRatherThanSkippedSeats()
+    {
+        var state = State(); var policy = Policy();
+        policy = policy with { Circular = policy.Circular! with { RoundPolicy = SequenceRoundStrategy.ActivationCount, ActivationsPerRound = 2 } };
+        state = state with { ActivationState = state.ActivationState! with { Circular = state.ActivationState.Circular! with
+            { RoundLength = 2, CompletedActivations = 1, PendingAdvance = 7 } } };
+        Assert.True(ActivationSequenceReducer.StartsNewRound(state, policy));
+        var next = ActivationSequenceReducer.Next(state, policy).Value;
+        Assert.Equal(2, next.Round); Assert.Equal(0, next.Circular!.CompletedActivations);
+    }
+    [Fact]
+    public void RelativeOffsetUsesTheSameDirectionAsTraversalWithoutConsumingThePendingAdvance()
+    {
+        var state = State(); var before = CanonicalJson.ComputeHash(state);
+        Assert.Equal("D", RelativeParticipantSelector.Resolve(state, "B", 2).Value);
+        Assert.Equal("A", RelativeParticipantSelector.Resolve(state, "B", -1).Value);
+        Assert.Equal(before, CanonicalJson.ComputeHash(state));
+    }
 }

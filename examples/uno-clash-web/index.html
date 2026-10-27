@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UNO Clash — HeroScript Deterministic Card Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-active-color="red" data-turn-owner="player">
+  <!-- Ambient Velvet & Dynamic Color Spotlight -->
+  <div class="table-surface">
+    <div class="ambient-spotlight" id="ambientSpotlight"></div>
+    <div class="felt-grain"></div>
+  </div>
+
+  <!-- Flying Card & Arcade Callout FX Layer -->
+  <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+  <div class="callout-splash hidden" id="calloutSplash" aria-hidden="true">
+    <div class="callout-splash-inner" id="calloutSplashInner">UNO!</div>
+  </div>
+
+  <!-- Controls and latest table event -->
+  <header class="top-bar">
+    <div class="brand-cluster">
+      <div class="uno-emblem">
+        <span class="uno-emblem-text">UNO</span>
+        <span class="uno-emblem-sub">CLASH</span>
+      </div>
+      <div class="engine-badge" title="Todas as regras, zonas de cartas e IA rodam de forma determinística no HeroScript">
+        <span class="status-dot" id="apiStatusDot"></span>
+        <span class="engine-badge-label">HeroScript</span>
+        <code id="revisionBadge">conectando...</code>
+      </div>
+    </div>
+
+    <div class="ai-action-banner top-event-banner" id="aiActionBanner">
+      <div class="ai-banner-header">
+        <span class="ai-banner-tag" id="turnOwnerBadge">SUA VEZ</span>
+        <span class="ai-banner-sub">Último Evento da Mesa</span>
+      </div>
+      <strong id="aiActionText">Partida iniciada! Combine a cor ou o número da carta na mesa.</strong>
+    </div>
+
+    <div class="controls-cluster">
+      <label class="auto-pass-toggle" title="Passa o turno automaticamente para o oponente quando sua energia de jogada chega a 0">
+        <input type="checkbox" id="autoEndTurnToggle" checked />
+        <span class="toggle-track"></span>
+        <span class="toggle-label">Auto-Turno</span>
+      </label>
+
+      <div class="seed-box" title="Seed determinística da partida">
+        <label for="seedInput">Seed</label>
+        <input type="number" id="seedInput" value="901235" min="1" max="99999999" />
+      </div>
+
+      <button class="btn-secondary" id="toggleInspectorBtn" type="button">
+        <span>Telemetria</span>
+      </button>
+
+      <button class="btn-primary" id="newRunBtn" type="button">
+        <span>Nova Partida</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Tabletop Layout -->
+  <main class="arena-grid">
+    <!-- Floating opponent hand, with no profile or enclosing panel. -->
+    <section class="opponent-zone" aria-label="Mão do bot">
+      <div class="ai-fan-wrapper">
+        <div class="ai-hand-fan" id="aiHandFan" aria-label="Cartas do bot"></div>
+        <span class="opponent-count-pill hidden" id="aiHandCountPill" aria-hidden="true">7 cartas</span>
+      </div>
+    </section>
+
+    <!-- Center Table: Draw Pile + Rotating Color Orbit + Discard Pile + Action Pod -->
+    <section class="center-table" aria-label="Mesa Central">
+      <!-- Left Pod: Draw Pile (Monte de Compras) -->
+      <div class="table-pod pile-column">
+        <div class="pod-label" aria-hidden="true">Monte de Compras</div>
+        <button class="draw-pile-btn" id="drawCardBtn" type="button" aria-label="Comprar carta" disabled>
+          <div class="uno-card-back stack-shadow-3"></div>
+          <div class="uno-card-back stack-shadow-2"></div>
+          <div class="uno-card-back stack-shadow-1"></div>
+          <div class="uno-card-back top-back" id="drawPileAnchor">
+            <div class="back-oval">
+              <span>UNO</span>
+            </div>
+          </div>
+        </button>
+        <div class="pile-caption" aria-hidden="true">
+          <strong id="drawPileCount">53 cartas</strong>
+          <span id="drawPileHint">Clique quando não tiver jogada</span>
+        </div>
+      </div>
+
+      <!-- Center Pod: Active Table Card & Color Orbit -->
+      <div class="table-centerpiece">
+        <div class="table-ellipse-ring" aria-hidden="true"></div>
+        <div class="color-orbit-ring" id="colorOrbitRing">
+          <div class="orbit-node orbit-node-top"></div>
+          <div class="orbit-node orbit-node-bottom"></div>
+        </div>
+
+        <div class="discard-stage" id="discardStage">
+          <!-- Rendered dynamically with under-stack history + active top card -->
+        </div>
+        <div class="discard-drop-badge" id="discardDropBadge">Solte aqui para descartar</div>
+
+        <div class="active-state-pill hidden" id="activeStatePill" aria-hidden="true">
+          <span class="color-swatch" id="activeColorSwatch"></span>
+          <span class="state-color-name" id="activeColorLabel">Vermelho</span>
+          <span class="pill-sep">•</span>
+          <strong id="activeValueLabel">Número 0</strong>
+        </div>
+      </div>
+
+      <!-- Right Pod: Action & UNO Callout Column -->
+      <div class="table-pod action-column">
+        <div class="pod-label" aria-hidden="true">Ações de Turno</div>
+        <button class="shout-uno-btn" id="shoutUnoBtn" type="button" disabled>
+          <span class="shout-burst">UNO!</span>
+        </button>
+
+        <button class="end-turn-btn" id="endTurnBtn" type="button" disabled>
+          <div class="end-turn-progress" id="endTurnProgress"></div>
+          <span class="end-turn-title">PASSAR VEZ</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Player Hand Zone (Bottom) -->
+    <section class="player-zone" aria-label="Sua Mão">
+      <div class="player-hand-stage">
+        <div class="player-hand-container" id="playerHandContainer">
+          <!-- Rendered dynamically from HeroScript /cards/evaluations and /legal-actions -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Slide-out HeroScript Deterministic Engine Inspector -->
+  <aside class="engine-inspector hidden" id="engineInspector">
+    <div class="inspector-header">
+      <div>
+        <h3>HeroScript Engine Telemetry</h3>
+        <p>Estado determinístico autoritativo via <code>/api/v1</code></p>
+      </div>
+      <button class="btn-icon" id="closeInspectorBtn" type="button" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="inspector-metrics">
+      <div class="metric-card">
+        <span>Run ID</span>
+        <code id="inspRunId">-</code>
+      </div>
+      <div class="metric-card">
+        <span>Combat ID</span>
+        <code id="inspCombatId">-</code>
+      </div>
+      <div class="metric-card">
+        <span>Sequence / Step</span>
+        <code id="inspSeqStep">0 / 0</code>
+      </div>
+      <div class="metric-card">
+        <span>State Hash (SHA-256)</span>
+        <code id="inspStateHash">-</code>
+      </div>
+    </div>
+
+    <div class="inspector-section telemetry-bot-section">
+      <label class="telemetry-bot-toggle" for="showBotCardsToggle">
+        <input type="checkbox" id="showBotCardsToggle" aria-controls="telemetryBotCards" />
+        <span>Ver cartas do bot</span>
+      </label>
+      <p class="telemetry-bot-status" id="telemetryBotCardsStatus" aria-live="polite">Ative para inspecionar a mão do bot.</p>
+      <div class="telemetry-bot-cards hidden" id="telemetryBotCards" role="list" aria-label="Cartas reais do bot"></div>
+    </div>
+
+    <div class="inspector-section">
+      <h4>Recursos Autoritativos da Mesa</h4>
+      <div class="resource-grid" id="inspResourceGrid"></div>
+    </div>
+
+    <div class="inspector-section log-section">
+      <h4>Journal de Comandos &amp; Frames</h4>
+      <div class="event-log" id="engineEventLog"></div>
+    </div>
+  </aside>
+
+  <!-- Radial Wild Color Chooser Menu (Triggered when wild_color_token == 1) -->
+  <div class="modal-backdrop radial-backdrop hidden" id="wildModal">
+    <div class="radial-menu-wrapper" id="radialMenuWrapper">
+      <div class="radial-header-pill">
+        <span class="modal-eyebrow">🌈 CORINGA NA MESA</span>
+        <span class="radial-header-hint">Clique ou solte sobre uma cor</span>
+      </div>
+
+      <div class="radial-wheel" id="radialWheel" role="menu" aria-label="Menu Radial de Cores">
+        <!-- Top-Left Quadrant: Vermelho -->
+        <button
+          class="wild-color-choice radial-sector sector-tl color-red"
+          data-action="uno_choose_red"
+          data-color-key="red"
+          data-color-label="Vermelho"
+          type="button"
+          role="menuitem"
+        >
+          <span class="sector-content">
+            <span class="choice-icon">♦</span>
+            <strong>Vermelho</strong>
+          </span>
+        </button>
+
+        <!-- Top-Right Quadrant: Azul -->
+        <button
+          class="wild-color-choice radial-sector sector-tr color-blue"
+          data-action="uno_choose_blue"
+          data-color-key="blue"
+          data-color-label="Azul"
+          type="button"
+          role="menuitem"
+        >
+          <span class="sector-content">
+            <span class="choice-icon">♠</span>
+            <strong>Azul</strong>
+          </span>
+        </button>
+
+        <!-- Bottom-Left Quadrant: Amarelo -->
+        <button
+          class="wild-color-choice radial-sector sector-bl color-yellow"
+          data-action="uno_choose_yellow"
+          data-color-key="yellow"
+          data-color-label="Amarelo"
+          type="button"
+          role="menuitem"
+        >
+          <span class="sector-content">
+            <span class="choice-icon">★</span>
+            <strong>Amarelo</strong>
+          </span>
+        </button>
+
+        <!-- Bottom-Right Quadrant: Verde -->
+        <button
+          class="wild-color-choice radial-sector sector-br color-green"
+          data-action="uno_choose_green"
+          data-color-key="green"
+          data-color-label="Verde"
+          type="button"
+          role="menuitem"
+        >
+          <span class="sector-content">
+            <span class="choice-icon">♣</span>
+            <strong>Verde</strong>
+          </span>
+        </button>
+
+        <!-- Center Hub -->
+        <div class="radial-center-hub" id="radialCenterHub" data-preview-color="wild">
+          <div class="radial-hub-glyph" id="radialHubGlyph">★</div>
+          <strong class="radial-hub-title" id="radialHubTitle">Escolha a Cor</strong>
+          <span class="radial-hub-sub" id="radialHubSub">4 Quadrantes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match Outcome Modal (Victory / Defeat / Cup Champion) -->
+  <div class="modal-backdrop hidden" id="outcomeModal">
+    <div class="outcome-modal-card">
+      <div class="outcome-badge" id="outcomeBadge">VITÓRIA!</div>
+      <h2 id="outcomeTitle">Você venceu!</h2>
+      <p id="outcomeDescription">Você descartou todas as suas cartas antes do oponente.</p>
+      <div class="outcome-actions">
+        <button class="btn-secondary btn-large" id="restartMatchBtn" type="button">
+          Nova Partida
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

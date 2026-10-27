@@ -29,6 +29,8 @@ def mutation(resource_id, value, target='SELF', operation='SET'):
     effect = {'effectId': f'{resource_id}.{target}', 'type': 'MODIFY_RESOURCE', 'target': target,
               'targetResource': resource_id, 'operation': operation, 'tags': ['table']}
     effect['formulaValue' if isinstance(value, str) else 'flatValue'] = value
+    if resource_id in flags and isinstance(value, int) and value in (0, 1):
+        effect['condition'] = f'1 - target.resources.{resource_id}.current' if value == 1 else f'target.resources.{resource_id}.current'
     return effect
 
 
@@ -125,11 +127,12 @@ put('actions', actions)
 zones = [{'zoneId': z, 'ownerScope': 'Actor' if z == 'hand' else 'RunOwner', 'ordering': 'Ordered', 'allowsCardPlay': z == 'hand',
           'visibility': {'contents': 'Owner' if z == 'hand' else 'None' if z == 'draw' else 'All', 'order': 'Hidden' if z == 'draw' else 'Visible'}} for z in ['draw', 'hand', 'discard', 'table']]
 zones[-1]['capacity'] = 1
-move = lambda src, dst, selection, **extra: {'stepId': f'{src}-to-{dst}', 'operation': 'Move', 'sourceZoneId': src, 'targetZoneId': dst, 'selection': selection, **extra}
+move = lambda src, dst, selection, **extra: {'stepId': f'{src}-to-{dst}', 'operation': 'Move', 'sourceZoneId': src, 'targetZoneId': dst,
+                                          'sourceOwner': 'RunOwner', 'targetOwner': 'RunOwner', 'selection': selection, **extra}
 flows = [
     {'flowId': 'table.setup', 'triggers': ['encounter.started'], 'allowedInvocations': ['Boundary'], 'steps': [
         move('draw', 'table', {'strategy': 'ByDefinition', 'definitionIds': ['t_red_0'], 'count': 1}),
-        {'stepId': 'shuffle', 'operation': 'Shuffle', 'sourceZoneId': 'draw'},
+        {'stepId': 'shuffle', 'operation': 'Shuffle', 'sourceZoneId': 'draw', 'sourceOwner': 'RunOwner'},
         {'stepId': 'deal-all', 'operation': 'ForEachParticipant', 'nestedFlowId': 'table.deal-one', 'participants': {'order': 'Ordinal', 'distribution': 'RoundRobin', 'repetitions': 7}}]},
     {'flowId': 'table.deal-one', 'allowedInvocations': ['Boundary'], 'steps': [move('draw', 'hand', {'strategy': 'First', 'count': 1}, targetOwner='IterationActor')]},
     {'flowId': 'table.recycle', 'allowedInvocations': ['Effect'], 'steps': [move('discard', 'draw', {'strategy': 'All'}, insertion={'strategy': 'ShuffleAfterInsert'})]},

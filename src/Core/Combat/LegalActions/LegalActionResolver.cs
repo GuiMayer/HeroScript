@@ -100,7 +100,7 @@ public sealed record LegalActionSet
     public string StateFingerprint { get; init; } = string.Empty;
 }
 
-public sealed record CommandAvailabilityFailure(ActionType ActionType, string? ActionId, string Code, string MessageKey);
+public sealed record CommandAvailabilityFailure(ActionType ActionType, string? ActionId, string Code, string MessageKey, string? Reason = null);
 
 public interface ILegalActionResolver
 {
@@ -262,6 +262,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         var flow = ValidateActivation(combat, command, origin);
         if (flow.IsFailure)
             return Illegal(flow.Error);
+        if (conditions) {
+            var configured = ValidateConfiguredConditions(run, combat, command, origin);
+            if (configured.IsFailure) return Illegal(configured.Error);
+        }
         if (command.ActionType == ActionType.PASS_PRIORITY)
             return EvaluatePriorityPass(run, combat, command);
         var budget = CombatFlowTransitions.ValidateActionBudget(
@@ -272,10 +276,6 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             CommandType(command));
         if (budget.IsFailure)
             return Illegal(budget.Error);
-        if (conditions) {
-            var configured = ValidateConfiguredConditions(run, combat, command, origin);
-            if (configured.IsFailure) return Illegal(configured.Error);
-        }
 
         return command.ActionType switch
         {
@@ -338,6 +338,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             else if (command.ActionType != ActionType.PLAY_CARD && evaluated.Value.FailureReasons.FirstOrDefault() is { } reason) {
                 var condition = run.ResolvedMode!.CombatRules.Flow.CommandConditions.FirstOrDefault(rule => reason.StartsWith(rule.FailureCode + ": ", StringComparison.Ordinal));
                 if (condition != null) blocked.Add(new(command.ActionType, command.PowerId, condition.FailureCode, condition.MessageKey));
+                else blocked.Add(new(command.ActionType, command.PowerId, "ACTION_UNAVAILABLE", "rules.action_unavailable", reason));
             }
         }
 
@@ -506,6 +507,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             var inputs = GameplayQueries.Evaluate(rule.Inputs, run, combat, actor.InstanceId, Targets(command).FirstOrDefault(), HasCard);
             if (inputs.IsFailure) return Result.Failure(inputs.Error);
             var variables = Core.Calculations.GameplayFormulaContext.Build(actor, combat.GetActor(Targets(command).FirstOrDefault() ?? ""), actor, run, inputs.Value);
+            variables["turn"] = combat.CurrentTurn;
+            variables["round"] = combat.ActivationState?.Round ?? 0;
+            variables["activation"] = combat.ActivationState?.ActivationNumber ?? 0;
+            variables["actions_taken"] = combat.ActivationState?.ActionsTaken ?? 0;
             if (_conditionFormulas == null) return Result.Failure("Command conditions require the shared formula evaluator");
             var allowed = Core.Calculations.GameplayFormulaContext.Evaluate(_conditionFormulas, rule.AllowCondition, run.Determinism.ContentRevision, variables);
             if (allowed.IsFailure) return Result.Failure(allowed.Error);

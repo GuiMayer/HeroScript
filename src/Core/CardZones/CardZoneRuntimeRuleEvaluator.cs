@@ -111,17 +111,17 @@ public sealed class CardZoneRuntimeRuleEvaluator : ICardZoneRuleEvaluator
     private Result<float> Evaluate(string expression, CardZoneFlowContext context)
     {
         var variables = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-        if (context.RunSnapshot?.ResolvedMode is { } mode) {
-            var queries = Core.Combat.Flow.GameplayQueries.Evaluate(mode.CombatRules.Flow.Queries, context.RunSnapshot,
-                context.CombatSnapshot ?? context.RunSnapshot.GetActiveEncounter()?.Combat, context.SourceActorId ?? context.ActiveActorId ?? context.RunPlayerActorId!, context.TargetActorId);
-            if (queries.IsFailure) return Result<float>.Failure(queries.Error);
-            foreach (var pair in queries.Value) variables[pair.Key] = pair.Value;
-        }
         foreach (var pair in context.Variables)
         {
             if (!double.IsFinite(pair.Value) || pair.Value < -float.MaxValue || pair.Value > float.MaxValue)
                 return Result<float>.Failure($"Card-zone variable {pair.Key} must be a finite float");
             variables[pair.Key] = (float)pair.Value;
+        }
+        if (context.RunSnapshot?.ResolvedMode is { } mode) {
+            var queries = Core.Combat.Flow.GameplayQueries.Evaluate(mode.CombatRules.Flow.Queries, context.RunSnapshot,
+                context.CombatSnapshot ?? context.RunSnapshot.GetActiveEncounter()?.Combat, context.SourceActorId ?? context.ActiveActorId ?? context.RunPlayerActorId!, context.TargetActorId);
+            if (queries.IsFailure) return Result<float>.Failure(queries.Error);
+            foreach (var pair in queries.Value) variables[pair.Key] = pair.Value;
         }
         return _formulas is IRevisionedRuntimeFormulaEvaluator revisioned &&
                !string.IsNullOrWhiteSpace(context.ContentRevision)

@@ -124,7 +124,9 @@ public static partial class CardZoneSystemCompiler
     {
         var path = $"{flowPath}/steps/{step.StepId}";
         if (!ValidId(step.StepId)) errors.Add($"{path}: stepId is invalid");
-        if (step.Operation == CardZoneOperation.Unspecified) errors.Add($"{path}: operation is required");
+        if (step.Operation == CardZoneOperation.Unspecified || !Enum.IsDefined(step.Operation)) errors.Add($"{path}: operation is required and must be supported");
+        if (step.Participants != null && step.Operation != CardZoneOperation.ForEachParticipant)
+            errors.Add($"{path}: participants requires ForEachParticipant");
         if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Destroy or CardZoneOperation.Shuffle or CardZoneOperation.Reorder)
             ValidateZone(step.SourceZoneId, "sourceZoneId");
         if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Create)

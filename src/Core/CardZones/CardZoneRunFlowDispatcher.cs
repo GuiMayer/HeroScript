@@ -66,7 +66,8 @@ public static class CardZoneRunFlowDispatcher
         DeterministicContext context,
         string flowId,
         string actorId,
-        Guid cardInstanceId)
+        Guid cardInstanceId,
+        Core.Combat.Models.CombatState? combatSnapshot = null)
     {
         if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
             return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
@@ -78,6 +79,7 @@ public static class CardZoneRunFlowDispatcher
             new CardZoneFlowContext
             {
                 Invocation = CardZoneFlowInvocation.CardResolution,
+                CombatSnapshot = combatSnapshot,
                 FlowOwnerId = ResolveFlowOwner(definition, actorId),
                 RunOwnerId = "$run",
                 ActiveActorId = actorId,
@@ -172,7 +174,8 @@ public static class CardZoneRunFlowDispatcher
         string targetActorId,
         IReadOnlyList<Guid> cardInstanceIds,
         IReadOnlyList<string> cardDefinitionIds,
-        int requestedCount)
+        int requestedCount,
+        Core.Combat.Models.CombatState? combatSnapshot = null)
     {
         if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
             return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
@@ -184,6 +187,7 @@ public static class CardZoneRunFlowDispatcher
             flowId, new CardZoneFlowContext
             {
                 Invocation = CardZoneFlowInvocation.Effect,
+                CombatSnapshot = combatSnapshot,
                 FlowOwnerId = targetActorId,
                 RunOwnerId = "$run",
                 ActiveActorId = targetActorId,

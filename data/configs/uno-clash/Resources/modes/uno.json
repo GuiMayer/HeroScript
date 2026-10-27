@@ -1,0 +1,29 @@
+{
+  "uno_classic": {
+    "modeId": "uno_classic",
+    "runDefinitionId": "uno_clash_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "uno_combat",
+    "calculationPipelineIds": [
+      "default_effect_amount",
+      "signed_resource_delta"
+    ],
+    "cardPoolIds": [
+      "uno_deck_pool"
+    ],
+    "enemyPoolIds": [
+      "uno_opponents"
+    ],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "standard_progression",
+    "cardZoneSystemId": "uno_zones",
+    "rules": {
+      "presentation": "uno-clash",
+      "startingHandSize": 7
+    }
+  }
+}

@@ -57,6 +57,8 @@ public record EffectDefinition
     /// </summary>
     public EffectType Type { get; init; }
     public Core.Combat.Flow.SequenceMutation? SequenceMutation { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? RelativeOffset { get; init; }
     
     /// <summary>
     /// Alvo do efeito

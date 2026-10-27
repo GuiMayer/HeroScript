@@ -47,6 +47,9 @@ public static class EffectDefinitionValidator
                 if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
             }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
+            if (effect.RelativeOffset is < 1 or > 10000 || effect.RelativeOffset != null &&
+                effect.Target is not (EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT))
+                Error("relativeOffset requires Next/Previous targeting and must be between 1 and 10000");
             if (effect.Type == EffectType.TURN_SEQUENCE) {
                 var mutation = effect.SequenceMutation;
                 if (effect.Target != EffectTarget.SELF || mutation == null || mutation.Operation == Core.Combat.Flow.SequenceOperation.Unspecified ||

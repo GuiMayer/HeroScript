@@ -178,6 +178,9 @@ public sealed class CardContentCompiler : ICardContentCompiler
                                                            targeting.MaximumTargets < targeting.MinimumTargets ||
                                                            !Enum.IsDefined(targeting.Target) =>
                 Result.Failure($"Card {cardId} targeting {component.ComponentId} has an invalid target range"),
+            CardTargetingComponentDefinition targeting when targeting.RelativeOffset is < 1 or > 10000 || targeting.RelativeOffset != null &&
+                targeting.Target is not (EffectTarget.NEXT_PARTICIPANT or EffectTarget.PREVIOUS_PARTICIPANT) =>
+                Result.Failure($"Card {cardId} relative targeting offset is invalid"),
             CardTargetingComponentDefinition targeting when
                 targeting.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
                 string.IsNullOrWhiteSpace(targeting.SelectionResourceId) =>

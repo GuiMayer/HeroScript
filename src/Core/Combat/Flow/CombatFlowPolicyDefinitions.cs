@@ -297,6 +297,19 @@ public static class CombatFlowPolicyValidator
             rule.ActorScope == FlowActorScope.Unspecified || !Enum.IsDefined(rule.ActorScope) ||
             rule.Commands.Contains(Core.Combat.Models.ActionType.PLAY_CARD) && rule.Inputs.Any(input => input.Kind == GameplayQueryKind.HasBaseLegalCard)))
             return Result.Failure("Invalid command condition or recursive card legality dependency");
+        if (policies.CommandConditions.Select(rule => rule.RuleId).Distinct(StringComparer.Ordinal).Count() != policies.CommandConditions.Length ||
+            policies.CommandConditions.Length > 64) return Result.Failure("Command condition IDs must be unique and bounded");
+        foreach (var inputs in new[] { policies.Queries, policies.Outcome.ParticipantVictory?.Inputs ?? [] }) {
+            var validInputs = GameplayQueries.Validate(inputs); if (validInputs.IsFailure) return validInputs;
+        }
+        foreach (var rule in policies.CommandConditions) {
+            if (rule.Commands.Any(command => !Enum.IsDefined(command))) return Result.Failure("Unknown command condition action type");
+            var validInputs = GameplayQueries.Validate(rule.Inputs, true); if (validInputs.IsFailure) return validInputs;
+        }
+        if (policies.ActivationSequence?.Strategy == ActivationSequenceStrategy.Circular &&
+            policies.ActivationSequence.Circular?.RoundPolicy == SequenceRoundStrategy.Disabled &&
+            policies.StatusTiming.Boundaries.Any(boundary => boundary is StatusTriggerBoundary.StartRound or StatusTriggerBoundary.EndRound))
+            return Result.Failure("Circular Disabled round policy cannot subscribe to round status boundaries");
         return ActivationSequencePolicy.Validate(policies.ActivationSequence);
     }
 }

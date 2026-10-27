@@ -226,6 +226,8 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         ArgumentNullException.ThrowIfNull(sequence);
         ArgumentNullException.ThrowIfNull(policies);
         ArgumentNullException.ThrowIfNull(turnOrderPolicy);
+        var traversal = ActivationSequencePolicy.Validate(policies.ActivationSequence);
+        if (traversal.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(traversal.Error);
         if (!policies.CommandConditions.IsEmpty) {
             if (_exitGuard == null) return Result<CombatFlowAdvanceResult>.Failure("Configured activation exit requires canonical legality services");
             var gate = _exitGuard.Validate(run with { Deck = deck }, combat);
@@ -553,11 +555,14 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (exited.IsFailure)
             return Result<CombatResolutionStep>.Failure(exited.Error);
         run = exited.Value.Run;
+        activation = exited.Value.Combat.ActivationState ?? activation;
+        if (string.IsNullOrWhiteSpace(activation.ActiveActorId))
+            return Result<CombatResolutionStep>.Failure("Phase exit invalidated the activation actor");
         var endedDeck = ApplyEndCardZoneLifecycle(
             run,
-            deck,
+            run.Deck,
             activation.ActiveActorId,
-            run.Determinism);
+            run.Determinism, exited.Value.Combat);
         if (endedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(endedDeck.Error);
 
@@ -609,14 +614,6 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (refreshed.IsFailure)
             return Result<CombatResolutionStep>.Failure(refreshed.Error);
 
-        var startedDeck = ApplyStartCardZoneLifecycle(
-            run,
-            deck,
-            nextActorId,
-            drawContext);
-        if (startedDeck.IsFailure)
-            return Result<CombatResolutionStep>.Failure(startedDeck.Error);
-
         var nextActivation = activation with
         {
             ActiveActorId = nextActorId,
@@ -635,6 +632,14 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         {
             ActivationState = nextActivation
         };
+        var startedDeck = ApplyStartCardZoneLifecycle(
+            run,
+            deck,
+            nextActorId,
+            drawContext, startedCombat);
+        if (startedDeck.IsFailure)
+            return Result<CombatResolutionStep>.Failure(startedDeck.Error);
+
         run = run with { Deck = startedDeck.Value.Deck, Determinism = startedDeck.Value.Context };
         var startStep = new CombatResolutionStep
         {
@@ -698,6 +703,8 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                      StatusTriggerBoundary.StartActivation
                  })
         {
+            if (boundary == StatusTriggerBoundary.StartRound && policies.ActivationSequence?.Strategy == ActivationSequenceStrategy.Circular &&
+                policies.ActivationSequence.Circular?.RoundPolicy == SequenceRoundStrategy.Disabled) continue;
             var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
                 ? Result<CombatStatusLifecycleResult>.Success(new(current, [])) : _statusLifecycle.Process(
                 run,
@@ -842,18 +849,18 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         RunState run,
         DeckState deck,
         string actorId,
-        DeterministicContext context)
+        DeterministicContext context, CombatState? combatSnapshot = null)
     {
-        return CardZoneCombatLifecycle.Start(_cardZoneFlows, run, deck, context, actorId);
+        return CardZoneCombatLifecycle.Start(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
     }
 
     private Result<CardZoneActivationEndResult> ApplyEndCardZoneLifecycle(
         RunState run,
         DeckState deck,
         string actorId,
-        DeterministicContext context)
+        DeterministicContext context, CombatState? combatSnapshot = null)
     {
-        return CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId);
+        return CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
     }
 
     private static Result<CombatState> RefreshActorResource(

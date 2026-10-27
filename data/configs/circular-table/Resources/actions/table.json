@@ -160,7 +160,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_red.ALL_ENEMIES",
@@ -171,7 +172,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_blue.SELF",
@@ -182,7 +184,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_blue.ALL_ENEMIES",
@@ -193,7 +196,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_green.SELF",
@@ -204,7 +208,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_green.ALL_ENEMIES",
@@ -215,7 +220,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_yellow.SELF",
@@ -226,7 +232,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_color_yellow.ALL_ENEMIES",
@@ -237,7 +244,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_choice.SELF",
@@ -270,7 +278,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_red.ALL_ENEMIES",
@@ -281,7 +290,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_blue.SELF",
@@ -292,7 +302,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_blue.ALL_ENEMIES",
@@ -303,7 +314,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_green.SELF",
@@ -314,7 +326,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_green.ALL_ENEMIES",
@@ -325,7 +338,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_yellow.SELF",
@@ -336,7 +350,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_color_yellow.ALL_ENEMIES",
@@ -347,7 +362,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_choice.SELF",
@@ -380,7 +396,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_red.ALL_ENEMIES",
@@ -391,7 +408,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_blue.SELF",
@@ -402,7 +420,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_blue.ALL_ENEMIES",
@@ -413,7 +432,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_green.SELF",
@@ -424,7 +444,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_green.ALL_ENEMIES",
@@ -435,7 +456,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_yellow.SELF",
@@ -446,7 +468,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_color_yellow.ALL_ENEMIES",
@@ -457,7 +480,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_choice.SELF",
@@ -490,7 +514,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_red.ALL_ENEMIES",
@@ -501,7 +526,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_red.current"
       },
       {
         "effectId": "t_color_blue.SELF",
@@ -512,7 +538,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_blue.ALL_ENEMIES",
@@ -523,7 +550,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_blue.current"
       },
       {
         "effectId": "t_color_green.SELF",
@@ -534,7 +562,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_green.ALL_ENEMIES",
@@ -545,7 +574,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 0
+        "flatValue": 0,
+        "condition": "target.resources.t_color_green.current"
       },
       {
         "effectId": "t_color_yellow.SELF",
@@ -556,7 +586,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_color_yellow.ALL_ENEMIES",
@@ -567,7 +598,8 @@
         "tags": [
           "table"
         ],
-        "flatValue": 1
+        "flatValue": 1,
+        "condition": "1 - target.resources.t_color_yellow.current"
       },
       {
         "effectId": "t_choice.SELF",
