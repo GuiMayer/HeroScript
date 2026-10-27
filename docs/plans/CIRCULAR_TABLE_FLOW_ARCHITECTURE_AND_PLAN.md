@@ -1,6 +1,6 @@
 # Fluxo circular configurável e mesa com múltiplos participantes
 
-Data: 27/10/2026. Estado: plano; não implementado por este documento.
+Data: 27/10/2026. Estado: implementado em 12 etapas. Consulte o [contrato final](../content/circular-table-flow.md) e o [relatório de implementação e certificação](CIRCULAR_TABLE_FLOW_IMPLEMENTATION.md).
 
 ## 1. Objetivo e limites
 
@@ -10,7 +10,7 @@ O fluxo atual por rodada continua disponível. Não transformar todos os combate
 
 Distribuição, número de participantes, composição do deck, regras de compra, penalidades e vitória são conteúdo JSON vinculado à revisão da run. Não incluir autenticação multiplayer, novas interfaces gráficas ou animações nesta extensão. A adaptação do app limita-se a consumir as projeções e ações válidas da engine.
 
-Os exemplos de campos novos neste plano são **propostas de contrato**, não JSON já aceito pela versão atual. A implementação deverá publicar schemas e exemplos executáveis com os nomes finais.
+Os exemplos de campos novos abaixo registram as **propostas de contrato da etapa de planejamento**. Para autoria, use os nomes finais do contrato e os JSONs executáveis de `circular-table`; por exemplo, `roundPolicy` é um enum string no contrato final.
 
 ## 2. Diagnóstico conferido no projeto
 

@@ -1,5 +1,13 @@
 # Changelog do contrato público
 
+## Fluxo circular configurável — 2026-10-27
+
+- Runtime determinístico **34**. `flow.activationSequence` é obrigatório nos novos conteúdos; fontes existentes foram migradas explicitamente para `PerRound`. Sem migração silenciosa de bundles ou saves históricos.
+- `Circular` reutiliza o fluxo canônico com direção, avanço, alvos relativos e política de rodada. Iteração de participantes, consultas à topologia, condições de comando e vitória individual são alternativas declaradas em JSON.
+- Estado de combate inclui `activationSequenceStrategy`, `nextScheduledActorId` e `participantVictory`; ações legais incluem `blockedCommands` com código, chave de mensagem e motivo opcional.
+- Setting de referência `circular-table`: quatro mãos e pool compartilhado; o duelo `uno-clash` permanece por rodada e passa a consumir a legalidade de fim de turno da API.
+- [Contrato, migração e exemplos](../content/circular-table-flow.md).
+
 ## Sessão interativa — 2026-10-14/15
 
 - `GET /api/v1/runs/{runId}/session`, expectedSequence, ETag e 409 explícito.
