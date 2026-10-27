@@ -70,10 +70,11 @@ func select(id: String) -> void:
 	active_tab = id
 	for key in buttons: buttons[key].set_pressed_no_signal(key == id)
 	for key in modules: modules[key].visible = key == id
+	var restored := false
 	if _last_focus.has(id):
 		var previous = _last_focus[id].get_ref()
-		if is_instance_valid(previous) and previous.is_visible_in_tree(): previous.grab_focus()
-	elif is_instance_valid(focus) and content.is_ancestor_of(focus): buttons[id].grab_focus()
+		if is_instance_valid(previous) and previous.is_visible_in_tree(): previous.grab_focus(); restored = true
+	if not restored and is_instance_valid(focus) and content.is_ancestor_of(focus): buttons[id].grab_focus()
 func set_feedback(message: String, recoverable := false) -> void:
 	feedback.text = tr_text(message); recovery.visible = recoverable
 func present_attributes(character: Dictionary) -> void:

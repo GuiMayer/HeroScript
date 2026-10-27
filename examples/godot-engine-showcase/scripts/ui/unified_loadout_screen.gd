@@ -10,6 +10,7 @@ var overview_view
 var relics_view
 var _pending_item := ""
 var _clear_dialog: ConfirmationDialog
+var _inscriptions_empty: Label
 var initial_tab := "overview"
 
 func _ready() -> void:
@@ -23,7 +24,9 @@ func _ready() -> void:
 	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
 	inscriptions_view.editorial_layout = true; inscriptions_view.shared_attributes = true; inscriptions_view.mount(context)
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; scroll.follow_focus = true
-	inscriptions_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(inscriptions_view)
+	var inscription_body := VBoxContainer.new(); inscription_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(inscription_body)
+	_inscriptions_empty = context.styles.muted(I18n.text("Inscriptions are not available for this character or setting."), 17, 600); inscription_body.add_child(_inscriptions_empty)
+	inscriptions_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL; inscription_body.add_child(inscriptions_view)
 	shell.install("inscriptions", scroll)
 	inscriptions_view.item_requested.connect(_select_item)
 	inscriptions_view.slot_requested.connect(_select_slot)
@@ -64,6 +67,8 @@ func _render() -> void:
 	if not is_instance_valid(shell): return
 	var usable: bool = controller.current()
 	if not usable: shell.present_attributes({"name": "", "attributes": []})
+	_inscriptions_empty.visible = usable and controller.inscriptions == null
+	for button in shell.buttons.values(): button.disabled = not usable
 	shell.set_feedback(controller.message if usable else "Run or character changed. Reopen loadout.", controller.uncertain)
 	inscriptions_view.visible = controller.inscriptions != null and shell.active_tab == "inscriptions" and usable
 	if controller.inscriptions != null and usable:
@@ -73,6 +78,7 @@ func _render() -> void:
 		inscriptions_view.find_child("LoadoutClearButton", true, false).text = I18n.text("Unequip all")
 		shell.present_attributes(model.character)
 	if is_instance_valid(deck_view):
+		deck_view.visible = usable and shell.active_tab == "deck"
 		var snapshot: Dictionary = controller.compartments.source if controller.compartments != null else {}
 		var deck_model := {"cards": controller.deck_cards, "modifierItems": controller.modifier_items, "choices": controller.choices,
 			"profile": snapshot.get("profile", {}), "allocations": controller.compartments.draft if controller.compartments != null else {},
@@ -87,6 +93,9 @@ func _render() -> void:
 func _back() -> void:
 	if controller.can_leave(): back_requested.emit()
 	else: shell.set_feedback("Wait for equipment to finish saving, or recover the pending operation.", controller.uncertain)
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause_game") or event.is_action_pressed("ui_cancel"):
+		_back(); get_viewport().set_input_as_handled()
 func _attribute_sources() -> void:
 	var dialog := AcceptDialog.new(); dialog.title = I18n.text("Attribute sources"); dialog.size = Vector2i(540, 560)
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
