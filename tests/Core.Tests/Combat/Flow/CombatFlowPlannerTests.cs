@@ -22,6 +22,41 @@ namespace Core.Tests.Combat.Flow;
 
 public sealed class CombatFlowPlannerTests
 {
+    [Theory]
+    [InlineData("hand")]
+    [InlineData("arbitrary-pocket")]
+    public void EncounterInitialization_ProvisionsEveryParticipantBeforeFlowsWithoutDealing(string zoneId)
+    {
+        var graph = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "multi-actor",
+            Zones =
+            [
+                new() { ZoneId = "shared-pool", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+                new() { ZoneId = zoneId, OwnerScope = CardZoneOwnerScope.Actor, Ordering = CardZoneOrdering.Ordered, AllowsCardPlay = true }
+            ]
+        };
+        var seed = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(graph).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run", ActorIds = ["hero"],
+                Batches = [new() { ZoneId = "shared-pool", OwnerId = "$run", DefinitionIds = ["one", "two", "three"] }]
+            }, DeterministicContext.Create(99, "revision")).Value;
+        var run = new RunState { PlayerEntityId = "hero", Determinism = seed.Context,
+            Deck = new() { Topology = seed.State }, ResolvedMode = new() { CardZoneSystem = graph } };
+        var combat = CombatTransitions.Create(
+            [Entity("hero", true, 1), Entity("dealer", false, 1), Entity("ally", false, 1)],
+            DeterministicContext.Create(42, "revision"));
+        var original = CanonicalJson.ComputeHash(run);
+        var initialized = Boundaries(ZoneExecutor()).InitializeTransaction(run, combat, Sequence(), Policies(), TurnPolicy());
+        Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
+        foreach (var actor in new[] { "hero", "dealer", "ally" })
+            Assert.Empty(Assert.IsType<CardZoneState>(initialized.Value.Run.Deck.Topology.GetZone(zoneId, actor)).InstanceIds);
+        Assert.Equal(3, initialized.Value.Run.Deck.Topology.GetZone("shared-pool", "$run")!.InstanceIds.Count);
+        Assert.Equal(original, CanonicalJson.ComputeHash(run));
+        Assert.Null(run.Deck.Topology.GetZone(zoneId, "dealer"));
+    }
+
     [Fact]
     public void EncounterInitialization_RecordsConfiguredZoneMovesInItsDeterministicTrace()
     {
