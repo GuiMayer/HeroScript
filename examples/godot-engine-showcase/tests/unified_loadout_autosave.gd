@@ -15,5 +15,19 @@ func _run() -> void:
 	check(session.commits == ["hero"] and session.assignments == {"one": "owned"}, "one equip intent automatically previews commits and rereads")
 	screen._select_tab("deck"); screen._select_tab("inscriptions")
 	check(session.commits.size() == 1, "inspection and tab navigation never write")
+	screen.controller.move_card("card-one", "utility")
+	await process_frame; await process_frame
+	check(session.commits == ["hero", "compartments"] and session.allocations.size() == 1, "compartments autosave without Apply using latest run version")
+	session.hold_preview = true
+	screen.controller.move_card("card-one", "")
+	screen._select_tab("relics")
+	check(screen.controller.busy and not screen.controller.can_leave(), "tab switch retains pending save and prevents premature exit")
+	session.hold_preview = false; session.release.emit()
+	await process_frame; await process_frame
+	check(session.allocations.is_empty() and session.commits.size() == 3, "hidden module completes exactly one canonical transaction")
+	session.reject_preview = true
+	screen.controller.move_card("card-one", "utility")
+	await process_frame
+	check(session.commits.size() == 3 and session.allocations.is_empty(), "rejected component composition never commits")
 	screen.queue_free(); await process_frame
 	quit(1 if failures else 0)
