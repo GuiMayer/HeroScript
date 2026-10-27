@@ -23,6 +23,73 @@ namespace Core.Tests.Run;
 
 public sealed class RunManagerTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void AttachEncounter_ProvisionsActorZonesAtomically(bool rejectFlow, bool rejectPersistence)
+    {
+        var repository = new Mock<IRunCommitStore>();
+        var appended = new List<RunCommit>();
+        repository.Setup(store => store.AppendAsync(It.IsAny<RunCommit>(), It.IsAny<CancellationToken>()))
+            .Returns((RunCommit commit, CancellationToken _) =>
+            {
+                if (rejectPersistence && appended.Count > 0) throw new IOException("encounter disk failure");
+                appended.Add(commit); return Task.FromResult(new RunCommitAppendResult(commit, false));
+            });
+        var graph = TestZoneGraph() with
+        {
+            Zones = TestZoneGraph().Zones.Concat([new CardZoneDefinition
+                { ZoneId = "actor-pocket", OwnerScope = CardZoneOwnerScope.Actor, Ordering = CardZoneOrdering.Ordered }]).ToArray(),
+            Flows = TestZoneGraph().Flows.Concat([new CardZoneFlowDefinition
+            {
+                FlowId = "deal", Triggers = ["encounter.started"], AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                Steps = [new()
+                {
+                    StepId = "deal", Operation = CardZoneOperation.Move, SourceZoneId = "hand", SourceOwner = CardZoneOwnerBinding.RunOwner,
+                    TargetZoneId = "actor-pocket", TargetOwner = CardZoneOwnerBinding.ActiveActor,
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = rejectFlow ? 99 : 1 }
+                }]
+            }]).ToArray()
+        };
+        var manager = CreateManager(repository: repository.Object, runJson: CombatRunJson, zoneSystem: graph);
+        var run = StartZoneRun(manager).Value;
+        var before = CanonicalJson.ComputeHash(run);
+        var combat = CombatTransitions.Create([CreateCombatActorState("hero", true), CreateCombatActorState("dealer", false)],
+            DeterministicContext.Create(run.Determinism.DrawUInt64().Value, run.Determinism.ContentRevision)) with
+            { RunId = run.RunId, RunNodeId = "start" };
+        var attached = manager.AttachEncounter(run.RunId, run.Sequence, run.Determinism.Step, combat);
+        if (rejectFlow || rejectPersistence)
+        {
+            Assert.True(attached.IsFailure);
+            Assert.Equal(before, CanonicalJson.ComputeHash(manager.GetRun(run.RunId).Value));
+            Assert.Single(appended); Assert.Null(manager.GetRun(run.RunId).Value.Deck.Topology.GetZone("actor-pocket", "dealer"));
+        }
+        else
+        {
+            Assert.True(attached.IsSuccess, attached.IsFailure ? attached.Error : null);
+            Assert.Empty(attached.Value.Deck.Topology.GetZone("actor-pocket", "dealer")!.InstanceIds);
+            Assert.Single(attached.Value.Deck.Topology.GetZone("actor-pocket", "hero")!.InstanceIds);
+            Assert.Equal(2, appended.Count);
+            Assert.Equal(before, CanonicalJson.ComputeHash(run));
+        }
+    }
+
+    [Fact]
+    public void AttachEncounter_RejectsIncompletePreinitializedSnapshotInsteadOfRedealing()
+    {
+        var graph = TestZoneGraph() with { Zones = TestZoneGraph().Zones.Concat([new CardZoneDefinition
+            { ZoneId = "actor-pocket", OwnerScope = CardZoneOwnerScope.Actor, Ordering = CardZoneOrdering.Ordered }]).ToArray() };
+        var manager = CreateManager(runJson: CombatRunJson, zoneSystem: graph);
+        var run = StartZoneRun(manager).Value;
+        var combat = CombatTransitions.Create([CreateCombatActorState("hero", true), CreateCombatActorState("dealer", false)],
+            DeterministicContext.Create(run.Determinism.DrawUInt64().Value, run.Determinism.ContentRevision)) with
+            { RunId = run.RunId, RunNodeId = "start" };
+        var rejected = manager.AttachEncounter(run.RunId, run.Sequence, run.Determinism.Step, combat, initializedRun: run);
+        Assert.True(rejected.IsFailure); Assert.Contains("missing participant", rejected.Error);
+        Assert.Equal(run, manager.GetRun(run.RunId).Value);
+    }
+
     private readonly Mock<IConfigManager> _configManager = new();
     private readonly Mock<IResourceLoader> _resourceLoader = new();
 
@@ -893,7 +960,8 @@ public sealed class RunManagerTests
         IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierManager = null,
         IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
-        string? runJson = null)
+        string? runJson = null,
+        CardZoneSystemDefinition? zoneSystem = null)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
@@ -923,7 +991,7 @@ public sealed class RunManagerTests
 
         var modes = new Mock<IGameModeResolver>();
         modes.Setup(item => item.Resolve("test-mode", "test"))
-            .Returns(Result<ResolvedGameMode>.Success(TestResolvedMode()));
+            .Returns(Result<ResolvedGameMode>.Success(TestResolvedMode() with { CardZoneSystem = zoneSystem ?? TestZoneGraph() }));
         var zoneFlows = new CardZoneFlowExecutor(new TestCardZoneRules());
 
         return new RunManager(

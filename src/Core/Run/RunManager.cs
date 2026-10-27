@@ -1513,17 +1513,24 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 NodeId = currentNode.NodeId,
                 Combat = combatState
             };
-            var encounterDeck = Result<CardZoneRunTransition>.Success(
-                new CardZoneRunTransition(initializedRun?.Deck ?? state.Deck,
-                    initializedRun?.Determinism ?? seed.Context, []));
             if (initializedRun != null && (initializedRun.RunId != state.RunId ||
                 initializedRun.Determinism.ContentRevision != state.Determinism.ContentRevision ||
                 initializedRun.Determinism.Seed != state.Determinism.Seed))
                 return Result<RunState>.Failure("Initialized run snapshot does not match encounter owner");
+            var zoneCandidate = state with { Deck = initializedRun?.Deck ?? state.Deck };
+            var provisioned = CardZoneRunFlowDispatcher.EnsureParticipants(zoneCandidate,
+                combatState.GetAllActors().Select(actor => actor.InstanceId).ToArray());
+            if (provisioned.IsFailure) return Result<RunState>.Failure(provisioned.Error);
+            if (initializedRun != null && !provisioned.Value.CreatedAddresses.IsEmpty)
+                return Result<RunState>.Failure("Initialized encounter is missing participant card zones");
+            var encounterDeck = Result<CardZoneRunTransition>.Success(
+                new CardZoneRunTransition(new DeckState { Topology = provisioned.Value.State },
+                    initializedRun?.Determinism ?? seed.Context, []));
             if (initializedRun == null)
             {
-                var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state,
-                    state.Deck, seed.Context, "encounter.started");
+                var prepared = state with { Deck = encounterDeck.Value.State };
+                var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, prepared,
+                    prepared.Deck, seed.Context, "encounter.started");
                 if (flowed.IsFailure)
                     return Result<RunState>.Failure(flowed.Error);
                 encounterDeck = Result<CardZoneRunTransition>.Success(new CardZoneRunTransition(
