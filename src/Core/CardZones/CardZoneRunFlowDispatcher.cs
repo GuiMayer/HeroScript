@@ -11,6 +11,18 @@ namespace Core.CardZones;
 /// </summary>
 public static class CardZoneRunFlowDispatcher
 {
+    public static Result<CardZoneParticipantProvisioningResult> EnsureParticipants(
+        RunState run, IReadOnlyList<string> actorIds)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        if (run.ResolvedMode?.CardZoneSystem is not { } definition)
+            return Result<CardZoneParticipantProvisioningResult>.Failure("Run has no configured card-zone system");
+        var compiled = CardZoneSystemCompiler.Compile(definition);
+        return compiled.IsFailure
+            ? Result<CardZoneParticipantProvisioningResult>.Failure(compiled.Error)
+            : CardZoneParticipantProvisioner.Ensure(compiled.Value, run.Deck.Topology, actorIds, "$run");
+    }
+
     public static Result<CardZoneFlowResult> Execute(
         ICardZoneFlowExecutor? flows,
         RunState run,

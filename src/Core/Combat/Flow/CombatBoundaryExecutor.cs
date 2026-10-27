@@ -108,6 +108,11 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         ArgumentNullException.ThrowIfNull(sequence);
         ArgumentNullException.ThrowIfNull(policies);
         ArgumentNullException.ThrowIfNull(turnOrderPolicy);
+        var provisioned = CardZoneRunFlowDispatcher.EnsureParticipants(run,
+            combat.GetAllActors().Select(actor => actor.InstanceId).ToArray());
+        if (provisioned.IsFailure) return Result<CombatInitializationResult>.Failure(provisioned.Error);
+        if (!ReferenceEquals(provisioned.Value.State, run.Deck.Topology))
+            run = run with { Deck = new DeckState { Topology = provisioned.Value.State } };
         var effectSteps = new List<EffectExecutionStep>();
         var applications = new List<EffectApplicationRecord>();
         var phaseTransitions = new List<PhaseTransitionRecord>();

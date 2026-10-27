@@ -55,6 +55,14 @@ public sealed class CombatFlowPlannerTests
         Assert.Equal(3, initialized.Value.Run.Deck.Topology.GetZone("shared-pool", "$run")!.InstanceIds.Count);
         Assert.Equal(original, CanonicalJson.ComputeHash(run));
         Assert.Null(run.Deck.Topology.GetZone(zoneId, "dealer"));
+        var repeated = Boundaries(ZoneExecutor()).InitializeTransaction(run, combat, Sequence(), Policies(), TurnPolicy());
+        Assert.Equal(initialized.Value.Fingerprint, repeated.Value.Fingerprint);
+        var laterCombat = CombatTransitions.Create(
+            [Entity("hero", true, 1), Entity("later-dealer", false, 1)], DeterministicContext.Create(43, "revision"));
+        var later = Boundaries(ZoneExecutor()).InitializeTransaction(initialized.Value.Run, laterCombat, Sequence(), Policies(), TurnPolicy());
+        Assert.True(later.IsSuccess, later.IsFailure ? later.Error : null);
+        Assert.NotNull(later.Value.Run.Deck.Topology.GetZone(zoneId, "later-dealer"));
+        Assert.Same(initialized.Value.Run.Deck.Topology.GetZone(zoneId, "dealer"), later.Value.Run.Deck.Topology.GetZone(zoneId, "dealer"));
     }
 
     [Fact]
