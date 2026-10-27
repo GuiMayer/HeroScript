@@ -11,14 +11,14 @@ func _init(snapshot: Dictionary, translator) -> void:
 func playable_cards() -> Array:
 	var result: Array = []
 	for zone in _zones:
-		if bool(zone.get("allowsCardPlay", false)) and bool(zone.get("contentsVisible", false)):
+		if bool(zone.get("playerCanPlayFrom", zone.get("allowsCardPlay", false))) and bool(zone.get("contentsVisible", false)):
 			result.append_array(zone.get("cards", []))
 	return result
 
 func playable_label() -> String:
 	var labels: Array[String] = []
 	for zone in _zones:
-		if bool(zone.get("allowsCardPlay", false)):
+		if bool(zone.get("playerCanPlayFrom", zone.get("allowsCardPlay", false))):
 			labels.append(zone_label(zone))
 	return " / ".join(labels) if not labels.is_empty() else _i18n.text("PLAYABLE CARDS")
 
@@ -32,7 +32,7 @@ func total_cards() -> int:
 func auxiliary_zones() -> Array:
 	var result: Array = []
 	for zone in _zones:
-		if not bool(zone.get("allowsCardPlay", false)):
+		if not bool(zone.get("playerCanPlayFrom", zone.get("allowsCardPlay", false))):
 			result.append(zone.duplicate(true))
 	return result
 

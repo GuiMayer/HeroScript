@@ -1,0 +1,18 @@
+{
+  "cardZoneSystemId": "participant-pool",
+  "zones": [
+    { "zoneId": "pool", "ownerScope": "RunOwner", "ordering": "Ordered", "visibility": { "contents": "All", "order": "Hidden" } },
+    { "zoneId": "pocket", "ownerScope": "Actor", "ordering": "Ordered", "allowsCardPlay": true, "visibility": { "contents": "Owner", "order": "Visible" } },
+    { "zoneId": "table", "ownerScope": "Global", "ordering": "Ordered", "allowsCardPlay": true, "visibility": { "contents": "All", "order": "Visible" } }
+  ],
+  "flows": [
+    {
+      "flowId": "deal-active", "triggers": ["activation.started"], "actorScope": "Any", "allowedInvocations": ["Boundary"],
+      "steps": [{ "stepId": "take", "operation": "Move", "sourceZoneId": "pool", "sourceOwner": "RunOwner", "targetZoneId": "pocket", "targetOwner": "ActiveActor", "selection": { "strategy": "First", "count": 1 } }]
+    },
+    {
+      "flowId": "return-active", "triggers": ["test.cleanup"], "allowedInvocations": ["Boundary"],
+      "steps": [{ "stepId": "return", "operation": "Move", "sourceZoneId": "pocket", "sourceOwner": "ActiveActor", "targetZoneId": "pool", "targetOwner": "RunOwner", "selection": { "strategy": "All" } }]
+    }
+  ]
+}

@@ -24,7 +24,8 @@ public sealed record CardZoneView(
     int Count,
     bool ContentsVisible,
     bool OrderVisible,
-    IReadOnlyList<CardZoneCardView> Cards);
+    IReadOnlyList<CardZoneCardView> Cards,
+    bool PlayerCanPlayFrom = false);
 
 public sealed record CardZoneCardView(
     Guid CardInstanceId,
@@ -76,7 +77,9 @@ public static class CardZoneReadModel
                     definition?.AllowsCardPlay ?? false,
                     visibility, definition?.Presentation ??
                         new Dictionary<string, JsonElement>(),
-                    zone.InstanceIds.Count, contentsVisible, orderVisible, cards);
+                    zone.InstanceIds.Count, contentsVisible, orderVisible, cards,
+                    definition is { AllowsCardPlay: true } &&
+                    CardZonePlaySource.CanPlayFrom(run, run.PlayerEntityId, zone.Address, definition));
             })
             .ToImmutableArray();
         return new CardZoneSnapshot(run.RunId, run.Sequence, run.Determinism.Step,

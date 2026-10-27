@@ -18,7 +18,7 @@ export class CardZonePresenter {
   playableCards(): JsonObject[] {
     const result: JsonObject[] = [];
     for (const zone of this._zones) {
-      if (Boolean(zone.allowsCardPlay) && Boolean(zone.contentsVisible)) {
+      if (Boolean(zone.playerCanPlayFrom ?? zone.allowsCardPlay) && Boolean(zone.contentsVisible)) {
         const cards = Array.isArray(zone.cards) ? (zone.cards as JsonObject[]) : [];
         result.push(...deepClone(cards));
       }
@@ -29,7 +29,7 @@ export class CardZonePresenter {
   playableLabel(): string {
     const labels: string[] = [];
     for (const zone of this._zones) {
-      if (Boolean(zone.allowsCardPlay)) {
+      if (Boolean(zone.playerCanPlayFrom ?? zone.allowsCardPlay)) {
         labels.push(this.zoneLabel(zone));
       }
     }
@@ -47,7 +47,7 @@ export class CardZonePresenter {
   auxiliaryZones(): JsonObject[] {
     const result: JsonObject[] = [];
     for (const zone of this._zones) {
-      if (!zone.allowsCardPlay) {
+      if (!(zone.playerCanPlayFrom ?? zone.allowsCardPlay)) {
         result.push(deepClone(zone));
       }
     }

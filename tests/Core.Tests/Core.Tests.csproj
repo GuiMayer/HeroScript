@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\Fixtures\participant-pool.json" Link="Fixtures\participant-pool.json" />
     <None Include="..\..\data\configs\default\Resources\formulas\math_formulas.json"
           CopyToOutputDirectory="PreserveNewest"
           Link="Resources\formulas\math_formulas.json" />

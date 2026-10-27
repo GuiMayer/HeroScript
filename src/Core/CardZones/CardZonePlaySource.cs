@@ -32,7 +32,7 @@ public static class CardZonePlaySource
     public static bool Contains(RunState run, string actorId, Guid instanceId) =>
         CardsForActor(run, actorId).Contains(instanceId);
 
-    private static bool CanPlayFrom(
+    internal static bool CanPlayFrom(
         RunState run, string actorId, CardZoneAddress address, CardZoneDefinition definition) =>
         definition.OwnerScope switch
         {
