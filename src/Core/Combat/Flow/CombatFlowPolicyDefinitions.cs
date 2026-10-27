@@ -12,6 +12,7 @@ public sealed record CombatFlowPoliciesDefinition
 {
     public ActivationSequencePolicy? ActivationSequence { get; init; }
     public ImmutableArray<GameplayQuery> Queries { get; init; } = [];
+    public ImmutableArray<CommandConditionDefinition> CommandConditions { get; init; } = [];
     public AutomaticResolutionPolicyDefinition AutomaticResolution { get; init; } = new();
     public ActionBudgetPolicyDefinition ActionBudget { get; init; } = new();
     public AiTurnPolicyDefinition Ai { get; init; } = new();
@@ -286,6 +287,11 @@ public static class CombatFlowPolicyValidator
                 "AfterResolutionStack outcome evaluation requires the PriorityStack reaction strategy");
         }
 
+        if (policies.CommandConditions.Any(rule => string.IsNullOrWhiteSpace(rule.RuleId) || rule.Commands.IsEmpty ||
+            string.IsNullOrWhiteSpace(rule.AllowCondition) || string.IsNullOrWhiteSpace(rule.FailureCode) ||
+            rule.ActorScope == FlowActorScope.Unspecified || !Enum.IsDefined(rule.ActorScope) ||
+            rule.Commands.Contains(Core.Combat.Models.ActionType.PLAY_CARD) && rule.Inputs.Any(input => input.Kind == GameplayQueryKind.HasBaseLegalCard)))
+            return Result.Failure("Invalid command condition or recursive card legality dependency");
         return ActivationSequencePolicy.Validate(policies.ActivationSequence);
     }
 }

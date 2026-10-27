@@ -101,6 +101,7 @@ public sealed record LegalActionSet
 
 public interface ILegalActionResolver
 {
+    Result ValidateConfiguredConditions(RunState run, CombatState combat, CombatActionCommand command, CombatCommandOrigin origin);
     Result<LegalActionEvaluation> Evaluate(
         RunState run,
         CombatState combat,
@@ -186,6 +187,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         CanonicalJson.ComputeHash(run) + ":" + CanonicalJson.ComputeHash(combat);
     private readonly IActionManager _actions;
     private readonly IContentRuntimeResolver _runtimes;
+    private readonly Core.Math.IRuntimeFormulaEvaluator? _conditionFormulas;
     private readonly ICardContentCompiler _cards;
     private readonly IEffectiveCardResolver _effectiveCards;
     private readonly ICardPlayEvaluator _cardLegality;
@@ -209,7 +211,8 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         IPhaseGraphReducer phases,
         IReactionFlowReducer reactions,
         IEffectTriggerExecutor effects,
-        bool coalesceEquivalentCardExecutions = true)
+        bool coalesceEquivalentCardExecutions = true,
+        Core.Math.IRuntimeFormulaEvaluator? conditionFormulas = null)
     {
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
@@ -222,6 +225,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         _reactions = reactions ?? throw new ArgumentNullException(nameof(reactions));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
         _coalesceEquivalentCardExecutions = coalesceEquivalentCardExecutions;
+        _conditionFormulas = conditionFormulas;
     }
 
     public Result<LegalActionEvaluation> Evaluate(
@@ -247,7 +251,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
 
     private Result<LegalActionEvaluation> EvaluateUncached(
         RunState run, CombatState combat, CombatActionCommand command, CombatCommandOrigin origin,
-        Dictionary<string, CardPlayExecutionResult>? executions = null)
+        Dictionary<string, CardPlayExecutionResult>? executions = null, bool conditions = true)
     {
         if (run.ResolvedMode == null)
             return Result<LegalActionEvaluation>.Failure("Run has no resolved game mode");
@@ -265,6 +269,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             CommandType(command));
         if (budget.IsFailure)
             return Illegal(budget.Error);
+        if (conditions) {
+            var configured = ValidateConfiguredConditions(run, combat, command, origin);
+            if (configured.IsFailure) return Illegal(configured.Error);
+        }
 
         return command.ActionType switch
         {
@@ -472,6 +480,39 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         if (candidate.IsFailure) return Result<LegalActionEvaluation>.Failure(candidate.Error);
         return FinalizeReaction(run, combat, effectiveCommand, origin, tags, candidate.Value,
             executed.Value.Evaluation);
+    }
+
+    public Result ValidateConfiguredConditions(RunState run, CombatState combat, CombatActionCommand command, CombatCommandOrigin origin)
+    {
+        foreach (var rule in run.ResolvedMode!.CombatRules.Flow.CommandConditions)
+        {
+            if (!rule.Commands.Contains(command.ActionType) || rule.ActionId != null && rule.ActionId != command.PowerId) continue;
+            var actor = combat.GetActor(command.ActorId);
+            if (actor == null) return Result.Failure("Command actor is unavailable");
+            var applies = rule.ActorScope switch {
+                FlowActorScope.All => true, FlowActorScope.RunOwner => actor.InstanceId == run.PlayerEntityId,
+                FlowActorScope.PlayerControlled => combat.ControllerOf(actor) == ControllerKind.Player,
+                FlowActorScope.AiControlled => combat.ControllerOf(actor) == ControllerKind.AI, _ => false };
+            if (!applies) continue;
+            var inputs = GameplayQueries.Evaluate(rule.Inputs, run, combat, actor.InstanceId, Targets(command).FirstOrDefault(), HasCard);
+            if (inputs.IsFailure) return Result.Failure(inputs.Error);
+            var variables = Core.Calculations.GameplayFormulaContext.Build(actor, combat.GetActor(Targets(command).FirstOrDefault() ?? ""), actor, run, inputs.Value);
+            if (_conditionFormulas == null) return Result.Failure("Command conditions require the shared formula evaluator");
+            var allowed = Core.Calculations.GameplayFormulaContext.Evaluate(_conditionFormulas, rule.AllowCondition, run.Determinism.ContentRevision, variables);
+            if (allowed.IsFailure) return Result.Failure(allowed.Error);
+            if (allowed.Value <= 0) return Result.Failure($"{rule.FailureCode}: {rule.MessageKey}");
+
+            Result<bool> HasCard()
+            {
+                foreach (var candidate in EnumerateCommands(run, combat, actor).Where(value => value.ActionType == ActionType.PLAY_CARD)) {
+                    var legal = EvaluateUncached(run, combat, candidate, origin, conditions: false);
+                    if (legal.IsFailure) return Result<bool>.Failure(legal.Error);
+                    if (legal.Value.IsLegal) return Result<bool>.Success(true);
+                }
+                return Result<bool>.Success(false);
+            }
+        }
+        return Result.Success();
     }
 
     private Result<LegalActionEvaluation> EvaluatePassive(

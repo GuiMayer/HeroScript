@@ -883,6 +883,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result.Failure($"Run not found: {runId}");
+            if (state.GetActiveEncounter()?.Combat.IsActive == true && state.ResolvedMode?.CombatRules.Flow.CommandConditions.IsEmpty == false)
+                return Result.Failure("During this combat, invoke authored actions through combat commands so activation conditions are enforced");
             var selected = request.CardInstanceIds ?? [];
             if (selected.Count != selected.Distinct().Count())
                 return Result.Failure("Card instance selected more than once");

@@ -23,7 +23,8 @@ public sealed class EffectsModelsTests
                 EffectType.APPLY_MODIFIER,
                 EffectType.REMOVE_MODIFIER,
                 EffectType.CONDENSE_STACKS,
-                EffectType.MODIFY_ATTRIBUTE
+                EffectType.MODIFY_ATTRIBUTE,
+                EffectType.TURN_SEQUENCE
             },
             Enum.GetValues<EffectType>());
     }

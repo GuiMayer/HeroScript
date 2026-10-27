@@ -23,6 +23,23 @@ namespace Core.Tests.Combat.LegalActions;
 public sealed class LegalActionResolverTests
 {
     [Fact]
+    public void ConfiguredPassiveConditionRejectsDirectAndDiscoveredCommandsWithoutMutation()
+    {
+        var (run, combat) = State(includeAbility: false);
+        run = run with { ResolvedMode = run.ResolvedMode! with { CombatRules = run.ResolvedMode.CombatRules with
+            { Flow = run.ResolvedMode.CombatRules.Flow with { CommandConditions = [new() {
+                RuleId = "must-draw", Commands = [ActionType.END_TURN, ActionType.PASS], ActorScope = FlowActorScope.All,
+                AllowCondition = "canEnd", FailureCode = "DRAW_REQUIRED", MessageKey = "rules.draw_required" }] } } } };
+        var formulas = new Mock<IRuntimeFormulaEvaluator>();
+        formulas.Setup(value => value.Evaluate("canEnd", It.IsAny<Dictionary<string, float>?>(), It.IsAny<float>())).Returns(Result<float>.Success(0));
+        var resolver = Resolver(new Mock<IAbilityExecutor>(), conditionFormulas: formulas.Object);
+        var hash = CanonicalJson.ComputeHash(combat);
+        var result = resolver.Evaluate(run, combat, new() { ActorId = "enemy", ActionType = ActionType.END_TURN }, CombatCommandOrigin.AutomaticController);
+        Assert.False(result.Value.IsLegal); Assert.Contains("DRAW_REQUIRED", Assert.Single(result.Value.FailureReasons));
+        Assert.Empty(resolver.Resolve(run, combat, "enemy", CombatCommandOrigin.AutomaticController).Value.Candidates);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(combat));
+    }
+    [Fact]
     public void Evaluate_RejectsAbilityNotOwnedByActorBeforeExecutor()
     {
         var (run, combat) = State(includeAbility: false);
@@ -317,7 +334,8 @@ public sealed class LegalActionResolverTests
     private static LegalActionResolver Resolver(
         Mock<IAbilityExecutor> abilities,
         bool priority = false,
-        Mock<IEffectTriggerExecutor>? effects = null)
+        Mock<IEffectTriggerExecutor>? effects = null,
+        IRuntimeFormulaEvaluator? conditionFormulas = null)
     {
         var actions = new Mock<IActionManager>();
         actions.Setup(service => service.GetDefinition("slash"))
@@ -338,7 +356,7 @@ public sealed class LegalActionResolverTests
             abilities.Object,
             new PhaseGraphReducer(Mock.Of<IRuntimeFormulaEvaluator>(), Mock.Of<IEffectTriggerExecutor>()),
             new ReactionFlowReducer(),
-            effects?.Object ?? Mock.Of<IEffectTriggerExecutor>());
+            effects?.Object ?? Mock.Of<IEffectTriggerExecutor>(), conditionFormulas: conditionFormulas);
     }
 
     private static (RunState Run, CombatState Combat) State(bool includeAbility, bool priority = false)

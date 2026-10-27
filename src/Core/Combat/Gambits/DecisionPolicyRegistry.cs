@@ -219,7 +219,7 @@ public sealed class GambitDecisionReducer
     {
         var target = PrimaryTarget(request.Combat, candidate);
         var variables = BuildVariables(request.Combat, actor, target);
-        var queries = Core.Combat.Flow.GameplayQueries.Evaluate(request.Run.ResolvedMode!.CombatRules.Flow.Queries,
+        var queries = Core.Combat.Flow.GameplayQueries.Evaluate(request.Run.ResolvedMode?.CombatRules.Flow.Queries ?? [],
             request.Run, request.Combat, actor.InstanceId, target?.InstanceId);
         if (queries.IsFailure) return Result<bool>.Failure(queries.Error);
         foreach (var pair in queries.Value) variables[pair.Key] = pair.Value;

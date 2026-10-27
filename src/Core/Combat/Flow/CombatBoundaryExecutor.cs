@@ -77,6 +77,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
     private readonly IPhaseGraphReducer _phases;
     private readonly ICombatOutcomeResolver _outcomes;
     private readonly ICardZoneFlowExecutor? _cardZoneFlows;
+    private readonly IActivationExitGuard? _exitGuard;
 
     public CombatBoundaryExecutor(
         ITurnOrderResolver turnOrder,
@@ -85,7 +86,8 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         ICombatResourceLifecycle resourceLifecycle,
         IPhaseGraphReducer phases,
         ICombatOutcomeResolver outcomes,
-        ICardZoneFlowExecutor? cardZoneFlows = null)
+        ICardZoneFlowExecutor? cardZoneFlows = null,
+        IActivationExitGuard? exitGuard = null)
     {
         _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
         _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
@@ -94,6 +96,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         _phases = phases ?? throw new ArgumentNullException(nameof(phases));
         _outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
         _cardZoneFlows = cardZoneFlows;
+        _exitGuard = exitGuard;
     }
 
     public Result<CombatInitializationResult> InitializeTransaction(
@@ -223,6 +226,11 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         ArgumentNullException.ThrowIfNull(sequence);
         ArgumentNullException.ThrowIfNull(policies);
         ArgumentNullException.ThrowIfNull(turnOrderPolicy);
+        if (!policies.CommandConditions.IsEmpty) {
+            if (_exitGuard == null) return Result<CombatFlowAdvanceResult>.Failure("Configured activation exit requires canonical legality services");
+            var gate = _exitGuard.Validate(run with { Deck = deck }, combat);
+            if (gate.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(gate.Error);
+        }
         return AdvanceWithLifecycle(
             run,
             combat,

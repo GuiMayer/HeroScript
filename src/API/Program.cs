@@ -431,6 +431,7 @@ builder.Services.AddSingleton<ICombatFactory>(sp => new CombatFactory(
 
 // Focused canonical combat-flow composition
 builder.Services.AddSingleton<ICombatOutcomeResolver, CombatOutcomeResolver>();
+builder.Services.AddSingleton<IActivationExitGuard, ActivationExitGuard>();
 builder.Services.AddSingleton<ICombatBoundaryExecutor>(sp => new CombatBoundaryExecutor(
     sp.GetRequiredService<ITurnOrderResolver>(),
     sp.GetRequiredService<ICombatStatusLifecycle>(),
@@ -438,7 +439,8 @@ builder.Services.AddSingleton<ICombatBoundaryExecutor>(sp => new CombatBoundaryE
     sp.GetRequiredService<ICombatResourceLifecycle>(),
     sp.GetRequiredService<IPhaseGraphReducer>(),
     sp.GetRequiredService<ICombatOutcomeResolver>(),
-    sp.GetRequiredService<ICardZoneFlowExecutor>()));
+    sp.GetRequiredService<ICardZoneFlowExecutor>(),
+    sp.GetRequiredService<IActivationExitGuard>()));
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<ICombatBoundaryExecutor>(),
