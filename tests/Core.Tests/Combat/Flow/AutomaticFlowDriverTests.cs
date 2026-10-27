@@ -110,7 +110,8 @@ public sealed class AutomaticFlowDriverTests
             {
                 Flow = new CombatFlowPoliciesDefinition
                 {
-                    AutomaticResolution = new AutomaticResolutionPolicyDefinition
+                    ActivationSequence = new() { Strategy = ActivationSequenceStrategy.PerRound },
+        AutomaticResolution = new AutomaticResolutionPolicyDefinition
                     {
                         Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,
                         MaxAutomaticSteps = maximumSteps

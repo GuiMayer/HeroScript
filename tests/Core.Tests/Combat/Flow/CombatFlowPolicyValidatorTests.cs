@@ -89,6 +89,7 @@ public sealed class CombatFlowPolicyValidatorTests
 
     private static CombatFlowPoliciesDefinition ValidPolicies() => new()
     {
+        ActivationSequence = new() { Strategy = ActivationSequenceStrategy.PerRound },
         AutomaticResolution = new()
         {
             Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,

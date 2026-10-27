@@ -20,13 +20,18 @@
         "actionCosts": "Ignore",
         "actorScope": "PlayerControlled",
         "maxActionsPerActivation": 2,
-        "consumingCommands": ["PLAY_CARD"]
+        "consumingCommands": [
+          "PLAY_CARD"
+        ]
       },
       "ai": {
         "enabled": true,
         "autoEndAfterAction": true,
         "publishIntents": true,
-        "decisionIds": ["enemy_basic_attack", "enemy_end_turn"],
+        "decisionIds": [
+          "enemy_basic_attack",
+          "enemy_end_turn"
+        ],
         "intent": {
           "refresh": "RecomputeOnPublish",
           "whenInvalid": "Recompute"
@@ -38,7 +43,12 @@
         "startActivation": "Preserve"
       },
       "statusTiming": {
-        "boundaries": ["StartRound", "StartActivation", "EndActivation", "EndRound"],
+        "boundaries": [
+          "StartRound",
+          "StartActivation",
+          "EndActivation",
+          "EndRound"
+        ],
         "ordering": "PriorityThenInstanceId"
       },
       "outcome": {
@@ -56,6 +66,9 @@
       },
       "reactions": {
         "strategy": "Disabled"
+      },
+      "activationSequence": {
+        "strategy": "PerRound"
       }
     }
   }

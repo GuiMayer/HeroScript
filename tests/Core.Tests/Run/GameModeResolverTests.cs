@@ -242,7 +242,8 @@ public sealed class GameModeResolverTests
         },
         Flow = new CombatFlowPoliciesDefinition
         {
-            AutomaticResolution = new()
+            ActivationSequence = new() { Strategy = ActivationSequenceStrategy.PerRound },
+        AutomaticResolution = new()
             {
                 Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,
                 MaxAutomaticSteps = 100

@@ -10,6 +10,7 @@ namespace Core.Combat.Flow;
 /// </summary>
 public sealed record CombatFlowPoliciesDefinition
 {
+    public ActivationSequencePolicy? ActivationSequence { get; init; }
     public AutomaticResolutionPolicyDefinition AutomaticResolution { get; init; } = new();
     public ActionBudgetPolicyDefinition ActionBudget { get; init; } = new();
     public AiTurnPolicyDefinition Ai { get; init; } = new();
@@ -284,6 +285,6 @@ public static class CombatFlowPolicyValidator
                 "AfterResolutionStack outcome evaluation requires the PriorityStack reaction strategy");
         }
 
-        return Result.Success();
+        return ActivationSequencePolicy.Validate(policies.ActivationSequence);
     }
 }

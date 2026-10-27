@@ -91,6 +91,9 @@
       },
       "reactions": {
         "strategy": "Disabled"
+      },
+      "activationSequence": {
+        "strategy": "PerRound"
       }
     }
   }

@@ -267,6 +267,7 @@ public sealed class CombatRunCoordinatorTests
 
     private static CombatFlowPoliciesDefinition CanonicalPolicies() => new()
     {
+        ActivationSequence = new() { Strategy = ActivationSequenceStrategy.PerRound },
         AutomaticResolution = new()
         {
             Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,

@@ -20,7 +20,9 @@
         "actionCosts": "Configured",
         "actorScope": "PlayerControlled",
         "resourceId": "energy",
-        "consumingCommands": ["PLAY_CARD"]
+        "consumingCommands": [
+          "PLAY_CARD"
+        ]
       },
       "ai": {
         "enabled": true,
@@ -46,7 +48,12 @@
         "startActivation": "ResetToMax"
       },
       "statusTiming": {
-        "boundaries": ["StartRound", "StartActivation", "EndActivation", "EndRound"],
+        "boundaries": [
+          "StartRound",
+          "StartActivation",
+          "EndActivation",
+          "EndRound"
+        ],
         "ordering": "PriorityThenInstanceId"
       },
       "outcome": {
@@ -64,6 +71,9 @@
       },
       "reactions": {
         "strategy": "Disabled"
+      },
+      "activationSequence": {
+        "strategy": "PerRound"
       }
     }
   }

@@ -6,6 +6,9 @@ namespace Core.Tests.Combat.Flow;
 
 public sealed class ActivationSequenceContractTests
 {
+    [Fact]
+    public void MissingPolicyIsNotAnImplicitPerRoundDefault() => Assert.True(ActivationSequencePolicy.Validate(null).IsFailure);
+
     [Theory]
     [InlineData("PerRound")]
     [InlineData("Circular")]
