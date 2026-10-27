@@ -381,6 +381,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         if (phase.IsFailure) return Illegal(phase.Error);
         var evaluation = _cardLegality.Evaluate(effective.Value, combat, new CardPlayRequest
         {
+            Run = run,
             ActorId = command.ActorId,
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,

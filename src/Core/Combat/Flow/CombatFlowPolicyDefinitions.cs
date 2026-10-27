@@ -11,6 +11,7 @@ namespace Core.Combat.Flow;
 public sealed record CombatFlowPoliciesDefinition
 {
     public ActivationSequencePolicy? ActivationSequence { get; init; }
+    public ImmutableArray<GameplayQuery> Queries { get; init; } = [];
     public AutomaticResolutionPolicyDefinition AutomaticResolution { get; init; } = new();
     public ActionBudgetPolicyDefinition ActionBudget { get; init; } = new();
     public AiTurnPolicyDefinition Ai { get; init; } = new();

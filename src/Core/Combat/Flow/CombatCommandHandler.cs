@@ -102,6 +102,17 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
                 resolvedCommand,
                 policies.ActionBudget,
                 CommandType(resolvedCommand));
+        if (resolvedCommand != null && combat.ActivationState is { } factsActivation && factsActivation.ActiveActorId == resolvedCommand.ActorId)
+        {
+            var facts = factsActivation.Facts;
+            var actionId = resolvedCommand.PowerId ?? resolvedCommand.ActionType.ToString();
+            facts = facts.SetItem("command:" + actionId, checked(facts.GetValueOrDefault("command:" + actionId) + 1));
+            foreach (var step in cardZoneSteps.Concat(candidate.Applications.SelectMany(application => application.CardZoneSteps))) {
+                var key = "moved:" + step.FlowId;
+                facts = facts.SetItem(key, checked(facts.GetValueOrDefault(key) + step.InstanceIds.Length));
+            }
+            combat = combat with { ActivationState = factsActivation with { Facts = facts } };
+        }
         combat = _outcomes.Evaluate(
             combat,
             policies.Outcome,

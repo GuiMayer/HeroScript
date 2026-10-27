@@ -10,6 +10,8 @@ namespace Core.Run.Content;
 
 public sealed record CardPlayRequest
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public RunState? Run { get; init; }
     private ImmutableArray<string> _selectedTargetIds = [];
     private ImmutableDictionary<string, float> _variables =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
@@ -147,6 +149,11 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             ? null
             : combat.GetActor(conditionTargetId);
         var variables = BuildVariables(actor, conditionTarget, request.Variables);
+        if (request.Run?.ResolvedMode is { } mode) {
+            var queries = Core.Combat.Flow.GameplayQueries.Evaluate(mode.CombatRules.Flow.Queries, request.Run, combat, actor.InstanceId, conditionTarget?.InstanceId);
+            if (queries.IsFailure) return Result<CardPlayEvaluation>.Failure(queries.Error);
+            foreach (var pair in queries.Value) variables[pair.Key] = pair.Value;
+        }
 
         var conditionTraces = ImmutableArray.CreateBuilder<CardConditionTrace>();
         foreach (var condition in card.All<CardConditionComponentDefinition>())

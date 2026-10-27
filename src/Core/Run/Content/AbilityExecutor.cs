@@ -98,6 +98,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
             request.Combat,
             new CardPlayRequest
             {
+                Run = request.Run,
                 ActorId = request.ActorId,
                 SelectedTargetIds = request.SelectedTargetIds,
                 CostOptionId = request.CostOptionId,

@@ -87,7 +87,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
-        => Execute(request, null, new ExecutionBudget(), suppressReactions: false);
+    {
+        try { return Execute(request, null, new ExecutionBudget(), suppressReactions: false); }
+        catch (GameplayQueryException exception) { return Result<EffectBatchResult>.Failure(exception.Message); }
+    }
+
+    private sealed class GameplayQueryException(string message) : Exception(message);
 
     private sealed class ExecutionBudget { public int Work; }
 
@@ -1087,8 +1092,14 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         string targetId)
     {
         var source = combat.GetActor(request.SourceEntityId) ?? combat.GetActor(request.OwnerEntityId)!;
-        return GameplayFormulaContext.Build(source, combat.GetActor(targetId),
+        var variables = GameplayFormulaContext.Build(source, combat.GetActor(targetId),
             combat.GetActor(request.OwnerEntityId)!, request.Run, request.Variables);
+        if (request.Run?.ResolvedMode is { } mode) {
+            var queries = Core.Combat.Flow.GameplayQueries.Evaluate(mode.CombatRules.Flow.Queries, request.Run, combat, source.InstanceId, targetId);
+            if (queries.IsFailure) throw new GameplayQueryException(queries.Error);
+            foreach (var pair in queries.Value) variables[pair.Key] = pair.Value;
+        }
+        return variables;
     }
 
     private sealed record ResolvedAmount(

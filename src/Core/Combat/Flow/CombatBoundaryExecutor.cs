@@ -619,6 +619,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             ActivationOrder = nextOrder,
             CompletedActorIds = nextCompleted,
             Circular = circular,
+            Facts = ImmutableSortedDictionary<string, int>.Empty.WithComparers(StringComparer.Ordinal),
             WaitingForInput = IsPlayerActor(refreshed.Value, nextActorId),
             StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
         };

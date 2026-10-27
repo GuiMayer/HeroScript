@@ -10,6 +10,8 @@ public sealed record CardZoneFlowContext
     // Captured structural context only. Not persisted or hashed as part of zone flow input.
     [System.Text.Json.Serialization.JsonIgnore]
     public RunState? RunSnapshot { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Core.Combat.Models.CombatState? CombatSnapshot { get; init; }
     private ImmutableArray<Guid> _cardInstanceIds = [];
     private ImmutableArray<string> _cardDefinitionIds = [];
     private ImmutableDictionary<string, double> _variables =
@@ -259,6 +261,8 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         var currentContext = deterministicContext;
         foreach (var step in flow.Steps)
         {
+            if (context.RunSnapshot is { } snapshot)
+                context = context with { RunSnapshot = snapshot with { Deck = snapshot.Deck with { Topology = currentState } } };
             if (!string.IsNullOrWhiteSpace(step.Condition))
             {
                 var condition = _rules.EvaluateCondition(step.Condition, context);
@@ -283,6 +287,8 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         ImmutableArray<CardZoneFlowStepRecord>.Builder records,
         int depth)
     {
+        if (context.RunSnapshot is { } snapshot)
+            context = context with { RunSnapshot = snapshot with { Deck = snapshot.Deck with { Topology = state } } };
         if (step.Operation == CardZoneOperation.ExecuteFlow)
             return ExecuteInternal(system, state, deterministicContext, step.NestedFlowId!, context, records, depth + 1);
         var source = ResolveAddress(step.SourceZoneId, step.SourceOwner, context);
