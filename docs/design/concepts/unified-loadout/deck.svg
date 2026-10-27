@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img"><title>HeroScript unified loadout concept — Deck</title>
+<rect x="0" y="0" width="1600" height="1000" fill="#f1ecdf" stroke="#f1ecdf"/>
+<text x="40" y="39" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">CHARACTER / ASCENDANT MATRIX</text>
+<text x="40" y="88" font-family="Georgia" font-size="38" font-weight="bold" fill="#24251f" text-anchor="start">LOADOUT</text>
+<text x="285" y="83" font-family="Arial" font-size="23" font-weight="normal" fill="#24251f" text-anchor="start">Matrix Wanderer</text>
+<text x="285" y="108" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">Current run  ·  Outside combat</text>
+<rect x="1404" y="44" width="156" height="44" fill="#f1ecdf" stroke="#24251f"/>
+<text x="1482" y="72" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="middle">← BACK</text>
+<rect x="40" y="138" width="160" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="56" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#24251f" text-anchor="start">Overview</text>
+<rect x="208" y="138" width="184" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="224" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#24251f" text-anchor="start">Inscriptions</text>
+<rect x="400" y="138" width="156" height="50" fill="#24251f" stroke="#24251f"/>
+<text x="416" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#faf7ef" text-anchor="start">Deck</text>
+<rect x="564" y="138" width="156" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="580" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#24251f" text-anchor="start">Relics</text>
+<rect x="728" y="138" width="212" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="744" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#6e7067" text-anchor="start">Companions</text>
+<text x="928" y="169" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="end">SOON</text>
+<text x="1560" y="169" font-family="Consolas" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="end">RUN EQUIPMENT</text>
+<rect x="1192" y="216" width="368" height="724" fill="#faf7ef" stroke="#bcb7aa"/>
+<text x="1218" y="250" font-family="Consolas" font-size="13" font-weight="normal" fill="#b73d27" text-anchor="start">CHARACTER</text>
+<text x="1218" y="286" font-family="Georgia" font-size="25" font-weight="bold" fill="#24251f" text-anchor="start">Matrix Wanderer</text>
+<path d="M1218 310 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="341" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">EQUIPPED ATTRIBUTES</text>
+<text x="1218" y="379" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Maximum health</text>
+<text x="1534" y="379" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">100</text>
+<path d="M1218 394 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="424" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Energy / turn</text>
+<text x="1534" y="424" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">3</text>
+<path d="M1218 439 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="469" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Armor</text>
+<text x="1534" y="469" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">24</text>
+<path d="M1218 484 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="514" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Dodge chance</text>
+<text x="1534" y="514" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">0%</text>
+<path d="M1218 529 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="559" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Critical chance</text>
+<text x="1534" y="559" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">150%</text>
+<path d="M1218 574 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="604" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Critical bonus / tier</text>
+<text x="1534" y="604" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">+100%</text>
+<path d="M1218 619 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="688" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">TAG BONUSES</text>
+<text x="1218" y="726" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Fire effects</text>
+<text x="1534" y="726" font-family="Consolas" font-size="19" font-weight="normal" fill="#24251f" text-anchor="end">+25%</text>
+<text x="1218" y="765" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Poison effects</text>
+<text x="1534" y="765" font-family="Consolas" font-size="19" font-weight="normal" fill="#24251f" text-anchor="end">+10%</text>
+<text x="1218" y="820" font-family="Arial" font-size="16" font-weight="normal" fill="#b73d27" text-anchor="start">Attribute sources →</text>
+<text x="1218" y="865" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">Temporary combat effects are</text>
+<text x="1218" y="885" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">shown separately when relevant.</text>
+<path d="M40 960 H1560" stroke="#bcb7aa"/>
+<text x="40" y="985" font-family="Consolas" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="start">CONCEPT / ILLUSTRATIVE VALUES</text>
+<text x="780" y="985" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">TAB  Navigate    ENTER  Select    ESC  Back</text>
+<text x="1560" y="985" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="end">UI proposal — no gameplay changes</text>
+<rect x="40" y="216" width="324" height="724" fill="#faf7ef" stroke="#bcb7aa"/>
+<text x="56" y="250" font-family="Consolas" font-size="13" font-weight="normal" fill="#b73d27" text-anchor="start">CURRENT DECK</text>
+<text x="56" y="291" font-family="Georgia" font-size="32" font-weight="bold" fill="#24251f" text-anchor="start">18 cards</text>
+<rect x="56" y="315" width="292" height="42" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="343" font-family="Arial" font-size="16" font-weight="normal" fill="#6e7067" text-anchor="start">Search cards…</text>
+<text x="56" y="393" font-family="Consolas" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="start">FILTER BY</text>
+<rect x="56" y="410" width="292" height="36" fill="#24251f" stroke="#24251f"/>
+<text x="72" y="434" font-family="Arial" font-size="16" font-weight="normal" fill="#faf7ef" text-anchor="start">All cards</text>
+<rect x="56" y="454" width="292" height="36" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="478" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Attack</text>
+<rect x="56" y="498" width="292" height="36" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="522" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Defense</text>
+<rect x="56" y="542" width="292" height="36" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="566" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Utility</text>
+<rect x="56" y="586" width="292" height="36" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="610" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Fire</text>
+<rect x="56" y="630" width="292" height="36" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="654" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Poison</text>
+<text x="56" y="720" font-family="Consolas" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="start">ENERGY COSTS</text>
+<rect x="68" y="812" width="28" height="20" fill="#24251f" stroke="#24251f"/>
+<text x="82" y="853" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="middle">0</text>
+<rect x="120" y="764" width="28" height="68" fill="#24251f" stroke="#24251f"/>
+<text x="134" y="853" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="middle">1</text>
+<rect x="172" y="788" width="28" height="44" fill="#24251f" stroke="#24251f"/>
+<text x="186" y="853" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="middle">2</text>
+<rect x="224" y="802" width="28" height="30" fill="#24251f" stroke="#24251f"/>
+<text x="238" y="853" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="middle">3</text>
+<rect x="276" y="820" width="28" height="12" fill="#24251f" stroke="#24251f"/>
+<text x="290" y="853" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="middle">4+</text>
+<text x="56" y="907" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">Display data only · No power score</text>
+<text x="394" y="250" font-family="Consolas" font-size="13" font-weight="normal" fill="#b73d27" text-anchor="start">CARDS</text>
+<text x="562" y="250" font-family="Arial" font-size="16" font-weight="normal" fill="#6e7067" text-anchor="start">Compartments</text>
+<text x="750" y="250" font-family="Arial" font-size="16" font-weight="normal" fill="#6e7067" text-anchor="start">Card modifiers</text>
+<path d="M394 268 H1158" stroke="#bcb7aa"/>
+<text x="1158" y="299" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="end">Sort: Cost ↑</text>
+<rect x="394" y="321" width="244" height="248" fill="#faf7ef" stroke="#24251f"/>
+<text x="408" y="352" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">Strike</text>
+<path d="M423 364 L437 378 L423 392 L409 378 Z" fill="#24251f"/>
+<text x="423" y="384" font-family="Arial" font-size="17" font-weight="bold" fill="#faf7ef" text-anchor="middle">1</text>
+<rect x="408" y="403" width="216" height="65" fill="#f1ecdf" stroke="#bcb7aa"/>
+<path d="M503 448 L529 422 M503 422 L529 448" stroke="#24251f" stroke-width="2"/>
+<text x="408" y="490" font-family="Consolas" font-size="12" font-weight="normal" fill="#b73d27" text-anchor="start">ATTACK</text>
+<text x="408" y="518" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Deal 8 damage.</text>
+<text x="408" y="542" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start"></text>
+<rect x="654" y="321" width="244" height="248" fill="#faf7ef" stroke="#24251f"/>
+<text x="668" y="352" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">Kindle</text>
+<path d="M683 364 L697 378 L683 392 L669 378 Z" fill="#24251f"/>
+<text x="683" y="384" font-family="Arial" font-size="17" font-weight="bold" fill="#faf7ef" text-anchor="middle">1</text>
+<rect x="668" y="403" width="216" height="65" fill="#f1ecdf" stroke="#bcb7aa"/>
+<path d="M776 419 L788 435 L776 451 L764 435 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="668" y="490" font-family="Consolas" font-size="12" font-weight="normal" fill="#b73d27" text-anchor="start">ATTACK · FIRE</text>
+<text x="668" y="518" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Deal 5 damage.</text>
+<text x="668" y="542" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Apply 2 Burn.</text>
+<rect x="914" y="321" width="244" height="248" fill="#faf7ef" stroke="#24251f"/>
+<text x="928" y="352" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">Guard</text>
+<path d="M943 364 L957 378 L943 392 L929 378 Z" fill="#24251f"/>
+<text x="943" y="384" font-family="Arial" font-size="17" font-weight="bold" fill="#faf7ef" text-anchor="middle">1</text>
+<rect x="928" y="403" width="216" height="65" fill="#f1ecdf" stroke="#bcb7aa"/>
+<path d="M1023 421 L1049 421 L1047 441 L1036 452 L1025 441 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="928" y="490" font-family="Consolas" font-size="12" font-weight="normal" fill="#b73d27" text-anchor="start">SKILL</text>
+<text x="928" y="518" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Gain 8 Block.</text>
+<text x="928" y="542" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start"></text>
+<rect x="394" y="590" width="244" height="248" fill="#faf7ef" stroke="#24251f"/>
+<text x="408" y="621" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">Condense</text>
+<path d="M423 633 L437 647 L423 661 L409 647 Z" fill="#24251f"/>
+<text x="423" y="653" font-family="Arial" font-size="17" font-weight="bold" fill="#faf7ef" text-anchor="middle">2</text>
+<rect x="408" y="672" width="216" height="65" fill="#f1ecdf" stroke="#bcb7aa"/>
+<path d="M516 688 L528 704 L516 720 L504 704 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="408" y="759" font-family="Consolas" font-size="12" font-weight="normal" fill="#b73d27" text-anchor="start">SKILL</text>
+<text x="408" y="787" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Release accumulated</text>
+<text x="408" y="811" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">stacks in one proc.</text>
+<rect x="654" y="590" width="244" height="248" fill="#faf7ef" stroke="#24251f"/>
+<text x="668" y="621" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">Overcharge</text>
+<path d="M683 633 L697 647 L683 661 L669 647 Z" fill="#24251f"/>
+<text x="683" y="653" font-family="Arial" font-size="17" font-weight="bold" fill="#faf7ef" text-anchor="middle">0</text>
+<rect x="668" y="672" width="216" height="65" fill="#f1ecdf" stroke="#bcb7aa"/>
+<path d="M763 717 L789 691 M763 691 L789 717" stroke="#24251f" stroke-width="2"/>
+<text x="668" y="759" font-family="Consolas" font-size="12" font-weight="normal" fill="#b73d27" text-anchor="start">UTILITY</text>
+<text x="668" y="787" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Gain 2 Energy.</text>
+<text x="668" y="811" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Exile after use.</text>
+<rect x="914" y="590" width="244" height="248" fill="#faf7ef" stroke="#24251f"/>
+<text x="928" y="621" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">Stoke</text>
+<path d="M943 633 L957 647 L943 661 L929 647 Z" fill="#24251f"/>
+<text x="943" y="653" font-family="Arial" font-size="17" font-weight="bold" fill="#faf7ef" text-anchor="middle">1</text>
+<rect x="928" y="672" width="216" height="65" fill="#f1ecdf" stroke="#bcb7aa"/>
+<path d="M1036 688 L1048 704 L1036 720 L1024 704 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="928" y="759" font-family="Consolas" font-size="12" font-weight="normal" fill="#b73d27" text-anchor="start">SKILL · FIRE</text>
+<text x="928" y="787" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">Increase Fire stacks.</text>
+<text x="928" y="811" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="start">See conditions.</text>
+<text x="394" y="902" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">Selected card opens the shared card inspector.</text>
+<text x="394" y="927" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">Compartments grant components; draw/hand/discard remain separate.</text>
+</svg>

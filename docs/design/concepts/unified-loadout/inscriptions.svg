@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img"><title>HeroScript unified loadout concept — Inscriptions</title>
+<rect x="0" y="0" width="1600" height="1000" fill="#f1ecdf" stroke="#f1ecdf"/>
+<text x="40" y="39" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">CHARACTER / ASCENDANT MATRIX</text>
+<text x="40" y="88" font-family="Georgia" font-size="38" font-weight="bold" fill="#24251f" text-anchor="start">LOADOUT</text>
+<text x="285" y="83" font-family="Arial" font-size="23" font-weight="normal" fill="#24251f" text-anchor="start">Matrix Wanderer</text>
+<text x="285" y="108" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">Current run  ·  Outside combat</text>
+<rect x="1404" y="44" width="156" height="44" fill="#f1ecdf" stroke="#24251f"/>
+<text x="1482" y="72" font-family="Arial" font-size="16" font-weight="normal" fill="#24251f" text-anchor="middle">← BACK</text>
+<rect x="40" y="138" width="160" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="56" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#24251f" text-anchor="start">Overview</text>
+<rect x="208" y="138" width="184" height="50" fill="#24251f" stroke="#24251f"/>
+<text x="224" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#faf7ef" text-anchor="start">Inscriptions</text>
+<rect x="400" y="138" width="156" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="416" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#24251f" text-anchor="start">Deck</text>
+<rect x="564" y="138" width="156" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="580" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#24251f" text-anchor="start">Relics</text>
+<rect x="728" y="138" width="212" height="50" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="744" y="169" font-family="Arial" font-size="19" font-weight="normal" fill="#6e7067" text-anchor="start">Companions</text>
+<text x="928" y="169" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="end">SOON</text>
+<text x="1560" y="169" font-family="Consolas" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="end">RUN EQUIPMENT</text>
+<rect x="1192" y="216" width="368" height="724" fill="#faf7ef" stroke="#bcb7aa"/>
+<text x="1218" y="250" font-family="Consolas" font-size="13" font-weight="normal" fill="#b73d27" text-anchor="start">CHARACTER</text>
+<text x="1218" y="286" font-family="Georgia" font-size="25" font-weight="bold" fill="#24251f" text-anchor="start">Matrix Wanderer</text>
+<path d="M1218 310 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="341" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">EQUIPPED ATTRIBUTES</text>
+<text x="1218" y="379" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Maximum health</text>
+<text x="1534" y="379" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">100</text>
+<path d="M1218 394 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="424" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Energy / turn</text>
+<text x="1534" y="424" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">3</text>
+<path d="M1218 439 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="469" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Armor</text>
+<text x="1534" y="469" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">24</text>
+<path d="M1218 484 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="514" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Dodge chance</text>
+<text x="1534" y="514" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">0%</text>
+<path d="M1218 529 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="559" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Critical chance</text>
+<text x="1534" y="559" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">150%</text>
+<path d="M1218 574 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="604" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Critical bonus / tier</text>
+<text x="1534" y="604" font-family="Consolas" font-size="20" font-weight="bold" fill="#24251f" text-anchor="end">+100%</text>
+<path d="M1218 619 H1534" stroke="#bcb7aa"/>
+<text x="1218" y="688" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">TAG BONUSES</text>
+<text x="1218" y="726" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Fire effects</text>
+<text x="1534" y="726" font-family="Consolas" font-size="19" font-weight="normal" fill="#24251f" text-anchor="end">+25%</text>
+<text x="1218" y="765" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Poison effects</text>
+<text x="1534" y="765" font-family="Consolas" font-size="19" font-weight="normal" fill="#24251f" text-anchor="end">+10%</text>
+<text x="1218" y="820" font-family="Arial" font-size="16" font-weight="normal" fill="#b73d27" text-anchor="start">Attribute sources →</text>
+<text x="1218" y="865" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">Temporary combat effects are</text>
+<text x="1218" y="885" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="start">shown separately when relevant.</text>
+<path d="M40 960 H1560" stroke="#bcb7aa"/>
+<text x="40" y="985" font-family="Consolas" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="start">CONCEPT / ILLUSTRATIVE VALUES</text>
+<text x="780" y="985" font-family="Consolas" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">TAB  Navigate    ENTER  Select    ESC  Back</text>
+<text x="1560" y="985" font-family="Arial" font-size="12" font-weight="normal" fill="#6e7067" text-anchor="end">UI proposal — no gameplay changes</text>
+<rect x="40" y="216" width="324" height="724" fill="#faf7ef" stroke="#bcb7aa"/>
+<text x="56" y="250" font-family="Consolas" font-size="13" font-weight="normal" fill="#b73d27" text-anchor="start">COLLECTION</text>
+<rect x="56" y="272" width="292" height="42" fill="#f1ecdf" stroke="#bcb7aa"/>
+<text x="72" y="299" font-family="Arial" font-size="16" font-weight="normal" fill="#6e7067" text-anchor="start">Search inscriptions…</text>
+<text x="56" y="344" font-family="Arial" font-size="15" font-weight="normal" fill="#24251f" text-anchor="start">All  ·  Critical  ·  Defense</text>
+<rect x="56" y="366" width="292" height="90" fill="#faf7ef" stroke="#b73d27"/>
+<path d="M87 387 L99 403 L87 419 L75 403 Z" fill="none" stroke="#b73d27" stroke-width="2"/>
+<text x="114" y="395" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="start">Serrated focus</text>
+<text x="114" y="422" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">+30 pp Critical chance</text>
+<text x="114" y="443" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="start">CAPACITY 3</text>
+<rect x="56" y="470" width="292" height="90" fill="#faf7ef" stroke="#bcb7aa"/>
+<path d="M74 493 L100 493 L98 513 L87 524 L76 513 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="114" y="499" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="start">Tempered shell</text>
+<text x="114" y="526" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">+12 Armor</text>
+<text x="114" y="547" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="start">CAPACITY 3</text>
+<rect x="56" y="574" width="292" height="90" fill="#faf7ef" stroke="#bcb7aa"/>
+<path d="M87 595 L99 611 L87 627 L75 611 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="114" y="603" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="start">Living ember</text>
+<text x="114" y="630" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">+25% Fire effects</text>
+<text x="114" y="651" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="start">CAPACITY 2</text>
+<rect x="56" y="678" width="292" height="90" fill="#faf7ef" stroke="#bcb7aa"/>
+<path d="M74 701 L100 701 L98 721 L87 732 L76 721 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="114" y="707" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="start">Deep reserve</text>
+<text x="114" y="734" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">+15 Maximum health</text>
+<text x="114" y="755" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="start">CAPACITY 2</text>
+<rect x="56" y="782" width="292" height="90" fill="#faf7ef" stroke="#bcb7aa"/>
+<path d="M74 832 L100 806 M74 806 L100 832" stroke="#24251f" stroke-width="2"/>
+<text x="114" y="811" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="start">Keen edge</text>
+<text x="114" y="838" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">+50 pp Critical bonus</text>
+<text x="114" y="859" font-family="Consolas" font-size="11" font-weight="normal" fill="#6e7067" text-anchor="start">CAPACITY 2</text>
+<text x="56" y="913" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="start">5 items  ·  Owned by this character</text>
+<text x="394" y="250" font-family="Consolas" font-size="13" font-weight="normal" fill="#b73d27" text-anchor="start">EQUIPPED INSCRIPTIONS</text>
+<text x="1158" y="250" font-family="Consolas" font-size="15" font-weight="normal" fill="#24251f" text-anchor="end">CAPACITY  8 / 12</text>
+<rect x="394" y="270" width="764" height="6" fill="#ded9ce" stroke="#ded9ce"/>
+<rect x="394" y="270" width="510" height="6" fill="#24251f" stroke="#24251f"/>
+<rect x="394" y="300" width="244" height="150" fill="#faf7ef" stroke="#b73d27"/>
+<path d="M516 331 L528 347 L516 363 L504 347 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="516" y="400" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="middle">Serrated focus</text>
+<text x="516" y="427" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">3 capacity</text>
+<rect x="654" y="300" width="244" height="150" fill="#faf7ef" stroke="#bcb7aa"/>
+<path d="M763 333 L789 333 L787 353 L776 364 L765 353 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="776" y="400" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="middle">Tempered shell</text>
+<text x="776" y="427" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">3 capacity</text>
+<rect x="914" y="300" width="244" height="150" fill="#faf7ef" stroke="#bcb7aa"/>
+<path d="M1036 331 L1048 347 L1036 363 L1024 347 Z" fill="none" stroke="#24251f" stroke-width="2"/>
+<text x="1036" y="400" font-family="Arial" font-size="18" font-weight="bold" fill="#24251f" text-anchor="middle">Living ember</text>
+<text x="1036" y="427" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">2 capacity</text>
+<rect x="394" y="472" width="244" height="150" fill="#d9e0d6" stroke="#bcb7aa"/>
+<text x="516" y="531" font-family="Arial" font-size="34" font-weight="normal" fill="#6e7067" text-anchor="middle">+</text>
+<text x="516" y="572" font-family="Arial" font-size="18" font-weight="normal" fill="#24251f" text-anchor="middle">Empty slot</text>
+<text x="516" y="599" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">Drop inscription here</text>
+<rect x="654" y="472" width="244" height="150" fill="#d9e0d6" stroke="#bcb7aa"/>
+<text x="776" y="531" font-family="Arial" font-size="34" font-weight="normal" fill="#6e7067" text-anchor="middle">+</text>
+<text x="776" y="572" font-family="Arial" font-size="18" font-weight="normal" fill="#24251f" text-anchor="middle">Empty slot</text>
+<text x="776" y="599" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">Drop inscription here</text>
+<rect x="914" y="472" width="244" height="150" fill="#d9e0d6" stroke="#bcb7aa"/>
+<text x="1036" y="531" font-family="Arial" font-size="34" font-weight="normal" fill="#6e7067" text-anchor="middle">+</text>
+<text x="1036" y="572" font-family="Arial" font-size="18" font-weight="normal" fill="#24251f" text-anchor="middle">Empty slot</text>
+<text x="1036" y="599" font-family="Arial" font-size="13" font-weight="normal" fill="#6e7067" text-anchor="middle">Drop inscription here</text>
+<path d="M394 654 H1158" stroke="#bcb7aa"/>
+<text x="394" y="690" font-family="Georgia" font-size="23" font-weight="bold" fill="#24251f" text-anchor="start">SERRATED FOCUS</text>
+<text x="394" y="726" font-family="Arial" font-size="17" font-weight="normal" fill="#24251f" text-anchor="start">Character attribute: +30 percentage points of critical chance.</text>
+<text x="394" y="757" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">Equipped in slot 01 · Uses 3 inscription capacity.</text>
+<text x="394" y="805" font-family="Arial" font-size="15" font-weight="normal" fill="#6e7067" text-anchor="start">Select to inspect. Drag, or select an item and then a slot to equip.</text>
+<rect x="394" y="851" width="130" height="44" fill="#f1ecdf" stroke="#24251f"/>
+<text x="459" y="879" font-family="Arial" font-size="15" font-weight="normal" fill="#24251f" text-anchor="middle">REMOVE</text>
+<text x="1158" y="920" font-family="Arial" font-size="14" font-weight="normal" fill="#6e7067" text-anchor="end">✓ Equipment saved</text>
+</svg>
