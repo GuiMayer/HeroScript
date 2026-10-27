@@ -14,6 +14,8 @@ var character_attributes := {}
 var modifier_items := {}
 var allocations: Array = []
 func activity_choices() -> Array: return []
+func read_loadout_info() -> Dictionary:
+	return {"ok": true, "data": {"relics": {"relics": []}, "attributes": snapshot().attributes}}
 func load_collection_presentations() -> Dictionary:
 	return {"ok": true, "data": {"cards": [{"identity": {"definitionId": "basic_attack", "cardInstanceId": "card-one"}, "tags": [], "costs": [], "effects": [], "conditions": []}]}}
 func read_deck_compartments() -> Dictionary:

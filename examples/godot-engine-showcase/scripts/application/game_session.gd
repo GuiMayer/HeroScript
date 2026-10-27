@@ -360,6 +360,20 @@ func read_deck_compartments() -> Dictionary:
 		response.data["_clientContext"] = replay_context()
 	return response
 
+func read_loadout_info() -> Dictionary:
+	if busy or has_pending_command or _run.is_empty(): return {"ok": false, "error": "Open a run and recover pending commands first."}
+	var captured := [_run.get("runId"), _run.get("sequence"), _run.get("step"), _run.get("contentRevision"), _run.get("playerEntityId"), replay_context()]
+	var response: Dictionary = await _gateway.read_loadout_info(str(_run.runId))
+	if captured != [_run.get("runId"), _run.get("sequence"), _run.get("step"), _run.get("contentRevision"), _run.get("playerEntityId"), replay_context()]:
+		return {"ok": false, "status": 409, "error": "Equipment changed. Synchronizing…"}
+	if response.get("ok", false):
+		var data = response.get("data")
+		if not data is Dictionary or not data.get("relics") is Dictionary or not data.get("attributes") is Dictionary:
+			return {"ok": false, "error": "Invalid loadout information."}
+		if str(data.relics.get("runId", "")) != str(_run.runId) or int(data.relics.get("sequence", -1)) != int(_run.sequence) or int(data.attributes.get("runSequence", -1)) != int(_run.sequence) or str(data.attributes.get("actorId", "")) != str(_run.playerEntityId) or str(data.attributes.get("contentRevision", "")) != str(_run.get("contentRevision", "")):
+			return {"ok": false, "status": 409, "error": "Equipment changed. Synchronizing…"}
+	return response
+
 func preview_deck_compartments(snapshot: Dictionary, allocations: Array) -> Dictionary:
 	if busy or has_pending_command or not loadout_context_matches(snapshot): return {"ok": false, "status": 409, "error": "Compartment context changed. Reopen the editor."}
 	var response: Dictionary = await _gateway.preview_deck_compartments(snapshot, allocations)

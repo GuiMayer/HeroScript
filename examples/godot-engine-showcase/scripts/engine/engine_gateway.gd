@@ -49,6 +49,13 @@ func read_run(run_id: String) -> Dictionary:
 func read_loadout(run_id: String, actor_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/loadout?actorId=%s" % [run_id.uri_encode(), actor_id.uri_encode()])
 
+func read_loadout_info(run_id: String) -> Dictionary:
+	var relics: Dictionary = await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/relics" % run_id.uri_encode())
+	if not relics.get("ok", false): return relics
+	var attributes: Dictionary = await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/character-attributes" % run_id.uri_encode())
+	if not attributes.get("ok", false): return attributes
+	return {"ok": true, "data": {"relics": relics.data, "attributes": attributes.data}}
+
 func read_deck_compartments(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/deck-compartments" % run_id.uri_encode())
 

@@ -6,6 +6,8 @@ var controller
 var shell
 var inscriptions_view
 var deck_view
+var overview_view
+var relics_view
 var _pending_item := ""
 var _clear_dialog: ConfirmationDialog
 var initial_tab := "overview"
@@ -17,6 +19,7 @@ func _ready() -> void:
 	shell = preload("res://scripts/ui/loadout/loadout_page_view.gd").new(); add_child(shell); shell.mount(context)
 	shell.heading.text = str(session.run.get("playerEntityId", ""))
 	shell.tab_requested.connect(_select_tab); shell.back_requested.connect(_back); shell.recovery_requested.connect(controller.recover)
+	shell.attribute_sources_requested.connect(_attribute_sources)
 	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
 	inscriptions_view.editorial_layout = true; inscriptions_view.shared_attributes = true; inscriptions_view.mount(context)
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; scroll.follow_focus = true
@@ -39,14 +42,17 @@ func _ready() -> void:
 		var confirm := ConfirmationDialog.new(); confirm.dialog_text = I18n.text("Clear all compartment allocations? Changes are saved automatically.")
 		confirm.confirmed.connect(func(): controller.move_card("", "", true); confirm.queue_free())
 		confirm.canceled.connect(confirm.queue_free); add_child(confirm); confirm.popup_centered())
+	overview_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); overview_view.mount(context)
+	overview_view.module_requested.connect(_select_tab); shell.install("overview", overview_view)
+	relics_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); relics_view.relics_only = true; relics_view.mount(context); shell.install("relics", relics_view)
 	for entry in preload("res://scripts/ui/loadout/module_catalog.gd").entries():
-		if entry.id in ["inscriptions", "deck"]: continue
+		if entry.id in ["inscriptions", "deck", "overview", "relics"]: continue
 		var page := VBoxContainer.new(); page.add_child(context.styles.title(I18n.text(entry.label), 24)); shell.install(entry.id, page)
 	controller.changed.connect(_render)
 	_select_tab(initial_tab); _render(); controller.refresh()
 func _select_tab(id: String) -> void:
 	shell.select(id); _render()
-	if id == "deck": controller.ensure_deck()
+	if id in ["deck", "overview"]: controller.ensure_deck()
 func _select_item(id: String) -> void:
 	if controller.inscriptions == null: return
 	_pending_item = id; controller.inscriptions.select_item(id); _render()
@@ -75,9 +81,24 @@ func _render() -> void:
 			"enabled": snapshot.get("enabled", false), "canChange": snapshot.get("canChange", false),
 			"busy": not controller.editable(), "context": controller.identity + controller.version()}
 		deck_view.present(deck_model)
+	if controller.info_ready and usable:
+		shell.present_attributes(preload("res://scripts/presentation/loadout_presenter.gd").character(controller.attributes, str(session.run.get("playerEntityId", ""))))
+	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null else 0, "cards": controller.deck_cards.size(), "relics": controller.relics}
+	if is_instance_valid(overview_view): overview_view.present(summary)
+	if is_instance_valid(relics_view): relics_view.present(summary)
 func _back() -> void:
 	if controller.can_leave(): back_requested.emit()
 	else: shell.set_feedback("Wait for equipment to finish saving, or recover the pending operation.", controller.uncertain)
+func _attribute_sources() -> void:
+	var dialog := AcceptDialog.new(); dialog.title = I18n.text("Attribute sources"); dialog.size = Vector2i(540, 560)
+	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var list := VBoxContainer.new(); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(list); dialog.add_child(scroll)
+	for stat in controller.attributes.get("attributes", []):
+		list.add_child(shell.visual_context.styles.title(I18n.text(str(stat.displayName)), 19))
+		list.add_child(shell.visual_context.styles.muted(I18n.text("Base: %s → Current: %s") % [I18n.number(stat.baseValue), I18n.number(stat.effectiveValue)]))
+		for trace in stat.get("contributions", []):
+			list.add_child(shell.visual_context.styles.muted(I18n.text(str(trace.get("sourceKind", "Source"))) + " · " + I18n.text("Input: %s → Output: %s") % [I18n.number(trace.get("input", 0)), I18n.number(trace.get("output", 0))] + (" · " + I18n.text("Not applied") if not trace.get("applied", true) else ""), 14, 450))
+	add_child(dialog); dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free); dialog.popup_centered()
 func _exit_tree() -> void:
 	if controller != null: controller.dispose()
 

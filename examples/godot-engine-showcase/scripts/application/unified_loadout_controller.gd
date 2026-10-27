@@ -16,6 +16,9 @@ var choices: Array = []
 var _deck_version: Array = []
 var _deck_reading := false
 var deck_requested := false
+var relics: Array = []
+var attributes := {}
+var info_ready := false
 
 func _init(owner) -> void:
 	session = owner; identity = context()
@@ -39,6 +42,12 @@ func refresh() -> void:
 				candidate.selected_item = inscriptions.selected_item; candidate.selected_slot = inscriptions.selected_slot; candidate.search = inscriptions.search
 			inscriptions = candidate
 	else: inscriptions = null
+	var captured := version()
+	var info: Dictionary = await session.read_loadout_info()
+	if current() and captured == version() and info.get("ok", false):
+		relics = info.data.relics.get("relics", []).duplicate(true); attributes = info.data.attributes.duplicate(true); info_ready = true
+	elif captured != version() or not current():
+		inscriptions = null; attributes = {}; relics = []; info_ready = false
 	_reading = false; changed.emit()
 	if deck_requested: await ensure_deck()
 func valid(snapshot: Dictionary) -> bool:
