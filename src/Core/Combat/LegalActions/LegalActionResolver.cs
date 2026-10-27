@@ -354,10 +354,6 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         CombatCommandOrigin origin,
         Dictionary<string, CardPlayExecutionResult>? executions = null)
     {
-        var actor = combat.GetActor(command.ActorId)!;
-        if (combat.ControllerOf(actor) != ControllerKind.Player ||
-            !string.Equals(actor.InstanceId, run.PlayerEntityId, StringComparison.Ordinal))
-            return Illegal("Only the configured run owner can play cards from its deck");
         if (command.CardInstanceId is not { } cardInstanceId || cardInstanceId == Guid.Empty)
             return Illegal("CardInstanceId is required for PLAY_CARD");
         if (!CardZonePlaySource.Contains(run, command.ActorId, cardInstanceId))
@@ -823,9 +819,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
                 };
         }
 
-        if (combat.ControllerOf(actor) != ControllerKind.Player ||
-            !string.Equals(actor.InstanceId, run.PlayerEntityId, StringComparison.Ordinal))
-            yield break;
+        // Card sources, rather than controller kind or the run-owner role,
+        // grant possession. Origin/activation checks still authorize commands.
+        var playableCards = CardZonePlaySource.CardsForActor(run, actor.InstanceId);
+        if (playableCards.Count == 0) yield break;
         var runtime = _runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (runtime.IsFailure)
             throw new InvalidOperationException(runtime.Error);
@@ -833,7 +830,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             .Where(item => item.Command.CardInstanceId.HasValue)
             .Select(item => item.Command.CardInstanceId!.Value)
             .ToHashSet();
-        foreach (var cardId in CardZonePlaySource.CardsForActor(run, actor.InstanceId)
+        foreach (var cardId in playableCards
             .Where(id => !reservedCards.Contains(id)).OrderBy(id => id))
         {
             var instance = run.Deck.GetCard(cardId)

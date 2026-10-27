@@ -1,6 +1,6 @@
 # Zonas de cartas para múltiplos participantes e pool compartilhado
 
-Data: 26/10/2026. Estado: plano, sem alteração na engine nesta etapa.
+Data: 26/10/2026. Estado: implementado. Diagnóstico abaixo preservado como referência do estado anterior; ver `MULTI_ACTOR_CARD_ZONE_PROVISIONING_VALIDATION.md` para contrato final e certificação.
 
 ## 1. Objetivo
 
@@ -214,7 +214,7 @@ Documentar endereço por ator, momento da criação, revisão, distribuição po
 ## 6. Compatibilidade e limites
 
 - Não fazer migração com escrita durante GET, leitura de replay ou carregamento de uma projeção.
-- Uma run antiga recebe as zonas faltantes ao iniciar um novo encontro sob a implementação aplicável. Um combate antigo já aberto com participantes sem zonas não é corrigido implicitamente por esta etapa; uma eventual migração exigiria operação canônica e política de versão próprias.
+- A implementação usa a versão determinística 33. A política existente rejeita continuar uma run de versão incompatível (incluindo 32); saves antigos não são migrados, apagados ou reescritos. Runs compatíveis recebem zonas faltantes ao abrir novos encontros. Um combate já aberto não é corrigido implicitamente por leitura.
 - Criar zonas vazias muda o hash de topologias Actor que antes omitiam adversários. Isso é uma mudança real de estado, mesmo sem mudar cartas. Verificar a política de versão da engine/replay antes de atualizar golden tests; não declarar hashes históricos iguais nem reescrever journals antigos.
 - Configurações sem definições Actor devem ser no-op neste provisionamento. Configurações com Actor devem preservar cartas, recursos e fluxos existentes, mas agora terão os recipientes adicionais previstos.
 - A certificação compara jornadas novas equivalentes e também verifica a leitura compatível de dados históricos conforme a política de versão suportada. Não prometer replay entre versões incompatíveis.
