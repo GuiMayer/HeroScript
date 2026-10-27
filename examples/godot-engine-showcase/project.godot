@@ -34,7 +34,6 @@ window/stretch/aspect="expand"
 
 [environment]
 
-defaults/default_clear_color=Color(0.0196, 0.0235, 0.0431, 1)
 
 [input]
 

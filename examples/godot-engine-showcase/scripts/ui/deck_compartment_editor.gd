@@ -26,7 +26,7 @@ func _ready() -> void:
 			for category in overlay:
 				if not appearance.has(category): appearance[category] = {}
 				if overlay[category] is Dictionary: appearance[category].merge(overlay[category], true)
-	var background := ColorRect.new(); background.color = visual_context.styles.PANEL
+	var background := ColorRect.new(); background.color = visual_context.styles.NIGHT
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); background.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(background)
 	var margin := MarginContainer.new(); margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 24)

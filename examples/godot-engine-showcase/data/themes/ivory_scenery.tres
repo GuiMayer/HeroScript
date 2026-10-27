@@ -1,8 +1,11 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=3 format=3]
 [ext_resource type="Script" path="res://scripts/ui/styles/scenery_visual_profile.gd" id="1"]
+[ext_resource type="Resource" path="res://data/themes/shared_palette.tres" id="Palette"]
 [resource]
 script = ExtResource("1")
+palette = ExtResource("Palette")
 profile_id = "ivory_scenery"
 ambient_style = "paper"
 art_manifest = "res://data/ivory_run_art_manifest.json"
-colors = { "scenery.base": "#f2ebdd", "scenery.far": "#827b70", "scenery.near": "#20201c" }
+colors = { "scenery.far": "#8a9099", "scenery.near": "#202124" }
+palette_aliases = { "scenery.base": "surface.canvas" }

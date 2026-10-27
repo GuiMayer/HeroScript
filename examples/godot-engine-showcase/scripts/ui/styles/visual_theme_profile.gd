@@ -2,6 +2,7 @@ extends Resource
 ## Presentation-only resource: optional setting-to-art mapping, never gameplay state.
 @export var profile_id := "preserved"
 @export var colors: Dictionary = {}
+@export var palette: Resource
 @export var font_sizes: Dictionary = {}
 @export var setting_art_manifests: Dictionary = {}
 @export var screen_margin := Vector2(48, 24)
@@ -79,13 +80,15 @@ const DEFAULTS := {
 	"scenery.near": "#171a28"
 }
 func color(role: String) -> Color:
+	if not colors.has(role) and palette != null and palette.colors.has(role):
+		return palette.color(role)
 	return Color.from_string(str(colors.get(role, DEFAULTS.get(role, "#ffffff"))), Color.WHITE)
 func role_for(value: Color) -> String:
 	for role in DEFAULTS:
 		if color(role).is_equal_approx(value): return str(role)
 	return ""
 func presentation_key() -> String:
-	return JSON.stringify([profile_id, colors, font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest, printed_surfaces, resource_color_overrides, actor_art_max_height, compact_actor_hud, card_style.presentation_key() if card_style else ""])
+	return JSON.stringify([profile_id, colors, palette.presentation_key() if palette != null else "", font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest, printed_surfaces, resource_color_overrides, actor_art_max_height, compact_actor_hud, card_style.presentation_key() if card_style else ""])
 
 
 func font_size(role: String, fallback: float) -> float: return float(font_sizes.get(role, fallback))

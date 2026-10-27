@@ -73,3 +73,16 @@ Certificação da rodada principal: dez suítes, 762 verificações distintas ap
 Rodada final após normalizar hashes de texto entre LF/CRLF: 42 verificações de geometria em headless e 35 verificações renderizadas dos efeitos, incluindo impacto, contorno e sheen sobre a carta real, sem diagnósticos. Evidência: [rendered-validation.json](rendered-validation.json). Os SVGs também passaram na verificação de reprodução do gerador.
 
 Limite: esta entrega certifica o laboratório e os componentes compartilhados nos testes isolados. Não foi aplicada a nova arte ao combate real nem realizada uma jornada online com a API. Essa expansão depende da validação visual deste marco e das etapas seguintes do plano.
+
+## Fundo geral compartilhado
+
+A cor de fundo das páginas fica em `examples/godot-engine-showcase/data/themes/shared_palette.tres`, na chave `surface.canvas` (branco, `#ffffff`). Menu, run e laboratório herdam essa chave; o cenário mapeia `scenery.base` para ela. Para trocar o fundo geral, altere apenas esse valor. Os painéis, cartas, bordas e estados de interação mantêm seus próprios tokens semânticos.
+
+O SVG `assets/ivory/battlefield.svg` tem fundo transparente para não encobrir a cor do tema. O editor de compartimentos usa o token de canvas, e a cor de limpeza do renderer acompanha o perfil ativo no ponto de composição da aplicação. Perfis alternativos e de teste continuam podendo declarar overrides locais. O teste `shared_canvas_theme.gd` cobre herança, branco inicial, propagação, invalidação dos caches e preservação dos Resources originais.
+
+
+## Paleta branca minimalista
+
+`shared_palette.tres` também centraliza os tokens de superfície, texto, bordas, interação e acentos usados pelos perfis do menu e da run. O laboratório herda essa paleta sem recolocar as antigas cores bege. Os perfis conservam fontes, medidas, arte associada e configurações de movimento.
+
+Superfícies principais são brancas; áreas secundárias usam cinzas frios leves, bordas discretas e texto carvão. Hover e pressão usam dois níveis de cinza; foco e ação principal mantêm o vermelho. Recursos, raridades e valores modificados preservam suas cores semânticas. As descrições de cartas mantêm a superfície escura para preservar o contraste dos valores-base brancos. Recortes de papel dos SVGs ativos passaram a branco, sem alterar a geometria das ilustrações.

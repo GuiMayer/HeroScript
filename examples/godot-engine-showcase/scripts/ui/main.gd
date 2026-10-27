@@ -453,6 +453,7 @@ func _on_session_changed() -> void:
 			screen.apply_interaction(null)
 
 func _apply_preferences() -> void:
+	RenderingServer.set_default_clear_color(AppTheme.NIGHT)
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)

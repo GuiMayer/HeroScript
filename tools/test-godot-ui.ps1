@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout') }
 $workspace = Split-Path $PSScriptRoot -Parent
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += 'shared_canvas_theme' }
 if (-not $PSBoundParameters.ContainsKey('Tests')) {
     $Tests += @('run_screen_lifecycle', 'replay_lifecycle', 'activity_map_completion', 'map_auto_completion', 'map_completion_status', 'map_topology_refresh', 'map_camera_motion', 'first_combat_map_transition', 'art_effects', 'art_effect_lab')
 }

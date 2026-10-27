@@ -1,8 +1,9 @@
-[gd_resource type="Resource" load_steps=7 format=3]
+[gd_resource type="Resource" load_steps=8 format=3]
 [ext_resource type="Script" path="res://scripts/ui/styles/visual_theme_profile.gd" id="1"]
 [ext_resource type="FontFile" path="res://assets/fonts/cinzel/Cinzel.ttf" id="2"]
 [ext_resource type="FontFile" path="res://assets/fonts/source-sans-3/SourceSans3.ttf" id="3"]
 [ext_resource type="Resource" path="res://data/themes/ivory_run_card_style.tres" id="4"]
+[ext_resource type="Resource" path="res://data/themes/shared_palette.tres" id="Palette"]
 [sub_resource type="FontVariation" id="Body"]
 base_font = ExtResource("3")
 variation_opentype = { 2003265652: 500.0 }
@@ -11,67 +12,15 @@ base_font = ExtResource("2")
 variation_opentype = { 2003265652: 600.0 }
 [resource]
 script = ExtResource("1")
+palette = ExtResource("Palette")
 profile_id = "ivory_run"
 printed_surfaces = true
 actor_art_max_height = 420.0
 compact_actor_hud = true
-resource_color_overrides = { "energy": "#7e4b15", "mana": "#445c8f", "health": "#9e343d", "block": "#5b574f", "gold": "#7e4b15" }
+resource_color_overrides = { "energy": "#7e4b15", "mana": "#445c8f", "health": "#9e343d", "block": "#60646c", "gold": "#7e4b15" }
 corner_radius = 2
 body_font = SubResource("Body")
 title_font = SubResource("Title")
 card_style = ExtResource("4")
 art_manifest = "res://data/ivory_run_art_manifest.json"
-colors = {
-"text.primary": "#20201c",
-"text.secondary": "#5b574f",
-"text.disabled": "#777166",
-"text.high_contrast_disabled": "#5b574f",
-"accent.primary": "#b83e25",
-"accent.warm": "#98311d",
-"accent.positive": "#286853",
-"accent.danger": "#a4322c",
-"accent.power": "#625383",
-"surface.canvas": "#f2ebdd",
-"surface.panel": "#faf5eb",
-"surface.panel_translucent": "#faf5eb",
-"surface.raised": "#eee4d1",
-"surface.hover": "#e5d6bd",
-"surface.pressed": "#d5c4a5",
-"surface.disabled": "#e9e1d3",
-"stroke.control": "#827b70",
-"stroke.disabled": "#aea697",
-"stroke.panel": "#827b70",
-"surface.input": "#faf5eb",
-"stroke.input": "#827b70",
-"surface.inset": "#e5dbc8",
-"stroke.editor": "#827b70",
-"text.code": "#20201c",
-"surface.popup": "#faf5eb",
-"surface.card_art": "#eee4d1",
-"stroke.art_text": "#faf5eb",
-"surface.cost_unknown": "#e5dbc8",
-"stroke.cost_unknown": "#827b70",
-"resource.unknown": "#666879",
-"surface.high_contrast": "#ffffff",
-"surface.high_contrast_panel": "#ffffff",
-"surface.modal_scrim": "#20201cbb",
-"surface.menu": "#faf5eb",
-"surface.settings_navigation": "#eee4d1",
-"surface.settings_content": "#faf5eb",
-"surface.settings_row": "#f2ebdd",
-"stroke.settings_row": "#b9ae9d",
-"surface.toast": "#faf5eb",
-"surface.primary_action": "#b83e25",
-"surface.primary_hover": "#98311d",
-"surface.primary_pressed": "#7f2919",
-"surface.effects": "#20201c",
-"text.inverse": "#faf5eb",
-"surface.actor": "#faf5eb",
-"surface.target_hover": "#b83e2514",
-"surface.route_current": "#eee4d1",
-"surface.route_locked": "#f2ebdd",
-"stroke.route_locked": "#b7ad9b",
-"stroke.route": "#827b70",
-"surface.journey": "#faf5eb",
-"surface.toast": "#faf5eb"
-}
+colors = {}
