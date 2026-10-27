@@ -11,6 +11,9 @@ public class CombatStateResponse
     public string EngineVersion { get; set; } = string.Empty;
     public string StateHash { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public Core.Combat.Flow.ParticipantVictoryResult? ParticipantVictory { get; set; }
+    public string? ActivationSequenceStrategy { get; set; }
+    public string? NextScheduledActorId { get; set; }
     public int CurrentTurn { get; set; }
     public List<ActorStateDto> Actors { get; set; } = new();
     public IReadOnlyList<Core.Combat.Models.CombatSide> Sides { get; set; }
@@ -35,6 +38,10 @@ public class CombatStateResponse
         EngineVersion = state.Determinism.EngineVersion,
         StateHash = Core.Determinism.CanonicalJson.ComputeHash(state),
         Status = state.Status.ToString(),
+        ParticipantVictory = state.ParticipantVictory,
+        ActivationSequenceStrategy = state.ActivationState == null ? null : state.ActivationState.Circular == null ? "PerRound" : "Circular",
+        NextScheduledActorId = state.IsActive && state.ActivationState?.Circular != null &&
+            Core.Combat.Flow.RelativeParticipantSelector.Resolve(state, state.ActivationState.ActiveActorId!, scheduled: true) is { IsSuccess: true } next ? next.Value : null,
         CurrentTurn = state.CurrentTurn,
         Actors = state.GetAllActors().Select(actor => new ActorStateDto
         {

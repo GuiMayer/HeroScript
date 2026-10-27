@@ -10,6 +10,10 @@ public sealed class CanonicalCommandDocumentFilter : IDocumentFilter
 {
     public void Apply(OpenApiDocument document, DocumentFilterContext context)
     {
+        foreach (var type in new[] { typeof(API.Models.Combat.CombatStateResponse), typeof(Core.Combat.LegalActions.LegalActionSet),
+            typeof(Core.Combat.Flow.ActivationSequencePolicy), typeof(Core.Combat.Flow.CommandConditionDefinition),
+            typeof(Core.Combat.Flow.GameplayQuery), typeof(Core.Combat.Flow.ParticipantVictoryPolicy) })
+            context.SchemaGenerator.GenerateSchema(type, context.SchemaRepository);
         var payloads = new JsonObject();
         foreach (var descriptor in GameplayCommandDescriptors.All.OrderBy(value => value.Type, StringComparer.Ordinal))
         {

@@ -34,6 +34,16 @@ public sealed class CircularTableFlowTests
         Assert.All(zones.Where(zone => zone.GetProperty("zoneId").GetString() == "hand"), zone => Assert.Equal(7, zone.GetProperty("count").GetInt32()));
         Assert.Equal(79, zones.Single(zone => zone.GetProperty("zoneId").GetString() == "draw").GetProperty("count").GetInt32());
         Assert.Equal(1, zones.Single(zone => zone.GetProperty("zoneId").GetString() == "table").GetProperty("count").GetInt32());
+        var currentRun = await Read(client, $"/api/v1/runs/{id}");
+        var combatId = currentRun.GetProperty("activeEncounterId").GetGuid();
+        var combat = await Read(client, $"/api/v1/combats/{combatId}");
+        Assert.Equal("Circular", combat.GetProperty("activationSequenceStrategy").GetString());
+        Assert.Equal("seat_1", combat.GetProperty("nextScheduledActorId").GetString());
+        var legal = await Read(client, $"/api/v1/combats/{combatId}/legal-actions?actorId=seat_0");
+        Assert.True(legal.TryGetProperty("blockedCommands", out _));
+        Assert.All(legal.GetProperty("candidates").EnumerateArray().Where(value => value.GetProperty("command").GetProperty("actionType").GetString() == "PLAY_CARD"),
+            value => Assert.Contains(value.GetProperty("command").GetProperty("cardInstanceId").GetGuid(),
+                zones.Single(zone => zone.GetProperty("zoneId").GetString() == "hand" && zone.GetProperty("ownerId").GetString() == "seat_0").GetProperty("cards").EnumerateArray().Select(card => card.GetProperty("cardInstanceId").GetGuid())));
         using var verifyResponse = await client.PostAsync($"/api/v1/runs/{id}/verify", null);
         var verify = await verifyResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(verify.GetProperty("isValid").GetBoolean(), verify.GetRawText());

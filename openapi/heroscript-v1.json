@@ -1713,6 +1713,7 @@
         "type": "object",
         "required": ["zoneId", "ownerId", "ownerScope", "ordering", "allowsCardPlay", "visibility", "presentation", "count", "contentsVisible", "orderVisible", "cards"],
         "properties": {
+          "playerCanPlayFrom": { "type": "boolean" },
           "zoneId": { "type": "string" },
           "ownerId": { "type": "string" },
           "scopeId": { "type": "string", "nullable": true },
@@ -1797,6 +1798,7 @@
         "type": "object",
         "required": ["actorId", "candidates", "determinism", "stateFingerprint"],
         "properties": {
+          "blockedCommands": { "type": "array", "items": { "type": "object", "properties": { "actionType": { "type": "string" }, "actionId": { "type": "string", "nullable": true }, "code": { "type": "string" }, "messageKey": { "type": "string" } } } },
           "actorId": { "type": "string" },
           "stateFingerprint": { "type": "string" },
           "determinism": { "type": "object", "additionalProperties": true },
@@ -1847,6 +1849,9 @@
         "additionalProperties": true,
         "required": ["combatId", "seed", "step", "contentRevision", "engineVersion", "stateHash", "status", "currentTurn", "actors", "sides", "relationships", "totalActions", "board", "phase", "activation", "priorityWindow", "pendingActions"],
         "properties": {
+          "activationSequenceStrategy": { "type": "string", "enum": ["PerRound", "Circular"], "nullable": true },
+          "nextScheduledActorId": { "type": "string", "nullable": true },
+          "participantVictory": { "type": "object", "nullable": true, "properties": { "ruleId": { "type": "string" }, "actorIds": { "type": "array", "items": { "type": "string" } }, "sideIds": { "type": "array", "items": { "type": "string" } }, "draw": { "type": "boolean" } } },
           "combatId": { "type": "string", "format": "uuid" },
           "runId": { "type": "string", "format": "uuid", "nullable": true },
           "runNodeId": { "type": "string", "nullable": true },

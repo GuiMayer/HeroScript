@@ -88,6 +88,7 @@ public sealed record LegalActionEvaluation
 
 public sealed record LegalActionSet
 {
+    public ImmutableArray<CommandAvailabilityFailure> BlockedCommands { get; init; } = [];
     private ImmutableArray<LegalActionCandidate> _candidates = [];
     public string ActorId { get; init; } = string.Empty;
     public IReadOnlyList<LegalActionCandidate> Candidates
@@ -98,6 +99,8 @@ public sealed record LegalActionSet
     public DeterministicContext Determinism { get; init; } = null!;
     public string StateFingerprint { get; init; } = string.Empty;
 }
+
+public sealed record CommandAvailabilityFailure(ActionType ActionType, string? ActionId, string Code, string MessageKey);
 
 public interface ILegalActionResolver
 {
@@ -320,6 +323,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             return Result<LegalActionSet>.Failure(exception.Message);
         }
         var candidates = ImmutableArray.CreateBuilder<LegalActionCandidate>();
+        var blocked = ImmutableArray.CreateBuilder<CommandAvailabilityFailure>();
         // Request-local only: no snapshot survives discovery in this memo. Custom
         // executors retain the exact uncached path because their input use is unknown.
         var executions = _coalesceEquivalentCardExecutions && _cardExecutor is CardPlayExecutor
@@ -331,6 +335,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
                 return Result<LegalActionSet>.Failure(evaluated.Error);
             if (evaluated.Value.Candidate != null)
                 candidates.Add(evaluated.Value.Candidate);
+            else if (command.ActionType != ActionType.PLAY_CARD && evaluated.Value.FailureReasons.FirstOrDefault() is { } reason) {
+                var condition = run.ResolvedMode!.CombatRules.Flow.CommandConditions.FirstOrDefault(rule => reason.StartsWith(rule.FailureCode + ": ", StringComparison.Ordinal));
+                if (condition != null) blocked.Add(new(command.ActionType, command.PowerId, condition.FailureCode, condition.MessageKey));
+            }
         }
 
         var ordered = candidates
@@ -346,6 +354,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         {
             ActorId = actorId,
             Candidates = ordered,
+            BlockedCommands = blocked.Distinct().Where(failure => !ordered.Any(candidate => candidate.Command.ActionType == failure.ActionType && candidate.Command.PowerId == failure.ActionId)).ToImmutableArray(),
             Determinism = run.Determinism,
             StateFingerprint = CanonicalJson.ComputeObjectHash(
                 CanonicalJson.Property("sequence", run.Sequence),
