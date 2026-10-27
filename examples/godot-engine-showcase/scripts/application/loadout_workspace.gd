@@ -61,6 +61,7 @@ func snapshot() -> Dictionary:
 		items.append({"instanceId": str(row.instance.instanceId), "name": presentation.get("name", definition.inscriptionId),
 			"family": "Character inscription", "rarity": presentation.get("rarity", "common"), "cost": definition.equipmentCost,
 			"tags": definition.get("tags", []), "attributeBonuses": [], "tradeoffs": [],
+			"icon": presentation.get("icon", ""), "attributeIds": definition.get("attributeBonuses", []).map(func(bonus): return str(bonus.get("attributeId", ""))),
 			"description": presentation.get("description", ""), "equippedActorId": row.get("equippedActorId", "")})
 	var attributes: Array = []
 	var projection = current.get("attributes")
@@ -69,7 +70,7 @@ func snapshot() -> Dictionary:
 		var baseline: float = float(stat.baseValue)
 		attributes.append({"id": stat.attributeId, "label": stat.displayName, "group": "Character attributes",
 			"base": baseline, "value": stat.effectiveValue, "change": float(stat.effectiveValue) - baseline,
-			"format": "percent" if stat.unit in ["percent", "%"] else "number", "sources": []})
+			"format": "percent" if stat.unit in ["percent", "%"] else "number", "sources": [], "contextTags": stat.get("contextTags", [])})
 	return {"authority": "REST", "contextKey": [source.get("runId"), source.get("actorId"), source.get("inventoryId"), source.get("contentRevision")],
 		"slots": source.get("policy", {}).get("slots", []).map(func(slot): return str(slot.slotId)), "items": items,
 		"assignments": assignments.duplicate(true), "selectedItem": selected_item, "selectedSlot": selected_slot,
