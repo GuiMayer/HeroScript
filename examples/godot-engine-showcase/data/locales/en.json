@@ -829,5 +829,7 @@
   "Deck unavailable. Retry the read.": "Deck unavailable. Retry the read.",
   "Equipment cannot be changed here.": "Equipment cannot be changed here.",
   "Equipment was not changed.": "Equipment was not changed.",
-  "No relics acquired.": "No relics acquired."
+  "No relics acquired.": "No relics acquired.",
+  "Equipment information unavailable. Retry the read.": "Equipment information unavailable. Retry the read.",
+  "Invalid loadout information.": "Invalid loadout information."
 }

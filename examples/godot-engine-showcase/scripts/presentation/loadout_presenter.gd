@@ -1,7 +1,16 @@
 extends RefCounted
 ## Formatting only. Values/contributions are supplied by canonical queries, never recomputed.
-static func character(projection: Dictionary, name: String) -> Dictionary:
+static func character(projection: Dictionary, name: String, resources: Dictionary = {}, translator = null) -> Dictionary:
 	var rows: Array = []
+	for id in resources:
+		var resource = resources[id]
+		if not resource is Dictionary or not resource.has("current"): continue
+		var display := str(resource.current)
+		if translator != null:
+			display = translator.number(resource.current)
+			if resource.has("maximum"): display += " / " + translator.number(resource.maximum)
+		rows.append({"id": "resource:" + str(id), "label": translator.content_name(str(id), str(id).capitalize()) if translator != null else str(id),
+			"group": "Resources", "base": resource.current, "value": resource.current, "displayValue": display, "change": 0, "format": "number", "sources": []})
 	for stat in projection.get("attributes", []):
 		rows.append({"id": str(stat.attributeId), "label": str(stat.displayName), "group": "Character attributes",
 			"base": stat.baseValue, "value": stat.effectiveValue, "change": float(stat.effectiveValue) - float(stat.baseValue),

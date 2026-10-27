@@ -19,6 +19,7 @@ var deck_requested := false
 var relics: Array = []
 var attributes := {}
 var info_ready := false
+var read_error := false
 
 func _init(owner) -> void:
 	session = owner; identity = context()
@@ -33,6 +34,8 @@ func _session_changed() -> void:
 func refresh() -> void:
 	if _reading or busy or not current(): return
 	_reading = true
+	var reading_version := version()
+	var next_inscriptions = null
 	var response: Dictionary = await session.read_loadout(str(identity[1]))
 	if not current(): _reading = false; changed.emit(); return
 	if response.get("ok", false) and response.get("data") is Dictionary and valid(response.data):
@@ -40,14 +43,17 @@ func refresh() -> void:
 		if candidate.accept(response.data):
 			if inscriptions != null:
 				candidate.selected_item = inscriptions.selected_item; candidate.selected_slot = inscriptions.selected_slot; candidate.search = inscriptions.search
-			inscriptions = candidate
-	else: inscriptions = null
+			next_inscriptions = candidate
 	var captured := version()
 	var info: Dictionary = await session.read_loadout_info()
-	if current() and captured == version() and info.get("ok", false):
+	read_error = not info.get("ok", false) or reading_version != version()
+	if current() and reading_version == version() and captured == version() and info.get("ok", false):
+		inscriptions = next_inscriptions
 		relics = info.data.relics.get("relics", []).duplicate(true); attributes = info.data.attributes.duplicate(true); info_ready = true
-	elif captured != version() or not current():
+		if message == "Loading equipment…": message = "Equipment synchronized."
+	else:
 		inscriptions = null; attributes = {}; relics = []; info_ready = false
+		message = "Equipment information unavailable. Retry the read."
 	_reading = false; changed.emit()
 	if deck_requested: await ensure_deck()
 func valid(snapshot: Dictionary) -> bool:
@@ -55,7 +61,7 @@ func valid(snapshot: Dictionary) -> bool:
 func editable() -> bool:
 	return current() and not busy and not _reading and not _deck_reading and not uncertain and not session.has_pending_command
 func edit_inscription(method: String, args: Array = []) -> void:
-	if not editable() or inscriptions == null: return
+	if not editable() or inscriptions == null or method not in ["stage_drop", "stage_selected", "remove_selected", "clear"]: return
 	busy = true; message = "Validating equipment…"; changed.emit()
 	# Refresh version before constructing the candidate. A previous module may have committed.
 	var response: Dictionary = await session.read_loadout(str(identity[1]))
@@ -99,7 +105,10 @@ func ensure_deck() -> void:
 		else: compartments = null
 		modifier_items = session.modifier_items.duplicate(true); choices = session.activity_choices().duplicate(true)
 		if response.get("ok", false): _deck_version = captured
-		else: message = "Deck unavailable. Retry the read."
+		else: read_error = true; message = "Deck unavailable. Retry the read."
+	else:
+		_deck_version = []; deck_cards = []; compartments = null; modifier_items = {}; choices = []
+		read_error = true; message = "Equipment changed. Synchronizing…"
 	_deck_reading = false; changed.emit()
 func move_card(card_id: String, target: String, clear := false) -> void:
 	if not editable() or compartments == null: return
@@ -114,7 +123,7 @@ func move_card(card_id: String, target: String, clear := false) -> void:
 	if not candidate.dirty(): _finish("No equipment changes."); return
 	var allocation: Array = candidate.allocations()
 	response = await session.preview_deck_compartments(candidate.source, allocation)
-	if not current() or not response.get("ok", false) or not response.get("data") is Dictionary or not response.data.get("after") is Dictionary or not candidate.accept_preview(response.data.after, candidate.revision):
+	if not current() or not response.get("ok", false) or not response.get("data") is Dictionary or not response.data.get("after") is Dictionary or not valid(response.data.after) or not candidate.accept_preview(response.data.after, candidate.revision):
 		_finish(str(response.get("error", "Equipment was not changed."))); return
 	message = "Saving equipment…"; changed.emit()
 	var ok: bool = await session.apply_deck_compartments(candidate.source, allocation)

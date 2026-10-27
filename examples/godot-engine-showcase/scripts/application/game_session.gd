@@ -370,6 +370,8 @@ func read_loadout_info() -> Dictionary:
 		var data = response.get("data")
 		if not data is Dictionary or not data.get("relics") is Dictionary or not data.get("attributes") is Dictionary:
 			return {"ok": false, "error": "Invalid loadout information."}
+		if not data.relics.get("relics") is Array or not data.attributes.get("attributes") is Array or str(data.attributes.get("runId", "")) != str(_run.runId):
+			return {"ok": false, "error": "Invalid loadout information."}
 		if str(data.relics.get("runId", "")) != str(_run.runId) or int(data.relics.get("sequence", -1)) != int(_run.sequence) or int(data.attributes.get("runSequence", -1)) != int(_run.sequence) or str(data.attributes.get("actorId", "")) != str(_run.playerEntityId) or str(data.attributes.get("contentRevision", "")) != str(_run.get("contentRevision", "")):
 			return {"ok": false, "status": 409, "error": "Equipment changed. Synchronizing…"}
 	return response
@@ -397,6 +399,7 @@ func read_loadout(actor_id: String) -> Dictionary:
 	var ticket := _generation
 	var response: Dictionary = await _gateway.read_loadout(str(_run.runId), actor_id)
 	if ticket != _generation: return {"ok": false, "error": "Session changed while reading loadout."}
+	if response.get("ok", false) and not response.get("data") is Dictionary: return {"ok": false, "error": "Invalid loadout information."}
 	if response.ok and (not loadout_context_matches(response.data) or str(response.data.get("actorId", "")) != actor_id):
 		return {"ok": false, "error": "Loadout changed. Refresh before editing."}
 	if response.ok: response.data["_clientContext"] = replay_context()

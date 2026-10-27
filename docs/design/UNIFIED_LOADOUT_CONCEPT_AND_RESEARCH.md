@@ -2,6 +2,8 @@
 
 Data: 27/10/2026. Escopo: **proposta de experiência e arquitetura de apresentação**, sem implementação das telas ou alteração de regras. Os mockups são estudos estáticos; nomes, números e quantidade de posições são ilustrativos.
 
+Atualização: a implementação da página e do autosave foi concluída após esta pesquisa. Consulte o [guia operacional](../guides/unified-loadout-godot.md) e o [relatório de etapas e validação](../plans/UNIFIED_LOADOUT_IMPLEMENTATION.md). O restante deste documento preserva o conceito aprovado e a pesquisa de origem.
+
 Decisão do autor: **todas as guias editáveis salvam automaticamente cada alteração válida e completa**. Não haverá botão Aplicar/Salvar, rascunho manual pendente nem confirmação de salvamento ao trocar de guia. Guias exclusivamente de inspeção não enviam comandos ao navegar.
 
 ## 1. Recomendação

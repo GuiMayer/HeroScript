@@ -15,9 +15,11 @@ func _run() -> void:
 	check(session.commits == ["hero"] and session.assignments == {"one": "owned"}, "one equip intent automatically previews commits and rereads")
 	screen._select_tab("deck"); screen._select_tab("inscriptions")
 	check(session.commits.size() == 1, "inspection and tab navigation never write")
+	var original_card = screen.deck_view._card_cache.get("card-one")
 	screen.controller.move_card("card-one", "utility")
 	await process_frame; await process_frame
 	check(session.commits == ["hero", "compartments"] and session.allocations.size() == 1, "compartments autosave without Apply using latest run version")
+	check(is_instance_valid(original_card) and screen.deck_view._card_cache.get("card-one") == original_card, "canonical refresh retains card components instead of flashing replacements")
 	session.hold_preview = true
 	screen.controller.move_card("card-one", "")
 	screen._select_tab("relics")

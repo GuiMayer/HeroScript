@@ -87,7 +87,10 @@ func _responsive() -> void:
 		if attributes_panel.get_parent() != self: attributes_panel.reparent(self)
 		attributes_panel.position = Vector2(maxf(24, size.x - 360), 130)
 		attributes_panel.size = Vector2(336, maxf(300, size.y - 190))
+		var viewport = get_viewport()
+		var focused = viewport.gui_get_focus_owner() if viewport != null else null
 		attributes_panel.visible = _drawer_open
+		if not _drawer_open and is_instance_valid(focused) and attributes_panel.is_ancestor_of(focused): attributes_button.grab_focus()
 	else:
 		if attributes_panel.get_parent() != body: attributes_panel.reparent(body)
 		attributes_panel.visible = true

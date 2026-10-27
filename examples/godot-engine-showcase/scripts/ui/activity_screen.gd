@@ -50,7 +50,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 		"verify": _verify()
 		"recover": _recover_actions()
 		"confirm": _confirm_ref(str(arguments[0]))
-		"modifier_items": _open_items()
+		"modifier_items": router.show_run_loadout("deck", "modifiers")
 		"loadout": router.show_run_loadout()
 		"inscriptions": router.show_run_loadout("inscriptions")
 		"deck_compartments": router.show_run_deck_compartments()

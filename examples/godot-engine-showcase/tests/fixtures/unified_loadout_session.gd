@@ -12,9 +12,15 @@ var commits: Array = []
 var previews := 0
 var character_attributes := {}
 var modifier_items := {}
+var info_fail := false
+var mismatched_step := false
+var modifier_choices: Array = []
 var allocations: Array = []
-func activity_choices() -> Array: return []
+func activity_choices() -> Array: return modifier_choices.duplicate(true)
+func preview_transformation(_choice: Dictionary) -> Dictionary: previews += 1; return {"isCompatible": not reject_preview}
+func submit_activity(_choice: Dictionary) -> bool: commits.append("modifier"); run.sequence += 1; changed.emit(); return true
 func read_loadout_info() -> Dictionary:
+	if info_fail: return {"ok": false, "status": 503}
 	return {"ok": true, "data": {"relics": {"relics": []}, "attributes": snapshot().attributes}}
 func load_collection_presentations() -> Dictionary:
 	return {"ok": true, "data": {"cards": [{"identity": {"definitionId": "basic_attack", "cardInstanceId": "card-one"}, "tags": [], "costs": [], "effects": [], "conditions": []}]}}
@@ -29,6 +35,7 @@ func preview_deck_compartments(source: Dictionary, candidate: Array) -> Dictiona
 	if hold_preview: await release
 	if reject_preview: return {"ok": false, "error": "Rejected by engine"}
 	var after := source.duplicate(true); after.allocations = candidate.duplicate(true)
+	if mismatched_step: after.expectedStep += 1
 	return {"ok": true, "data": {"before": source, "after": after}}
 func apply_deck_compartments(source: Dictionary, candidate: Array) -> bool:
 	if not loadout_context_matches(source): return false

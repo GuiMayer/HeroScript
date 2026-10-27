@@ -948,5 +948,7 @@
   "Equipment cannot be changed here.": "O equipamento não pode ser alterado aqui.",
   "Equipment was not changed.": "O equipamento não foi alterado.",
   "No relics acquired.": "Nenhuma relíquia adquirida.",
-  "Inscriptions": "Inscrições"
+  "Inscriptions": "Inscrições",
+  "Equipment information unavailable. Retry the read.": "Informações do equipamento indisponíveis. Tente carregar novamente.",
+  "Invalid loadout information.": "Informações do equipamento inválidas."
 }

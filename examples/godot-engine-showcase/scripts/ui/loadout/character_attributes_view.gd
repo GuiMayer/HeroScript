@@ -100,6 +100,7 @@ func present(character: Dictionary) -> void:
 		controls.marker.visible = editorial_layout and stat.id in character.get("highlightedAttributeIds", [])
 		controls.base.text = preload("res://scripts/ui/loadout/loadout_stat_text.gd").value(stat, stat.base, translator)
 		controls.equipped.text = preload("res://scripts/ui/loadout/loadout_stat_text.gd").value(stat, stat.value, translator)
+		if stat.has("displayValue"): controls.equipped.text = str(stat.displayValue)
 		var role := "text.primary" if is_zero_approx(float(stat.change)) else ("accent.positive" if float(stat.change) > 0 else "accent.danger")
 		controls.equipped.add_theme_color_override("font_color", visual_context.styles.color(role))
 		var sources: Array[String] = [translator.text(stat.label)]

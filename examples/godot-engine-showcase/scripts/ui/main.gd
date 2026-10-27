@@ -341,19 +341,20 @@ func show_loadout_lab() -> void:
 	screen.back_requested.connect(_show_main_menu)
 	host.add_child(screen)
 
-func show_run_loadout(initial_tab := "overview") -> void:
+func show_run_loadout(initial_tab := "overview", deck_tab := "cards") -> void:
 	if GameSession.busy or GameSession.has_pending_command: return
 	current_screen = "run_loadout"
 	_clear_host()
 	var screen = preload("res://scripts/ui/unified_loadout_screen.gd").new()
 	screen.initial_tab = initial_tab
+	screen.initial_deck_tab = deck_tab
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.back_requested.connect(open_game)
 	host.add_child(screen)
 
 func show_run_deck_compartments() -> void:
 	if GameSession.busy or GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty(): return
-	show_run_loadout("deck")
+	show_run_loadout("deck", "compartments")
 
 func show_history() -> void:
 	if GameSession.busy: return

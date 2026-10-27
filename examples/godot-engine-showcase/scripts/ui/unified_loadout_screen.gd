@@ -12,13 +12,15 @@ var _pending_item := ""
 var _clear_dialog: ConfirmationDialog
 var _inscriptions_empty: Label
 var initial_tab := "overview"
+var initial_deck_tab := "cards"
 
 func _ready() -> void:
 	if session == null: session = GameSession
 	controller = preload("res://scripts/application/unified_loadout_controller.gd").new(session)
 	var context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(preload("res://data/themes/ivory_theme.tres"))
 	shell = preload("res://scripts/ui/loadout/loadout_page_view.gd").new(); add_child(shell); shell.mount(context)
-	shell.heading.text = str(session.run.get("playerEntityId", ""))
+	var setting_id := str(session.run.get("settingId", session.run.get("configName", "")))
+	shell.heading.text = I18n.content_name(str(session.run.get("playerEntityId", ""))) + " · " + I18n.content_name(setting_id, setting_id.capitalize())
 	shell.tab_requested.connect(_select_tab); shell.back_requested.connect(_back); shell.recovery_requested.connect(controller.recover)
 	shell.attribute_sources_requested.connect(_attribute_sources)
 	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
@@ -69,7 +71,7 @@ func _render() -> void:
 	if not usable: shell.present_attributes({"name": "", "attributes": []})
 	_inscriptions_empty.visible = usable and controller.inscriptions == null
 	for button in shell.buttons.values(): button.disabled = not usable
-	shell.set_feedback(controller.message if usable else "Run or character changed. Reopen loadout.", controller.uncertain)
+	shell.set_feedback(controller.message if usable else "Run or character changed. Reopen loadout.", controller.uncertain or controller.read_error)
 	inscriptions_view.visible = controller.inscriptions != null and shell.active_tab == "inscriptions" and usable
 	if controller.inscriptions != null and usable:
 		var model: Dictionary = controller.inscriptions.snapshot(); model.liveEquipment = true
@@ -80,14 +82,17 @@ func _render() -> void:
 	if is_instance_valid(deck_view):
 		deck_view.visible = usable and shell.active_tab == "deck"
 		var snapshot: Dictionary = controller.compartments.source if controller.compartments != null else {}
+		if initial_deck_tab == "compartments" and snapshot.get("enabled", false) or initial_deck_tab == "modifiers" and not controller.modifier_items.get("items", []).is_empty():
+			deck_view.subtab = initial_deck_tab; initial_deck_tab = "cards"
 		var deck_model := {"cards": controller.deck_cards, "modifierItems": controller.modifier_items, "choices": controller.choices,
 			"profile": snapshot.get("profile", {}), "allocations": controller.compartments.draft if controller.compartments != null else {},
 			"enabled": snapshot.get("enabled", false), "canChange": snapshot.get("canChange", false),
 			"busy": not controller.editable(), "context": controller.identity + controller.version()}
 		deck_view.present(deck_model)
 	if controller.info_ready and usable:
-		shell.present_attributes(preload("res://scripts/presentation/loadout_presenter.gd").character(controller.attributes, str(session.run.get("playerEntityId", ""))))
-	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null else 0, "cards": controller.deck_cards.size(), "relics": controller.relics}
+		shell.present_attributes(preload("res://scripts/presentation/loadout_presenter.gd").character(controller.attributes, str(session.run.get("playerEntityId", "")), session.run.get("characterResources", {}), I18n))
+	elif controller.inscriptions == null: shell.present_attributes({"name": "", "attributes": []})
+	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null and usable else 0, "cards": controller.deck_cards.size() if usable else 0, "relics": controller.relics if usable else []}
 	if is_instance_valid(overview_view): overview_view.present(summary)
 	if is_instance_valid(relics_view): relics_view.present(summary)
 func _back() -> void:

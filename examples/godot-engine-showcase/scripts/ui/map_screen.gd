@@ -44,8 +44,7 @@ func _intent(action: String, arguments: Array) -> void:
 		"deck_compartments": router.show_run_deck_compartments()
 		"pause": router.toggle_pause()
 		"modifier_items":
-			router.show_activity()
-			if router.host.get_child_count() > 0: router.host.get_child(0)._open_items()
+			router.show_run_loadout("deck", "modifiers")
 		"resume_dialogue": router.show_dialogue()
 		"resume_run":
 			if not get_tree().paused: router.open_game()

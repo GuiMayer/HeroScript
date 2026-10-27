@@ -17,6 +17,8 @@ var _body: VBoxContainer
 var _sub_buttons := {}
 var _card_buttons: Array = []
 var _actions: Array = []
+var _card_cache := {}
+var _parking: Control
 
 func mount(context) -> void:
 	visual_context = context
@@ -32,19 +34,26 @@ func mount(context) -> void:
 		var control := _button(entry[1], func(): subtab = id; _render())
 		control.toggle_mode = true; tabs.add_child(control); _sub_buttons[id] = control
 	_body = VBoxContainer.new(); _body.size_flags_vertical = Control.SIZE_EXPAND_FILL; add_child(_body)
+	_parking = Control.new(); _parking.hide(); add_child(_parking)
 
 func _button(key: String, callback: Callable) -> Button:
 	var button: Button = visual_context.styles.button(visual_context.translator.text(key)); button.pressed.connect(callback); return button
 func present(model: Dictionary) -> void:
 	_model = model.duplicate(true)
-	var data := model.duplicate(true); data.erase("busy")
+	var data := model.duplicate(true); data.erase("busy"); data.erase("context")
 	var signature := JSON.stringify(data)
 	if signature != _signature: _signature = signature; _render()
 	for action in _actions: if is_instance_valid(action): action.disabled = model.get("busy", false) or not model.get("canChange", false)
 func _render() -> void:
 	if not is_instance_valid(_body): return
+	for entry in _card_buttons:
+		var card = entry.column.get_child(0)
+		card.reparent(_parking, false)
 	for child in _body.get_children(): _body.remove_child(child); child.queue_free()
 	_card_buttons.clear(); _actions.clear()
+	var instance_ids: Array = _model.get("cards", []).map(func(fact): return str(fact.get("identity", {}).get("cardInstanceId", "")))
+	for id in _card_cache.keys():
+		if not id in instance_ids: _card_cache[id].queue_free(); _card_cache.erase(id)
 	for id in _sub_buttons: _sub_buttons[id].set_pressed_no_signal(id == subtab)
 	_sub_buttons.compartments.visible = _model.get("enabled", false)
 	_sub_buttons.modifiers.visible = not _model.get("modifierItems", {}).get("items", []).is_empty()
@@ -87,6 +96,9 @@ func _render() -> void:
 			control.set_drag_forwarding(Callable(), func(_at, payload): return _accepts(payload), func(_at, payload): move_requested.emit(str(payload.cardInstanceId), id))
 			targets.add_child(control); _actions.append(control)
 		var clear := _button("Clear distribution", clear_requested.emit); targets.add_child(clear); _actions.append(clear)
+		targets.add_child(_button("Inspect card", func():
+			for entry in _card_buttons:
+				if str(entry.model.get("cardInstanceId", "")) == selected_id: _inspect(entry.model)))
 		_body.add_child(visual_context.styles.muted(visual_context.translator.text("Drag a card to a compartment, or select a card and a destination. Changes save automatically.")))
 	var summary: Label = visual_context.styles.muted(visual_context.translator.text("Current deck: %s cards") % facts.size()); _body.add_child(summary)
 	var costs := {}
@@ -110,9 +122,20 @@ func _render() -> void:
 		var model: Dictionary = presenter.project(fact)
 		var id := str(fact.get("identity", {}).get("cardInstanceId", ""))
 		var column := VBoxContainer.new(); grid.add_child(column)
-		var card = preload("res://scripts/ui/card_view.gd").new(visual_context); card.animate_entry = false; card.configure(model); card.select_card(false)
-		column.add_child(card)
-		card.pressed.connect(func(): selected_id = id; _inspect(model))
+		var card = _card_cache.get(id)
+		if not is_instance_valid(card):
+			card = preload("res://scripts/ui/card_view.gd").new(visual_context); card.animate_entry = false; _card_cache[id] = card
+		card.configure(model); card.select_card(subtab == "compartments" and selected_id == id)
+		if card.get_parent() == null: column.add_child(card)
+		else: card.reparent(column, false)
+		for connection in card.get_signal_connection_list("pressed"): card.pressed.disconnect(connection.callable)
+		card.pressed.connect(func():
+			selected_id = id
+			if subtab == "compartments":
+				for entry in _card_buttons:
+					var button = entry.column.get_child(0)
+					button.select_card(str(entry.model.get("cardInstanceId", "")) == selected_id)
+			else: _inspect(model))
 		if subtab == "compartments":
 			card.set_drag_forwarding(func(_at):
 				if _model.get("busy", false) or not _model.get("canChange", false): return null
