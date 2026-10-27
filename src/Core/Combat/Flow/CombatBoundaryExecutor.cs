@@ -294,7 +294,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (!current.IsActive)
             return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
 
-        var startsNewRound = StartsNewRound(current);
+        var startsNewRound = ActivationSequenceReducer.StartsNewRound(current, policies.ActivationSequence!);
         if (startsNewRound)
         {
             var endRound = AppendBoundary(
@@ -490,7 +490,15 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (order.Count == 0)
             return Result<CombatState>.Failure("No alive actors are available for combat activation");
 
-        var actorId = order[0];
+        var sequenceValidation = ActivationSequencePolicy.Validate(policies.ActivationSequence);
+        if (sequenceValidation.IsFailure) return Result<CombatState>.Failure(sequenceValidation.Error);
+        var circular = policies.ActivationSequence!.Strategy == ActivationSequenceStrategy.Circular;
+        if (circular && (turnOrderPolicy.RecalculateAt != TurnOrderRecalculationBoundary.CombatStart ||
+            turnOrderPolicy.Strategy == TurnOrderStrategy.Atb))
+            return Result<CombatState>.Failure("Circular requires a seat order fixed at CombatStart");
+        var actorId = circular && policies.ActivationSequence.Circular!.FirstActor == SequenceFirstActor.RunOwner
+            ? run.PlayerEntityId : order[0];
+        if (!order.Contains(actorId, StringComparer.Ordinal)) return Result<CombatState>.Failure("First actor is not eligible");
         var refreshed = RefreshActorResource(combat, actorId, policies.ResourceCycle, run);
         if (refreshed.IsFailure)
             return Result<CombatState>.Failure(refreshed.Error);
@@ -499,7 +507,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         {
             ActiveActorId = actorId,
             Round = 1,
-            ActivationIndex = 0,
+            ActivationIndex = order.ToList().IndexOf(actorId),
+            Circular = circular ? new CircularSequenceState { Direction = policies.ActivationSequence.Circular!.InitialDirection,
+                RoundLength = policies.ActivationSequence.Circular.ActivationsPerRound ?? order.Count } : null,
             ActivationNumber = 1,
             ActionsTaken = 0,
             ActivationOrder = order,
@@ -584,28 +594,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         CombatFlowPoliciesDefinition policies)
     {
         var activation = endedCombat.ActivationState!;
-        var completed = activation.CompletedActorIds;
-        var combat = endedCombat;
-        var eligibleOrder = endedCombat.TurnOrderState.Order
-            .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
-            .ToArray();
-        var nextIndex = Array.FindIndex(
-            eligibleOrder,
-            actorId => !completed.Contains(actorId, StringComparer.Ordinal));
-        var round = activation.Round;
-        IReadOnlyList<string> nextOrder = eligibleOrder;
-        IReadOnlyList<string> nextCompleted = completed;
-        if (nextIndex < 0)
-        {
-            round = checked(round + 1);
-            nextOrder = eligibleOrder;
-            nextCompleted = [];
-            nextIndex = 0;
-        }
-        if (nextOrder.Count == 0)
-            return Result<CombatResolutionStep>.Failure("No alive actors are available for the next activation");
-
-        var nextActorId = nextOrder[nextIndex];
+        var successor = ActivationSequenceReducer.Next(endedCombat, policies.ActivationSequence!);
+        if (successor.IsFailure) return Result<CombatResolutionStep>.Failure(successor.Error);
+        var (nextActorId, nextIndex, round, nextOrder, nextCompleted, circular) = successor.Value;
         var refreshed = RefreshActorResource(endedCombat, nextActorId, policies.ResourceCycle, run);
         if (refreshed.IsFailure)
             return Result<CombatResolutionStep>.Failure(refreshed.Error);
@@ -627,6 +618,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             ActionsTaken = 0,
             ActivationOrder = nextOrder,
             CompletedActorIds = nextCompleted,
+            Circular = circular,
             WaitingForInput = IsPlayerActor(refreshed.Value, nextActorId),
             StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
         };
@@ -818,14 +810,6 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             })
         });
         return Result<CombatState>.Success(evaluated);
-    }
-
-    private static bool StartsNewRound(CombatState combat)
-    {
-        var activation = combat.ActivationState;
-        return activation != null && activation.ActivationOrder
-            .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
-            .All(actorId => activation.CompletedActorIds.Contains(actorId, StringComparer.Ordinal));
     }
 
     private static string ToSnakeCase(StatusTriggerBoundary boundary) => boundary switch

@@ -419,6 +419,9 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 }
 
                 var turnOrderValidation = TurnOrderPolicyValidator.Validate(combat.TurnOrder);
+                if (combat.Flow.ActivationSequence?.Strategy == Core.Combat.Flow.ActivationSequenceStrategy.Circular &&
+                    (combat.TurnOrder.RecalculateAt != TurnOrderRecalculationBoundary.CombatStart || combat.TurnOrder.Strategy == TurnOrderStrategy.Atb))
+                    errors.Add($"combat-rules/{id}: Circular requires a seat order fixed at CombatStart");
                 if (turnOrderValidation.IsFailure)
                 {
                     errors.Add($"combat-rules/{id} turnOrder: {turnOrderValidation.Error}");

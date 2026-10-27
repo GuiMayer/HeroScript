@@ -5,6 +5,8 @@ namespace Core.Combat.Activation;
 
 public sealed record ActivationState
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Combat.Flow.CircularSequenceState? Circular { get; init; }
     private ImmutableList<string> _activationOrder = [];
     private ImmutableList<string> _completedActorIds = [];
     private ImmutableList<CombatIntent> _intents = [];

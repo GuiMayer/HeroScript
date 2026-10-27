@@ -464,6 +464,7 @@ public sealed class CombatFlowPlannerTests
 
     private static CombatFlowPoliciesDefinition Policies() => new()
     {
+        ActivationSequence = new() { Strategy = ActivationSequenceStrategy.PerRound },
         ResourceCycle = new()
         {
             ResourceId = "energy",
