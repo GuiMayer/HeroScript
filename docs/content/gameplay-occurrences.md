@@ -57,3 +57,11 @@ A observação agora recebe os snapshots de run junto aos de combate. Isso permi
 `SequenceChangePayload` conserva a operação e a sequência circular antes/depois, validando a correspondência entre os três. A observação não avança o turno. Os passos de cartas consultam endereços completos no snapshot de topologia e a definição de cada zona na revisão capturada; não interpretam nomes como mão/baralho/descarte.
 
 Ainda falta a cobertura completa da condensação e a ligação dos lifecycles/fronteiras/ações ao contexto da transação. O dispatcher e os componentes JSON continuam desabilitados.
+
+## Vínculos entre aplicações e condensação (etapa 4e)
+
+A mudança primária de recurso referencia os eventos dos settlements reais em `RelatedFactIds`, sem somar recursos de unidades diferentes. Âncoras imutáveis por impactId preservam a relação entre pai e efeitos filhos. Tanto o catálogo quanto o payload `RuleResult` tipam o resultado `effect.condensation.resolved`: ele identifica a receita, enquanto os fatos de status/modificador registram quais stacks foram consumidas. Os efeitos ativados continuam passando pelo executor comum.
+
+Ao consumir stacks de vários atores ou donos globais, cada stack usa o dono canônico do registro, não o alvo escolhido para ativar a receita. O fato da receita é o pai dos fatos de consumo e da aplicação que ela ativou. Nenhuma quantidade é reconstruída a partir de texto, lore ou nome de status.
+
+A condensação deixa de ser uma lacuna no executor observado. A etapa 4 ainda requer a integração dos lifecycles, fronteiras e ações, antes de habilitar autoria de respostas genéricas.

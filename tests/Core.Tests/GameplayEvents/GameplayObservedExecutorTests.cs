@@ -20,6 +20,7 @@ public sealed class GameplayObservedExecutorTests
             ("attribute.change.resolved", GameplayPayloadKind.AttributeChange), ("status.applied", GameplayPayloadKind.StatusChange),
             ("status.reapplied", GameplayPayloadKind.StatusChange), ("status.removed", GameplayPayloadKind.StatusChange),
             ("status.stacks.consumed", GameplayPayloadKind.StatusChange),
+            ("effect.condensation.resolved", GameplayPayloadKind.RuleResult),
             ("resource.threshold.matched", GameplayPayloadKind.ResourceThreshold), ("actor.defeat.changed", GameplayPayloadKind.ActorDefeatChange),
             ("modifier.stacks.changed", GameplayPayloadKind.ModifierChange), ("activation.sequence.changed", GameplayPayloadKind.SequenceChange),
             ("card.moved", GameplayPayloadKind.CardMovement), ("card.created", GameplayPayloadKind.CardMovement),
@@ -111,7 +112,7 @@ public sealed class GameplayObservedExecutorTests
         Assert.Empty(request.Combat.StatusEffects);
     }
     [Fact]
-    public void PartialCondensationCoverageIsExplicitAndDoesNotInventAnOrdinaryEffectFact()
+    public void CondensationHasItsRecipeFactAndCausalChildrenWithoutInventingDamageSemantics()
     {
         var fixture = StackPayloadTests.Fixture(recipe: CondensationTests.Recipe(CondensationTests.CountResource()));
         var prepared = fixture.Executor.Execute(EffectTransactionTests.Request(StackPayloadTests.Apply(2)) with { Run = fixture.Run });
@@ -122,7 +123,11 @@ public sealed class GameplayObservedExecutorTests
         var actual = fixture.Executor.ExecuteObserved(request, observation);
         Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(fixture.Executor.Execute(request).Value), CanonicalJson.ComputeHash(actual.Value.Execution));
-        Assert.Equal(EffectType.CONDENSE_STACKS, Assert.Single(actual.Value.Observation.Unobserved).EffectType);
+        Assert.Empty(actual.Value.Observation.Unobserved);
+        var recipe = Assert.Single(actual.Value.Observation.Events.Occurrences, item => item.Kind == "effect.condensation.resolved");
+        Assert.Equal("test", Assert.IsType<RuleResultPayload>(recipe.Payload).RuleId);
+        Assert.All(actual.Value.Observation.Events.Occurrences.Where(item => item.EventId != recipe.EventId),
+            item => Assert.Equal(recipe.EventId, item.ParentEventId));
         Assert.Contains(actual.Value.Observation.Events.Occurrences, item => item.Kind == "status.stacks.consumed");
         Assert.Empty(observation.Events.Occurrences);
         Assert.True(fixture.Executor.ExecuteObserved(request with { ContentRevision = "another" }, observation).IsFailure);
@@ -209,6 +214,49 @@ public sealed class GameplayObservedExecutorTests
         var resourceEvent = actual.Value.Observation.Events.Occurrences.First(item => item.Payload is ResourceChangePayload);
         Assert.All(actual.Value.Observation.Events.Occurrences.Where(item => item.Payload is ResourceThresholdPayload or ActorDefeatChangePayload),
             item => Assert.Equal(resourceEvent.EventId, item.ParentEventId));
+        Assert.Empty(actual.Value.Observation.Unobserved);
+    }
+
+    [Fact]
+    public void PrimaryResourceFactLinksToActualSettlementsWithoutSummingDifferentResources()
+    {
+        var fixture = EffectSequenceBudgetTests.Fixture();
+        var request = EffectTransactionTests.Request(EffectSequenceBudgetTests.Damage(6, 1)) with { Run = fixture.Run };
+        var actor = request.Combat.GetActor("enemy")!;
+        var shield = ResourcePool.Materialize(new ResourceDefinition { ResourceId = "shield", DisplayName = "Shield", DefaultMax = 4 }, 4, 4);
+        request = request with { Combat = request.Combat.ReplaceActor(actor with { ResourceState = actor.ResourceState with
+            { Resources = actor.ResourceState.Resources.ToDictionary().Append(new KeyValuePair<string, ResourcePool>("shield", shield)).ToDictionary() } }) };
+        var actual = fixture.Executor.ExecuteObserved(request, Observation());
+        Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(fixture.Executor.Execute(request).Value), CanonicalJson.ComputeHash(actual.Value.Execution));
+        var facts = actual.Value.Observation.Events.Occurrences;
+        var settlement = Assert.Single(facts, item => item.Payload is ResourceChangePayload p && p.ResourceId == "shield");
+        var primary = Assert.Single(facts, item => item.Payload is ResourceChangePayload p && p.ResourceId == "focus");
+        Assert.Equal(new[] { settlement.EventId }, Assert.IsType<ResourceChangePayload>(primary.Payload).RelatedFactIds);
+        Assert.Equal(-4, Assert.IsType<ResourceChangePayload>(settlement.Payload).AppliedDelta);
+        Assert.Equal(-2, Assert.IsType<ResourceChangePayload>(primary.Payload).AppliedDelta);
+        Assert.Equal(primary.CalculationId, settlement.CalculationId);
+    }
+
+    [Fact]
+    public void OneCondensationMayConsumeDifferentOwnersAndStoresWithoutPretendingTheyAreItsTarget()
+    {
+        var recipe = CondensationTests.Recipe(CondensationTests.CountResource()) with { OwnerBinding = CondensationOwnerBinding.Any };
+        var fixture = StackPayloadTests.Fixture(recipe: recipe);
+        var prepared = fixture.Executor.Execute(EffectTransactionTests.Request(StackPayloadTests.Apply(2),
+            StackPayloadTests.Apply(3) with { Target = EffectTarget.SELF },
+            StackPayloadTests.ApplyModifier(1) with { ModifierOwner = new() { Kind = GameplayOwnerKind.Global } }) with { Run = fixture.Run });
+        Assert.True(prepared.IsSuccess, prepared.IsFailure ? prepared.Error : null);
+        var request = EffectTransactionTests.Request(CondensationTests.Condense()) with { Run = prepared.Value.Run, Combat = prepared.Value.State };
+        var actual = fixture.Executor.ExecuteObserved(request, Observation());
+        Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(fixture.Executor.Execute(request).Value), CanonicalJson.ComputeHash(actual.Value.Execution));
+        var facts = actual.Value.Observation.Events.Occurrences;
+        var consumed = facts.Where(item => item.Payload is StatusChangePayload).ToArray();
+        Assert.Equal(new[] { "enemy", "hero" }, consumed.Select(item => item.SubjectActorId).Order(StringComparer.Ordinal));
+        var modifier = Assert.IsType<ModifierChangePayload>(Assert.Single(facts, item => item.Payload is ModifierChangePayload).Payload);
+        Assert.Equal(GameplayOwnerKind.Global, modifier.Owner.Kind);
+        Assert.Equal(0, modifier.AfterStacks);
         Assert.Empty(actual.Value.Observation.Unobserved);
     }
 

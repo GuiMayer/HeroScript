@@ -75,3 +75,5 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 - Etapa 4d: observação de modificadores com dono real (incluindo global), movimentos de cartas via topologia/definições capturadas, sequência circular e fatos de políticas de recurso/derrota. Novas regressões de igualdade com o executor normal e de precedência da política não letal. **149 testes focados passaram**. Pendentes na etapa 4: condensação completa, ligação dos lifecycles/fronteiras/ações e vínculos complementares de settlements.
 
 - Certificação 4d: **1997 testes Core aprovados, zero falhas/exclusões**, sobre a árvore exata do índice em `.runtime/generic-events-stage4d-index`, com descoberta de conteúdo e build isolados dentro da cópia.
+
+- Etapa 4e: vínculos dos settlements à mudança primária, âncoras por impacto e fato da receita de condensação; consumo de status de vários atores e modificador global mantém seus donos. **151 testes focados passaram**, incluindo novas regressões de absorção e condensação entre donos/stores. Ainda pendente: ligação de lifecycles, fronteiras e ações ao contexto; etapa 4 não concluída.

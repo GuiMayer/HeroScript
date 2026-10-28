@@ -22,14 +22,19 @@ public sealed record GameplayEffectObservation
     public string? ParentEventId { get; init; }
     public string? LastApplicationEventId { get; init; }
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];
+    public ImmutableDictionary<string, string> ImpactAnchors { get; init; } =
+        ImmutableDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
 
     internal Result<GameplayEffectObservation> Record(ResolvedEffectCommand command, CombatState before, CombatState after,
         IReadOnlyList<EffectApplicationRecord> records, RunState? runBefore = null, RunState? runAfter = null)
     {
-        if (Events == null || Unobserved.IsDefault || !EventValue.Valid(PublisherId) || !EventValue.Valid(ReasonId) ||
+        if (Events == null || ImpactAnchors == null || Unobserved.IsDefault || !EventValue.Valid(PublisherId) || !EventValue.Valid(ReasonId) ||
             records.Count > EffectExecutionLimits.MaximumSteps)
             return Result<GameplayEffectObservation>.Failure("Invalid effect observation context");
         var current = this with { LastApplicationEventId = null };
+        var parentEventId = command.Identity?.ParentImpactId is { } parentImpact && ImpactAnchors.TryGetValue(parentImpact, out var anchor)
+            ? anchor : ParentEventId;
+        var settlements = ImmutableArray.CreateBuilder<string>();
         var metadata = new GameplayOccurrenceDraft
         {
             ReasonId = ReasonId, Attribution = GameplayAttribution.Source,
@@ -53,7 +58,11 @@ public sealed record GameplayEffectObservation
                 var fact = GameplayResourceFactProducer.FromEffect(command, record,
                     new() { Kind = "entity", Id = record.TargetEntityId, ScopeId = Events.Scope.CombatId ?? Events.Scope.RunId }, targetMetadata);
                 if (fact.IsFailure) return Result<GameplayEffectObservation>.Failure(fact.Error);
-                drafts.Add(fact.Value);
+                var resourceFact = fact.Value;
+                if (record.CalculationInfluenceId == null && settlements.Count > 0)
+                    resourceFact = resourceFact with { Payload = ((ResourceChangePayload)resourceFact.Payload) with
+                        { RelatedFactIds = settlements.ToImmutable() } };
+                drafts.Add(resourceFact);
                 var rules = GameplayRuleFactProducer.ResourceRules(record.ResourceOutcome, targetMetadata);
                 if (rules.IsFailure) return Result<GameplayEffectObservation>.Failure(rules.Error);
                 drafts.AddRange(rules.Value);
@@ -64,11 +73,19 @@ public sealed record GameplayEffectObservation
                 if (fact.IsFailure) return Result<GameplayEffectObservation>.Failure(fact.Error);
                 drafts.Add(fact.Value);
             }
+            if (record.Condensation != null)
+            {
+                var payload = new RuleResultPayload { RuleId = record.Condensation.Selection.RecipeId, ResultId = "stacks.consumed" };
+                var valid = payload.Validate();
+                if (valid.IsFailure) return Result<GameplayEffectObservation>.Failure(valid.Error);
+                drafts.Add(targetMetadata with { Kind = "effect.condensation.resolved", Payload = payload });
+            }
             foreach (var change in record.StackChanges.Where(change => change.Store == EffectStackStore.Status))
             {
-                var oldStatus = before.StatusEffects.GetValueOrDefault(record.TargetEntityId, [])
+                var statusOwnerId = change.Owner?.Kind == GameplayOwnerKind.Entity ? change.Owner.Id : record.TargetEntityId;
+                var oldStatus = before.StatusEffects.GetValueOrDefault(statusOwnerId, [])
                     .SingleOrDefault(status => status.InstanceId == change.InstanceId);
-                var newStatus = after.StatusEffects.GetValueOrDefault(record.TargetEntityId, [])
+                var newStatus = after.StatusEffects.GetValueOrDefault(statusOwnerId, [])
                     .SingleOrDefault(status => status.InstanceId == change.InstanceId);
                 var fact = GameplayEntityFactProducer.Status(change, oldStatus, newStatus, targetMetadata);
                 if (fact.IsFailure) return Result<GameplayEffectObservation>.Failure(fact.Error);
@@ -100,23 +117,34 @@ public sealed record GameplayEffectObservation
                 if (valid.IsFailure) return Result<GameplayEffectObservation>.Failure(valid.Error);
                 drafts.Add(targetMetadata with { Kind = "activation.sequence.changed", Payload = payload });
             }
-            // Partial families are also reported: a stack fact alone does not describe a condensation/zone/modifier action.
-            if (drafts.Count == 0 && record.EffectType != EffectType.CARD_ZONE_FLOW || record.Condensation != null)
+            // Unsupported application families must remain visible instead of inventing ordinary effect facts.
+            if (drafts.Count == 0 && record.EffectType != EffectType.CARD_ZONE_FLOW)
             {
                 if (current.Unobserved.Length >= EffectExecutionLimits.MaximumSteps)
                     return Result<GameplayEffectObservation>.Failure("Unobserved effect budget exceeded");
                 current = current with { Unobserved = current.Unobserved.Add(new(command.EffectInstanceId, record.EffectType, record.TargetEntityId)) };
             }
             string? resourceEventId = null;
+            string? condensationEventId = null;
             for (var factIndex = 0; factIndex < drafts.Count; factIndex++)
             {
-                var ruleParent = drafts[factIndex].Payload is ResourceThresholdPayload or ActorDefeatChangePayload ? resourceEventId : null;
-                var appended = current.Events.Append(PublisherId, $"{command.EffectInstanceId}/{index}/{factIndex}", drafts[factIndex], ruleParent ?? ParentEventId);
+                var ruleParent = drafts[factIndex].Payload is ResourceThresholdPayload or ActorDefeatChangePayload ? resourceEventId
+                    : drafts[factIndex].Payload is StatusChangePayload or ModifierChangePayload ? condensationEventId : null;
+                var appended = current.Events.Append(PublisherId, $"{command.EffectInstanceId}/{index}/{factIndex}", drafts[factIndex], ruleParent ?? parentEventId);
                 if (appended.IsFailure) return Result<GameplayEffectObservation>.Failure(appended.Error);
                 current = current with { Events = appended.Value.Transaction, LastApplicationEventId = appended.Value.Occurrence.EventId };
                 if (drafts[factIndex].Payload is ResourceChangePayload) resourceEventId = appended.Value.Occurrence.EventId;
+                if (drafts[factIndex].Kind == "effect.condensation.resolved") condensationEventId = appended.Value.Occurrence.EventId;
             }
             if (resourceEventId != null) current = current with { LastApplicationEventId = resourceEventId };
+            if (condensationEventId != null) current = current with { LastApplicationEventId = condensationEventId };
+            if (record.CalculationInfluenceId != null && resourceEventId != null) settlements.Add(resourceEventId);
+        }
+        if (command.Identity?.ImpactId is { } impactId && current.LastApplicationEventId is { } eventId)
+        {
+            if (current.ImpactAnchors.Count >= EffectExecutionLimits.MaximumSteps && !current.ImpactAnchors.ContainsKey(impactId))
+                return Result<GameplayEffectObservation>.Failure("Observed impact anchor budget exceeded");
+            current = current with { ImpactAnchors = current.ImpactAnchors.SetItem(impactId, eventId) };
         }
         return Result<GameplayEffectObservation>.Success(current);
 
