@@ -48,6 +48,12 @@ public sealed record ResponseResourceFilter
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ResponseBoundaryFilter
+{
+    public ImmutableArray<string> BoundaryIds { get; init; } = [];
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GameplayResponseFilter
 {
     public ResponseTopicSelector Kinds { get; init; } = new();
@@ -57,6 +63,8 @@ public sealed record GameplayResponseFilter
     public ResponseActorFilter Attributed { get; init; } = new();
     public SideRelationship? SourceSubjectRelationship { get; init; }
     public ResponseResourceFilter? Resource { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ResponseBoundaryFilter? Boundary { get; init; }
     public ImmutableArray<string> RequiredTags { get; init; } = [];
     public ImmutableArray<string> ExcludedTags { get; init; } = [];
 }

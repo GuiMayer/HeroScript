@@ -50,7 +50,9 @@ public sealed class GameplayResponseMatcher
             if (!response.HasKnownTopics || definition.Availability.Snapshot != snapshot.Snapshot || !response.Reasons.Matches(reason)) continue;
             var filter = definition.Observe;
             if (!filter.RequiredTags.All(occurrence.Tags.Contains) || filter.ExcludedTags.Any(occurrence.Tags.Contains) ||
-                !ResourceMatches(filter.Resource, occurrence.Payload)) continue;
+                !ResourceMatches(filter.Resource, occurrence.Payload) ||
+                filter.Boundary != null && (occurrence.Payload is not BoundaryOccurrencePayload boundary ||
+                    !filter.Boundary.BoundaryIds.Contains(boundary.BoundaryId, StringComparer.Ordinal))) continue;
             var owner = Bind(definition.Bindings.Owner, null);
             // A logical owner is distinct from the physical owner of a container.
             if (!ActorMatches(filter.Source, occurrence.SourceActorId, owner, snapshot) ||

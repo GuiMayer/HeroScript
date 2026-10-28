@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Gameplay response definition — publication validates references and host capabilities",
-  "description": "Definitions and compilation only at stage 5; execution is enabled by the dispatcher/cutover stages. Effects are validated by the canonical EffectDefinitionValidator.",
+  "description": "Typed response contract. Publication validates references and host capabilities; new authored responses remain gated until cutover. Effects use the canonical EffectDefinitionValidator.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -318,6 +318,9 @@
           },
           "uniqueItems": true,
           "maxItems": 64
+        },
+        "boundary": {
+          "$ref": "#/$defs/boundaryFilter"
         }
       }
     },
@@ -339,6 +342,24 @@
             "Skip",
             "RejectAction"
           ]
+        }
+      }
+    },
+    "boundaryFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundaryIds"
+      ],
+      "properties": {
+        "boundaryIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
         }
       }
     }

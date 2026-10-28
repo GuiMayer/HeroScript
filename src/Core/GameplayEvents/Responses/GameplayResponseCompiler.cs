@@ -56,6 +56,9 @@ public static class GameplayResponseCompiler
             resource.Role is { } role && !Enum.IsDefined(role) || !Enum.IsDefined(resource.Direction) ||
             matchingKinds.Length > 0 && !matchingKinds.Any(kind => kind.Payload == GameplayPayloadKind.ResourceChange)))
             return Result<CompiledGameplayResponse>.Failure("Resource response filter cannot match the declared typed topics");
+        if (observe.Boundary is { } boundary && (!ValidIds(boundary.BoundaryIds) || boundary.BoundaryIds.IsEmpty || observe.Resource != null ||
+            matchingKinds.Length > 0 && !matchingKinds.Any(kind => kind.Payload == GameplayPayloadKind.Boundary)))
+            return Result<CompiledGameplayResponse>.Failure("Boundary response filter cannot match the declared typed topics");
         var availability = definition.Availability;
         if (!Enum.IsDefined(availability.Snapshot) || !Enum.IsDefined(availability.Kind) || !ValidIds(availability.ZoneIds) ||
             (availability.Kind == ResponseAvailabilityKind.CardZones) != !availability.ZoneIds.IsEmpty ||
