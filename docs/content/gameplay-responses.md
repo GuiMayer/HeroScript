@@ -64,3 +64,9 @@ A projeção recebe as referências necessárias e a fotografia declarada pelo r
 - `scope.container_stacks`, `scope.container_duration`, `scope.run_sequence`, `event.ordinal`, `event.depth`.
 
 Campo ausente, binding ausente ou valor que não cabe no contrato numérico existente produz erro quando solicitado. Não existe zero implícito ou seleção do primeiro ator. Referências não solicitadas não são calculadas; ler um payload não executa efeitos nem movimenta o RNG.
+
+## Matching e quotas transacionais (etapa 6a)
+
+O índice de kinds produz no máximo um candidato por registro/ocorrência; exclusões vencem e as demais dimensões são conjuntivas. Bindings não substituem um ator ausente por outro. O dono lógico pode diferir do dono físico capturado. Filtros de recurso usam o payload tipado e distinguem PrimaryEffect, Settlement e DirectMutation. Direção usa o delta efetivamente aplicado. IDs de recurso seguem a comparação canônica sem diferenciar maiúsculas; canais, tags e identidades são ordinais.
+
+As quotas locais retornam sucessores imutáveis por ação. Uma ocorrência não volta a invocar o mesmo registro mesmo com maximum maior que um. Impact e Proc exigem suas respectivas âncoras explícitas; não caem silenciosamente para ocorrência. Ultrapassar a quota declarada apenas impede a invocação; ultrapassar o orçamento global rejeita o candidato inteiro. Frequências duráveis permanecem indisponíveis. O matcher não avalia condições nem executa efeitos; o dispatcher é a próxima integração.
