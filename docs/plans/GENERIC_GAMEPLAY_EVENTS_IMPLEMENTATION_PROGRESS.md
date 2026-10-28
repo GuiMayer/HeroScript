@@ -35,7 +35,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 3 — Causalidade e identidade | Concluída |
 | 4 — Produtores canônicos | Concluída em modo opt-in; migração de consumidores nas etapas seguintes |
 | 5 — Definições e providers | Concluída; publicação executável bloqueada até o cutover |
-| 6 — Dispatcher transacional | Não iniciada |
+| 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
 | 7 — Migração das reações de recurso | Não iniciada |
 | 8 — Migração de lifecycle/fases | Não iniciada |
 | 9 — Containers e respostas pós-fato | Não iniciada |
@@ -143,3 +143,5 @@ Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em se
 - Etapa 6b: execução candidata explícita de respostas pelo mesmo executor de efeitos, com orçamento compartilhado entre ação, respostas e descendentes. Elegibilidade/condições são congeladas por operação; registro ativo e dono podem ser revalidados conforme política. RecordOnly registra fatos sem disparar descendentes; AllowResponses usa as mesmas quotas/profundidade/limites. Condições e fórmulas leem a revisão capturada, sem parser paralelo. **166 testes focados aprovados**, incluindo nove novos casos/variações de execução, encadeamento, rollback, números tipados, elegibilidade e prova de orçamento compartilhado. A autoria/publicação padrão continua bloqueada; migrações e integração dos produtores externos ainda pertencem às etapas seguintes. Certificação completa deste incremento em preparação.
 
 - Certificação 6b: árvore exata do índice `0ba031504e1dec9620364d3169aa9f07ca398f4e`, exportada para `.runtime/generic-events-stage6b-index`. Build da solução sem warnings/erros; **2081 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. O teste API amplo 65/67 previamente reproduzido na base não foi incluído nesta seleção focada. Ainda serão conferidos os casos de criação de observador/derrota e a proveniência das respostas antes do fechamento da etapa 6.
+
+- Fechamento da etapa 6: proveniência capturada das respostas, criação de observadores conforme BeforeOccurrence/AfterOccurrence, revalidação explícita após derrota, alteração zero e falha tardia/ciclo cobertos. Bindings/valores de combate não consultam atores persistentes fora do roster; atividades sem combate continuam podendo consultar a ficha persistente. **175 testes focados aprovados**. Árvore de código certificada `6ca1ef6c3c930b72939929c46bf6d81dd78d3590`, em `.runtime/generic-events-stage6-certified-index`: build completo sem warnings/erros, **2090 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. A execução concorrente das duas suítes levou 2m20/2m43; não é uma medição de latência da engine. A etapa 6 fecha o dispatcher candidato, não anuncia migração de reações/lifecycles, publicação JSON, persistência de frequência durável ou REST antes das etapas correspondentes.

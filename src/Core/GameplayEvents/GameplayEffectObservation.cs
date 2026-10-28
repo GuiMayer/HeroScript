@@ -25,6 +25,7 @@ public sealed record GameplayEffectObservation
         ImmutableDictionary<string, GameplayObjectReference>.Empty.WithComparers(StringComparer.Ordinal);
     public string? ParentEventId { get; init; }
     public string? LastApplicationEventId { get; init; }
+    internal GameplayEventOrigin? ResponseOrigin { get; init; }
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];
     public ImmutableDictionary<string, string> ImpactAnchors { get; init; } =
         ImmutableDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
@@ -43,7 +44,7 @@ public sealed record GameplayEffectObservation
         {
             ReasonId = command.SemanticReasonId ?? ReasonId, Attribution = GameplayAttribution.Source,
             SourceActorId = string.IsNullOrEmpty(command.SourceEntityId) ? null : command.SourceEntityId,
-            Origin = new() { ContainerKind = command.Provenance.Kind.ToString().ToLowerInvariant(),
+            Origin = ResponseOrigin ?? new() { ContainerKind = command.Provenance.Kind.ToString().ToLowerInvariant(),
                 ContainerId = string.IsNullOrEmpty(command.Provenance.SourceId) ? command.EffectInstanceId : command.Provenance.SourceId,
                 ComponentId = command.Provenance.ComponentId ?? command.EffectInstanceId,
                 ContentRevision = command.ContentRevision ?? Events.Scope.ContentRevision },

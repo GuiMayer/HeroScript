@@ -125,14 +125,14 @@ public sealed partial class EffectTriggerExecutor
                     SourceId = candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }
             };
             var childObservation = currentObservation with { ParentEventId = candidate.Occurrence.EventId,
-                ReasonId = definition.ReasonId ?? observation.ReasonId };
+                ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin };
             var result = Execute(request, null, budget, suppressReactions: true, baseDepth: depth + 1,
                 observation: childObservation, dispatchResponses: definition.Propagation == ResponsePropagation.AllowResponses);
             if (result.IsFailure) return Result<EffectBatchResult?>.Failure(result.Error);
             state = result.Value.State;
             run = result.Value.Run!;
             currentObservation = result.Value.Observation! with { ParentEventId = observation.ParentEventId,
-                ReasonId = observation.ReasonId, LastApplicationEventId = observation.LastApplicationEventId };
+                ReasonId = observation.ReasonId, LastApplicationEventId = observation.LastApplicationEventId, ResponseOrigin = observation.ResponseOrigin };
             records.AddRange(result.Value.Records); calculations.AddRange(result.Value.Calculations);
             foreach (var step in result.Value.Steps) steps.Add(step with { Index = steps.Count });
         }

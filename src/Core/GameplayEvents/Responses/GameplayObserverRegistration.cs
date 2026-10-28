@@ -57,7 +57,7 @@ public sealed record GameplayObserverCollectionContext
     public Guid? SelectedCardId { get; init; }
     public Guid? ResolvingCardId { get; init; }
 
-    public bool ContainsActor(string actorId) => Combat?.GetActor(actorId) != null || Run.PlayerEntity?.InstanceId == actorId;
+    public bool ContainsActor(string actorId) => Combat != null ? Combat.GetActor(actorId) != null : Run.PlayerEntity?.InstanceId == actorId;
 }
 
 public interface IGameplayObserverProvider

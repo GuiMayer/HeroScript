@@ -37,7 +37,7 @@ public static class GameplayResponseNumbers
                 { "source" => occurrence.SourceActorId, "subject" => occurrence.SubjectActorId, _ => occurrence.AttributedActorId } : null;
                 var actor = actorId == null ? null : snapshot.Combat?.GetActor(actorId);
                 var persistent = snapshot.Run.PlayerEntity;
-                var components = actor?.Components ?? (actorId != null && persistent?.InstanceId == actorId ? persistent!.Components : null);
+                var components = actor?.Components ?? (snapshot.Combat == null && actorId != null && persistent?.InstanceId == actorId ? persistent!.Components : null);
                 if (components != null && path.Length == prefix + 2 && components.GetValueOrDefault(path[prefix]) is StatEntityComponentState stats &&
                     stats.Values.TryGetValue(path[prefix + 1], out var stat)) number = stat;
                 else if (components != null && path.Length == prefix + 3 && path[prefix] == "resources")
