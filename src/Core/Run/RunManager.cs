@@ -220,14 +220,14 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         if (initialPlayableCardCount < 0)
             return Result<RunState>.Failure("Initial playable card count cannot be negative");
 
-        if (_cardZoneFlows == null)
+        if (CardZoneFlows == null)
             return Result<RunState>.Failure("Card-zone flow executor is required for the selected game mode");
         var compiled = CardZoneSystemCompiler.Compile(resolvedMode.CardZoneSystem);
         if (compiled.IsFailure)
             return Result<RunState>.Failure(compiled.Error);
         var initialized = CardZoneRunInitializer.Initialize(
             compiled.Value, definition, startingCards, "$run", options.PlayerEntityId,
-            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows, eligibility.Value);
+            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, CardZoneFlows, eligibility.Value);
         if (initialized.IsFailure)
             return Result<RunState>.Failure(initialized.Error);
         var initialDeck = new DeckState { Topology = initialized.Value.State };
@@ -857,7 +857,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                         return Result.Failure(card.Error);
                 }
             }
-            var flowed = CardZoneRunFlowDispatcher.InvokeTool(_cardZoneFlows, state,
+            var flowed = CardZoneRunFlowDispatcher.InvokeTool(CardZoneFlows, state,
                 request.FlowId, request.CardInstanceIds ?? [],
                 request.CardDefinitionIds ?? [], request.ActorId);
             if (flowed.IsFailure) return Result.Failure(flowed.Error);
@@ -894,7 +894,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 .ToHashSet();
             if (selected.Any(id => !visible.Contains(id)))
                 return Result.Failure("Selected card instance is not visible in this run");
-            var flowed = CardZoneRunFlowDispatcher.InvokeGameplay(_cardZoneFlows,
+            var flowed = CardZoneRunFlowDispatcher.InvokeGameplay(CardZoneFlows,
                 state, request.FlowId, selected, request.RequestedCount ?? selected.Count);
             if (flowed.IsFailure) return Result.Failure(flowed.Error);
             if (flowed.Value.Steps.IsEmpty)
@@ -1531,7 +1531,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (initializedRun == null)
             {
                 var prepared = state with { Deck = encounterDeck.Value.State };
-                var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, prepared,
+                var flowed = CardZoneRunFlowDispatcher.Execute(CardZoneFlows, prepared,
                     prepared.Deck, seed.Context, "encounter.started", combatSnapshot: combatState);
                 if (flowed.IsFailure)
                     return Result<RunState>.Failure(flowed.Error);
@@ -2022,7 +2022,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-            var transition = CardSelectionTransitions.Pick(state, selectionInstanceId, cardIds, _cardZoneFlows);
+            var transition = CardSelectionTransitions.Pick(state, selectionInstanceId, cardIds, CardZoneFlows);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2125,7 +2125,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
 
             var runtime = _contentRuntimes?.Resolve(state.Determinism.ContentRevision, state.ConfigName);
             if (runtime?.IsFailure == true) return Result<ShopItemState>.Failure(runtime.Error);
-            var transition = ShopTransitions.BuyObserved(state, shopInstanceId, itemId, _cardZoneFlows, runtime?.Value, _observation);
+            var transition = ShopTransitions.BuyObserved(state, shopInstanceId, itemId, CardZoneFlows, runtime?.Value, _observation);
             return transition.IsFailure
                 ? Result<ShopItemState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2239,7 +2239,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 state,
                 plan.Value,
                 resolvedModifiers,
-                _cardZoneFlows, _observation);
+                CardZoneFlows, _observation);
             if (transition.IsFailure)
                 return Result<PreparationOptionState>.Failure(transition.Error);
 
@@ -2411,7 +2411,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
     private Result<CardZoneFlowResult> ExecuteCardZoneBoundary(
         RunState state,
         string trigger)
-        => CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state, state.Deck,
+        => CardZoneRunFlowDispatcher.Execute(CardZoneFlows, state, state.Deck,
             state.Determinism, trigger);
 
     private Result<RunState> RestoreHeadFromHistory(

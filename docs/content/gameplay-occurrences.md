@@ -131,3 +131,7 @@ O catálogo fechado `GameplayCoreCatalog` fornece capacidades confiáveis e os t
 ## Candidatos fora do combate (etapa 4o)
 
 `RunSessionCoordinator.PlanObserved` usa o codec, gate e handler canônicos e um motor isolado por candidato. Não grava commits nem recibos. A observação existe apenas na composição privada e não faz parte do snapshot. Pagamentos e recompensas preservam os operandos enviados ao redutor; consultas de disponibilidade não produzem fatos. O adaptador de atividades vincula explicitamente o ator sintético à carteira real quando configurado como RunWallet, sem atribuir a mudança a um recurso do personagem. O vínculo é restaurado ao terminar o batch. O caminho normal permanece sem observação; essa entrada ainda não habilita respostas por JSON.
+
+## Fluxos externos de cartas (etapa 4p)
+
+O motor isolado instala um adaptador de `ICardZoneFlowExecutor` apenas para o comando observado. O adaptador delega uma vez e projeta os passos primitivos com os snapshots capturados, antes de aceitar o sucessor de observação. Abrange concessões, ferramentas de zonas, fluxos de gameplay e fronteiras da run. Efeitos de atividades usam seu próprio executor observado, evitando dupla emissão. Uma falha posterior descarta o candidato inteiro.

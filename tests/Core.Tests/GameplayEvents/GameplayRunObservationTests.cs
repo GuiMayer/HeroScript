@@ -75,6 +75,52 @@ public sealed class GameplayRunObservationTests
         Assert.Empty(initial.Events.Occurrences);
     }
 
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RunCardFlowDecoratorRecordsCanonicalPrimitivesAndRollsBackOnBudgetFailure(bool limited)
+    {
+        var system = new Core.CardZones.CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "test", GameplayGrantFlowId = "grant",
+            Zones = [new() { ZoneId = "pool", OwnerScope = Core.CardZones.CardZoneOwnerScope.RunOwner,
+                Ordering = Core.CardZones.CardZoneOrdering.Ordered }],
+            Flows = [new() { FlowId = "grant", AllowedInvocations = [Core.CardZones.CardZoneFlowInvocation.GameplayCommand],
+                Steps = [new() { StepId = "create", Operation = Core.CardZones.CardZoneOperation.Create, TargetZoneId = "pool",
+                    TargetOwner = Core.CardZones.CardZoneOwnerBinding.RunOwner, CardDefinitionId = "$input",
+                    Selection = new() { Strategy = Core.CardZones.CardZoneSelectionStrategy.Top, Count = 2 } }] }]
+        };
+        var compiled = Core.CardZones.CardZoneSystemCompiler.Compile(system);
+        Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
+        var topology = Core.CardZones.CardZoneBootstrapper.Create(compiled.Value,
+            new Core.CardZones.CardZoneBootstrapPlan { RunOwnerId = "$run" }, State().Determinism).Value;
+        var run = State() with { Deck = new() { Topology = topology.State }, Determinism = topology.Context,
+            ResolvedMode = new() { CardZoneSystem = system } };
+        var initial = GameplayObservedExecutorTests.Observation(limited ? 1 : 4096);
+        var cursor = new GameplayRunObservation(initial);
+        var inner = new Core.CardZones.CardZoneFlowExecutor();
+        var wrapper = new ObservedRunCardZoneFlows(inner, cursor);
+        var before = CanonicalJson.ComputeHash(run);
+        var actual = Core.CardZones.CardZoneRunFlowDispatcher.Grant(wrapper, run, ["first", "second"]);
+        if (limited)
+        {
+            Assert.True(actual.IsFailure);
+            Assert.Empty(cursor.Current.Events.Occurrences);
+        }
+        else
+        {
+            Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+            var expected = Core.CardZones.CardZoneRunFlowDispatcher.Grant(inner, run, ["first", "second"]);
+            Assert.True(expected.IsSuccess, expected.IsFailure ? expected.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(expected.Value), CanonicalJson.ComputeHash(actual.Value));
+            Assert.Equal(2, cursor.Current.Events.Occurrences.Count);
+            Assert.All(cursor.Current.Events.Occurrences, item => Assert.Equal("card.created", item.Kind));
+            Assert.Empty(initial.Events.Occurrences);
+        }
+        Assert.Equal(before, CanonicalJson.ComputeHash(run));
+    }
+
     [Fact]
     public void RootRunCandidateUsesActualIdentityWithoutPublishingOrMutatingState()
     {
