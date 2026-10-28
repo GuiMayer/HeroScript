@@ -48,6 +48,8 @@ public sealed record EffectTriggerExecutionRequest
 
 public interface IEffectTriggerExecutor
 {
+    Result<Core.GameplayEvents.Responses.IGameplayBoundaryExecutionScope> BeginBoundaryScope(RunState run, CombatState combat,
+        GameplayEffectObservation? observation = null) => Result<Core.GameplayEvents.Responses.IGameplayBoundaryExecutionScope>.Failure("This executor does not support transactional boundary responses");
     Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request);
     Result<Core.GameplayEvents.ObservedEffectExecution> ExecuteObserved(EffectTriggerExecutionRequest request,
         Core.GameplayEvents.GameplayEffectObservation observation) =>

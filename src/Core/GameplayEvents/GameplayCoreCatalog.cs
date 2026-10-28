@@ -27,7 +27,7 @@ public static class GameplayCoreCatalog
         Add(GameplayPayloadKind.ActorDefeatChange, "actor.defeat.changed");
         Add(GameplayPayloadKind.SequenceChange, "activation.sequence.changed");
         Add(GameplayPayloadKind.RuleResult, "effect.condensation.resolved", "effect.application.resolved");
-        Add(GameplayPayloadKind.Boundary, "phase.entered", "phase.exited", "combat.started", "combat.ended", "activation.started", "activation.ended",
+        Add(GameplayPayloadKind.Boundary, "boundary.reached", "phase.entered", "phase.exited", "combat.started", "combat.ended", "activation.started", "activation.ended",
             "round.started", "round.ended", "run.started", "run.ended");
         Add(GameplayPayloadKind.Action, "action.started", "action.completed", "command.started", "command.completed");
         var contract = new GameplayPublisherContract(PublisherId, HierarchySelector.Compile(["**"]).Value, Enum.GetValues<GameplayPayloadKind>().ToImmutableArray());

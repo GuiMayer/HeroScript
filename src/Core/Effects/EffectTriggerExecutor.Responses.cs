@@ -117,6 +117,14 @@ public sealed partial class EffectTriggerExecutor
             return Result<EffectBatchResult?>.Success(null);
         if (runBefore == null || runAfter == null) return Result<EffectBatchResult?>.Failure("Response execution lost its run snapshot");
         var facts = observation.Events.Occurrences.Skip(firstFact).ToImmutableArray();
+        return DispatchFacts(budget, observation, facts, before, runBefore, after, runAfter, depth, sourceApplications);
+    }
+
+    private Result<EffectBatchResult?> DispatchFacts(ExecutionBudget budget, GameplayEffectObservation observation,
+        ImmutableArray<GameplayOccurrence> facts, CombatState before, RunState runBefore, CombatState after, RunState runAfter,
+        int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications)
+    {
+        var session = budget.Responses!;
         var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications);
         if (frozen.IsFailure) return Result<EffectBatchResult?>.Failure(frozen.Error);
         var state = after;
@@ -125,21 +133,26 @@ public sealed partial class EffectTriggerExecutor
         var records = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var calculations = ImmutableArray.CreateBuilder<Core.Calculations.CalculationResult>();
         var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
+        var boundaryFrames = ImmutableArray.CreateBuilder<GameplayBoundaryInvocationResult>();
         foreach (var candidate in frozen.Value)
         {
             var revalidated = session.Revalidate(candidate, run, state);
             if (revalidated.IsFailure) return Result<EffectBatchResult?>.Failure(revalidated.Error);
             if (!revalidated.Value) continue;
+            var boundary = candidate.Registration.BoundaryExecution;
+            var capturedRequest = boundary?.Resolve(run, state);
+            if (boundary != null && capturedRequest == null) continue;
             var reserved = session.Quotas.Reserve(candidate);
             if (reserved.IsFailure) return Result<EffectBatchResult?>.Failure(reserved.Error);
             if (!reserved.Value.Accepted) continue;
             session.Quotas = reserved.Value.Quotas;
             var legacy = candidate.Registration.LegacyResourceExecution;
-            var variables = legacy == null ? session.Variables(candidate)
+            var variables = boundary != null ? Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty)
+                : legacy == null ? session.Variables(candidate)
                 : Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty.Add("stacks", legacy.Stacks));
             if (variables.IsFailure) return Result<EffectBatchResult?>.Failure(variables.Error);
             var definition = candidate.Registration.Response.Definition;
-            var request = new EffectTriggerExecutionRequest
+            var request = capturedRequest ?? new EffectTriggerExecutionRequest
             {
                 Combat = state, Run = run, OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,
                 ContentRevision = candidate.Registration.Origin.ContentRevision, SelectedTargetEntityIds = [candidate.TargetActorId],
@@ -150,9 +163,10 @@ public sealed partial class EffectTriggerExecutor
             };
             var childObservation = currentObservation with { ParentEventId = candidate.Occurrence.EventId,
                 ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin };
-            var result = Execute(request, candidate.LegacyParent, budget, suppressReactions: true, baseDepth: depth + 1,
+            var result = Execute(request, candidate.LegacyParent, budget, suppressReactions: boundary == null, baseDepth: boundary == null ? depth + 1 : 0,
                 observation: childObservation, dispatchResponses: definition.Propagation == ResponsePropagation.AllowResponses);
             if (result.IsFailure) return Result<EffectBatchResult?>.Failure(result.Error);
+            if (boundary != null) boundaryFrames.Add(new(boundary, result.Value));
             state = result.Value.State;
             run = result.Value.Run!;
             currentObservation = result.Value.Observation! with { ParentEventId = observation.ParentEventId,
@@ -161,6 +175,6 @@ public sealed partial class EffectTriggerExecutor
             foreach (var step in result.Value.Steps) steps.Add(step with { Index = steps.Count });
         }
         return Result<EffectBatchResult?>.Success(new() { State = state, Run = run, Observation = currentObservation,
-            Records = records.ToImmutable(), Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable() });
+            Records = records.ToImmutable(), Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable(), BoundaryInvocations = boundaryFrames.ToImmutable() });
     }
 }

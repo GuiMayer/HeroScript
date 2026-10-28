@@ -1,6 +1,6 @@
 # Respostas de gameplay
 
-Estado atual: contratos/providers, dispatcher transacional candidato e migração das reações de recurso das relíquias (etapas 5–7). A autoria nova ainda não está liberada. Lifecycle/fases, demais containers, persistência e endpoints continuam nas etapas seguintes do [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
+Estado atual: contratos/providers, dispatcher transacional candidato e migração das reações de recurso das relíquias (etapas 5–7). A autoria nova ainda não está liberada. Lifecycles/fases também usam o dispatcher comum (etapa 8). Os demais containers, persistência e endpoints continuam nas etapas seguintes do [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
 
 O [schema JSON](../schemas/gameplay-response.schema.json) descreve a definição. A publicação também verifica o catálogo capturado e o validador canônico de efeitos. A leitura usa as mesmas opções de conteúdo do projeto, incluindo enums por nome.
 
@@ -92,3 +92,9 @@ Quando uma aplicação usa um ator adaptador para uma carteira da run, somente a
 ## Filtro de fronteira/fase (8a)
 
 `observe.boundary.boundaryIds` seleciona IDs do `BoundaryOccurrencePayload`, por igualdade ordinal. O tópico continua descrevendo a natureza (`phase.entered`, `activation.ended` etc.); o ID seleciona a fase/fronteira configurada, sem inferir o que ela faz. A lista deve ter 1–64 IDs únicos. Ela não pode ser combinada com o filtro Resource, pois uma ocorrência tem um único payload tipado. O filtro ausente não muda a serialização existente. Esta capacidade de seleção prepara a migração; a autoridade de timing/duração permanece nos lifecycles atuais até a integração da etapa 8.
+
+### Timing e execução de fronteiras (8b)
+
+Status, relíquias e fases convertem as definições capturadas em assinaturas do dispatcher comum. O módulo de lifecycle mantém o tempo, expiração e idempotência; não seleciona/executa efeitos por um segundo interpretador. Stacks, duração e payloads são lidos da instância live quando o gatilho executa, mantendo a definição/fonte capturadas. Uma instância removida deixa de executar, e uma instância criada durante a fronteira não entra retroativamente no snapshot antigo. Regeneração conserva seu timing e emite os fatos pelo executor comum de recursos.
+
+Escopos de fronteira são privados à candidata e não são salvos. Compartilham trabalho/quotas, rejeitam rewind/substituição do contexto e não podem ser reutilizados após falha. O caminho de migração aceita um gatilho histórico vazio e preserva suas identidades; a definição JSON nova continua exigindo efeitos. Esses templates e relatórios transitórios são ignorados na serialização dos snapshots/recibos.

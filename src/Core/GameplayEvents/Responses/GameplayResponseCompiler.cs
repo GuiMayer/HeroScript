@@ -7,6 +7,8 @@ namespace Core.GameplayEvents.Responses;
 /// <summary>Host capabilities, never author-controlled grants. Longer-lived frequencies require their persisted counter implementation.</summary>
 public sealed record GameplayResponseCapabilities
 {
+    internal bool EmptyEffects { get; init; }
+    internal int MaximumEffects { get; init; } = 16;
     public ImmutableHashSet<ResponseFrequencyScope> Frequencies { get; init; } =
         [ResponseFrequencyScope.Occurrence, ResponseFrequencyScope.Impact, ResponseFrequencyScope.Proc, ResponseFrequencyScope.RootAction];
     public bool ExtensionTopics { get; init; }
@@ -27,7 +29,8 @@ public static class GameplayResponseCompiler
         if (definition == null || catalog == null || definition.SchemaVersion != 1 || !EventValue.Valid(definition.ResponseId) ||
             definition.Observe == null || definition.Bindings == null || definition.Availability == null || definition.Frequency == null || definition.Order == null ||
             !Enum.IsDefined(definition.Propagation) || definition.Condition is { Length: > 2048 } || definition.Condition != null && string.IsNullOrWhiteSpace(definition.Condition) ||
-            definition.Effects.IsDefaultOrEmpty || definition.Effects.Length > 16 || definition.Effects.Any(effect => effect == null) ||
+            capabilities.MaximumEffects is < 1 or > EffectExecutionLimits.MaximumSteps || definition.Effects.IsDefault ||
+            !capabilities.EmptyEffects && definition.Effects.IsEmpty || definition.Effects.Length > capabilities.MaximumEffects || definition.Effects.Any(effect => effect == null) ||
             !Enum.IsDefined(definition.Frequency.Scope) || capabilities.Frequencies == null || !capabilities.Frequencies.Contains(definition.Frequency.Scope) ||
             definition.Frequency.Maximum is < 1 or > EffectExecutionLimits.MaximumSteps ||
             definition.ReasonId != null && catalog.FindReason(definition.ReasonId).IsFailure ||

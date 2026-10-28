@@ -4,6 +4,7 @@ using Core.Common;
 using Core.Effects;
 using Core.StatusEffects;
 using Core.Run;
+using Core.GameplayEvents.Responses;
 
 namespace Core.Combat.Flow;
 
@@ -91,6 +92,13 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         var current = combat;
         var events = new List<CombatStatusLifecycleEvent>();
         var boundarySnapshot = combat.StatusEffects;
+        IGameplayBoundaryExecutionScope? scope = null;
+        if (boundarySnapshot.Values.SelectMany(items => items).Any(status => status.IsActive && status.Definition.Triggers.Count > 0))
+        {
+            var started = _triggers.BeginBoundaryScope(run, combat, observation);
+            if (started.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(started.Error);
+            scope = started.Value;
+        }
         foreach (var targetId in targets.Value)
         {
             var activeAtBoundary = boundarySnapshot.GetValueOrDefault(targetId, [])
@@ -98,56 +106,21 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                 .OrderByDescending(status => status.Definition.Priority)
                 .ThenBy(status => status.InstanceId)
                 .ToArray();
-            foreach (var status in activeAtBoundary)
+            if (scope != null)
             {
-                foreach (var trigger in status.Definition.Triggers
-                             .Where(item => string.Equals(
-                                 item.Boundary,
-                                 boundary.ToString(),
-                                 StringComparison.Ordinal))
-                             .OrderByDescending(item => item.Priority)
-                             .ThenBy(item => item.TriggerId, StringComparer.Ordinal))
+                var invocations = GameplayBoundarySources.Status(run, current, activeAtBoundary);
+                var dispatched = scope.Dispatch(run, current, GameplayBoundarySources.Kind(boundary.ToString()), boundary.ToString(),
+                    activeActorId, invocations, observation);
+                if (dispatched.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(dispatched.Error);
+                current = dispatched.Value.Execution.State; run = dispatched.Value.Execution.Run ?? run;
+                observation = dispatched.Value.Observation;
+                foreach (var frame in dispatched.Value.Invocations)
                 {
-                    var liveStatus = current.StatusEffects.GetValueOrDefault(targetId, [])
-                        .FirstOrDefault(item => item.InstanceId == status.InstanceId && item.IsActive);
-                    if (liveStatus == null) break;
-                    var executed = ExecuteTrigger(new EffectTriggerExecutionRequest
-                    {
-                        Combat = current,
-                        Run = run,
-                        Trigger = trigger,
-                        OwnerEntityId = status.TargetId,
-                        SourceEntityId = status.SourceId ?? status.TargetId,
-                        ContentRevision = status.ContentRevision ?? current.Determinism.ContentRevision,
-                        StackPayloadLots = liveStatus.PayloadLots,
-                        Variables = new Dictionary<string, float>(StringComparer.Ordinal)
-                        {
-                            ["stacks"] = liveStatus.Stacks,
-                            ["duration"] = liveStatus.Duration
-                        },
-                        Provenance = new EffectProvenance
-                        {
-                            Kind = EffectProvenanceKind.Status,
-                            SourceId = status.InstanceId.ToString()
-                        }
-                    });
-                    if (executed.IsFailure)
-                        return Result<CombatStatusLifecycleResult>.Failure(
-                            $"Status {status.StatusId}/{trigger.TriggerId}: {executed.Error}");
-                    current = executed.Value.State;
-                    run = executed.Value.Run ?? run;
-                    events.Add(new CombatStatusLifecycleEvent
-                    {
-                        Kind = CombatStatusLifecycleEventKind.Triggered,
-                        Boundary = boundary,
-                        TargetId = targetId,
-                        InstanceId = status.InstanceId,
-                        StatusId = status.StatusId,
-                        TriggerId = trigger.TriggerId,
-                        Priority = trigger.Priority,
-                        Applications = executed.Value.Records,
-                        Steps = executed.Value.Steps
-                    });
+                    var status = activeAtBoundary.Single(item => item.InstanceId == frame.Invocation.StatusInstanceId);
+                    var trigger = frame.Invocation.Template.Trigger;
+                    events.Add(new() { Kind = CombatStatusLifecycleEventKind.Triggered, Boundary = boundary, TargetId = targetId,
+                        InstanceId = status.InstanceId, StatusId = status.StatusId, TriggerId = trigger.TriggerId, Priority = trigger.Priority,
+                        Applications = frame.Execution.Records, Steps = frame.Execution.Steps });
                 }
             }
 
@@ -200,14 +173,6 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         }
         return Result<CombatStatusLifecycleResult>.Success(new(current, events, run) { Observation = observation });
 
-        Result<EffectBatchResult> ExecuteTrigger(EffectTriggerExecutionRequest request)
-        {
-            if (observation == null) return _triggers.Execute(request);
-            var observed = _triggers.ExecuteObserved(request, observation);
-            if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
-            observation = observed.Value.Observation;
-            return Result<EffectBatchResult>.Success(observed.Value.Execution);
-        }
     }
 
     private static Result<IReadOnlyList<string>> ResolveLifecycleTargets(

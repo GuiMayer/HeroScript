@@ -8,7 +8,6 @@ using Core.Determinism;
 using Core.Effects;
 using Core.Run;
 using Core.StatusEffects;
-using Moq;
 using Xunit;
 
 namespace Core.Tests.Effects;
@@ -115,19 +114,23 @@ public sealed class AccumulatedStackTransitionTests
                 DurationTickBoundary = StatusTriggerBoundary.EndRound,
                 Triggers = [new() { TriggerId = status.StatusId, Boundary = "EndRound" }]
             } }).ToImmutableArray()) };
-        var triggers = new Mock<IEffectTriggerExecutor>();
-        triggers.Setup(executor => executor.Execute(It.IsAny<EffectTriggerExecutionRequest>()))
-            .Returns((EffectTriggerExecutionRequest request) =>
-            {
-                Assert.Equal("first", request.Trigger.TriggerId);
-                var plan = AccumulatedStackTransitions.Capture(request.Combat, request.Run, "proc", new()
-                { DefinitionIds = ["second"] }).Value;
-                var consumed = AccumulatedStackTransitions.Consume(request.Combat, request.Run, plan).Value;
-                return Result<EffectBatchResult>.Success(new() { State = consumed.Combat, Run = consumed.Run });
-            });
-        var result = new CombatStatusLifecycle(triggers.Object).Process(run, combat, StatusTriggerBoundary.EndRound);
+        var recipe = CondensationTests.Recipe(CondensationTests.CountResource() with { Target = EffectTarget.SELF }) with
+        { RecipeId = "proc", Selection = new() { DefinitionIds = ["second"] } };
+        var fixture = StackPayloadTests.Fixture(recipe: recipe);
+        run = run with { ResolvedMode = fixture.Run.ResolvedMode, Deck = fixture.Run.Deck };
+        combat = combat with { StatusEffects = combat.StatusEffects.SetItem("hero", combat.StatusEffects["hero"].Select(status =>
+            status.StatusId != "first" ? status : status with { Definition = status.Definition with { Triggers = [new()
+            { TriggerId = "first", Boundary = "EndRound", Effects = [CondensationTests.Condense() with
+                { CondensationRecipeId = "proc", Target = EffectTarget.SELF }] }] } }).ToImmutableArray()) };
+        var before = CanonicalJson.ComputeHash(new { combat, run });
+        var result = new CombatStatusLifecycle(fixture.Executor).Process(run, combat, StatusTriggerBoundary.EndRound);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        triggers.Verify(executor => executor.Execute(It.IsAny<EffectTriggerExecutionRequest>()), Times.Once);
+        var triggered = Assert.Single(result.Value.Events, item => item.Kind == CombatStatusLifecycleEventKind.Triggered);
+        Assert.Equal("first", triggered.TriggerId);
+        var consumed = Assert.Single(triggered.Applications, item => item.Condensation != null);
+        Assert.Equal(EffectStackChangeReason.Consume, Assert.Single(consumed.StackChanges).Reason);
+        Assert.Equal(4, consumed.StackChanges[0].PreviousStacks);
+        Assert.Equal(before, CanonicalJson.ComputeHash(new { combat, run }));
         Assert.DoesNotContain(result.Value.Events, item => item.StatusId == "second");
         Assert.Contains(result.Value.Events, item => item.StatusId == "first" && item.Kind == CombatStatusLifecycleEventKind.Expired);
         Assert.False(result.Value.Combat.StatusEffects.ContainsKey("hero"));

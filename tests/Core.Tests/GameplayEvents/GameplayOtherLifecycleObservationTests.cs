@@ -57,12 +57,13 @@ public sealed class GameplayOtherLifecycleObservationTests
             new() { Kind = GameplayOwnerKind.Entity, Id = "hero" }).Value.State;
         var combat = EffectTransactionTests.Request().Combat;
         var lifecycle = new CombatRelicLifecycle(fixture.Executor);
-        var observation = GameplayObservedExecutorTests.Observation();
+        var observation = GameplayObservedExecutorTests.ObservationFor(run, combat);
         var actual = lifecycle.ProcessObserved(run, combat, CombatTriggerBoundaries.CombatStart, observation);
         Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(lifecycle.Process(run, combat, CombatTriggerBoundaries.CombatStart).Value),
             CanonicalJson.ComputeHash(actual.Value.Execution));
-        var fact = Assert.Single(actual.Value.Observation.Events.Occurrences);
+        var fact = Assert.Single(actual.Value.Observation.Events.Occurrences, item => item.Payload is ResourceChangePayload);
+        Assert.Single(actual.Value.Observation.Events.Occurrences, item => item.Kind == "combat.started");
         Assert.Equal("hero", fact.SubjectActorId);
         Assert.Equal("relic", fact.Origin!.ContainerKind);
         var repeated = lifecycle.ProcessObserved(actual.Value.Execution.Run!, actual.Value.Execution.Combat,

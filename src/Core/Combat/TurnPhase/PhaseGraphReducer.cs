@@ -8,6 +8,8 @@ using Core.Math;
 using Core.Run;
 using Core.GameplayEvents;
 
+using Core.GameplayEvents.Responses;
+
 namespace Core.Combat.TurnPhase;
 
 public sealed record PhaseTransitionRecord
@@ -343,15 +345,15 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
                 ComponentId = $"{phase.PhaseId}:{boundary}"
             }
         };
-        Result<EffectBatchResult> executed;
-        if (accumulator.Observation == null) executed = _effects.Execute(request);
-        else
-        {
-            var observed = _effects.ExecuteObserved(request, accumulator.Observation);
-            if (observed.IsFailure) return Result<Accumulator>.Failure(observed.Error);
-            accumulator = accumulator with { Observation = observed.Value.Observation with { ParentEventId = parentEventId } };
-            executed = Result<EffectBatchResult>.Success(observed.Value.Execution);
-        }
+        var startedScope = _effects.BeginBoundaryScope(accumulator.Run, accumulator.Combat, accumulator.Observation);
+        if (startedScope.IsFailure) return Result<Accumulator>.Failure(startedScope.Error);
+        var invocation = GameplayBoundarySources.Phase(request, phase.PhaseId, entering);
+        var dispatched = startedScope.Value.Dispatch(accumulator.Run, accumulator.Combat, invocation.Kind, phase.PhaseId,
+            actorId, [invocation], accumulator.Observation);
+        if (dispatched.IsFailure) return Result<Accumulator>.Failure(dispatched.Error);
+        var executed = Result<EffectBatchResult>.Success(dispatched.Value.Invocations.Single().Execution);
+        accumulator = accumulator with { Observation = dispatched.Value.Observation == null ? null
+            : dispatched.Value.Observation with { ParentEventId = parentEventId } };
         if (executed.IsFailure) return Result<Accumulator>.Failure(executed.Error);
         var offset = accumulator.Steps.Length;
         return Result<Accumulator>.Success(accumulator with

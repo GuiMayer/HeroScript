@@ -38,7 +38,7 @@ public sealed class GameplayPhaseObservationTests
         var combat = request.Combat with { ActivationState = new() { ActiveActorId = "hero" } };
         var graph = Graph(effects);
         var hash = CanonicalJson.ComputeHash(combat);
-        var observation = GameplayObservedExecutorTests.Observation();
+        var observation = GameplayObservedExecutorTests.ObservationFor(fixture.Run, combat);
         var expected = reducer.Enter(fixture.Run, combat, graph);
         Assert.True(expected.IsSuccess, expected.IsFailure ? expected.Error : null);
         var fingerprints = new HashSet<string>(StringComparer.Ordinal);
@@ -72,7 +72,7 @@ public sealed class GameplayPhaseObservationTests
         var combat = EffectTransactionTests.Request().Combat with { ActivationState = new() { ActiveActorId = "hero" } };
         var graph = Graph(true);
         var entered = reducer.Enter(fixture.Run, combat, graph).Value;
-        var observation = GameplayObservedExecutorTests.Observation();
+        var observation = GameplayObservedExecutorTests.ObservationFor(fixture.Run, combat);
         var exit = reducer.ExitObserved(entered.Run, entered.Combat, graph, observation);
         Assert.True(exit.IsSuccess, exit.IsFailure ? exit.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(reducer.Exit(entered.Run, entered.Combat, graph).Value), CanonicalJson.ComputeHash(exit.Value.Execution));
@@ -93,7 +93,7 @@ public sealed class GameplayPhaseObservationTests
         var fixture = EffectSequenceBudgetTests.Fixture();
         var reducer = Reducer(fixture.Executor);
         var combat = EffectTransactionTests.Request().Combat with { ActivationState = new() { ActiveActorId = "hero" } };
-        var observation = GameplayObservedExecutorTests.Observation(1);
+        var observation = GameplayObservedExecutorTests.ObservationFor(fixture.Run, combat, 1);
         var hash = CanonicalJson.ComputeHash(combat);
         Assert.True(reducer.EnterObserved(fixture.Run, combat, Graph(true), observation).IsFailure);
         Assert.Equal(hash, CanonicalJson.ComputeHash(combat));
@@ -101,7 +101,7 @@ public sealed class GameplayPhaseObservationTests
         var graph = Graph(false);
         graph = graph with { MaxAutomaticTransitions = 4, Phases = graph.Phases.Select(phase => phase.PhaseId != "main" ? phase
             : phase with { Edges = phase.Edges.Append(new PhaseEdgeDefinition { EdgeId = "loop", TargetPhaseId = "main", Trigger = PhaseEdgeTrigger.Automatic }).ToArray() }).ToArray() };
-        var unboundedInput = GameplayObservedExecutorTests.Observation();
+        var unboundedInput = GameplayObservedExecutorTests.ObservationFor(fixture.Run, combat);
         Assert.True(reducer.Enter(fixture.Run, combat, graph).IsFailure);
         Assert.True(reducer.EnterObserved(fixture.Run, combat, graph, unboundedInput).IsFailure);
         Assert.Empty(unboundedInput.Events.Occurrences);

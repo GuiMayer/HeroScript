@@ -116,6 +116,8 @@ public sealed record ModifierStackApplicationRecord
 public sealed record EffectBatchResult
 {
     [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableArray<Core.GameplayEvents.Responses.GameplayBoundaryInvocationResult> BoundaryInvocations { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore]
     internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
 
     public string ExecutionId { get; init; } = string.Empty;

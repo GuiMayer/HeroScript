@@ -32,7 +32,7 @@ public sealed class GameplayStatusObservationTests
             ["enemy"] = [Status("low", "enemy", 2, 2), Status("high", "enemy", 1, 3)]
         }.ToImmutableDictionary(StringComparer.Ordinal) };
         var originalHash = CanonicalJson.ComputeHash(combat);
-        var observation = GameplayObservedExecutorTests.Observation();
+        var observation = GameplayObservedExecutorTests.ObservationFor(fixture.Run, combat);
         var expected = lifecycle.Process(fixture.Run, combat, StatusTriggerBoundary.EndActivation, "enemy").Value;
         var fingerprints = new HashSet<string>(StringComparer.Ordinal);
         for (var repeat = 0; repeat < 5; repeat++)
@@ -68,7 +68,7 @@ public sealed class GameplayStatusObservationTests
         var combat = EffectTransactionTests.Request().Combat with { StatusEffects =
             ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.Add("enemy", [Status("one", "enemy", 1, 1)]) };
         var hash = CanonicalJson.ComputeHash(combat);
-        var observation = GameplayObservedExecutorTests.Observation(1);
+        var observation = GameplayObservedExecutorTests.ObservationFor(fixture.Run, combat, 1);
         var failed = lifecycle.ProcessObserved(fixture.Run, combat, StatusTriggerBoundary.EndActivation, observation, "enemy");
         Assert.True(failed.IsFailure);
         Assert.Equal(hash, CanonicalJson.ComputeHash(combat));

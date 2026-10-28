@@ -12,6 +12,15 @@ namespace Core.Tests.GameplayEvents;
 
 public sealed class GameplayObservedExecutorTests
 {
+    internal static GameplayEffectObservation ObservationFor(RunState run, CombatState combat, int maximum = 4096)
+    {
+        var catalog = GameplayCoreCatalog.Create(run.SettingId, run.Determinism.ContentRevision).Value;
+        return new() { PublisherId = GameplayCoreCatalog.PublisherId, ReasonId = "effect.application", CostReasonId = "cost.payment", RefundReasonId = "cost.refund",
+            Events = GameplayEventTransaction.Create(new() { SettingId = run.SettingId, ContentRevision = run.Determinism.ContentRevision,
+                RunId = (run.Lineage?.RootRunId ?? run.RunId).ToString("D"), BranchId = run.RunId.ToString("D"), CombatId = combat.CombatId.ToString("D"),
+                ActionId = "action", CommandId = "command" }, catalog, new() { MaximumOccurrences = maximum }).Value };
+    }
+
     internal static GameplayEffectObservation Observation(int maximum = 4096, string revision = "revision")
     {
         var publisher = new GameplayPublisherContract("core.effects", HierarchySelector.Compile(["**"]).Value,

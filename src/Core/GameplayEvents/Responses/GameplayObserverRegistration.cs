@@ -36,6 +36,7 @@ public sealed record GameplayResponseScheduleKey : IComparable<GameplayResponseS
 public sealed record GameplayObserverRegistration
 {
     internal LegacyResourceResponseExecution? LegacyResourceExecution { get; init; }
+    internal GameplayBoundaryInvocation? BoundaryExecution { get; init; }
     public required string RegistrationId { get; init; }
     public required string ProviderId { get; init; }
     public required CompiledGameplayResponse Response { get; init; }

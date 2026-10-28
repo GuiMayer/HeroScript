@@ -3,6 +3,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
 using Core.Run;
+using Core.GameplayEvents.Responses;
 
 namespace Core.Combat.Flow;
 
@@ -85,65 +86,26 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
 
         var current = combat;
         var events = new List<CombatRelicLifecycleEvent>();
-        foreach (var relic in run.Relics.OrderBy(item => item.RelicInstanceId))
+        var invocations = GameplayBoundarySources.Relics(run, combat);
+        if (!invocations.IsEmpty)
         {
-            foreach (var trigger in relic.Triggers
-                         .Where(item => string.Equals(item.Boundary, boundary, StringComparison.Ordinal))
-                         .OrderByDescending(item => item.Priority)
-                         .ThenBy(item => item.TriggerId, StringComparer.Ordinal))
+            var started = _triggers.BeginBoundaryScope(run, combat, observation);
+            if (started.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(started.Error);
+            var dispatched = started.Value.Dispatch(run, current, GameplayBoundarySources.Kind(boundary), boundary,
+                combat.ActivationState?.ActiveActorId, invocations, observation);
+            if (dispatched.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(dispatched.Error);
+            current = dispatched.Value.Execution.State; run = dispatched.Value.Execution.Run ?? run;
+            observation = dispatched.Value.Observation;
+            foreach (var frame in dispatched.Value.Invocations)
             {
-                var owners = current.GetAllActors().Where(entity => relic.Owner.Includes(entity, current, run))
-                    .Where(entity => boundary is not ("StartActivation" or "EndActivation") ||
-                        entity.InstanceId == current.ActivationState?.ActiveActorId)
-                    .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal).ToArray();
-                foreach (var owner in owners)
-                {
-                var executed = ExecuteTrigger(new EffectTriggerExecutionRequest
-                {
-                    Combat = current,
-                    Run = run,
-                    Trigger = trigger,
-                    OwnerEntityId = owner.InstanceId,
-                    SourceEntityId = owner.InstanceId,
-                    ContentRevision = relic.ContentRevision,
-                    Variables = new Dictionary<string, float>(StringComparer.Ordinal)
-                    {
-                        ["stacks"] = relic.Stacks
-                    },
-                    Provenance = new EffectProvenance
-                    {
-                        Kind = EffectProvenanceKind.Relic,
-                        SourceId = relic.RelicInstanceId.ToString()
-                    }
-                });
-                if (executed.IsFailure)
-                    return Result<CombatRelicLifecycleResult>.Failure(
-                        $"Relic {relic.DefinitionId}/{trigger.TriggerId}: {executed.Error}");
-                current = executed.Value.State;
-                run = executed.Value.Run ?? run;
-                events.Add(new CombatRelicLifecycleEvent
-                {
-                    RelicInstanceId = relic.RelicInstanceId,
-                    RelicId = relic.DefinitionId,
-                    TriggerId = trigger.TriggerId,
-                    Boundary = boundary,
-                    Owner = relic.Owner,
-                    Applications = executed.Value.Records,
-                    Steps = executed.Value.Steps
-                });
-                }
+                var relicId = Guid.Parse(frame.Invocation.Origin.ContainerId);
+                var relic = run.Relics.Single(item => item.RelicInstanceId == relicId);
+                events.Add(new() { RelicInstanceId = relicId, RelicId = relic.DefinitionId, TriggerId = frame.Invocation.Template.Trigger.TriggerId,
+                    Boundary = boundary, Owner = relic.Owner, Applications = frame.Execution.Records, Steps = frame.Execution.Steps });
             }
         }
         if (once) current = current with { CompletedLifecycleBoundaries = current.CompletedLifecycleBoundaries.Add(boundary) };
         return Result<CombatRelicLifecycleResult>.Success(new(current, events, run) { Observation = observation });
 
-        Result<EffectBatchResult> ExecuteTrigger(EffectTriggerExecutionRequest request)
-        {
-            if (observation == null) return _triggers.Execute(request);
-            var observed = _triggers.ExecuteObserved(request, observation);
-            if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
-            observation = observed.Value.Observation;
-            return Result<EffectBatchResult>.Success(observed.Value.Execution);
-        }
     }
 }

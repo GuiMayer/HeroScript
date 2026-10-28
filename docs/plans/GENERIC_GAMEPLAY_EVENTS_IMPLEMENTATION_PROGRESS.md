@@ -37,7 +37,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 5 — Definições e providers | Concluída; publicação executável bloqueada até o cutover |
 | 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
 | 7 — Migração das reações de recurso | Concluída; um dispatcher, sem coleta/matcher paralelos |
-| 8 — Migração de lifecycle/fases | Em andamento: filtro tipado de fronteira/fase; migração dos lifecycles pendente |
+| 8 — Migração de lifecycle/fases | Concluída; despacho comum, timing/expiração/idempotência preservados |
 | 9 — Containers e respostas pós-fato | Não iniciada |
 | 10 — Intenções e janelas | Não iniciada |
 | 11 — Migração de conteúdo | Não iniciada |
@@ -50,7 +50,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 
 As contagens abaixo devem registrar somente execuções realizadas durante este plano. Não reutilizar números de relatórios anteriores como nova execução.
 
-Próximo bloco obrigatório: etapa 8, migrando lifecycle de status/relíquias e fronteiras/fases, com timing, ordem, duração e idempotência preservados. As etapas 9–15 continuam pendentes; autoria nova e persistência só serão liberadas nos cortes correspondentes.
+Próximo bloco obrigatório: etapa 9, integração de todos os containers e das mudanças pós-fato. As etapas 10–15 continuam pendentes; autoria nova e persistência só serão liberadas nos cortes correspondentes.
 
 - Etapa 0: 107 testes focados Core passaram em `.runtime/generic-gameplay-events`, incluindo as duas novas regressões de baseline. As fixtures foram ajustadas ao pipeline real configurado; nenhum código de gameplay foi alterado.
 
@@ -153,3 +153,9 @@ Próximo bloco obrigatório: etapa 8, migrando lifecycle de status/relíquias e 
 - Fechamento da etapa 7: árvore exata `c30b806d16fc77e69936b880e207c26c7bb7afdd`, em `.runtime/generic-events-stage7-index`, com build completo sem warnings/erros, **2106 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. O novo dispatcher é a única autoridade de seleção/execução das reações de recurso; o matcher antigo foi removido. Sete cenários de execução completa preservam hashes pré-migração em cinco repetições, além das regressões de carteira/prefixo e de toda a suíte de reações. A migração de status/relíquias de fronteira e fases ainda pertence à etapa 8, e a publicação de novos componentes de resposta permanece bloqueada até o cutover.
 
 - Etapa 8a: filtro tipado opcional BoundaryIds permite distinguir fronteiras/fases pelo payload canônico, sem convenções de nomes nem nova linguagem de hierarquia. O compilador rejeita misturas impossíveis Resource/Boundary, tópicos incompatíveis e IDs ausentes/duplicados. O campo ausente é omitido da serialização, preservando definições anteriores. **175 testes focados aprovados**, com três novos casos de matching, JSON estrito e validação, incluindo as suítes de reações e hashes dourados. Este incremento não migra ainda os lifecycles de status/relíquias nem altera ticks, prioridades ou fases; a etapa 8 permanece aberta.
+
+- Etapa 8b: status, relíquias de fronteira e entrada/saída de fases declaram invocações capturadas e usam o mesmo dispatcher/matcher/executor. Lifecycles conservam duração, snapshot de instâncias, ativação elegível e flags de fronteiras concluídas; a regeneração continua no produtor/executor canônico existente. O escopo candidato compartilha orçamento e quotas entre despachos, rejeita substituição do prefixo causal e fica inválido depois de falha. Templates de migração preservam fonte ausente, leitura live de stacks/duração/payloads e gatilhos históricos vazios, sem liberar efeitos vazios na autoria JSON. Fixtures observadas foram vinculadas a setting/root-run/branch reais. **169 testes focados existentes e 29 testes de fluxo/escopo/paridade aprovados**, incluindo onze cenários de hash completo pré-migração capturados na árvore `c30b806d16fc77e69936b880e207c26c7bb7afdd`, cada um repetido cinco vezes. Certificação completa em preparação.
+
+- Certificação 8b, primeira execução isolada `734aa1550ef25a71c31304ca96c48c219370a5ce`: build sem warnings/erros e **2123 Core aprovados / 1 falha**. A falha era uma fixture Moq que implementava apenas Execute e retornava null para o novo contrato de escopo; a prova de consumo na fronteira foi refeita com condensação real e suas asserções de Consume/stack/imutabilidade, sem remover a garantia original. **28 testes focados aprovados** após a correção. Nova certificação da árvore final em preparação.
+
+- Fechamento da etapa 8: árvore `aafdceb5e512517ae9cadb8f5cc1ae9f6fc02615`, exportada para `.runtime/generic-events-stage8-final-index`. Build completo sem warnings/erros, **2124 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. Onze cenários dourados pré-migração (sete de status, um de relíquias e três de fases), repetidos cinco vezes, preservam hashes completos. Testes adicionais cobrem trabalho compartilhado, invalidação do escopo após falha, prefixo causal imutável e condensação real que remove uma instância antes de seu gatilho/tick. Status e relíquias não conservam um segundo loop de interpretação de efeitos; os lifecycles permanecem responsáveis pelo tempo e existência. Autoria nova continua bloqueada enquanto as etapas 9–11 não concluírem o cutover; não há journal novo ou frequência durável anunciada antes da etapa 12.

@@ -150,7 +150,7 @@ public sealed class GameplayCombatBoundaryObservationTests
             CombatFlowPlannerTests.Sequence(), policies, CombatFlowPlannerTests.TurnPolicy());
         Assert.True(baseline.IsSuccess, baseline.IsFailure ? baseline.Error : null);
         var actual = executor.AdvanceObserved(initialized.Run, combat, initialized.Run.Deck, initialized.Run.Determinism,
-            CombatFlowPlannerTests.Sequence(), policies, CombatFlowPlannerTests.TurnPolicy(), GameplayObservedExecutorTests.Observation());
+            CombatFlowPlannerTests.Sequence(), policies, CombatFlowPlannerTests.TurnPolicy(), GameplayObservedExecutorTests.ObservationFor(initialized.Run, combat));
         Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(baseline.Value), CanonicalJson.ComputeHash(actual.Value.Execution));
         Assert.False(actual.Value.Execution.Combat.IsActive);
