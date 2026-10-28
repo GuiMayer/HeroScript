@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gameplay response definition — publication validates references and host capabilities",
+  "description": "Definitions and compilation only at stage 5; execution is enabled by the dispatcher/cutover stages. Effects are validated by the canonical EffectDefinitionValidator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "responseId",
+    "effects"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "responseId": {
+      "$ref": "#/$defs/id"
+    },
+    "observe": {
+      "$ref": "#/$defs/observe"
+    },
+    "bindings": {
+      "$ref": "#/$defs/bindings"
+    },
+    "availability": {
+      "$ref": "#/$defs/availability"
+    },
+    "frequency": {
+      "$ref": "#/$defs/frequency"
+    },
+    "order": {
+      "$ref": "#/$defs/order"
+    },
+    "propagation": {
+      "enum": [
+        "RecordOnly",
+        "AllowResponses"
+      ]
+    },
+    "condition": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "reasonId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "allowExtensionTopics": {
+      "type": "boolean"
+    },
+    "effects": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "description": "Canonical effect component, validated without a source-specific processor."
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "actorFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actorIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "matchesOwner": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "relationshipToOwner": {
+          "enum": [
+            "Ally",
+            "Enemy",
+            "Neutral",
+            null
+          ]
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resourceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "calculationChannels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "field": {
+          "enum": [
+            "Current",
+            "Maximum",
+            "Minimum",
+            null
+          ]
+        },
+        "operation": {
+          "enum": [
+            "Add",
+            "Subtract",
+            "Set",
+            null
+          ]
+        },
+        "role": {
+          "enum": [
+            "DirectMutation",
+            "PrimaryEffect",
+            "Settlement",
+            null
+          ]
+        },
+        "direction": {
+          "enum": [
+            "Any",
+            "Increase",
+            "Decrease",
+            "Unchanged"
+          ]
+        }
+      }
+    },
+    "actorBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "ObserverOwner",
+            "ObserverSource",
+            "Owner",
+            "EventSource",
+            "EventSubject",
+            "EventAttributed",
+            "ExplicitActor"
+          ]
+        },
+        "actorId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "enum": [
+            "BeforeOccurrence",
+            "AfterOccurrence"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "ContainerActive",
+            "CardZones",
+            "SelectedCard",
+            "ResolvingCard"
+          ]
+        },
+        "zoneIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "requireLivingOwner": {
+          "type": "boolean"
+        },
+        "revalidateOwner": {
+          "type": "boolean"
+        },
+        "requireRegistrationStillActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "frequency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "enum": [
+            "Occurrence",
+            "Impact",
+            "Proc",
+            "RootAction"
+          ]
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        }
+      }
+    },
+    "order": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "priority": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "descending": {
+          "type": "boolean"
+        }
+      }
+    },
+    "observe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kinds": {
+          "$ref": "#/$defs/selector"
+        },
+        "reasons": {
+          "$ref": "#/$defs/selector"
+        },
+        "source": {
+          "$ref": "#/$defs/actorFilter"
+        },
+        "subject": {
+          "$ref": "#/$defs/actorFilter"
+        },
+        "attributed": {
+          "$ref": "#/$defs/actorFilter"
+        },
+        "sourceSubjectRelationship": {
+          "enum": [
+            "Ally",
+            "Enemy",
+            "Neutral",
+            null
+          ]
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "requiredTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "excludedTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "maxItems": 64
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "$ref": "#/$defs/actorBinding"
+        },
+        "source": {
+          "$ref": "#/$defs/actorBinding"
+        },
+        "target": {
+          "$ref": "#/$defs/actorBinding"
+        },
+        "missing": {
+          "enum": [
+            "Skip",
+            "RejectAction"
+          ]
+        }
+      }
+    }
+  }
+}

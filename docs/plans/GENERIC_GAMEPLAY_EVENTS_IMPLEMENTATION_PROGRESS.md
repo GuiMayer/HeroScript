@@ -34,7 +34,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
 | 4 — Produtores canônicos | Concluída em modo opt-in; migração de consumidores nas etapas seguintes |
-| 5 — Respostas e registros | Não iniciada |
+| 5 — Definições e providers | Em execução: contratos/compilador/coletor; providers de containers pendentes |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
 | 8 — Migração de lifecycle/fases | Não iniciada |
@@ -131,3 +131,5 @@ Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em se
 - Fechamento da etapa 4: inventário final em `docs/architecture/GAMEPLAY_OCCURRENCE_PRODUCER_INVENTORY.md`. Árvore de código exata do índice `53d014d0d717270448e8bcb461d437ab282476e5`, exportada para `.runtime/generic-events-stage4-final-index`, com build completo da solução e artefatos/conteúdo dentro da cópia: **2050 testes Core e 32 testes API focados aprovados**, sem exclusões. O build não emitiu warnings/erros. A etapa 4 encerra a instrumentação opt-in; não anuncia dispatcher, autoria executável, journal novo ou âncoras históricas preenchidas antes das etapas correspondentes. A divergência prévia 65/67 da jornada ampla continua registrada.
 
 - Complemento 4x, na preparação dos filtros da etapa 5: fatos de efeitos capturam as tags efetivas canônicas e o canal, com papel explícito PrimaryEffect/Settlement/DirectMutation. Custos preservam seu motivo independente. Campos de transporte internos são ignorados na serialização dos comandos. **129 testes focados passaram**, incluindo regressão nova de tags/custo e equivalência completa; acrescidas asserções de papel na regressão existente de absorção. Não há cálculo de tags/observação no caminho normal sem observação.
+
+- Etapa 5a: contratos JSON de respostas/filtros/bindings/disponibilidade, compilador por catálogo e coletor puro com ordem total ordinal. Cartas exigem disponibilidade explícita e propriedade física da zona; providers não executam matching/efeitos. Frequências duráveis ainda indisponíveis são rejeitadas; wildcards de extensão exigem capacidade confiável e ficam dormentes sem tópicos conhecidos. Schema em `docs/schemas/gameplay-response.schema.json`. **111 testes focados passaram**, com oito novos casos de compilação/JSON/coleção/escopo/disponibilidade. Providers concretos e namespaces numéricos ainda serão ligados antes de concluir a etapa 5.
