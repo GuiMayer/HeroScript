@@ -79,3 +79,9 @@ O decurso de duração tem origem de regra e não transforma o aplicador histór
 A revisão da **ação** deve corresponder à transação de observação. Ela é distinta da revisão de **definição** de uma relíquia/status/efeito capturado antes de uma mudança de conteúdo: essa revisão fica em `Origin.ContentRevision` e continua sendo resolvida pelo executor canônico. Não substituir definições antigas pela revisão atual para facilitar a observação.
 
 Ainda não foram conectados o executor geral de fronteiras, o gateway de ações e todos os caminhos de recursos/cartas fora desses executores. A etapa 4 continua aberta; o índice de respostas e o dispatcher são as etapas seguintes.
+
+## Grafo de fases observado (etapa 4h)
+
+`PhaseGraphReducer` possui entradas opt-in de observação para entrada, comando, saída e avanço automático. Todas usam os mesmos métodos internos e o mesmo acumulador imutável do caminho normal. O próprio `ApplyBoundary` emite `phase.entered`/`phase.exited`, inclusive quando a definição não tem efeitos, e os efeitos dessa fronteira recebem seu evento como pai. O contexto pai anterior é restaurado ao sair da fronteira.
+
+Não são emitidas entradas extras em avanços automáticos sem transição. Regras de seleção de arestas, cursores, permissões, limite de transições e fingerprints não foram alterados. Falha de efeito, ciclo ou orçamento não entrega um candidato parcial. `BoundaryOccurrencePayload.Sequence` identifica o ordinal da marca dentro da observação da ação, não uma nova contagem persistida de turnos.

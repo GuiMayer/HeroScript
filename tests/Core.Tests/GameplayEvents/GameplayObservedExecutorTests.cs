@@ -23,6 +23,7 @@ public sealed class GameplayObservedExecutorTests
             ("status.duration.changed", GameplayPayloadKind.StatusChange),
             ("effect.condensation.resolved", GameplayPayloadKind.RuleResult),
             ("resource.threshold.matched", GameplayPayloadKind.ResourceThreshold), ("actor.defeat.changed", GameplayPayloadKind.ActorDefeatChange),
+            ("phase.entered", GameplayPayloadKind.Boundary), ("phase.exited", GameplayPayloadKind.Boundary),
             ("modifier.stacks.changed", GameplayPayloadKind.ModifierChange), ("activation.sequence.changed", GameplayPayloadKind.SequenceChange),
             ("card.moved", GameplayPayloadKind.CardMovement), ("card.created", GameplayPayloadKind.CardMovement),
             ("card.destroyed", GameplayPayloadKind.CardMovement), ("zone.order.changed", GameplayPayloadKind.ZoneOrder) }

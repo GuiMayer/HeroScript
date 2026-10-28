@@ -6,6 +6,7 @@ using Core.Determinism;
 using Core.Effects;
 using Core.Math;
 using Core.Run;
+using Core.GameplayEvents;
 
 namespace Core.Combat.TurnPhase;
 
@@ -22,6 +23,9 @@ public sealed record PhaseTransitionRecord
 
 public sealed record PhaseGraphResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal GameplayEffectObservation? Observation { get; init; }
+
     public CombatState Combat { get; init; } = null!;
     public RunState Run { get; init; } = null!;
     public ImmutableArray<PhaseTransitionRecord> Transitions { get; init; } = [];
@@ -57,10 +61,12 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
     }
 
-    public Result<PhaseGraphResult> Enter(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence)
+    public Result<PhaseGraphResult> Enter(RunState run, CombatState combat, PhaseSequenceDefinition sequence) => EnterCore(run, combat, sequence, null);
+
+    public Result<ObservedGameplayExecution<PhaseGraphResult>> EnterObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation observation) =>
+        Observe(run, observation, () => EnterCore(run, combat, sequence, observation));
+
+    private Result<PhaseGraphResult> EnterCore(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation? observation)
     {
         var valid = ValidateInputs(run, combat, sequence, requireState: false);
         if (valid.IsFailure) return Result<PhaseGraphResult>.Failure(valid.Error);
@@ -74,24 +80,24 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
                 Cursor = entry.PhaseId
             }
         };
-        var accumulator = Accumulator.Create(run, combat);
+        var accumulator = Accumulator.Create(run, combat, observation);
         var entered = ApplyBoundary(accumulator, sequence, entry, entering: true);
         if (entered.IsFailure) return Result<PhaseGraphResult>.Failure(entered.Error);
         return AdvanceAutomaticCore(entered.Value, sequence);
     }
 
-    public Result<PhaseGraphResult> HandleCommand(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence,
-        CombatActionCommand command,
-        IReadOnlySet<string> commandTags)
+    public Result<PhaseGraphResult> HandleCommand(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatActionCommand command, IReadOnlySet<string> commandTags) => HandleCommandCore(run, combat, sequence, command, commandTags, null);
+
+    public Result<ObservedGameplayExecution<PhaseGraphResult>> HandleCommandObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatActionCommand command, IReadOnlySet<string> commandTags, GameplayEffectObservation observation) =>
+        Observe(run, observation, () => HandleCommandCore(run, combat, sequence, command, commandTags, observation));
+
+    private Result<PhaseGraphResult> HandleCommandCore(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatActionCommand command, IReadOnlySet<string> commandTags, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(command);
         commandTags ??= ImmutableHashSet<string>.Empty;
         var valid = ValidateCommand(combat, sequence, command, commandTags);
         if (valid.IsFailure) return Result<PhaseGraphResult>.Failure(valid.Error);
-        var accumulator = Accumulator.Create(run, combat);
+        var accumulator = Accumulator.Create(run, combat, observation);
         var selected = SelectEdge(accumulator, sequence, PhaseEdgeTrigger.Command, command, commandTags);
         if (selected.IsFailure) return Result<PhaseGraphResult>.Failure(selected.Error);
         if (selected.Value == null) return Success(accumulator);
@@ -100,14 +106,16 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
             : AdvanceAutomaticCore(moved.Value, sequence);
     }
 
-    public Result<PhaseGraphResult> Exit(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence)
+    public Result<PhaseGraphResult> Exit(RunState run, CombatState combat, PhaseSequenceDefinition sequence) => ExitCore(run, combat, sequence, null);
+
+    public Result<ObservedGameplayExecution<PhaseGraphResult>> ExitObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation observation) =>
+        Observe(run, observation, () => ExitCore(run, combat, sequence, observation));
+
+    private Result<PhaseGraphResult> ExitCore(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation? observation)
     {
         var valid = ValidateInputs(run, combat, sequence, requireState: true);
         if (valid.IsFailure) return Result<PhaseGraphResult>.Failure(valid.Error);
-        var accumulator = Accumulator.Create(run, combat);
+        var accumulator = Accumulator.Create(run, combat, observation);
         var count = 0;
         while (true)
         {
@@ -131,14 +139,16 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         }
     }
 
-    public Result<PhaseGraphResult> AdvanceAutomatic(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence)
+    public Result<PhaseGraphResult> AdvanceAutomatic(RunState run, CombatState combat, PhaseSequenceDefinition sequence) => AdvanceAutomaticCore(run, combat, sequence, null);
+
+    public Result<ObservedGameplayExecution<PhaseGraphResult>> AdvanceAutomaticObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation observation) =>
+        Observe(run, observation, () => AdvanceAutomaticCore(run, combat, sequence, observation));
+
+    private Result<PhaseGraphResult> AdvanceAutomaticCore(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation? observation)
     {
         var valid = ValidateInputs(run, combat, sequence, requireState: true);
         return valid.IsFailure ? Result<PhaseGraphResult>.Failure(valid.Error)
-            : AdvanceAutomaticCore(Accumulator.Create(run, combat), sequence);
+            : AdvanceAutomaticCore(Accumulator.Create(run, combat, observation), sequence);
     }
 
     public Result ValidateCommand(
@@ -283,13 +293,26 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         PhaseDefinition phase,
         bool entering)
     {
+        var parentEventId = accumulator.Observation?.ParentEventId;
+        if (accumulator.Observation is { } observation)
+        {
+            var started = GameplayBoundaryObservation.Begin(observation,
+                entering ? GameplayBoundary.PhaseEntered : GameplayBoundary.PhaseExited, phase.PhaseId,
+                accumulator.Combat.ActivationState?.ActiveActorId,
+                new() { ContainerKind = "rule", ContainerId = sequence.SequenceId, ComponentId = phase.PhaseId,
+                    ContentRevision = accumulator.Run.Determinism.ContentRevision },
+                $"phase/{observation.Events.Occurrences.Count}/{(entering ? "entry" : "exit")}");
+            if (started.IsFailure) return Result<Accumulator>.Failure(started.Error);
+            accumulator = accumulator with { Observation = started.Value };
+        }
         var definitions = entering ? phase.EntryEffects : phase.ExitEffects;
-        if (definitions.Count == 0) return Result<Accumulator>.Success(accumulator);
+        if (definitions.Count == 0) return Result<Accumulator>.Success(accumulator with
+        { Observation = accumulator.Observation == null ? null : accumulator.Observation with { ParentEventId = parentEventId } });
         var actorId = accumulator.Combat.ActivationState?.ActiveActorId;
         if (string.IsNullOrWhiteSpace(actorId) || accumulator.Combat.GetActor(actorId) == null)
             return Result<Accumulator>.Failure($"Phase '{phase.PhaseId}' effects require an active actor");
         var boundary = entering ? "entry" : "exit";
-        var executed = _effects.Execute(new EffectTriggerExecutionRequest
+        var request = new EffectTriggerExecutionRequest
         {
             Run = accumulator.Run,
             Combat = accumulator.Combat,
@@ -309,7 +332,16 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
                 SourceId = sequence.SequenceId,
                 ComponentId = $"{phase.PhaseId}:{boundary}"
             }
-        });
+        };
+        Result<EffectBatchResult> executed;
+        if (accumulator.Observation == null) executed = _effects.Execute(request);
+        else
+        {
+            var observed = _effects.ExecuteObserved(request, accumulator.Observation);
+            if (observed.IsFailure) return Result<Accumulator>.Failure(observed.Error);
+            accumulator = accumulator with { Observation = observed.Value.Observation with { ParentEventId = parentEventId } };
+            executed = Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
         if (executed.IsFailure) return Result<Accumulator>.Failure(executed.Error);
         var offset = accumulator.Steps.Length;
         return Result<Accumulator>.Success(accumulator with
@@ -356,6 +388,7 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
     {
         var result = new PhaseGraphResult
         {
+            Observation = value.Observation,
             Combat = value.Combat,
             Run = value.Run,
             Transitions = value.Transitions,
@@ -372,6 +405,16 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         });
     }
 
+    private static Result<ObservedGameplayExecution<PhaseGraphResult>> Observe(RunState run,
+        GameplayEffectObservation observation, Func<Result<PhaseGraphResult>> execute)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<PhaseGraphResult>>.Failure("Phase observation requires the captured action revision");
+        var result = execute();
+        return result.IsFailure ? Result<ObservedGameplayExecution<PhaseGraphResult>>.Failure(result.Error)
+            : Result<ObservedGameplayExecution<PhaseGraphResult>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
     private static string Normalize(string value) => new(value.Trim().ToLowerInvariant()
         .Select(character => char.IsLetterOrDigit(character) ? character : '_').ToArray());
 
@@ -383,7 +426,8 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         ImmutableArray<CalculationResult> Calculations,
         ImmutableArray<EffectApplicationRecord> Applications)
     {
-        public static Accumulator Create(RunState run, CombatState combat) =>
-            new(run, combat, [], [], [], []);
+        public GameplayEffectObservation? Observation { get; init; }
+        public static Accumulator Create(RunState run, CombatState combat, GameplayEffectObservation? observation) =>
+            new(run, combat, [], [], [], []) { Observation = observation };
     }
 }
