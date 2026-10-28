@@ -13,7 +13,7 @@ public static class GameplayActionObservation
         {
             Kind = kind, ReasonId = reasonId ?? observation.ReasonId, Attribution = GameplayAttribution.Source,
             SourceActorId = actorId, SubjectActorId = actorId,
-            Origin = new() { ContainerKind = "rule", ContainerId = "combat.command", ComponentId = actionId, ContentRevision = observation.Events.Scope.ContentRevision },
+            Origin = new() { ContainerKind = "rule", ContainerId = kind.StartsWith("command.", StringComparison.Ordinal) ? "gameplay.command" : "combat.command", ComponentId = actionId, ContentRevision = observation.Events.Scope.ContentRevision },
             Payload = new ActionOccurrencePayload { ActionDefinitionId = actionId }
         }, observation.ParentEventId);
         return appended.IsFailure ? Result<GameplayEffectObservation>.Failure(appended.Error)
@@ -31,7 +31,7 @@ public static class GameplayActionObservation
         {
             Kind = kind, ReasonId = reasonId ?? finished.ReasonId, Attribution = GameplayAttribution.Source,
             SourceActorId = actorId, SubjectActorId = actorId,
-            Origin = new() { ContainerKind = "rule", ContainerId = "combat.command", ComponentId = actionId, ContentRevision = finished.Events.Scope.ContentRevision },
+            Origin = new() { ContainerKind = "rule", ContainerId = kind.StartsWith("command.", StringComparison.Ordinal) ? "gameplay.command" : "combat.command", ComponentId = actionId, ContentRevision = finished.Events.Scope.ContentRevision },
             Payload = new ActionOccurrencePayload { ActionDefinitionId = actionId,
                 ChildEventIds = finished.Events.Occurrences.Skip(started.Events.Occurrences.Count).Select(item => item.EventId).ToImmutableArray() }
         }, started.ParentEventId);

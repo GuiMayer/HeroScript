@@ -24,7 +24,7 @@ using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
-public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevisionActivationPreviewService
+public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, IContentRevisionActivationPreviewService
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -792,10 +792,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result.Failure("A published dialogue definition is required");
             var definition = _contentDefinitions.Resolve<Dialogue.DialogueDefinition>(run, "dialogues", request.DialogueId);
             if (definition.IsFailure) return Result.Failure(definition.Error);
-            transition = Dialogue.DialogueTransitions.Start(run, definition.Value, _activityEffects);
+            transition = Dialogue.DialogueTransitions.Start(run, definition.Value, ActivityEffects);
         }
         else
-            transition = Dialogue.DialogueTransitions.Choose(run, DeserializePayload<Dialogue.ChooseDialogueOptionCommand>(payload), _activityEffects);
+            transition = Dialogue.DialogueTransitions.ChooseObserved(run, DeserializePayload<Dialogue.ChooseDialogueOptionCommand>(payload), ActivityEffects, _observation);
         return transition.IsFailure ? Result.Failure(transition.Error) : ToResult(Persist(transition.Value,
             start ? RunCommandTypes.StartDialogue : RunCommandTypes.ChooseDialogueOption, payload));
     }
@@ -1072,8 +1072,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var run = _runs[runId];
         var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (runtime.IsFailure) return Result.Failure(runtime.Error);
-        var planned = choose ? Loadouts.InscriptionStationTransitions.Choose(run, runtime.Value,
-            DeserializePayload<Loadouts.ChooseInscriptionOfferCommand>(payload)) : Loadouts.InscriptionStationTransitions.Open(run, runtime.Value,
+        var planned = choose ? Loadouts.InscriptionStationTransitions.ChooseObserved(run, runtime.Value,
+            DeserializePayload<Loadouts.ChooseInscriptionOfferCommand>(payload), _observation) : Loadouts.InscriptionStationTransitions.Open(run, runtime.Value,
             DeserializePayload<Loadouts.OpenInscriptionOfferCommand>(payload));
         return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value,
             choose ? RunCommandTypes.ChooseInscriptionOffer : RunCommandTypes.OpenInscriptionOffer, payload));
@@ -1093,7 +1093,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         if (runtime.IsFailure) return Result.Failure(runtime.Error);
         var granted = CardModifierItemAcquisition.Grant(run, runtime.Value, request.ItemDefinitionId, $"node:{node.NodeId}");
         if (granted.IsFailure) return Result.Failure(granted.Error);
-        var spent = CardTransformationAccess.SpendCosts(run);
+        var spent = CardTransformationAccess.SpendCostsObserved(run, _observation);
         if (spent.IsFailure) return Result.Failure(spent.Error);
         return ToResult(Persist(granted.Value with { ResourceState = spent.Value, Determinism = granted.Value.Determinism.AdvanceStep(),
             CompletedActivityNodeIds = run.CompletedActivityNodeIds.Append(node.NodeId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray() },
@@ -1125,7 +1125,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         if (runtime.IsFailure) return Result.Failure(runtime.Error);
         var planned = new CardTransformationPlanner(runtime.Value).Plan(run, cardInstanceId, operation, target, upgradeId);
         if (planned.IsFailure) return Result.Failure(planned.Error);
-        var spent = CardTransformationAccess.SpendCosts(run);
+        var spent = CardTransformationAccess.SpendCostsObserved(run, _observation);
         if (spent.IsFailure) return Result.Failure(spent.Error);
         var topology = run.Deck.Topology with { Instances = run.Deck.Topology.InstanceItems.SetItem(cardInstanceId, planned.Value) };
         var valid = CardZoneTopologyValidator.Validate(topology);
@@ -1847,9 +1847,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         var configured = boundary == RunActivityBoundary.Entry ? node.EntryEffects : node.ExitEffects;
         if (configured.Count == 0)
             return Result<RunState>.Success(state);
-        if (_activityEffects == null)
+        if (ActivityEffects == null)
             return Result<RunState>.Failure("Run activity effect executor is not configured");
-        var result = _activityEffects.Execute(state, node, boundary);
+        var result = ActivityEffects.Execute(state, node, boundary);
         if (result.IsSuccess) diagnostics = result.Value;
         return result.IsFailure
             ? Result<RunState>.Failure(result.Error)
@@ -1922,6 +1922,16 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 $"run-resource:{state.Sequence + 1}:{resourceId}");
             if (changed.IsFailure)
                 return Result<RunState>.Failure(changed.Error);
+            if (_observation != null)
+            {
+                var observed = _observation.RecordWallet(state, changed.Value, [new Core.Resources.ResolvedResourceMutation
+                {
+                    MutationId = $"run-resource:{state.Sequence + 1}:{resourceId}", ResourceId = resourceId, Value = value, Field = field,
+                    Operation = operation switch { ResourceEffectOperation.ADD => ResourceMutationOperation.Add,
+                        ResourceEffectOperation.SUBTRACT => ResourceMutationOperation.Subtract, _ => ResourceMutationOperation.Set }
+                }]);
+                if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+            }
             state = state with { ResourceState = changed.Value.State };
             var mutation = changed.Value.Records.Single();
 
@@ -2044,11 +2054,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var generated = _offerGenerator.GenerateCardSelection(state, definitionResult.Value, locked);
             if (generated.IsFailure)
                 return Result<CardSelectionState>.Failure(generated.Error);
-            var transition = CardSelectionTransitions.Reroll(
+            var transition = CardSelectionTransitions.RerollObserved(
                 state with { Determinism = generated.Value.Context },
                 selectionInstanceId,
                 generated.Value.Options,
-                generated.Value.Fingerprint);
+                generated.Value.Fingerprint, _observation);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2065,7 +2075,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-            var transition = CardSelectionTransitions.Decompose(state, selectionInstanceId, cardId);
+            var transition = CardSelectionTransitions.DecomposeObserved(state, selectionInstanceId, cardId, _observation);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2115,7 +2125,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
             var runtime = _contentRuntimes?.Resolve(state.Determinism.ContentRevision, state.ConfigName);
             if (runtime?.IsFailure == true) return Result<ShopItemState>.Failure(runtime.Error);
-            var transition = ShopTransitions.Buy(state, shopInstanceId, itemId, _cardZoneFlows, runtime?.Value);
+            var transition = ShopTransitions.BuyObserved(state, shopInstanceId, itemId, _cardZoneFlows, runtime?.Value, _observation);
             return transition.IsFailure
                 ? Result<ShopItemState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2146,11 +2156,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var generated = _offerGenerator.GenerateShop(state, definitionResult.Value);
             if (generated.IsFailure)
                 return Result<ShopState>.Failure(generated.Error);
-            var transition = ShopTransitions.Reroll(
+            var transition = ShopTransitions.RerollObserved(
                 state with { Determinism = generated.Value.Context },
                 shopInstanceId,
                 generated.Value.Items,
-                generated.Value.Fingerprint);
+                generated.Value.Fingerprint, _observation);
             return transition.IsFailure
                 ? Result<ShopState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2225,11 +2235,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 });
             }
 
-            var transition = PreparationTransitions.CommitApply(
+            var transition = PreparationTransitions.CommitApplyObserved(
                 state,
                 plan.Value,
                 resolvedModifiers,
-                _cardZoneFlows);
+                _cardZoneFlows, _observation);
             if (transition.IsFailure)
                 return Result<PreparationOptionState>.Failure(transition.Error);
 

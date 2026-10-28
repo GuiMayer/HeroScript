@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
+using Core.GameplayEvents;
 using System.Text.Json.Serialization;
 
 namespace Core.Run;
@@ -17,6 +18,8 @@ public enum RunActivityEffectOwner { RunWallet, PlayerEntity }
 
 public sealed record RunActivityEffectResult
 {
+    [JsonIgnore] internal GameplayEffectObservation? Observation { get; init; }
+
     public required RunState State { get; init; }
     public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public ImmutableArray<EffectApplicationRecord> Applications { get; init; } = [];
@@ -38,6 +41,9 @@ public interface IRunActivityEffectExecutor
         RunState run,
         RunMapNodeState node,
         RunActivityBoundary boundary);
+    Result<ObservedGameplayExecution<RunActivityEffectResult>> ExecuteObserved(RunState run, RunMapNodeState node, RunActivityBoundary boundary,
+        GameplayEffectObservation observation) => Result<ObservedGameplayExecution<RunActivityEffectResult>>.Failure("This executor does not support run activity observation");
+
 }
 
 /// <summary>
@@ -47,16 +53,25 @@ public interface IRunActivityEffectExecutor
 /// </summary>
 public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : IRunActivityEffectExecutor
 {
-    public Result<RunActivityEffectResult> Execute(
-        RunState run,
-        RunMapNodeState node,
-        RunActivityBoundary boundary)
+    public Result<RunActivityEffectResult> Execute(RunState run, RunMapNodeState node, RunActivityBoundary boundary) => ExecuteCore(run, node, boundary, null);
+
+    public Result<ObservedGameplayExecution<RunActivityEffectResult>> ExecuteObserved(RunState run, RunMapNodeState node, RunActivityBoundary boundary,
+        GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<RunActivityEffectResult>>.Failure("Run activity observation requires the action revision");
+        var result = ExecuteCore(run, node, boundary, observation);
+        return result.IsFailure ? Result<ObservedGameplayExecution<RunActivityEffectResult>>.Failure(result.Error)
+            : Result<ObservedGameplayExecution<RunActivityEffectResult>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<RunActivityEffectResult> ExecuteCore(RunState run, RunMapNodeState node, RunActivityBoundary boundary, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(node);
         var definitions = boundary == RunActivityBoundary.Entry ? node.EntryEffects : node.ExitEffects;
         if (definitions.Count == 0)
-            return Result<RunActivityEffectResult>.Success(new RunActivityEffectResult { State = run });
+            return Result<RunActivityEffectResult>.Success(new RunActivityEffectResult { State = run, Observation = observation });
         if (run.ActiveEncounterId != null)
             return Result<RunActivityEffectResult>.Failure("Persistent activity effects cannot execute during an active encounter");
         var binding = boundary == RunActivityBoundary.Entry ? node.EntryEffectOwner : node.ExitEffectOwner;
@@ -112,7 +127,7 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
             Boundary = boundary.ToString(),
             Effects = definitions
         };
-        var executed = effects.Execute(new EffectTriggerExecutionRequest
+        var request = new EffectTriggerExecutionRequest
         {
             Combat = synthetic,
             Run = run,
@@ -127,7 +142,20 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
                 SourceId = node.NodeId,
                 ComponentId = boundary.ToString()
             }
-        });
+        };
+        Result<EffectBatchResult> executed;
+        if (observation == null) executed = effects.Execute(request);
+        else
+        {
+            var capturedBindings = observation.ResourceOwnerBindings;
+            if (binding == RunActivityEffectOwner.RunWallet)
+                observation = observation with { ResourceOwnerBindings = capturedBindings.SetItem(run.PlayerEntityId,
+                    new() { Kind = "run", Id = run.ResourceState.OwnerId, ScopeId = observation.Events.Scope.BranchId }) };
+            var observed = effects.ExecuteObserved(request, observation);
+            if (observed.IsFailure) return Result<RunActivityEffectResult>.Failure(observed.Error);
+            observation = observed.Value.Observation with { ResourceOwnerBindings = capturedBindings };
+            executed = Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
         if (executed.IsFailure)
             return Result<RunActivityEffectResult>.Failure(executed.Error);
 
@@ -144,6 +172,7 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
                 .SetItem(resourceComponentId, playerResources! with { State = updatedResources }) } };
         return Result<RunActivityEffectResult>.Success(new RunActivityEffectResult
         {
+            Observation = observation,
             State = state,
             Steps = executed.Value.Steps,
             Applications = executed.Value.Records.ToImmutableArray(),

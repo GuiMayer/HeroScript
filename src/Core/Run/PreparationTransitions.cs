@@ -1,3 +1,4 @@
+using Core.GameplayEvents;
 using System.Collections.Immutable;
 using Core.CardZones;
 using Core.Common;
@@ -111,7 +112,20 @@ public static class PreparationTransitions
         RunState state,
         PreparationApplyPlan plan,
         IReadOnlyList<ScriptModifierInstance> modifiers,
-        ICardZoneFlowExecutor? zoneFlows = null)
+        ICardZoneFlowExecutor? zoneFlows = null) => CommitApplyCore(state, plan, modifiers, zoneFlows, null);
+
+    internal static Result<RunStateTransition<PreparationOptionState>> CommitApplyObserved(
+        RunState state,
+        PreparationApplyPlan plan,
+        IReadOnlyList<ScriptModifierInstance> modifiers,
+        ICardZoneFlowExecutor? zoneFlows, GameplayRunObservation? observation) =>
+        CommitApplyCore(state, plan, modifiers, zoneFlows, observation);
+
+    private static Result<RunStateTransition<PreparationOptionState>> CommitApplyCore(
+        RunState state,
+        PreparationApplyPlan plan,
+        IReadOnlyList<ScriptModifierInstance> modifiers,
+        ICardZoneFlowExecutor? zoneFlows, GameplayRunObservation? observation)
     {
         if (state.Determinism != plan.SourceContext)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(
@@ -129,12 +143,13 @@ public static class PreparationTransitions
         if (option.Applied)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(
                 $"Preparation option already applied: {option.OptionId}");
-        var spent = RunResourceTransitions.Spend(
-            state.ResourceState,
+        var spent = RunResourceTransitions.Pay(
+            state,
             option.Costs,
-            $"preparation:{plan.PreparationInstanceId}:apply:{option.OptionId}");
+            $"preparation:{plan.PreparationInstanceId}:apply:{option.OptionId}", observation);
         if (spent.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(spent.Error);
+        state = spent.Value.Run;
 
         var deck = CardZoneGrantTransitions.Grant(state with { Determinism = plan.Context },
             option.GrantedCardIds, zoneFlows);

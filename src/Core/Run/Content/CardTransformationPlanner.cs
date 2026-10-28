@@ -39,13 +39,15 @@ public static class CardTransformationAccess
         catch (JsonException) { return Result<ImmutableArray<ResourceAmount>>.Failure("Invalid transformation activity costs"); }
     }
 
-    public static Result<ResourceSet> SpendCosts(RunState run)
+    public static Result<ResourceSet> SpendCosts(RunState run) => SpendCostsObserved(run, null);
+
+    internal static Result<ResourceSet> SpendCostsObserved(RunState run, Core.GameplayEvents.GameplayRunObservation? observation)
     {
         var node = run.Map.Nodes.FirstOrDefault(node => node.NodeId == run.CurrentNodeId);
         if (node?.Activity.Type != RunActivityType.CardUpgrade) return Result<ResourceSet>.Success(run.ResourceState);
         var costs = ReadCosts(node.Activity);
         if (costs.IsFailure) return Result<ResourceSet>.Failure(costs.Error);
-        var spent = RunResourceTransitions.Spend(run.ResourceState, costs.Value, $"transform:{node.NodeId}:{run.Determinism.Step}");
+        var spent = RunResourceTransitions.Pay(run, costs.Value, $"transform:{node.NodeId}:{run.Determinism.Step}", observation);
         return spent.IsFailure ? Result<ResourceSet>.Failure(spent.Error) : Result<ResourceSet>.Success(spent.Value.State);
     }
     public static bool IsCommand(string type) => type is RunCommandTypes.UpgradeCard or

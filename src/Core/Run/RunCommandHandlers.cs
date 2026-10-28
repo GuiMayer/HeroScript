@@ -43,6 +43,7 @@ internal sealed class IsolatedRunCommandHandler : IRunCommandHandler
             return Result<RunTransitionPlan>.Failure(legal.Error);
 
         var engine = _createEngine();
+        if (context.Observation != null) engine.AttachObservation(context.Observation);
         var hydrated = engine.HydrateForReplay(state);
         if (hydrated.IsFailure)
             return Result<RunTransitionPlan>.Failure(hydrated.Error);
@@ -64,6 +65,7 @@ internal sealed class IsolatedRunCommandHandler : IRunCommandHandler
             : candidate.Value with { Sequence = state.Sequence };
         return Result<RunTransitionPlan>.Success(new RunTransitionPlan
         {
+            Observation = context.Observation?.Current,
             PreviousState = state,
             CandidateState = planned,
             Context = planned.Determinism,

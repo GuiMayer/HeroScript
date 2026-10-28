@@ -1,3 +1,4 @@
+using Core.GameplayEvents;
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Core.Common;
@@ -104,7 +105,12 @@ public static class InscriptionStationTransitions
             Determinism = allocated.Context.AdvanceStep() });
     }
 
-    public static Result<RunState> Choose(RunState run, ContentRuntime runtime, ChooseInscriptionOfferCommand command)
+    public static Result<RunState> Choose(RunState run, ContentRuntime runtime, ChooseInscriptionOfferCommand command) => ChooseCore(run, runtime, command, null);
+
+    internal static Result<RunState> ChooseObserved(RunState run, ContentRuntime runtime, ChooseInscriptionOfferCommand command, GameplayRunObservation? observation) =>
+        ChooseCore(run, runtime, command, observation);
+
+    private static Result<RunState> ChooseCore(RunState run, ContentRuntime runtime, ChooseInscriptionOfferCommand command, GameplayRunObservation? observation)
     {
         var policy = LoadoutContentAccess.Policy(run, runtime);
         if (policy.IsFailure) return Result<RunState>.Failure(policy.Error);
@@ -118,8 +124,9 @@ public static class InscriptionStationTransitions
         {
             if (!offer.Options.Contains(id) || selected.Contains(id) || selected.Length >= offer.MaximumPurchases)
                 return Result<RunState>.Failure("Inscription is not an available choice in this captured offer");
-            var spent = RunResourceTransitions.Spend(run.ResourceState, offer.Costs, $"inscription:{offer.OfferId}:{id}");
+            var spent = RunResourceTransitions.Pay(run, offer.Costs, $"inscription:{offer.OfferId}:{id}", observation);
             if (spent.IsFailure) return Result<RunState>.Failure(spent.Error);
+            run = spent.Value.Run;
             var granted = InscriptionAcquisition.Grant(run with { ResourceState = spent.Value.State }, runtime, offer.ActorId, id,
                 $"station:{offer.NodeId}:{offer.StationId}:{offer.Fingerprint}");
             if (granted.IsFailure) return granted;

@@ -28,9 +28,10 @@ public static class GameplayResourceFactProducer
     }
 
     public static Result<GameplayOccurrenceDraft> FromEffect(ResolvedEffectCommand command, EffectApplicationRecord record,
-        GameplayObjectReference owner, GameplayOccurrenceDraft metadata)
+        GameplayObjectReference owner, GameplayOccurrenceDraft metadata, string? adapterActorId = null)
     {
-        if (command == null || record == null || metadata == null || owner == null || owner.Id != record.TargetEntityId ||
+        if (command == null || record == null || metadata == null || owner == null || !owner.IsValid ||
+            (owner.Kind is "entity" or "actor" ? owner.Id != record.TargetEntityId : adapterActorId != record.TargetEntityId) ||
             record.EffectInstanceId != command.EffectInstanceId || record.ResourceOutcome == null ||
             record.ResourceId == null || record.ResourceField == null || record.ResourceOperation == null)
             return Result<GameplayOccurrenceDraft>.Failure("Effect has no matching canonical resource application");
@@ -54,7 +55,7 @@ public static class GameplayResourceFactProducer
             Operation = record.ResourceOperation.Value, Value = operand
         }, new(mutationId, record.ResourceId, record.ResourceField.Value, record.ResourceOperation.Value,
             record.ResourceOutcome.PreviousValue, record.ResourceOutcome.CurrentValue, record.ResourceOutcome.RequestedValue), owner,
-            metadata with { SourceActorId = string.IsNullOrEmpty(command.SourceEntityId) ? null : command.SourceEntityId, SubjectActorId = record.TargetEntityId,
+            metadata with { SourceActorId = string.IsNullOrEmpty(command.SourceEntityId) ? null : command.SourceEntityId, SubjectActorId = owner.Kind is "entity" or "actor" ? record.TargetEntityId : null,
                 ImpactId = record.Identity?.ImpactId, ProcId = record.Identity?.ProcId, CalculationId = record.CalculationId });
         return result;
     }

@@ -1,3 +1,4 @@
+using Core.GameplayEvents;
 using System.Collections.Immutable;
 using Core.Common;
 using Core.Effects;
@@ -77,7 +78,12 @@ public static class DialogueTransitions
         return applied.IsFailure ? applied : Result<RunState>.Success(applied.Value with { Determinism = applied.Value.Determinism.AdvanceStep() });
     }
 
-    public static Result<RunState> Choose(RunState run, ChooseDialogueOptionCommand command, IRunActivityEffectExecutor? effects)
+    public static Result<RunState> Choose(RunState run, ChooseDialogueOptionCommand command, IRunActivityEffectExecutor? effects) => ChooseCore(run, command, effects, null);
+
+    internal static Result<RunState> ChooseObserved(RunState run, ChooseDialogueOptionCommand command, IRunActivityEffectExecutor? effects, GameplayRunObservation? observation) =>
+        ChooseCore(run, command, effects, observation);
+
+    private static Result<RunState> ChooseCore(RunState run, ChooseDialogueOptionCommand command, IRunActivityEffectExecutor? effects, GameplayRunObservation? observation)
     {
         var legal = CheckActivity(run);
         if (legal.IsFailure) return Result<RunState>.Failure(legal.Error);
@@ -88,8 +94,9 @@ public static class DialogueTransitions
         var choice = node.Choices.FirstOrDefault(choice => choice.ChoiceId == command.ChoiceId);
         if (choice == null || !Available(run, dialogue, choice))
             return Result<RunState>.Failure("Dialogue choice is unavailable");
-        var spent = RunResourceTransitions.Spend(run.ResourceState, choice.Costs, $"dialogue:{dialogue.DialogueInstanceId}:{node.NodeId}:{choice.ChoiceId}");
+        var spent = RunResourceTransitions.Pay(run, choice.Costs, $"dialogue:{dialogue.DialogueInstanceId}:{node.NodeId}:{choice.ChoiceId}", observation);
         if (spent.IsFailure) return Result<RunState>.Failure(spent.Error);
+        run = spent.Value.Run;
         var candidate = run with { ResourceState = spent.Value.State, NarrativeFlags = run.NarrativeFlags.SetItems(choice.SetFlags) };
         var applied = Execute(candidate, dialogue, $"choice:{choice.ChoiceId}", choice.Effects, effects, choice.EffectOwner);
         if (applied.IsFailure) return applied;

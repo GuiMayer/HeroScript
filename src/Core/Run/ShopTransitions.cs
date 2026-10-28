@@ -1,3 +1,4 @@
+using Core.GameplayEvents;
 using System.Collections.Immutable;
 using Core.CardZones;
 using Core.Common;
@@ -44,7 +45,22 @@ public static class ShopTransitions
         Guid shopInstanceId,
         string itemId,
         ICardZoneFlowExecutor? zoneFlows = null,
-        ContentRuntime? runtime = null)
+        ContentRuntime? runtime = null) => BuyCore(state, shopInstanceId, itemId, zoneFlows, runtime, null);
+
+    internal static Result<RunStateTransition<ShopItemState>> BuyObserved(
+        RunState state,
+        Guid shopInstanceId,
+        string itemId,
+        ICardZoneFlowExecutor? zoneFlows,
+        ContentRuntime? runtime, GameplayRunObservation? observation) =>
+        BuyCore(state, shopInstanceId, itemId, zoneFlows, runtime, observation);
+
+    private static Result<RunStateTransition<ShopItemState>> BuyCore(
+        RunState state,
+        Guid shopInstanceId,
+        string itemId,
+        ICardZoneFlowExecutor? zoneFlows,
+        ContentRuntime? runtime, GameplayRunObservation? observation)
     {
         var located = Locate(state, shopInstanceId);
         if (located.IsFailure)
@@ -58,12 +74,13 @@ public static class ShopTransitions
             return Result<RunStateTransition<ShopItemState>>.Failure($"Shop item not found: {itemId}");
         if (itemIndex.item.Purchased)
             return Result<RunStateTransition<ShopItemState>>.Failure($"Shop item already purchased: {itemId}");
-        var spent = RunResourceTransitions.Spend(
-            state.ResourceState,
+        var spent = RunResourceTransitions.Pay(
+            state,
             itemIndex.item.Costs,
-            $"shop:{shopInstanceId}:buy:{itemId}");
+            $"shop:{shopInstanceId}:buy:{itemId}", observation);
         if (spent.IsFailure)
             return Result<RunStateTransition<ShopItemState>>.Failure(spent.Error);
+        state = spent.Value.Run;
 
         var updatedItem = itemIndex.item with { Purchased = true };
         var updatedShop = shop with
@@ -101,19 +118,33 @@ public static class ShopTransitions
         RunState state,
         Guid shopInstanceId,
         IReadOnlyList<ShopItemState> items,
-        string offerFingerprint = "")
+        string offerFingerprint = "") => RerollCore(state, shopInstanceId, items, offerFingerprint, null);
+
+    internal static Result<RunStateTransition<ShopState>> RerollObserved(
+        RunState state,
+        Guid shopInstanceId,
+        IReadOnlyList<ShopItemState> items,
+        string offerFingerprint, GameplayRunObservation? observation) =>
+        RerollCore(state, shopInstanceId, items, offerFingerprint, observation);
+
+    private static Result<RunStateTransition<ShopState>> RerollCore(
+        RunState state,
+        Guid shopInstanceId,
+        IReadOnlyList<ShopItemState> items,
+        string offerFingerprint, GameplayRunObservation? observation)
     {
         var located = Locate(state, shopInstanceId);
         if (located.IsFailure)
             return Result<RunStateTransition<ShopState>>.Failure(located.Error);
 
         var (index, shop) = located.Value;
-        var spent = RunResourceTransitions.Spend(
-            state.ResourceState,
+        var spent = RunResourceTransitions.Pay(
+            state,
             shop.RerollCosts,
-            $"shop:{shopInstanceId}:reroll:{shop.RerollsUsed + 1}");
+            $"shop:{shopInstanceId}:reroll:{shop.RerollsUsed + 1}", observation);
         if (spent.IsFailure)
             return Result<RunStateTransition<ShopState>>.Failure(spent.Error);
+        state = spent.Value.Run;
 
         var rerollsUsed = checked(shop.RerollsUsed + 1);
         var updated = shop with

@@ -38,7 +38,7 @@ public sealed class RunSessionGateProvider
 /// only calculate immutable plans; this coordinator exclusively owns
 /// per-aggregate serialization, idempotency, durable append and state publish.
 /// </summary>
-public sealed class RunSessionCoordinator : IRunCommandProcessor
+public sealed partial class RunSessionCoordinator : IRunCommandProcessor
 {
     private readonly IRunQueryService _queries;
     private readonly IRunCommitStore? _store;

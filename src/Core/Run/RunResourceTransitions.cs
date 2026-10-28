@@ -1,6 +1,7 @@
 using Core.Common;
 using Core.Resources;
 using Core.Effects;
+using Core.GameplayEvents;
 using System.Collections.Immutable;
 
 namespace Core.Run;
@@ -104,6 +105,44 @@ public static class RunResourceTransitions
                 Value = reward.Amount
             })
             .ToArray());
+    }
+
+    internal sealed record RunPayment(RunState Run, ResourceSet State);
+
+    internal static Result<RunPayment> Pay(RunState run, IReadOnlyList<ResourceAmount> costs, string transactionId,
+        GameplayRunObservation? observation = null)
+    {
+        var inputs = costs.ToImmutableArray();
+        var spent = Spend(run.ResourceState, inputs, transactionId);
+        if (spent.IsFailure) return Result<RunPayment>.Failure(spent.Error);
+        if (observation != null)
+        {
+            if (inputs.Length > EffectExecutionLimits.MaximumSteps) return Result<RunPayment>.Failure("Resource payment exceeds observation budget");
+            var mutations = inputs.OrderBy(item => item.ResourceId, StringComparer.Ordinal).Select((cost, index) => new ResolvedResourceMutation
+            { MutationId = $"{transactionId}:{index}:{cost.ResourceId}", ResourceId = cost.ResourceId,
+                Operation = ResourceMutationOperation.Subtract, Value = cost.Amount }).ToImmutableArray();
+            var observed = observation.RecordWallet(run, spent.Value, mutations, observation.Current.CostReasonId);
+            if (observed.IsFailure) return Result<RunPayment>.Failure(observed.Error);
+        }
+        return Result<RunPayment>.Success(new(run with { ResourceState = spent.Value.State }, spent.Value.State));
+    }
+
+    internal static Result<RunPayment> Reward(RunState run, IReadOnlyList<ResourceAmount> amounts, string transactionId,
+        GameplayRunObservation? observation = null)
+    {
+        var inputs = amounts.ToImmutableArray();
+        var gained = Gain(run.ResourceState, inputs, transactionId);
+        if (gained.IsFailure) return Result<RunPayment>.Failure(gained.Error);
+        if (observation != null)
+        {
+            if (inputs.Length > EffectExecutionLimits.MaximumSteps) return Result<RunPayment>.Failure("Resource reward exceeds observation budget");
+            var mutations = inputs.OrderBy(item => item.ResourceId, StringComparer.Ordinal).Select((amount, index) => new ResolvedResourceMutation
+            { MutationId = $"{transactionId}:{index}:{amount.ResourceId}", ResourceId = amount.ResourceId,
+                Operation = ResourceMutationOperation.Add, Value = amount.Amount }).ToImmutableArray();
+            var observed = observation.RecordWallet(run, gained.Value, mutations);
+            if (observed.IsFailure) return Result<RunPayment>.Failure(observed.Error);
+        }
+        return Result<RunPayment>.Success(new(run with { ResourceState = gained.Value.State }, gained.Value.State));
     }
 
     private static Result ValidateAmounts(

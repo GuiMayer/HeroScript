@@ -82,6 +82,7 @@ public sealed record GameplayTransitionFact
 /// </summary>
 public sealed record RunTransitionPlan
 {
+    [System.Text.Json.Serialization.JsonIgnore] internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
     private ImmutableArray<GameplayTransitionFrame> _frames = [];
     private ImmutableArray<GameplayTransitionFact> _facts = [];
 
@@ -105,7 +106,10 @@ public sealed record RunTransitionPlan
 
 public sealed record GameplayCommandExecutionContext(
     RunCommandIdentity Identity,
-    DeterministicContext Determinism);
+    DeterministicContext Determinism)
+{
+    [System.Text.Json.Serialization.JsonIgnore] internal Core.GameplayEvents.GameplayRunObservation? Observation { get; init; }
+}
 
 public interface IRunCommandHandler
 {

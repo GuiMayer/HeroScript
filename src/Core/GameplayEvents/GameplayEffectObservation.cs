@@ -21,6 +21,8 @@ public sealed record GameplayEffectObservation
     public string ReasonId { get; init; } = string.Empty;
     public string? CostReasonId { get; init; }
     public string? RefundReasonId { get; init; }
+    public ImmutableDictionary<string, GameplayObjectReference> ResourceOwnerBindings { get; init; } =
+        ImmutableDictionary<string, GameplayObjectReference>.Empty.WithComparers(StringComparer.Ordinal);
     public string? ParentEventId { get; init; }
     public string? LastApplicationEventId { get; init; }
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];
@@ -30,7 +32,7 @@ public sealed record GameplayEffectObservation
     internal Result<GameplayEffectObservation> Record(ResolvedEffectCommand command, CombatState before, CombatState after,
         IReadOnlyList<EffectApplicationRecord> records, RunState? runBefore = null, RunState? runAfter = null)
     {
-        if (Events == null || ImpactAnchors == null || Unobserved.IsDefault || !EventValue.Valid(PublisherId) || !EventValue.Valid(ReasonId) ||
+        if (Events == null || ImpactAnchors == null || ResourceOwnerBindings == null || Unobserved.IsDefault || !EventValue.Valid(PublisherId) || !EventValue.Valid(ReasonId) ||
             records.Count > EffectExecutionLimits.MaximumSteps)
             return Result<GameplayEffectObservation>.Failure("Invalid effect observation context");
         var current = this with { LastApplicationEventId = null };
@@ -57,8 +59,12 @@ public sealed record GameplayEffectObservation
                 CalculationId = record.CalculationId, ImpactId = record.Identity?.ImpactId, ProcId = record.Identity?.ProcId };
             if (record.ResourceOutcome != null)
             {
+                ResourceOwnerBindings.TryGetValue(record.TargetEntityId, out var boundOwner);
+                if (boundOwner != null && (before.GetActor(record.TargetEntityId)?.ResourceState.OwnerId != boundOwner.Id || !boundOwner.IsValid))
+                    return Result<GameplayEffectObservation>.Failure("Resource owner binding does not match the captured actor adapter");
                 var fact = GameplayResourceFactProducer.FromEffect(command, record,
-                    new() { Kind = "entity", Id = record.TargetEntityId, ScopeId = Events.Scope.CombatId ?? Events.Scope.RunId }, targetMetadata);
+                    boundOwner ?? new() { Kind = "entity", Id = record.TargetEntityId, ScopeId = Events.Scope.CombatId ?? Events.Scope.RunId },
+                    targetMetadata, boundOwner == null ? null : record.TargetEntityId);
                 if (fact.IsFailure) return Result<GameplayEffectObservation>.Failure(fact.Error);
                 var resourceFact = fact.Value;
                 if (record.CalculationInfluenceId == null && settlements.Count > 0)

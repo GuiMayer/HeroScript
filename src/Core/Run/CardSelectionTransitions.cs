@@ -1,3 +1,4 @@
+using Core.GameplayEvents;
 using System.Collections.Immutable;
 using Core.CardZones;
 using Core.Common;
@@ -95,7 +96,20 @@ public static class CardSelectionTransitions
         RunState state,
         Guid selectionInstanceId,
         IReadOnlyList<CardSelectionOptionState> options,
-        string offerFingerprint = "")
+        string offerFingerprint = "") => RerollCore(state, selectionInstanceId, options, offerFingerprint, null);
+
+    internal static Result<RunStateTransition<CardSelectionState>> RerollObserved(
+        RunState state,
+        Guid selectionInstanceId,
+        IReadOnlyList<CardSelectionOptionState> options,
+        string offerFingerprint, GameplayRunObservation? observation) =>
+        RerollCore(state, selectionInstanceId, options, offerFingerprint, observation);
+
+    private static Result<RunStateTransition<CardSelectionState>> RerollCore(
+        RunState state,
+        Guid selectionInstanceId,
+        IReadOnlyList<CardSelectionOptionState> options,
+        string offerFingerprint, GameplayRunObservation? observation)
     {
         var located = Locate(state, selectionInstanceId);
         if (located.IsFailure)
@@ -109,12 +123,13 @@ public static class CardSelectionTransitions
         IReadOnlyList<ResourceAmount> costs = selection.FreeRerollsRemaining > 0
             ? Array.Empty<ResourceAmount>()
             : selection.RerollCosts;
-        var spent = RunResourceTransitions.Spend(
-            state.ResourceState,
+        var spent = RunResourceTransitions.Pay(
+            state,
             costs,
-            $"card-selection:{selectionInstanceId}:reroll:{selection.RerollsUsed + 1}");
+            $"card-selection:{selectionInstanceId}:reroll:{selection.RerollsUsed + 1}", observation);
         if (spent.IsFailure)
             return Result<RunStateTransition<CardSelectionState>>.Failure(spent.Error);
+        state = spent.Value.Run;
 
         var rerollsUsed = checked(selection.RerollsUsed + 1);
         var updated = selection with
@@ -138,7 +153,18 @@ public static class CardSelectionTransitions
     public static Result<RunStateTransition<CardSelectionState>> Decompose(
         RunState state,
         Guid selectionInstanceId,
-        string cardId)
+        string cardId) => DecomposeCore(state, selectionInstanceId, cardId, null);
+
+    internal static Result<RunStateTransition<CardSelectionState>> DecomposeObserved(
+        RunState state,
+        Guid selectionInstanceId,
+        string cardId, GameplayRunObservation? observation) =>
+        DecomposeCore(state, selectionInstanceId, cardId, observation);
+
+    private static Result<RunStateTransition<CardSelectionState>> DecomposeCore(
+        RunState state,
+        Guid selectionInstanceId,
+        string cardId, GameplayRunObservation? observation)
     {
         var located = Locate(state, selectionInstanceId);
         if (located.IsFailure)
@@ -167,12 +193,13 @@ public static class CardSelectionTransitions
             Options = options,
             DecomposedCardIds = selection.DecomposedCardIds.Append(updatedOption.CardId).ToImmutableList()
         };
-        var rewarded = RunResourceTransitions.Gain(
-            state.ResourceState,
+        var rewarded = RunResourceTransitions.Reward(
+            state,
             updatedOption.DecomposeRewards,
-            $"card-selection:{selectionInstanceId}:decompose:{cardId}");
+            $"card-selection:{selectionInstanceId}:decompose:{cardId}", observation);
         if (rewarded.IsFailure)
             return Result<RunStateTransition<CardSelectionState>>.Failure(rewarded.Error);
+        state = rewarded.Value.Run;
         var next = state with
         {
             ResourceState = rewarded.Value.State,
