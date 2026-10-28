@@ -66,6 +66,9 @@ public sealed class EntityMaterializer
     {
         return component switch
         {
+            Core.GameplayEvents.Responses.EntityResponseComponentDefinition responses =>
+                Result<EntityComponentState>.Success(new Core.GameplayEvents.Responses.EntityResponseComponentState
+                { ComponentId = responses.ComponentId, Responses = responses.Responses }),
             DeckCompartmentProfileComponentDefinition profile => Result<EntityComponentState>.Success(new DeckCompartmentProfileComponentState
             {
                 ComponentId = profile.ComponentId, ProfileId = profile.ProfileId

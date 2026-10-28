@@ -30,6 +30,12 @@ public static class EntityDefinitionValidator
         {
             switch (component)
             {
+                case Core.GameplayEvents.Responses.EntityResponseComponentDefinition responses:
+                    if (responses.Responses is { } declarations && (declarations.IsDefault || declarations.Length > 16 ||
+                        declarations.Any(item => item == null || string.IsNullOrWhiteSpace(item.ResponseId)) ||
+                        declarations.Select(item => item.ResponseId).Distinct(StringComparer.Ordinal).Count() != declarations.Length))
+                        return Result.Failure("Entity response declarations require bounded unique identities");
+                    break;
                 case DeckCompartmentProfileComponentDefinition profile when string.IsNullOrWhiteSpace(profile.ProfileId):
                     return Result.Failure("Deck compartment profile ID is required");
                 case ResourceEntityComponentDefinition resources:
