@@ -6,7 +6,7 @@ using Core.Resources;
 namespace Core.GameplayEvents;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum GameplayPayloadKind { ResourceChange, AttributeChange, StatusChange, CardMovement, Action, Boundary, RuleResult }
+public enum GameplayPayloadKind { ResourceChange, AttributeChange, StatusChange, CardMovement, Action, Boundary, RuleResult, ZoneOrder }
 
 public sealed record GameplayEventScope
 {
@@ -89,6 +89,7 @@ public sealed record GameplayOccurrence
 [JsonDerivedType(typeof(ActionOccurrencePayload), "action")]
 [JsonDerivedType(typeof(BoundaryOccurrencePayload), "boundary")]
 [JsonDerivedType(typeof(RuleResultPayload), "rule_result")]
+[JsonDerivedType(typeof(ZoneOrderPayload), "zone_order")]
 public abstract record GameplayOccurrencePayload
 {
     [JsonIgnore] public abstract GameplayPayloadKind PayloadKind { get; }
@@ -184,6 +185,21 @@ public sealed record CardMovementPayload : GameplayOccurrencePayload
     public override Result Validate() => EventValue.Valid(CardInstanceId) && (From != null || To != null) &&
         (From?.IsValid ?? true) && (To?.IsValid ?? true) && EventValue.Optional(MovementGroupId)
         ? Result.Success() : Result.Failure("Invalid card movement payload");
+}
+
+public sealed record ZoneOrderPayload : GameplayOccurrencePayload
+{
+    public override GameplayPayloadKind PayloadKind => GameplayPayloadKind.ZoneOrder;
+    public GameplayZoneReference Zone { get; init; } = null!;
+    public ImmutableArray<string> Before { get; init; } = [];
+    public ImmutableArray<string> After { get; init; } = [];
+    public string MovementGroupId { get; init; } = string.Empty;
+    public override Result Validate() => Zone is { IsValid: true } && EventValue.Valid(MovementGroupId) &&
+        !Before.IsDefault && !After.IsDefault && Before.Length <= 65536 && Before.Length == After.Length &&
+        Before.All(EventValue.Valid) && After.All(EventValue.Valid) &&
+        Before.Distinct(StringComparer.Ordinal).Count() == Before.Length &&
+        Before.ToHashSet(StringComparer.Ordinal).SetEquals(After)
+        ? Result.Success() : Result.Failure("Zone order payload must contain the same unique instances");
 }
 
 public sealed record ActionOccurrencePayload : GameplayOccurrencePayload

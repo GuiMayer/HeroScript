@@ -4,7 +4,7 @@ Estado: infraestrutura de contratos; ainda não habilita respostas novas em cont
 
 `GameplayOccurrence` é um registro imutável com identidade causal, escopo de setting/revisão/run/branch/ação/comando, participantes opcionais, proveniência, tags e payload discriminado. Não depende da classe da origem para escolher o processamento. `SourceActorId` pode estar ausente; `AttributedActorId` é uma atribuição explícita, não o primeiro ator do combate.
 
-Payloads suportados pelo contrato: recurso, atributo, status, movimento de carta, ação, fronteira e resultado de regra. Não existe payload livre que possa executar código. A classe do payload deve corresponder ao tipo declarado no catálogo. Fatos derivados de mudanças de recurso distinguem o operando, o valor pedido ao redutor, antes/depois e deltas computados em double a partir dos floats canônicos. Não arredondam números para apresentação.
+Payloads suportados pelo contrato: recurso, atributo, status, movimento de carta, ordenação de zona, ação, fronteira e resultado de regra. Não existe payload livre que possa executar código. A classe do payload deve corresponder ao tipo declarado no catálogo. Fatos derivados de mudanças de recurso distinguem o operando, o valor pedido ao redutor, antes/depois e deltas computados em double a partir dos floats canônicos. Não arredondam números para apresentação.
 
 `ResourceChangePayload`: subtrair 12 de 8, limitado a zero, significa `Operand=12`, `Before=8`, `RequestedValue=-4`, `After=0`, `RequestedDelta=-12` e `AppliedDelta=-8`. Subtrair 8 após uma absorção de 4 é outro caso: o operando do redutor é 8 e o settlement tem referência própria. `Set(20)` a partir de 15 pede delta +5; não +20.
 
@@ -31,3 +31,11 @@ Nada nesta etapa publica ocorrências, adiciona campos a snapshots existentes, m
 O payload pode identificar o dono por `GameplayObjectReference`, permitindo recursos de ator, run, tabuleiro ou outro agregado sem inventar um ator. Essa referência identifica o afetado; não é proveniência do executor.
 
 Essa etapa é opt-in interno para testes/shadow. Os consumidores atuais ainda não foram migrados, não há dispatcher genérico em produção e não se deve declarar concluída a cobertura de status, atributos, cartas, fronteiras ou comandos. Essa ligação é a continuação da etapa 4, antes da habilitação de respostas novas.
+
+## Status, atributos, cartas e fronteiras (etapa 4b)
+
+`GameplayEntityFactProducer` consome resultados canônicos de atributos e stack changes de status, conferindo as instâncias antes/depois. Duração é um fato separado de quantidade de stacks; a expiração tem classificação própria. A fonte imediata continua explícita e não é substituída pelo aplicador histórico. Fronteiras usam um enum fechado e o sequenciamento já resolvido pelo lifecycle: o produtor não avança fases nem executa efeitos.
+
+`GameplayCardFactProducer` projeta somente os passos primitivos efetivos do fluxo. Seleção de cartas e agregados de controle não duplicam movimentos. Criação e destruição têm apenas um endpoint; movimento tem dois. Shuffle/reorder usam `ZoneOrderPayload`, preservando a permutação real em vez de inventar movimentos. Referências das zonas vêm do conteúdo resolvido, sem dividir endereços por delimitadores ou inferir o ownerScope pelo nome.
+
+Esses adaptadores ainda não instrumentam todos os consumidores em runtime. A etapa 4 permanece aberta; respostas genéricas de conteúdo não estão habilitadas.

@@ -33,7 +33,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
-| 4 — Produção de fatos | Em execução: produtores de recurso/custo em shadow |
+| 4 — Produção de fatos | Em execução: adaptadores de recurso, custo, entidade, zonas e fronteiras; integração pendente |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
@@ -66,3 +66,5 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 - Etapa 4a: produtores canônicos de fato de recurso, vínculo ao operando real de efeitos/settlements e observação explícita de mutação/custo implementados. `GameplayObjectReference` permite dono de recurso não ator. 62 testes focados passaram, incluindo os anteriores e sete casos novos. A observação ainda é shadow e a etapa 4 permanece aberta.
 
 - Certificação da etapa 4a: índice exportado para `.runtime/generic-events-stage4a-index`, com build/artefatos e conteúdo isolados. **1977 testes Core passaram, sem exclusões**, repetidos após a proteção final de cópias das listas de entrada. **31 testes API focados passaram**, cobrindo controllers, sandbox e jornada de compartimentos. Não equivale à suíte API inteira nem à certificação do dispatcher ainda não implementado. No checkout completo permanecem as mesmas seis falhas de JSON do teste de UNO não rastreado, com 1981 aprovações.
+
+- Etapa 4b: adaptadores tipados de atributos, status/duração, fronteiras, movimentos e ordenação de zonas. 59 testes focados passaram, incluindo lifecycles existentes e dez casos novos. Não há migração dos consumidores nem dispatcher habilitado.
