@@ -39,3 +39,11 @@ Essa etapa é opt-in interno para testes/shadow. Os consumidores atuais ainda n�
 `GameplayCardFactProducer` projeta somente os passos primitivos efetivos do fluxo. Seleção de cartas e agregados de controle não duplicam movimentos. Criação e destruição têm apenas um endpoint; movimento tem dois. Shuffle/reorder usam `ZoneOrderPayload`, preservando a permutação real em vez de inventar movimentos. Referências das zonas vêm do conteúdo resolvido, sem dividir endereços por delimitadores ou inferir o ownerScope pelo nome.
 
 Esses adaptadores ainda não instrumentam todos os consumidores em runtime. A etapa 4 permanece aberta; respostas genéricas de conteúdo não estão habilitadas.
+
+## Observação no executor canônico (etapa 4c)
+
+`EffectTriggerExecutor.ExecuteObserved` é uma entrada interna opt-in de shadow. Usa o mesmo executor e os mesmos redutores de `Execute`, inclusive prefixos, respostas atuais e efeitos encadeados. Os resultados de recurso, atributo e status são observados na fronteira da aplicação, antes das respostas existentes. Respostas irmãs mantêm o mesmo pai imediato. O contexto de eventos é um sucessor imutável local, não um coletor global nem um canal de publicação.
+
+A observação não entra na serialização de `EffectBatchResult` nem em seu fingerprint. A API normal continua usando `Execute`, sem criação de fatos. Falha de observação não entrega estado/eventos parciais e não altera entradas. A revisão do contexto precisa coincidir com a execução.
+
+`Unobserved` registra explicitamente as famílias ainda sem projeção completa (incluindo condensação, mesmo que suas stacks já tenham um fato). Não é aceitável tratar essa lista como cobertura concluída ou habilitar respostas autoritativas enquanto houver lacunas. O motivo de shadow é fornecido explicitamente pelo chamador; não converte automaticamente operações de recurso em dano/cura.

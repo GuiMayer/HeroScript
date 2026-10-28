@@ -110,6 +110,9 @@ public sealed record ModifierStackApplicationRecord
 
 public sealed record EffectBatchResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
+
     public string ExecutionId { get; init; } = string.Empty;
     private ImmutableArray<EffectApplicationRecord> _records = [];
     private ImmutableArray<CalculationResult> _calculations = [];

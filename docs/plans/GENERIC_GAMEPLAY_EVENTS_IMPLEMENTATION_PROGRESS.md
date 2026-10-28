@@ -33,7 +33,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
-| 4 — Produção de fatos | Em execução: adaptadores de recurso, custo, entidade, zonas e fronteiras; integração pendente |
+| 4 — Produção de fatos | Em execução: observação integrada ao executor; completar famílias e lifecycles |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
@@ -68,3 +68,6 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 - Certificação da etapa 4a: índice exportado para `.runtime/generic-events-stage4a-index`, com build/artefatos e conteúdo isolados. **1977 testes Core passaram, sem exclusões**, repetidos após a proteção final de cópias das listas de entrada. **31 testes API focados passaram**, cobrindo controllers, sandbox e jornada de compartimentos. Não equivale à suíte API inteira nem à certificação do dispatcher ainda não implementado. No checkout completo permanecem as mesmas seis falhas de JSON do teste de UNO não rastreado, com 1981 aprovações.
 
 - Etapa 4b: adaptadores tipados de atributos, status/duração, fronteiras, movimentos e ordenação de zonas. 59 testes focados passaram, incluindo lifecycles existentes e dez casos novos. Não há migração dos consumidores nem dispatcher habilitado.
+
+- Etapa 4c: `ExecuteObserved` usa o executor canônico e contexto shadow imutável, antes de respostas/filhos. Quatro regressões novas conferem igualdade de toda a serialização, RNG, causas de respostas irmãs, prefixos de status, rollback e lacunas explícitas de condensação. 117 testes focados passaram antes da regressão final de cobertura; as quatro regressões passaram em seguida.
+- Certificação 4c: árvore exata do índice exportada para `.runtime/generic-events-stage4c-index`, compilada e testada com conteúdo/artefatos dentro da cópia. **1991 testes Core passaram, sem falhas ou exclusões**. Checkout original: 1995 aprovações e as mesmas seis falhas anteriores do teste UNO não rastreado. Nenhuma resposta genérica foi habilitada, nenhum lifecycle substituído e engineVersion permanece 34.

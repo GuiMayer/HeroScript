@@ -92,12 +92,29 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         catch (GameplayQueryException exception) { return Result<EffectBatchResult>.Failure(exception.Message); }
     }
 
+    /// <summary>Explicit shadow execution through the same executor, without enabling authored responses.</summary>
+    public Result<Core.GameplayEvents.ObservedEffectExecution> ExecuteObserved(EffectTriggerExecutionRequest request,
+        Core.GameplayEvents.GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || request == null || request.ContentRevision != observation.Events.Scope.ContentRevision)
+            return Result<Core.GameplayEvents.ObservedEffectExecution>.Failure("Observation transaction is required");
+        try
+        {
+            var executed = Execute(request, null, new ExecutionBudget(), suppressReactions: false, observation: observation);
+            return executed.IsFailure ? Result<Core.GameplayEvents.ObservedEffectExecution>.Failure(executed.Error)
+                : Result<Core.GameplayEvents.ObservedEffectExecution>.Success(new(executed.Value, executed.Value.Observation!));
+        }
+        catch (GameplayQueryException exception)
+        { return Result<Core.GameplayEvents.ObservedEffectExecution>.Failure(exception.Message); }
+    }
+
     private sealed class GameplayQueryException(string message) : Exception(message);
 
     private sealed class ExecutionBudget { public int Work; }
 
     private Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request,
-        EffectApplicationRecord? observedParent, ExecutionBudget budget, bool suppressReactions, int baseDepth = 0)
+        EffectApplicationRecord? observedParent, ExecutionBudget budget, bool suppressReactions, int baseDepth = 0,
+        Core.GameplayEvents.GameplayEffectObservation? observation = null)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("effect_execute");
         ArgumentNullException.ThrowIfNull(request);
@@ -198,9 +215,16 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     $"prefix:{steps.Count}", 0, prefix.TargetEntityIds.FirstOrDefault() ?? string.Empty, null,
                     prefix.Definition.OutputId)
             };
+            var observationBefore = observation == null ? null : current;
             var applied = _effects.Apply(current, [command]);
             if (applied.IsFailure) return Result<EffectBatchResult>.Failure(applied.Error);
             current = applied.Value.State;
+            if (observation != null)
+            {
+                var observed = observation.Record(command, observationBefore!, current, applied.Value.Records);
+                if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
+                observation = observed.Value;
+            }
             records.AddRange(applied.Value.Records);
             var accumulated = resultContext.Add(applied.Value.Records);
             if (accumulated.IsFailure) return Result<EffectBatchResult>.Failure(accumulated.Error);
@@ -235,6 +259,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         return Result<EffectBatchResult>.Success(new()
         {
             ExecutionId = executionId,
+            Observation = observation,
             State = current,
             Run = currentRun,
             Records = records.ToImmutable(),
@@ -507,6 +532,18 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             appliedRecords = [new() { EffectInstanceId = id, EffectType = effect.Type, TargetEntityId = targetId,
                                 Identity = identity, Condensation = condensation, StackChanges = plan.Value.Changes,
                                 Provenance = request.Provenance with { ComponentId = activeTriggerId } }];
+                            if (observation != null)
+                            {
+                                var observed = observation.Record(new()
+                                {
+                                    EffectInstanceId = id, Definition = effect, Identity = identity,
+                                    SourceEntityId = request.SourceEntityId, TargetEntityIds = [targetId],
+                                    ContentRevision = request.ContentRevision,
+                                    Provenance = request.Provenance with { ComponentId = activeTriggerId }
+                                }, preConsumption.Combat, current, appliedRecords);
+                                if (observed.IsFailure) return Result.Failure(observed.Error);
+                                observation = observed.Value;
+                            }
                             records.AddRange(appliedRecords);
                             var accumulated = resultContext.Add(appliedRecords);
                             if (accumulated.IsFailure) return Result.Failure(accumulated.Error);
@@ -624,6 +661,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 ContentRevision = request.ContentRevision,
                                 Provenance = request.Provenance with { ComponentId = activeTriggerId }
                             };
+                            var observationBefore = observation == null ? null : current;
                             if (RunEffectReducer.Supports(effect))
                             {
                                 if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
@@ -651,6 +689,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 if (applied.IsFailure) return Result.Failure(applied.Error);
                                 current = applied.Value.State;
                                 appliedRecords = applied.Value.Records.ToImmutableArray();
+                            }
+                            if (observation != null)
+                            {
+                                var observed = observation.Record(command, observationBefore!, current, appliedRecords);
+                                if (observed.IsFailure) return Result.Failure(observed.Error);
+                                observation = observed.Value;
                             }
                             records.AddRange(appliedRecords);
                             var accumulated = resultContext.Add(appliedRecords);
@@ -706,6 +750,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 .OrderBy(item => item.Reaction.Priority)
                                 .ThenBy(item => item.Relic.RelicInstanceId)
                                 .ThenBy(item => item.Reaction.ReactionId, StringComparer.Ordinal).ToArray();
+                            var reactionParentEventId = observation?.LastApplicationEventId ?? observation?.ParentEventId;
                             foreach (var (relic, reaction) in reactions)
                             {
                                 if (++budget.Work > EffectExecutionLimits.MaximumSteps)
@@ -728,8 +773,13 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                     Variables = new Dictionary<string, float> { ["stacks"] = relic.Stacks },
                                     Provenance = new() { Kind = EffectProvenanceKind.Relic,
                                         SourceId = relic.RelicInstanceId.ToString("D"), ComponentId = reaction.ReactionId }
-                                }, primary, budget, suppressReactions: true, baseDepth: depth + 1);
+                                }, primary, budget, suppressReactions: true, baseDepth: depth + 1,
+                                    observation: observation == null ? null : observation with
+                                    { ParentEventId = reactionParentEventId });
                                 if (reacted.IsFailure) return Result.Failure(reacted.Error);
+                                if (observation != null)
+                                    observation = reacted.Value.Observation! with { ParentEventId = observation.ParentEventId,
+                                        LastApplicationEventId = reactionParentEventId };
                                 current = reacted.Value.State;
                                 currentRun = reacted.Value.Run;
                                 records.AddRange(reacted.Value.Records);
