@@ -8,12 +8,13 @@ using Core.Events.Domain;
 using Core.Run;
 using Core.Run.Content;
 using Core.StatusEffects;
+using Core.GameplayEvents;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Core.Combat;
 
-public sealed class CombatRunCoordinator : ICombatRunCoordinator
+public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
 {
     private readonly ICombatFactory _combatFactory;
     private readonly IRunEncounterRuntime _runManager;
@@ -305,51 +306,21 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (versionValidation.IsFailure)
             return Result<CombatRunActionResult>.Failure(versionValidation.Error);
 
-        var handled = _commands.Handle(new CombatCommandHandlingRequest
-        {
-            CombatId = combatId,
-            Run = run,
-            Combat = encounter.Combat,
-            Command = command,
-            Origin = CombatCommandOrigin.PlayerInput
-        });
-        if (handled.IsFailure)
-            return Result<CombatRunActionResult>.Failure(handled.Error);
-
-        var driven = _automaticFlow.Drive(new AutomaticFlowRequest
-        {
-            CombatId = combatId,
-            Run = handled.Value.NextRun,
-            Combat = handled.Value.Step.Combat,
-            RequestsActivationAdvance = handled.Value.RequestsActivationAdvance
-        });
-        if (driven.IsFailure)
-            return Result<CombatRunActionResult>.Failure(driven.Error);
-
-        var effectiveIdentity = commandIdentity ?? CreateImplicitIdentity(run, encounter.Combat, command);
-        var rootPayload = commandPayload.ValueKind == JsonValueKind.Undefined
-            ? handled.Value.Step.Payload
-            : commandPayload.Clone();
-        var steps = new[] { handled.Value.Step }.Concat(driven.Value.Steps).ToArray();
-        var committed = _resolutionCommitter.CommitCombatResolution(new CombatResolutionCommit
-        {
-            RunId = run.RunId,
-            ExpectedSequence = run.Sequence,
-            PreviousCombat = encounter.Combat,
-            RootCommand = effectiveIdentity,
-            RootPayload = rootPayload,
-            Steps = steps
-        });
+        var planned = PrepareActionCandidate(run, encounter.Combat, combatId, command, commandIdentity, commandPayload, null);
+        if (planned.IsFailure) return Result<CombatRunActionResult>.Failure(planned.Error);
+        var handled = planned.Value.Handled;
+        var driven = planned.Value.Driven;
+        var committed = _resolutionCommitter.CommitCombatResolution(planned.Value.Commit);
         if (committed.IsFailure)
             return Result<CombatRunActionResult>.Failure(committed.Error);
 
-        if (handled.Value.Candidate.CardPlay != null)
-            PublishCardAction(handled.Value.Candidate.CardPlay);
+        if (handled.Candidate.CardPlay != null)
+            PublishCardAction(handled.Candidate.CardPlay);
         return Result<CombatRunActionResult>.Success(new CombatRunActionResult
         {
-            CombatState = driven.Value.Combat,
+            CombatState = driven.Combat,
             RunState = committed.Value,
-            ConsumedCardId = handled.Value.ConsumedCardId
+            ConsumedCardId = handled.ConsumedCardId
         });
     }
 

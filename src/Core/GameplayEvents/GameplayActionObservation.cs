@@ -5,12 +5,13 @@ namespace Core.GameplayEvents;
 
 public static class GameplayActionObservation
 {
-    public static Result<GameplayEffectObservation> Begin(GameplayEffectObservation observation, string actionId, string actorId)
+    public static Result<GameplayEffectObservation> Begin(GameplayEffectObservation observation, string actionId, string actorId,
+        string kind = "action.started", string? reasonId = null)
     {
         if (observation?.Events == null) return Result<GameplayEffectObservation>.Failure("Action observation requires a transaction");
         var appended = observation.Events.Append(observation.PublisherId, $"command/{observation.Events.Occurrences.Count}/start", new()
         {
-            Kind = "action.started", ReasonId = observation.ReasonId, Attribution = GameplayAttribution.Source,
+            Kind = kind, ReasonId = reasonId ?? observation.ReasonId, Attribution = GameplayAttribution.Source,
             SourceActorId = actorId, SubjectActorId = actorId,
             Origin = new() { ContainerKind = "rule", ContainerId = "combat.command", ComponentId = actionId, ContentRevision = observation.Events.Scope.ContentRevision },
             Payload = new ActionOccurrencePayload { ActionDefinitionId = actionId }
@@ -20,7 +21,7 @@ public static class GameplayActionObservation
     }
 
     public static Result<GameplayEffectObservation> Complete(GameplayEffectObservation before, GameplayEffectObservation started,
-        GameplayEffectObservation finished, string actionId, string actorId)
+        GameplayEffectObservation finished, string actionId, string actorId, string kind = "action.completed", string? reasonId = null)
     {
         if (before?.Events == null || started?.Events == null || finished?.Events == null ||
             started.Events.Scope != finished.Events.Scope || started.ParentEventId == null ||
@@ -28,7 +29,7 @@ public static class GameplayActionObservation
             return Result<GameplayEffectObservation>.Failure("Action candidate does not descend from its observation input");
         var appended = finished.Events.Append(finished.PublisherId, $"command/{finished.Events.Occurrences.Count}/complete", new()
         {
-            Kind = "action.completed", ReasonId = finished.ReasonId, Attribution = GameplayAttribution.Source,
+            Kind = kind, ReasonId = reasonId ?? finished.ReasonId, Attribution = GameplayAttribution.Source,
             SourceActorId = actorId, SubjectActorId = actorId,
             Origin = new() { ContainerKind = "rule", ContainerId = "combat.command", ComponentId = actionId, ContentRevision = finished.Events.Scope.ContentRevision },
             Payload = new ActionOccurrencePayload { ActionDefinitionId = actionId,

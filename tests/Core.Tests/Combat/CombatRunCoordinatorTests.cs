@@ -5,6 +5,7 @@ using Core.Combat.LegalActions;
 using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
 using Core.Common;
+using Core.GameplayEvents;
 using Core.Determinism;
 using Core.Resources;
 using Core.Run;
@@ -19,6 +20,51 @@ public sealed class CombatRunCoordinatorTests
 {
     private readonly Mock<ICombatFactory> _combatFactory = new();
     private readonly Mock<IRunEncounterRuntime> _runManager = new();
+
+    [Fact]
+    public void ObservedRootCandidateUsesRealCommandIdentityAndDoesNotCommitPublishOrMutateTheRun()
+    {
+        var run = CreateRunState(Guid.Parse("10000000-0000-0000-0000-000000000049"), []) with
+        { ResolvedMode = new() { CombatRules = new() { Flow = CanonicalPolicies() } } };
+        var combat = WithActivation(run.GetActiveEncounter()!.Combat, "hero", true);
+        run = run with { Encounters = [run.GetActiveEncounter()! with { Combat = combat }] };
+        _runManager.Setup(manager => manager.GetRun(run.RunId)).Returns(Result<RunState>.Success(run));
+        var legal = new Mock<ILegalActionResolver>();
+        legal.Setup(service => service.EvaluateObserved(It.IsAny<RunState>(), It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), It.IsAny<CombatCommandOrigin>(), It.IsAny<GameplayEffectObservation>()))
+            .Returns((RunState state, CombatState current, CombatActionCommand input, CombatCommandOrigin _, GameplayEffectObservation context) =>
+                Result<ObservedGameplayExecution<LegalActionEvaluation>>.Success(new(new() { Candidate = new()
+                { CandidateId = "selected", Command = input, ResolvedCommand = input, Source = LegalActionSource.System,
+                    SuccessorRun = state, SuccessorCombat = current, ResolutionFingerprint = "selected" } }, context)));
+        var handler = new CombatCommandHandler(legal.Object, new CombatActionStateReducer(new CombatOutcomeResolver()));
+        var automatic = new Mock<IAutomaticFlowDriver>();
+        automatic.Setup(service => service.DriveObserved(It.IsAny<AutomaticFlowRequest>(), It.IsAny<GameplayEffectObservation>()))
+            .Returns((AutomaticFlowRequest request, GameplayEffectObservation context) =>
+                Result<ObservedGameplayExecution<AutomaticFlowResult>>.Success(new(new() { Run = request.Run, Combat = request.Combat }, context)));
+        var coordinator = new CombatRunCoordinator(_combatFactory.Object, _runManager.Object, Mock.Of<ICombatFlowPlanner>(), handler, automatic.Object);
+        var command = new CombatActionCommand { RunId = run.RunId, ActorId = "hero", ActionType = ActionType.PASS };
+        var identity = new RunCommandIdentity(Guid.Parse("20000000-0000-0000-0000-000000000049"), GameplayCommandTypes.ExecuteAction,
+            run.Sequence, combat.Determinism.Step);
+        var hash = CanonicalJson.ComputeHash(run);
+        var signatures = new HashSet<string>();
+        for (var repeat = 0; repeat < 3; repeat++)
+        {
+            var result = coordinator.PlanObservedAction(run.RunId, combat.CombatId, command, identity);
+            Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            Assert.Equal(identity, result.Value.Execution.RootCommand);
+            var facts = result.Value.Observation.Events.Occurrences;
+            Assert.Equal(new[] { "command.started", "action.started", "action.completed", "command.completed" }, facts.Select(item => item.Kind));
+            Assert.All(facts, item => { Assert.Equal(identity.CommandId.ToString("D"), item.Scope.CommandId);
+                Assert.Equal(run.RunId.ToString("D"), item.Scope.BranchId); Assert.Equal(combat.CombatId.ToString("D"), item.Scope.CombatId); });
+            Assert.Null(result.Value.Observation.ParentEventId);
+            signatures.Add(CanonicalJson.ComputeHash(new { result.Value.Execution, facts }));
+        }
+        Assert.Single(signatures);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(run));
+        Assert.True(coordinator.PlanObservedAction(run.RunId, combat.CombatId, command, identity with { ExpectedSequence = run.Sequence + 1 }).IsFailure);
+        Assert.True(coordinator.PlanObservedAction(run.RunId, combat.CombatId, command, identity with { Type = GameplayCommandTypes.EndTurn }).IsFailure);
+        Assert.True(coordinator.PlanObservedAction(run.RunId, combat.CombatId, command with { RunId = Guid.Parse("30000000-0000-0000-0000-000000000049") }, identity).IsFailure);
+        _runManager.Verify(manager => manager.CommitCombatResolution(It.IsAny<CombatResolutionCommit>()), Times.Never);
+    }
 
     [Fact]
     public void ExecuteAction_ComposesHandlerAndAutomaticDriverAndCommitsOneBatch()

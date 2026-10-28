@@ -121,3 +121,9 @@ O redutor observa somente o fluxo efetivo de disposição da carta e os ticks ca
 `CombatFlowPlanner` e `AutomaticFlowDriver` possuem entradas observadas que usam os mesmos cores de composição e loop. A observação escolhida passa entre comandos efetivos, transições de ativação, prioridade e finalização. Decisões/intents continuam sendo consultas sem coletar suas alternativas no candidato confirmado. Não há contexto ambiente nem modificação do contexto de entrada: somente a variável privada da execução recebe sucessores imutáveis.
 
 O driver conserva o limite de passos e a parada por input/prioridade do jogador. Falhar depois de calcular fronteiras não devolve snapshots nem observação parcial. Parar sem trabalho não emite ocorrências. O planner mantém a publicação canônica de intents, sem transformá-la em regra de despacho ou segunda autoridade de ações.
+
+## Candidato da porta de combate (etapa 4n)
+
+`CombatRunCoordinator.PlanObservedAction` calcula o mesmo plano de commit de uma ação e de sua continuação automática sob a trava do coordenador, sem chamar o committer ou publicar telemetry. O caminho normal e o observado compartilham `PrepareActionCandidate`. Identidade, rota, agregado, encontro e versão são conferidos antes de produzir o candidato.
+
+O catálogo fechado `GameplayCoreCatalog` fornece capacidades confiáveis e os tipos já suportados; não recebe fatos do cliente. `command.started`/`command.completed` delimitam a porta externa e diferem das ações internas (inclusive ações automáticas). O escopo usa o ID real do comando, revisão/setting capturados, run raiz lógica e ID da branch atual. Essa entrada ainda é uma ferramenta interna de plano; não é um endpoint de injeção ou commit de fatos.

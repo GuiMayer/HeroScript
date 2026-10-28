@@ -44,7 +44,7 @@ public interface IAutomaticFlowDriver
 /// Every automatic action uses the same command handler as REST input, while
 /// activation lifecycle is delegated to the flow planner.
 /// </summary>
-public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
+public sealed partial class AutomaticFlowDriver : IAutomaticFlowDriver
 {
     private readonly ICombatFlowPlanner _flow;
     private readonly IDecisionPolicyRegistry _decisions;
@@ -64,16 +64,6 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
     {
         GameplayEffectObservation? observation = null;
         return DriveCore(request, ref observation);
-    }
-
-    public Result<ObservedGameplayExecution<AutomaticFlowResult>> DriveObserved(AutomaticFlowRequest request, GameplayEffectObservation observation)
-    {
-        if (observation?.Events == null || observation.Events.Scope.ContentRevision != request.Run.Determinism.ContentRevision)
-            return Result<ObservedGameplayExecution<AutomaticFlowResult>>.Failure("Automatic observation requires the action revision");
-        var current = observation;
-        var result = DriveCore(request, ref current);
-        return result.IsFailure ? Result<ObservedGameplayExecution<AutomaticFlowResult>>.Failure(result.Error)
-            : Result<ObservedGameplayExecution<AutomaticFlowResult>>.Success(new(result.Value, current!));
     }
 
     private Result<AutomaticFlowResult> DriveCore(AutomaticFlowRequest request, ref GameplayEffectObservation? observation)
