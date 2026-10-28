@@ -85,3 +85,15 @@ Ainda não foram conectados o executor geral de fronteiras, o gateway de ações
 `PhaseGraphReducer` possui entradas opt-in de observação para entrada, comando, saída e avanço automático. Todas usam os mesmos métodos internos e o mesmo acumulador imutável do caminho normal. O próprio `ApplyBoundary` emite `phase.entered`/`phase.exited`, inclusive quando a definição não tem efeitos, e os efeitos dessa fronteira recebem seu evento como pai. O contexto pai anterior é restaurado ao sair da fronteira.
 
 Não são emitidas entradas extras em avanços automáticos sem transição. Regras de seleção de arestas, cursores, permissões, limite de transições e fingerprints não foram alterados. Falha de efeito, ciclo ou orçamento não entrega um candidato parcial. `BoundaryOccurrencePayload.Sequence` identifica o ordinal da marca dentro da observação da ação, não uma nova contagem persistida de turnos.
+
+## Composição das fronteiras de combate (etapa 4i)
+
+`CombatBoundaryExecutor.InitializeObserved`, `AdvanceObserved` e `CompleteObserved` percorrem os mesmos métodos internos das entradas normais. A composição reúne a observação de status, relíquias, regeneração e fases. As marcas `activation.started`/`activation.ended` e `round.started`/`round.ended` correspondem às fronteiras de lifecycle já escolhidas pelo fluxo, sem antecipar nem criar uma nova ativação. Um combate terminal não emite a fronteira do próximo ator. `combat.ended` respeita a execução única já existente.
+
+Um cursor privado de uma única chamada mantém apenas referências a sucessores imutáveis da observação. Ele não é persistido, compartilhado entre ações ou entregue ao chamador. Falha interrompe a composição sem retornar esse cursor nem candidatos parciais. Cada escopo de fronteira restaura o pai anterior. As entradas normais não criam esse cursor nem publicam ocorrências. Implementações alternativas dos serviços podem recusar observação explicitamente; não se simula cobertura por fallback.
+
+O refresh de recurso conserva o operando `Set` efetivamente enviado ao redutor, inclusive quando o valor foi escolhido por uma política Add/ResetToMax. Não reconstrói o operando por diferença de floats. Condições/derrota continuam usando o resolvedor canônico de recursos. Fluxos de cartas fora de efeitos usam `GameplayCardFlowObservation`, com cópia limitada dos passos e referências resolvidas pela topologia, sem duplicar seleção ou agregados.
+
+Ticks de modificadores são observados depois da chamada canônica de `ModifierTransitions.Tick`, com a mesma lista de elegibilidade. `InstanceDurationPayload` distingue duração de stacks; remoção por expiração conserva o motivo e o dono. Não se atribui o passar do tempo ao ator que instalou o modificador.
+
+Ainda faltam a ação raiz/candidato do gateway e a ligação dos caminhos de custo e outros produtores externos aos contextos. Não há autoria nova de respostas habilitada, corte de versão, novo journal ou modificação de saves nesta etapa.

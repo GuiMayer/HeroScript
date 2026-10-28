@@ -353,7 +353,7 @@ public sealed class CombatFlowPlannerTests
         Assert.Equal(["ethereal"], result.Value.Deck.GetZoneDefinitionIds("exhaust", "$run"));
     }
 
-    private static CardZoneSystemDefinition LifecycleZones() => new()
+    internal static CardZoneSystemDefinition LifecycleZones() => new()
     {
         CardZoneSystemId = "lifecycle",
         Zones =
@@ -410,7 +410,7 @@ public sealed class CombatFlowPlannerTests
         ]
     };
 
-    private static ICardZoneFlowExecutor ZoneExecutor() => new CardZoneFlowExecutor(
+    internal static ICardZoneFlowExecutor ZoneExecutor() => new CardZoneFlowExecutor(
         new CardZoneRuntimeRuleEvaluator(Mock.Of<IRuntimeFormulaEvaluator>(), new AuthoredTags()));
 
     private sealed class AuthoredTags : ICardZoneCardMetadataResolver
@@ -425,7 +425,7 @@ public sealed class CombatFlowPlannerTests
             });
     }
 
-    private static PhaseSequenceDefinition Sequence() => new()
+    internal static PhaseSequenceDefinition Sequence() => new()
     {
         SequenceId = "test",
         EntryPhaseId = "start",
@@ -462,7 +462,7 @@ public sealed class CombatFlowPlannerTests
         ]
     };
 
-    private static CombatFlowPoliciesDefinition Policies() => new()
+    internal static CombatFlowPoliciesDefinition Policies() => new()
     {
         ActivationSequence = new() { Strategy = ActivationSequenceStrategy.PerRound },
         ResourceCycle = new()
@@ -478,7 +478,7 @@ public sealed class CombatFlowPlannerTests
         }
     };
 
-    private static TurnOrderPolicyDefinition TurnPolicy() => new()
+    internal static TurnOrderPolicyDefinition TurnPolicy() => new()
     {
         Strategy = TurnOrderStrategy.Fixed,
         RecalculateAt = TurnOrderRecalculationBoundary.CombatStart,
@@ -488,7 +488,7 @@ public sealed class CombatFlowPlannerTests
     private static ITurnOrderResolver TurnOrders() =>
         new TurnOrderResolver(Mock.Of<IRuntimeFormulaEvaluator>());
 
-    private static ICombatBoundaryExecutor Boundaries(ICardZoneFlowExecutor? cardZoneFlows = null)
+    internal static CombatBoundaryExecutor Boundaries(ICardZoneFlowExecutor? cardZoneFlows = null)
     {
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(
@@ -503,7 +503,7 @@ public sealed class CombatFlowPlannerTests
             new CombatOutcomeResolver(), cardZoneFlows);
     }
 
-    private static CombatActorState Entity(string id, bool isHero, float energy)
+    internal static CombatActorState Entity(string id, bool isHero, float energy)
     {
         static ResourcePool Pool(string id, float current, float maximum, ResourceCategory category) => new()
         {

@@ -33,7 +33,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
-| 4 — Produção de fatos | Em execução: efeitos e lifecycles observados; fronteiras/gateway e caminhos externos pendentes |
+| 4 — Produção de fatos | Em execução: fronteiras de combate integradas; ação raiz/gateway e caminhos externos pendentes |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
@@ -50,7 +50,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 
 As contagens abaixo devem registrar somente execuções realizadas durante este plano. Não reutilizar números de relatórios anteriores como nova execução.
 
-Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/status/atributos/zonas/fronteiras e integração dos produtores), sem saltar diretamente para liberar componentes JSON. Os primeiros adaptadores de recurso/custo ainda não são cobertura completa dessa etapa.
+Próximo bloco obrigatório: instrumentar a ação raiz/candidato no gateway e ligar custos e demais produtores externos ao contexto de observação, sem habilitar componentes JSON antes da cobertura completa da etapa 4.
 
 - Etapa 0: 107 testes focados Core passaram em `.runtime/generic-gameplay-events`, incluindo as duas novas regressões de baseline. As fixtures foram ajustadas ao pipeline real configurado; nenhum código de gameplay foi alterado.
 
@@ -87,3 +87,7 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 - Certificação 4g: árvore exata do índice em `.runtime/generic-events-stage4g-index`; **2005 testes Core aprovados sem exclusões**, mais **31 testes API focados aprovados** (controllers, sandbox e jornada de compartimentos), com builds/recursos dentro da cópia. Não é certificação das etapas 5–15 ainda não implementadas.
 
 - Etapa 4h: entrada/saída de fase observada no próprio interpretador, inclusive sem efeitos; entrada, comando, saída e avanço automático usam os mesmos cores e acumulador imutável. Efeitos da fronteira têm pai próprio, e no-op não duplica eventos. **79 testes focados passaram**, incluindo quatro casos novos de igualdade serializada, repetição, rollback/ciclo e caminhos por comando/saída. Pendentes: composição geral das fronteiras de combate e gateway/caminhos externos; etapa 4 continua em execução.
+
+- Etapa 4i: composição opt-in das fronteiras reais de combate, ator e rodada, incluindo fases/lifecycles, refresh de recurso, fluxos de cartas externos a efeitos e ticks/expiração de modificadores. Cursor privado não escapa e contém apenas sucessores imutáveis; caminho normal não o cria. **138 testes focados passaram**, com oito novos casos (inclui quatro combinações de duração/fronteira). Cobertos dois atores/volta ao jogador, fluxo configurado de compra/descarte/exílio, término por status antes do próximo ator, rollback após trabalho parcial, repetição determinística e finalização idempotente.
+- Certificação 4i: árvore exata do índice exportada para `.runtime/generic-events-stage4i-index`; **2017 testes Core aprovados sem exclusões**, mais **31 testes API focados aprovados** (controllers, sandbox e jornada de compartimentos), com conteúdo e builds isolados. Inclui a etapa 4h.
+- A etapa 4 permanece aberta: próxima ligação é ação raiz/candidato do gateway, custos e caminhos externos de recursos/cartas. Etapas 5–15 ainda não iniciadas; respostas novas por JSON continuam desabilitadas e engineVersion permanece 34.

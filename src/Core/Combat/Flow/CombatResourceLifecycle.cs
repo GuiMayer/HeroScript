@@ -30,6 +30,9 @@ public interface ICombatResourceLifecycle
     Result<CombatResourceLifecycleResult> Process(
         RunState run, CombatState combat, string actorId, RegenerationTiming timing,
         IReadOnlySet<string>? excludedResourceIds = null);
+    Result<Core.GameplayEvents.ObservedGameplayExecution<CombatResourceLifecycleResult>> ProcessObserved(RunState run, CombatState combat, string actorId, RegenerationTiming timing, Core.GameplayEvents.GameplayEffectObservation observation, IReadOnlySet<string>? excludedResourceIds = null) =>
+        Result<Core.GameplayEvents.ObservedGameplayExecution<CombatResourceLifecycleResult>>.Failure("This implementation does not support gameplay shadow observation");
+
 }
 
 /// <summary>Adapts authored resource timing to ordinary effects. All calculations and mutations belong to the shared transaction executor.</summary>

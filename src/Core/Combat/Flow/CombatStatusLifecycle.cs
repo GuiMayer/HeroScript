@@ -44,6 +44,9 @@ public interface ICombatStatusLifecycle
         CombatState combat,
         StatusTriggerBoundary boundary,
         string? activeActorId = null);
+    Result<Core.GameplayEvents.ObservedStatusLifecycleExecution> ProcessObserved(RunState run, CombatState combat, StatusTriggerBoundary boundary, Core.GameplayEvents.GameplayEffectObservation observation, string? activeActorId = null) =>
+        Result<Core.GameplayEvents.ObservedStatusLifecycleExecution>.Failure("This implementation does not support gameplay shadow observation");
+
 }
 
 /// <summary>

@@ -23,8 +23,11 @@ public sealed class GameplayObservedExecutorTests
             ("status.duration.changed", GameplayPayloadKind.StatusChange),
             ("effect.condensation.resolved", GameplayPayloadKind.RuleResult),
             ("resource.threshold.matched", GameplayPayloadKind.ResourceThreshold), ("actor.defeat.changed", GameplayPayloadKind.ActorDefeatChange),
+            ("combat.started", GameplayPayloadKind.Boundary), ("combat.ended", GameplayPayloadKind.Boundary),
+            ("activation.started", GameplayPayloadKind.Boundary), ("activation.ended", GameplayPayloadKind.Boundary),
+            ("round.started", GameplayPayloadKind.Boundary), ("round.ended", GameplayPayloadKind.Boundary),
             ("phase.entered", GameplayPayloadKind.Boundary), ("phase.exited", GameplayPayloadKind.Boundary),
-            ("modifier.stacks.changed", GameplayPayloadKind.ModifierChange), ("activation.sequence.changed", GameplayPayloadKind.SequenceChange),
+            ("modifier.stacks.changed", GameplayPayloadKind.ModifierChange), ("modifier.duration.changed", GameplayPayloadKind.InstanceDuration), ("activation.sequence.changed", GameplayPayloadKind.SequenceChange),
             ("card.moved", GameplayPayloadKind.CardMovement), ("card.created", GameplayPayloadKind.CardMovement),
             ("card.destroyed", GameplayPayloadKind.CardMovement), ("zone.order.changed", GameplayPayloadKind.ZoneOrder) }
             .Select(item => new GameplayEventKindDefinition { Kind = item.Item1, Payload = item.Item2, PublisherId = publisher.PublisherId });

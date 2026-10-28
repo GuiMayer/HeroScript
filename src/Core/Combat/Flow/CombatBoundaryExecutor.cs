@@ -68,7 +68,7 @@ public interface ICombatBoundaryExecutor
 /// Orders configured combat lifecycle boundaries and produces immutable frames.
 /// It owns no persistence, automatic-controller loop or runtime publication.
 /// </summary>
-public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
+public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
 {
     private readonly ITurnOrderResolver _turnOrder;
     private readonly ICombatStatusLifecycle _statusLifecycle;
@@ -99,18 +99,16 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         _exitGuard = exitGuard;
     }
 
-    public Result<CombatInitializationResult> InitializeTransaction(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        TurnOrderPolicyDefinition turnOrderPolicy)
+    public Result<CombatInitializationResult> InitializeTransaction(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => InitializeTransactionCore(run, combat, sequence, policies, turnOrderPolicy, null);
+
+    private Result<CombatInitializationResult> InitializeTransactionCore(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy, ObservationCursor? observation)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
         ArgumentNullException.ThrowIfNull(sequence);
         ArgumentNullException.ThrowIfNull(policies);
         ArgumentNullException.ThrowIfNull(turnOrderPolicy);
+        using var combatBoundary = observation?.Boundary(Core.GameplayEvents.GameplayBoundary.CombatStarted, "combat.started", combat);
         var provisioned = CardZoneRunFlowDispatcher.EnsureParticipants(run,
             combat.GetAllActors().Select(actor => actor.InstanceId).ToArray());
         if (provisioned.IsFailure) return Result<CombatInitializationResult>.Failure(provisioned.Error);
@@ -123,6 +121,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, run, run.Deck,
             run.Determinism, "encounter.started", combatSnapshot: combat);
         if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
+        observation?.Cards(flowed.Value.Steps, run, run with { Deck = new DeckState { Topology = flowed.Value.State } }, null);
         cardZoneSteps.AddRange(flowed.Value.Steps);
         run = run with
         {
@@ -135,19 +134,20 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             sequence,
             policies,
             turnOrderPolicy,
-            _turnOrder);
+            _turnOrder, observation);
         if (initialized.IsFailure) return Result<CombatInitializationResult>.Failure(initialized.Error);
         var regenerated = ApplyResourceLifecycle(
             run,
             initialized.Value,
             initialized.Value.ActivationState!.ActiveActorId!,
             RegenerationTiming.START_TURN,
-            policies);
+            policies, observation);
         if (regenerated.IsFailure) return Result<CombatInitializationResult>.Failure(regenerated.Error);
         run = regenerated.Value.Run ?? run;
         effectSteps.AddRange(regenerated.Value.Steps);
         applications.AddRange(regenerated.Value.Records);
-        var relics = _relicLifecycle.Process(run, regenerated.Value.Combat, CombatTriggerBoundaries.CombatStart);
+        var relics = (observation == null ? _relicLifecycle.Process(run, regenerated.Value.Combat, CombatTriggerBoundaries.CombatStart)
+            : observation.Relic(_relicLifecycle, run, regenerated.Value.Combat, CombatTriggerBoundaries.CombatStart));
         if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
         run = relics.Value.Run ?? run;
         effectSteps.AddRange(relics.Value.Events.SelectMany(item => item.Steps));
@@ -157,7 +157,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             policies.Outcome,
             initialized.Value.ActivationState?.ActiveActorId,
             CombatOutcomeEvaluationPoint.LifecycleBoundary);
-        var initial = ApplyInitialLifecycle(run, afterRelics, policies);
+        var initial = ApplyInitialLifecycle(run, afterRelics, policies, observation);
         if (initial.IsFailure) return initial;
         run = initial.Value.Run;
         effectSteps.AddRange(initial.Value.EffectSteps);
@@ -165,7 +165,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var current = initial.Value.Combat;
         if (current.IsActive)
         {
-            var entered = _phases.Enter(run, current, sequence);
+            var entered = observation == null ? _phases.Enter(run, current, sequence) : observation.Phase(_phases, run, current, sequence, true);
             if (entered.IsFailure) return Result<CombatInitializationResult>.Failure(entered.Error);
             run = entered.Value.Run;
             current = _outcomes.Evaluate(
@@ -179,7 +179,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         }
         if (!current.IsActive)
         {
-            var completed = Complete(run, current);
+            var completed = CompleteCore(run, current, observation);
             if (completed.IsFailure) return Result<CombatInitializationResult>.Failure(completed.Error);
             effectSteps.AddRange(completed.Value.Events.SelectMany(item => item.Steps));
             applications.AddRange(completed.Value.Events.SelectMany(item => item.Applications));
@@ -200,24 +200,25 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             cardZoneSteps));
     }
 
-    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat)
+    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat) => CompleteCore(run, combat, null);
+
+    private Result<CombatRelicLifecycleResult> CompleteCore(RunState run, CombatState combat, ObservationCursor? observation)
     {
         if (combat.IsActive) return Result<CombatRelicLifecycleResult>.Failure("Cannot finalize an active combat");
-        var result = _relicLifecycle.Process(run, combat, CombatTriggerBoundaries.CombatEnd);
+        using var combatBoundary = combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd) ? null
+            : observation?.Boundary(Core.GameplayEvents.GameplayBoundary.CombatEnded, "combat.ended", combat);
+        var result = (observation == null ? _relicLifecycle.Process(run, combat, CombatTriggerBoundaries.CombatEnd)
+            : observation.Relic(_relicLifecycle, run, combat, CombatTriggerBoundaries.CombatEnd));
         if (result.IsFailure || combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd)) return result;
         var updatedRun = Core.Combat.Modifiers.ModifierTransitions.Tick(result.Value.Run ?? run,
             Core.Combat.Modifiers.ModifierDurationBoundary.Combat, eligibleIds: run.Modifiers.Select(item => item.InstanceId).ToHashSet());
+        observation?.ModifierTicks(result.Value.Run ?? run, updatedRun);
         return Result<CombatRelicLifecycleResult>.Success(result.Value with { Run = updatedRun });
     }
 
-    public Result<CombatFlowAdvanceResult> AdvanceActivation(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        DeterministicContext runDeterminism,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        TurnOrderPolicyDefinition turnOrderPolicy)
+    public Result<CombatFlowAdvanceResult> AdvanceActivation(RunState run, CombatState combat, DeckState deck, DeterministicContext runDeterminism, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => AdvanceActivationCore(run, combat, deck, runDeterminism, sequence, policies, turnOrderPolicy, null);
+
+    private Result<CombatFlowAdvanceResult> AdvanceActivationCore(RunState run, CombatState combat, DeckState deck, DeterministicContext runDeterminism, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy, ObservationCursor? observation)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
@@ -240,7 +241,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             runDeterminism,
             sequence,
             policies,
-            turnOrderPolicy);
+            turnOrderPolicy, observation);
     }
 
     private Result<CombatFlowAdvanceResult> AdvanceWithLifecycle(
@@ -250,7 +251,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeterministicContext runDeterminism,
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies,
-        TurnOrderPolicyDefinition turnOrderPolicy)
+        TurnOrderPolicyDefinition turnOrderPolicy, ObservationCursor? observation = null)
     {
         var planned = EndActivation(
             run,
@@ -259,7 +260,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             runDeterminism,
             sequence,
             policies,
-            _phases);
+            _phases, observation);
         if (planned.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(planned.Error);
 
@@ -279,7 +280,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             endedDeck,
             StatusTriggerBoundary.EndActivation,
             endedActorId,
-            policies);
+            policies, observation);
         if (endActivation.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(endActivation.Error);
         current = endActivation.Value;
@@ -295,7 +296,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             endedDeck,
             endedActorId,
             RegenerationTiming.END_TURN,
-            policies);
+            policies, observation);
         if (endResources.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(endResources.Error);
         current = endResources.Value;
@@ -314,7 +315,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 endedDeck,
                 StatusTriggerBoundary.EndRound,
                 endedActorId,
-                policies);
+                policies, observation);
             if (endRound.IsFailure)
                 return Result<CombatFlowAdvanceResult>.Failure(endRound.Error);
             current = endRound.Value;
@@ -333,7 +334,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             return Result<CombatFlowAdvanceResult>.Failure(reordered.Error);
         current = reordered.Value.State;
 
-        var recalculated = StartActivation(run, current, endedDeck, run.Determinism, policies);
+        var recalculated = StartActivation(run, current, endedDeck, run.Determinism, policies, observation);
         if (recalculated.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(recalculated.Error);
         var startedStep = recalculated.Value;
         current = startedStep.Combat with
@@ -355,7 +356,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 run.Deck,
                 StatusTriggerBoundary.StartRound,
                 current.ActivationState!.ActiveActorId,
-                policies);
+                policies, observation);
             if (startRound.IsFailure)
                 return Result<CombatFlowAdvanceResult>.Failure(startRound.Error);
             current = startRound.Value;
@@ -375,7 +376,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             run.Deck,
             current.ActivationState!.ActiveActorId!,
             RegenerationTiming.START_TURN,
-            policies);
+            policies, observation);
         if (startResources.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(startResources.Error);
         current = startResources.Value;
@@ -390,7 +391,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             run.Deck,
             StatusTriggerBoundary.StartActivation,
             current.ActivationState!.ActiveActorId,
-            policies);
+            policies, observation);
         if (startActivation.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(startActivation.Error);
         current = startActivation.Value;
@@ -398,7 +399,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (!current.IsActive)
             return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
 
-        var enteredPhase = EnterPhase(run, current, sequence, _phases);
+        var enteredPhase = EnterPhase(run, current, sequence, _phases, observation);
         if (enteredPhase.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(enteredPhase.Error);
         steps.Add(enteredPhase.Value);
@@ -413,9 +414,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeckState deck,
         string actorId,
         RegenerationTiming timing,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ObservationCursor? observation = null)
     {
-        var processed = ApplyResourceLifecycle(run, combat, actorId, timing, policies);
+        var processed = ApplyResourceLifecycle(run, combat, actorId, timing, policies, observation);
         if (processed.IsFailure)
             return Result<CombatState>.Failure(processed.Error);
         if (processed.Value.Records.Count == 0)
@@ -464,7 +465,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         CombatState combat,
         string actorId,
         RegenerationTiming timing,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ObservationCursor? observation = null)
     {
         IReadOnlySet<string>? exclusions = null;
         if (timing == RegenerationTiming.START_TURN &&
@@ -475,7 +476,8 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 policies.ResourceCycle.ResourceId
             };
         }
-        return _resourceLifecycle.Process(run, combat, actorId, timing, exclusions);
+        return observation == null ? _resourceLifecycle.Process(run, combat, actorId, timing, exclusions)
+            : observation.Resource(_resourceLifecycle, run, combat, actorId, timing, exclusions);
     }
 
     private static Result<CombatState> InitializeActivation(
@@ -484,7 +486,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies,
         TurnOrderPolicyDefinition turnOrderPolicy,
-        ITurnOrderResolver turnOrder)
+        ITurnOrderResolver turnOrder, ObservationCursor? observation = null)
     {
         var validation = PhaseSequenceValidator.Validate(sequence);
         if (validation.IsFailure) return Result<CombatState>.Failure(validation.Error);
@@ -509,7 +511,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var actorId = circular && policies.ActivationSequence.Circular!.FirstActor == SequenceFirstActor.RunOwner
             ? run.PlayerEntityId : order[0];
         if (!order.Contains(actorId, StringComparer.Ordinal)) return Result<CombatState>.Failure("First actor is not eligible");
-        var refreshed = RefreshActorResource(combat, actorId, policies.ResourceCycle, run);
+        var refreshed = RefreshActorResource(combat, actorId, policies.ResourceCycle, run, observation);
         if (refreshed.IsFailure)
             return Result<CombatState>.Failure(refreshed.Error);
 
@@ -542,7 +544,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeterministicContext runDeterminism,
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies,
-        IPhaseGraphReducer phases)
+        IPhaseGraphReducer phases, ObservationCursor? observation = null)
     {
         var activation = combat.ActivationState;
         if (activation == null || string.IsNullOrWhiteSpace(activation.ActiveActorId))
@@ -551,7 +553,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             return Result<CombatResolutionStep>.Failure("A terminal combat cannot advance activation");
 
         run = run with { Deck = deck, Determinism = runDeterminism };
-        var exited = phases.Exit(run, combat, sequence);
+        var exited = observation == null ? phases.Exit(run, combat, sequence) : observation.Phase(phases, run, combat, sequence, false);
         if (exited.IsFailure)
             return Result<CombatResolutionStep>.Failure(exited.Error);
         run = exited.Value.Run;
@@ -562,7 +564,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             run,
             run.Deck,
             activation.ActiveActorId,
-            run.Determinism, exited.Value.Combat);
+            run.Determinism, exited.Value.Combat, observation);
         if (endedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(endedDeck.Error);
 
@@ -604,13 +606,13 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
 
     private Result<CombatResolutionStep> StartActivation(
         RunState run, CombatState endedCombat, DeckState deck, DeterministicContext drawContext,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ObservationCursor? observation = null)
     {
         var activation = endedCombat.ActivationState!;
         var successor = ActivationSequenceReducer.Next(endedCombat, policies.ActivationSequence!);
         if (successor.IsFailure) return Result<CombatResolutionStep>.Failure(successor.Error);
         var (nextActorId, nextIndex, round, nextOrder, nextCompleted, circular) = successor.Value;
-        var refreshed = RefreshActorResource(endedCombat, nextActorId, policies.ResourceCycle, run);
+        var refreshed = RefreshActorResource(endedCombat, nextActorId, policies.ResourceCycle, run, observation);
         if (refreshed.IsFailure)
             return Result<CombatResolutionStep>.Failure(refreshed.Error);
 
@@ -636,7 +638,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             run,
             deck,
             nextActorId,
-            drawContext, startedCombat);
+            drawContext, startedCombat, observation);
         if (startedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(startedDeck.Error);
 
@@ -665,9 +667,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         RunState run,
         CombatState combat,
         PhaseSequenceDefinition sequence,
-        IPhaseGraphReducer phases)
+        IPhaseGraphReducer phases, ObservationCursor? observation = null)
     {
-        var entered = phases.Enter(run, combat, sequence);
+        var entered = observation == null ? phases.Enter(run, combat, sequence) : observation.Phase(phases, run, combat, sequence, true);
         if (entered.IsFailure) return Result<CombatResolutionStep>.Failure(entered.Error);
         return Result<CombatResolutionStep>.Success(new CombatResolutionStep
         {
@@ -692,7 +694,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
     private Result<CombatInitializationResult> ApplyInitialLifecycle(
         RunState run,
         CombatState combat,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ObservationCursor? observation = null)
     {
         var current = combat;
         var effectSteps = new List<EffectExecutionStep>();
@@ -705,16 +707,15 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         {
             if (boundary == StatusTriggerBoundary.StartRound && policies.ActivationSequence?.Strategy == ActivationSequenceStrategy.Circular &&
                 policies.ActivationSequence.Circular?.RoundPolicy == SequenceRoundStrategy.Disabled) continue;
+            using var boundaryFrame = observation?.Boundary(ToGameplayBoundary(boundary), boundary.ToString(), current);
             var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
-                ? Result<CombatStatusLifecycleResult>.Success(new(current, [])) : _statusLifecycle.Process(
-                run,
-                current,
-                boundary,
-                current.ActivationState?.ActiveActorId);
+                ? Result<CombatStatusLifecycleResult>.Success(new(current, [])) : (observation == null ? _statusLifecycle.Process(run, current, boundary, current.ActivationState?.ActiveActorId)
+                    : observation.Status(_statusLifecycle, run, current, boundary, current.ActivationState?.ActiveActorId));
             if (processed.IsFailure)
                 return Result<CombatInitializationResult>.Failure(processed.Error);
             run = processed.Value.Run ?? run;
-            var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
+            var relics = (observation == null ? _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString())
+                : observation.Relic(_relicLifecycle, run, processed.Value.Combat, boundary.ToString()));
             if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
             run = relics.Value.Run ?? run;
             effectSteps.AddRange(processed.Value.Events.SelectMany(item => item.Steps));
@@ -777,23 +778,30 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeckState deck,
         StatusTriggerBoundary boundary,
         string? activeActorId,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ObservationCursor? observation = null)
     {
+        using var boundaryFrame = observation?.Boundary(ToGameplayBoundary(boundary), boundary.ToString(), combat);
         run = run with { Deck = deck };
         var eligibleModifiers = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
             ? Result<CombatStatusLifecycleResult>.Success(new(combat, []))
-            : _statusLifecycle.Process(run, combat, boundary, activeActorId);
+            : (observation == null ? _statusLifecycle.Process(run, combat, boundary, activeActorId)
+                : observation.Status(_statusLifecycle, run, combat, boundary, activeActorId));
         if (processed.IsFailure)
             return Result<CombatState>.Failure(processed.Error);
         run = processed.Value.Run ?? run;
-        var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
+        var relics = (observation == null ? _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString())
+                : observation.Relic(_relicLifecycle, run, processed.Value.Combat, boundary.ToString()));
         if (relics.IsFailure) return Result<CombatState>.Failure(relics.Error);
         run = relics.Value.Run ?? run;
         if (boundary is StatusTriggerBoundary.EndActivation or StatusTriggerBoundary.EndRound)
+        {
+            var beforeTick = run;
             run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
                 boundary == StatusTriggerBoundary.EndActivation ? Core.Combat.Modifiers.ModifierDurationBoundary.Activation
                     : Core.Combat.Modifiers.ModifierDurationBoundary.Round, combat, activeActorId, eligibleModifiers);
+            observation?.ModifierTicks(beforeTick, run);
+        }
         var evaluated = _outcomes.Evaluate(
             relics.Value.Combat,
             policies.Outcome,
@@ -837,6 +845,15 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         _ => "unknown"
     };
 
+    private static Core.GameplayEvents.GameplayBoundary ToGameplayBoundary(StatusTriggerBoundary boundary) => boundary switch
+    {
+        StatusTriggerBoundary.StartActivation => Core.GameplayEvents.GameplayBoundary.ActivationStarted,
+        StatusTriggerBoundary.EndActivation => Core.GameplayEvents.GameplayBoundary.ActivationEnded,
+        StatusTriggerBoundary.StartRound => Core.GameplayEvents.GameplayBoundary.RoundStarted,
+        StatusTriggerBoundary.EndRound => Core.GameplayEvents.GameplayBoundary.RoundEnded,
+        _ => Core.GameplayEvents.GameplayBoundary.Unspecified
+    };
+
     private static string ToSnakeCase(RegenerationTiming timing) => timing switch
     {
         RegenerationTiming.START_TURN => "start_activation",
@@ -849,25 +866,29 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         RunState run,
         DeckState deck,
         string actorId,
-        DeterministicContext context, CombatState? combatSnapshot = null)
+        DeterministicContext context, CombatState? combatSnapshot = null, ObservationCursor? observation = null)
     {
-        return CardZoneCombatLifecycle.Start(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
+        var result = CardZoneCombatLifecycle.Start(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
+        if (result.IsSuccess) observation?.Cards(result.Value.CardZoneSteps, run with { Deck = deck }, run with { Deck = result.Value.Deck }, actorId);
+        return result;
     }
 
     private Result<CardZoneActivationEndResult> ApplyEndCardZoneLifecycle(
         RunState run,
         DeckState deck,
         string actorId,
-        DeterministicContext context, CombatState? combatSnapshot = null)
+        DeterministicContext context, CombatState? combatSnapshot = null, ObservationCursor? observation = null)
     {
-        return CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
+        var result = CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
+        if (result.IsSuccess) observation?.Cards(result.Value.CardZoneSteps, run with { Deck = deck }, run with { Deck = result.Value.Deck }, actorId);
+        return result;
     }
 
     private static Result<CombatState> RefreshActorResource(
         CombatState combat,
         string actorId,
         ResourceCyclePolicyDefinition policy,
-        RunState run)
+        RunState run, ObservationCursor? observation = null)
     {
         if (!ScopeApplies(policy.ActorScope, combat, run, actorId) ||
             policy.StartActivation == ResourceRefreshStrategy.Preserve)
@@ -887,19 +908,20 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             ResourceRefreshStrategy.Set => policy.Amount!.Value,
             _ => resource.Current
         };
-        var reduced = new ResourceMutationReducer().Apply(
-            actor.ResourceState.Resources,
-            [new ResolvedResourceMutation
-            {
-                MutationId = $"resource-cycle:start-activation:{actorId}:{policy.ResourceId}",
-                ResourceId = policy.ResourceId,
-                Operation = ResourceMutationOperation.Set,
-                Value = value
-            }]);
+        var mutation = new ResolvedResourceMutation
+        {
+            MutationId = $"resource-cycle:start-activation:{actorId}:{policy.ResourceId}",
+            ResourceId = policy.ResourceId,
+            Operation = ResourceMutationOperation.Set,
+            Value = value
+        };
+        var reduced = new ResourceMutationReducer().Apply(actor.ResourceState.Resources, [mutation]);
         if (reduced.IsFailure)
             return Result<CombatState>.Failure(reduced.Error);
         var resources = actor.ResourceState with { Resources = reduced.Value.Resources };
-        return Result<CombatState>.Success(combat.ReplaceActor(actor.WithResourceState(resources)));
+        var updated = actor.WithResourceState(resources);
+        observation?.ResourceMutation(mutation, reduced.Value.Records.Single(), actor, updated);
+        return Result<CombatState>.Success(combat.ReplaceActor(updated));
     }
 
     private static bool ScopeApplies(

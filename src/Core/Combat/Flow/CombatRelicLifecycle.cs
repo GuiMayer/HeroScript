@@ -44,6 +44,9 @@ public interface ICombatRelicLifecycle
         RunState run,
         CombatState combat,
         string boundary);
+    Result<Core.GameplayEvents.ObservedGameplayExecution<CombatRelicLifecycleResult>> ProcessObserved(RunState run, CombatState combat, string boundary, Core.GameplayEvents.GameplayEffectObservation observation) =>
+        Result<Core.GameplayEvents.ObservedGameplayExecution<CombatRelicLifecycleResult>>.Failure("This implementation does not support gameplay shadow observation");
+
 }
 
 /// <summary>Executes relic triggers pinned in the immutable run state.</summary>

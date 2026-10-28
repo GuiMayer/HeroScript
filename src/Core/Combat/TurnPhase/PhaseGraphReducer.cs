@@ -44,6 +44,12 @@ public interface IPhaseGraphReducer
     Result<PhaseGraphResult> AdvanceAutomatic(RunState run, CombatState combat, PhaseSequenceDefinition sequence);
     Result ValidateCommand(CombatState combat, PhaseSequenceDefinition sequence,
         CombatActionCommand command, IReadOnlySet<string> commandTags);
+    Result<ObservedGameplayExecution<PhaseGraphResult>> EnterObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<PhaseGraphResult>>.Failure("This implementation does not support gameplay shadow observation");
+
+    Result<ObservedGameplayExecution<PhaseGraphResult>> ExitObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<PhaseGraphResult>>.Failure("This implementation does not support gameplay shadow observation");
+
 }
 
 /// <summary>

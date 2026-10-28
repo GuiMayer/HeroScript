@@ -5,6 +5,20 @@ using Core.Combat.Flow;
 
 namespace Core.GameplayEvents;
 
+public sealed record InstanceDurationPayload : GameplayOccurrencePayload
+{
+    public override GameplayPayloadKind PayloadKind => GameplayPayloadKind.InstanceDuration;
+    public string DefinitionId { get; init; } = string.Empty;
+    public string InstanceId { get; init; } = string.Empty;
+    public Core.Combat.Models.GameplayOwner Owner { get; init; } = null!;
+    public int Before { get; init; }
+    public int After { get; init; }
+    public override Result Validate() => EventValue.Valid(DefinitionId) && EventValue.Valid(InstanceId) &&
+        Owner != null && Enum.IsDefined(Owner.Kind) && (Owner.Kind == Core.Combat.Models.GameplayOwnerKind.Global || EventValue.Valid(Owner.Id)) &&
+        Before >= -1 && After >= -1 && Before != After
+        ? Result.Success() : Result.Failure("Invalid instance duration transition");
+}
+
 public sealed record ModifierChangePayload : GameplayOccurrencePayload
 {
     public override GameplayPayloadKind PayloadKind => GameplayPayloadKind.ModifierChange;

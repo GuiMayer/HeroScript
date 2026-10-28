@@ -7,6 +7,19 @@ namespace Core.GameplayEvents;
 
 public static class GameplayRuleFactProducer
 {
+    public static Result<GameplayOccurrenceDraft> ModifierDuration(ScriptModifierInstance before, ScriptModifierInstance after,
+        GameplayOccurrenceDraft metadata)
+    {
+        if (before == null || after == null || metadata == null || before.InstanceId == Guid.Empty || before.InstanceId != after.InstanceId ||
+            before.ModifierId != after.ModifierId || before.Owner != after.Owner || before.Stacks != after.Stacks || !before.IsActive || !after.IsActive)
+            return Result<GameplayOccurrenceDraft>.Failure("Duration transition requires the same active modifier instance");
+        var payload = new InstanceDurationPayload { DefinitionId = before.ModifierId, InstanceId = before.InstanceId.ToString("D"),
+            Owner = before.Owner, Before = before.Duration, After = after.Duration };
+        var valid = payload.Validate();
+        return valid.IsFailure ? Result<GameplayOccurrenceDraft>.Failure(valid.Error) : Result<GameplayOccurrenceDraft>.Success(metadata with
+        { Kind = "modifier.duration.changed", Payload = payload, SubjectActorId = before.Owner.Kind == Core.Combat.Models.GameplayOwnerKind.Entity ? before.Owner.Id : null });
+    }
+
     public static Result<GameplayOccurrenceDraft> Modifier(EffectStackChange change, ScriptModifierInstance? before,
         ScriptModifierInstance? after, GameplayOccurrenceDraft metadata)
     {
