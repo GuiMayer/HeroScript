@@ -102,3 +102,7 @@ Escopos de fronteira são privados à candidata e não são salvos. Compartilham
 ### Componentes de entidade (9a)
 
 O materializador reconhece o componente `responses` e captura suas declarações no estado imutável do ator. O validador estrutural rejeita arrays não inicializados, mais de 16 declarações e IDs ausentes/duplicados; o compilador de respostas mantém a validação semântica/referencial antes de executar. A identidade, lado e binding de um ator continuam fixos durante sua vida no combate. O teste de integração dos providers verifica um terceiro ator que observa a cura entre dois outros, mantendo origem/alvo próprios em cada fato e a cadeia causal.
+
+### Execução normal pós-fato (9b, integração parcial)
+
+O executor normal detecta declarações tipadas no estado e no runtime imutável e usa os mesmos providers do caminho observado. A identidade de efeito deriva da causa de domínio; acrescentar observação não deve mudar o efeito. Testes cobrem buff de atributo, custo de recurso e um terceiro observador, comparando a saída completa dos caminhos normal/observado. A presença por revisão é apenas metadado derivado; não contém contadores/RNG e não é compartilhada globalmente por nomes de revisão. Assinaturas novas da própria fronteira ainda aguardam o broadcast único do fluxo; os sub-lifecycles despacham somente seus gatilhos capturados nessa oportunidade para evitar duplicação.

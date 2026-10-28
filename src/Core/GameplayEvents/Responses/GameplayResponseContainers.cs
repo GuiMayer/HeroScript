@@ -34,9 +34,21 @@ public sealed record CardResponseComponentDefinition : CardComponentDefinition, 
 /// <summary>Stage-five shadow sources are not yet executable content. The default publication path fails closed.</summary>
 public static class GameplayResponseAuthoringGuard
 {
+    internal static bool Supports(Type type) => typeof(IGameplayResponseDeclarations).IsAssignableFrom(type) ||
+        type == typeof(EntityDefinition) || type == typeof(CardContentDefinition) || type == typeof(CardComponentBundleDefinition) ||
+        type == typeof(RunDefinition) || type == typeof(CardUpgradeDefinition);
+
+    internal static bool ContainsDeclarations(object value) => Sources(value).Any(source =>
+        source.Responses is { } definitions && (definitions.IsDefault || !definitions.IsEmpty));
+
     public static Result ValidateUnavailable(object value)
     {
-        IEnumerable<IGameplayResponseDeclarations> sources = value switch
+        return ContainsDeclarations(value)
+            ? Result.Failure("Gameplay responses are available for shadow compilation only; executable publication requires the dispatcher cutover")
+            : Result.Success();
+    }
+
+    private static IEnumerable<IGameplayResponseDeclarations> Sources(object value) => value switch
         {
             IGameplayResponseDeclarations source => [source],
             EntityDefinition entity => entity.Components.OfType<IGameplayResponseDeclarations>(),
@@ -46,10 +58,9 @@ public static class GameplayResponseAuthoringGuard
             CardUpgradeDefinition upgrade => upgrade.Patches.OfType<CardComponentPatchDefinition>().Select(item => item.Component)
                 .Concat(upgrade.Patches.OfType<CardBundleSnapshotPatchDefinition>().SelectMany(item => item.Components))
                 .OfType<IGameplayResponseDeclarations>(),
+            CardUpgradeState upgrade => upgrade.Patches.OfType<CardComponentPatchDefinition>().Select(item => item.Component)
+                .Concat(upgrade.Patches.OfType<CardBundleSnapshotPatchDefinition>().SelectMany(item => item.Components))
+                .OfType<IGameplayResponseDeclarations>(),
             _ => []
         };
-        return sources.Any(source => source.Responses is { } definitions && (definitions.IsDefault || !definitions.IsEmpty))
-            ? Result.Failure("Gameplay responses are available for shadow compilation only; executable publication requires the dispatcher cutover")
-            : Result.Success();
-    }
 }

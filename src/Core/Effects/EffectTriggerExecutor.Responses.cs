@@ -11,6 +11,10 @@ public sealed record ResponsiveEffectExecution(EffectBatchResult Execution, Game
 
 public sealed partial class EffectTriggerExecutor
 {
+    public Result<ResponsiveEffectExecution> ExecuteResponsiveObserved(EffectTriggerExecutionRequest request,
+        GameplayEffectObservation observation, GameplayEventCatalog catalog) =>
+        ExecuteResponsiveObserved(request, observation, catalog, AuthoredProviders());
+
     /// <summary>Explicit candidate execution. Does not publish content, persist a run or enable responses in other entry points.</summary>
     public Result<ResponsiveEffectExecution> ExecuteResponsiveObserved(EffectTriggerExecutionRequest request,
         GameplayEffectObservation observation, GameplayEventCatalog catalog, IReadOnlyList<IGameplayObserverProvider> providers,
@@ -122,7 +126,7 @@ public sealed partial class EffectTriggerExecutor
 
     private Result<EffectBatchResult?> DispatchFacts(ExecutionBudget budget, GameplayEffectObservation observation,
         ImmutableArray<GameplayOccurrence> facts, CombatState before, RunState runBefore, CombatState after, RunState runAfter,
-        int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications)
+        int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications, bool capturedBoundaryOnly = false)
     {
         var session = budget.Responses!;
         var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications);
@@ -136,6 +140,7 @@ public sealed partial class EffectTriggerExecutor
         var boundaryFrames = ImmutableArray.CreateBuilder<GameplayBoundaryInvocationResult>();
         foreach (var candidate in frozen.Value)
         {
+            if (capturedBoundaryOnly && candidate.Registration.BoundaryExecution == null) continue;
             var revalidated = session.Revalidate(candidate, run, state);
             if (revalidated.IsFailure) return Result<EffectBatchResult?>.Failure(revalidated.Error);
             if (!revalidated.Value) continue;
@@ -156,7 +161,7 @@ public sealed partial class EffectTriggerExecutor
             {
                 Combat = state, Run = run, OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,
                 ContentRevision = candidate.Registration.Origin.ContentRevision, SelectedTargetEntityIds = [candidate.TargetActorId],
-                Trigger = new() { TriggerId = legacy?.Definition.ReactionId ?? reserved.Value.InvocationId!,
+                Trigger = new() { TriggerId = legacy?.Definition.ReactionId ?? ResponseTriggerIdentity(candidate),
                     Boundary = legacy == null ? string.Empty : "ResourceApplied", Effects = definition.Effects },
                 Variables = variables.Value, Provenance = new() { Kind = legacy == null ? EffectProvenanceKind.Rule : EffectProvenanceKind.Relic,
                     SourceId = legacy?.RelicInstanceId.ToString("D") ?? candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }

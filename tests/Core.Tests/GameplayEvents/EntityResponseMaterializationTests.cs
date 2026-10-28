@@ -39,11 +39,15 @@ public sealed class EntityResponseMaterializationTests
         var input = CanonicalJson.ComputeHash(request);
         var executor = EffectTransactionTests.Executor();
         var observation = GameplayObservedExecutorTests.ObservationFor(context.Run, combat);
+        var normal = executor.Execute(request);
+        Assert.True(normal.IsSuccess, normal.IsFailure ? normal.Error : null);
+        Assert.Equal(12, normal.Value.State.GetActor("ally")!.GetResource("focus")!.Current);
         var hashes = new HashSet<string>(StringComparer.Ordinal);
         for (var repeat = 0; repeat < 5; repeat++)
         {
             var result = executor.ExecuteResponsiveObserved(request, observation, context.Catalog, [new ActorGameplayObserverProvider()]);
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(normal.Value), CanonicalJson.ComputeHash(result.Value.Execution));
             Assert.Equal(13, result.Value.Execution.State.GetActor("neutral")!.GetResource("focus")!.Current);
             Assert.Equal(12, result.Value.Execution.State.GetActor("ally")!.GetResource("focus")!.Current);
             Assert.Equal(10, result.Value.Execution.State.GetActor("enemy")!.GetResource("focus")!.Current);

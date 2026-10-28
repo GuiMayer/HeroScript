@@ -15,7 +15,11 @@ public sealed partial class EffectTriggerExecutor
         EffectTriggerExecutionRequest request, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!HasResourceResponses(request))
+        var authored = HasAuthoredResponses(request);
+        if (authored.IsFailure) return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure(authored.Error);
+        if (authored.Value && _contentRuntimes == null && request.Run!.Deck.Topology.Instances.Count > 0)
+            return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure("Card observer composition requires captured content runtimes");
+        if (!HasResourceResponses(request) && !authored.Value)
             return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new(), observation));
         var run = request.Run!;
         var catalog = GameplayCoreCatalog.Create(run.SettingId, run.Determinism.ContentRevision);
@@ -40,7 +44,8 @@ public sealed partial class EffectTriggerExecutor
         }
         var quotas = GameplayResponseQuotas.Begin(observation.Events.Scope);
         if (quotas.IsFailure) return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure(quotas.Error);
-        var session = new ResponseExecutionSession(catalog.Value, [new LegacyResourceReactionObserverProvider()], quotas.Value,
+        var providers = authored.Value ? AuthoredProviders().Add(new LegacyResourceReactionObserverProvider()) : [new LegacyResourceReactionObserverProvider()];
+        var session = new ResponseExecutionSession(catalog.Value, providers, quotas.Value,
             new GameplayResponseEvaluation(_formulas, _contentRuntimes), null, null);
         return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new() { Responses = session }, observation));
     }

@@ -16,6 +16,8 @@ public sealed partial class EffectTriggerExecutor
             return Result<IGameplayBoundaryExecutionScope>.Failure("Boundary execution requires immutable run/combat snapshots and a valid observation");
         var catalog = GameplayCoreCatalog.Create(run.SettingId, run.Determinism.ContentRevision);
         if (catalog.IsFailure) return Result<IGameplayBoundaryExecutionScope>.Failure(catalog.Error);
+        var authored = HasAuthoredResponses(new() { Run = run, Combat = combat });
+        if (authored.IsFailure) return Result<IGameplayBoundaryExecutionScope>.Failure(authored.Error);
         if (observation != null && (observation.Events.Scope.SettingId != run.SettingId || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision ||
             observation.Events.Scope.RunId != (run.Lineage?.RootRunId ?? run.RunId).ToString("D") || observation.Events.Scope.BranchId != run.RunId.ToString("D")))
             return Result<IGameplayBoundaryExecutionScope>.Failure("Boundary observation must use its actual pinned run scope");
@@ -32,11 +34,11 @@ public sealed partial class EffectTriggerExecutor
         }
         var quotas = GameplayResponseQuotas.Begin(observation.Events.Scope);
         return quotas.IsFailure ? Result<IGameplayBoundaryExecutionScope>.Failure(quotas.Error)
-            : Result<IGameplayBoundaryExecutionScope>.Success(new BoundaryExecutionScope(this, catalog.Value, observation, quotas.Value, expose));
+            : Result<IGameplayBoundaryExecutionScope>.Success(new BoundaryExecutionScope(this, catalog.Value, observation, quotas.Value, expose, authored.Value));
     }
 
     private sealed class BoundaryExecutionScope(EffectTriggerExecutor executor, GameplayEventCatalog catalog,
-        GameplayEffectObservation initial, GameplayResponseQuotas initialQuotas, bool expose) : IGameplayBoundaryExecutionScope
+        GameplayEffectObservation initial, GameplayResponseQuotas initialQuotas, bool expose, bool authored) : IGameplayBoundaryExecutionScope
     {
         private readonly ExecutionBudget _budget = new();
         private GameplayEffectObservation _observation = initial;
@@ -74,10 +76,12 @@ public sealed partial class EffectTriggerExecutor
             }
             // The timing owner already chose the boundary. The migration view retains its authored label without emitting a duplicate fact.
             var matchingFact = fact with { Payload = new BoundaryOccurrencePayload { BoundaryId = boundaryId, Sequence = ((BoundaryOccurrencePayload)fact.Payload).Sequence } };
-            _budget.Responses = new(catalog, [new CapturedBoundaryObserverProvider(invocations.ToImmutableArray()), new LegacyResourceReactionObserverProvider()], _quotas,
+            var providers = ImmutableArray.Create<IGameplayObserverProvider>(new CapturedBoundaryObserverProvider(invocations.ToImmutableArray()), new LegacyResourceReactionObserverProvider());
+            if (authored) providers = providers.AddRange(executor.AuthoredProviders());
+            _budget.Responses = new(catalog, providers, _quotas,
                 new GameplayResponseEvaluation(executor._formulas, executor._contentRuntimes), null, null);
             Result<EffectBatchResult?> executed;
-            try { executed = executor.DispatchFacts(_budget, current, [matchingFact], combat, run, combat, run, 0, null); }
+            try { executed = executor.DispatchFacts(_budget, current, [matchingFact], combat, run, combat, run, 0, null, capturedBoundaryOnly: true); }
             catch (GameplayQueryException exception) { return Fail(exception.Message); }
             if (executed.IsFailure) return Fail(executed.Error);
             var result = executed.Value!;

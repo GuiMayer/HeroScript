@@ -21,14 +21,17 @@ public sealed class ContentRuntime
     private ContentRuntime(
         ContentManifest manifest,
         ImmutableDictionary<string, ImmutableDictionary<string, JsonElement>> definitions,
-        TypedContentDefinitionCache? typedDefinitions)
+        TypedContentDefinitionCache? typedDefinitions, bool containsGameplayResponses)
     {
         Manifest = manifest;
         _definitions = definitions;
         _typedDefinitions = typedDefinitions ?? new();
+        ContainsGameplayResponses = containsGameplayResponses;
     }
 
     public ContentManifest Manifest { get; }
+    /// <summary>Derived once from typed immutable definitions; never caches gameplay, counters or RNG.</summary>
+    public bool ContainsGameplayResponses { get; }
 
     public static Result<ContentRuntime> Create(ContentBundle bundle)
         => Create(bundle, ContentKindRegistry.Default);
@@ -43,6 +46,7 @@ public sealed class ContentRuntime
 
         var byKind = ImmutableDictionary.CreateBuilder<string, ImmutableDictionary<string, JsonElement>>(
             StringComparer.OrdinalIgnoreCase);
+        var containsGameplayResponses = false;
         foreach (var kindGroup in bundle.Manifest.Artifacts
                      .OrderBy(artifact => artifact.Kind, StringComparer.Ordinal)
                      .ThenBy(artifact => artifact.Path, StringComparer.Ordinal)
@@ -77,6 +81,11 @@ public sealed class ContentRuntime
                     var validation = kinds.Validate(kindGroup.Key, definitionId, definition.Value);
                     if (validation.IsFailure)
                         return Result<ContentRuntime>.Failure(validation.Error);
+                    if (!containsGameplayResponses && Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.Supports(descriptor.Value.DefinitionType))
+                    {
+                        var typed = JsonSerializer.Deserialize(definition.Value.GetRawText(), descriptor.Value.DefinitionType, SerializerOptions);
+                        containsGameplayResponses = typed != null && Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations(typed);
+                    }
                     definitions[definitionId] = definition.Value.Clone();
                 }
             }
@@ -84,7 +93,7 @@ public sealed class ContentRuntime
             byKind[kindGroup.Key] = definitions.ToImmutable();
         }
 
-        return Result<ContentRuntime>.Success(new ContentRuntime(bundle.Manifest, byKind.ToImmutable(), typedDefinitions));
+        return Result<ContentRuntime>.Success(new ContentRuntime(bundle.Manifest, byKind.ToImmutable(), typedDefinitions, containsGameplayResponses));
     }
 
     public Result<T> GetDefinition<T>(string kind, string definitionId)
