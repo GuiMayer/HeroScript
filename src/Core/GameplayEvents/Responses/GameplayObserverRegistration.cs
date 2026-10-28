@@ -35,6 +35,7 @@ public sealed record GameplayResponseScheduleKey : IComparable<GameplayResponseS
 /// <summary>An effective registration, distinct from authored content and from a frozen invocation.</summary>
 public sealed record GameplayObserverRegistration
 {
+    internal LegacyResourceResponseExecution? LegacyResourceExecution { get; init; }
     public required string RegistrationId { get; init; }
     public required string ProviderId { get; init; }
     public required CompiledGameplayResponse Response { get; init; }
@@ -47,6 +48,8 @@ public sealed record GameplayObserverRegistration
     public int Stacks { get; init; } = 1;
     public int? Duration { get; init; }
 }
+
+internal sealed record LegacyResourceResponseExecution(Core.Effects.EffectReactionDefinition Definition, Guid RelicInstanceId, int Stacks);
 
 public sealed record GameplayObserverCollectionContext
 {

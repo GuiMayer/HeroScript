@@ -26,7 +26,10 @@ public sealed partial class EffectTriggerExecutor
             return Result<ResponsiveEffectExecution>.Failure("Responsive execution requires a pinned run, catalog and observation");
         var quotas = GameplayResponseQuotas.Begin(observation.Events.Scope, maximumInvocations);
         if (quotas.IsFailure) return Result<ResponsiveEffectExecution>.Failure(quotas.Error);
-        var session = new ResponseExecutionSession(catalog, providers.ToImmutableArray(), quotas.Value,
+        var allProviders = HasResourceResponses(request) ? providers.Append(new LegacyResourceReactionObserverProvider()).ToImmutableArray() : providers.ToImmutableArray();
+        if (allProviders.Length > 64 || allProviders.Select(provider => provider.ProviderId).Distinct(StringComparer.Ordinal).Count() != allProviders.Length)
+            return Result<ResponsiveEffectExecution>.Failure("Combined response providers exceed their unique identity budget");
+        var session = new ResponseExecutionSession(catalog, allProviders, quotas.Value,
             new GameplayResponseEvaluation(_formulas, _contentRuntimes), selectedCardId, resolvingCardId);
         try
         {
@@ -45,7 +48,8 @@ public sealed partial class EffectTriggerExecutor
         { Run = run, Combat = combat, Catalog = catalog, Snapshot = snapshot, SelectedCardId = selectedCardId, ResolvingCardId = resolvingCardId };
 
         internal Result<ImmutableArray<GameplayResponseCandidate>> Freeze(ImmutableArray<GameplayOccurrence> facts,
-            RunState runBefore, CombatState combatBefore, RunState runAfter, CombatState combatAfter)
+            RunState runBefore, CombatState combatBefore, RunState runAfter, CombatState combatAfter,
+            IReadOnlyList<EffectApplicationRecord>? sourceApplications)
         {
             var candidates = ImmutableArray.CreateBuilder<GameplayResponseCandidate>();
             foreach (var snapshot in new[] { Snapshot(runBefore, combatBefore, ResponseSnapshot.BeforeOccurrence),
@@ -53,20 +57,36 @@ public sealed partial class EffectTriggerExecutor
             {
                 var registrations = GameplayObserverCollector.Collect(snapshot, providers);
                 if (registrations.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(registrations.Error);
-                var matcher = GameplayResponseMatcher.Create(registrations.Value);
-                if (matcher.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(matcher.Error);
-                foreach (var fact in facts)
+                foreach (var legacyGroup in registrations.Value.GroupBy(registration => registration.LegacyResourceExecution != null))
                 {
-                    var matches = matcher.Value.Match(fact, snapshot);
-                    if (matches.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(matches.Error);
-                    foreach (var candidate in matches.Value)
+                    var matcher = GameplayResponseMatcher.Create(legacyGroup.ToImmutableArray());
+                    if (matcher.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(matcher.Error);
+                    foreach (var fact in facts)
                     {
-                        var condition = evaluation.Condition(candidate);
-                        if (condition.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(condition.Error);
-                        if (!condition.Value) continue;
-                        if (candidates.Count == GameplayResponseQuotas.MaximumInvocations)
-                            return Result<ImmutableArray<GameplayResponseCandidate>>.Failure("Response scheduling budget exceeded");
-                        candidates.Add(candidate);
+                        EffectApplicationRecord? parent = null;
+                        var matchingView = fact;
+                        if (legacyGroup.Key)
+                        {
+                            if (fact.Payload is not ResourceChangePayload resource || resource.Role != ResourceOccurrenceRole.PrimaryEffect) continue;
+                            parent = sourceApplications?.LastOrDefault(application => application.CalculationInfluenceId == null &&
+                                application.ResourceOutcome != null && application.ResourceId == resource.ResourceId &&
+                                application.ResourceField == resource.Field && application.Identity?.ImpactId == fact.ImpactId);
+                            // The historical slot bound the actual adapter actor. Never publish that adapter as a wallet's subject.
+                            if (parent == null) continue;
+                            matchingView = fact with { SubjectActorId = parent.TargetEntityId };
+                        }
+                        var matches = matcher.Value.Match(matchingView, snapshot);
+                        if (matches.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(matches.Error);
+                        foreach (var match in matches.Value)
+                        {
+                            var candidate = match with { Occurrence = fact, LegacyParent = parent };
+                            var condition = evaluation.Condition(candidate);
+                            if (condition.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(condition.Error);
+                            if (!condition.Value) continue;
+                            if (candidates.Count == GameplayResponseQuotas.MaximumInvocations)
+                                return Result<ImmutableArray<GameplayResponseCandidate>>.Failure("Response scheduling budget exceeded");
+                            candidates.Add(candidate);
+                        }
                     }
                 }
             }
@@ -90,13 +110,14 @@ public sealed partial class EffectTriggerExecutor
     }
 
     private Result<EffectBatchResult?> DispatchResponses(ExecutionBudget budget, bool enabled, GameplayEffectObservation? observation,
-        int firstFact, CombatState before, RunState? runBefore, CombatState after, RunState? runAfter, int depth)
+        int firstFact, CombatState before, RunState? runBefore, CombatState after, RunState? runAfter, int depth,
+        IReadOnlyList<EffectApplicationRecord>? sourceApplications)
     {
         if (!enabled || budget.Responses is not { } session || observation == null || observation.Events.Occurrences.Count == firstFact)
             return Result<EffectBatchResult?>.Success(null);
         if (runBefore == null || runAfter == null) return Result<EffectBatchResult?>.Failure("Response execution lost its run snapshot");
         var facts = observation.Events.Occurrences.Skip(firstFact).ToImmutableArray();
-        var frozen = session.Freeze(facts, runBefore, before, runAfter, after);
+        var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications);
         if (frozen.IsFailure) return Result<EffectBatchResult?>.Failure(frozen.Error);
         var state = after;
         var run = runAfter;
@@ -113,20 +134,23 @@ public sealed partial class EffectTriggerExecutor
             if (reserved.IsFailure) return Result<EffectBatchResult?>.Failure(reserved.Error);
             if (!reserved.Value.Accepted) continue;
             session.Quotas = reserved.Value.Quotas;
-            var variables = session.Variables(candidate);
+            var legacy = candidate.Registration.LegacyResourceExecution;
+            var variables = legacy == null ? session.Variables(candidate)
+                : Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty.Add("stacks", legacy.Stacks));
             if (variables.IsFailure) return Result<EffectBatchResult?>.Failure(variables.Error);
             var definition = candidate.Registration.Response.Definition;
             var request = new EffectTriggerExecutionRequest
             {
                 Combat = state, Run = run, OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,
                 ContentRevision = candidate.Registration.Origin.ContentRevision, SelectedTargetEntityIds = [candidate.TargetActorId],
-                Trigger = new() { TriggerId = reserved.Value.InvocationId!, Effects = definition.Effects },
-                Variables = variables.Value, Provenance = new() { Kind = EffectProvenanceKind.Rule,
-                    SourceId = candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }
+                Trigger = new() { TriggerId = legacy?.Definition.ReactionId ?? reserved.Value.InvocationId!,
+                    Boundary = legacy == null ? string.Empty : "ResourceApplied", Effects = definition.Effects },
+                Variables = variables.Value, Provenance = new() { Kind = legacy == null ? EffectProvenanceKind.Rule : EffectProvenanceKind.Relic,
+                    SourceId = legacy?.RelicInstanceId.ToString("D") ?? candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }
             };
             var childObservation = currentObservation with { ParentEventId = candidate.Occurrence.EventId,
                 ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin };
-            var result = Execute(request, null, budget, suppressReactions: true, baseDepth: depth + 1,
+            var result = Execute(request, candidate.LegacyParent, budget, suppressReactions: true, baseDepth: depth + 1,
                 observation: childObservation, dispatchResponses: definition.Propagation == ResponsePropagation.AllowResponses);
             if (result.IsFailure) return Result<EffectBatchResult?>.Failure(result.Error);
             state = result.Value.State;

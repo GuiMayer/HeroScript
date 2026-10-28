@@ -58,12 +58,4 @@ public static class EffectReactionPolicies
         return Result.Success();
     }
 
-    public static bool Matches(EffectReactionDefinition reaction, EffectDefinition effect,
-        EffectApplicationRecord application, IReadOnlySet<string> tags) =>
-        application.CalculationInfluenceId == null && application.ResourceOutcome != null &&
-        StringComparer.OrdinalIgnoreCase.Equals(reaction.ResourceId, application.ResourceId) &&
-        reaction.ResourceField == application.ResourceField && reaction.Operation == application.ResourceOperation &&
-        reaction.Channels.Contains(effect.Parameters.FirstOrDefault(parameter =>
-            parameter.Parameter == EffectNumericParameter.Amount)?.Channel ?? effect.CalculationChannel) &&
-        reaction.RequiredTags.All(tags.Contains) && !reaction.ExcludedTags.Any(tags.Contains);
 }

@@ -92,7 +92,13 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
     {
-        try { return Execute(request, null, new ExecutionBudget(), suppressReactions: false); }
+        try
+        {
+            var prepared = PrepareResourceResponses(request, null);
+            if (prepared.IsFailure) return Result<EffectBatchResult>.Failure(prepared.Error);
+            var result = Execute(request, null, prepared.Value.Budget, suppressReactions: false, observation: prepared.Value.Observation);
+            return result.IsFailure ? result : Result<EffectBatchResult>.Success(result.Value with { Observation = null });
+        }
         catch (GameplayQueryException exception) { return Result<EffectBatchResult>.Failure(exception.Message); }
     }
 
@@ -104,7 +110,9 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
             return Result<Core.GameplayEvents.ObservedEffectExecution>.Failure("Observation transaction is required");
         try
         {
-            var executed = Execute(request, null, new ExecutionBudget(), suppressReactions: false, observation: observation);
+            var prepared = PrepareResourceResponses(request, observation);
+            if (prepared.IsFailure) return Result<Core.GameplayEvents.ObservedEffectExecution>.Failure(prepared.Error);
+            var executed = Execute(request, null, prepared.Value.Budget, suppressReactions: false, observation: prepared.Value.Observation);
             return executed.IsFailure ? Result<Core.GameplayEvents.ObservedEffectExecution>.Failure(executed.Error)
                 : Result<Core.GameplayEvents.ObservedEffectExecution>.Success(new(executed.Value, executed.Value.Observation!));
         }
@@ -289,10 +297,10 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
                 CanonicalJson.Property("steps", steps.ToImmutable()), CanonicalJson.Property("run", currentRun))
         });
 
-        Result ApplyResponses(CombatState responseBefore, RunState? responseRunBefore, int firstFact, int depth)
+        Result ApplyResponses(CombatState responseBefore, RunState? responseRunBefore, int firstFact, int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications = null)
         {
             var dispatched = DispatchResponses(budget, dispatchResponses, observation, firstFact,
-                responseBefore, responseRunBefore, current, currentRun, depth);
+                responseBefore, responseRunBefore, current, currentRun, depth, sourceApplications);
             if (dispatched.IsFailure) return Result.Failure(dispatched.Error);
             if (dispatched.Value is not { } response) return Result.Success();
             current = response.State; currentRun = response.Run; observation = response.Observation;
@@ -788,61 +796,9 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
                         RunBeforeHash = runBefore,
                         RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
-                    var responses = ApplyResponses(responseBefore, responseRunBefore, firstResponseFact, depth);
+                    var responses = ApplyResponses(responseBefore, responseRunBefore, firstResponseFact, depth, appliedRecords);
                     if (responses.IsFailure) return responses;
                     if (!applies) continue;
-                    if (!suppressReactions && currentRun != null)
-                    {
-                        var primary = appliedRecords.LastOrDefault(record => record.CalculationInfluenceId == null &&
-                            record.TargetEntityId == targetId && record.ResourceOutcome != null);
-                        if (primary != null)
-                        {
-                            var reactionTags = CalculationResolver.NormalizeTags(effect, request.Tags);
-                            var reactions = currentRun.Relics.SelectMany(relic => (relic.Reactions ?? [])
-                                .Where(reaction => EffectReactionPolicies.Matches(reaction, effect, primary, reactionTags))
-                                .Select(reaction => (Relic: relic, Reaction: reaction)))
-                                .OrderBy(item => item.Reaction.Priority)
-                                .ThenBy(item => item.Relic.RelicInstanceId)
-                                .ThenBy(item => item.Reaction.ReactionId, StringComparer.Ordinal).ToArray();
-                            var reactionParentEventId = observation?.LastApplicationEventId ?? observation?.ParentEventId;
-                            foreach (var (relic, reaction) in reactions)
-                            {
-                                if (++budget.Work > EffectExecutionLimits.MaximumSteps)
-                                    return Result.Failure("Effect execution limit exceeded");
-                                var ownerId = reaction.OwnerScope == EffectReactionOwnerScope.Source ? request.SourceEntityId : targetId;
-                                var owner = current.GetActor(ownerId);
-                                if (owner == null || !relic.Owner.Includes(owner, current, currentRun) ||
-                                    reaction.RequireLivingOwner && !owner.IsAlive) continue;
-                                if (reaction.TargetRelationship is { } relationship &&
-                                    (current.GetActor(request.SourceEntityId) is not { } originalSource ||
-                                     current.GetActor(targetId) is not { } originalTarget ||
-                                     current.Relationship(originalSource, originalTarget) != relationship)) continue;
-                                var reacted = Execute(new()
-                                {
-                                    Combat = current, Run = currentRun,
-                                    OwnerEntityId = ownerId, SourceEntityId = ownerId,
-                                    ContentRevision = relic.ContentRevision,
-                                    Trigger = new() { TriggerId = reaction.ReactionId, Boundary = "ResourceApplied", Effects = reaction.Effects },
-                                    SelectedTargetEntityIds = [reaction.Selection == EffectReactionSelection.Source ? request.SourceEntityId : targetId],
-                                    Variables = new Dictionary<string, float> { ["stacks"] = relic.Stacks },
-                                    Provenance = new() { Kind = EffectProvenanceKind.Relic,
-                                        SourceId = relic.RelicInstanceId.ToString("D"), ComponentId = reaction.ReactionId }
-                                }, primary, budget, suppressReactions: true, baseDepth: depth + 1,
-                                    observation: observation == null ? null : observation with
-                                    { ParentEventId = reactionParentEventId }, dispatchResponses: false);
-                                if (reacted.IsFailure) return Result.Failure(reacted.Error);
-                                if (observation != null)
-                                    observation = reacted.Value.Observation! with { ParentEventId = observation.ParentEventId,
-                                        LastApplicationEventId = reactionParentEventId };
-                                current = reacted.Value.State;
-                                currentRun = reacted.Value.Run;
-                                records.AddRange(reacted.Value.Records);
-                                calculations.AddRange(reacted.Value.Calculations);
-                                foreach (var reactionStep in reacted.Value.Steps)
-                                    steps.Add(reactionStep with { Index = steps.Count });
-                            }
-                        }
-                    }
                     if (condensation != null)
                     {
                         var recipe = recipes[effect.CondensationRecipeId!];

@@ -187,7 +187,7 @@ public sealed class EffectReactionTests
         Assert.DoesNotContain("Reactions", JsonSerializer.Serialize(new RunRelicState { DefinitionId = "old" }));
     }
 
-    private static EffectDefinition Damage(float value) => new()
+    internal static EffectDefinition Damage(float value) => new()
     { EffectId = "damage", Type = EffectType.DAMAGE, TargetResource = "focus", Parameters = [new()
         { Parameter = EffectNumericParameter.Amount, FlatValue = value, PipelineId = "scoped", Channel = "magnitude", UnitId = "points" }] };
 
@@ -204,10 +204,10 @@ public sealed class EffectReactionTests
         => RelicTransitions.Acquire(run with { Relics = [] }, new() { RelicId = "recovery", Reactions = [reaction] },
             new() { Kind = GameplayOwnerKind.Entity, Id = owner }).Value.State;
 
-    private static EffectTriggerExecutionRequest Request(params EffectDefinition[] effects)
+    internal static EffectTriggerExecutionRequest Request(params EffectDefinition[] effects)
         => EffectTransactionTests.Request(effects) with { Run = WithReaction(Fixture().Run, Reaction()) };
 
-    private static EffectTriggerExecutor Executor() => Fixture().Executor;
+    internal static EffectTriggerExecutor Executor() => Fixture().Executor;
 
     private static (EffectTriggerExecutor Executor, RunState Run) Fixture()
     {

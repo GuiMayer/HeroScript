@@ -56,6 +56,7 @@ internal sealed class LegacyResourceReactionObserverProvider : IGameplayObserver
                     {
                         ProviderId = ProviderId, RegistrationId = id, Response = compiled.Value, Origin = origin,
                         OwnerActorId = owner.InstanceId, Stacks = relic.Stacks,
+                        LegacyResourceExecution = new(reaction, relic.RelicInstanceId, relic.Stacks),
                         Order = new() { Group = reaction.Priority, ContainerInstanceId = relic.RelicInstanceId.ToString("D") }
                     });
                 }

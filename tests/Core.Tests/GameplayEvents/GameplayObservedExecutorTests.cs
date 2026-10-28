@@ -130,7 +130,16 @@ public sealed class GameplayObservedExecutorTests
         var damage = EffectSequenceBudgetTests.Damage(1, 1);
         var request = EffectTransactionTests.Request(damage with { ChainedEffects = [damage] }) with { Run = run };
         var expected = fixture.Executor.Execute(request).Value;
-        var actual = fixture.Executor.ExecuteObserved(request, Observation());
+        var catalog = GameplayCoreCatalog.Create(run.SettingId, run.Determinism.ContentRevision).Value;
+        var scoped = new GameplayEffectObservation
+        {
+            Events = GameplayEventTransaction.Create(new() { SettingId = run.SettingId, ContentRevision = run.Determinism.ContentRevision,
+                RunId = (run.Lineage?.RootRunId ?? run.RunId).ToString("D"), BranchId = run.RunId.ToString("D"),
+                ActionId = "action", CommandId = "command", CombatId = request.Combat.CombatId.ToString("D") }, catalog).Value,
+            PublisherId = GameplayCoreCatalog.PublisherId, ReasonId = "effect.application"
+        };
+        Assert.True(fixture.Executor.ExecuteObserved(request, Observation()).IsFailure);
+        var actual = fixture.Executor.ExecuteObserved(request, scoped);
         Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(expected), CanonicalJson.ComputeHash(actual.Value.Execution));
         var facts = actual.Value.Observation.Events.Occurrences.ToArray();

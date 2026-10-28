@@ -1,6 +1,6 @@
 # Respostas de gameplay
 
-Estado atual: contratos, compilador e coletor da etapa 5. Não é ainda autoria executável liberada; dispatcher, migrações, persistência e endpoints têm etapas próprias no [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
+Estado atual: contratos/providers, dispatcher transacional candidato e migração das reações de recurso das relíquias (etapas 5–7). A autoria nova ainda não está liberada. Lifecycle/fases, demais containers, persistência e endpoints continuam nas etapas seguintes do [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
 
 O [schema JSON](../schemas/gameplay-response.schema.json) descreve a definição. A publicação também verifica o catálogo capturado e o validador canônico de efeitos. A leitura usa as mesmas opções de conteúdo do projeto, incluindo enums por nome.
 
@@ -82,3 +82,9 @@ Os fatos de respostas preservam o container, componente e revisão capturados do
 ## Tradução histórica de reações de recursos (7a)
 
 O provider de migração é interno e somente lê regras já capturadas nas relíquias. Ele traduz filtros de PrimaryEffect/recurso/canal/tags, dono Source/Target, alvo, prioridade e RecordOnly. O corpo original dos efeitos permanece intocado, incluindo parent.*. A tradução isolada ainda não substitui a execução antiga: a integração precisa preservar os aliases numéricos e as identidades de execução antes do cutover. Não há nova opção JSON de compatibilidade.
+
+### Integração das reações históricas (7b)
+
+A execução normal e observada traduz as reações capturadas e usa o dispatcher comum; o executor não mantém uma segunda coleta por relíquia. Templates internos preservam as identidades/provenance históricas e os aliases parent.* pelo mesmo executor de efeitos, para manter os resultados de replay. Eles não são campos JSON novos. Prefixes não entram no antigo slot de resposta. A observação exige o setting/root-run/branch reais.
+
+Quando uma aplicação usa um ator adaptador para uma carteira da run, somente a tradução histórica lê seu binding original na aplicação canônica. O fato publicado continua identificando a carteira como dona e não inventa um ator sujeito; respostas novas recebem o protocolo sem essa adaptação histórica. Sete cenários de regressão comparam o hash completo da execução com a versão anterior à migração, incluindo RNG, cálculos, passos, identidades e snapshots.

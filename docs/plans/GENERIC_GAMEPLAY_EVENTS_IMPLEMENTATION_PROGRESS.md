@@ -36,7 +36,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 4 — Produtores canônicos | Concluída em modo opt-in; migração de consumidores nas etapas seguintes |
 | 5 — Definições e providers | Concluída; publicação executável bloqueada até o cutover |
 | 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
-| 7 — Migração das reações de recurso | Em andamento: tradução isolada validada, cutover pendente |
+| 7 — Migração das reações de recurso | Concluída; um dispatcher, sem coleta/matcher paralelos |
 | 8 — Migração de lifecycle/fases | Não iniciada |
 | 9 — Containers e respostas pós-fato | Não iniciada |
 | 10 — Intenções e janelas | Não iniciada |
@@ -50,7 +50,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 
 As contagens abaixo devem registrar somente execuções realizadas durante este plano. Não reutilizar números de relatórios anteriores como nova execução.
 
-Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em seguida dispatcher transacional e migrações, mantendo o corte de autoria e persistência nas etapas correspondentes.
+Próximo bloco obrigatório: etapa 8, migrando lifecycle de status/relíquias e fronteiras/fases, com timing, ordem, duração e idempotência preservados. As etapas 9–15 continuam pendentes; autoria nova e persistência só serão liberadas nos cortes correspondentes.
 
 - Etapa 0: 107 testes focados Core passaram em `.runtime/generic-gameplay-events`, incluindo as duas novas regressões de baseline. As fixtures foram ajustadas ao pipeline real configurado; nenhum código de gameplay foi alterado.
 
@@ -147,3 +147,7 @@ Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em se
 - Fechamento da etapa 6: proveniência capturada das respostas, criação de observadores conforme BeforeOccurrence/AfterOccurrence, revalidação explícita após derrota, alteração zero e falha tardia/ciclo cobertos. Bindings/valores de combate não consultam atores persistentes fora do roster; atividades sem combate continuam podendo consultar a ficha persistente. **175 testes focados aprovados**. Árvore de código certificada `6ca1ef6c3c930b72939929c46bf6d81dd78d3590`, em `.runtime/generic-events-stage6-certified-index`: build completo sem warnings/erros, **2090 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. A execução concorrente das duas suítes levou 2m20/2m43; não é uma medição de latência da engine. A etapa 6 fecha o dispatcher candidato, não anuncia migração de reações/lifecycles, publicação JSON, persistência de frequência durável ou REST antes das etapas correspondentes.
 
 - Etapa 7a: tradução isolada/read-only das reações capturadas de relíquias para registros de resposta, sem substituir a execução antiga. Mantém Source/Target, propriedade, revisão, prioridade anterior à identidade da relíquia e supressão de descendentes. Tags duplicadas conservam semântica; combinação histórica contraditória continua nunca elegível. Custos/refunds/settlements/canais diferentes continuam excluídos. **7 testes novos aprovados**. A troca do executor fica condicionada à prova dos aliases parent.*, IDs, snapshots e ordem completa; esta etapa ainda não está concluída.
+
+- Etapa 7b: reações históricas agora passam pelo dispatcher comum em Execute/ExecuteObserved, e a coleta/matcher diretos do executor foram removidos. Templates internos de migração conservam TriggerId, provenance, parent.*, stacks e revisão de aquisição; não são serializados como conteúdo ou snapshots. Prefixes mantêm sua exclusão histórica mesmo com canal correspondente. Adaptadores de carteira usam uma visão interna de bindings apenas na migração, sem publicar ator fictício como sujeito do recurso. **39 testes focados aprovados**, incluindo sete cenários dourados com hashes completos capturados na árvore pré-migração `6ca1ef6c3c930b72939929c46bf6d81dd78d3590`, repetidos cinco vezes, além das regressões de prefix e carteira. A fixture de observação foi vinculada à run real e confirma a rejeição do antigo escopo fictício; não houve relaxamento dos filtros. Certificação ampla em preparação.
+
+- Fechamento da etapa 7: árvore exata `c30b806d16fc77e69936b880e207c26c7bb7afdd`, em `.runtime/generic-events-stage7-index`, com build completo sem warnings/erros, **2106 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. O novo dispatcher é a única autoridade de seleção/execução das reações de recurso; o matcher antigo foi removido. Sete cenários de execução completa preservam hashes pré-migração em cinco repetições, além das regressões de carteira/prefixo e de toda a suíte de reações. A migração de status/relíquias de fronteira e fases ainda pertence à etapa 8, e a publicação de novos componentes de resposta permanece bloqueada até o cutover.

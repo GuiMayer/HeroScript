@@ -34,3 +34,9 @@ Estado: instrumentação opt-in de candidatos, antes da migração dos consumido
 ## Evidência
 
 Resultados e caminhos das execuções estão no [progresso de implementação](../plans/GENERIC_GAMEPLAY_EVENTS_IMPLEMENTATION_PROGRESS.md). A árvore versionada é certificada em uma cópia isolada para não misturar as alterações locais anteriores ao plano com os commits destas etapas.
+
+## Atualização após a etapa 7
+
+A descrição anterior registra a instrumentação da etapa 4. As reações de recurso das relíquias já foram migradas: a leitura de definições capturadas ocorre em `LegacyResourceReactionObserverProvider` e o matching/agendamento ocorre no dispatcher comum de `EffectTriggerExecutor.Responses`. A coleta direta e `EffectReactionPolicies.Matches` foram removidos; `EffectReactionPolicies.Validate` permanece validando o formato histórico. Os cálculos/outcomes e a aplicação continuam exclusivamente no pipeline/executor canônicos.
+
+O executor normal usa fatos locais descartáveis quando há essa família de reações; isso não habilita gravação de journal novo nem publica eventos intermediários. O executor observado exige os IDs reais de setting/root-run/branch. Os templates internos conservam IDs e parent.* históricos, com comparação de hashes completos contra a árvore anterior à migração. Fronteiras, status periódicos/expiração, gatilhos de relíquias e fases continuam aguardando a migração da etapa 8.

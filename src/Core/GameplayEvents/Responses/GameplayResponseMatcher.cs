@@ -6,7 +6,10 @@ namespace Core.GameplayEvents.Responses;
 
 /// <summary>Frozen eligibility, not an executed response. Conditions and quotas belong to dispatch.</summary>
 public sealed record GameplayResponseCandidate(GameplayOccurrence Occurrence, GameplayObserverRegistration Registration,
-    GameplayObserverCollectionContext Snapshot, string OwnerActorId, string SourceActorId, string TargetActorId);
+    GameplayObserverCollectionContext Snapshot, string OwnerActorId, string SourceActorId, string TargetActorId)
+{
+    internal Core.Effects.EffectApplicationRecord? LegacyParent { get; init; }
+}
 
 /// <summary>Action-local immutable index. Never enumerates live providers during an invocation.</summary>
 public sealed class GameplayResponseMatcher
