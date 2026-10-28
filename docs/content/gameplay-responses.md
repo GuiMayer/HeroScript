@@ -13,7 +13,7 @@ O [schema JSON](../schemas/gameplay-response.schema.json) descreve a definição
     "subject": { "relationshipToOwner": "Enemy" },
     "resource": { "field": "Current", "direction": "Increase" }
   },
-  "condition": "event.change.applied_delta > 0",
+  "condition": "event.change.applied_delta",
   "frequency": { "scope": "Occurrence", "maximum": 1 },
   "propagation": "RecordOnly",
   "effects": [
@@ -70,3 +70,9 @@ Campo ausente, binding ausente ou valor que não cabe no contrato numérico exis
 O índice de kinds produz no máximo um candidato por registro/ocorrência; exclusões vencem e as demais dimensões são conjuntivas. Bindings não substituem um ator ausente por outro. O dono lógico pode diferir do dono físico capturado. Filtros de recurso usam o payload tipado e distinguem PrimaryEffect, Settlement e DirectMutation. Direção usa o delta efetivamente aplicado. IDs de recurso seguem a comparação canônica sem diferenciar maiúsculas; canais, tags e identidades são ordinais.
 
 As quotas locais retornam sucessores imutáveis por ação. Uma ocorrência não volta a invocar o mesmo registro mesmo com maximum maior que um. Impact e Proc exigem suas respectivas âncoras explícitas; não caem silenciosamente para ocorrência. Ultrapassar a quota declarada apenas impede a invocação; ultrapassar o orçamento global rejeita o candidato inteiro. Frequências duráveis permanecem indisponíveis. O matcher não avalia condições nem executa efeitos; o dispatcher é a próxima integração.
+
+## Execução candidata explícita (etapa 6b)
+
+`EffectTriggerExecutor.ExecuteResponsiveObserved` executa apenas uma candidata isolada. Compartilha o orçamento do executor comum e retorna efeitos, fatos e quotas locais; não grava nem habilita a capacidade na API. Para cada operação, registros e condições elegíveis são congelados em BeforeOccurrence/AfterOccurrence antes da primeira resposta. O corpo usa o sucessor corrente, e a revalidação de dono/registro segue a definição. RecordOnly suprime respostas descendentes, preservando os fatos. AllowResponses continua a cadeia sob os mesmos limites; qualquer falha descarta tudo.
+
+Condições seguem a linguagem numérica canônica: resultado finito maior que zero significa verdadeiro. Use uma referência numérica, expressão aritmética aceita pelo avaliador ou fórmula JSON revisionada; operadores de comparação textuais como `>` não constituem uma nova linguagem de condições. Referências event.*, owner.* e scope.* são tipadas; campos ausentes não viram zero. Fórmulas nomeadas são resolvidas na revisão capturada, e somente parâmetros efetivamente referenciados são projetados. A passagem para publicação/autoria normal e integração com os demais produtores ainda não ocorreu.

@@ -13,7 +13,7 @@ public sealed class GameplayResponseMatcherTests
     internal static GameplayOccurrence Fact() => new()
     {
         EventId = "event", RootEventId = "event", Kind = "resource.change.resolved", ReasonId = "effect.application",
-        Scope = new() { SettingId = "setting", ContentRevision = "revision", RunId = "run", BranchId = "branch", ActionId = "action", CommandId = "command" },
+        Scope = new() { SettingId = "setting", ContentRevision = "revision", RunId = Guid.Empty.ToString("D"), BranchId = Guid.Empty.ToString("D"), ActionId = "action", CommandId = "command" },
         SourceActorId = "enemy", SubjectActorId = "hero", AttributedActorId = "enemy", ImpactId = "impact", ProcId = "proc", Tags = ["fire"],
         Payload = new ResourceChangePayload { ResourceId = "focus", Role = ResourceOccurrenceRole.PrimaryEffect,
             Field = ResourceValueField.Current, Operation = ResourceMutationOperation.Subtract,
@@ -85,6 +85,8 @@ public sealed class GameplayResponseMatcherTests
         Assert.Equal("enemy", candidate.OwnerActorId); Assert.Equal("enemy", candidate.SourceActorId); Assert.Equal("hero", candidate.TargetActorId);
         Assert.Empty(matcher.Match(Fact(), context with { Snapshot = ResponseSnapshot.AfterOccurrence }).Value);
         Assert.True(matcher.Match(Fact() with { Scope = Fact().Scope with { ContentRevision = "foreign" } }, context).IsFailure);
+        Assert.True(matcher.Match(Fact() with { Scope = Fact().Scope with { RunId = "foreign" } }, context).IsFailure);
+        Assert.True(matcher.Match(Fact() with { Scope = Fact().Scope with { BranchId = "foreign" } }, context).IsFailure);
         Assert.True(matcher.Match(Fact(), context with { Run = context.Run with { SettingId = "foreign" } }).IsFailure);
     }
 

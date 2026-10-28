@@ -29,7 +29,10 @@ public sealed class GameplayResponseMatcher
     {
         Result<ImmutableArray<GameplayResponseCandidate>> Fail(string error) => Result<ImmutableArray<GameplayResponseCandidate>>.Failure(error);
         if (snapshot?.Run == null || snapshot.Catalog == null || occurrence?.Validate(snapshot.Catalog).IsSuccess != true ||
-            snapshot.Run.SettingId != occurrence.Scope.SettingId || snapshot.Run.Determinism.ContentRevision != occurrence.Scope.ContentRevision)
+            snapshot.Run.SettingId != occurrence.Scope.SettingId || snapshot.Run.Determinism.ContentRevision != occurrence.Scope.ContentRevision ||
+            (snapshot.Run.Lineage?.RootRunId ?? snapshot.Run.RunId).ToString("D") != occurrence.Scope.RunId ||
+            snapshot.Run.RunId.ToString("D") != occurrence.Scope.BranchId ||
+            occurrence.Scope.CombatId != null && snapshot.Combat?.CombatId.ToString("D") != occurrence.Scope.CombatId)
             return Fail("Response matching requires a valid occurrence and its pinned snapshot");
         var indexed = _index.Match(occurrence.Kind);
         if (indexed.IsFailure) return Fail(indexed.Error);

@@ -59,7 +59,7 @@ public interface IEffectTriggerExecutor
 /// atomic state transition to IImmutableEffectProcessor. Source modules only
 /// provide ownership, provenance and variables.
 /// </summary>
-public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
+public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
 {
     private readonly IRuntimeFormulaEvaluator _formulas;
     private readonly IImmutableEffectProcessor _effects;
@@ -114,11 +114,11 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
     private sealed class GameplayQueryException(string message) : Exception(message);
 
-    private sealed class ExecutionBudget { public int Work; }
+    private sealed class ExecutionBudget { public int Work; public ResponseExecutionSession? Responses; }
 
     private Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request,
         EffectApplicationRecord? observedParent, ExecutionBudget budget, bool suppressReactions, int baseDepth = 0,
-        Core.GameplayEvents.GameplayEffectObservation? observation = null)
+        Core.GameplayEvents.GameplayEffectObservation? observation = null, bool dispatchResponses = true)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("effect_execute");
         ArgumentNullException.ThrowIfNull(request);
@@ -183,6 +183,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             if (policy.IsFailure) return Result<EffectBatchResult>.Failure(policy.Error);
             resolutionPolicy = policy.Value;
         }
+        var initializationFactStart = observation?.Events.Occurrences.Count ?? 0;
         var restricted = request.Run == null ? Result<CombatState>.Success(request.Combat)
             : RelicResourceRules.Materialize(request.Run, request.Combat);
         if (restricted.IsFailure) return Result<EffectBatchResult>.Failure(restricted.Error);
@@ -207,6 +208,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 var valid = EffectReactionPolicies.Validate(relic.Reactions ?? []);
                 if (valid.IsFailure) return Result<EffectBatchResult>.Failure(valid.Error);
             }
+        var initializationResponses = ApplyResponses(request.Combat, request.Run, initializationFactStart, baseDepth);
+        if (initializationResponses.IsFailure) return Result<EffectBatchResult>.Failure(initializationResponses.Error);
         var attemptedRecipes = new Dictionary<string, EffectExecutionIdentity>(StringComparer.Ordinal);
         var activeQuantities = request.Quantities;
         var sharedBudgets = new Dictionary<string, ImmutableArray<EffectSequenceBudget>>(StringComparer.Ordinal);
@@ -218,6 +221,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         {
             if (++budget.Work > EffectExecutionLimits.MaximumSteps)
                 return Result<EffectBatchResult>.Failure("Effect execution limit exceeded");
+            var responseBefore = current;
+            var responseRunBefore = currentRun;
+            var firstResponseFact = observation?.Events.Occurrences.Count ?? 0;
             var before = CanonicalJson.ComputeHash(current);
             var command = prefix with
             {
@@ -254,6 +260,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 StateBeforeHash = before,
                 StateAfterHash = CanonicalJson.ComputeHash(current)
             });
+            var prefixResponses = ApplyResponses(responseBefore, responseRunBefore, firstResponseFact, baseDepth);
+            if (prefixResponses.IsFailure) return Result<EffectBatchResult>.Failure(prefixResponses.Error);
         }
         var activeTriggerId = request.Trigger.TriggerId;
         foreach (var component in request.Components.IsEmpty ? [request.Trigger] : request.Components)
@@ -280,6 +288,18 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             Fingerprint = CanonicalJson.ComputeObjectHash(CanonicalJson.Property("state", current),
                 CanonicalJson.Property("steps", steps.ToImmutable()), CanonicalJson.Property("run", currentRun))
         });
+
+        Result ApplyResponses(CombatState responseBefore, RunState? responseRunBefore, int firstFact, int depth)
+        {
+            var dispatched = DispatchResponses(budget, dispatchResponses, observation, firstFact,
+                responseBefore, responseRunBefore, current, currentRun, depth);
+            if (dispatched.IsFailure) return Result.Failure(dispatched.Error);
+            if (dispatched.Value is not { } response) return Result.Success();
+            current = response.State; currentRun = response.Run; observation = response.Observation;
+            records.AddRange(response.Records); calculations.AddRange(response.Calculations);
+            foreach (var step in response.Steps) steps.Add(step with { Index = steps.Count });
+            return Result.Success();
+        }
 
         Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection,
             string? parentProcId, EffectApplicationRecord? parentApplication, string? forcedProcId = null,
@@ -429,6 +449,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         ParentProcId = forcedParentProcId,
                         ImpactId = CanonicalJson.ComputeHash(new { forcedProcId, path, repeat, targetId })
                     };
+                    var responseBefore = current;
+                    var responseRunBefore = currentRun;
+                    var firstResponseFact = observation?.Events.Occurrences.Count ?? 0;
                     var before = targetIndex == 0
                         ? targets.Value.LostTargetIds.IsEmpty ? beforeSelection : beforeChance
                         : CanonicalJson.ComputeHash(current);
@@ -765,6 +788,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         RunBeforeHash = runBefore,
                         RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
+                    var responses = ApplyResponses(responseBefore, responseRunBefore, firstResponseFact, depth);
+                    if (responses.IsFailure) return responses;
                     if (!applies) continue;
                     if (!suppressReactions && currentRun != null)
                     {
@@ -804,7 +829,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                         SourceId = relic.RelicInstanceId.ToString("D"), ComponentId = reaction.ReactionId }
                                 }, primary, budget, suppressReactions: true, baseDepth: depth + 1,
                                     observation: observation == null ? null : observation with
-                                    { ParentEventId = reactionParentEventId });
+                                    { ParentEventId = reactionParentEventId }, dispatchResponses: false);
                                 if (reacted.IsFailure) return Result.Failure(reacted.Error);
                                 if (observation != null)
                                     observation = reacted.Value.Observation! with { ParentEventId = observation.ParentEventId,
