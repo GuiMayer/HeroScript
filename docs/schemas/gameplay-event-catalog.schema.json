@@ -23,7 +23,7 @@
         "kind": { "$ref": "#/$defs/identifier" },
         "schemaVersion": { "const": 1 },
         "publisherId": { "$ref": "#/$defs/identifier" },
-        "payload": { "enum": ["ResourceChange", "AttributeChange", "StatusChange", "CardMovement", "Action", "Boundary", "RuleResult", "ZoneOrder", "ModifierChange", "ResourceThreshold", "ActorDefeatChange", "SequenceChange", "InstanceDuration", "ResourceTransport"] },
+        "payload": { "enum": ["ResourceChange", "AttributeChange", "StatusChange", "CardMovement", "Action", "Boundary", "RuleResult", "ZoneOrder", "ModifierChange", "ResourceThreshold", "ActorDefeatChange", "SequenceChange", "InstanceDuration", "ResourceTransport", "ContentRevision", "ResourceRebind"] },
         "canOpenResponseWindow": { "type": "boolean" }
       }
     },

@@ -151,3 +151,7 @@ Preparações projetam a instância efetivamente retornada por `ModifierTransiti
 ## Resolução observada (etapa 4t)
 
 `RunManager.PlanObservedResolution` planeja a confirmação de encontro terminal pela mesma composição normal, sob a trava/versionamento da run. Observa limpeza de zonas, promoção de recursos, atividade de saída e expiração/progressão. A normalização e o fato de término da run são compartilhados com o commit. Não publica snapshots intermediários nem preenche recibos. A finalização visual não é tratada como encerramento do combate; `combat.ended` pertence ao lifecycle de combate já concluído antes desta confirmação.
+
+## Ativação de revisão (etapa 4u)
+
+O comando selecionado emite `content.revision.activated` com revisões antes/depois; sua ação conserva o catálogo/revisão de origem. Recursos cuja definição ou valor mudou durante o rebind emitem `resource.definition.rebound`, com dono real, componente quando existir e hashes das definições. O clamp é copiado do resultado canônico, sem inventar operação de dano/cura. Recursos de encontros históricos não são reprocessados. Preview, mesma revisão e candidatos rejeitados não publicam fatos.

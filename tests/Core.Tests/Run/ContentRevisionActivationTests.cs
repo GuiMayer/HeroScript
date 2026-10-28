@@ -6,6 +6,7 @@ using Core.Combat.Models;
 using Core.Content;
 using Core.Determinism;
 using Core.Effects;
+using Core.GameplayEvents;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
 using Core.Meta;
@@ -20,6 +21,54 @@ namespace Core.Tests.Run;
 
 public sealed class ContentRevisionActivationTests
 {
+    [Fact]
+    public void ObservedActivationKeepsTheSourceScopeAndCanonicalRebindWithoutObservingPreview()
+    {
+        var a = new string('a', 64); var b = new string('b', 64);
+        var target = RuntimeWithResources(b, Resource("Updated", false));
+        var manager = CreateManagerWithRuntime(a, b, target);
+        var source = CreateState(a) with { ResourceState = new() { OwnerId = "wallet", Resources = new Dictionary<string, ResourcePool>
+            { ["health"] = new() { ResourceId = "health", Current = 150, Minimum = 0, Maximum = 100, Definition = Resource("Original", true) } } } };
+        Assert.True(manager.HydrateForReplay(source).IsSuccess);
+        var codec = new GameplayCommandCodec(GameplayCommandDescriptors.All);
+        var handlers = RunCommandHandlers.Create(codec, () => CreateManagerWithRuntime(a, b, target), RunActivityRegistry.CreateDefault());
+        var coordinator = new RunSessionCoordinator(manager, codec, handlers, _ => throw new Exception("No publication from plan"));
+        var command = new GameplayCommandEnvelope(new(Guid.Parse("60000000-0000-0000-0000-000000000001"), RunCommandTypes.ActivateContentRevision,
+            source.Sequence, source.Determinism.Step), JsonSerializer.SerializeToElement(new ContentRevisionCommand(b)));
+        var hashes = new HashSet<string>();
+        RunState? candidate = null;
+        for (var repeat = 0; repeat < 5; repeat++)
+        {
+            Assert.True(manager.Preview(source.RunId, b).Value.Compatible);
+            var planned = coordinator.PlanObserved(source.RunId, command);
+            Assert.True(planned.IsSuccess, planned.IsFailure ? planned.Error : null);
+            candidate = planned.Value.Execution.CandidateState;
+            Assert.Equal(b, candidate.Determinism.ContentRevision);
+            Assert.Equal(100, candidate.ResourceState.Current("health"));
+            var facts = planned.Value.Observation.Events.Occurrences;
+            Assert.Equal(new[] { "command.started", "content.revision.activated", "resource.definition.rebound", "command.completed" }, facts.Select(item => item.Kind));
+            Assert.All(facts, item => Assert.Equal(a, item.Scope.ContentRevision));
+            var activation = Assert.IsType<ContentRevisionPayload>(facts[1].Payload);
+            Assert.Equal(a, activation.Before); Assert.Equal(b, activation.After);
+            var rebound = Assert.IsType<ResourceRebindPayload>(facts[2].Payload);
+            Assert.Equal(150, rebound.Before); Assert.Equal(100, rebound.After);
+            Assert.Equal("wallet", rebound.Owner.Id); Assert.Null(facts[2].SubjectActorId);
+            Assert.Equal(facts[1].EventId, facts[2].ParentEventId);
+            hashes.Add(CanonicalJson.ComputeHash(facts));
+            Assert.Equal(CanonicalJson.ComputeHash(source), CanonicalJson.ComputeHash(manager.GetRun(source.RunId).Value));
+        }
+        Assert.Single(hashes);
+        var before = new GameplayEffectObservation { PublisherId = GameplayCoreCatalog.PublisherId, ReasonId = "effect.application",
+            Events = GameplayEventTransaction.Create(new() { SettingId = source.SettingId, ContentRevision = a, RunId = source.RunId.ToString("D"),
+                BranchId = source.RunId.ToString("D"), ActionId = "budget", CommandId = "budget" }, GameplayCoreCatalog.Create(source.SettingId, a).Value,
+                new() { MaximumOccurrences = 1 }).Value };
+        Assert.True(GameplayContentObservation.Append(before, source, candidate!).IsFailure);
+        Assert.Empty(before.Events.Occurrences);
+        var expected = Activate(manager, source, b);
+        Assert.True(expected.IsSuccess, expected.IsFailure ? expected.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(expected.Value.State), CanonicalJson.ComputeHash(candidate! with { Sequence = source.Sequence + 1 }));
+    }
+
     [Fact]
     public void TerminalEncounterMustBeResolvedBeforeActivation()
     {

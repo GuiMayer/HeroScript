@@ -1198,6 +1198,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var prepared = PrepareContentRevisionActivation(state, manifest.Value);
         if (prepared.IsFailure)
             return Result.Failure(prepared.Error);
+        if (_observation != null)
+        {
+            var observed = Core.GameplayEvents.GameplayContentObservation.Append(_observation.Current, state, prepared.Value);
+            if (observed.IsFailure) return Result.Failure(observed.Error);
+            _observation.Accept(observed.Value);
+        }
         return ToResult(Persist(
             prepared.Value,
             RunCommandTypes.ActivateContentRevision,
