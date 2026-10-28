@@ -4,6 +4,8 @@ using Core.Combat.LegalActions;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Common;
+using Core.GameplayEvents;
+using Core.Combat.Modifiers;
 using Core.Determinism;
 using Core.Run;
 using Core.Run.Content;
@@ -14,6 +16,57 @@ namespace Core.Tests.Combat.Flow;
 
 public sealed class CombatCommandHandlerTests
 {
+    [Theory]
+    [InlineData("hero", CombatCommandOrigin.PlayerInput, true)]
+    [InlineData("enemy", CombatCommandOrigin.AutomaticController, false)]
+    public void ObservedHandlerOwnsTheActionRootAndActualCommandModifierTick(string actorId, CombatCommandOrigin origin, bool waiting)
+    {
+        var run = Run() with { Modifiers = [new()
+        {
+            InstanceId = DeterministicId.Create(15, 2, "timer"), ModifierId = "timer", Duration = 2, Stacks = 1,
+            Owner = new() { Kind = GameplayOwnerKind.Entity, Id = actorId }, ContentRevision = "stage-15",
+            Definition = new() { ModifierId = "timer", DurationBoundary = ModifierDurationBoundary.Command }
+        }] };
+        var combat = Combat(actorId, waiting);
+        LegalActionEvaluation Evaluation(RunState sourceRun, CombatState sourceCombat, CombatActionCommand command) => new()
+        {
+            Candidate = new() { CandidateId = "candidate", Source = LegalActionSource.System, Command = command, ResolvedCommand = command,
+                SuccessorRun = sourceRun, SuccessorCombat = sourceCombat, ResolutionFingerprint = "resolution" }
+        };
+        var legal = new Mock<ILegalActionResolver>();
+        legal.Setup(service => service.Evaluate(It.IsAny<RunState>(), It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), It.IsAny<CombatCommandOrigin>()))
+            .Returns((RunState state, CombatState current, CombatActionCommand command, CombatCommandOrigin _) => Result<LegalActionEvaluation>.Success(Evaluation(state, current, command)));
+        legal.Setup(service => service.EvaluateObserved(It.IsAny<RunState>(), It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), It.IsAny<CombatCommandOrigin>(), It.IsAny<GameplayEffectObservation>()))
+            .Returns((RunState state, CombatState current, CombatActionCommand command, CombatCommandOrigin _, GameplayEffectObservation context) =>
+                Result<ObservedGameplayExecution<LegalActionEvaluation>>.Success(new(Evaluation(state, current, command), context)));
+        var handler = new CombatCommandHandler(legal.Object, new CombatActionStateReducer(new CombatOutcomeResolver()));
+        var request = Request(run, combat, actorId, origin);
+        var input = CanonicalJson.ComputeHash(request);
+        var observation = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(revision: "stage-15");
+        var baseline = handler.Handle(request);
+        Assert.True(baseline.IsSuccess, baseline.IsFailure ? baseline.Error : null);
+        var hashes = new HashSet<string>();
+        for (var repeat = 0; repeat < 5; repeat++)
+        {
+            var actual = handler.HandleObserved(request, observation);
+            Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(baseline.Value), CanonicalJson.ComputeHash(actual.Value.Execution));
+            var facts = actual.Value.Observation.Events.Occurrences;
+            Assert.Equal(new[] { "action.started", "modifier.duration.changed", "action.completed" }, facts.Select(item => item.Kind));
+            Assert.Equal(facts[0].EventId, facts[1].ParentEventId);
+            Assert.Equal(facts[0].EventId, facts[2].ParentEventId);
+            Assert.Equal(new[] { facts[1].EventId }, Assert.IsType<ActionOccurrencePayload>(facts[2].Payload).ChildEventIds);
+            Assert.Null(actual.Value.Observation.ParentEventId);
+            hashes.Add(CanonicalJson.ComputeHash(facts));
+        }
+        Assert.Single(hashes);
+        var constrained = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(2, "stage-15");
+        Assert.True(handler.HandleObserved(request, constrained).IsFailure);
+        Assert.Empty(constrained.Events.Occurrences);
+        Assert.Empty(observation.Events.Occurrences);
+        Assert.Equal(input, CanonicalJson.ComputeHash(request));
+    }
+
     [Fact]
     public void Handle_UsesTheSameLegalAndReductionPipelineForPlayerAndAutomaticCommands()
     {

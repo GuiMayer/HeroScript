@@ -109,3 +109,9 @@ Ainda faltam a ação raiz/candidato do gateway e a ligação dos caminhos de cu
 `LegalActionResolver.EvaluateObserved` executa uma instância isolada do resolvedor, sem consultar/popular seus caches normais de preview. Cada execução recebe a mesma base imutável e só o candidato escolhido devolve seu sucessor de observação. A observação passa por carta/habilidade e pelas transições de fase desse candidato.
 
 A validação especulativa de uma ação que será proposta à PriorityStack usa o caminho canônico sem coletar fatos dessa resolução descartada. Se a política paga na proposta, apenas a reserva realmente aplicada entra no candidato. Pagamento e reembolso recebem motivos explícitos independentes. Isso evita consumir orçamento de observação com um dano hipotético ou registrar como executado um efeito que aguarda prioridade.
+
+## Composição do comando de combate (etapa 4l)
+
+`CombatCommandHandler.HandleObserved` mantém a mesma validação de input, legalidade e redução. Um comando candidato possui `action.started` e `action.completed`; a última ocorrência referencia os fatos produzidos por ele. `action.completed` significa conclusão do processamento do comando, inclusive uma proposta aceita; não significa que uma ação pendente da PriorityStack já resolveu. As ocorrências específicas de proposta/resolução continuam sendo a integração da etapa 10.
+
+O redutor observa somente o fluxo efetivo de disposição da carta e os ticks canônicos de modificadores por comando. A projeção de duração foi compartilhada com as fronteiras, sem duplicar a regra de tempo. Mesmo se o orçamento terminar ao fechar o comando depois da redução, a entrada permanece intacta e nenhum candidato parcial é entregue. O caminho normal continua sem observação e com a mesma serialização/fingerprint.

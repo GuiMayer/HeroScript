@@ -26,6 +26,7 @@ public sealed class GameplayObservedExecutorTests
             ("combat.started", GameplayPayloadKind.Boundary), ("combat.ended", GameplayPayloadKind.Boundary),
             ("activation.started", GameplayPayloadKind.Boundary), ("activation.ended", GameplayPayloadKind.Boundary),
             ("round.started", GameplayPayloadKind.Boundary), ("round.ended", GameplayPayloadKind.Boundary),
+            ("action.started", GameplayPayloadKind.Action), ("action.completed", GameplayPayloadKind.Action),
             ("phase.entered", GameplayPayloadKind.Boundary), ("phase.exited", GameplayPayloadKind.Boundary),
             ("modifier.stacks.changed", GameplayPayloadKind.ModifierChange), ("modifier.duration.changed", GameplayPayloadKind.InstanceDuration), ("activation.sequence.changed", GameplayPayloadKind.SequenceChange),
             ("card.moved", GameplayPayloadKind.CardMovement), ("card.created", GameplayPayloadKind.CardMovement),

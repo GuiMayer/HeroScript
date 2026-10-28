@@ -90,25 +90,8 @@ public sealed partial class CombatBoundaryExecutor
         public void Cards(IReadOnlyList<CardZoneFlowStepRecord> steps, RunState before, RunState after, string? actorId) =>
             Current = Require(GameplayCardFlowObservation.Append(Current, steps, before, after, actorId));
 
-        public void ModifierTicks(RunState before, RunState after)
-        {
-            var remaining = after.Modifiers.ToDictionary(item => item.InstanceId);
-            foreach (var previous in before.Modifiers.OrderBy(item => item.InstanceId))
-            {
-                remaining.TryGetValue(previous.InstanceId, out var updated);
-                if (updated != null && updated.Duration == previous.Duration) continue;
-                var metadata = new GameplayOccurrenceDraft { ReasonId = Current.ReasonId, Attribution = GameplayAttribution.None,
-                    Origin = new() { ContainerKind = "rule", ContainerId = "modifier.lifecycle", ComponentId = previous.InstanceId.ToString("D"),
-                        ContentRevision = after.Determinism.ContentRevision } };
-                var fact = updated == null ? Require(GameplayRuleFactProducer.Modifier(new()
-                {
-                    Store = EffectStackStore.Modifier, InstanceId = previous.InstanceId, DefinitionId = previous.ModifierId,
-                    Owner = previous.Owner, PreviousStacks = previous.Stacks, CurrentStacks = 0, Reason = EffectStackChangeReason.Expire
-                }, previous, null, metadata)) : Require(GameplayRuleFactProducer.ModifierDuration(previous, updated, metadata));
-                var appended = Require(Current.Events.Append(Current.PublisherId, $"modifier.lifecycle/{Current.Events.Occurrences.Count}", fact, Current.ParentEventId));
-                Current = Current with { Events = appended.Transaction };
-            }
-        }
+        public void ModifierTicks(RunState before, RunState after) =>
+            Current = Require(GameplayModifierObservation.AppendTicks(Current, before, after));
 
         public void ResourceMutation(ResolvedResourceMutation mutation, ResourceMutationRecord record, CombatActorState before, CombatActorState after)
         {

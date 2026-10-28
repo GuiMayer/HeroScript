@@ -5,6 +5,7 @@ using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Combat.Reactions;
 using Core.Common;
+using Core.GameplayEvents;
 using Core.Determinism;
 using Core.Run;
 using Core.Run.Content;
@@ -14,6 +15,9 @@ namespace Core.Combat.Flow;
 
 public sealed record CombatActionReduction
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal GameplayEffectObservation? Observation { get; init; }
+
     public RunState Run { get; init; } = null!;
     public CombatState Combat { get; init; } = null!;
     public CombatActionCommand? ResolvedCommand { get; init; }
@@ -30,6 +34,10 @@ public interface ICombatActionStateReducer
         LegalActionCandidate candidate,
         CombatActionCommand rootCommand,
         CombatFlowPoliciesDefinition policies);
+    Result<ObservedGameplayExecution<CombatActionReduction>> ApplyObserved(RunState run, CombatState combat, LegalActionCandidate candidate,
+        CombatActionCommand command, CombatFlowPoliciesDefinition policies, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatActionReduction>>.Failure("This reducer does not support gameplay observation");
+
 }
 
 /// <summary>
@@ -50,12 +58,19 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
         _cardZoneFlows = cardZoneFlows;
     }
 
-    public Result<CombatActionReduction> Apply(
-        RunState run,
-        CombatState previousCombat,
-        LegalActionCandidate candidate,
-        CombatActionCommand rootCommand,
-        CombatFlowPoliciesDefinition policies)
+    public Result<CombatActionReduction> Apply(RunState run, CombatState previousCombat, LegalActionCandidate candidate,
+        CombatActionCommand rootCommand, CombatFlowPoliciesDefinition policies) => ApplyCore(run, previousCombat, candidate, rootCommand, policies, null);
+
+    public Result<ObservedGameplayExecution<CombatActionReduction>> ApplyObserved(RunState run, CombatState previousCombat, LegalActionCandidate candidate,
+        CombatActionCommand rootCommand, CombatFlowPoliciesDefinition policies, GameplayEffectObservation observation)
+    {
+        var result = ApplyCore(run, previousCombat, candidate, rootCommand, policies, observation);
+        return result.IsFailure ? Result<ObservedGameplayExecution<CombatActionReduction>>.Failure(result.Error)
+            : Result<ObservedGameplayExecution<CombatActionReduction>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<CombatActionReduction> ApplyCore(RunState run, CombatState previousCombat, LegalActionCandidate candidate,
+        CombatActionCommand rootCommand, CombatFlowPoliciesDefinition policies, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(previousCombat);
@@ -82,6 +97,13 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
                 Guid.Parse(consumedCardId), candidate.SuccessorCombat);
             if (flowed.IsFailure)
                 return Result<CombatActionReduction>.Failure(flowed.Error);
+            if (observation != null)
+            {
+                var observed = GameplayCardFlowObservation.Append(observation, flowed.Value.Steps, run,
+                    run with { Deck = new DeckState { Topology = flowed.Value.State } }, resolvedCommand?.ActorId ?? rootCommand.ActorId);
+                if (observed.IsFailure) return Result<CombatActionReduction>.Failure(observed.Error);
+                observation = observed.Value;
+            }
             run = run with
             {
                 Deck = new DeckState { Topology = flowed.Value.State },
@@ -122,12 +144,19 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             resolvedCommand != null || candidate.ReactionTransition == ReactionTransitionKind.StackActionFizzled);
         if (outcome.IsFailure) return Result<CombatActionReduction>.Failure(outcome.Error);
         combat = outcome.Value;
+        var beforeTick = run;
         run = ModifierTransitions.Tick(
             run,
             ModifierDurationBoundary.Command,
             previousCombat,
             rootCommand.ActorId,
             eligibleModifierIds);
+        if (observation != null)
+        {
+            var observed = GameplayModifierObservation.AppendTicks(observation, beforeTick, run);
+            if (observed.IsFailure) return Result<CombatActionReduction>.Failure(observed.Error);
+            observation = observed.Value;
+        }
 
         var activationBudgetExhausted =
             policies.ActionBudget.Strategy == ActionBudgetStrategy.FixedCount &&
@@ -136,6 +165,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
         var resolvedEndsTurn = (resolvedCommand ?? rootCommand).ActionType == ActionType.END_TURN;
         return Result<CombatActionReduction>.Success(new CombatActionReduction
         {
+            Observation = observation,
             Run = run,
             Combat = combat,
             ResolvedCommand = resolvedCommand,
@@ -166,6 +196,9 @@ public sealed record CombatCommandHandlingRequest
 
 public sealed record CombatCommandHandlingResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal GameplayEffectObservation? Observation { get; init; }
+
     public CombatResolutionStep Step { get; init; } = null!;
     public RunState NextRun { get; init; } = null!;
     public LegalActionCandidate Candidate { get; init; } = null!;
@@ -176,6 +209,9 @@ public sealed record CombatCommandHandlingResult
 public interface ICombatCommandHandler
 {
     Result<CombatCommandHandlingResult> Handle(CombatCommandHandlingRequest request);
+    Result<ObservedGameplayExecution<CombatCommandHandlingResult>> HandleObserved(CombatCommandHandlingRequest request, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatCommandHandlingResult>>.Failure("This handler does not support gameplay observation");
+
 }
 
 /// <summary>
@@ -196,7 +232,23 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
         _state = state ?? throw new ArgumentNullException(nameof(state));
     }
 
-    public Result<CombatCommandHandlingResult> Handle(CombatCommandHandlingRequest request)
+    public Result<CombatCommandHandlingResult> Handle(CombatCommandHandlingRequest request) => HandleCore(request, null);
+
+    public Result<ObservedGameplayExecution<CombatCommandHandlingResult>> HandleObserved(CombatCommandHandlingRequest request, GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != request.Run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<CombatCommandHandlingResult>>.Failure("Command observation requires the action revision");
+        var action = request.Command.PowerId ?? request.Command.ActionType.ToString();
+        var started = GameplayActionObservation.Begin(observation, action, request.Command.ActorId);
+        if (started.IsFailure) return Result<ObservedGameplayExecution<CombatCommandHandlingResult>>.Failure(started.Error);
+        var result = HandleCore(request, started.Value);
+        if (result.IsFailure) return Result<ObservedGameplayExecution<CombatCommandHandlingResult>>.Failure(result.Error);
+        var completed = GameplayActionObservation.Complete(observation, started.Value, result.Value.Observation!, action, request.Command.ActorId);
+        return completed.IsFailure ? Result<ObservedGameplayExecution<CombatCommandHandlingResult>>.Failure(completed.Error)
+            : Result<ObservedGameplayExecution<CombatCommandHandlingResult>>.Success(new(result.Value with { Observation = completed.Value }, completed.Value));
+    }
+
+    private Result<CombatCommandHandlingResult> HandleCore(CombatCommandHandlingRequest request, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Run);
@@ -211,23 +263,30 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
                 return Result<CombatCommandHandlingResult>.Failure(input.Error);
         }
 
-        var legal = _legalActions.Evaluate(
-            request.Run,
-            request.Combat,
-            request.Command,
-            request.Origin);
+        Result<LegalActionEvaluation> legal;
+        if (observation == null) legal = _legalActions.Evaluate(request.Run, request.Combat, request.Command, request.Origin);
+        else
+        {
+            var observed = _legalActions.EvaluateObserved(request.Run, request.Combat, request.Command, request.Origin, observation);
+            if (observed.IsFailure) return Result<CombatCommandHandlingResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            legal = Result<LegalActionEvaluation>.Success(observed.Value.Execution);
+        }
         if (legal.IsFailure)
             return Result<CombatCommandHandlingResult>.Failure(legal.Error);
         if (!legal.Value.IsLegal)
             return Result<CombatCommandHandlingResult>.Failure(string.Join("; ", legal.Value.FailureReasons));
 
         var candidate = legal.Value.Candidate!;
-        var reduced = _state.Apply(
-            request.Run,
-            request.Combat,
-            candidate,
-            request.Command,
-            request.Run.ResolvedMode.CombatRules.Flow);
+        Result<CombatActionReduction> reduced;
+        if (observation == null) reduced = _state.Apply(request.Run, request.Combat, candidate, request.Command, request.Run.ResolvedMode.CombatRules.Flow);
+        else
+        {
+            var observed = _state.ApplyObserved(request.Run, request.Combat, candidate, request.Command, request.Run.ResolvedMode.CombatRules.Flow, observation);
+            if (observed.IsFailure) return Result<CombatCommandHandlingResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            reduced = Result<CombatActionReduction>.Success(observed.Value.Execution);
+        }
         if (reduced.IsFailure)
             return Result<CombatCommandHandlingResult>.Failure(reduced.Error);
 
@@ -283,6 +342,7 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
         };
         return Result<CombatCommandHandlingResult>.Success(new CombatCommandHandlingResult
         {
+            Observation = observation,
             Step = step,
             NextRun = stepRun with { Determinism = stepRun.Determinism.AdvanceStep() },
             Candidate = candidate,
