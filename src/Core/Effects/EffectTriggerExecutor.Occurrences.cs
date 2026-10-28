@@ -6,8 +6,32 @@ using Core.Run;
 
 namespace Core.Effects;
 
-public sealed partial class EffectTriggerExecutor
+public interface IGameplayOccurrenceExecutor
 {
+    Result<GameplayEffectObservation?> PrepareOccurrenceObservation(RunState run, CombatState combat, GameplayEffectObservation? observation = null);
+    Result<ObservedEffectExecution> DispatchOccurrencesObserved(RunState beforeRun, CombatState beforeCombat,
+        RunState afterRun, CombatState afterCombat, GameplayEffectObservation before, GameplayEffectObservation after);
+}
+
+public sealed partial class EffectTriggerExecutor : IGameplayOccurrenceExecutor
+{
+    public Result<GameplayEffectObservation?> PrepareOccurrenceObservation(RunState run, CombatState combat, GameplayEffectObservation? observation = null)
+    {
+        if (observation != null) return Result<GameplayEffectObservation?>.Success(observation);
+        var authored = HasAuthoredResponses(new() { Run = run, Combat = combat });
+        if (authored.IsFailure) return Result<GameplayEffectObservation?>.Failure(authored.Error);
+        if (!authored.Value) return Result<GameplayEffectObservation?>.Success(null);
+        var catalog = GameplayCoreCatalog.Create(run.SettingId, run.Determinism.ContentRevision);
+        if (catalog.IsFailure) return Result<GameplayEffectObservation?>.Failure(catalog.Error);
+        var id = Core.Determinism.CanonicalJson.ComputeHash(new { run.RunId, run.Sequence, combat, operation = "gameplay" });
+        var transaction = GameplayEventTransaction.Create(new() { SettingId = run.SettingId, ContentRevision = run.Determinism.ContentRevision,
+            RunId = (run.Lineage?.RootRunId ?? run.RunId).ToString("D"), BranchId = run.RunId.ToString("D"),
+            CombatId = combat.CombatId.ToString("D"), ActionId = id, CommandId = id }, catalog.Value);
+        return transaction.IsFailure ? Result<GameplayEffectObservation?>.Failure(transaction.Error)
+            : Result<GameplayEffectObservation?>.Success(new() { Events = transaction.Value, PublisherId = GameplayCoreCatalog.PublisherId,
+                ReasonId = "effect.application", CostReasonId = "cost.payment", RefundReasonId = "cost.refund" });
+    }
+
     private static Result<GameplayResponseQuotas> ResumeQuotas(GameplayEffectObservation observation,
         int maximum = GameplayResponseQuotas.MaximumInvocations)
     {

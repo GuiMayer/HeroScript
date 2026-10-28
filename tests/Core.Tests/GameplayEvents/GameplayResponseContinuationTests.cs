@@ -58,7 +58,7 @@ public sealed class GameplayResponseContinuationTests
         Assert.True(executor.DispatchOccurrencesObserved(run, combat, run with { RunId = Guid.NewGuid() }, combat, before, boundary.Value).IsFailure);
     }
 
-    private static (RunState Run, CombatState Combat) Fixture(string kind)
+    internal static (RunState Run, CombatState Combat) Fixture(string kind)
     {
         var context = GameplayResponseCompilationTests.Context();
         var response = GameplayResponseCompilationTests.Definition() with

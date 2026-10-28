@@ -175,3 +175,8 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Certificação 9c/9d: árvore c8cff97bec3a6b8d5e46f99c1e808cc4e7fe9a33 exportada em .runtime/generic-events-stage9d-index, build completo sem avisos/erros e 2134 testes Core aprovados, sem exclusões. API focada em execução separada. Continuidade é candidata/transiente; persistência durável continua reservada à etapa 12.
 
+
+- Certificação API 9d concluída: 32 testes focados aprovados na mesma árvore c8cff97bec3a6b8d5e46f99c1e808cc4e7fe9a33.
+
+- Etapa 9e: duração/expiração reais de status despacham respostas depois do lote canônico do participante; seus passos/aplicações integram os frames de combate sem inventar um status/trigger fictício. Fases emitem e despacham a fronteira uma única vez, inclusive sem entry/exit effects. Contexto privado é criado no caminho normal somente quando existe autoria de respostas. 187 testes focados aprovados, incluindo três regressões novas de duração, expiração e fase vazia, igualdade normal/observado e cinco repetições imutáveis. Restam fronteiras gerais e mutações externas; publicação continua bloqueada.
+

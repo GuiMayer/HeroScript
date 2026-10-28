@@ -733,9 +733,9 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 : observation.Relic(_relicLifecycle, run, processed.Value.Combat, boundary.ToString()));
             if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
             run = relics.Value.Run ?? run;
-            effectSteps.AddRange(processed.Value.Events.SelectMany(item => item.Steps));
+            effectSteps.AddRange(processed.Value.Events.SelectMany(item => item.Steps).Concat(processed.Value.ResponseSteps));
             effectSteps.AddRange(relics.Value.Events.SelectMany(item => item.Steps));
-            applications.AddRange(processed.Value.Events.SelectMany(item => item.Applications));
+            applications.AddRange(processed.Value.Events.SelectMany(item => item.Applications).Concat(processed.Value.ResponseApplications));
             applications.AddRange(relics.Value.Events.SelectMany(item => item.Applications));
             current = _outcomes.Evaluate(
                 relics.Value.Combat,
@@ -822,7 +822,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             policies.Outcome,
             activeActorId,
             CombatOutcomeEvaluationPoint.LifecycleBoundary);
-        var effectSteps = processed.Value.Events.SelectMany(item => item.Steps)
+        var effectSteps = processed.Value.Events.SelectMany(item => item.Steps).Concat(processed.Value.ResponseSteps)
             .Concat(relics.Value.Events.SelectMany(item => item.Steps))
             .ToArray();
         steps.Add(new CombatResolutionStep
@@ -837,7 +837,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 .Where(item => item.Calculation != null)
                 .Select(item => item.Calculation!)
                 .ToArray(),
-            Applications = processed.Value.Events.SelectMany(item => item.Applications)
+            Applications = processed.Value.Events.SelectMany(item => item.Applications).Concat(processed.Value.ResponseApplications)
                 .Concat(relics.Value.Events.SelectMany(item => item.Applications))
                 .ToArray(),
             Payload = JsonSerializer.SerializeToElement(new

@@ -36,6 +36,10 @@ public sealed record CombatStatusLifecycleResult(
 {
     [System.Text.Json.Serialization.JsonIgnore]
     internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableArray<EffectExecutionStep> ResponseSteps { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableArray<EffectApplicationRecord> ResponseApplications { get; init; } = [];
 }
 
 public interface ICombatStatusLifecycle
@@ -89,7 +93,15 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         if (targets.IsFailure)
             return Result<CombatStatusLifecycleResult>.Failure(targets.Error);
 
+        if (_triggers is IGameplayOccurrenceExecutor prepare)
+        {
+            var prepared = prepare.PrepareOccurrenceObservation(run, combat, observation);
+            if (prepared.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(prepared.Error);
+            observation = prepared.Value;
+        }
         var current = combat;
+        var responseSteps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
+        var responseApplications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var events = new List<CombatStatusLifecycleEvent>();
         var boundarySnapshot = combat.StatusEffects;
         IGameplayBoundaryExecutionScope? scope = null;
@@ -124,6 +136,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                 }
             }
 
+            var beforeTicks = current; var beforeTickRun = run; var beforeTickObservation = observation;
             var initialIds = activeAtBoundary.Select(item => item.InstanceId).ToHashSet();
             var latest = current.StatusEffects.GetValueOrDefault(targetId, []);
             var retained = ImmutableArray.CreateBuilder<StatusEffectInstance>();
@@ -170,8 +183,18 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
             current = retained.Count == 0
                 ? current with { StatusEffects = current.StatusEffects.Remove(targetId) }
                 : current with { StatusEffects = current.StatusEffects.SetItem(targetId, retained.ToImmutable()) };
+            if (_triggers is IGameplayOccurrenceExecutor dispatcher && beforeTickObservation != null && observation != null &&
+                beforeTickObservation.Events.Occurrences.Count != observation.Events.Occurrences.Count)
+            {
+                var dispatched = dispatcher.DispatchOccurrencesObserved(beforeTickRun, beforeTicks, run, current, beforeTickObservation, observation);
+                if (dispatched.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(dispatched.Error);
+                current = dispatched.Value.Execution.State; run = dispatched.Value.Execution.Run ?? run;
+                observation = dispatched.Value.Observation;
+                responseSteps.AddRange(dispatched.Value.Execution.Steps); responseApplications.AddRange(dispatched.Value.Execution.Records);
+            }
         }
-        return Result<CombatStatusLifecycleResult>.Success(new(current, events, run) { Observation = observation });
+        return Result<CombatStatusLifecycleResult>.Success(new(current, events, run) { Observation = observation,
+            ResponseSteps = responseSteps.ToImmutable(), ResponseApplications = responseApplications.ToImmutable() });
 
     }
 

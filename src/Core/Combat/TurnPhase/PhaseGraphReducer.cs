@@ -305,6 +305,13 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         PhaseDefinition phase,
         bool entering)
     {
+        if (_effects is IGameplayOccurrenceExecutor prepare)
+        {
+            var prepared = prepare.PrepareOccurrenceObservation(accumulator.Run, accumulator.Combat, accumulator.Observation);
+            if (prepared.IsFailure) return Result<Accumulator>.Failure(prepared.Error);
+            accumulator = accumulator with { Observation = prepared.Value };
+        }
+        var beforeBoundary = accumulator.Observation;
         var parentEventId = accumulator.Observation?.ParentEventId;
         if (accumulator.Observation is { } observation)
         {
@@ -316,6 +323,17 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
                 $"phase/{observation.Events.Occurrences.Count}/{(entering ? "entry" : "exit")}");
             if (started.IsFailure) return Result<Accumulator>.Failure(started.Error);
             accumulator = accumulator with { Observation = started.Value };
+        }
+        if (_effects is IGameplayOccurrenceExecutor dispatcher && beforeBoundary != null && accumulator.Observation != null)
+        {
+            var responded = dispatcher.DispatchOccurrencesObserved(accumulator.Run, accumulator.Combat,
+                accumulator.Run, accumulator.Combat, beforeBoundary, accumulator.Observation);
+            if (responded.IsFailure) return Result<Accumulator>.Failure(responded.Error);
+            var execution = responded.Value.Execution;
+            var responseOffset = accumulator.Steps.Length;
+            accumulator = accumulator with { Run = execution.Run ?? accumulator.Run, Combat = execution.State,
+                Observation = responded.Value.Observation, Steps = accumulator.Steps.AddRange(execution.Steps.Select((step, index) => step with { Index = responseOffset + index })),
+                Calculations = accumulator.Calculations.AddRange(execution.Calculations), Applications = accumulator.Applications.AddRange(execution.Records) };
         }
         var definitions = entering ? phase.EntryEffects : phase.ExitEffects;
         if (definitions.Count == 0) return Result<Accumulator>.Success(accumulator with
