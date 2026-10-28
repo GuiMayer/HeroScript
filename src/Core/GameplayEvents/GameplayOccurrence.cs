@@ -6,7 +6,7 @@ using Core.Resources;
 namespace Core.GameplayEvents;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum GameplayPayloadKind { ResourceChange, AttributeChange, StatusChange, CardMovement, Action, Boundary, RuleResult, ZoneOrder, ModifierChange, ResourceThreshold, ActorDefeatChange, SequenceChange, InstanceDuration }
+public enum GameplayPayloadKind { ResourceChange, AttributeChange, StatusChange, CardMovement, Action, Boundary, RuleResult, ZoneOrder, ModifierChange, ResourceThreshold, ActorDefeatChange, SequenceChange, InstanceDuration, ResourceTransport }
 
 public sealed record GameplayEventScope
 {
@@ -95,6 +95,7 @@ public sealed record GameplayOccurrence
 [JsonDerivedType(typeof(ActorDefeatChangePayload), "actor_defeat")]
 [JsonDerivedType(typeof(SequenceChangePayload), "sequence")]
 [JsonDerivedType(typeof(InstanceDurationPayload), "instance_duration")]
+[JsonDerivedType(typeof(ResourceTransportPayload), "resource_transport")]
 public abstract record GameplayOccurrencePayload
 {
     [JsonIgnore] public abstract GameplayPayloadKind PayloadKind { get; }

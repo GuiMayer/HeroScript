@@ -52,7 +52,22 @@ public sealed class GameplayAutomaticObservationTests
         var combat = CombatTransitions.Create([CombatFlowPlannerTests.Entity("hero", true, 0), CombatFlowPlannerTests.Entity("enemy", false, 0)],
             DeterministicContext.Create(2, "revision"));
         var planner = new CombatFlowPlanner(runtimes.Object, CombatFlowPlannerTests.Boundaries(CombatFlowPlannerTests.ZoneExecutor()), Mock.Of<IIntentResolver>());
+        combat = combat with { RunId = run.RunId };
         var initialized = planner.InitializeTransaction(run, combat).Value;
+        var initializationContext = new GameplayEffectObservation { PublisherId = GameplayCoreCatalog.PublisherId, ReasonId = "effect.application",
+            Events = GameplayEventTransaction.Create(new() { SettingId = run.SettingId, ContentRevision = "revision",
+                RunId = run.RunId.ToString("D"), BranchId = run.RunId.ToString("D"), CombatId = combat.CombatId.ToString("D"),
+                ActionId = "initialization", CommandId = "initialization" }, GameplayCoreCatalog.Create(run.SettingId, "revision").Value).Value };
+        var coordinator = new CombatRunCoordinator(Mock.Of<ICombatFactory>(), Mock.Of<IRunEncounterRuntime>(), planner,
+            Mock.Of<ICombatCommandHandler>(), Mock.Of<IAutomaticFlowDriver>());
+        var observedCandidate = coordinator.InitializeObserved(run, combat, initializationContext);
+        Assert.True(observedCandidate.IsSuccess, observedCandidate.IsFailure ? observedCandidate.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(initialized), CanonicalJson.ComputeHash(observedCandidate.Value.Execution));
+        Assert.Equal(CanonicalJson.ComputeHash(planner.InitializeObserved(run, combat, initializationContext).Value.Observation.Events.Occurrences),
+            CanonicalJson.ComputeHash(observedCandidate.Value.Observation.Events.Occurrences));
+        Assert.Empty(initializationContext.Events.Occurrences);
+        Assert.True(coordinator.InitializeObserved(run with { SettingId = "foreign" }, combat, initializationContext).IsFailure);
+
         var observedInitialization = planner.InitializeObserved(run, combat, Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation());
         Assert.True(observedInitialization.IsSuccess, observedInitialization.IsFailure ? observedInitialization.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(initialized), CanonicalJson.ComputeHash(observedInitialization.Value.Execution));

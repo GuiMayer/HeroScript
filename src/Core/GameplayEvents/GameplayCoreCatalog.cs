@@ -13,6 +13,7 @@ public static class GameplayCoreCatalog
         void Add(GameplayPayloadKind payload, params string[] ids) => kinds.AddRange(ids.Select(id => new GameplayEventKindDefinition
             { Kind = id, Payload = payload, PublisherId = PublisherId }));
         Add(GameplayPayloadKind.ResourceChange, "resource.change.resolved");
+        Add(GameplayPayloadKind.ResourceTransport, "resource.transport.resolved");
         Add(GameplayPayloadKind.AttributeChange, "attribute.change.resolved");
         Add(GameplayPayloadKind.StatusChange, "status.applied", "status.reapplied", "status.removed", "status.stacks.consumed", "status.expired", "status.duration.changed");
         Add(GameplayPayloadKind.ModifierChange, "modifier.stacks.changed");

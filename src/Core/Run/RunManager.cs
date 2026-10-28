@@ -1766,7 +1766,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             };
 
             var retry = _progression.ShouldRestartEncounterActivity(cleanedState, encounter.Combat.Status);
-            var promoted = PersistentPlayerTransitions.ResolveEncounter(cleanedState, encounter.Combat, retry);
+            var promoted = PersistentPlayerTransitions.ResolveEncounterObserved(cleanedState, encounter.Combat, retry, _observation);
             if (promoted.IsFailure) return Result<RunState>.Failure(promoted.Error);
             cleanedState = promoted.Value with { ActiveEncounterId = null };
 

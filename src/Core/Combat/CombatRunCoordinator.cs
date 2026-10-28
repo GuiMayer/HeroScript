@@ -324,16 +324,24 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
         });
     }
 
-    private Result<CombatInitializationResult> InitializeCanonicalFlow(RunState run, CombatState combat)
+    private Result<CombatInitializationResult> InitializeCanonicalFlow(RunState run, CombatState combat, GameplayRunObservation? observation = null)
     {
         if (run.ResolvedMode == null)
             return Result<CombatInitializationResult>.Failure(
                 "Run has no resolved game mode; canonical combat cannot initialize");
         if (_flowPlanner == null) return Result<CombatInitializationResult>.Failure("Canonical combat flow planner is unavailable");
-        var player = PersistentPlayerTransitions.Materialize(run, combat);
+        var player = PersistentPlayerTransitions.MaterializeObserved(run, combat, observation);
         if (player.IsFailure) return Result<CombatInitializationResult>.Failure(player.Error);
         combat = player.Value;
-        var initialized = _flowPlanner.InitializeTransaction(run, combat);
+        Result<CombatInitializationResult> initialized;
+        if (observation == null) initialized = _flowPlanner.InitializeTransaction(run, combat);
+        else
+        {
+            var observed = _flowPlanner.InitializeObserved(run, combat, observation.Current);
+            if (observed.IsFailure) return Result<CombatInitializationResult>.Failure(observed.Error);
+            observation.Accept(observed.Value.Observation);
+            initialized = Result<CombatInitializationResult>.Success(observed.Value.Execution);
+        }
         if (initialized.IsFailure) return initialized;
         return initialized;
     }

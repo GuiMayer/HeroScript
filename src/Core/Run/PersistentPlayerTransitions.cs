@@ -11,7 +11,10 @@ namespace Core.Run;
 /// <summary>Persistent attributes and actor resources. Combat resources are transported only by mode policy.</summary>
 public static class PersistentPlayerTransitions
 {
-    public static Result<RunState> ResolveEncounter(RunState run, CombatState combat, bool retry)
+    public static Result<RunState> ResolveEncounter(RunState run, CombatState combat, bool retry) => ResolveEncounterObserved(run, combat, retry, null);
+
+    internal static Result<RunState> ResolveEncounterObserved(RunState run, CombatState combat, bool retry,
+        Core.GameplayEvents.GameplayRunObservation? observation)
     {
         var policy = run.ResolvedMode?.ActorResourceLifecyclePolicy;
         if (policy == null) return Result<RunState>.Success(run);
@@ -20,7 +23,7 @@ public static class PersistentPlayerTransitions
         if (player == null || actor == null || player.InstanceId != run.PlayerEntityId ||
             player.ContentRevision != run.Determinism.ContentRevision)
             return Result<RunState>.Failure("Persistent player is missing or incompatible with resolved encounter");
-        var promoted = ActorResourceLifecycleTransitions.Exit(player, actor, policy, combat.Status, retry);
+        var promoted = ActorResourceLifecycleTransitions.ExitCore(player, actor, policy, combat.Status, retry, observation);
         return promoted.IsFailure ? Result<RunState>.Failure(promoted.Error)
             : Result<RunState>.Success(run with { PlayerEntity = promoted.Value });
     }
@@ -65,7 +68,10 @@ public static class PersistentPlayerTransitions
             Components = components.ToImmutable() });
     }
 
-    public static Result<CombatState> Materialize(RunState run, CombatState combat)
+    public static Result<CombatState> Materialize(RunState run, CombatState combat) => MaterializeObserved(run, combat, null);
+
+    internal static Result<CombatState> MaterializeObserved(RunState run, CombatState combat,
+        Core.GameplayEvents.GameplayRunObservation? observation)
     {
         if (run.PlayerEntity == null) return RelicResourceRules.Materialize(run, combat);
         var player = run.PlayerEntity;
@@ -75,7 +81,7 @@ public static class PersistentPlayerTransitions
             return Result<CombatState>.Failure("Persistent player identity/revision does not match encounter");
         var components = actor.Components.Where(pair => pair.Value is not StatEntityComponentState).ToImmutableDictionary(StringComparer.Ordinal);
         var materialized = actor with { Components = components.SetItems(player.Components.Where(pair => pair.Value is StatEntityComponentState)) };
-        var transported = ActorResourceLifecycleTransitions.Enter(player, materialized, run.ResolvedMode?.ActorResourceLifecyclePolicy);
+        var transported = ActorResourceLifecycleTransitions.EnterCore(player, materialized, run.ResolvedMode?.ActorResourceLifecyclePolicy, observation);
         return transported.IsFailure ? Result<CombatState>.Failure(transported.Error)
             : RelicResourceRules.Materialize(run, combat.ReplaceActor(transported.Value));
     }

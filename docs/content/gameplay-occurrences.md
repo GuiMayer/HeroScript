@@ -139,3 +139,7 @@ O motor isolado instala um adaptador de `ICardZoneFlowExecutor` apenas para o co
 ## Modificadores e fim da run (etapa 4q)
 
 Preparações projetam a instância efetivamente retornada por `ModifierTransitions.Apply`, incluindo dono, identidade alocada, stacks e duração. A saída do nó observa separadamente o tick Node e depois Run, conservando essa ordem. O encerramento é emitido quando a política canônica, já aplicada, muda a run ativa para outro estado; não é deduzido do nome do recurso ou do comando. O cursor retorna ao pai do comando após a fronteira.
+
+## Transporte e inicialização (etapa 4r)
+
+`resource.transport.resolved` usa `ResourceTransportPayload`: é a cópia/reset escolhido pela política de lifecycle entre snapshots persistente e de encontro, não uma segunda operação de recurso. Registra direção, ator, política, pedido, valores e limites. EncounterOnly e recursos ausentes ignorados não produzem transporte. Preservam-se clamp e limites persistentes. `CombatRunCoordinator.InitializeObserved` observa o mesmo core de materialização e planner após a factory, antes de anexar/gravar o encontro; rejeita contexto de outro agregado, combate, revisão ou setting. Essa entrada não substitui ainda a porta REST de início.

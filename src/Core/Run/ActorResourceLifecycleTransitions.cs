@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Resources;
+using Core.GameplayEvents;
 
 namespace Core.Run;
 
@@ -9,21 +10,27 @@ namespace Core.Run;
 public static class ActorResourceLifecycleTransitions
 {
     public static Result<CombatActorState> Enter(EntityState player, CombatActorState actor,
-        ActorResourceLifecyclePolicyDefinition? policy)
+        ActorResourceLifecyclePolicyDefinition? policy) => EnterCore(player, actor, policy, null);
+
+    internal static Result<CombatActorState> EnterCore(EntityState player, CombatActorState actor,
+        ActorResourceLifecyclePolicyDefinition? policy, GameplayRunObservation? observation)
     {
         if (policy == null) return Result<CombatActorState>.Success(actor);
-        var transfer = Transfer(player, actor, policy, true, CombatStatus.ACTIVE, false);
+        var transfer = Transfer(player, actor, policy, true, CombatStatus.ACTIVE, false, observation);
         return transfer.IsFailure ? Result<CombatActorState>.Failure(transfer.Error)
             : Result<CombatActorState>.Success(actor.WithResourceState(transfer.Value));
     }
 
     public static Result<EntityState> Exit(EntityState player, CombatActorState actor,
-        ActorResourceLifecyclePolicyDefinition? policy, CombatStatus outcome, bool retry = false)
+        ActorResourceLifecyclePolicyDefinition? policy, CombatStatus outcome, bool retry = false) => ExitCore(player, actor, policy, outcome, retry, null);
+
+    internal static Result<EntityState> ExitCore(EntityState player, CombatActorState actor,
+        ActorResourceLifecyclePolicyDefinition? policy, CombatStatus outcome, bool retry, GameplayRunObservation? observation)
     {
         if (policy == null) return Result<EntityState>.Success(player);
         if (outcome == CombatStatus.ACTIVE || !Enum.IsDefined(outcome))
             return Result<EntityState>.Failure("Actor resource exit requires a terminal encounter");
-        var transfer = Transfer(player, actor, policy, false, outcome, retry);
+        var transfer = Transfer(player, actor, policy, false, outcome, retry, observation);
         if (transfer.IsFailure) return Result<EntityState>.Failure(transfer.Error);
         var component = player.Component<ResourceEntityComponentState>();
         if (component == null) return Result<EntityState>.Success(player); // Only ignored/encounter-only rules.
@@ -32,7 +39,7 @@ public static class ActorResourceLifecycleTransitions
     }
 
     private static Result<ResourceSet> Transfer(EntityState player, CombatActorState actor,
-        ActorResourceLifecyclePolicyDefinition policy, bool entering, CombatStatus outcome, bool retry)
+        ActorResourceLifecyclePolicyDefinition policy, bool entering, CombatStatus outcome, bool retry, GameplayRunObservation? observation)
     {
         var valid = ActorResourceLifecyclePolicyValidator.Validate(policy);
         if (valid.IsFailure) return Result<ResourceSet>.Failure(valid.Error);
@@ -64,7 +71,25 @@ public static class ActorResourceLifecycleTransitions
                 _ => throw new InvalidOperationException("Policy must be validated before transport")
             };
             // On entry persistent bounds win too; temporary encounter bounds are never promoted on exit.
-            pools = pools.SetItem(rule.ResourceId, basis.Set(current));
+            var transported = basis.Set(current);
+            pools = pools.SetItem(rule.ResourceId, transported);
+            if (observation != null)
+            {
+                var context = observation.Current;
+                var appended = context.Events.Append(context.PublisherId, $"resource.transport/{context.Events.Occurrences.Count}", new()
+                {
+                    Kind = "resource.transport.resolved", ReasonId = context.ReasonId, Attribution = GameplayAttribution.None,
+                    SubjectActorId = actor.InstanceId,
+                    Origin = new() { ContainerKind = "rule", ContainerId = policy.ActorResourceLifecyclePolicyId, ComponentId = rule.ResourceId,
+                        ContentRevision = actor.ContentRevision },
+                    Payload = new ResourceTransportPayload { ActorId = actor.InstanceId, ResourceId = rule.ResourceId,
+                        EnteringEncounter = entering, Policy = action, Before = targetPool.Current, RequestedCurrent = current,
+                        After = transported.Current, BeforeMinimum = targetPool.Minimum, AfterMinimum = transported.Minimum,
+                        BeforeMaximum = targetPool.Maximum, AfterMaximum = transported.Maximum }
+                }, context.ParentEventId);
+                if (appended.IsFailure) return Result<ResourceSet>.Failure(appended.Error);
+                observation.Accept(context with { Events = appended.Value.Transaction });
+            }
         }
         return Result<ResourceSet>.Success(target with { Resources = pools });
     }
