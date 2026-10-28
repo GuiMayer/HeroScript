@@ -1743,7 +1743,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         int expectedSequence,
         Guid combatId,
         RunCommandIdentity? commandIdentity = null,
-        JsonElement rootPayload = default)
+        JsonElement rootPayload = default) => ResolveEncounterCore(runId, expectedSequence, combatId, commandIdentity, rootPayload, null);
+
+    private Result<RunState> ResolveEncounterCore(Guid runId, int expectedSequence, Guid combatId,
+        RunCommandIdentity? commandIdentity, JsonElement rootPayload, Core.GameplayEvents.GameplayRunObservation? observation)
     {
         using (_sessionGates.Enter(runId))
         {
@@ -1767,7 +1770,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (!string.Equals(state.CurrentNodeId, encounter.NodeId, StringComparison.Ordinal))
                 return Result<RunState>.Failure("Encounter no longer belongs to the current map node");
 
-            var flowed = ExecuteCardZoneBoundary(state, "encounter.ended");
+            var flowed = ExecuteCardZoneBoundary(state, "encounter.ended", observation);
             if (flowed.IsFailure)
                 return Result<RunState>.Failure(flowed.Error);
             var cleanedState = state with
@@ -1777,7 +1780,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             };
 
             var retry = _progression.ShouldRestartEncounterActivity(cleanedState, encounter.Combat.Status);
-            var promoted = PersistentPlayerTransitions.ResolveEncounterObserved(cleanedState, encounter.Combat, retry, _observation);
+            var promoted = PersistentPlayerTransitions.ResolveEncounterObserved(cleanedState, encounter.Combat, retry, observation);
             if (promoted.IsFailure) return Result<RunState>.Failure(promoted.Error);
             cleanedState = promoted.Value with { ActiveEncounterId = null };
 
@@ -1795,9 +1798,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                     Encounters = state.Encounters.SetItem(encounterIndex, resolved),
                     Determinism = cleanedState.Determinism.AdvanceStep()
                 };
-                return Persist(
-                    retryable,
-                    RunCommandTypes.ResolveCombat,
+                return FinishEncounterResolution(
+                    state, retryable,
                     rootPayload.ValueKind == JsonValueKind.Undefined
                         ? JsonSerializer.SerializeToElement(new
                     {
@@ -1809,11 +1811,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                     }, _jsonOptions)
                         : rootPayload,
                     commandIdentity,
-                    scope: "combat",
-                    combatId: combatId);
+                    combatId, observation);
             }
 
-            var exit = ApplyActivityBoundary(cleanedState, currentNode, RunActivityBoundary.Exit, out var exitEffects);
+            var exit = ApplyActivityBoundary(cleanedState, currentNode, RunActivityBoundary.Exit, out var exitEffects, observation);
             if (exit.IsFailure)
                 return Result<RunState>.Failure(exit.Error);
             cleanedState = exit.Value;
@@ -1826,13 +1827,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 ActiveEncounterId = null,
                 Encounters = state.Encounters.SetItem(encounterIndex, resolved)
             };
-            var progressed = _progression.ApplyNodeExitObserved(candidate, mapTransition.Value.Value, _observation);
+            var progressed = _progression.ApplyNodeExitObserved(candidate, mapTransition.Value.Value, observation);
             if (progressed.IsFailure) return Result<RunState>.Failure(progressed.Error);
             candidate = progressed.Value;
             candidate = _progression.ApplyEncounterOutcome(candidate, encounter.Combat.Status);
-            return Persist(
-                candidate,
-                RunCommandTypes.ResolveCombat,
+            return FinishEncounterResolution(
+                state, candidate,
                 rootPayload.ValueKind == JsonValueKind.Undefined
                     ? JsonSerializer.SerializeToElement(new
                 {
@@ -1843,8 +1843,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 }, _jsonOptions)
                     : rootPayload,
                 commandIdentity,
-                scope: "combat",
-                combatId: combatId, activityEffects: exitEffects);
+                combatId, observation, exitEffects);
         }
     }
 
@@ -2422,8 +2421,9 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
 
     private Result<CardZoneFlowResult> ExecuteCardZoneBoundary(
         RunState state,
-        string trigger)
-        => CardZoneRunFlowDispatcher.Execute(CardZoneFlows, state, state.Deck,
+        string trigger, Core.GameplayEvents.GameplayRunObservation? observation = null)
+        => CardZoneRunFlowDispatcher.Execute(observation != null && _cardZoneFlows != null
+            ? new ObservedRunCardZoneFlows(_cardZoneFlows, observation) : CardZoneFlows, state, state.Deck,
             state.Determinism, trigger);
 
     private Result<RunState> RestoreHeadFromHistory(
@@ -2486,14 +2486,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
             state = PrepareCommitCandidate(state, previous);
             var nextSequence = state.Sequence;
-            if (_observation != null && previous?.Lifecycle == RunLifecycleState.Active && state.Lifecycle != RunLifecycleState.Active)
+            if (_observation != null)
             {
-                var observed = Core.GameplayEvents.GameplayBoundaryObservation.Begin(_observation.Current,
-                    Core.GameplayEvents.GameplayBoundary.RunEnded, state.RunId.ToString("D"), null,
-                    new() { ContainerKind = "rule", ContainerId = "run.lifecycle", ComponentId = state.Lifecycle.ToString(),
-                        ContentRevision = state.Determinism.ContentRevision }, $"run.end/{_observation.Current.Events.Occurrences.Count}");
+                var observed = ObserveRunEnding(previous, state, _observation);
                 if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
-                _observation.Accept(observed.Value with { ParentEventId = _observation.Current.ParentEventId });
             }
             var snapshot = state;
             var previousHash = previous == null

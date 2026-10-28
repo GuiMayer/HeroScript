@@ -24,6 +24,51 @@ namespace Core.Tests.Run;
 public sealed class RunManagerTests
 {
     [Fact]
+    public void ObservedResolutionCoversCleanupAndNodeExpiryWithoutCommittingPartialWork()
+    {
+        var graph = TestZoneGraph() with { Flows = TestZoneGraph().Flows.Concat([new CardZoneFlowDefinition
+        { FlowId = "cleanup", Triggers = ["encounter.ended"], AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+            Steps = [new() { StepId = "move", Operation = CardZoneOperation.Move, SourceZoneId = "hand", TargetZoneId = "discard",
+                SourceOwner = CardZoneOwnerBinding.RunOwner, TargetOwner = CardZoneOwnerBinding.RunOwner,
+                Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = 99 }, OnInsufficient = CardZoneInsufficientPolicy.AllowPartial }] }
+        ]).ToArray() };
+        var manager = CreateManager(runJson: CombatRunJson, zoneSystem: graph);
+        var run = StartZoneRun(manager).Value;
+        run = ModifierTransitions.Apply(run, new() { ModifierId = "temporary", DefaultDuration = 1, DurationBoundary = ModifierDurationBoundary.Node },
+            new() { Kind = GameplayOwnerKind.Global }, "test").Value.Run;
+        var combat = CombatTransitions.Create([CreateCombatActorState("hero", true), CreateCombatActorState("enemy", false)],
+            DeterministicContext.Create(41, run.Determinism.ContentRevision)) with { RunId = run.RunId, RunNodeId = "start", Status = CombatStatus.VICTORY };
+        run = run with { ActiveEncounterId = combat.CombatId, Encounters = [new() { NodeId = "start", Combat = combat }],
+            ResolvedMode = run.ResolvedMode! with { CombatRules = run.ResolvedMode!.CombatRules with { Flow = run.ResolvedMode.CombatRules.Flow with
+                { EncounterResolution = new() { Strategy = EncounterResolutionStrategy.ManualAck } } } } };
+        Assert.True(manager.HydrateForReplay(run).IsSuccess);
+        var before = CanonicalJson.ComputeHash(run);
+        var identity = new RunCommandIdentity(Guid.Parse("50000000-0000-0000-0000-000000000001"), RunCommandTypes.ResolveCombat,
+            run.Sequence, combat.Determinism.Step);
+        var hashes = new HashSet<string>();
+        RunState? candidate = null;
+        for (var index = 0; index < 5; index++)
+        {
+            var planned = manager.PlanObservedResolution(run.RunId, combat.CombatId, identity);
+            Assert.True(planned.IsSuccess, planned.IsFailure ? planned.Error : null);
+            candidate = planned.Value.Execution;
+            Assert.Contains(planned.Value.Observation.Events.Occurrences, item => item.Kind == "card.moved");
+            Assert.Contains(planned.Value.Observation.Events.Occurrences, item => item.Kind == "modifier.stacks.changed");
+            Assert.True(candidate.Encounters[0].Resolved);
+            Assert.Null(candidate.ActiveEncounterId);
+            hashes.Add(CanonicalJson.ComputeHash(new { candidate, facts = planned.Value.Observation.Events.Occurrences }));
+            Assert.Equal(before, CanonicalJson.ComputeHash(manager.GetRun(run.RunId).Value));
+        }
+        Assert.Single(hashes);
+        Assert.True(manager.PlanObservedResolution(run.RunId, combat.CombatId, identity, new() { MaximumOccurrences = 1 }).IsFailure);
+        Assert.True(manager.PlanObservedResolution(run.RunId, combat.CombatId, identity with { ExpectedSequence = run.Sequence + 1 }).IsFailure);
+        Assert.Equal(before, CanonicalJson.ComputeHash(manager.GetRun(run.RunId).Value));
+        var expected = manager.ResolveEncounter(run.RunId, run.Sequence, combat.CombatId, identity);
+        Assert.True(expected.IsSuccess, expected.IsFailure ? expected.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(expected.Value), CanonicalJson.ComputeHash(candidate));
+    }
+
+    [Fact]
     public void ObservedCreationPreservesGenesisAndStartupFlowWithoutSavingOrPublishing()
     {
         var repository = new Mock<IRunCommitStore>();

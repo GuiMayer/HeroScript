@@ -147,3 +147,7 @@ Preparações projetam a instância efetivamente retornada por `ModifierTransiti
 ## Criação observada (etapa 4s)
 
 `RunManager.PlanObservedCreation` exige seed e identidade explícitos e usa o mesmo core que a criação normal. Lê conteúdo e o perfil autorizado, mas não grava nem registra recibo de criação. O bootstrap declarativo é o baseline gênese; não é convertido em mutações artificiais de recurso. Os passos dos fluxos iniciais configurados e os efeitos da atividade de entrada são observados após a fronteira `run.started`. A normalização de sequência, linhagem e consequências é compartilhada com a persistência. O candidato pode ser descartado ou repetido sem alterar partidas existentes.
+
+## Resolução observada (etapa 4t)
+
+`RunManager.PlanObservedResolution` planeja a confirmação de encontro terminal pela mesma composição normal, sob a trava/versionamento da run. Observa limpeza de zonas, promoção de recursos, atividade de saída e expiração/progressão. A normalização e o fato de término da run são compartilhados com o commit. Não publica snapshots intermediários nem preenche recibos. A finalização visual não é tratada como encerramento do combate; `combat.ended` pertence ao lifecycle de combate já concluído antes desta confirmação.
