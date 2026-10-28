@@ -36,7 +36,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 4 — Produtores canônicos | Concluída em modo opt-in; migração de consumidores nas etapas seguintes |
 | 5 — Definições e providers | Concluída; publicação executável bloqueada até o cutover |
 | 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
-| 7 — Migração das reações de recurso | Não iniciada |
+| 7 — Migração das reações de recurso | Em andamento: tradução isolada validada, cutover pendente |
 | 8 — Migração de lifecycle/fases | Não iniciada |
 | 9 — Containers e respostas pós-fato | Não iniciada |
 | 10 — Intenções e janelas | Não iniciada |
@@ -145,3 +145,5 @@ Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em se
 - Certificação 6b: árvore exata do índice `0ba031504e1dec9620364d3169aa9f07ca398f4e`, exportada para `.runtime/generic-events-stage6b-index`. Build da solução sem warnings/erros; **2081 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. O teste API amplo 65/67 previamente reproduzido na base não foi incluído nesta seleção focada. Ainda serão conferidos os casos de criação de observador/derrota e a proveniência das respostas antes do fechamento da etapa 6.
 
 - Fechamento da etapa 6: proveniência capturada das respostas, criação de observadores conforme BeforeOccurrence/AfterOccurrence, revalidação explícita após derrota, alteração zero e falha tardia/ciclo cobertos. Bindings/valores de combate não consultam atores persistentes fora do roster; atividades sem combate continuam podendo consultar a ficha persistente. **175 testes focados aprovados**. Árvore de código certificada `6ca1ef6c3c930b72939929c46bf6d81dd78d3590`, em `.runtime/generic-events-stage6-certified-index`: build completo sem warnings/erros, **2090 testes Core e 32 testes API focados aprovados**, sem falhas ou exclusões. A execução concorrente das duas suítes levou 2m20/2m43; não é uma medição de latência da engine. A etapa 6 fecha o dispatcher candidato, não anuncia migração de reações/lifecycles, publicação JSON, persistência de frequência durável ou REST antes das etapas correspondentes.
+
+- Etapa 7a: tradução isolada/read-only das reações capturadas de relíquias para registros de resposta, sem substituir a execução antiga. Mantém Source/Target, propriedade, revisão, prioridade anterior à identidade da relíquia e supressão de descendentes. Tags duplicadas conservam semântica; combinação histórica contraditória continua nunca elegível. Custos/refunds/settlements/canais diferentes continuam excluídos. **7 testes novos aprovados**. A troca do executor fica condicionada à prova dos aliases parent.*, IDs, snapshots e ordem completa; esta etapa ainda não está concluída.
