@@ -47,6 +47,8 @@ public sealed record GameplayEffectObservation
                 ContainerId = string.IsNullOrEmpty(command.Provenance.SourceId) ? command.EffectInstanceId : command.Provenance.SourceId,
                 ComponentId = command.Provenance.ComponentId ?? command.EffectInstanceId,
                 ContentRevision = command.ContentRevision ?? Events.Scope.ContentRevision },
+            Tags = command.ObservedTags ?? Core.Calculations.CalculationResolver.NormalizeTags(command.Definition,
+                ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal)).Order(StringComparer.Ordinal).Take(65).ToImmutableArray(),
             ImpactId = command.Identity?.ImpactId, ProcId = command.Identity?.ProcId
         };
         for (var index = 0; index < records.Count; index++)

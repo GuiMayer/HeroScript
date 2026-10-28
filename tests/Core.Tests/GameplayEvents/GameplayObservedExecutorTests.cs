@@ -40,6 +40,32 @@ public sealed class GameplayObservedExecutorTests
                 new() { MaximumOccurrences = maximum }).Value };
     }
 
+    [Fact]
+    public void FactsCaptureCanonicalTagsChannelsAndExplicitCostRoleWithoutLeakingInternalFields()
+    {
+        var effect = EffectTransactionTests.Resource(EffectType.DAMAGE, 3) with { Tags = ["fire"] };
+        var request = EffectTransactionTests.Request(effect) with { Tags = ImmutableHashSet.Create("card.attack"), PrefixCommands = [new()
+            { EffectInstanceId = "cost", SourceEntityId = "hero", TargetEntityIds = ["hero"], ResolvedValue = 1,
+                SemanticReasonId = "cost.payment", ContentRevision = "revision", Definition = new() { Type = EffectType.MODIFY_RESOURCE,
+                    TargetResource = "focus", Operation = ResourceEffectOperation.SUBTRACT } }] };
+        var observation = Observation();
+        var executor = EffectTransactionTests.Executor();
+        var actual = executor.ExecuteObserved(request, observation);
+        Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(executor.Execute(request).Value), CanonicalJson.ComputeHash(actual.Value.Execution));
+        var facts = actual.Value.Observation.Events.Occurrences;
+        Assert.Equal(2, facts.Count);
+        Assert.Equal("cost.payment", facts[0].ReasonId);
+        Assert.DoesNotContain("effect.damage", facts[0].Tags);
+        Assert.DoesNotContain("fire", facts[0].Tags);
+        Assert.Equal(new[] { "card.attack", "effect.damage", "fire", "resource.field.current", "resource.subtract" }, facts[1].Tags);
+        var payload = Assert.IsType<ResourceChangePayload>(facts[1].Payload);
+        Assert.Equal(ResourceOccurrenceRole.PrimaryEffect, payload.Role);
+        Assert.Equal(effect.CalculationChannel, payload.CalculationChannel);
+        Assert.DoesNotContain("ObservedTags", System.Text.Json.JsonSerializer.Serialize(request));
+        Assert.Empty(observation.Events.Occurrences);
+    }
+
     [Theory]
     [InlineData(EffectType.REMOVE_STATUS)]
     [InlineData(EffectType.DISPEL_STATUS)]
@@ -262,6 +288,8 @@ public sealed class GameplayObservedExecutorTests
         var settlement = Assert.Single(facts, item => item.Payload is ResourceChangePayload p && p.ResourceId == "shield");
         var primary = Assert.Single(facts, item => item.Payload is ResourceChangePayload p && p.ResourceId == "focus");
         Assert.Equal(new[] { settlement.EventId }, Assert.IsType<ResourceChangePayload>(primary.Payload).RelatedFactIds);
+        Assert.Equal(ResourceOccurrenceRole.Settlement, Assert.IsType<ResourceChangePayload>(settlement.Payload).Role);
+        Assert.Equal(ResourceOccurrenceRole.PrimaryEffect, Assert.IsType<ResourceChangePayload>(primary.Payload).Role);
         Assert.Equal(-4, Assert.IsType<ResourceChangePayload>(settlement.Payload).AppliedDelta);
         Assert.Equal(-2, Assert.IsType<ResourceChangePayload>(primary.Payload).AppliedDelta);
         Assert.Equal(primary.CalculationId, settlement.CalculationId);

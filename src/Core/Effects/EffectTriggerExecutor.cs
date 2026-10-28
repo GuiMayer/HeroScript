@@ -221,6 +221,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             var before = CanonicalJson.ComputeHash(current);
             var command = prefix with
             {
+                ObservedTags = observation == null ? null : CalculationResolver.NormalizeTags(prefix.Definition, request.Tags)
+                    .Order(StringComparer.Ordinal).Take(65).ToImmutableArray(),
                 Identity = EffectResultContext.Identity(executionId, prefix.Provenance.ComponentId ?? "prefix",
                     $"prefix:{steps.Count}", 0, prefix.TargetEntityIds.FirstOrDefault() ?? string.Empty, null,
                     prefix.Definition.OutputId)
@@ -658,6 +660,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             var command = new ResolvedEffectCommand
                             {
                                 EffectInstanceId = id,
+                                ObservedTags = observation == null ? null : CalculationResolver.NormalizeTags(effect, request.Tags)
+                                    .Order(StringComparer.Ordinal).Take(65).ToImmutableArray(),
                                 Definition = value.Value.Definition,
                                 SourceEntityId = request.SourceEntityId,
                                 Identity = identity,

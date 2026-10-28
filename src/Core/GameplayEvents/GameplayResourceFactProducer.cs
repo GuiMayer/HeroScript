@@ -57,7 +57,16 @@ public static class GameplayResourceFactProducer
             record.ResourceOutcome.PreviousValue, record.ResourceOutcome.CurrentValue, record.ResourceOutcome.RequestedValue), owner,
             metadata with { SourceActorId = string.IsNullOrEmpty(command.SourceEntityId) ? null : command.SourceEntityId, SubjectActorId = owner.Kind is "entity" or "actor" ? record.TargetEntityId : null,
                 ImpactId = record.Identity?.ImpactId, ProcId = record.Identity?.ProcId, CalculationId = record.CalculationId });
-        return result;
+        if (result.IsFailure) return result;
+        var enriched = ((ResourceChangePayload)result.Value.Payload) with
+        {
+            Role = record.CalculationInfluenceId == null ? ResourceOccurrenceRole.PrimaryEffect : ResourceOccurrenceRole.Settlement,
+            CalculationChannel = command.Definition.Parameters.FirstOrDefault(parameter => parameter.Parameter == EffectNumericParameter.Amount)?.Channel
+                ?? command.Definition.CalculationChannel
+        };
+        var valid = enriched.Validate();
+        return valid.IsFailure ? Result<GameplayOccurrenceDraft>.Failure(valid.Error)
+            : Result<GameplayOccurrenceDraft>.Success(result.Value with { Payload = enriched });
     }
 
     public static Result<GameplayEventTransaction> Append(GameplayEventTransaction transaction,

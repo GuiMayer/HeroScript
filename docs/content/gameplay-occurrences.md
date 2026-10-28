@@ -163,3 +163,7 @@ Quando o processador resolve uma remoção de status, dispel ou modificador e n�
 ## Restrições e sincronização persistente (etapa 4w)
 
 A materialização de restrições registra `resource.restriction.resolved` com dono/escopo e limites antes/depois; a chamada real Set para ajustar o saldo tem seu fato `resource.change.resolved` como filho, preservando operando e valor aplicado. Não se classifica o descarte de saldo como dano. Aquisição/remoção, entrada do executor e materialização persistente reutilizam o mesmo projetor. Um atributo RunBase é observado antes da sincronização que ele causou; transportes/restrições resultantes conservam esse pai. Encontros históricos resolvidos e carteiras sintéticas continuam fora da materialização de recursos de ator. Nenhum fato é publicado externamente antes de um commit.
+
+## Metadados para filtros (complemento 4x)
+
+As tags do envelope são as tags efetivas normalizadas pelo cálculo existente, capturadas por aplicação, sem inferir natureza pelo nome do recurso. `ResourceChangePayload.Role` distingue PrimaryEffect, Settlement e DirectMutation; `CalculationChannel` conserva o canal da definição quando o fato veio de um efeito. Motivo de custo/reembolso continua independente do papel. A captura não muda os comandos serializados nem executa normalização adicional no caminho normal sem observação. Exceder o limite de tags rejeita o candidato; não há confirmação com tags truncadas.

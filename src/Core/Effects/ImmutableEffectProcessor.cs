@@ -39,6 +39,8 @@ public sealed record ResolvedEffectCommand
 {
     [System.Text.Json.Serialization.JsonIgnore]
     internal string? SemanticReasonId { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableArray<string>? ObservedTags { get; init; }
 
     private ImmutableArray<string> _targetEntityIds = [];
     private ImmutableArray<ResolvedCalculationSettlement> _settlements = [];

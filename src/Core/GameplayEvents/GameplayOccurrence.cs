@@ -113,10 +113,15 @@ public sealed record GameplayObjectReference
     [JsonIgnore] public bool IsValid => HierarchicalName.Parse(Kind).IsSuccess && EventValue.Valid(Id) && EventValue.Optional(ScopeId);
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ResourceOccurrenceRole { DirectMutation, PrimaryEffect, Settlement }
+
 public sealed record ResourceChangePayload : GameplayOccurrencePayload
 {
     public override GameplayPayloadKind PayloadKind => GameplayPayloadKind.ResourceChange;
     public string ResourceId { get; init; } = string.Empty;
+    public ResourceOccurrenceRole Role { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? CalculationChannel { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public GameplayObjectReference? Owner { get; init; }
     [JsonConverter(typeof(JsonStringEnumConverter))] public ResourceValueField Field { get; init; }
@@ -133,6 +138,7 @@ public sealed record ResourceChangePayload : GameplayOccurrencePayload
     public override Result Validate()
     {
         if (!EventValue.Valid(ResourceId) || Owner is { IsValid: false } || !Enum.IsDefined(Field) || !Enum.IsDefined(Operation) ||
+            !Enum.IsDefined(Role) || !EventValue.Optional(CalculationChannel) ||
             !new[] { Operand, Before, RequestedValue, After }.All(float.IsFinite) || !EventValue.Optional(TransferGroupId) ||
             RelatedFactIds.IsDefault || RelatedFactIds.Length > 64 || RelatedFactIds.Any(id => !EventValue.Valid(id)))
             return Result.Failure("Invalid resource change payload");
