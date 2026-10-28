@@ -11,6 +11,9 @@ namespace Core.Combat.Reactions;
 /// </summary>
 public sealed record PendingActionState
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.GameplayEvents.GameplayCausalAnchor? OriginCause { get; init; }
+
     private ImmutableArray<string> _lockedTargetIds = [];
     private ImmutableArray<PendingResourceCost> _paidCosts = [];
     private ImmutableArray<string> _commandTags = [];

@@ -8,6 +8,9 @@ namespace Core.StatusEffects;
 /// </summary>
 public record StatusEffectInstance
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.GameplayEvents.GameplayCausalAnchor? OriginCause { get; init; }
+
     /// <summary>
     /// ID único desta instância
     /// </summary>

@@ -32,7 +32,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 0 — Inventário e baseline | Concluída |
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
-| 3 — Causalidade e identidade | Não iniciada |
+| 3 — Causalidade e identidade | Concluída |
 | 4 — Produção de fatos | Não iniciada |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
@@ -55,3 +55,8 @@ As contagens abaixo devem registrar somente execuções realizadas durante este 
 - Etapa 1: parser ordinal, seletores exatos/um nível/descendentes, inclusão/exclusão e trie imutável implementados. 26 testes focados passaram (24 de hierarquia + 2 de baseline). Nenhum consumidor de gameplay foi alterado. Contrato em `docs/content/gameplay-event-hierarchies.md`.
 
 - Etapa 2: envelope/payloads discriminados, escopo, validação numérica, catálogo por revisão, capacidades confiáveis de publisher e aliases validados implementados. 31 testes focados passaram. Há contrato e schema de autoria; não há publicação/runtime novo habilitado nem alteração de hashes existentes.
+
+- Etapa 3: transação de ocorrências imutável, identidade sem RNG, atribuição explícita e âncora histórica separada da profundidade da ação. Campos opcionais nulos não são serializados em status, lotes e propostas; a engineVersion continua 34 e produtores ainda não os preenchem. 55 testes focados passaram.
+- A execução Core completa do checkout registrou 1974 aprovações e seis falhas em `UnoClashParityTests`, arquivo não rastreado anterior ao plano; as falhas leem diretamente chaves ausentes dos JSONs locais de UNO. O teste/conteúdo não foi alterado nem excluído. Certificação independente do índice em andamento.
+
+- Certificação da etapa 3: exportado o índice para `.runtime/generic-events-stage3-index` e executada a suíte Core completa com build/artefatos dentro da própria cópia, usando o conteúdo versionado dessa cópia: **1970 testes aprovados, zero falhas e zero exclusões**. A execução anterior de fontes do índice também passou em 1970 testes; a repetição dentro da cópia garante isolamento da descoberta de recursos. Os seis erros do checkout não estão presentes na árvore versionada.

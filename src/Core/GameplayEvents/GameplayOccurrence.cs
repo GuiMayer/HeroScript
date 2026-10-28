@@ -43,6 +43,8 @@ public sealed record GameplayOccurrence
     public string? AttributedActorId { get; init; }
     public string? SubjectActorId { get; init; }
     public GameplayEventOrigin? Origin { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GameplayCausalAnchor? OriginCause { get; init; }
     public string? ImpactId { get; init; }
     public string? ProcId { get; init; }
     public string? CalculationId { get; init; }
@@ -66,6 +68,8 @@ public sealed record GameplayOccurrence
         if (Origin != null && (HierarchicalName.Parse(Origin.ContainerKind).IsFailure ||
             !new[] { Origin.ContainerId, Origin.ComponentId, Origin.ContentRevision }.All(EventValue.Valid)))
             return Result.Failure("Occurrence origin is invalid");
+        if (OriginCause != null && (OriginCause.Validate().IsFailure || OriginCause.SettingId != Scope.SettingId || OriginCause.RunId != Scope.RunId))
+            return Result.Failure("Historical causal anchor belongs to another run or setting");
         var definition = catalog.FindKind(Kind);
         if (definition.IsFailure || definition.Value.Kind != Kind) return Result.Failure("Occurrence kind must be a canonical catalog identifier");
         var reason = catalog.FindReason(ReasonId);

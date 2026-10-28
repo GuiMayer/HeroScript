@@ -48,6 +48,9 @@ public sealed record StackPayloadParameterState
 /// <summary>One application contribution inside the canonical status/modifier instance.</summary>
 public sealed record StackPayloadLot
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.GameplayEvents.GameplayCausalAnchor? OriginCause { get; init; }
+
     public string LotId { get; init; } = string.Empty;
     public int Stacks { get; init; }
     public string ContentRevision { get; init; } = string.Empty;

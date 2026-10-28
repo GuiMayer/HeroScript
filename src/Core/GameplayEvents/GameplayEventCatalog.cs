@@ -53,7 +53,7 @@ public sealed class GameplayEventCatalog
             sources.Any(item => item == null || HierarchicalName.Parse(item.PublisherId).IsFailure || item.AllowedKinds == null ||
                 item.Payloads.IsDefaultOrEmpty || item.Payloads.Any(payload => !Enum.IsDefined(payload))) ||
             sources.Select(item => item.PublisherId).Distinct(StringComparer.Ordinal).Count() != sources.Length ||
-            topics.Any(item => item == null || HierarchicalName.Parse(item.Kind).IsFailure || item.SchemaVersion != 1 || !Enum.IsDefined(item.Payload)) ||
+            topics.Any(item => item == null || HierarchicalName.Parse(item.Kind).IsFailure || HierarchicalName.Parse(item.PublisherId).IsFailure || item.SchemaVersion != 1 || !Enum.IsDefined(item.Payload)) ||
             topics.Select(item => item.Kind).Distinct(StringComparer.Ordinal).Count() != topics.Length ||
             motives.Any(item => item == null || HierarchicalName.Parse(item.ReasonId).IsFailure || !EventValue.Optional(item.MessageKey) ||
                 item.Tags.IsDefault || item.Tags.Length > 64 || item.Tags.Any(tag => !EventValue.Valid(tag)) ||
@@ -75,12 +75,18 @@ public sealed class GameplayEventCatalog
         return Result<GameplayEventCatalog>.Success(new(setting, revision, topicMap, motiveMap, topicAliases.Value, motiveAliases.Value));
     }
 
-    public Result<GameplayEventKindDefinition> FindKind(string id) =>
-        Kinds.TryGetValue(_kindAliases.GetValueOrDefault(id, id), out var value)
+    public Result<GameplayEventKindDefinition> FindKind(string id)
+    {
+        if (HierarchicalName.Parse(id).IsFailure) return Result<GameplayEventKindDefinition>.Failure("Invalid event kind identifier");
+        return Kinds.TryGetValue(_kindAliases.GetValueOrDefault(id, id), out var value)
             ? Result<GameplayEventKindDefinition>.Success(value) : Result<GameplayEventKindDefinition>.Failure("Unknown event kind");
-    public Result<GameplayReasonDefinition> FindReason(string id) =>
-        Reasons.TryGetValue(_reasonAliases.GetValueOrDefault(id, id), out var value)
+    }
+    public Result<GameplayReasonDefinition> FindReason(string id)
+    {
+        if (HierarchicalName.Parse(id).IsFailure) return Result<GameplayReasonDefinition>.Failure("Invalid event reason identifier");
+        return Reasons.TryGetValue(_reasonAliases.GetValueOrDefault(id, id), out var value)
             ? Result<GameplayReasonDefinition>.Success(value) : Result<GameplayReasonDefinition>.Failure("Unknown event reason");
+    }
 
     private static Result<ImmutableDictionary<string, string>> ResolveAliases(IEnumerable<GameplayCatalogAlias> aliases, HashSet<string> canonical)
     {

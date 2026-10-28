@@ -13,3 +13,11 @@ Payloads suportados pelo contrato: recurso, atributo, status, movimento de carta
 Aliases são validados e resolvidos no catálogo; ciclos, destinos inexistentes e colisão com identificadores canônicos são inválidos. Uma ocorrência pronta para execução usa IDs canônicos, nunca o alias. Isso impede duplicar fatos como efeito colateral da migração. Wildcards seguem o [contrato de hierarquias](gameplay-event-hierarchies.md).
 
 Nada nesta etapa publica ocorrências, adiciona campos a snapshots existentes, muda a engineVersion ou instala um segundo journal. A validação do envelope não equivale a aceitar fatos arbitrários do cliente: o gateway continua sendo a única entrada de comandos.
+
+## Causalidade entre ações
+
+`GameplayEventTransaction` cria sucessores imutáveis. IDs usam escopo, publisher, caminho do produtor e ordinal, sem RNG ou relógio. Append inválido não consome ordinal, contador nem contexto aleatório. O publisher precisa corresponder à capacidade do tipo no catálogo; aliases são resolvidos uma vez antes da validação da ocorrência.
+
+`ParentEventId` e `RootEventId` descrevem a execução na ação atual. Um efeito atrasado pode ter `OriginCause`, uma referência histórica separada à ação que o instalou, com responsável atribuído e revisão. Isso permite seguir a cadeia entre ações sem transformar a idade de um status em profundidade de recursão. A referência histórica não pode ser usada para forjar um pai inexistente da ação atual. Outra branch só é aceita quando o chamador fornece a lista de ancestrais autorizados.
+
+`StatusEffectInstance`, `StackPayloadLot` e `PendingActionState` possuem campo opcional `OriginCause`, omitido quando nulo. A serialização dos estados existentes continua sem esse campo; não há preenchimento automático nem migração silenciosa. O primeiro produtor que tornar esse estado novo autoritativo precisará de corte explícito de engine/schema, baseline de replay e certificação. Até esse corte, engineVersion 34 e seus consumidores continuam executando o comportamento anterior.
