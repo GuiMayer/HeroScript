@@ -23,6 +23,36 @@ namespace Core.Tests.Run;
 
 public sealed class RunManagerTests
 {
+    [Fact]
+    public void ObservedCreationPreservesGenesisAndStartupFlowWithoutSavingOrPublishing()
+    {
+        var repository = new Mock<IRunCommitStore>();
+        var manager = CreateManager(repository: repository.Object);
+        var options = new RunStartOptions("test", "default_run", "hero", Seed: 42,
+            ContentRevision: "test", ModeId: "test-mode", CreationCommandId: Guid.Parse("40000000-0000-0000-0000-000000000001"));
+        var hashes = new HashSet<string>();
+        RunState? candidate = null;
+        for (var index = 0; index < 5; index++)
+        {
+            var planned = manager.PlanObservedCreation(options);
+            Assert.True(planned.IsSuccess, planned.IsFailure ? planned.Error : null);
+            candidate = planned.Value.Execution;
+            Assert.Equal("command.started", planned.Value.Observation.Events.Occurrences[0].Kind);
+            Assert.Equal("run.started", planned.Value.Observation.Events.Occurrences[1].Kind);
+            Assert.Equal("command.completed", planned.Value.Observation.Events.Occurrences.Last().Kind);
+            hashes.Add(CanonicalJson.ComputeHash(new { planned.Value.Execution, facts = planned.Value.Observation.Events.Occurrences }));
+            Assert.True(manager.GetRun(candidate.RunId).IsFailure);
+        }
+        Assert.Single(hashes);
+        Assert.True(manager.PlanObservedCreation(options, new() { MaximumOccurrences = 1 }).IsFailure);
+        Assert.True(manager.PlanObservedCreation(options with { Seed = null }).IsFailure);
+        Assert.True(manager.PlanObservedCreation(options with { CreationCommandId = null }).IsFailure);
+        repository.Verify(item => item.AppendAsync(It.IsAny<RunCommit>(), It.IsAny<CancellationToken>()), Times.Never);
+        var expected = CreateManager().StartRun(options);
+        Assert.True(expected.IsSuccess, expected.IsFailure ? expected.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(expected.Value), CanonicalJson.ComputeHash(candidate));
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]

@@ -129,7 +129,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         }
     }
 
-    private Result<RunState> StartRunCore(RunStartOptions options, RunCreationReceiptIdentity creationIdentity)
+    private Result<RunState> StartRunCore(RunStartOptions options, RunCreationReceiptIdentity creationIdentity, CreationObservation? planning = null)
     {
 
         if (string.IsNullOrWhiteSpace(options.ConfigName))
@@ -299,16 +299,27 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             ProgressProvenance = state.ResolvedMode?.ProfileProgressPolicy == null
                 ? null : Core.Meta.RunProgressProvenance.Effective(state)
         };
+        if (planning != null)
+        {
+            var observed = planning.Begin(state, options.CreationCommandId!.Value, initialZoneSteps);
+            if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+        }
         var initialNode = state.Map.Nodes.FirstOrDefault(node => node.NodeId == state.CurrentNodeId);
         RunActivityEffectResult? initialActivityEffects = null;
         if (initialNode != null)
         {
-            var entry = ApplyActivityBoundary(state, initialNode, RunActivityBoundary.Entry, out initialActivityEffects);
+            var entry = ApplyActivityBoundary(state, initialNode, RunActivityBoundary.Entry, out initialActivityEffects, planning?.Current);
             if (entry.IsFailure)
                 return Result<RunState>.Failure(entry.Error);
             state = entry.Value;
         }
 
+        if (planning != null)
+        {
+            state = PrepareCommitCandidate(state, null);
+            var completed = planning.Complete(state);
+            return completed.IsFailure ? Result<RunState>.Failure(completed.Error) : Result<RunState>.Success(state);
+        }
         using (_sessionGates.Enter(state.RunId))
         {
             if (_runs.ContainsKey(state.RunId))
@@ -1841,15 +1852,16 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         RunState state,
         RunMapNodeState node,
         RunActivityBoundary boundary,
-        out RunActivityEffectResult? diagnostics)
+        out RunActivityEffectResult? diagnostics, Core.GameplayEvents.GameplayRunObservation? candidateObservation = null)
     {
         diagnostics = null;
         var configured = boundary == RunActivityBoundary.Entry ? node.EntryEffects : node.ExitEffects;
         if (configured.Count == 0)
             return Result<RunState>.Success(state);
-        if (ActivityEffects == null)
+        var effects = candidateObservation != null && _activityEffects != null ? candidateObservation.Wrap(_activityEffects) : ActivityEffects;
+        if (effects == null)
             return Result<RunState>.Failure("Run activity effect executor is not configured");
-        var result = ActivityEffects.Execute(state, node, boundary);
+        var result = effects.Execute(state, node, boundary);
         if (result.IsSuccess) diagnostics = result.Value;
         return result.IsFailure
             ? Result<RunState>.Failure(result.Error)
@@ -2472,8 +2484,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             var effectiveType = identity?.Type ?? commandType;
             var effectiveCommand = activeCommand?.Payload
                 ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
-            var nextSequence = checked((previous?.Sequence ?? 0) + 1);
-            state = PersistentPlayerTransitions.ApplyResourceConsequences(state);
+            state = PrepareCommitCandidate(state, previous);
+            var nextSequence = state.Sequence;
             if (_observation != null && previous?.Lifecycle == RunLifecycleState.Active && state.Lifecycle != RunLifecycleState.Active)
             {
                 var observed = Core.GameplayEvents.GameplayBoundaryObservation.Begin(_observation.Current,
@@ -2483,14 +2495,6 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
                 _observation.Accept(observed.Value with { ParentEventId = _observation.Current.ParentEventId });
             }
-            state = DeckCompartments.DeckCompartmentPlanner.ReconcileDestroyedCards(state);
-            state = state with
-            {
-                Sequence = nextSequence,
-                Lineage = previous == null
-                    ? state.Lineage ?? RunLineage.Root(state.RunId)
-                    : previous.Lineage
-            };
             var snapshot = state;
             var previousHash = previous == null
                 ? string.Empty

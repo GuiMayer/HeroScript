@@ -143,3 +143,7 @@ Preparações projetam a instância efetivamente retornada por `ModifierTransiti
 ## Transporte e inicialização (etapa 4r)
 
 `resource.transport.resolved` usa `ResourceTransportPayload`: é a cópia/reset escolhido pela política de lifecycle entre snapshots persistente e de encontro, não uma segunda operação de recurso. Registra direção, ator, política, pedido, valores e limites. EncounterOnly e recursos ausentes ignorados não produzem transporte. Preservam-se clamp e limites persistentes. `CombatRunCoordinator.InitializeObserved` observa o mesmo core de materialização e planner após a factory, antes de anexar/gravar o encontro; rejeita contexto de outro agregado, combate, revisão ou setting. Essa entrada não substitui ainda a porta REST de início.
+
+## Criação observada (etapa 4s)
+
+`RunManager.PlanObservedCreation` exige seed e identidade explícitos e usa o mesmo core que a criação normal. Lê conteúdo e o perfil autorizado, mas não grava nem registra recibo de criação. O bootstrap declarativo é o baseline gênese; não é convertido em mutações artificiais de recurso. Os passos dos fluxos iniciais configurados e os efeitos da atividade de entrada são observados após a fronteira `run.started`. A normalização de sequência, linhagem e consequências é compartilhada com a persistência. O candidato pode ser descartado ou repetido sem alterar partidas existentes.
