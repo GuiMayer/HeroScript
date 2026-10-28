@@ -20,6 +20,7 @@ public sealed record GameplayEffectObservation
     public string PublisherId { get; init; } = string.Empty;
     public string ReasonId { get; init; } = string.Empty;
     public string? CostReasonId { get; init; }
+    public string? RefundReasonId { get; init; }
     public string? ParentEventId { get; init; }
     public string? LastApplicationEventId { get; init; }
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];

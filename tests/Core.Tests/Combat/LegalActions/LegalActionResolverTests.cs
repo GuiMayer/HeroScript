@@ -9,6 +9,7 @@ using Core.Common;
 using Core.Content;
 using Core.Determinism;
 using Core.Effects;
+using Core.GameplayEvents;
 using Core.Math;
 using Core.Resources;
 using Core.Run;
@@ -22,6 +23,76 @@ namespace Core.Tests.Combat.LegalActions;
 
 public sealed class LegalActionResolverTests
 {
+    [Fact]
+    public void ObservedCandidatesNeverUseOrPopulateTheNormalPreviewCache()
+    {
+        var (run, combat) = State(includeAbility: true);
+        var preview = new AbilityExecutionResult { Combat = combat, Definition = new() { ActionId = "slash", ActionType = ActionType.POWER },
+            Evaluation = new() { IsLegal = true, ActorId = "enemy", ResolvedTargetIds = ["hero"] }, ResolutionFingerprint = "canonical" };
+        var abilities = new Mock<IAbilityExecutor>();
+        abilities.Setup(service => service.Execute(It.IsAny<AbilityExecutionRequest>())).Returns(Result<AbilityExecutionResult>.Success(preview));
+        abilities.Setup(service => service.ExecuteObserved(It.IsAny<AbilityExecutionRequest>(), It.IsAny<GameplayEffectObservation>()))
+            .Returns((AbilityExecutionRequest request, GameplayEffectObservation observation) =>
+            {
+                var appended = observation.Events.Append(observation.PublisherId, "ability/test", new()
+                { Kind = "resource.change.resolved", ReasonId = observation.ReasonId, Attribution = GameplayAttribution.Source, SourceActorId = "enemy",
+                    SubjectActorId = "hero", Payload = new ResourceChangePayload { ResourceId = "mana", Operation = ResourceMutationOperation.Set,
+                        Operand = 1, Before = 1, RequestedValue = 1, After = 1 } });
+                Assert.True(appended.IsSuccess, appended.IsFailure ? appended.Error : null);
+                var next = observation with { Events = appended.Value.Transaction };
+                return Result<ObservedGameplayExecution<AbilityExecutionResult>>.Success(new(preview with { Observation = next }, next));
+            });
+        var resolver = Resolver(abilities);
+        var command = new CombatActionCommand { RunId = run.RunId, ActorId = "enemy", ActionType = ActionType.POWER, PowerId = "slash", TargetIds = ["hero"] };
+        var normal = resolver.Evaluate(run, combat, command, CombatCommandOrigin.AutomaticController).Value;
+        var observation = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation();
+        var first = resolver.EvaluateObserved(run, combat, command, CombatCommandOrigin.AutomaticController, observation);
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        var second = resolver.EvaluateObserved(run, combat, command, CombatCommandOrigin.AutomaticController, first.Value.Observation);
+        Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(normal), CanonicalJson.ComputeHash(first.Value.Execution));
+        Assert.Single(first.Value.Observation.Events.Occurrences);
+        Assert.Equal(2, second.Value.Observation.Events.Occurrences.Count);
+        Assert.Empty(observation.Events.Occurrences);
+        Assert.Equal(CanonicalJson.ComputeHash(normal), CanonicalJson.ComputeHash(resolver.Evaluate(run, combat, command, CombatCommandOrigin.AutomaticController).Value));
+        abilities.Verify(service => service.Execute(It.IsAny<AbilityExecutionRequest>()), Times.Once);
+        abilities.Verify(service => service.ExecuteObserved(It.IsAny<AbilityExecutionRequest>(), It.IsAny<GameplayEffectObservation>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void ProposedActionRecordsOnlyActualReservationAndDoesNotSpendBudgetOnDiscardedResolution()
+    {
+        var (run, combat) = State(includeAbility: true, priority: true);
+        run = run with { ResolvedMode = run.ResolvedMode! with { CombatRules = run.ResolvedMode.CombatRules with
+            { Flow = run.ResolvedMode.CombatRules.Flow with { Reactions = PriorityPolicy() with { CostTiming = ReactionCostTiming.Proposal } } } } };
+        var abilities = new Mock<IAbilityExecutor>();
+        abilities.Setup(service => service.Execute(It.IsAny<AbilityExecutionRequest>())).Returns(Result<AbilityExecutionResult>.Success(new()
+        {
+            Combat = combat, Definition = new() { ActionId = "slash", ActionType = ActionType.POWER },
+            Evaluation = new() { IsLegal = true, ActorId = "enemy", ResolvedTargetIds = ["hero"],
+                Costs = [new() { ComponentId = "cost", ResourceId = "health", Amount = 2, Affordable = true }] }, ResolutionFingerprint = "canonical"
+        }));
+        var effects = new Mock<IEffectTriggerExecutor>();
+        var processor = new EffectTriggerExecutor(Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
+        effects.Setup(service => service.ExecuteObserved(It.IsAny<EffectTriggerExecutionRequest>(), It.IsAny<GameplayEffectObservation>()))
+            .Returns((EffectTriggerExecutionRequest request, GameplayEffectObservation context) => processor.ExecuteObserved(request, context));
+        var resolver = Resolver(abilities, priority: true, effects: effects);
+        var observation = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(1) with { CostReasonId = "cost.payment" };
+        var command = new CombatActionCommand { RunId = run.RunId, ActorId = "enemy", ActionType = ActionType.POWER, PowerId = "slash", TargetIds = ["hero"] };
+        var before = CanonicalJson.ComputeHash(new { run, combat });
+        var result = resolver.EvaluateObserved(run, combat, command, CombatCommandOrigin.AutomaticController, observation);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True(result.Value.Execution.IsLegal, string.Join("; ", result.Value.Execution.FailureReasons));
+        Assert.Equal(ReactionTransitionKind.Proposed, result.Value.Execution.Candidate!.ReactionTransition);
+        var fact = Assert.Single(result.Value.Observation.Events.Occurrences);
+        Assert.Equal("cost.payment", fact.ReasonId);
+        Assert.Equal("enemy", fact.SubjectActorId);
+        Assert.Equal(2, Assert.IsType<ResourceChangePayload>(fact.Payload).Operand);
+        abilities.Verify(service => service.ExecuteObserved(It.IsAny<AbilityExecutionRequest>(), It.IsAny<GameplayEffectObservation>()), Times.Never);
+        Assert.Empty(observation.Events.Occurrences);
+        Assert.Equal(before, CanonicalJson.ComputeHash(new { run, combat }));
+    }
+
     [Fact]
     public void ConfiguredPassiveConditionRejectsDirectAndDiscoveredCommandsWithoutMutation()
     {

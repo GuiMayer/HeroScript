@@ -103,3 +103,9 @@ Ainda faltam a ação raiz/candidato do gateway e a ligação dos caminhos de cu
 `CardPlayExecutor.ExecuteObserved` e `AbilityExecutor.ExecuteObserved` usam o mesmo core das entradas normais, retornando a observação junto ao candidato privado. Repetir ou descartar um candidato não modifica a observação de entrada. O resolvedor de legalidade ainda precisa escolher qual desses candidatos será encaminhado; não é correto registrar globalmente todos os previews executados.
 
 `CostReasonId` é uma classificação explícita da composição confiável. `ActionEffectCosts` a vincula aos comandos de custo já avaliados, antes dos efeitos. O vínculo interno é ignorado na serialização e não muda os fingerprints existentes. Uma subtração do corpo da carta não vira custo, e um custo não vira dano por usar o mesmo recurso/operação. Motivos ausentes do catálogo continuam falhando sem entregar um candidato parcial.
+
+## Legalidade e alternativas descartadas (etapa 4k)
+
+`LegalActionResolver.EvaluateObserved` executa uma instância isolada do resolvedor, sem consultar/popular seus caches normais de preview. Cada execução recebe a mesma base imutável e só o candidato escolhido devolve seu sucessor de observação. A observação passa por carta/habilidade e pelas transições de fase desse candidato.
+
+A validação especulativa de uma ação que será proposta à PriorityStack usa o caminho canônico sem coletar fatos dessa resolução descartada. Se a política paga na proposta, apenas a reserva realmente aplicada entra no candidato. Pagamento e reembolso recebem motivos explícitos independentes. Isso evita consumir orçamento de observação com um dano hipotético ou registrar como executado um efeito que aguarda prioridade.

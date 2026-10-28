@@ -11,6 +11,7 @@ using Core.Common;
 using Core.Content;
 using Core.Determinism;
 using Core.Effects;
+using Core.GameplayEvents;
 using Core.Run;
 using Core.Run.Content;
 
@@ -24,6 +25,8 @@ public enum LegalActionSource { System, Ability, Card }
 
 public sealed record LegalActionCandidate
 {
+    [JsonIgnore] internal GameplayEffectObservation? Observation { get; init; }
+
     private ImmutableArray<EffectApplicationRecord> _applications = [];
     private ImmutableArray<CalculationResult> _calculations = [];
     private ImmutableArray<EffectExecutionStep> _steps = [];
@@ -116,6 +119,10 @@ public interface ILegalActionResolver
         CombatState combat,
         string actorId,
         CombatCommandOrigin origin);
+    Result<ObservedGameplayExecution<LegalActionEvaluation>> EvaluateObserved(RunState run, CombatState combat,
+        CombatActionCommand command, CombatCommandOrigin origin, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<LegalActionEvaluation>>.Failure("This resolver does not support candidate observation");
+
 }
 
 public interface ILegalActionQueryService
@@ -199,6 +206,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
     private readonly IPhaseGraphReducer _phases;
     private readonly IReactionFlowReducer _reactions;
     private readonly IEffectTriggerExecutor _effects;
+    private readonly GameplayEffectObservation? _observation;
     private readonly bool _coalesceEquivalentCardExecutions;
     private long _coalescedExecutions;
     public long CoalescedExecutions => Interlocked.Read(ref _coalescedExecutions);
@@ -229,6 +237,38 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
         _coalesceEquivalentCardExecutions = coalesceEquivalentCardExecutions;
         _conditionFormulas = conditionFormulas;
+    }
+
+    private LegalActionResolver(LegalActionResolver source, GameplayEffectObservation observation)
+        : this(source._actions, source._runtimes, source._cards, source._effectiveCards, source._cardLegality,
+            source._cardExecutor, source._abilityExecutor, source._phases, source._reactions, source._effects,
+            coalesceEquivalentCardExecutions: false, conditionFormulas: source._conditionFormulas) => _observation = observation;
+
+    public Result<ObservedGameplayExecution<LegalActionEvaluation>> EvaluateObserved(RunState run, CombatState combat,
+        CombatActionCommand command, CombatCommandOrigin origin, GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<LegalActionEvaluation>>.Failure("Candidate observation requires the action revision");
+        // No observation or speculative result enters the long-lived legality caches.
+        var isolated = new LegalActionResolver(this, observation);
+        var result = isolated.EvaluateUncached(run, combat, command, origin);
+        if (result.IsFailure) return Result<ObservedGameplayExecution<LegalActionEvaluation>>.Failure(result.Error);
+        var candidate = result.Value.Candidate;
+        var selected = candidate?.Observation ?? observation;
+        return Result<ObservedGameplayExecution<LegalActionEvaluation>>.Success(new(result.Value, selected));
+    }
+
+    private Result<CardPlayExecutionResult> ExecuteCard(CardPlayExecutionRequest request, bool observe)
+    {
+        if (_observation == null || !observe) return _cardExecutor.Execute(request);
+        var result = _cardExecutor.ExecuteObserved(request, _observation);
+        return result.IsFailure ? Result<CardPlayExecutionResult>.Failure(result.Error) : Result<CardPlayExecutionResult>.Success(result.Value.Execution);
+    }
+    private Result<AbilityExecutionResult> ExecuteAbility(AbilityExecutionRequest request, bool observe)
+    {
+        if (_observation == null || !observe) return _abilityExecutor.Execute(request);
+        var result = _abilityExecutor.ExecuteObserved(request, _observation);
+        return result.IsFailure ? Result<AbilityExecutionResult>.Failure(result.Error) : Result<AbilityExecutionResult>.Success(result.Value.Execution);
     }
 
     public Result<LegalActionEvaluation> Evaluate(
@@ -415,13 +455,14 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         // composition therefore have identical execution inputs for this snapshot.
         var executionKey = executions == null ? null : CanonicalJson.ComputeHash(new
             { effective.Value.Fingerprint, evaluation = evaluation.Value, ignoreCosts = IgnoreCosts(run, command) });
+        var observeResolution = !WillPropose(run, combat, origin, tags);
         Result<CardPlayExecutionResult> executed;
         if (executionKey != null && executions!.TryGetValue(executionKey, out var previous))
         {
             Interlocked.Increment(ref _coalescedExecutions);
             executed = Result<CardPlayExecutionResult>.Success(previous);
         }
-        else executed = _cardExecutor.Execute(new CardPlayExecutionRequest
+        else executed = ExecuteCard(new CardPlayExecutionRequest
         {
             Run = run,
             Combat = combat,
@@ -430,11 +471,11 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
             IgnoreConfiguredCosts = IgnoreCosts(run, command)
-        });
+        }, observeResolution);
         if (executed.IsFailure)
             return Illegal(executed.Error);
         if (executionKey != null) executions![executionKey] = executed.Value;
-        var candidate = ApplyPhase(run, combat, CreateCandidate(run, command, executed.Value), tags);
+        var candidate = ApplyPhase(run, combat, CreateCandidate(run, command, executed.Value), tags, observeResolution);
         if (candidate.IsFailure) return Result<LegalActionEvaluation>.Failure(candidate.Error);
         return FinalizeReaction(run, combat, command, origin, tags, candidate.Value, evaluation.Value);
     }
@@ -474,7 +515,8 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);
         var phase = ValidatePhase(run, combat, effectiveCommand, tags);
         if (phase.IsFailure) return Illegal(phase.Error);
-        var executed = _abilityExecutor.Execute(new AbilityExecutionRequest
+        var observeResolution = !WillPropose(run, combat, origin, tags);
+        var executed = ExecuteAbility(new AbilityExecutionRequest
         {
             Run = run,
             Combat = combat,
@@ -483,10 +525,10 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
             IgnoreConfiguredCosts = IgnoreCosts(run, command)
-        });
+        }, observeResolution);
         if (executed.IsFailure)
             return Illegal(executed.Error);
-        var candidate = ApplyPhase(run, combat, CreateCandidate(run, effectiveCommand, executed.Value), tags);
+        var candidate = ApplyPhase(run, combat, CreateCandidate(run, effectiveCommand, executed.Value), tags, observeResolution);
         if (candidate.IsFailure) return Result<LegalActionEvaluation>.Failure(candidate.Error);
         return FinalizeReaction(run, combat, effectiveCommand, origin, tags, candidate.Value,
             executed.Value.Evaluation);
@@ -649,6 +691,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             Command = storedCommand,
             ActionId = resolved.ActionId,
             CardDefinitionId = resolved.CardDefinitionId,
+            Observation = costResult.Value.Observation ?? _observation,
             Applications = costResult.Value.Records,
             Costs = evaluation.Costs,
             Steps = costResult.Value.Steps,
@@ -770,6 +813,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             Command = passCommand,
             PendingAction = pending,
             ReactionTransition = ReactionTransitionKind.StackActionFizzled,
+            Observation = refunded.Value.Observation ?? _observation,
             Applications = refunded.Value.Records,
             Steps = refunded.Value.Steps,
             Calculations = refunded.Value.Calculations,
@@ -810,6 +854,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         };
         var commands = pending.PaidCosts.Select(cost => new ResolvedEffectCommand
         {
+            SemanticReasonId = refund ? _observation?.RefundReasonId : _observation?.CostReasonId,
             EffectInstanceId = $"{provenance.SourceId}:{provenance.ComponentId}:{cost.ComponentId}:{cost.ResourceId}",
             Definition = new EffectDefinition
             {
@@ -824,7 +869,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ContentRevision = run.Determinism.ContentRevision,
             Provenance = provenance
         }).ToImmutableArray();
-        return _effects.Execute(new EffectTriggerExecutionRequest
+        var request = new EffectTriggerExecutionRequest
         {
             Run = run,
             Combat = combat,
@@ -834,8 +879,15 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ContentRevision = run.Determinism.ContentRevision,
             PrefixCommands = commands,
             Provenance = provenance
-        });
+        };
+        if (_observation == null) return _effects.Execute(request);
+        var observed = _effects.ExecuteObserved(request, _observation);
+        return observed.IsFailure ? Result<EffectBatchResult>.Failure(observed.Error) : Result<EffectBatchResult>.Success(observed.Value.Execution);
     }
+
+    private bool WillPropose(RunState run, CombatState combat, CombatCommandOrigin origin, IReadOnlySet<string> tags) =>
+        _observation != null && origin != CombatCommandOrigin.PendingResolution && PhaseAllowsPriority(run, combat) &&
+        _reactions.ShouldPropose(combat, run.ResolvedMode!.CombatRules.Flow.Reactions, tags);
 
     private bool PhaseAllowsPriority(RunState run, CombatState combat)
     {
@@ -1000,16 +1052,20 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         RunState run,
         CombatState originalCombat,
         LegalActionCandidate candidate,
-        IReadOnlySet<string> tags)
+        IReadOnlySet<string> tags, bool observe = true)
     {
         var sequence = ResolveSequence(run);
         if (sequence.IsFailure) return Result<LegalActionCandidate>.Failure(sequence.Error);
-        var transitioned = _phases.HandleCommand(
-            candidate.SuccessorRun,
-            candidate.SuccessorCombat,
-            sequence.Value,
-            candidate.Command,
-            tags);
+        var observation = observe ? candidate.Observation ?? _observation : null;
+        Result<PhaseGraphResult> transitioned;
+        if (observation == null) transitioned = _phases.HandleCommand(candidate.SuccessorRun, candidate.SuccessorCombat, sequence.Value, candidate.Command, tags);
+        else
+        {
+            var observed = _phases.HandleCommandObserved(candidate.SuccessorRun, candidate.SuccessorCombat, sequence.Value, candidate.Command, tags, observation);
+            if (observed.IsFailure) return Result<LegalActionCandidate>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            transitioned = Result<PhaseGraphResult>.Success(observed.Value.Execution);
+        }
         if (transitioned.IsFailure) return Result<LegalActionCandidate>.Failure(transitioned.Error);
         var steps = candidate.Steps.Concat(transitioned.Value.Steps)
             .Select((step, index) => step with { Index = index }).ToImmutableArray();
@@ -1025,6 +1081,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         });
         return Result<LegalActionCandidate>.Success(candidate with
         {
+            Observation = observation,
             Steps = steps,
             OutcomeUncertain = candidate.OutcomeUncertain || RandomOutcomePreviewProjector.HasStochasticInput(steps),
             Calculations = calculations,
@@ -1079,6 +1136,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ResolutionFingerprint = result.ResolutionFingerprint,
             SuccessorCombat = result.Combat,
             SuccessorRun = result.Run ?? run,
+            Observation = result.Observation,
             CardPlay = result
         };
     }
@@ -1107,6 +1165,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ResolutionFingerprint = result.ResolutionFingerprint,
             SuccessorCombat = result.Combat,
             SuccessorRun = result.Run ?? run,
+            Observation = result.Observation,
             Ability = result
         };
     }
