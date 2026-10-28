@@ -77,3 +77,7 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 - Certificação 4d: **1997 testes Core aprovados, zero falhas/exclusões**, sobre a árvore exata do índice em `.runtime/generic-events-stage4d-index`, com descoberta de conteúdo e build isolados dentro da cópia.
 
 - Etapa 4e: vínculos dos settlements à mudança primária, âncoras por impacto e fato da receita de condensação; consumo de status de vários atores e modificador global mantém seus donos. **151 testes focados passaram**, incluindo novas regressões de absorção e condensação entre donos/stores. Ainda pendente: ligação de lifecycles, fronteiras e ações ao contexto; etapa 4 não concluída.
+
+- Etapa 4f: observação opt-in no lifecycle canônico de status, incluindo seus triggers, redução de duração e expiração. **69 testes focados passaram**, com duas novas regressões: igualdade completa de resultados/ordem/ator elegível em repetições e rollback se o orçamento terminar depois do tick. Entrada normal continua sem observação. Pendentes: demais lifecycles, fronteiras e ações; etapa 4 segue em execução.
+
+- Certificação 4f (inclui 4e): **2001 testes Core aprovados, zero falhas e zero exclusões**, sobre a árvore preparada para commit em `.runtime/generic-events-stage4f-index`, com compilação e conteúdo isolados.

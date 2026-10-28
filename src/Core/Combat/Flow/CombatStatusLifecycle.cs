@@ -31,7 +31,11 @@ public sealed record CombatStatusLifecycleEvent
 public sealed record CombatStatusLifecycleResult(
     CombatState Combat,
     IReadOnlyList<CombatStatusLifecycleEvent> Events,
-    RunState? Run = null);
+    RunState? Run = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
+}
 
 public interface ICombatStatusLifecycle
 {
@@ -57,7 +61,21 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         RunState run,
         CombatState combat,
         StatusTriggerBoundary boundary,
-        string? activeActorId = null)
+        string? activeActorId = null) => ProcessCore(run, combat, boundary, activeActorId, null);
+
+    public Result<Core.GameplayEvents.ObservedStatusLifecycleExecution> ProcessObserved(
+        RunState run, CombatState combat, StatusTriggerBoundary boundary,
+        Core.GameplayEvents.GameplayEffectObservation observation, string? activeActorId = null)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != combat.Determinism.ContentRevision)
+            return Result<Core.GameplayEvents.ObservedStatusLifecycleExecution>.Failure("Status observation requires the captured combat revision");
+        var result = ProcessCore(run, combat, boundary, activeActorId, observation);
+        return result.IsFailure ? Result<Core.GameplayEvents.ObservedStatusLifecycleExecution>.Failure(result.Error)
+            : Result<Core.GameplayEvents.ObservedStatusLifecycleExecution>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<CombatStatusLifecycleResult> ProcessCore(RunState run, CombatState combat, StatusTriggerBoundary boundary,
+        string? activeActorId, Core.GameplayEvents.GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(combat);
         ArgumentNullException.ThrowIfNull(run);
@@ -90,7 +108,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                     var liveStatus = current.StatusEffects.GetValueOrDefault(targetId, [])
                         .FirstOrDefault(item => item.InstanceId == status.InstanceId && item.IsActive);
                     if (liveStatus == null) break;
-                    var executed = _triggers.Execute(new EffectTriggerExecutionRequest
+                    var executed = ExecuteTrigger(new EffectTriggerExecutionRequest
                     {
                         Combat = current,
                         Run = run,
@@ -147,8 +165,21 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                 var duration = checked(status.Duration - 1);
                 if (duration > 0)
                 {
-                    retained.Add(status with { Duration = duration });
+                    var updated = status with { Duration = duration };
+                    if (observation != null)
+                    {
+                        var observed = Core.GameplayEvents.GameplayStatusObservation.Tick(observation, status, updated);
+                        if (observed.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(observed.Error);
+                        observation = observed.Value;
+                    }
+                    retained.Add(updated);
                     continue;
+                }
+                if (observation != null)
+                {
+                    var observed = Core.GameplayEvents.GameplayStatusObservation.Tick(observation, status, null);
+                    if (observed.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(observed.Error);
+                    observation = observed.Value;
                 }
                 events.Add(new CombatStatusLifecycleEvent
                 {
@@ -164,7 +195,16 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                 ? current with { StatusEffects = current.StatusEffects.Remove(targetId) }
                 : current with { StatusEffects = current.StatusEffects.SetItem(targetId, retained.ToImmutable()) };
         }
-        return Result<CombatStatusLifecycleResult>.Success(new(current, events, run));
+        return Result<CombatStatusLifecycleResult>.Success(new(current, events, run) { Observation = observation });
+
+        Result<EffectBatchResult> ExecuteTrigger(EffectTriggerExecutionRequest request)
+        {
+            if (observation == null) return _triggers.Execute(request);
+            var observed = _triggers.ExecuteObserved(request, observation);
+            if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            return Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
     }
 
     private static Result<IReadOnlyList<string>> ResolveLifecycleTargets(

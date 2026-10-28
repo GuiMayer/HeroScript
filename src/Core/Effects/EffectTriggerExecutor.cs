@@ -48,6 +48,9 @@ public sealed record EffectTriggerExecutionRequest
 public interface IEffectTriggerExecutor
 {
     Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request);
+    Result<Core.GameplayEvents.ObservedEffectExecution> ExecuteObserved(EffectTriggerExecutionRequest request,
+        Core.GameplayEvents.GameplayEffectObservation observation) =>
+        Result<Core.GameplayEvents.ObservedEffectExecution>.Failure("This executor does not support gameplay shadow observation");
 }
 
 /// <summary>

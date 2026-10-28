@@ -65,3 +65,9 @@ A mudança primária de recurso referencia os eventos dos settlements reais em `
 Ao consumir stacks de vários atores ou donos globais, cada stack usa o dono canônico do registro, não o alvo escolhido para ativar a receita. O fato da receita é o pai dos fatos de consumo e da aplicação que ela ativou. Nenhuma quantidade é reconstruída a partir de texto, lore ou nome de status.
 
 A condensação deixa de ser uma lacuna no executor observado. A etapa 4 ainda requer a integração dos lifecycles, fronteiras e ações, antes de habilitar autoria de respostas genéricas.
+
+## Lifecycle de status observado (etapa 4f)
+
+`CombatStatusLifecycle.ProcessObserved` usa o mesmo ciclo de `Process`. Os triggers passam por `IEffectTriggerExecutor.ExecuteObserved`; duração e expiração são emitidas somente pelo lifecycle que já decide esses momentos. Não há um segundo relógio de status, assinatura retroativa ou chamada extra de remoção. A fotografia de elegibilidade e as ordens atuais continuam intactas.
+
+O decurso de duração tem origem de regra e não transforma o aplicador histórico em atacante. Se houver uma âncora histórica válida, ela continua em `OriginCause`. O campo interno de observação no resultado é ignorado na serialização. A entrada normal de gameplay continua sem observação; o suporte novo da interface é opt-in e falha explicitamente se um executor alternativo não o implementar.

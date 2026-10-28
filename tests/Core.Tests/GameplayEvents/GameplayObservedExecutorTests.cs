@@ -12,14 +12,15 @@ namespace Core.Tests.GameplayEvents;
 
 public sealed class GameplayObservedExecutorTests
 {
-    private static GameplayEffectObservation Observation(int maximum = 4096)
+    internal static GameplayEffectObservation Observation(int maximum = 4096)
     {
         var publisher = new GameplayPublisherContract("core.effects", HierarchySelector.Compile(["**"]).Value,
             Enum.GetValues<GameplayPayloadKind>().ToImmutableArray());
         var kinds = new[] { ("resource.change.resolved", GameplayPayloadKind.ResourceChange),
             ("attribute.change.resolved", GameplayPayloadKind.AttributeChange), ("status.applied", GameplayPayloadKind.StatusChange),
             ("status.reapplied", GameplayPayloadKind.StatusChange), ("status.removed", GameplayPayloadKind.StatusChange),
-            ("status.stacks.consumed", GameplayPayloadKind.StatusChange),
+            ("status.stacks.consumed", GameplayPayloadKind.StatusChange), ("status.expired", GameplayPayloadKind.StatusChange),
+            ("status.duration.changed", GameplayPayloadKind.StatusChange),
             ("effect.condensation.resolved", GameplayPayloadKind.RuleResult),
             ("resource.threshold.matched", GameplayPayloadKind.ResourceThreshold), ("actor.defeat.changed", GameplayPayloadKind.ActorDefeatChange),
             ("modifier.stacks.changed", GameplayPayloadKind.ModifierChange), ("activation.sequence.changed", GameplayPayloadKind.SequenceChange),
