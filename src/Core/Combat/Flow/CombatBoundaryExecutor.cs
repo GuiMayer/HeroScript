@@ -13,6 +13,7 @@ using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Core.CardZones;
+using Core.GameplayEvents;
 
 namespace Core.Combat.Flow;
 
@@ -41,6 +42,13 @@ public interface ICombatFlowPlanner
         CombatState combat,
         DeckState deck,
         DeterministicContext runDeterminism);
+    Result<ObservedGameplayExecution<CombatInitializationResult>> InitializeObserved(RunState run, CombatState combat, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatInitializationResult>>.Failure("This flow does not support gameplay observation");
+    Result<ObservedGameplayExecution<CombatFlowAdvanceResult>> AdvanceObserved(RunState run, CombatState combat, DeckState deck, DeterministicContext context, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatFlowAdvanceResult>>.Failure("This flow does not support gameplay observation");
+    Result<ObservedGameplayExecution<CombatRelicLifecycleResult>> CompleteObserved(RunState run, CombatState combat, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatRelicLifecycleResult>>.Failure("This flow does not support gameplay observation");
+
 }
 
 public interface ICombatBoundaryExecutor
@@ -62,6 +70,13 @@ public interface ICombatBoundaryExecutor
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies,
         TurnOrderPolicyDefinition turnOrderPolicy);
+    Result<ObservedGameplayExecution<CombatInitializationResult>> InitializeObserved(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition order, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatInitializationResult>>.Failure("This flow does not support gameplay observation");
+    Result<ObservedGameplayExecution<CombatFlowAdvanceResult>> AdvanceObserved(RunState run, CombatState combat, DeckState deck, DeterministicContext context, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition order, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatFlowAdvanceResult>>.Failure("This flow does not support gameplay observation");
+    Result<ObservedGameplayExecution<CombatRelicLifecycleResult>> CompleteObserved(RunState run, CombatState combat, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CombatRelicLifecycleResult>>.Failure("This flow does not support gameplay observation");
+
 }
 
 /// <summary>

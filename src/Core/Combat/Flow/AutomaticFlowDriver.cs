@@ -6,6 +6,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Run;
 using Core.StatusEffects;
+using Core.GameplayEvents;
 
 namespace Core.Combat.Flow;
 
@@ -33,6 +34,9 @@ public sealed record AutomaticFlowResult
 public interface IAutomaticFlowDriver
 {
     Result<AutomaticFlowResult> Drive(AutomaticFlowRequest request);
+    Result<ObservedGameplayExecution<AutomaticFlowResult>> DriveObserved(AutomaticFlowRequest request, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<AutomaticFlowResult>>.Failure("This driver does not support gameplay observation");
+
 }
 
 /// <summary>
@@ -58,6 +62,22 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
 
     public Result<AutomaticFlowResult> Drive(AutomaticFlowRequest request)
     {
+        GameplayEffectObservation? observation = null;
+        return DriveCore(request, ref observation);
+    }
+
+    public Result<ObservedGameplayExecution<AutomaticFlowResult>> DriveObserved(AutomaticFlowRequest request, GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != request.Run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<AutomaticFlowResult>>.Failure("Automatic observation requires the action revision");
+        var current = observation;
+        var result = DriveCore(request, ref current);
+        return result.IsFailure ? Result<ObservedGameplayExecution<AutomaticFlowResult>>.Failure(result.Error)
+            : Result<ObservedGameplayExecution<AutomaticFlowResult>>.Success(new(result.Value, current!));
+    }
+
+    private Result<AutomaticFlowResult> DriveCore(AutomaticFlowRequest request, ref GameplayEffectObservation? observation)
+    {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Run);
         ArgumentNullException.ThrowIfNull(request.Combat);
@@ -70,14 +90,14 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
         var combat = request.Combat;
         var automaticSteps = 0;
 
-        var priority = DrivePriority(request.CombatId, run, combat, steps, ref automaticSteps, policies);
+        var priority = DrivePriority(request.CombatId, run, combat, steps, ref automaticSteps, policies, ref observation);
         if (priority.IsFailure)
             return Result<AutomaticFlowResult>.Failure(priority.Error);
         (run, combat, var priorityRequestsAdvance) = priority.Value;
 
         if ((request.RequestsActivationAdvance || priorityRequestsAdvance) && CanAdvanceActivation(combat))
         {
-            var advanced = AdvanceActivation(run, combat, steps, ref automaticSteps, policies);
+            var advanced = AdvanceActivation(run, combat, steps, ref automaticSteps, policies, ref observation);
             if (advanced.IsFailure)
                 return Result<AutomaticFlowResult>.Failure(advanced.Error);
             (run, combat) = advanced.Value;
@@ -110,7 +130,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
 
             var command = lockedIntent?.ToCommand(run.RunId) ?? decision!.Value.Candidate.Command;
             var ruleId = lockedIntent?.RuleId ?? decision!.Value.RuleId;
-            var action = HandleAutomatic(request.CombatId, run, combat, command, "combat.ai.action", ruleId);
+            var action = HandleAutomatic(request.CombatId, run, combat, command, "combat.ai.action", ruleId, ref observation);
             if (action.IsFailure && lockedIntent != null &&
                 policies.Ai.Intent.WhenInvalid is InvalidIntentStrategy.Recompute or InvalidIntentStrategy.Hide)
             {
@@ -121,7 +141,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
                 command = decision.Value.Candidate.Command;
                 ruleId = decision.Value.RuleId;
                 action = HandleAutomatic(
-                    request.CombatId, run, combat, command, "combat.ai.action", ruleId);
+                    request.CombatId, run, combat, command, "combat.ai.action", ruleId, ref observation);
             }
             if (action.IsFailure)
                 return Result<AutomaticFlowResult>.Failure(action.Error);
@@ -132,7 +152,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
             if (!combat.IsActive)
                 break;
 
-            priority = DrivePriority(request.CombatId, run, combat, steps, ref automaticSteps, policies);
+            priority = DrivePriority(request.CombatId, run, combat, steps, ref automaticSteps, policies, ref observation);
             if (priority.IsFailure)
                 return Result<AutomaticFlowResult>.Failure(priority.Error);
             (run, combat, priorityRequestsAdvance) = priority.Value;
@@ -153,7 +173,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
                         ActionType = ActionType.END_TURN
                     },
                     "combat.ai.end_turn",
-                    ruleId);
+                    ruleId, ref observation);
                 if (endTurn.IsFailure)
                     return Result<AutomaticFlowResult>.Failure(endTurn.Error);
                 steps.Add(endTurn.Value.Step);
@@ -165,7 +185,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
 
             if (combat.IsActive && requestsAdvance && CanAdvanceActivation(combat))
             {
-                var advanced = AdvanceActivation(run, combat, steps, ref automaticSteps, policies);
+                var advanced = AdvanceActivation(run, combat, steps, ref automaticSteps, policies, ref observation);
                 if (advanced.IsFailure)
                     return Result<AutomaticFlowResult>.Failure(advanced.Error);
                 (run, combat) = advanced.Value;
@@ -174,7 +194,15 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
 
         if (!combat.IsActive && !combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd))
         {
-            var completed = _flow.Complete(run, combat);
+            Result<CombatRelicLifecycleResult> completed;
+            if (observation == null) completed = _flow.Complete(run, combat);
+            else
+            {
+                var observed = _flow.CompleteObserved(run, combat, observation);
+                if (observed.IsFailure) return Result<AutomaticFlowResult>.Failure(observed.Error);
+                observation = observed.Value.Observation;
+                completed = Result<CombatRelicLifecycleResult>.Success(observed.Value.Execution);
+            }
             if (completed.IsFailure)
                 return Result<AutomaticFlowResult>.Failure(completed.Error);
             combat = completed.Value.Combat;
@@ -209,7 +237,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
         CombatState combat,
         ICollection<CombatResolutionStep> steps,
         ref int automaticSteps,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ref GameplayEffectObservation? observation)
     {
         var requestsAdvance = false;
         while (combat.IsActive && combat.PriorityWindow is { } window)
@@ -235,7 +263,7 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
                 combat,
                 decision.Value.Candidate.Command,
                 "combat.priority.ai_action",
-                decision.Value.RuleId);
+                decision.Value.RuleId, ref observation);
             if (action.IsFailure)
                 return Result<(RunState, CombatState, bool)>.Failure(action.Error);
             steps.Add(action.Value.Step);
@@ -252,9 +280,17 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
         CombatState combat,
         ICollection<CombatResolutionStep> steps,
         ref int automaticSteps,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies, ref GameplayEffectObservation? observation)
     {
-        var plan = _flow.AdvanceActivation(run, combat, run.Deck, run.Determinism);
+        Result<CombatFlowAdvanceResult> plan;
+        if (observation == null) plan = _flow.AdvanceActivation(run, combat, run.Deck, run.Determinism);
+        else
+        {
+            var observed = _flow.AdvanceObserved(run, combat, run.Deck, run.Determinism, observation);
+            if (observed.IsFailure) return Result<(RunState, CombatState)>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            plan = Result<CombatFlowAdvanceResult>.Success(observed.Value.Execution);
+        }
         if (plan.IsFailure)
             return Result<(RunState, CombatState)>.Failure(plan.Error);
         if (automaticSteps + plan.Value.Steps.Count > policies.AutomaticResolution.MaxAutomaticSteps)
@@ -279,7 +315,9 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
         CombatState combat,
         CombatActionCommand command,
         string transitionType,
-        string? decisionRuleId) => _commands.Handle(new CombatCommandHandlingRequest
+        string? decisionRuleId, ref GameplayEffectObservation? observation)
+    {
+        var request = new CombatCommandHandlingRequest
         {
             CombatId = combatId,
             Run = run,
@@ -288,7 +326,13 @@ public sealed class AutomaticFlowDriver : IAutomaticFlowDriver
             Origin = CombatCommandOrigin.AutomaticController,
             TransitionType = transitionType,
             DecisionRuleId = decisionRuleId
-        });
+        };
+        if (observation == null) return _commands.Handle(request);
+        var observed = _commands.HandleObserved(request, observation);
+        if (observed.IsFailure) return Result<CombatCommandHandlingResult>.Failure(observed.Error);
+        observation = observed.Value.Observation;
+        return Result<CombatCommandHandlingResult>.Success(observed.Value.Execution);
+    }
 
     private static bool CanAdvanceActivation(CombatState combat) =>
         combat.IsActive && combat.PriorityWindow == null && combat.PendingActions.IsEmpty;

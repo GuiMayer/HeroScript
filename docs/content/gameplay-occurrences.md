@@ -115,3 +115,9 @@ A validação especulativa de uma ação que será proposta à PriorityStack usa
 `CombatCommandHandler.HandleObserved` mantém a mesma validação de input, legalidade e redução. Um comando candidato possui `action.started` e `action.completed`; a última ocorrência referencia os fatos produzidos por ele. `action.completed` significa conclusão do processamento do comando, inclusive uma proposta aceita; não significa que uma ação pendente da PriorityStack já resolveu. As ocorrências específicas de proposta/resolução continuam sendo a integração da etapa 10.
 
 O redutor observa somente o fluxo efetivo de disposição da carta e os ticks canônicos de modificadores por comando. A projeção de duração foi compartilhada com as fronteiras, sem duplicar a regra de tempo. Mesmo se o orçamento terminar ao fechar o comando depois da redução, a entrada permanece intacta e nenhum candidato parcial é entregue. O caminho normal continua sem observação e com a mesma serialização/fingerprint.
+
+## Continuação automática observada (etapa 4m)
+
+`CombatFlowPlanner` e `AutomaticFlowDriver` possuem entradas observadas que usam os mesmos cores de composição e loop. A observação escolhida passa entre comandos efetivos, transições de ativação, prioridade e finalização. Decisões/intents continuam sendo consultas sem coletar suas alternativas no candidato confirmado. Não há contexto ambiente nem modificação do contexto de entrada: somente a variável privada da execução recebe sucessores imutáveis.
+
+O driver conserva o limite de passos e a parada por input/prioridade do jogador. Falhar depois de calcular fronteiras não devolve snapshots nem observação parcial. Parar sem trabalho não emite ocorrências. O planner mantém a publicação canônica de intents, sem transformá-la em regra de despacho ou segunda autoridade de ações.
