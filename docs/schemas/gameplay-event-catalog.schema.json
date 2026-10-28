@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gameplay event catalog declarations (trusted publisher capabilities are supplied by the engine)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kinds", "reasons"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kinds": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/kind" } },
+    "reasons": { "type": "array", "maxItems": 4096, "items": { "$ref": "#/$defs/reason" } },
+    "kindAliases": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/alias" } },
+    "reasonAliases": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/alias" } }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string", "maxLength": 256,
+      "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*){0,15}$"
+    },
+    "kind": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "schemaVersion", "publisherId", "payload", "canOpenResponseWindow"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/identifier" },
+        "schemaVersion": { "const": 1 },
+        "publisherId": { "$ref": "#/$defs/identifier" },
+        "payload": { "enum": ["ResourceChange", "AttributeChange", "StatusChange", "CardMovement", "Action", "Boundary", "RuleResult"] },
+        "canOpenResponseWindow": { "type": "boolean" }
+      }
+    },
+    "reason": {
+      "type": "object", "additionalProperties": false, "required": ["reasonId"],
+      "properties": {
+        "reasonId": { "$ref": "#/$defs/identifier" },
+        "messageKey": { "type": ["string", "null"], "minLength": 1, "maxLength": 512 },
+        "tags": { "type": "array", "uniqueItems": true, "maxItems": 64, "items": { "type": "string", "minLength": 1, "maxLength": 512 } }
+      }
+    },
+    "alias": {
+      "type": "object", "additionalProperties": false, "required": ["from", "to"],
+      "properties": { "from": { "$ref": "#/$defs/identifier" }, "to": { "$ref": "#/$defs/identifier" } }
+    }
+  }
+}
