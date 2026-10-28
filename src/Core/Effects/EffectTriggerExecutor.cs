@@ -9,6 +9,7 @@ using Core.Calculations;
 using Core.CardZones;
 using Core.Run;
 using Core.Resources;
+using Core.GameplayEvents;
 
 namespace Core.Effects;
 
@@ -185,6 +186,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var restricted = request.Run == null ? Result<CombatState>.Success(request.Combat)
             : RelicResourceRules.Materialize(request.Run, request.Combat);
         if (restricted.IsFailure) return Result<EffectBatchResult>.Failure(restricted.Error);
+        if (observation != null)
+        {
+            var observed = GameplayResourcePolicyObservation.Append(observation, request.Combat, restricted.Value);
+            if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
+            observation = observed.Value;
+        }
         var current = restricted.Value;
         var currentRun = request.Run;
         var rootExecutionId = EffectResultContext.ExecutionId(request);
@@ -666,6 +673,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             };
                             var observationBefore = observation == null ? null : current;
                             var observationRunBefore = observation == null ? null : currentRun;
+                            var applicationRecorded = false;
                             if (RunEffectReducer.Supports(effect))
                             {
                                 if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
@@ -682,7 +690,20 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 appliedRecords = [appliedRun.Value.Record];
                                 if (appliedRun.Value.Record.AttributeOutcome != null)
                                 {
-                                    var synchronized = PersistentPlayerTransitions.Materialize(currentRun, current);
+                                    Result<CombatState> synchronized;
+                                    if (observation == null) synchronized = PersistentPlayerTransitions.Materialize(currentRun, current);
+                                    else
+                                    {
+                                        var observed = observation.Record(command, observationBefore!, current, appliedRecords, observationRunBefore, currentRun);
+                                        if (observed.IsFailure) return Result.Failure(observed.Error);
+                                        observation = observed.Value;
+                                        applicationRecorded = true;
+                                        var parent = observation.ParentEventId;
+                                        var cursor = new GameplayRunObservation(observation with
+                                            { ParentEventId = observation.LastApplicationEventId ?? parent });
+                                        synchronized = PersistentPlayerTransitions.MaterializeObserved(currentRun, current, cursor);
+                                        observation = cursor.Current with { ParentEventId = parent };
+                                    }
                                     if (synchronized.IsFailure) return Result.Failure(synchronized.Error);
                                     current = synchronized.Value;
                                 }
@@ -694,7 +715,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 current = applied.Value.State;
                                 appliedRecords = applied.Value.Records.ToImmutableArray();
                             }
-                            if (observation != null)
+                            if (observation != null && !applicationRecorded)
                             {
                                 var observed = observation.Record(command, observationBefore!, current, appliedRecords, observationRunBefore, currentRun);
                                 if (observed.IsFailure) return Result.Failure(observed.Error);

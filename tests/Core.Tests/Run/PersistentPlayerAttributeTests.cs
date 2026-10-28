@@ -32,6 +32,39 @@ namespace Core.Tests.Run;
 public sealed class PersistentPlayerAttributeTests
 {
     [Theory]
+    [InlineData(4096)]
+    [InlineData(1)]
+    public void ObservedPersistentAttributeRecordsBeforeItsResourceSynchronizationAndKeepsCanonicalOutput(int budget)
+    {
+        var fixture = Fixture();
+        var run = State();
+        var resources = GameplayOwnershipTests.State().GetActor("hero")!.ResourceState;
+        run = run with { PlayerEntity = run.PlayerEntity! with { Components = run.PlayerEntity!.Components.ToImmutableDictionary(StringComparer.Ordinal)
+            .Add("pools", new ResourceEntityComponentState { ComponentId = "pools", State = resources }) },
+            ResolvedMode = run.ResolvedMode! with { ActorResourceLifecyclePolicy = ActorResourceLifecycleTests.Policy() with
+                { Rules = [ActorResourceLifecycleTests.Rule() with { ResourceId = "focus" }] } } };
+        var node = new RunMapNodeState { NodeId = "training", EntryEffectOwner = RunActivityEffectOwner.PlayerEntity,
+            EntryEffects = [Mutation(3)] };
+        var observation = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(budget, "attributes");
+        var before = CanonicalJson.ComputeHash(run);
+        var result = fixture.Activities.ExecuteObserved(run, node, RunActivityBoundary.Entry, observation);
+        if (budget == 1) Assert.True(result.IsFailure);
+        else
+        {
+            Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(fixture.Activities.Execute(run, node, RunActivityBoundary.Entry).Value),
+                CanonicalJson.ComputeHash(result.Value.Execution));
+            var facts = result.Value.Observation.Events.Occurrences;
+            Assert.Equal(new[] { "attribute.change.resolved", "resource.transport.resolved" }, facts.Select(item => item.Kind));
+            Assert.Equal(facts[0].EventId, facts[1].ParentEventId);
+            Assert.Equal(5, Power(result.Value.Execution.State.PlayerEntity!));
+            Assert.Empty(result.Value.Observation.Unobserved);
+        }
+        Assert.Empty(observation.Events.Occurrences);
+        Assert.Equal(before, CanonicalJson.ComputeHash(run));
+    }
+
+    [Theory]
     [InlineData(AttributeOperation.Add, 3, 5)]
     [InlineData(AttributeOperation.Multiply, 3, 6)]
     [InlineData(AttributeOperation.Set, 3, 3)]

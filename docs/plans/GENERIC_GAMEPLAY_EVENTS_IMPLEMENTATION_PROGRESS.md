@@ -33,7 +33,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
-| 4 — Produção de fatos | Em execução: fronteiras de combate integradas; ação raiz/gateway e caminhos externos pendentes |
+| 4 — Produtores canônicos | Concluída em modo opt-in; migração de consumidores nas etapas seguintes |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
@@ -50,7 +50,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 
 As contagens abaixo devem registrar somente execuções realizadas durante este plano. Não reutilizar números de relatórios anteriores como nova execução.
 
-Próximo bloco obrigatório: instrumentar a ação raiz/candidato no gateway e ligar custos e demais produtores externos ao contexto de observação, sem habilitar componentes JSON antes da cobertura completa da etapa 4.
+Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em seguida dispatcher transacional e migrações, mantendo o corte de autoria e persistência nas etapas correspondentes.
 
 - Etapa 0: 107 testes focados Core passaram em `.runtime/generic-gameplay-events`, incluindo as duas novas regressões de baseline. As fixtures foram ajustadas ao pipeline real configurado; nenhum código de gameplay foi alterado.
 
@@ -125,3 +125,7 @@ Próximo bloco obrigatório: instrumentar a ação raiz/candidato no gateway e l
 - Etapa 4u: ativação selecionada de revisão e rebind das definições de recursos possuem payloads próprios, conservando revisão de origem da ação e revisão de destino. Previews não publicam fatos; regras de recurso não são reinterpretadas como dano/cura. **21 testes focados passaram**, incluindo regressão nova com cinco repetições, equivalência com comando normal, clamp real, encadeamento causal e rollback por orçamento. Próximo: auditoria final de aplicações sem alteração e fechamento do inventário da etapa 4.
 
 - Etapa 4v: remoção/dispelação sem instância correspondente agora registra tentativa resolvida explícita, sem inventar alteração de stacks e sem marcar falsamente uma lacuna de produtor. **25 testes focados passaram**, com três regressões novas para status, dispel e modificador. Restante da conferência: materialização de restrições e sincronização após atributos persistentes, antes de concluir a etapa 4.
+
+- Etapa 4w: materialização de restrições em relíquias, inicialização de efeitos e sincronização persistente observadas. A regra registra o limite real e a chamada Set com seu operando original, sem recalcular o teto. A alteração de atributo precede o transporte dependente, conservando o vínculo causal. **48 testes focados passaram**, incluindo cinco casos novos de ordem/equivalência, rollback, distinção entre ator persistente/encontro e histórico intocado. Certificação final da etapa 4 em andamento antes de marcá-la concluída.
+
+- Fechamento da etapa 4: inventário final em `docs/architecture/GAMEPLAY_OCCURRENCE_PRODUCER_INVENTORY.md`. Árvore de código exata do índice `53d014d0d717270448e8bcb461d437ab282476e5`, exportada para `.runtime/generic-events-stage4-final-index`, com build completo da solução e artefatos/conteúdo dentro da cópia: **2050 testes Core e 32 testes API focados aprovados**, sem exclusões. O build não emitiu warnings/erros. A etapa 4 encerra a instrumentação opt-in; não anuncia dispatcher, autoria executável, journal novo ou âncoras históricas preenchidas antes das etapas correspondentes. A divergência prévia 65/67 da jornada ampla continua registrada.

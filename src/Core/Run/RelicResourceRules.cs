@@ -21,6 +21,17 @@ public sealed record ResourceRestrictionDefinition
 /// <summary>Materializes the intersection of owner rules. It does not calculate damage or armor.</summary>
 public static class RelicResourceRules
 {
+    internal static Result<CombatState> MaterializeObserved(RunState run, CombatState combat,
+        Core.GameplayEvents.GameplayRunObservation? observation)
+    {
+        var result = Materialize(run, combat);
+        if (result.IsFailure || observation == null) return result;
+        var observed = Core.GameplayEvents.GameplayResourcePolicyObservation.Append(observation.Current, combat, result.Value);
+        if (observed.IsFailure) return Result<CombatState>.Failure(observed.Error);
+        observation.Accept(observed.Value);
+        return result;
+    }
+
     public static Result Validate(IEnumerable<ResourceRestrictionDefinition> definitions)
     {
         if (definitions is ImmutableArray<ResourceRestrictionDefinition> array && array.IsDefault)

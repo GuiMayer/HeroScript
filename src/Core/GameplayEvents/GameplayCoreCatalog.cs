@@ -16,6 +16,7 @@ public static class GameplayCoreCatalog
         Add(GameplayPayloadKind.ResourceTransport, "resource.transport.resolved");
         Add(GameplayPayloadKind.ContentRevision, "content.revision.activated");
         Add(GameplayPayloadKind.ResourceRebind, "resource.definition.rebound");
+        Add(GameplayPayloadKind.ResourceRestriction, "resource.restriction.resolved");
         Add(GameplayPayloadKind.AttributeChange, "attribute.change.resolved");
         Add(GameplayPayloadKind.StatusChange, "status.applied", "status.reapplied", "status.removed", "status.stacks.consumed", "status.expired", "status.duration.changed");
         Add(GameplayPayloadKind.ModifierChange, "modifier.stacks.changed");

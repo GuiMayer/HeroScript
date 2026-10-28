@@ -159,3 +159,7 @@ O comando selecionado emite `content.revision.activated` com revisões antes/dep
 ## Remoções sem correspondência (etapa 4v)
 
 Quando o processador resolve uma remoção de status, dispel ou modificador e não encontra instância, registra `effect.application.resolved` com resultado `no-matching-instance`. Não emite um falso `status.removed` nem alteração de stacks. Famílias realmente sem produtor continuam aparecendo como lacunas explícitas em `Unobserved`; o caso vazio não é usado como fallback genérico.
+
+## Restrições e sincronização persistente (etapa 4w)
+
+A materialização de restrições registra `resource.restriction.resolved` com dono/escopo e limites antes/depois; a chamada real Set para ajustar o saldo tem seu fato `resource.change.resolved` como filho, preservando operando e valor aplicado. Não se classifica o descarte de saldo como dano. Aquisição/remoção, entrada do executor e materialização persistente reutilizam o mesmo projetor. Um atributo RunBase é observado antes da sincronização que ele causou; transportes/restrições resultantes conservam esse pai. Encontros históricos resolvidos e carteiras sintéticas continuam fora da materialização de recursos de ator. Nenhum fato é publicado externamente antes de um commit.

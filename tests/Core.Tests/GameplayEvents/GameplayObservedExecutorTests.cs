@@ -16,7 +16,8 @@ public sealed class GameplayObservedExecutorTests
     {
         var publisher = new GameplayPublisherContract("core.effects", HierarchySelector.Compile(["**"]).Value,
             Enum.GetValues<GameplayPayloadKind>().ToImmutableArray());
-        var kinds = new[] { ("resource.change.resolved", GameplayPayloadKind.ResourceChange),
+        var kinds = new[] { ("resource.change.resolved", GameplayPayloadKind.ResourceChange), ("resource.restriction.resolved", GameplayPayloadKind.ResourceRestriction),
+            ("resource.transport.resolved", GameplayPayloadKind.ResourceTransport),
             ("attribute.change.resolved", GameplayPayloadKind.AttributeChange), ("status.applied", GameplayPayloadKind.StatusChange),
             ("status.reapplied", GameplayPayloadKind.StatusChange), ("status.removed", GameplayPayloadKind.StatusChange),
             ("status.stacks.consumed", GameplayPayloadKind.StatusChange), ("status.expired", GameplayPayloadKind.StatusChange),

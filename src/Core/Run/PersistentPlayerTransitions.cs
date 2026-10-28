@@ -73,7 +73,7 @@ public static class PersistentPlayerTransitions
     internal static Result<CombatState> MaterializeObserved(RunState run, CombatState combat,
         Core.GameplayEvents.GameplayRunObservation? observation)
     {
-        if (run.PlayerEntity == null) return RelicResourceRules.Materialize(run, combat);
+        if (run.PlayerEntity == null) return RelicResourceRules.MaterializeObserved(run, combat, observation);
         var player = run.PlayerEntity;
         var actor = combat.GetActor(run.PlayerEntityId);
         if (player.InstanceId != run.PlayerEntityId || actor == null || actor.DefinitionId != player.DefinitionId ||
@@ -83,7 +83,7 @@ public static class PersistentPlayerTransitions
         var materialized = actor with { Components = components.SetItems(player.Components.Where(pair => pair.Value is StatEntityComponentState)) };
         var transported = ActorResourceLifecycleTransitions.EnterCore(player, materialized, run.ResolvedMode?.ActorResourceLifecyclePolicy, observation);
         return transported.IsFailure ? Result<CombatState>.Failure(transported.Error)
-            : RelicResourceRules.Materialize(run, combat.ReplaceActor(transported.Value));
+            : RelicResourceRules.MaterializeObserved(run, combat.ReplaceActor(transported.Value), observation);
     }
 
     public static Result<EntityState> Rebind(EntityState player, ContentRuntime runtime)

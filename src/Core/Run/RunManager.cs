@@ -1001,6 +1001,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var currentNode = run.Map.Nodes.FirstOrDefault(node =>
             string.Equals(node.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
         var next = transition.Value.State;
+        if (_observation != null)
+        {
+            var observed = Core.GameplayEvents.GameplayResourcePolicyObservation.Append(_observation.Current, run, next);
+            if (observed.IsFailure) return Result.Failure(observed.Error);
+            _observation.Accept(observed.Value);
+        }
         if (currentNode?.Activity.Type == RunActivityType.RelicReward)
         {
             next = next with
@@ -1024,6 +1030,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var transition = RelicTransitions.Remove(_runs[runId], request.RelicInstanceId);
         if (transition.IsFailure)
             return Result.Failure(transition.Error);
+        if (_observation != null)
+        {
+            var observed = Core.GameplayEvents.GameplayResourcePolicyObservation.Append(_observation.Current, _runs[runId], transition.Value);
+            if (observed.IsFailure) return Result.Failure(observed.Error);
+            _observation.Accept(observed.Value);
+        }
         return ToResult(Persist(
             transition.Value,
             RunCommandTypes.RemoveRelic,
