@@ -11,6 +11,8 @@ using Core.Math;
 using Core.Resources;
 using Core.StatusEffects;
 
+using Core.GameplayEvents;
+
 namespace Core.Run.Content;
 
 public sealed record CardPlayExecutionRequest
@@ -32,6 +34,9 @@ public sealed record CardPlayExecutionRequest
 
 public sealed record CardPlayExecutionResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal GameplayEffectObservation? Observation { get; init; }
+
     public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public RunState? Run { get; init; }
     private ImmutableArray<CalculationResult> _calculations = [];
@@ -57,6 +62,8 @@ public sealed record CardPlayExecutionResult
 public interface ICardPlayExecutor
 {
     Result<CardPlayExecutionResult> Execute(CardPlayExecutionRequest request);
+    Result<ObservedGameplayExecution<CardPlayExecutionResult>> ExecuteObserved(CardPlayExecutionRequest request, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<CardPlayExecutionResult>>.Failure("This executor does not support gameplay observation");
 }
 
 /// <summary>
@@ -86,7 +93,18 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
         _triggers = triggers ?? throw new ArgumentNullException(nameof(triggers));
     }
 
-    public Result<CardPlayExecutionResult> Execute(CardPlayExecutionRequest request)
+    public Result<CardPlayExecutionResult> Execute(CardPlayExecutionRequest request) => ExecuteCore(request, null);
+
+    public Result<ObservedGameplayExecution<CardPlayExecutionResult>> ExecuteObserved(CardPlayExecutionRequest request, GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != request.Run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<CardPlayExecutionResult>>.Failure("Observed execution requires the captured action revision");
+        var result = ExecuteCore(request, observation);
+        return result.IsFailure ? Result<ObservedGameplayExecution<CardPlayExecutionResult>>.Failure(result.Error)
+            : Result<ObservedGameplayExecution<CardPlayExecutionResult>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<CardPlayExecutionResult> ExecuteCore(CardPlayExecutionRequest request, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Run);
@@ -137,7 +155,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 string.Join("; ", evaluation.Value.FailureReasons));
         }
 
-        var applied = _triggers.Execute(new EffectTriggerExecutionRequest
+        var triggerRequest = new EffectTriggerExecutionRequest
         {
             Run = request.Run, Combat = request.Combat, Card = effective.Value,
             OwnerEntityId = request.ActorId, SourceEntityId = request.ActorId,
@@ -149,9 +167,18 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 .Select(component => new EffectTriggerDefinition
                 { TriggerId = component.ComponentId, Effects = [component.Effect] }).ToImmutableArray(),
             PrefixCommands = request.IgnoreConfiguredCosts ? [] : ActionEffectCosts.Compile(
-                evaluation.Value, request.ActorId, CardProvenance(request.CardInstanceId, "cost")),
+                evaluation.Value, request.ActorId, CardProvenance(request.CardInstanceId, "cost"), observation?.CostReasonId),
             Provenance = CardProvenance(request.CardInstanceId, "card.resolve")
-        });
+        };
+        Result<EffectBatchResult> applied;
+        if (observation == null) applied = _triggers.Execute(triggerRequest);
+        else
+        {
+            var observed = _triggers.ExecuteObserved(triggerRequest, observation);
+            if (observed.IsFailure) return Result<CardPlayExecutionResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            applied = Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
         if (applied.IsFailure)
             return Result<CardPlayExecutionResult>.Failure(applied.Error);
 
@@ -179,6 +206,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
         });
         return Result<CardPlayExecutionResult>.Success(new CardPlayExecutionResult
         {
+            Observation = observation,
             Combat = appended.State,
             Steps = applied.Value.Steps,
             Run = applied.Value.Run,

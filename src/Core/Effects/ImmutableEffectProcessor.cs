@@ -37,6 +37,9 @@ public sealed record EffectProvenance
 /// </summary>
 public sealed record ResolvedEffectCommand
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal string? SemanticReasonId { get; init; }
+
     private ImmutableArray<string> _targetEntityIds = [];
     private ImmutableArray<ResolvedCalculationSettlement> _settlements = [];
 

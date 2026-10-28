@@ -17,6 +17,31 @@ public sealed class AbilityExecutorTests
     private const string Revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     [Fact]
+    public void ObservedAbilityKeepsSameCostsResultsAndRandomStateWithoutSharingCandidates()
+    {
+        var executor = Executor(Ability(flatValue: 4, chance: .65f, repeat: 3));
+        var request = Request(Combat());
+        var observation = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(revision: Revision) with { CostReasonId = "cost.payment" };
+        var input = CanonicalJson.ComputeHash(request);
+        var baseline = executor.Execute(request);
+        Assert.True(baseline.IsSuccess, baseline.IsFailure ? baseline.Error : null);
+        var hashes = new HashSet<string>();
+        for (var repeat = 0; repeat < 5; repeat++)
+        {
+            var actual = executor.ExecuteObserved(request, observation);
+            Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(baseline.Value), CanonicalJson.ComputeHash(actual.Value.Execution));
+            Assert.Equal(baseline.Value.Combat.Determinism, actual.Value.Execution.Combat.Determinism);
+            Assert.Equal("cost.payment", actual.Value.Observation.Events.Occurrences[0].ReasonId);
+            Assert.All(actual.Value.Observation.Events.Occurrences.Skip(1), item => Assert.Equal("effect.application", item.ReasonId));
+            hashes.Add(CanonicalJson.ComputeHash(actual.Value.Observation.Events.Occurrences));
+        }
+        Assert.Single(hashes);
+        Assert.Empty(observation.Events.Occurrences);
+        Assert.Equal(input, CanonicalJson.ComputeHash(request));
+    }
+
+    [Fact]
     public void Execute_AppliesCostsAndEffectsWithoutMutatingInput()
     {
         var ability = Ability(flatValue: 7);

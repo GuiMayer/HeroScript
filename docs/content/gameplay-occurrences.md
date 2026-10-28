@@ -97,3 +97,9 @@ O refresh de recurso conserva o operando `Set` efetivamente enviado ao redutor, 
 Ticks de modificadores são observados depois da chamada canônica de `ModifierTransitions.Tick`, com a mesma lista de elegibilidade. `InstanceDurationPayload` distingue duração de stacks; remoção por expiração conserva o motivo e o dono. Não se atribui o passar do tempo ao ator que instalou o modificador.
 
 Ainda faltam a ação raiz/candidato do gateway e a ligação dos caminhos de custo e outros produtores externos aos contextos. Não há autoria nova de respostas habilitada, corte de versão, novo journal ou modificação de saves nesta etapa.
+
+## Candidatos de carta e habilidade (etapa 4j)
+
+`CardPlayExecutor.ExecuteObserved` e `AbilityExecutor.ExecuteObserved` usam o mesmo core das entradas normais, retornando a observação junto ao candidato privado. Repetir ou descartar um candidato não modifica a observação de entrada. O resolvedor de legalidade ainda precisa escolher qual desses candidatos será encaminhado; não é correto registrar globalmente todos os previews executados.
+
+`CostReasonId` é uma classificação explícita da composição confiável. `ActionEffectCosts` a vincula aos comandos de custo já avaliados, antes dos efeitos. O vínculo interno é ignorado na serialização e não muda os fingerprints existentes. Uma subtração do corpo da carta não vira custo, e um custo não vira dano por usar o mesmo recurso/operação. Motivos ausentes do catálogo continuam falhando sem entregar um candidato parcial.

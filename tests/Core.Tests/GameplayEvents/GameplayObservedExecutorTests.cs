@@ -12,7 +12,7 @@ namespace Core.Tests.GameplayEvents;
 
 public sealed class GameplayObservedExecutorTests
 {
-    internal static GameplayEffectObservation Observation(int maximum = 4096)
+    internal static GameplayEffectObservation Observation(int maximum = 4096, string revision = "revision")
     {
         var publisher = new GameplayPublisherContract("core.effects", HierarchySelector.Compile(["**"]).Value,
             Enum.GetValues<GameplayPayloadKind>().ToImmutableArray());
@@ -31,10 +31,10 @@ public sealed class GameplayObservedExecutorTests
             ("card.moved", GameplayPayloadKind.CardMovement), ("card.created", GameplayPayloadKind.CardMovement),
             ("card.destroyed", GameplayPayloadKind.CardMovement), ("zone.order.changed", GameplayPayloadKind.ZoneOrder) }
             .Select(item => new GameplayEventKindDefinition { Kind = item.Item1, Payload = item.Item2, PublisherId = publisher.PublisherId });
-        var catalog = GameplayEventCatalog.Create("setting", "revision", [publisher], kinds,
-            [new() { ReasonId = "effect.application" }]).Value;
+        var catalog = GameplayEventCatalog.Create("setting", revision, [publisher], kinds,
+            [new() { ReasonId = "effect.application" }, new() { ReasonId = "cost.payment" }]).Value;
         return new() { PublisherId = publisher.PublisherId, ReasonId = "effect.application",
-            Events = GameplayEventTransaction.Create(GameplayOccurrenceTests.Occurrence().Scope, catalog,
+            Events = GameplayEventTransaction.Create(GameplayOccurrenceTests.Occurrence().Scope with { ContentRevision = revision }, catalog,
                 new() { MaximumOccurrences = maximum }).Value };
     }
 

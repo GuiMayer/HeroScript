@@ -22,6 +22,41 @@ public sealed class CardPlayExecutorTests
     private const string Revision = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
     [Fact]
+    public void ObservedCardKeepsCostBeforeEffectAndRejectsPartialCandidatesWithoutChangingInput()
+    {
+        var instance = Guid.Parse("10000000-0000-8000-8000-000000000009");
+        var runtime = Runtime(Card([
+            new CardCostComponentDefinition { ComponentId = "cost", Costs = new()
+                { Costs = [new() { ResourceId = "energy", Amount = 2 }] } },
+            new CardEffectComponentDefinition { ComponentId = "effect", Effect = new()
+                { Type = EffectType.DAMAGE, TargetResource = "mana", FormulaValue = "source.resources.energy.current" } },
+            Targeting(), Disposition() ]), Pipeline());
+        var executor = Executor(runtime);
+        var request = new CardPlayExecutionRequest { Run = Run(instance), Combat = Combat(), CardInstanceId = instance,
+            ActorId = "hero", SelectedTargetIds = ["enemy"] };
+        var observation = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(revision: Revision) with { CostReasonId = "cost.payment" };
+        var input = CanonicalJson.ComputeHash(request);
+        var baseline = executor.Execute(request);
+        Assert.True(baseline.IsSuccess, baseline.IsFailure ? baseline.Error : null);
+        var hashes = new HashSet<string>();
+        for (var repeat = 0; repeat < 5; repeat++)
+        {
+            var actual = executor.ExecuteObserved(request, observation);
+            Assert.True(actual.IsSuccess, actual.IsFailure ? actual.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(baseline.Value), CanonicalJson.ComputeHash(actual.Value.Execution));
+            Assert.Equal(new[] { "cost.payment", "effect.application" }, actual.Value.Observation.Events.Occurrences.Select(item => item.ReasonId));
+            Assert.Equal(new[] { "hero", "enemy" }, actual.Value.Observation.Events.Occurrences.Select(item => item.SubjectActorId));
+            hashes.Add(CanonicalJson.ComputeHash(actual.Value.Observation.Events.Occurrences));
+        }
+        Assert.Single(hashes);
+        var constrained = Core.Tests.GameplayEvents.GameplayObservedExecutorTests.Observation(1, Revision) with { CostReasonId = "cost.payment" };
+        Assert.True(executor.ExecuteObserved(request, constrained).IsFailure);
+        Assert.Empty(observation.Events.Occurrences);
+        Assert.Empty(constrained.Events.Occurrences);
+        Assert.Equal(input, CanonicalJson.ComputeHash(request));
+    }
+
+    [Fact]
     public void FormulaSeesPaidCostAndTraceIncludesCostBeforeEffect()
     {
         var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000009");

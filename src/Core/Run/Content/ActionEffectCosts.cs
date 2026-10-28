@@ -7,8 +7,9 @@ namespace Core.Run.Content;
 public static class ActionEffectCosts
 {
     public static ImmutableArray<ResolvedEffectCommand> Compile(CardPlayEvaluation evaluation,
-        string actorId, EffectProvenance origin) => evaluation.Costs.Select(cost => new ResolvedEffectCommand
+        string actorId, EffectProvenance origin, string? semanticReasonId = null) => evaluation.Costs.Select(cost => new ResolvedEffectCommand
     {
+        SemanticReasonId = semanticReasonId,
         EffectInstanceId = $"{origin.SourceId}:cost:{cost.ComponentId}:{cost.OptionId ?? "base"}:{cost.ResourceId}",
         Definition = new()
         {

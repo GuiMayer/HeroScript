@@ -5,6 +5,8 @@ using Core.Common;
 using Core.Determinism;
 using Core.Effects;
 
+using Core.GameplayEvents;
+
 namespace Core.Run.Content;
 
 public sealed record AbilityExecutionRequest
@@ -26,6 +28,9 @@ public sealed record AbilityExecutionRequest
 
 public sealed record AbilityExecutionResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal GameplayEffectObservation? Observation { get; init; }
+
     public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public RunState? Run { get; init; }
     private ImmutableArray<EffectApplicationRecord> _applications = [];
@@ -50,6 +55,8 @@ public sealed record AbilityExecutionResult
 public interface IAbilityExecutor
 {
     Result<AbilityExecutionResult> Execute(AbilityExecutionRequest request);
+    Result<ObservedGameplayExecution<AbilityExecutionResult>> ExecuteObserved(AbilityExecutionRequest request, GameplayEffectObservation observation) =>
+        Result<ObservedGameplayExecution<AbilityExecutionResult>>.Failure("This executor does not support gameplay observation");
 }
 
 /// <summary>
@@ -73,7 +80,18 @@ public sealed class AbilityExecutor : IAbilityExecutor
         _triggers = triggers ?? throw new ArgumentNullException(nameof(triggers));
     }
 
-    public Result<AbilityExecutionResult> Execute(AbilityExecutionRequest request)
+    public Result<AbilityExecutionResult> Execute(AbilityExecutionRequest request) => ExecuteCore(request, null);
+
+    public Result<ObservedGameplayExecution<AbilityExecutionResult>> ExecuteObserved(AbilityExecutionRequest request, GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != request.Run.Determinism.ContentRevision)
+            return Result<ObservedGameplayExecution<AbilityExecutionResult>>.Failure("Observed execution requires the captured action revision");
+        var result = ExecuteCore(request, observation);
+        return result.IsFailure ? Result<ObservedGameplayExecution<AbilityExecutionResult>>.Failure(result.Error)
+            : Result<ObservedGameplayExecution<AbilityExecutionResult>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<AbilityExecutionResult> ExecuteCore(AbilityExecutionRequest request, GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Run);
@@ -117,12 +135,12 @@ public sealed class AbilityExecutor : IAbilityExecutor
             Boundary = "Immediate",
             Effects = definition.Value.Effects
         };
-        var executed = _triggers.Execute(new EffectTriggerExecutionRequest
+        var triggerRequest = new EffectTriggerExecutionRequest
         {
             Run = request.Run,
             Combat = request.Combat,
             PrefixCommands = request.IgnoreConfiguredCosts ? [] : ActionEffectCosts.Compile(evaluation.Value,
-                request.ActorId, new() { Kind = EffectProvenanceKind.Ability, SourceId = request.ActionId }),
+                request.ActorId, new() { Kind = EffectProvenanceKind.Ability, SourceId = request.ActionId }, observation?.CostReasonId),
             Tags = definition.Value.Tags.ToImmutableHashSet(StringComparer.Ordinal),
             Trigger = trigger,
             OwnerEntityId = request.ActorId,
@@ -134,7 +152,16 @@ public sealed class AbilityExecutor : IAbilityExecutor
                 Kind = EffectProvenanceKind.Ability,
                 SourceId = definition.Value.ActionId
             }
-        });
+        };
+        Result<EffectBatchResult> executed;
+        if (observation == null) executed = _triggers.Execute(triggerRequest);
+        else
+        {
+            var observed = _triggers.ExecuteObserved(triggerRequest, observation);
+            if (observed.IsFailure) return Result<AbilityExecutionResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            executed = Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
         if (executed.IsFailure)
             return Result<AbilityExecutionResult>.Failure(executed.Error);
 
@@ -164,6 +191,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
         });
         return Result<AbilityExecutionResult>.Success(new AbilityExecutionResult
         {
+            Observation = observation,
             Combat = appended.State,
             Steps = executed.Value.Steps,
             Run = executed.Value.Run,
