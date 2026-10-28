@@ -54,7 +54,7 @@ public static class GameplayResourceFactProducer
             Operation = record.ResourceOperation.Value, Value = operand
         }, new(mutationId, record.ResourceId, record.ResourceField.Value, record.ResourceOperation.Value,
             record.ResourceOutcome.PreviousValue, record.ResourceOutcome.CurrentValue, record.ResourceOutcome.RequestedValue), owner,
-            metadata with { SourceActorId = command.SourceEntityId.Length == 0 ? null : command.SourceEntityId, SubjectActorId = record.TargetEntityId,
+            metadata with { SourceActorId = string.IsNullOrEmpty(command.SourceEntityId) ? null : command.SourceEntityId, SubjectActorId = record.TargetEntityId,
                 ImpactId = record.Identity?.ImpactId, ProcId = record.Identity?.ProcId, CalculationId = record.CalculationId });
         return result;
     }

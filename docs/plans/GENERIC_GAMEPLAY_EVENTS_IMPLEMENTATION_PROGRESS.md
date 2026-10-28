@@ -71,3 +71,7 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 
 - Etapa 4c: `ExecuteObserved` usa o executor canônico e contexto shadow imutável, antes de respostas/filhos. Quatro regressões novas conferem igualdade de toda a serialização, RNG, causas de respostas irmãs, prefixos de status, rollback e lacunas explícitas de condensação. 117 testes focados passaram antes da regressão final de cobertura; as quatro regressões passaram em seguida.
 - Certificação 4c: árvore exata do índice exportada para `.runtime/generic-events-stage4c-index`, compilada e testada com conteúdo/artefatos dentro da cópia. **1991 testes Core passaram, sem falhas ou exclusões**. Checkout original: 1995 aprovações e as mesmas seis falhas anteriores do teste UNO não rastreado. Nenhuma resposta genérica foi habilitada, nenhum lifecycle substituído e engineVersion permanece 34.
+
+- Etapa 4d: observação de modificadores com dono real (incluindo global), movimentos de cartas via topologia/definições capturadas, sequência circular e fatos de políticas de recurso/derrota. Novas regressões de igualdade com o executor normal e de precedência da política não letal. **149 testes focados passaram**. Pendentes na etapa 4: condensação completa, ligação dos lifecycles/fronteiras/ações e vínculos complementares de settlements.
+
+- Certificação 4d: **1997 testes Core aprovados, zero falhas/exclusões**, sobre a árvore exata do índice em `.runtime/generic-events-stage4d-index`, com descoberta de conteúdo e build isolados dentro da cópia.

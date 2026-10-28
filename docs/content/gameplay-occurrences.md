@@ -47,3 +47,13 @@ Esses adaptadores ainda não instrumentam todos os consumidores em runtime. A et
 A observação não entra na serialização de `EffectBatchResult` nem em seu fingerprint. A API normal continua usando `Execute`, sem criação de fatos. Falha de observação não entrega estado/eventos parciais e não altera entradas. A revisão do contexto precisa coincidir com a execução.
 
 `Unobserved` registra explicitamente as famílias ainda sem projeção completa (incluindo condensação, mesmo que suas stacks já tenham um fato). Não é aceitável tratar essa lista como cobertura concluída ou habilitar respostas autoritativas enquanto houver lacunas. O motivo de shadow é fornecido explicitamente pelo chamador; não converte automaticamente operações de recurso em dano/cura.
+
+## Famílias de regras e integração das zonas (etapa 4d)
+
+A observação agora recebe os snapshots de run junto aos de combate. Isso permite projetar modificadores e passos primitivos das zonas sem perder o dono real (ator, lado, run ou global). `ModifierChangePayload` conserva owner, stacks, duração e natureza da operação; não confunde modificador com status nem o dono com o alvo do efeito que o concedeu.
+
+`ResourceThresholdPayload` copia apenas os fatos que o resultado canônico já resolveu. A seleção por prioridade não é repetida pelo observador. `ActorDefeatChangePayload` descreve transições reais de derrota/retorno e se liga como filho à alteração de recurso; nenhum nome de recurso é interpretado como letal. Cálculo, proc e impacto permanecem referenciados.
+
+`SequenceChangePayload` conserva a operação e a sequência circular antes/depois, validando a correspondência entre os três. A observação não avança o turno. Os passos de cartas consultam endereços completos no snapshot de topologia e a definição de cada zona na revisão capturada; não interpretam nomes como mão/baralho/descarte.
+
+Ainda falta a cobertura completa da condensação e a ligação dos lifecycles/fronteiras/ações ao contexto da transação. O dispatcher e os componentes JSON continuam desabilitados.

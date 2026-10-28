@@ -221,7 +221,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             current = applied.Value.State;
             if (observation != null)
             {
-                var observed = observation.Record(command, observationBefore!, current, applied.Value.Records);
+                var observed = observation.Record(command, observationBefore!, current, applied.Value.Records, currentRun, currentRun);
                 if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
                 observation = observed.Value;
             }
@@ -540,7 +540,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                     SourceEntityId = request.SourceEntityId, TargetEntityIds = [targetId],
                                     ContentRevision = request.ContentRevision,
                                     Provenance = request.Provenance with { ComponentId = activeTriggerId }
-                                }, preConsumption.Combat, current, appliedRecords);
+                                }, preConsumption.Combat, current, appliedRecords, preConsumption.Run, currentRun);
                                 if (observed.IsFailure) return Result.Failure(observed.Error);
                                 observation = observed.Value;
                             }
@@ -662,6 +662,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 Provenance = request.Provenance with { ComponentId = activeTriggerId }
                             };
                             var observationBefore = observation == null ? null : current;
+                            var observationRunBefore = observation == null ? null : currentRun;
                             if (RunEffectReducer.Supports(effect))
                             {
                                 if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
@@ -692,7 +693,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             }
                             if (observation != null)
                             {
-                                var observed = observation.Record(command, observationBefore!, current, appliedRecords);
+                                var observed = observation.Record(command, observationBefore!, current, appliedRecords, observationRunBefore, currentRun);
                                 if (observed.IsFailure) return Result.Failure(observed.Error);
                                 observation = observed.Value;
                             }
