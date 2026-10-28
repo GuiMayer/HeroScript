@@ -71,3 +71,11 @@ A condensação deixa de ser uma lacuna no executor observado. A etapa 4 ainda r
 `CombatStatusLifecycle.ProcessObserved` usa o mesmo ciclo de `Process`. Os triggers passam por `IEffectTriggerExecutor.ExecuteObserved`; duração e expiração são emitidas somente pelo lifecycle que já decide esses momentos. Não há um segundo relógio de status, assinatura retroativa ou chamada extra de remoção. A fotografia de elegibilidade e as ordens atuais continuam intactas.
 
 O decurso de duração tem origem de regra e não transforma o aplicador histórico em atacante. Se houver uma âncora histórica válida, ela continua em `OriginCause`. O campo interno de observação no resultado é ignorado na serialização. A entrada normal de gameplay continua sem observação; o suporte novo da interface é opt-in e falha explicitamente se um executor alternativo não o implementar.
+
+## Regeneração e relíquias observadas (etapa 4g)
+
+`CombatResourceLifecycle.ProcessObserved` e `CombatRelicLifecycle.ProcessObserved` seguem os ciclos canônicos existentes. Regeneração mantém sinais, exclusões e o ator escolhido. Relíquias mantêm a revisão capturada, ordenação, seleção de donos e a marca de execução única para CombatStart/CombatEnd. A segunda passagem de uma fronteira já concluída não adiciona eventos. Nenhuma dessas entradas instala callbacks no event bus ou habilita respostas por JSON.
+
+A revisão da **ação** deve corresponder à transação de observação. Ela é distinta da revisão de **definição** de uma relíquia/status/efeito capturado antes de uma mudança de conteúdo: essa revisão fica em `Origin.ContentRevision` e continua sendo resolvida pelo executor canônico. Não substituir definições antigas pela revisão atual para facilitar a observação.
+
+Ainda não foram conectados o executor geral de fronteiras, o gateway de ações e todos os caminhos de recursos/cartas fora desses executores. A etapa 4 continua aberta; o índice de respostas e o dispatcher são as etapas seguintes.

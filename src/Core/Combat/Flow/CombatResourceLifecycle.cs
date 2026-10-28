@@ -10,6 +10,9 @@ namespace Core.Combat.Flow;
 
 public sealed record CombatResourceLifecycleResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
+
     private ImmutableArray<EffectApplicationRecord> _records = [];
     public CombatState Combat { get; init; } = null!;
     public RunState? Run { get; init; }
@@ -34,7 +37,21 @@ public sealed class CombatResourceLifecycle(IEffectTriggerExecutor triggers) : I
 {
     public Result<CombatResourceLifecycleResult> Process(
         RunState run, CombatState combat, string actorId, RegenerationTiming timing,
-        IReadOnlySet<string>? excludedResourceIds = null)
+        IReadOnlySet<string>? excludedResourceIds = null) => ProcessCore(run, combat, actorId, timing, excludedResourceIds, null);
+
+    public Result<Core.GameplayEvents.ObservedGameplayExecution<CombatResourceLifecycleResult>> ProcessObserved(
+        RunState run, CombatState combat, string actorId, RegenerationTiming timing,
+        Core.GameplayEvents.GameplayEffectObservation observation, IReadOnlySet<string>? excludedResourceIds = null)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
+            return Result<Core.GameplayEvents.ObservedGameplayExecution<CombatResourceLifecycleResult>>.Failure("Resource observation requires the captured run revision");
+        var result = ProcessCore(run, combat, actorId, timing, excludedResourceIds, observation);
+        return result.IsFailure ? Result<Core.GameplayEvents.ObservedGameplayExecution<CombatResourceLifecycleResult>>.Failure(result.Error)
+            : Result<Core.GameplayEvents.ObservedGameplayExecution<CombatResourceLifecycleResult>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<CombatResourceLifecycleResult> ProcessCore(RunState run, CombatState combat, string actorId,
+        RegenerationTiming timing, IReadOnlySet<string>? excludedResourceIds, Core.GameplayEvents.GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
@@ -56,7 +73,7 @@ public sealed class CombatResourceLifecycle(IEffectTriggerExecutor triggers) : I
             if (excluded.Contains(resourceId) || regeneration is not { Enabled: true } || regeneration.Timing != timing)
                 continue;
             var source = $"resource:{resourceId}:regeneration";
-            var applied = triggers.Execute(new EffectTriggerExecutionRequest
+            var applied = ExecuteTrigger(new EffectTriggerExecutionRequest
             {
                 Run = currentRun, Combat = current, SourceEntityId = actorId, OwnerEntityId = actorId,
                 ContentRevision = run.Determinism.ContentRevision,
@@ -72,9 +89,18 @@ public sealed class CombatResourceLifecycle(IEffectTriggerExecutor triggers) : I
         }
         return Result<CombatResourceLifecycleResult>.Success(new()
         {
-            Combat = current, Run = currentRun, Records = records.ToImmutable(), Steps = steps.ToImmutable(),
+            Combat = current, Run = currentRun, Records = records.ToImmutable(), Steps = steps.ToImmutable(), Observation = observation,
             Fingerprint = CanonicalJson.ComputeObjectHash(CanonicalJson.Property("combat", current),
                 CanonicalJson.Property("run", currentRun), CanonicalJson.Property("steps", steps.ToImmutable()))
         });
+
+        Result<EffectBatchResult> ExecuteTrigger(EffectTriggerExecutionRequest request)
+        {
+            if (observation == null) return triggers.Execute(request);
+            var observed = triggers.ExecuteObserved(request, observation);
+            if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            return Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
     }
 }

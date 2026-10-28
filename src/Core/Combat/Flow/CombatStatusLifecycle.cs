@@ -67,7 +67,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         RunState run, CombatState combat, StatusTriggerBoundary boundary,
         Core.GameplayEvents.GameplayEffectObservation observation, string? activeActorId = null)
     {
-        if (observation?.Events == null || observation.Events.Scope.ContentRevision != combat.Determinism.ContentRevision)
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
             return Result<Core.GameplayEvents.ObservedStatusLifecycleExecution>.Failure("Status observation requires the captured combat revision");
         var result = ProcessCore(run, combat, boundary, activeActorId, observation);
         return result.IsFailure ? Result<Core.GameplayEvents.ObservedStatusLifecycleExecution>.Failure(result.Error)

@@ -32,7 +32,11 @@ public sealed record CombatRelicLifecycleEvent
 public sealed record CombatRelicLifecycleResult(
     CombatState Combat,
     IReadOnlyList<CombatRelicLifecycleEvent> Events,
-    RunState? Run = null);
+    RunState? Run = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
+}
 
 public interface ICombatRelicLifecycle
 {
@@ -53,7 +57,20 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
     public Result<CombatRelicLifecycleResult> Process(
         RunState run,
         CombatState combat,
-        string boundary)
+        string boundary) => ProcessCore(run, combat, boundary, null);
+
+    public Result<Core.GameplayEvents.ObservedGameplayExecution<CombatRelicLifecycleResult>> ProcessObserved(
+        RunState run, CombatState combat, string boundary, Core.GameplayEvents.GameplayEffectObservation observation)
+    {
+        if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
+            return Result<Core.GameplayEvents.ObservedGameplayExecution<CombatRelicLifecycleResult>>.Failure("Relic observation requires the captured run revision");
+        var result = ProcessCore(run, combat, boundary, observation);
+        return result.IsFailure ? Result<Core.GameplayEvents.ObservedGameplayExecution<CombatRelicLifecycleResult>>.Failure(result.Error)
+            : Result<Core.GameplayEvents.ObservedGameplayExecution<CombatRelicLifecycleResult>>.Success(new(result.Value, result.Value.Observation!));
+    }
+
+    private Result<CombatRelicLifecycleResult> ProcessCore(RunState run, CombatState combat, string boundary,
+        Core.GameplayEvents.GameplayEffectObservation? observation)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
@@ -61,7 +78,7 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
             return Result<CombatRelicLifecycleResult>.Failure("Relic boundary is required");
         var once = boundary is CombatTriggerBoundaries.CombatStart or CombatTriggerBoundaries.CombatEnd;
         if (once && combat.CompletedLifecycleBoundaries.Contains(boundary))
-            return Result<CombatRelicLifecycleResult>.Success(new(combat, [], run));
+            return Result<CombatRelicLifecycleResult>.Success(new(combat, [], run) { Observation = observation });
 
         var current = combat;
         var events = new List<CombatRelicLifecycleEvent>();
@@ -78,7 +95,7 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                     .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal).ToArray();
                 foreach (var owner in owners)
                 {
-                var executed = _triggers.Execute(new EffectTriggerExecutionRequest
+                var executed = ExecuteTrigger(new EffectTriggerExecutionRequest
                 {
                     Combat = current,
                     Run = run,
@@ -115,6 +132,15 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
             }
         }
         if (once) current = current with { CompletedLifecycleBoundaries = current.CompletedLifecycleBoundaries.Add(boundary) };
-        return Result<CombatRelicLifecycleResult>.Success(new(current, events, run));
+        return Result<CombatRelicLifecycleResult>.Success(new(current, events, run) { Observation = observation });
+
+        Result<EffectBatchResult> ExecuteTrigger(EffectTriggerExecutionRequest request)
+        {
+            if (observation == null) return _triggers.Execute(request);
+            var observed = _triggers.ExecuteObserved(request, observation);
+            if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
+            observation = observed.Value.Observation;
+            return Result<EffectBatchResult>.Success(observed.Value.Execution);
+        }
     }
 }

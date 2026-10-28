@@ -33,7 +33,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
-| 4 — Produção de fatos | Em execução: observação integrada ao executor; completar famílias e lifecycles |
+| 4 — Produção de fatos | Em execução: efeitos e lifecycles observados; fronteiras/gateway e caminhos externos pendentes |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
@@ -81,3 +81,7 @@ Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/st
 - Etapa 4f: observação opt-in no lifecycle canônico de status, incluindo seus triggers, redução de duração e expiração. **69 testes focados passaram**, com duas novas regressões: igualdade completa de resultados/ordem/ator elegível em repetições e rollback se o orçamento terminar depois do tick. Entrada normal continua sem observação. Pendentes: demais lifecycles, fronteiras e ações; etapa 4 segue em execução.
 
 - Certificação 4f (inclui 4e): **2001 testes Core aprovados, zero falhas e zero exclusões**, sobre a árvore preparada para commit em `.runtime/generic-events-stage4f-index`, com compilação e conteúdo isolados.
+
+- Etapa 4g: observação opt-in na regeneração e nas relíquias, preservando exclusões, sinais, ordem/donos e idempotência. Corrigida a validação interna para separar revisão da ação e revisão capturada da definição; regressão usa um efeito de revisão antiga sem substituir sua origem. **78 testes focados passaram**. Pendentes: executor geral de fronteiras, gateway de ações e caminhos externos de recursos/cartas; nenhuma habilitação de observers novos por JSON.
+
+- Certificação 4g: árvore exata do índice em `.runtime/generic-events-stage4g-index`; **2005 testes Core aprovados sem exclusões**, mais **31 testes API focados aprovados** (controllers, sandbox e jornada de compartimentos), com builds/recursos dentro da cópia. Não é certificação das etapas 5–15 ainda não implementadas.

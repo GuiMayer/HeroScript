@@ -131,7 +131,7 @@ public sealed class GameplayObservedExecutorTests
             item => Assert.Equal(recipe.EventId, item.ParentEventId));
         Assert.Contains(actual.Value.Observation.Events.Occurrences, item => item.Kind == "status.stacks.consumed");
         Assert.Empty(observation.Events.Occurrences);
-        Assert.True(fixture.Executor.ExecuteObserved(request with { ContentRevision = "another" }, observation).IsFailure);
+        Assert.True(fixture.Executor.ExecuteObserved(request with { Run = request.Run! with { Determinism = DeterministicContext.Create(123, "another") } }, observation).IsFailure);
     }
 
     [Theory]

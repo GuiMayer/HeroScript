@@ -99,7 +99,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     public Result<Core.GameplayEvents.ObservedEffectExecution> ExecuteObserved(EffectTriggerExecutionRequest request,
         Core.GameplayEvents.GameplayEffectObservation observation)
     {
-        if (observation?.Events == null || request == null || request.ContentRevision != observation.Events.Scope.ContentRevision)
+        if (observation?.Events == null || request == null || (request.Run?.Determinism.ContentRevision ?? request.Combat.Determinism.ContentRevision) != observation.Events.Scope.ContentRevision)
             return Result<Core.GameplayEvents.ObservedEffectExecution>.Failure("Observation transaction is required");
         try
         {
