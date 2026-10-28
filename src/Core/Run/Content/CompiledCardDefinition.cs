@@ -9,6 +9,8 @@ namespace Core.Run.Content;
 /// </summary>
 public sealed record CompiledCardDefinition : Core.Determinism.ICanonicalHashMemoizable
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.GameplayEvents.GameplayEventCatalog? ResponseCatalog { get; init; }
     private ImmutableArray<CardComponentDefinition> _components = [];
     private ImmutableArray<string> _tags = [];
     private ImmutableArray<ResourceAmount> _basePrices = [];

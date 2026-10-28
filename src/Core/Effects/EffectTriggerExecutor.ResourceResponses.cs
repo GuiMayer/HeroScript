@@ -46,7 +46,7 @@ public sealed partial class EffectTriggerExecutor
         if (quotas.IsFailure) return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure(quotas.Error);
         var providers = authored.Value ? AuthoredProviders().Add(new LegacyResourceReactionObserverProvider()) : [new LegacyResourceReactionObserverProvider()];
         var session = new ResponseExecutionSession(catalog.Value, providers, quotas.Value,
-            new GameplayResponseEvaluation(_formulas, _contentRuntimes), null, null);
+            new GameplayResponseEvaluation(_formulas, _contentRuntimes), request.Card?.CardInstanceId, request.Card?.CardInstanceId);
         return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new() { Responses = session }, observation));
     }
 }

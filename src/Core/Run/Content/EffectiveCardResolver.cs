@@ -43,6 +43,7 @@ public sealed class EffectiveCardResolver(ICardContentCompiler? compiler = null)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(instance);
+        var effectiveCompiler = compiler ?? new CardContentCompiler(definition.ResponseCatalog);
         if (!string.Equals(definition.CardId, instance.DefinitionId, StringComparison.Ordinal))
         {
             return Result<EffectiveCardDefinition>.Failure(
@@ -134,7 +135,7 @@ public sealed class EffectiveCardResolver(ICardContentCompiler? compiler = null)
 
         // Use the same closed-container compiler as authored cards. Structural
         // mutations cannot bypass binding, alias, trigger or singleton checks.
-        var recompiled = (compiler ?? new CardContentCompiler()).Compile(new CardContentDefinition
+        var recompiled = effectiveCompiler.Compile(new CardContentDefinition
         {
             CardId = definition.CardId, Rarity = definition.Rarity,
             BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,
@@ -149,7 +150,7 @@ public sealed class EffectiveCardResolver(ICardContentCompiler? compiler = null)
             return Result<EffectiveCardDefinition>.Failure(string.Join("; ", composition.Diagnostics.Select(item => item.Message)));
         if (!composition.Trace.IsEmpty)
         {
-            var lowered = (compiler ?? new CardContentCompiler()).Compile(new CardContentDefinition
+            var lowered = effectiveCompiler.Compile(new CardContentDefinition
             {
                 CardId = definition.CardId, Rarity = definition.Rarity,
                 BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,

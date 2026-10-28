@@ -166,3 +166,6 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Certificação 9b: árvore exata b431888e175f760ce8fb8f6859885e003217cdb0, build completo sem avisos/erros, 2130 testes Core e 32 testes API focados aprovados, sem exclusões. A etapa 9 permanece aberta para cartas e demais produtores.
 
+
+- Etapa 9c: compilação vinculada ao catálogo do runtime e preservada nas resoluções de upgrades/contribuições; compartimentos propagam o mesmo compilador para bundles e container efetivo. Provider normal usa a identidade da carta selecionada/em resolução. 38 testes focados aprovados, incluindo execução real repetida da resposta em carta e concessão por compartimento, igualdade completa normal/observado e entrada imutável. Autoria permanece bloqueada; etapa 9 ainda aberta para produtores externos e ponto único das fronteiras.
+

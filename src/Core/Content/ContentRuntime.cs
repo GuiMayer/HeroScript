@@ -17,6 +17,7 @@ public sealed class ContentRuntime
     private static readonly JsonSerializerOptions SerializerOptions = CreateSerializerOptions();
     private readonly ImmutableDictionary<string, ImmutableDictionary<string, JsonElement>> _definitions;
     private readonly TypedContentDefinitionCache _typedDefinitions;
+    private readonly Lazy<Result<Core.GameplayEvents.GameplayEventCatalog>> _gameplayCatalog;
 
     private ContentRuntime(
         ContentManifest manifest,
@@ -27,11 +28,13 @@ public sealed class ContentRuntime
         _definitions = definitions;
         _typedDefinitions = typedDefinitions ?? new();
         ContainsGameplayResponses = containsGameplayResponses;
+        _gameplayCatalog = new(() => Core.GameplayEvents.GameplayCoreCatalog.Create(manifest.ConfigName, manifest.Revision));
     }
 
     public ContentManifest Manifest { get; }
     /// <summary>Derived once from typed immutable definitions; never caches gameplay, counters or RNG.</summary>
     public bool ContainsGameplayResponses { get; }
+    internal Result<Core.GameplayEvents.GameplayEventCatalog> GameplayCatalog => _gameplayCatalog.Value;
 
     public static Result<ContentRuntime> Create(ContentBundle bundle)
         => Create(bundle, ContentKindRegistry.Default);

@@ -3,6 +3,10 @@ using System.Text.Json;
 using Core.CardZones;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Effects;
+using Core.Math;
+using Core.Calculations;
+using Core.Tests.Effects;
 using Core.Content;
 using Core.Determinism;
 using Core.GameplayEvents;
@@ -64,11 +68,52 @@ public sealed class CardGameplayObserverProviderTests
         Assert.Empty(GameplayObserverCollector.Collect(unassigned, [fixture.Provider]).Value);
     }
 
-    private static (GameplayObserverCollectionContext Context, CardGameplayObserverProvider Provider, Guid CardId) Fixture(bool compartment)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NormalExecutionCompilesAndExecutesCardAndCompartmentObservers(bool compartment)
+    {
+        var fixture = Fixture(compartment);
+        var compiler = new CardContentCompiler();
+        var compiled = compiler.Compile("card", fixture.Runtime);
+        Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
+        var effective = DeckCompartmentComposition.Resolve(fixture.Context.Run, fixture.Runtime, compiled.Value,
+            fixture.Context.Run.Deck.GetCard(fixture.CardId)!, new EffectiveCardResolver());
+        Assert.True(effective.IsSuccess, effective.IsFailure ? effective.Error : null);
+        Assert.Single(effective.Value.Components.OfType<CardResponseComponentDefinition>());
+        var request = EffectTransactionTests.Request(new EffectDefinition { Type = EffectType.HEAL, TargetResource = "focus", FlatValue = 1 })
+            with { Run = fixture.Context.Run, Combat = fixture.Context.Combat! };
+        var executor = new EffectTriggerExecutor(Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor(),
+            fixture.Runtimes, new CalculationEngine(), new EmptyInfluences(), allowUnconfiguredCalculations: true);
+        var original = CanonicalJson.ComputeHash(request);
+        var outputs = new HashSet<string>();
+        for (var i = 0; i < 5; i++)
+        {
+            var normal = executor.Execute(request);
+            Assert.True(normal.IsSuccess, normal.IsFailure ? normal.Error : null);
+            Assert.Equal(12, normal.Value.State.GetActor("hero")!.GetResource("focus")!.Current);
+            var observed = executor.ExecuteObserved(request, GameplayObservedExecutorTests.ObservationFor(request.Run, request.Combat));
+            Assert.True(observed.IsSuccess, observed.IsFailure ? observed.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(normal.Value), CanonicalJson.ComputeHash(observed.Value.Execution));
+            Assert.Equal(2, observed.Value.Observation.Events.Occurrences.Count);
+            outputs.Add(CanonicalJson.ComputeHash(normal.Value));
+        }
+        Assert.Single(outputs); Assert.Equal(original, CanonicalJson.ComputeHash(request));
+    }
+
+    private sealed class EmptyInfluences : ICalculationInfluenceProvider
+    {
+        public string ProviderId => "test.empty";
+        public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context) =>
+            Result<IReadOnlyList<CalculationInfluence>>.Success([]);
+    }
+
+    private static (GameplayObserverCollectionContext Context, CardGameplayObserverProvider Provider, Guid CardId, ContentRuntime Runtime, IContentRuntimeResolver Runtimes) Fixture(bool compartment)
     {
         var context = GameplayResponseCompilationTests.Context();
         var response = new CardResponseComponentDefinition { ComponentId = "watch", Response = GameplayResponseCompilationTests.Definition() with
-            { Availability = new() { Kind = ResponseAvailabilityKind.CardZones, ZoneIds = ["alpha"] } } };
+            { Availability = new() { Kind = ResponseAvailabilityKind.CardZones, ZoneIds = ["alpha"] },
+                Effects = [new() { Type = EffectType.HEAL, Target = EffectTarget.SELF, TargetResource = "focus", FlatValue = 2 }] } };
         var definitions = new List<(string Kind, string Id, object Value)> { ("cards", "card", new CardContentDefinition { CardId = "card",
             Components = compartment ? [new CardConditionComponentDefinition { ComponentId = "base", Expression = "1" }] : [response] }) };
         if (compartment)
@@ -78,6 +123,8 @@ public sealed class CardGameplayObserverProviderTests
                 { CompartmentId = "grant", Capacity = 1, Grants = [new() { GrantId = "response", BundleId = "responses" }] }] }));
             definitions.Add(("deck-compartment-policies", "outside", new DeckCompartmentPolicyDefinition { PolicyId = "outside" }));
         }
+        definitions.Add(("calculation-pipelines", "identity", new CalculationPipelineDefinition { PipelineId = "identity",
+            Channel = "effect_amount", Buckets = [new() { BucketId = "identity", Operation = CalculationBucketOperation.Add }] }));
         var artifacts = definitions.GroupBy(item => item.Kind).ToImmutableDictionary(group => group.Key + "/test.json",
             group => JsonSerializer.SerializeToElement(group.ToDictionary(item => item.Id, item => item.Value)));
         var runtime = ContentRuntime.Create(new() { Manifest = new() { ConfigName = "default", Revision = "revision",
@@ -92,7 +139,7 @@ public sealed class CardGameplayObserverProviderTests
             Batches = [new() { ZoneId = "alpha", OwnerId = "$run", DefinitionIds = ["card"] }] }, context.Run.Determinism).Value;
         var id = Assert.Single(topology.State.Instances.Keys);
         var run = context.Run with { Deck = new() { Topology = topology.State }, ResolvedMode = new() { CardZoneSystem = graph,
-            Definition = new() { ModeId = "test", DeckCompartmentPolicyId = compartment ? "outside" : null } } };
+            Definition = new() { ModeId = "test", CalculationPipelineIds = ["identity"], DeckCompartmentPolicyId = compartment ? "outside" : null } } };
         if (compartment) run = run with { PlayerEntity = new() { InstanceId = "hero", Components = ImmutableDictionary<string, EntityComponentState>.Empty
                 .Add("layout", new DeckCompartmentProfileComponentState { ComponentId = "layout", ProfileId = "layout" }) },
             DeckCompartments = new() { Actors = ImmutableSortedDictionary<string, ActorDeckCompartmentState>.Empty.Add("hero", new()
@@ -100,6 +147,6 @@ public sealed class CardGameplayObserverProviderTests
         context = context with { Run = run };
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(service => service.Resolve("revision", "default")).Returns(Result<ContentRuntime>.Success(runtime.Value));
-        return (context, new(runtimes.Object), id);
+        return (context, new(runtimes.Object), id, runtime.Value, runtimes.Object);
     }
 }

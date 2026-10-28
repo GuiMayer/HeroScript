@@ -14,6 +14,7 @@ public static class DeckCompartmentComposition
     {
         // No new resolution, hashing or profile lookup in the historical, disabled path.
         if (run.DeckCompartments == null) return resolver.Resolve(definition, instance);
+        compiler ??= definition.ResponseCatalog == null ? null : new CardContentCompiler(definition.ResponseCatalog);
         var owners = run.DeckCompartments.Actors.Values.Where(a => a.Allocations.ContainsKey(instance.CardInstanceId)).ToArray();
         if (owners.Length == 0) return resolver.Resolve(definition, instance);
         if (owners.Length != 1) return Result<EffectiveCardDefinition>.Failure("Card is allocated to multiple characters");
@@ -53,10 +54,17 @@ public static class DeckCompartmentComposition
     public static Result Validate(RunState run, ContentRuntime runtime)
     {
         if (run.DeckCompartments == null) return Result.Success();
+        ICardContentCompiler? compiler = null;
+        if (runtime.ContainsGameplayResponses)
+        {
+            var catalog = runtime.GameplayCatalog;
+            if (catalog.IsFailure) return Result.Failure(catalog.Error);
+            compiler = new CardContentCompiler(catalog.Value);
+        }
         foreach (var (key, actor) in run.DeckCompartments.Actors)
         {
             if (key != actor.ActorId) return Result.Failure("Compartment actor key mismatch");
-            var profile = DeckCompartmentAccess.Profile(run, runtime, actor.ActorId);
+            var profile = DeckCompartmentAccess.Profile(run, runtime, actor.ActorId, compiler);
             if (profile.IsFailure) return Result.Failure(profile.Error);
             if (actor.ProfileId != profile.Value.ProfileId) return Result.Failure("Allocated profile mismatch");
             foreach (var group in actor.Allocations.GroupBy(a => a.Value, StringComparer.Ordinal))

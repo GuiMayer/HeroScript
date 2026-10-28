@@ -46,7 +46,10 @@ public sealed class CardContentCompiler(Core.GameplayEvents.GameplayEventCatalog
             bundles[bundleId] = bundle.Value;
         }
 
-        return Compile(card.Value, bundles.ToImmutable());
+        if (responseCatalog != null) return Compile(card.Value, bundles.ToImmutable());
+        var catalog = runtime.GameplayCatalog;
+        return catalog.IsFailure ? Result<CompiledCardDefinition>.Failure(catalog.Error)
+            : new CardContentCompiler(catalog.Value).Compile(card.Value, bundles.ToImmutable());
     }
 
     public Result<CompiledCardDefinition> Compile(
@@ -149,6 +152,7 @@ public sealed class CardContentCompiler(Core.GameplayEvents.GameplayEventCatalog
             ordered);
         return Result<CompiledCardDefinition>.Success(new CompiledCardDefinition
         {
+            ResponseCatalog = responseCatalog,
             CardId = payload.CardId,
             Rarity = payload.Rarity,
             BasePrices = payload.BasePrices,
