@@ -95,10 +95,20 @@ public abstract record GameplayOccurrencePayload
     public abstract Result Validate();
 }
 
+public sealed record GameplayObjectReference
+{
+    public string Kind { get; init; } = string.Empty;
+    public string Id { get; init; } = string.Empty;
+    public string? ScopeId { get; init; }
+    [JsonIgnore] public bool IsValid => HierarchicalName.Parse(Kind).IsSuccess && EventValue.Valid(Id) && EventValue.Optional(ScopeId);
+}
+
 public sealed record ResourceChangePayload : GameplayOccurrencePayload
 {
     public override GameplayPayloadKind PayloadKind => GameplayPayloadKind.ResourceChange;
     public string ResourceId { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GameplayObjectReference? Owner { get; init; }
     [JsonConverter(typeof(JsonStringEnumConverter))] public ResourceValueField Field { get; init; }
     [JsonConverter(typeof(JsonStringEnumConverter))] public ResourceMutationOperation Operation { get; init; }
     public float Operand { get; init; }
@@ -112,7 +122,7 @@ public sealed record ResourceChangePayload : GameplayOccurrencePayload
     public ImmutableArray<string> RelatedFactIds { get; init; } = [];
     public override Result Validate()
     {
-        if (!EventValue.Valid(ResourceId) || !Enum.IsDefined(Field) || !Enum.IsDefined(Operation) ||
+        if (!EventValue.Valid(ResourceId) || Owner is { IsValid: false } || !Enum.IsDefined(Field) || !Enum.IsDefined(Operation) ||
             !new[] { Operand, Before, RequestedValue, After }.All(float.IsFinite) || !EventValue.Optional(TransferGroupId) ||
             RelatedFactIds.IsDefault || RelatedFactIds.Length > 64 || RelatedFactIds.Any(id => !EventValue.Valid(id)))
             return Result.Failure("Invalid resource change payload");

@@ -21,3 +21,13 @@ Nada nesta etapa publica ocorrências, adiciona campos a snapshots existentes, m
 `ParentEventId` e `RootEventId` descrevem a execução na ação atual. Um efeito atrasado pode ter `OriginCause`, uma referência histórica separada à ação que o instalou, com responsável atribuído e revisão. Isso permite seguir a cadeia entre ações sem transformar a idade de um status em profundidade de recursão. A referência histórica não pode ser usada para forjar um pai inexistente da ação atual. Outra branch só é aceita quando o chamador fornece a lista de ancestrais autorizados.
 
 `StatusEffectInstance`, `StackPayloadLot` e `PendingActionState` possuem campo opcional `OriginCause`, omitido quando nulo. A serialização dos estados existentes continua sem esse campo; não há preenchimento automático nem migração silenciosa. O primeiro produtor que tornar esse estado novo autoritativo precisará de corte explícito de engine/schema, baseline de replay e certificação. Até esse corte, engineVersion 34 e seus consumidores continuam executando o comportamento anterior.
+
+## Primeiros produtores em observação shadow
+
+`GameplayResourceFactProducer` converte a entrada e o resultado do redutor canônico em um draft tipado. O operando vem do comando original: não pode ser inferido do delta arredondado. Para efeitos, é usado `ResolvedEffectCommand.ResolvedValue`; settlements exigem ligação inequívoca ao seu input próprio. O produtor valida identidades, alvo, recurso e campo antes de aceitar o fato.
+
+`ObservedResourceTransitions` executa `ResourceSet.Apply` ou `ResourceCostTransitions.Spend` e acrescenta fatos ao sucessor privado da transação de eventos. Não substitui essas regras, não publica no event bus e não modifica o estado de entrada. Falha do redutor ou da observação retorna falha sem entregar um sucessor parcial. O motivo é explícito: duas subtrações iguais podem representar custo e dano distintos.
+
+O payload pode identificar o dono por `GameplayObjectReference`, permitindo recursos de ator, run, tabuleiro ou outro agregado sem inventar um ator. Essa referência identifica o afetado; não é proveniência do executor.
+
+Essa etapa é opt-in interno para testes/shadow. Os consumidores atuais ainda não foram migrados, não há dispatcher genérico em produção e não se deve declarar concluída a cobertura de status, atributos, cartas, fronteiras ou comandos. Essa ligação é a continuação da etapa 4, antes da habilitação de respostas novas.

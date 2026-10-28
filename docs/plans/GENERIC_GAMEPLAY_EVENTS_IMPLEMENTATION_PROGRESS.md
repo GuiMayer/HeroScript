@@ -33,7 +33,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
-| 4 — Produção de fatos | Não iniciada |
+| 4 — Produção de fatos | Em execução: produtores de recurso/custo em shadow |
 | 5 — Respostas e registros | Não iniciada |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
@@ -50,6 +50,8 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 
 As contagens abaixo devem registrar somente execuções realizadas durante este plano. Não reutilizar números de relatórios anteriores como nova execução.
 
+Próximo bloco obrigatório: completar a instrumentação da etapa 4 (efeitos/status/atributos/zonas/fronteiras e integração dos produtores), sem saltar diretamente para liberar componentes JSON. Os primeiros adaptadores de recurso/custo ainda não são cobertura completa dessa etapa.
+
 - Etapa 0: 107 testes focados Core passaram em `.runtime/generic-gameplay-events`, incluindo as duas novas regressões de baseline. As fixtures foram ajustadas ao pipeline real configurado; nenhum código de gameplay foi alterado.
 
 - Etapa 1: parser ordinal, seletores exatos/um nível/descendentes, inclusão/exclusão e trie imutável implementados. 26 testes focados passaram (24 de hierarquia + 2 de baseline). Nenhum consumidor de gameplay foi alterado. Contrato em `docs/content/gameplay-event-hierarchies.md`.
@@ -60,3 +62,7 @@ As contagens abaixo devem registrar somente execuções realizadas durante este 
 - A execução Core completa do checkout registrou 1974 aprovações e seis falhas em `UnoClashParityTests`, arquivo não rastreado anterior ao plano; as falhas leem diretamente chaves ausentes dos JSONs locais de UNO. O teste/conteúdo não foi alterado nem excluído. Certificação independente do índice em andamento.
 
 - Certificação da etapa 3: exportado o índice para `.runtime/generic-events-stage3-index` e executada a suíte Core completa com build/artefatos dentro da própria cópia, usando o conteúdo versionado dessa cópia: **1970 testes aprovados, zero falhas e zero exclusões**. A execução anterior de fontes do índice também passou em 1970 testes; a repetição dentro da cópia garante isolamento da descoberta de recursos. Os seis erros do checkout não estão presentes na árvore versionada.
+
+- Etapa 4a: produtores canônicos de fato de recurso, vínculo ao operando real de efeitos/settlements e observação explícita de mutação/custo implementados. `GameplayObjectReference` permite dono de recurso não ator. 62 testes focados passaram, incluindo os anteriores e sete casos novos. A observação ainda é shadow e a etapa 4 permanece aberta.
+
+- Certificação da etapa 4a: índice exportado para `.runtime/generic-events-stage4a-index`, com build/artefatos e conteúdo isolados. **1977 testes Core passaram, sem exclusões**, repetidos após a proteção final de cópias das listas de entrada. **31 testes API focados passaram**, cobrindo controllers, sandbox e jornada de compartimentos. Não equivale à suíte API inteira nem à certificação do dispatcher ainda não implementado. No checkout completo permanecem as mesmas seis falhas de JSON do teste de UNO não rastreado, com 1981 aprovações.
