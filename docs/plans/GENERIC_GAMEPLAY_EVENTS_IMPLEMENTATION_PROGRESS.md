@@ -30,7 +30,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | Etapa | Estado |
 |---|---|
 | 0 — Inventário e baseline | Concluída |
-| 1 — Hierarquias e matcher | Não iniciada |
+| 1 — Hierarquias e matcher | Concluída |
 | 2 — Ocorrências e catálogo | Não iniciada |
 | 3 — Causalidade e identidade | Não iniciada |
 | 4 — Produção de fatos | Não iniciada |
@@ -51,3 +51,5 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 As contagens abaixo devem registrar somente execuções realizadas durante este plano. Não reutilizar números de relatórios anteriores como nova execução.
 
 - Etapa 0: 107 testes focados Core passaram em `.runtime/generic-gameplay-events`, incluindo as duas novas regressões de baseline. As fixtures foram ajustadas ao pipeline real configurado; nenhum código de gameplay foi alterado.
+
+- Etapa 1: parser ordinal, seletores exatos/um nível/descendentes, inclusão/exclusão e trie imutável implementados. 26 testes focados passaram (24 de hierarquia + 2 de baseline). Nenhum consumidor de gameplay foi alterado. Contrato em `docs/content/gameplay-event-hierarchies.md`.
