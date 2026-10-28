@@ -38,6 +38,7 @@ public sealed record EntityDefinition
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(ResourceEntityComponentDefinition), "resources")]
+[JsonDerivedType(typeof(Core.GameplayEvents.Responses.EntityResponseComponentDefinition), "responses")]
 [JsonDerivedType(typeof(StatEntityComponentDefinition), "stats")]
 [JsonDerivedType(typeof(InventoryEntityComponentDefinition), "inventory")]
 [JsonDerivedType(typeof(AbilityEntityComponentDefinition), "abilities")]

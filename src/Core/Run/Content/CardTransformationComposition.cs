@@ -48,7 +48,7 @@ public static class CardBundleCompiler
         (char.IsAsciiLetter(value[0]) || value[0] == '_') &&
         value.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
 
-    public static Result ValidateTemplate(CardComponentBundleDefinition bundle)
+    public static Result ValidateTemplate(CardComponentBundleDefinition bundle, ICardContentCompiler? compiler = null)
     {
         if (string.IsNullOrWhiteSpace(bundle.BundleId) || bundle.Components.Count == 0 ||
             !CardCompositionGrammar.ValidSymbols(bundle.EffectComponentParameters) ||
@@ -62,19 +62,19 @@ public static class CardBundleCompiler
             ComponentId = "$" + parameter,
             Effect = new() { Type = EffectType.MODIFY_RESOURCE, TargetResource = "template", FlatValue = 0 }
         });
-        var validated = new CardContentCompiler().Compile(new CardContentDefinition
+        var validated = (compiler ?? new CardContentCompiler()).Compile(new CardContentDefinition
             { CardId = bundle.BundleId, Components = bundle.Components.Concat(placeholders).ToImmutableArray() });
         return validated.IsFailure ? Result.Failure(validated.Error) : Result.Success();
     }
 
     public static Result<ImmutableArray<CardComponentDefinition>> Expand(
-        CardComponentBundleDefinition bundle, string scope, IReadOnlyDictionary<string, string>? effectBindings = null)
+        CardComponentBundleDefinition bundle, string scope, IReadOnlyDictionary<string, string>? effectBindings = null, ICardContentCompiler? compiler = null)
     {
         if (!SafeNamespace(scope) || string.IsNullOrWhiteSpace(bundle.BundleId) || bundle.Components.Count == 0 ||
             bundle.Components.Any(component => component == null || string.IsNullOrWhiteSpace(component.ComponentId)) ||
             bundle.Components.Select(component => component.ComponentId).Distinct(StringComparer.Ordinal).Count() != bundle.Components.Count)
             return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid bundle identity, namespace or members");
-        var validated = ValidateTemplate(bundle);
+        var validated = ValidateTemplate(bundle, compiler);
         if (validated.IsFailure) return Result<ImmutableArray<CardComponentDefinition>>.Failure(validated.Error);
         effectBindings ??= ImmutableDictionary<string, string>.Empty;
         if (!bundle.EffectComponentParameters.Order(StringComparer.Ordinal).SequenceEqual(effectBindings.Keys.Order(StringComparer.Ordinal)) ||

@@ -7,6 +7,7 @@ namespace Core.Combat.Models;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(ResourceEntityComponentState), "resources")]
+[JsonDerivedType(typeof(Core.GameplayEvents.Responses.EntityResponseComponentState), "responses")]
 [JsonDerivedType(typeof(StatEntityComponentState), "stats")]
 [JsonDerivedType(typeof(InventoryEntityComponentState), "inventory")]
 [JsonDerivedType(typeof(AbilityEntityComponentState), "abilities")]

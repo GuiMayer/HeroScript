@@ -32,7 +32,7 @@ public sealed record DeckCompartmentProfileDefinition
     public string ProfileId { get; init; } = string.Empty;
     public ImmutableArray<DeckCompartmentDefinition> Compartments { get; init; } = [];
 
-    public Result Validate(ContentRuntime runtime)
+    public Result Validate(ContentRuntime runtime, ICardContentCompiler? compiler = null)
     {
         if (!Symbol(ProfileId) || Compartments.IsDefaultOrEmpty || Compartments.Length > 32 ||
             Compartments.Any(c => c == null || !Symbol(c.CompartmentId)) ||
@@ -51,7 +51,7 @@ public sealed record DeckCompartmentProfileDefinition
                     return Result.Failure("Invalid compartment bundle reference or bindings");
                 var bundle = runtime.GetDefinition<CardComponentBundleDefinition>("card-component-bundles", grant.BundleId);
                 if (bundle.IsFailure) return Result.Failure(bundle.Error);
-                var expanded = CardBundleCompiler.Expand(bundle.Value, "grant", grant.EffectBindings);
+                var expanded = CardBundleCompiler.Expand(bundle.Value, "grant", grant.EffectBindings, compiler);
                 if (expanded.IsFailure) return Result.Failure(expanded.Error);
                 if (expanded.Value.Length > 64) return Result.Failure("Compartment grant exceeds component budget");
             }

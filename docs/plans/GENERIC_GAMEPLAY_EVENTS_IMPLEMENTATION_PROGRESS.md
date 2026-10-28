@@ -34,7 +34,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 2 — Ocorrências e catálogo | Concluída |
 | 3 — Causalidade e identidade | Concluída |
 | 4 — Produtores canônicos | Concluída em modo opt-in; migração de consumidores nas etapas seguintes |
-| 5 — Definições e providers | Em execução: contratos/compilador/coletor; providers de containers pendentes |
+| 5 — Definições e providers | Concluída; publicação executável bloqueada até o cutover |
 | 6 — Dispatcher transacional | Não iniciada |
 | 7 — Migração das reações de recurso | Não iniciada |
 | 8 — Migração de lifecycle/fases | Não iniciada |
@@ -133,3 +133,7 @@ Próximo bloco obrigatório: definições e providers efetivos da etapa 5; em se
 - Complemento 4x, na preparação dos filtros da etapa 5: fatos de efeitos capturam as tags efetivas canônicas e o canal, com papel explícito PrimaryEffect/Settlement/DirectMutation. Custos preservam seu motivo independente. Campos de transporte internos são ignorados na serialização dos comandos. **129 testes focados passaram**, incluindo regressão nova de tags/custo e equivalência completa; acrescidas asserções de papel na regressão existente de absorção. Não há cálculo de tags/observação no caminho normal sem observação.
 
 - Etapa 5a: contratos JSON de respostas/filtros/bindings/disponibilidade, compilador por catálogo e coletor puro com ordem total ordinal. Cartas exigem disponibilidade explícita e propriedade física da zona; providers não executam matching/efeitos. Frequências duráveis ainda indisponíveis são rejeitadas; wildcards de extensão exigem capacidade confiável e ficam dormentes sem tópicos conhecidos. Schema em `docs/schemas/gameplay-response.schema.json`. **111 testes focados passaram**, com oito novos casos de compilação/JSON/coleção/escopo/disponibilidade. Providers concretos e namespaces numéricos ainda serão ligados antes de concluir a etapa 5.
+
+- Etapa 5b: providers concretos de modo/encontro/ator/relíquia/status/carta, revisão capturada e proveniência de upgrades/compartimentos. Componentes de resposta passam pelo compilador/composição canônicos em modo shadow explícito; a publicação padrão recusa essas declarações até a execução estar integrada. Campos opcionais nulos não alteram snapshots antigos. Namespace numérico tipado projeta somente referências pedidas e distingue responsável, afetado e dono, sem reflexão/defaults silenciosos. **16 testes focados passaram**, incluindo cinco casos novos de providers, publicação, números, zonas/remoção e contribuição real por compartimento. Certificação completa da etapa 5 em preparação.
+
+- Fechamento da etapa 5: árvore de código `73e38c316e1234a3820c3bf45eb4e0d7e4819149` em `.runtime/generic-events-stage5-index`, build completo sem warnings/erros e artefatos/conteúdo isolados: **2064 testes Core e 32 testes API focados aprovados**, sem exclusões. Depois, **3 testes** passaram com asserções adicionais que distinguem numericamente recursos de dono e responsável no namespace de fórmulas. Não há dispatcher habilitado nem conteúdo antigo migrado antes das etapas seguintes.

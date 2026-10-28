@@ -9,8 +9,11 @@ using Core.Meta;
 
 namespace Core.Run;
 
-public sealed record GameModeDefinition
+public sealed record GameModeDefinition : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
+
     private ImmutableDictionary<string, JsonElement> _rules =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableArray<string> _cardPoolIds = [];

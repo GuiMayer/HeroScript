@@ -250,7 +250,9 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             CreationReceipt = creationIdentity,
             ResourceState = null!,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
-            Map = mapResult.Value,
+            Map = mapResult.Value.Nodes.Any(node => node.Responses is { IsEmpty: false })
+                ? mapResult.Value with { Nodes = mapResult.Value.Nodes.Select(node => node.Responses is { IsEmpty: false }
+                    ? node with { ResponseContentRevision = contentRevision } : node).ToArray() } : mapResult.Value,
             Deck = initialDeck,
             Metadata = ToImmutableMetadata(definition.Metadata),
             ContentManifest = manifest,

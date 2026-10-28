@@ -9,8 +9,11 @@ using Core.Combat.Models;
 
 namespace Core.Run;
 
-public sealed record RelicDefinition
+public sealed record RelicDefinition : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
+
     private ImmutableDictionary<string, JsonElement> _properties =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
@@ -43,8 +46,11 @@ public sealed record RelicDefinition
     }
 }
 
-public sealed record RunRelicState
+public sealed record RunRelicState : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
+
     private ImmutableDictionary<string, JsonElement> _properties =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
@@ -140,6 +146,7 @@ public static class RelicTransitions
             Influences = definition.Influences,
             Triggers = definition.Triggers,
             Reactions = definition.Reactions,
+            Responses = definition.Responses,
             ResourceRestrictions = definition.ResourceRestrictions,
             Properties = definition.Properties
         };

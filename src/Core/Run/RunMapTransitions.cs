@@ -169,6 +169,7 @@ public static class RunMapTransitions
         return new RunMapNodeState
         {
             NodeId = definition.NodeId,
+            Responses = definition.Responses,
             Activity = definition.Activity,
             CompletionPolicy = definition.CompletionPolicy,
             EntryEffects = definition.EntryEffects,

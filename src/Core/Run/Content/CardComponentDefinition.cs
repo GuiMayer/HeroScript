@@ -11,6 +11,7 @@ namespace Core.Run.Content;
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(CardCostComponentDefinition), "cost")]
+[JsonDerivedType(typeof(Core.GameplayEvents.Responses.CardResponseComponentDefinition), "response")]
 [JsonDerivedType(typeof(CardEffectComponentDefinition), "effect")]
 [JsonDerivedType(typeof(CardConditionComponentDefinition), "condition")]
 [JsonDerivedType(typeof(CardTargetingComponentDefinition), "targeting")]

@@ -41,8 +41,11 @@ public sealed record RunDefinition
     }
 }
 
-public sealed record RunMapNodeDefinition
+public sealed record RunMapNodeDefinition : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
+
     private ImmutableList<string> _nextNodeIds = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
     private ImmutableArray<EffectDefinition> _entryEffects = [];

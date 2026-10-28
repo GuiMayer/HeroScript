@@ -26,7 +26,7 @@ public interface IEffectiveCardResolver
 /// Pure resolver for definition base plus permanent instance upgrades.
 /// Contextual scaling is intentionally a later, separate pipeline.
 /// </summary>
-public sealed class EffectiveCardResolver : IEffectiveCardResolver
+public sealed class EffectiveCardResolver(ICardContentCompiler? compiler = null) : IEffectiveCardResolver
 {
     public Result<EffectiveCardDefinition> Resolve(
         CompiledCardDefinition definition,
@@ -134,7 +134,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
 
         // Use the same closed-container compiler as authored cards. Structural
         // mutations cannot bypass binding, alias, trigger or singleton checks.
-        var recompiled = new CardContentCompiler().Compile(new CardContentDefinition
+        var recompiled = (compiler ?? new CardContentCompiler()).Compile(new CardContentDefinition
         {
             CardId = definition.CardId, Rarity = definition.Rarity,
             BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,
@@ -149,7 +149,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             return Result<EffectiveCardDefinition>.Failure(string.Join("; ", composition.Diagnostics.Select(item => item.Message)));
         if (!composition.Trace.IsEmpty)
         {
-            var lowered = new CardContentCompiler().Compile(new CardContentDefinition
+            var lowered = (compiler ?? new CardContentCompiler()).Compile(new CardContentDefinition
             {
                 CardId = definition.CardId, Rarity = definition.Rarity,
                 BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,

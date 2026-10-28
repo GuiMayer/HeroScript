@@ -22,7 +22,7 @@ public interface ICardContentCompiler
 /// Pure deterministic compiler from authored card content to one closed
 /// component container. No live file or cache is consulted during compilation.
 /// </summary>
-public sealed class CardContentCompiler : ICardContentCompiler
+public sealed class CardContentCompiler(Core.GameplayEvents.GameplayEventCatalog? responseCatalog = null) : ICardContentCompiler
 {
     public Result<CompiledCardDefinition> Compile(
         string cardId,
@@ -76,7 +76,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
             }
             if (bundle.BundleId != reference.BundleId)
                 return Result<CompiledCardDefinition>.Failure("Bundle definition identity mismatch");
-            var members = CardBundleCompiler.Expand(bundle, reference.Namespace);
+            var members = CardBundleCompiler.Expand(bundle, reference.Namespace, compiler: this);
             if (members.IsFailure) return Result<CompiledCardDefinition>.Failure(members.Error);
             expanded.AddRange(members.Value);
         }
@@ -160,7 +160,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
         });
     }
 
-    private static Result ValidateComponent(string cardId, CardComponentDefinition component)
+    private Result ValidateComponent(string cardId, CardComponentDefinition component)
     {
         if (string.IsNullOrWhiteSpace(component.ComponentId))
             return Result.Failure($"Card {cardId} contains a component without componentId");
@@ -169,6 +169,9 @@ public sealed class CardContentCompiler : ICardContentCompiler
 
         return component switch
         {
+            Core.GameplayEvents.Responses.CardResponseComponentDefinition response => responseCatalog == null || response.Response == null
+                ? Result.Failure("Response components require the shadow response compiler until executable cutover")
+                : ValidateResponse(response.Response, responseCatalog),
             CardEffectRuleOverrideComponentDefinition rule => EffectResolutionPolicyResolver.ValidateOverride(rule.Rule),
             CardCostComponentDefinition cost => ValidateCosts(cardId, cost),
             CardEffectComponentDefinition effect => ValidateEffect(cardId, component.ComponentId, effect.Effect),
@@ -196,6 +199,12 @@ public sealed class CardContentCompiler : ICardContentCompiler
                 Result.Failure($"Card {cardId} influence {component.ComponentId} requires channel and bucket"),
             _ => Result.Success()
         };
+    }
+
+    private static Result ValidateResponse(Core.GameplayEvents.Responses.GameplayResponseDefinition definition, Core.GameplayEvents.GameplayEventCatalog catalog)
+    {
+        var compiled = Core.GameplayEvents.Responses.GameplayResponseCompiler.Compile(definition, catalog);
+        return compiled.IsFailure ? Result.Failure(compiled.Error) : Result.Success();
     }
 
     private static Result ValidateResultReferences(IEnumerable<EffectDefinition> roots)

@@ -10,8 +10,11 @@ namespace Core.StatusEffects;
 /// Status effects são efeitos temporários ou permanentes que modificam o comportamento de entidades.
 /// Totalmente data-driven, permitindo criar status effects customizados sem código.
 /// </summary>
-public record StatusEffectDefinition
+public record StatusEffectDefinition : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
+
     private ImmutableList<string> _tags = [];
     private ImmutableDictionary<string, object> _customData =
         ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);

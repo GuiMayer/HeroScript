@@ -32,8 +32,13 @@ public sealed record RunMapState
     }
 }
 
-public sealed record RunMapNodeState
+public sealed record RunMapNodeState : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? ResponseContentRevision { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
+
     private ImmutableList<string> _nextNodeIds = [];
     private ImmutableDictionary<string, JsonElement> _metadata =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);

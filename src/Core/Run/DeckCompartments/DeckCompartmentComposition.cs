@@ -10,7 +10,7 @@ namespace Core.Run.DeckCompartments;
 public static class DeckCompartmentComposition
 {
     public static Result<EffectiveCardDefinition> Resolve(RunState run, ContentRuntime runtime,
-        CompiledCardDefinition definition, CardInstanceState instance, IEffectiveCardResolver resolver)
+        CompiledCardDefinition definition, CardInstanceState instance, IEffectiveCardResolver resolver, ICardContentCompiler? compiler = null)
     {
         // No new resolution, hashing or profile lookup in the historical, disabled path.
         if (run.DeckCompartments == null) return resolver.Resolve(definition, instance);
@@ -20,7 +20,7 @@ public static class DeckCompartmentComposition
         var actor = owners[0];
         if (!DeckCompartmentAccess.Owns(run, actor.ActorId, instance))
             return Result<EffectiveCardDefinition>.Failure("Compartment allocation ownership is invalid");
-        var profile = DeckCompartmentAccess.Profile(run, runtime, actor.ActorId);
+        var profile = DeckCompartmentAccess.Profile(run, runtime, actor.ActorId, compiler);
         if (profile.IsFailure) return Result<EffectiveCardDefinition>.Failure(profile.Error);
         if (profile.Value.ProfileId != actor.ProfileId)
             return Result<EffectiveCardDefinition>.Failure("Allocated profile no longer matches the character");
@@ -42,7 +42,7 @@ public static class DeckCompartmentComposition
             var scope = "grant_" + CanonicalJson.ComputeHash(source)[..32];
             var bundle = runtime.GetDefinition<CardComponentBundleDefinition>("card-component-bundles", grant.BundleId);
             if (bundle.IsFailure) return Result<EffectiveCardDefinition>.Failure(bundle.Error);
-            var expanded = CardBundleCompiler.Expand(bundle.Value, scope, grant.EffectBindings);
+            var expanded = CardBundleCompiler.Expand(bundle.Value, scope, grant.EffectBindings, compiler);
             if (expanded.IsFailure) return Result<EffectiveCardDefinition>.Failure(expanded.Error);
             sources.Add(new() { SourceId = source, ContentRevision = runtime.Manifest.Revision, Priority = grant.Priority,
                 Components = expanded.Value, Tags = compartment.GrantedTags, NameKey = compartment.NameKey, DescriptionKey = compartment.DescriptionKey });

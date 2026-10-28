@@ -45,3 +45,22 @@ A coleção confirma instância, endereço, definição da zona capturada e dono
 O compilador rejeita filtros impossíveis, enum inválido, bindings incompletos, tags contraditórias e efeitos inválidos. Padrões sem correspondência no catálogo são rejeitados. Reservas por wildcard para extensões exigem permissão do host; registros sem tópico conhecido ficam dormentes e não são anunciados como executáveis.
 
 Occurrence, Impact, Proc e RootAction são escopos transacionais do contrato inicial. Escopos maiores exigem a implementação dos contadores persistentes e não podem ser habilitados por uma flag no JSON. O schema só anuncia os escopos iniciais. A prioridade normalizada usa inteiros de 64 bits para permitir a ordem decrescente mesmo em `int.MinValue`; desempates são ordinais e explícitos.
+
+## Providers concretos e fontes capturadas
+
+Os providers de modo, encontro, ator, relíquia, status e carta somente materializam registros. Definições podem carregar `responses`; atores e cartas usam componentes próprios. Status e relíquias conservam a revisão capturada. O nó guarda a revisão de suas respostas; não usa automaticamente uma revisão futura. Um registro de carta usa a composição efetiva existente, com upgrades e contribuições de compartimentos, e conserva os contribuidores que afetam aquele componente.
+
+Esses novos campos ficam ausentes na serialização quando não usados. A publicação padrão rejeita declarações ainda não executáveis. Ferramentas internas podem criar um runtime/compilador shadow explicitamente para testar a compilação; isso não habilita o conteúdo na API ou numa partida.
+
+## Namespace numérico
+
+A projeção recebe as referências necessárias e a fotografia declarada pelo registro. Não enumera propriedades arbitrárias. Exemplos:
+
+- `event.change.before`, `after`, `operand`, `requested_value`, `requested_delta`, `applied_delta`, `limited_delta` quando o payload disponibiliza esses números.
+- `event.stacks.before/after`, `event.duration.before/after`, `event.transport.before/after/requested_current` para seus respectivos payloads.
+- `owner.<componente de atributos>.<valor>`, como `owner.stats.power`.
+- `owner.resources.<recurso>.current/maximum/minimum`, sem nomes de recursos especiais.
+- `event.source.<componente>.<valor>`, `event.subject...`, `event.attributed...` e os equivalentes de recursos.
+- `scope.container_stacks`, `scope.container_duration`, `scope.run_sequence`, `event.ordinal`, `event.depth`.
+
+Campo ausente, binding ausente ou valor que não cabe no contrato numérico existente produz erro quando solicitado. Não existe zero implícito ou seleção do primeiro ator. Referências não solicitadas não são calculadas; ler um payload não executa efeitos nem movimenta o RNG.

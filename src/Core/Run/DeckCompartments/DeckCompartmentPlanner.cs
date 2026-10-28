@@ -1,3 +1,4 @@
+using Core.Run.Content;
 using System.Collections.Immutable;
 using Core.CardZones;
 using Core.Combat.Models;
@@ -11,7 +12,7 @@ public static class DeckCompartmentAccess
     // Immutable runtime identity scopes validation reuse. Weak keys cannot retain old content revisions.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ContentRuntime,
         Core.Caching.LruCache<string, Result<DeckCompartmentProfileDefinition>>> Profiles = new();
-    public static Result<DeckCompartmentProfileDefinition> Profile(RunState run, ContentRuntime runtime, string actorId)
+    public static Result<DeckCompartmentProfileDefinition> Profile(RunState run, ContentRuntime runtime, string actorId, ICardContentCompiler? compiler = null)
     {
         if (runtime.Manifest.Revision != run.Determinism.ContentRevision ||
             !string.Equals(runtime.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
@@ -25,12 +26,12 @@ public static class DeckCompartmentAccess
         var binding = run.PlayerEntity.Component<DeckCompartmentProfileComponentState>();
         if (binding == null) return Result<DeckCompartmentProfileDefinition>.Failure("Character has no compartment profile");
         var cache = Profiles.GetValue(runtime, _ => new(32));
-        if (cache.TryGetValue(binding.ProfileId, out var cached)) return cached!;
+        if (compiler == null && cache.TryGetValue(binding.ProfileId, out var cached)) return cached!;
         var profile = runtime.GetDefinition<DeckCompartmentProfileDefinition>("deck-compartment-profiles", binding.ProfileId);
         if (profile.IsFailure) return profile;
-        var valid = profile.Value.Validate(runtime);
+        var valid = profile.Value.Validate(runtime, compiler);
         var result = valid.IsFailure ? Result<DeckCompartmentProfileDefinition>.Failure(valid.Error) : profile;
-        cache.Set(binding.ProfileId, result);
+        if (compiler == null) cache.Set(binding.ProfileId, result);
         return result;
     }
 

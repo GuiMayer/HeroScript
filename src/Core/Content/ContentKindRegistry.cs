@@ -44,12 +44,14 @@ public sealed class ContentKindRegistry : IContentKindRegistry
 {
     private static readonly JsonSerializerOptions StrictOptions = CreateOptions();
     private readonly ImmutableDictionary<string, ContentKindDescriptor> _byKind;
+    private readonly bool _allowShadowResponseDeclarations;
 
     public static ContentKindRegistry Default { get; } = new(CreateDefaults());
 
-    public ContentKindRegistry(IEnumerable<ContentKindDescriptor> kinds)
+    public ContentKindRegistry(IEnumerable<ContentKindDescriptor> kinds, bool allowShadowResponseDeclarations = false)
     {
         ArgumentNullException.ThrowIfNull(kinds);
+        _allowShadowResponseDeclarations = allowShadowResponseDeclarations;
         var ordered = kinds.OrderBy(kind => kind.Kind, StringComparer.Ordinal).ToImmutableArray();
         var duplicate = ordered.GroupBy(kind => kind.Kind, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(group => group.Count() > 1);
@@ -119,7 +121,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
                 StrictOptions);
             return value == null
                 ? Result.Failure($"Content definition is invalid: {kind}/{definitionId}")
-                : Result.Success();
+                : _allowShadowResponseDeclarations ? Result.Success() : Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ValidateUnavailable(value);
         }
         catch (JsonException exception)
         {
