@@ -135,3 +135,7 @@ O catálogo fechado `GameplayCoreCatalog` fornece capacidades confiáveis e os t
 ## Fluxos externos de cartas (etapa 4p)
 
 O motor isolado instala um adaptador de `ICardZoneFlowExecutor` apenas para o comando observado. O adaptador delega uma vez e projeta os passos primitivos com os snapshots capturados, antes de aceitar o sucessor de observação. Abrange concessões, ferramentas de zonas, fluxos de gameplay e fronteiras da run. Efeitos de atividades usam seu próprio executor observado, evitando dupla emissão. Uma falha posterior descarta o candidato inteiro.
+
+## Modificadores e fim da run (etapa 4q)
+
+Preparações projetam a instância efetivamente retornada por `ModifierTransitions.Apply`, incluindo dono, identidade alocada, stacks e duração. A saída do nó observa separadamente o tick Node e depois Run, conservando essa ordem. O encerramento é emitido quando a política canônica, já aplicada, muda a run ativa para outro estado; não é deduzido do nome do recurso ou do comando. O cursor retorna ao pai do comando após a fronteira.

@@ -209,19 +209,34 @@ public sealed class RunProgressionService(RunActivityRegistry activities)
             : Result.Failure($"Run activity is not complete: {node.NodeId}");
     }
 
-    public RunState ApplyNodeExit(RunState run, RunMapNodeState node)
+    public RunState ApplyNodeExit(RunState run, RunMapNodeState node) => ApplyNodeExitObserved(run, node, null).Value;
+
+    internal Result<RunState> ApplyNodeExitObserved(RunState run, RunMapNodeState node, Core.GameplayEvents.GameplayRunObservation? observation)
     {
         var next = Core.Combat.Modifiers.ModifierTransitions.Tick(
             run,
             Core.Combat.Modifiers.ModifierDurationBoundary.Node);
+        if (observation != null)
+        {
+            var observed = Core.GameplayEvents.GameplayModifierObservation.AppendTicks(observation.Current, run, next);
+            if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+            observation.Accept(observed.Value);
+        }
         if (node.NextNodeIds.Count != 0)
-            return next;
+            return Result<RunState>.Success(next);
+        var beforeRunTick = next;
 
         next = Core.Combat.Modifiers.ModifierTransitions.Tick(
             next,
             Core.Combat.Modifiers.ModifierDurationBoundary.Run);
-        return ApplyTransition(next, next.ResolvedMode?.ProgressionPolicy.EndOfMap
-            ?? RunProgressionTransition.Complete);
+        if (observation != null)
+        {
+            var observed = Core.GameplayEvents.GameplayModifierObservation.AppendTicks(observation.Current, beforeRunTick, next);
+            if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+            observation.Accept(observed.Value);
+        }
+        return Result<RunState>.Success(ApplyTransition(next, next.ResolvedMode?.ProgressionPolicy.EndOfMap
+            ?? RunProgressionTransition.Complete));
     }
 
     public RunState ApplyEncounterOutcome(RunState run, CombatStatus outcome)

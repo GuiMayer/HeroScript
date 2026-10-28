@@ -18,7 +18,7 @@ public sealed class GameplayRunObservationTests
     {
         RunId = Guid.Parse("10000000-0000-0000-0000-000000000001"), Sequence = 1, PlayerEntityId = "hero",
         Determinism = DeterministicContext.Create(42, "revision"),
-        ResolvedMode = new() { CapabilityPolicy = new() { AllowRunResourceCheats = true } },
+        ResolvedMode = new() { CapabilityPolicy = new() { AllowRunResourceCheats = true }, ProgressionPolicy = new() { AllowAbandon = true } },
         ResourceState = new() { OwnerId = "wallet", Resources = new Dictionary<string, ResourcePool>
         { ["focus"] = ResourcePool.Materialize(new() { ResourceId = "focus", DisplayName = "Focus", DefaultCurrent = 10, DefaultMax = 20 }) } }
     };
@@ -151,5 +151,14 @@ public sealed class GameplayRunObservationTests
         Assert.True(coordinator.PlanObserved(state.RunId, command with { Identity = command.Identity with { ExpectedSequence = 0 } }).IsFailure);
         Assert.True(coordinator.PlanObserved(state.RunId, command with { Payload = JsonSerializer.SerializeToElement(
             new RunResourceCommand("missing", 2, ResourceEffectOperation.ADD)) }).IsFailure);
+
+        var abandoned = coordinator.PlanObserved(state.RunId, command with { Identity = command.Identity with
+            { Type = RunCommandTypes.AbandonRun }, Payload = JsonSerializer.SerializeToElement(new EmptyGameplayCommand()) });
+        Assert.True(abandoned.IsSuccess, abandoned.IsFailure ? abandoned.Error : null);
+        Assert.Equal(RunLifecycleState.Abandoned, abandoned.Value.Execution.CandidateState.Lifecycle);
+        Assert.Equal(new[] { "command.started", "run.ended", "command.completed" },
+            abandoned.Value.Observation.Events.Occurrences.Select(item => item.Kind));
+        Assert.Equal(abandoned.Value.Observation.Events.Occurrences[0].EventId,
+            abandoned.Value.Observation.Events.Occurrences[2].ParentEventId);
     }
 }

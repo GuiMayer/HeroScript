@@ -7,6 +7,24 @@ namespace Core.GameplayEvents;
 
 public static class GameplayModifierObservation
 {
+    public static Result<GameplayEffectObservation> AppendApplication(GameplayEffectObservation observation, RunState before,
+        Core.Combat.Modifiers.ModifierTransition applied, GameplayEventOrigin origin)
+    {
+        var instance = applied.Instance;
+        var previous = before.Modifiers.SingleOrDefault(item => item.InstanceId == instance.InstanceId);
+        var fact = GameplayRuleFactProducer.Modifier(new()
+        {
+            Store = EffectStackStore.Modifier, InstanceId = instance.InstanceId, DefinitionId = instance.ModifierId,
+            Owner = instance.Owner, PreviousStacks = previous?.Stacks ?? 0, CurrentStacks = instance.Stacks,
+            Reason = previous == null ? EffectStackChangeReason.Apply : EffectStackChangeReason.Reapply
+        }, previous, instance, new() { ReasonId = observation.ReasonId, Attribution = GameplayAttribution.None, Origin = origin });
+        if (fact.IsFailure) return Result<GameplayEffectObservation>.Failure(fact.Error);
+        var appended = observation.Events.Append(observation.PublisherId, $"modifier.application/{observation.Events.Occurrences.Count}",
+            fact.Value, observation.ParentEventId);
+        return appended.IsFailure ? Result<GameplayEffectObservation>.Failure(appended.Error)
+            : Result<GameplayEffectObservation>.Success(observation with { Events = appended.Value.Transaction });
+    }
+
     public static Result<GameplayEffectObservation> AppendTicks(GameplayEffectObservation observation, RunState before, RunState after)
     {
         var remaining = after.Modifiers.ToDictionary(item => item.InstanceId);

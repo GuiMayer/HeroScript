@@ -179,6 +179,14 @@ public static class PreparationTransitions
             var applied = ModifierTransitions.Apply(updatedModifiers, modifier.Definition, owner, modifier.SourceId,
                 modifier.Stacks, modifier.Duration, modifier.InstanceId);
             if (applied.IsFailure) return Result<RunStateTransition<PreparationOptionState>>.Failure(applied.Error);
+            if (observation != null)
+            {
+                var observed = GameplayModifierObservation.AppendApplication(observation.Current, updatedModifiers, applied.Value,
+                    new() { ContainerKind = "rule", ContainerId = "preparation", ComponentId = option.OptionId,
+                        ContentRevision = state.Determinism.ContentRevision });
+                if (observed.IsFailure) return Result<RunStateTransition<PreparationOptionState>>.Failure(observed.Error);
+                observation.Accept(observed.Value);
+            }
             updatedModifiers = applied.Value.Run;
             appliedIds.Add(applied.Value.Instance.InstanceId);
         }

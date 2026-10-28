@@ -1400,11 +1400,9 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             var transition = RunMapTransitions.Resolve(exit.Value, currentNodeId);
             if (transition.IsSuccess)
             {
-                transition = Result<RunStateTransition<RunMapNodeState>>.Success(
-                    transition.Value with
-                    {
-                        State = _progression.ApplyNodeExit(transition.Value.State, current)
-                    });
+                var progressed = _progression.ApplyNodeExitObserved(transition.Value.State, current, _observation);
+                if (progressed.IsFailure) return Result<RunMapNodeState>.Failure(progressed.Error);
+                transition = Result<RunStateTransition<RunMapNodeState>>.Success(transition.Value with { State = progressed.Value });
             }
             return transition.IsFailure
                 ? Result<RunMapNodeState>.Failure(transition.Error)
@@ -1817,7 +1815,9 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 ActiveEncounterId = null,
                 Encounters = state.Encounters.SetItem(encounterIndex, resolved)
             };
-            candidate = _progression.ApplyNodeExit(candidate, mapTransition.Value.Value);
+            var progressed = _progression.ApplyNodeExitObserved(candidate, mapTransition.Value.Value, _observation);
+            if (progressed.IsFailure) return Result<RunState>.Failure(progressed.Error);
+            candidate = progressed.Value;
             candidate = _progression.ApplyEncounterOutcome(candidate, encounter.Combat.Status);
             return Persist(
                 candidate,
@@ -2474,6 +2474,15 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
             var nextSequence = checked((previous?.Sequence ?? 0) + 1);
             state = PersistentPlayerTransitions.ApplyResourceConsequences(state);
+            if (_observation != null && previous?.Lifecycle == RunLifecycleState.Active && state.Lifecycle != RunLifecycleState.Active)
+            {
+                var observed = Core.GameplayEvents.GameplayBoundaryObservation.Begin(_observation.Current,
+                    Core.GameplayEvents.GameplayBoundary.RunEnded, state.RunId.ToString("D"), null,
+                    new() { ContainerKind = "rule", ContainerId = "run.lifecycle", ComponentId = state.Lifecycle.ToString(),
+                        ContentRevision = state.Determinism.ContentRevision }, $"run.end/{_observation.Current.Events.Occurrences.Count}");
+                if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+                _observation.Accept(observed.Value with { ParentEventId = _observation.Current.ParentEventId });
+            }
             state = DeckCompartments.DeckCompartmentPlanner.ReconcileDestroyedCards(state);
             state = state with
             {
