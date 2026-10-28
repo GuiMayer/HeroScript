@@ -155,3 +155,7 @@ Preparações projetam a instância efetivamente retornada por `ModifierTransiti
 ## Ativação de revisão (etapa 4u)
 
 O comando selecionado emite `content.revision.activated` com revisões antes/depois; sua ação conserva o catálogo/revisão de origem. Recursos cuja definição ou valor mudou durante o rebind emitem `resource.definition.rebound`, com dono real, componente quando existir e hashes das definições. O clamp é copiado do resultado canônico, sem inventar operação de dano/cura. Recursos de encontros históricos não são reprocessados. Preview, mesma revisão e candidatos rejeitados não publicam fatos.
+
+## Remoções sem correspondência (etapa 4v)
+
+Quando o processador resolve uma remoção de status, dispel ou modificador e não encontra instância, registra `effect.application.resolved` com resultado `no-matching-instance`. Não emite um falso `status.removed` nem alteração de stacks. Famílias realmente sem produtor continuam aparecendo como lacunas explícitas em `Unobserved`; o caso vazio não é usado como fallback genérico.

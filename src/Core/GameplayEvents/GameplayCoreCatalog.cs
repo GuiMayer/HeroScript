@@ -25,7 +25,7 @@ public static class GameplayCoreCatalog
         Add(GameplayPayloadKind.ResourceThreshold, "resource.threshold.matched");
         Add(GameplayPayloadKind.ActorDefeatChange, "actor.defeat.changed");
         Add(GameplayPayloadKind.SequenceChange, "activation.sequence.changed");
-        Add(GameplayPayloadKind.RuleResult, "effect.condensation.resolved");
+        Add(GameplayPayloadKind.RuleResult, "effect.condensation.resolved", "effect.application.resolved");
         Add(GameplayPayloadKind.Boundary, "phase.entered", "phase.exited", "combat.started", "combat.ended", "activation.started", "activation.ended",
             "round.started", "round.ended", "run.started", "run.ended");
         Add(GameplayPayloadKind.Action, "action.started", "action.completed", "command.started", "command.completed");

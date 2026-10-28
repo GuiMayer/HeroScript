@@ -21,7 +21,7 @@ public sealed class GameplayObservedExecutorTests
             ("status.reapplied", GameplayPayloadKind.StatusChange), ("status.removed", GameplayPayloadKind.StatusChange),
             ("status.stacks.consumed", GameplayPayloadKind.StatusChange), ("status.expired", GameplayPayloadKind.StatusChange),
             ("status.duration.changed", GameplayPayloadKind.StatusChange),
-            ("effect.condensation.resolved", GameplayPayloadKind.RuleResult),
+            ("effect.condensation.resolved", GameplayPayloadKind.RuleResult), ("effect.application.resolved", GameplayPayloadKind.RuleResult),
             ("resource.threshold.matched", GameplayPayloadKind.ResourceThreshold), ("actor.defeat.changed", GameplayPayloadKind.ActorDefeatChange),
             ("combat.started", GameplayPayloadKind.Boundary), ("combat.ended", GameplayPayloadKind.Boundary),
             ("activation.started", GameplayPayloadKind.Boundary), ("activation.ended", GameplayPayloadKind.Boundary),
@@ -37,6 +37,28 @@ public sealed class GameplayObservedExecutorTests
         return new() { PublisherId = publisher.PublisherId, ReasonId = "effect.application",
             Events = GameplayEventTransaction.Create(GameplayOccurrenceTests.Occurrence().Scope with { ContentRevision = revision }, catalog,
                 new() { MaximumOccurrences = maximum }).Value };
+    }
+
+    [Theory]
+    [InlineData(EffectType.REMOVE_STATUS)]
+    [InlineData(EffectType.DISPEL_STATUS)]
+    [InlineData(EffectType.REMOVE_MODIFIER)]
+    public void EmptyRemovalIsAnExplicitResolvedAttemptWithoutAnInventedStackChange(EffectType type)
+    {
+        var run = new RunState { PlayerEntityId = "hero", Determinism = DeterministicContext.Create(42, "revision") };
+        var request = EffectTransactionTests.Request(new EffectDefinition { EffectId = "remove", Type = type, Target = EffectTarget.TARGET,
+            StatusId = "missing", ModifierId = "missing", ModifierStacks = 1,
+            ModifierOwner = new() { Kind = GameplayOwnerKind.Entity, Id = "enemy" } }) with { Run = run };
+        var executor = EffectTransactionTests.Executor();
+        var initial = Observation();
+        var observed = executor.ExecuteObserved(request, initial);
+        Assert.True(observed.IsSuccess, observed.IsFailure ? observed.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(executor.Execute(request).Value), CanonicalJson.ComputeHash(observed.Value.Execution));
+        Assert.Empty(observed.Value.Observation.Unobserved);
+        var fact = Assert.Single(observed.Value.Observation.Events.Occurrences);
+        Assert.Equal("effect.application.resolved", fact.Kind);
+        Assert.Equal("no-matching-instance", Assert.IsType<RuleResultPayload>(fact.Payload).ResultId);
+        Assert.Empty(initial.Events.Occurrences);
     }
 
     [Fact]

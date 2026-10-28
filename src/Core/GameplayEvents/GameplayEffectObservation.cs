@@ -125,6 +125,11 @@ public sealed record GameplayEffectObservation
                 if (valid.IsFailure) return Result<GameplayEffectObservation>.Failure(valid.Error);
                 drafts.Add(targetMetadata with { Kind = "activation.sequence.changed", Payload = payload });
             }
+            // A canonical removal with no matching instance is a resolved attempt, not a missing producer.
+            if (drafts.Count == 0 && record.StackChanges.IsEmpty && record.EffectType is
+                EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS or EffectType.REMOVE_MODIFIER)
+                drafts.Add(targetMetadata with { Kind = "effect.application.resolved", Payload = new RuleResultPayload
+                    { RuleId = command.EffectInstanceId, ResultId = "no-matching-instance" } });
             // Unsupported application families must remain visible instead of inventing ordinary effect facts.
             if (drafts.Count == 0 && record.EffectType != EffectType.CARD_ZONE_FLOW)
             {
