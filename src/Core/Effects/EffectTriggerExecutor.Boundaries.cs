@@ -32,7 +32,7 @@ public sealed partial class EffectTriggerExecutor
             observation = new() { Events = events.Value, PublisherId = GameplayCoreCatalog.PublisherId,
                 ReasonId = "effect.application", CostReasonId = "cost.payment", RefundReasonId = "cost.refund" };
         }
-        var quotas = GameplayResponseQuotas.Begin(observation.Events.Scope);
+        var quotas = ResumeQuotas(observation);
         return quotas.IsFailure ? Result<IGameplayBoundaryExecutionScope>.Failure(quotas.Error)
             : Result<IGameplayBoundaryExecutionScope>.Success(new BoundaryExecutionScope(this, catalog.Value, observation, quotas.Value, expose, authored.Value));
     }
@@ -40,7 +40,7 @@ public sealed partial class EffectTriggerExecutor
     private sealed class BoundaryExecutionScope(EffectTriggerExecutor executor, GameplayEventCatalog catalog,
         GameplayEffectObservation initial, GameplayResponseQuotas initialQuotas, bool expose, bool authored) : IGameplayBoundaryExecutionScope
     {
-        private readonly ExecutionBudget _budget = new();
+        private readonly ExecutionBudget _budget = new() { Work = initial.ResponseProgress?.Work ?? 0 };
         private GameplayEffectObservation _observation = initial;
         private readonly GameplayEventScope _scope = initial.Events.Scope;
         private GameplayResponseQuotas _quotas = initialQuotas;
@@ -61,6 +61,10 @@ public sealed partial class EffectTriggerExecutor
                 _scope.CombatId != null && combat.CombatId.ToString("D") != _scope.CombatId ||
                 !ReferenceEquals(current.Events, _observation.Events) && _observation.Events.Occurrences.Where((item, index) => !ReferenceEquals(item, current.Events.Occurrences[index])).Any())
                 return Fail("Boundary execution cannot substitute its run, combat or causal prefix");
+            var resumed = ResumeQuotas(current);
+            if (resumed.IsFailure) return Fail(resumed.Error);
+            if (current.ResponseProgress != null) _quotas = resumed.Value;
+            _budget.Work = System.Math.Max(_budget.Work, current.ResponseProgress?.Work ?? 0);
             var parentId = current.ParentEventId;
             var key = (parentId, kind, boundaryId, actorId);
             var fact = parentId == null ? null : current.Events.Occurrences.FirstOrDefault(item => item.EventId == parentId && item.Kind == kind && item.Payload is BoundaryOccurrencePayload);

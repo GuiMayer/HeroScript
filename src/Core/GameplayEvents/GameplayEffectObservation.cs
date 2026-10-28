@@ -26,6 +26,8 @@ public sealed record GameplayEffectObservation
     public string? ParentEventId { get; init; }
     public string? LastApplicationEventId { get; init; }
     internal GameplayEventOrigin? ResponseOrigin { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.GameplayEvents.Responses.GameplayResponseProgress? ResponseProgress { get; init; }
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];
     public ImmutableDictionary<string, string> ImpactAnchors { get; init; } =
         ImmutableDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);

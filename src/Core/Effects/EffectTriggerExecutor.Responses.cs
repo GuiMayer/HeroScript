@@ -28,7 +28,7 @@ public sealed partial class EffectTriggerExecutor
             providers.Any(provider => provider == null || !EventValue.Valid(provider.ProviderId)) ||
             providers.Select(provider => provider.ProviderId).Distinct(StringComparer.Ordinal).Count() != providers.Count)
             return Result<ResponsiveEffectExecution>.Failure("Responsive execution requires a pinned run, catalog and observation");
-        var quotas = GameplayResponseQuotas.Begin(observation.Events.Scope, maximumInvocations);
+        var quotas = ResumeQuotas(observation, maximumInvocations);
         if (quotas.IsFailure) return Result<ResponsiveEffectExecution>.Failure(quotas.Error);
         var allProviders = HasResourceResponses(request) ? providers.Append(new LegacyResourceReactionObserverProvider()).ToImmutableArray() : providers.ToImmutableArray();
         if (allProviders.Length > 64 || allProviders.Select(provider => provider.ProviderId).Distinct(StringComparer.Ordinal).Count() != allProviders.Length)
@@ -37,7 +37,7 @@ public sealed partial class EffectTriggerExecutor
             new GameplayResponseEvaluation(_formulas, _contentRuntimes), selectedCardId, resolvingCardId);
         try
         {
-            var result = Execute(request, null, new ExecutionBudget { Responses = session }, suppressReactions: false, observation: observation);
+            var result = Execute(request, null, new ExecutionBudget { Responses = session, Work = observation.ResponseProgress?.Work ?? 0, MaximumInvocations = maximumInvocations }, suppressReactions: false, observation: observation);
             return result.IsFailure ? Result<ResponsiveEffectExecution>.Failure(result.Error)
                 : Result<ResponsiveEffectExecution>.Success(new(result.Value, result.Value.Observation!, session.Quotas));
         }
@@ -53,7 +53,7 @@ public sealed partial class EffectTriggerExecutor
 
         internal Result<ImmutableArray<GameplayResponseCandidate>> Freeze(ImmutableArray<GameplayOccurrence> facts,
             RunState runBefore, CombatState combatBefore, RunState runAfter, CombatState combatAfter,
-            IReadOnlyList<EffectApplicationRecord>? sourceApplications)
+            IReadOnlyList<EffectApplicationRecord>? sourceApplications, bool capturedBoundaryOnly = false)
         {
             var candidates = ImmutableArray.CreateBuilder<GameplayResponseCandidate>();
             foreach (var snapshot in new[] { Snapshot(runBefore, combatBefore, ResponseSnapshot.BeforeOccurrence),
@@ -61,7 +61,8 @@ public sealed partial class EffectTriggerExecutor
             {
                 var registrations = GameplayObserverCollector.Collect(snapshot, providers);
                 if (registrations.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(registrations.Error);
-                foreach (var legacyGroup in registrations.Value.GroupBy(registration => registration.LegacyResourceExecution != null))
+                foreach (var legacyGroup in registrations.Value.Where(registration => !capturedBoundaryOnly || registration.BoundaryExecution != null)
+                             .GroupBy(registration => registration.LegacyResourceExecution != null))
                 {
                     var matcher = GameplayResponseMatcher.Create(legacyGroup.ToImmutableArray());
                     if (matcher.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(matcher.Error);
@@ -129,7 +130,7 @@ public sealed partial class EffectTriggerExecutor
         int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications, bool capturedBoundaryOnly = false)
     {
         var session = budget.Responses!;
-        var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications);
+        var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications, capturedBoundaryOnly);
         if (frozen.IsFailure) return Result<EffectBatchResult?>.Failure(frozen.Error);
         var state = after;
         var run = runAfter;
@@ -179,7 +180,7 @@ public sealed partial class EffectTriggerExecutor
             records.AddRange(result.Value.Records); calculations.AddRange(result.Value.Calculations);
             foreach (var step in result.Value.Steps) steps.Add(step with { Index = steps.Count });
         }
-        return Result<EffectBatchResult?>.Success(new() { State = state, Run = run, Observation = currentObservation,
+        return Result<EffectBatchResult?>.Success(new() { State = state, Run = run, Observation = CaptureProgress(currentObservation, budget),
             Records = records.ToImmutable(), Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable(), BoundaryInvocations = boundaryFrames.ToImmutable() });
     }
 }

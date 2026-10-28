@@ -169,3 +169,9 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Etapa 9c: compilação vinculada ao catálogo do runtime e preservada nas resoluções de upgrades/contribuições; compartimentos propagam o mesmo compilador para bundles e container efetivo. Provider normal usa a identidade da carta selecionada/em resolução. 38 testes focados aprovados, incluindo execução real repetida da resposta em carta e concessão por compartimento, igualdade completa normal/observado e entrada imutável. Autoria permanece bloqueada; etapa 9 ainda aberta para produtores externos e ponto único das fronteiras.
 
+
+- Etapa 9d: continuidade imutável de quotas e trabalho entre chamadas observadas na mesma ação; forks especulativos mantêm continuations independentes. Adicionado despacho de fatos já produzidos com snapshots reais e validação de prefixo/setting/revisão/agregado. 177 testes de GameplayEvents aprovados, incluindo duas regressões novas de quota RootAction entre execuções, fork, despacho de fronteira com causa e rejeição de rewind/substituição. O adaptador ainda precisa ser ligado aos produtores externos; não é habilitação de autoria nem conclusão da etapa 9.
+
+
+- Certificação 9c/9d: árvore c8cff97bec3a6b8d5e46f99c1e808cc4e7fe9a33 exportada em .runtime/generic-events-stage9d-index, build completo sem avisos/erros e 2134 testes Core aprovados, sem exclusões. API focada em execução separada. Continuidade é candidata/transiente; persistência durável continua reservada à etapa 12.
+

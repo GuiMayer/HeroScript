@@ -20,7 +20,7 @@ public sealed partial class EffectTriggerExecutor
         if (authored.Value && _contentRuntimes == null && request.Run!.Deck.Topology.Instances.Count > 0)
             return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure("Card observer composition requires captured content runtimes");
         if (!HasResourceResponses(request) && !authored.Value)
-            return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new(), observation));
+            return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new() { Work = observation?.ResponseProgress?.Work ?? 0 }, observation));
         var run = request.Run!;
         var catalog = GameplayCoreCatalog.Create(run.SettingId, run.Determinism.ContentRevision);
         if (catalog.IsFailure) return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure(catalog.Error);
@@ -42,11 +42,11 @@ public sealed partial class EffectTriggerExecutor
             observation = new() { Events = transaction.Value, PublisherId = GameplayCoreCatalog.PublisherId,
                 ReasonId = "effect.application", CostReasonId = "cost.payment", RefundReasonId = "cost.refund" };
         }
-        var quotas = GameplayResponseQuotas.Begin(observation.Events.Scope);
+        var quotas = ResumeQuotas(observation);
         if (quotas.IsFailure) return Result<(ExecutionBudget, GameplayEffectObservation?)>.Failure(quotas.Error);
         var providers = authored.Value ? AuthoredProviders().Add(new LegacyResourceReactionObserverProvider()) : [new LegacyResourceReactionObserverProvider()];
         var session = new ResponseExecutionSession(catalog.Value, providers, quotas.Value,
             new GameplayResponseEvaluation(_formulas, _contentRuntimes), request.Card?.CardInstanceId, request.Card?.CardInstanceId);
-        return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new() { Responses = session }, observation));
+        return Result<(ExecutionBudget, GameplayEffectObservation?)>.Success((new() { Responses = session, Work = observation.ResponseProgress?.Work ?? 0 }, observation));
     }
 }

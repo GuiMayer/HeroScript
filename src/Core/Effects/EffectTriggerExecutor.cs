@@ -124,7 +124,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
 
     private sealed class GameplayQueryException(string message) : Exception(message);
 
-    private sealed class ExecutionBudget { public int Work; public ResponseExecutionSession? Responses; }
+    private sealed class ExecutionBudget { public int MaximumInvocations = Core.GameplayEvents.Responses.GameplayResponseQuotas.MaximumInvocations; public int Work; public ResponseExecutionSession? Responses; }
 
     private Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request,
         EffectApplicationRecord? observedParent, ExecutionBudget budget, bool suppressReactions, int baseDepth = 0,
@@ -289,7 +289,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
         return Result<EffectBatchResult>.Success(new()
         {
             ExecutionId = executionId,
-            Observation = observation,
+            Observation = CaptureProgress(observation, budget),
             State = current,
             Run = currentRun,
             Records = records.ToImmutable(),
