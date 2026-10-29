@@ -173,7 +173,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             options.CommitStore,
             options.CommitStore,
             runs,
-            sessionGates);
+            sessionGates, activityEffects);
         var combats = new CombatRunCoordinator(
             _combatFactory,
             runs,

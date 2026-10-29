@@ -23,28 +23,25 @@ public sealed partial class RunSessionCoordinator
                 RunCommandErrors.VersionConflict(identity.ExpectedSequence, identity.ExpectedStep, state));
         var handler = _handlers.Resolve(identity.Type);
         if (handler.IsFailure) return Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(handler.Error);
-        var catalog = GameplayCoreCatalog.Create(state.SettingId, state.Determinism.ContentRevision);
-        if (catalog.IsFailure) return Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(catalog.Error);
-        var transaction = GameplayEventTransaction.Create(new()
-        {
-            SettingId = state.SettingId, ContentRevision = state.Determinism.ContentRevision,
-            RunId = (state.Lineage?.RootRunId ?? state.RunId).ToString("D"), BranchId = state.RunId.ToString("D"),
-            ActionId = identity.CommandId.ToString("D"), CommandId = identity.CommandId.ToString("D")
-        }, catalog.Value);
-        if (transaction.IsFailure) return Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(transaction.Error);
-        var before = new GameplayEffectObservation { Events = transaction.Value, PublisherId = GameplayCoreCatalog.PublisherId,
-            ReasonId = "effect.application", CostReasonId = "cost.payment", RefundReasonId = "cost.refund" };
+        var planned = PlanWithOccurrences(state, decoded.Value.Payload, identity, handler.Value);
+        return planned.IsFailure ? Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(planned.Error)
+            : Result<ObservedGameplayExecution<RunTransitionPlan>>.Success(new(planned.Value, planned.Value.Observation!));
+    }
+
+    private static Result<RunTransitionPlan> PlanWithOccurrences(RunState state, object payload, RunCommandIdentity identity, IRunCommandHandler handler)
+    {
+        var created = GameplayCommandObservation.Create(state, null, identity);
+        if (created.IsFailure) return Result<RunTransitionPlan>.Failure(created.Error);
+        var before = created.Value;
         var started = GameplayActionObservation.Begin(before, identity.Type, state.PlayerEntityId, "command.started", "command.input");
-        if (started.IsFailure) return Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(started.Error);
+        if (started.IsFailure) return Result<RunTransitionPlan>.Failure(started.Error);
         var cursor = new GameplayRunObservation(started.Value);
-        var planned = handler.Value.Plan(state, decoded.Value.Payload, new(identity, state.Determinism) { Observation = cursor });
-        if (planned.IsFailure) return Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(planned.Error);
-        // A handler must explicitly opt into the isolated observed contract.
-        if (planned.Value.Observation == null)
-            return Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure("Run handler does not support observation");
+        var planned = handler.Plan(state, payload, new(identity, state.Determinism) { Observation = cursor });
+        if (planned.IsFailure) return Result<RunTransitionPlan>.Failure(planned.Error);
+        if (planned.Value.Observation == null) return Result<RunTransitionPlan>.Failure("Run handler does not support occurrence execution");
         var completed = GameplayActionObservation.Complete(before, started.Value, planned.Value.Observation, identity.Type,
             state.PlayerEntityId, "command.completed", "command.input");
-        return completed.IsFailure ? Result<ObservedGameplayExecution<RunTransitionPlan>>.Failure(completed.Error)
-            : Result<ObservedGameplayExecution<RunTransitionPlan>>.Success(new(planned.Value with { Observation = completed.Value }, completed.Value));
+        return completed.IsFailure ? Result<RunTransitionPlan>.Failure(completed.Error)
+            : Result<RunTransitionPlan>.Success(planned.Value with { Observation = completed.Value });
     }
 }

@@ -48,6 +48,7 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
     private readonly RunCommandHandlerRegistry _handlers;
     private readonly Action<RunState> _publish;
     private readonly RunSessionGateProvider _gates;
+    private readonly IRunGameplayOccurrenceExecutor? _occurrences;
     private readonly ConcurrentDictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _receipts = new();
 
     public RunSessionCoordinator(
@@ -58,7 +59,7 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
         IRunCommitStore? store = null,
         IRunCommitReader? history = null,
         IRunCommandReceiptReader? receiptFallback = null,
-        RunSessionGateProvider? gates = null)
+        RunSessionGateProvider? gates = null, IRunGameplayOccurrenceExecutor? occurrences = null)
     {
         _queries = queries ?? throw new ArgumentNullException(nameof(queries));
         _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -68,6 +69,7 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
         _history = history ?? store;
         _receiptFallback = receiptFallback;
         _gates = gates ?? new RunSessionGateProvider();
+        _occurrences = occurrences;
     }
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId) =>
@@ -121,10 +123,11 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
             var handler = _handlers.Resolve(identity.Type);
             if (handler.IsFailure)
                 return Result<RunCommandReceipt>.Failure(handler.Error);
-            var plan = handler.Value.Plan(
-                state,
-                decoded.Value.Payload,
-                new GameplayCommandExecutionContext(identity, state.Determinism));
+            var prepared = _occurrences?.Prepare(state);
+            if (prepared is { IsFailure: true }) return Result<RunCommandReceipt>.Failure(prepared.Error);
+            var plan = prepared?.Value == null ? handler.Value.Plan(state, decoded.Value.Payload,
+                    new GameplayCommandExecutionContext(identity, state.Determinism))
+                : PlanWithOccurrences(state, decoded.Value.Payload, identity, handler.Value);
             if (plan.IsFailure)
                 return Result<RunCommandReceipt>.Failure(plan.Error);
 
