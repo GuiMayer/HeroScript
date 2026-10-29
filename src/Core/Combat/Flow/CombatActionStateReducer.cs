@@ -10,6 +10,7 @@ using Core.Determinism;
 using Core.Run;
 using Core.Run.Content;
 using Core.CardZones;
+using Core.Effects;
 
 namespace Core.Combat.Flow;
 
@@ -18,6 +19,9 @@ public sealed record CombatActionReduction
     [System.Text.Json.Serialization.JsonIgnore]
     internal GameplayEffectObservation? Observation { get; init; }
 
+    [System.Text.Json.Serialization.JsonIgnore] internal ImmutableArray<EffectExecutionStep> ResponseSteps { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore] internal ImmutableArray<EffectApplicationRecord> ResponseApplications { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore] internal ImmutableArray<Core.Calculations.CalculationResult> ResponseCalculations { get; init; } = [];
     public RunState Run { get; init; } = null!;
     public CombatState Combat { get; init; } = null!;
     public CombatActionCommand? ResolvedCommand { get; init; }
@@ -49,13 +53,15 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
 {
     private readonly ICombatOutcomeResolver _outcomes;
     private readonly ICardZoneFlowExecutor? _cardZoneFlows;
+    private readonly IGameplayOccurrenceExecutor? _occurrences;
 
     public CombatActionStateReducer(
         ICombatOutcomeResolver outcomes,
-        ICardZoneFlowExecutor? cardZoneFlows = null)
+        ICardZoneFlowExecutor? cardZoneFlows = null, IGameplayOccurrenceExecutor? occurrences = null)
     {
         _outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
         _cardZoneFlows = cardZoneFlows;
+        _occurrences = occurrences;
     }
 
     public Result<CombatActionReduction> Apply(RunState run, CombatState previousCombat, LegalActionCandidate candidate,
@@ -72,6 +78,16 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
 
         var eligibleModifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         run = candidate.SuccessorRun;
+        var currentCombat = candidate.SuccessorCombat;
+        if (_occurrences != null)
+        {
+            var prepared = _occurrences.PrepareOccurrenceObservation(run, currentCombat, observation);
+            if (prepared.IsFailure) return Result<CombatActionReduction>.Failure(prepared.Error);
+            observation = prepared.Value;
+        }
+        var responseSteps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
+        var responseApplications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
+        var responseCalculations = ImmutableArray.CreateBuilder<Core.Calculations.CalculationResult>();
         var resolvedCommand = candidate.ResolvedCommand;
         var consumedCardId = resolvedCommand?.CardInstanceId?.ToString();
         ImmutableArray<CardZoneFlowStepRecord> cardZoneSteps = [];
@@ -89,6 +105,7 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
                 Guid.Parse(consumedCardId), candidate.SuccessorCombat);
             if (flowed.IsFailure)
                 return Result<CombatActionReduction>.Failure(flowed.Error);
+            var beforeCards = run; var previousObservation = observation;
             if (observation != null)
             {
                 var observed = GameplayCardFlowObservation.Append(observation, flowed.Value.Steps, run,
@@ -102,6 +119,12 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
                 Determinism = flowed.Value.Context
             };
             cardZoneSteps = flowed.Value.Steps;
+            if (_occurrences != null && previousObservation != null && observation != null)
+            {
+                var response = _occurrences.DispatchOccurrencesObserved(beforeCards, currentCombat, run, currentCombat, previousObservation, observation);
+                if (response.IsFailure) return Result<CombatActionReduction>.Failure(response.Error);
+                Accept(response.Value);
+            }
         }
         else
         {
@@ -109,10 +132,10 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
         }
 
         var combat = resolvedCommand == null
-            ? candidate.SuccessorCombat
+            ? currentCombat
             : CombatFlowTransitions.ConsumeActionBudget(
                 run,
-                candidate.SuccessorCombat,
+                currentCombat,
                 resolvedCommand,
                 policies.ActionBudget,
                 CommandType(resolvedCommand));
@@ -136,7 +159,7 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
             resolvedCommand != null || candidate.ReactionTransition == ReactionTransitionKind.StackActionFizzled);
         if (outcome.IsFailure) return Result<CombatActionReduction>.Failure(outcome.Error);
         combat = outcome.Value;
-        var beforeTick = run;
+        var beforeTick = run; var beforeTickObservation = observation;
         run = ModifierTransitions.Tick(
             run,
             ModifierDurationBoundary.Command,
@@ -150,6 +173,20 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
             observation = observed.Value;
         }
 
+        if (_occurrences != null && beforeTickObservation != null && observation != null)
+        {
+            var response = _occurrences.DispatchOccurrencesObserved(beforeTick, combat, run, combat, beforeTickObservation, observation);
+            if (response.IsFailure) return Result<CombatActionReduction>.Failure(response.Error);
+            Accept(response.Value);
+            if (response.Value.Execution.Steps.Length > 0)
+            {
+                var reevaluated = _outcomes.EvaluateWithContext(run, currentCombat, policies.Outcome,
+                    resolvedCommand?.ActorId ?? rootCommand.ActorId, CombatOutcomeEvaluationPoint.ActionResolution,
+                    resolvedCommand != null || candidate.ReactionTransition == ReactionTransitionKind.StackActionFizzled);
+                if (reevaluated.IsFailure) return Result<CombatActionReduction>.Failure(reevaluated.Error);
+                combat = reevaluated.Value;
+            }
+        }
         var activationBudgetExhausted =
             policies.ActionBudget.Strategy == ActionBudgetStrategy.FixedCount &&
             combat.ActivationState is { } activation &&
@@ -157,14 +194,21 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
         var resolvedEndsTurn = (resolvedCommand ?? rootCommand).ActionType == ActionType.END_TURN;
         return Result<CombatActionReduction>.Success(new CombatActionReduction
         {
-            Observation = observation,
-            Run = run,
+            Observation = observation, ResponseSteps = responseSteps.ToImmutable(), ResponseApplications = responseApplications.ToImmutable(),
+            ResponseCalculations = responseCalculations.ToImmutable(), Run = run,
             Combat = combat,
             ResolvedCommand = resolvedCommand,
             ConsumedCardId = consumedCardId,
             CardZoneSteps = cardZoneSteps,
             RequestsActivationAdvance = resolvedEndsTurn || activationBudgetExhausted
         });
+
+        void Accept(ObservedEffectExecution response)
+        {
+            run = response.Execution.Run ?? run; currentCombat = response.Execution.State; observation = response.Observation;
+            responseSteps.AddRange(response.Execution.Steps); responseApplications.AddRange(response.Execution.Records);
+            responseCalculations.AddRange(response.Execution.Calculations);
+        }
     }
 
     private static string CommandType(CombatActionCommand command) => command.ActionType switch

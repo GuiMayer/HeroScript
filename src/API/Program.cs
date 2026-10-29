@@ -515,7 +515,9 @@ builder.Services.AddSingleton<ILegalActionQueryService, LegalActionQueryService>
 builder.Services.AddSingleton<IDecisionPolicy, GambitDecisionPolicy>();
 builder.Services.AddSingleton<IDecisionPolicyRegistry, DecisionPolicyRegistry>();
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
-builder.Services.AddSingleton<ICombatActionStateReducer, CombatActionStateReducer>();
+builder.Services.AddSingleton<ICombatActionStateReducer>(sp => new CombatActionStateReducer(
+    sp.GetRequiredService<ICombatOutcomeResolver>(), sp.GetRequiredService<ICardZoneFlowExecutor>(),
+    sp.GetRequiredService<IEffectTriggerExecutor>() as IGameplayOccurrenceExecutor));
 builder.Services.AddSingleton<ICombatCommandHandler, CombatCommandHandler>();
 builder.Services.AddSingleton<IAutomaticFlowDriver, AutomaticFlowDriver>();
 builder.Services.AddSingleton<IGameplayRuntimeFactory, GameplayRuntimeFactory>();

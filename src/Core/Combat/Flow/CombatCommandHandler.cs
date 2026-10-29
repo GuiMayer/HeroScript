@@ -120,9 +120,9 @@ public sealed partial class CombatCommandHandler : ICombatCommandHandler
             Deck = stepRun.Deck,
             RunDeterminism = stepRun.Determinism,
             RunSnapshot = stepRun,
-            EffectSteps = candidate.Steps,
-            Calculations = candidate.Calculations,
-            Applications = candidate.Applications,
+            EffectSteps = candidate.Steps.Concat(reduced.Value.ResponseSteps.Select((item, index) => item with { Index = candidate.Steps.Count + index })).ToArray(),
+            Calculations = candidate.Calculations.Concat(reduced.Value.ResponseCalculations).ToArray(),
+            Applications = candidate.Applications.Concat(reduced.Value.ResponseApplications).ToArray(),
             CardZoneSteps = reduced.Value.CardZoneSteps,
             Payload = JsonSerializer.SerializeToElement(new
             {
