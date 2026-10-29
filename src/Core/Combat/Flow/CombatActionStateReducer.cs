@@ -76,6 +76,7 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
         ArgumentNullException.ThrowIfNull(rootCommand);
         ArgumentNullException.ThrowIfNull(policies);
 
+        var originalRun = run;
         var eligibleModifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         run = candidate.SuccessorRun;
         var currentCombat = candidate.SuccessorCombat;
@@ -88,6 +89,22 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
         var responseSteps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
         var responseApplications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var responseCalculations = ImmutableArray.CreateBuilder<Core.Calculations.CalculationResult>();
+        if (_occurrences != null && observation != null)
+        {
+            var previous = observation;
+            var appended = GameplayActionLifecycleObservation.Append(observation, candidate);
+            if (appended.IsFailure) return Result<CombatActionReduction>.Failure(appended.Error);
+            observation = appended.Value;
+            if (candidate.ReactionTransition == ReactionTransitionKind.Proposed && observation.Events.Occurrences.Count > previous.Events.Occurrences.Count)
+            {
+                var anchor = GameplayCausalAnchor.From(observation.Events.Occurrences.Last());
+                currentCombat = currentCombat with { PendingActions = currentCombat.PendingActions.Select(item =>
+                    item.PendingActionId == candidate.PendingAction!.PendingActionId ? item with { OriginCause = anchor } : item).ToImmutableArray() };
+            }
+            var response = _occurrences.DispatchOccurrencesObserved(originalRun, previousCombat, run, currentCombat, previous, observation);
+            if (response.IsFailure) return Result<CombatActionReduction>.Failure(response.Error);
+            Accept(response.Value);
+        }
         var resolvedCommand = candidate.ResolvedCommand;
         var consumedCardId = resolvedCommand?.CardInstanceId?.ToString();
         ImmutableArray<CardZoneFlowStepRecord> cardZoneSteps = [];

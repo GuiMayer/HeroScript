@@ -27,6 +27,8 @@ public sealed record GameplayEffectObservation
     public string? LastApplicationEventId { get; init; }
     internal GameplayEventOrigin? ResponseOrigin { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
+    internal GameplayCausalAnchor? HistoricalActionCause { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
     internal bool RequirePersistentResponses { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     internal Core.GameplayEvents.Responses.GameplayResponseProgress? ResponseProgress { get; init; }
@@ -35,6 +37,11 @@ public sealed record GameplayEffectObservation
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];
     public ImmutableDictionary<string, string> ImpactAnchors { get; init; } =
         ImmutableDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
+
+    internal GameplayEffectObservation WithActionCause(GameplayCausalAnchor? anchor) => anchor == null ? this
+        : anchor.ActionId == Events.Scope.ActionId && anchor.BranchId == Events.Scope.BranchId
+            ? this with { ParentEventId = anchor.EventId, HistoricalActionCause = null }
+            : this with { HistoricalActionCause = anchor };
 
     internal Result<GameplayEffectObservation> Record(ResolvedEffectCommand command, CombatState before, CombatState after,
         IReadOnlyList<EffectApplicationRecord> records, RunState? runBefore = null, RunState? runAfter = null)
@@ -50,6 +57,7 @@ public sealed record GameplayEffectObservation
         {
             ReasonId = command.SemanticReasonId ?? ReasonId, Attribution = GameplayAttribution.Source,
             SourceActorId = string.IsNullOrEmpty(command.SourceEntityId) ? null : command.SourceEntityId,
+            OriginCause = HistoricalActionCause,
             Origin = ResponseOrigin ?? new() { ContainerKind = command.Provenance.Kind.ToString().ToLowerInvariant(),
                 ContainerId = string.IsNullOrEmpty(command.Provenance.SourceId) ? command.EffectInstanceId : command.Provenance.SourceId,
                 ComponentId = command.Provenance.ComponentId ?? command.EffectInstanceId,

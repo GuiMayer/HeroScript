@@ -221,8 +221,11 @@ public sealed record ActionOccurrencePayload : GameplayOccurrencePayload
 {
     public override GameplayPayloadKind PayloadKind => GameplayPayloadKind.Action;
     public string ActionDefinitionId { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PendingActionId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PriorityWindowId { get; init; }
     public ImmutableArray<string> ChildEventIds { get; init; } = [];
-    public override Result Validate() => EventValue.Valid(ActionDefinitionId) && !ChildEventIds.IsDefault &&
+    public override Result Validate() => EventValue.Valid(ActionDefinitionId) && EventValue.Optional(PendingActionId) &&
+        EventValue.Optional(PriorityWindowId) && !ChildEventIds.IsDefault &&
         ChildEventIds.Length <= 4096 && ChildEventIds.All(EventValue.Valid)
         ? Result.Success() : Result.Failure("Invalid action payload");
 }

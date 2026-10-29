@@ -57,3 +57,9 @@ O executor normal usa fatos locais descartáveis quando há essa família de rea
 | Journal/REST/mensagens de ocorrências | Pendente | Etapas 12–14; consultar timeline não executa respostas. |
 
 A etapa 8 está concluída. A etapa 9 permanece em execução; 10–15 não foram declaradas concluídas. Evidências por árvore/commit estão no documento de progresso.
+
+## Atualização após 9s e 10a
+
+Movimentos externos de cartas, concessões, preparação, ticks por comando/nó/run, carteira e término da run agora despacham respostas com snapshots reais. A criação com declarações adia somente o fluxo JSON até o personagem existir; bootstrap declarativo continua gênese. Comandos normais com respostas usam o plano observado privado antes do único commit. Provas cruzadas cobrem valores/RNG por origem.
+
+A etapa 10 conecta transições já autorizadas da pilha ao produtor de fatos de ação e conserva a causa na continuação serializável. Não há comando para injetar fatos, segunda pilha ou novo mecanismo de cancelamento arbitrário. Janelas/frequências entre comandos ainda estão em implementação. Projeções de transporte/rebind e troca de revisão aguardam a integração específica da etapa 12; não inferem dano/cura.

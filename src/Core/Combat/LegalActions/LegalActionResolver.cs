@@ -745,11 +745,18 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ExpectedStep = null,
             IgnoreConfiguredCosts = pending.CostsPaid || pending.Command.IgnoreConfiguredCosts
         };
-        var resolved = Evaluate(run, passed.Value.Combat, resolutionCommand,
+        var resolver = _observation != null && pending.OriginCause != null
+            ? new LegalActionResolver(this, _observation.WithActionCause(pending.OriginCause)) : this;
+        var resolved = resolver.Evaluate(run, passed.Value.Combat, resolutionCommand,
             CombatCommandOrigin.PendingResolution);
         if (resolved.IsFailure || !resolved.Value.IsLegal)
-            return ResolveFizzle(run, combat, passed.Value.Combat, command, pending, policy,
+        {
+            var fizzled = resolver.ResolveFizzle(run, combat, passed.Value.Combat, command, pending, policy,
                 resolved.IsFailure ? resolved.Error : string.Join("; ", resolved.Value.FailureReasons));
+            if (fizzled.IsFailure || fizzled.Value.Candidate?.Observation == null) return fizzled;
+            return Result<LegalActionEvaluation>.Success(fizzled.Value with { Candidate = fizzled.Value.Candidate with {
+                Observation = fizzled.Value.Candidate.Observation with { HistoricalActionCause = _observation?.HistoricalActionCause, ParentEventId = _observation?.ParentEventId } } });
+        }
 
         var candidate = resolved.Value.Candidate!;
         var completed = _reactions.CompleteResolution(candidate.SuccessorCombat, pending, policy);
@@ -769,6 +776,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             Command = command,
             ResolvedCommand = candidate.Command,
             PendingAction = pending,
+            Observation = candidate.Observation == null ? null : candidate.Observation with { HistoricalActionCause = _observation?.HistoricalActionCause, ParentEventId = _observation?.ParentEventId },
             ReactionTransition = ReactionTransitionKind.StackActionResolved,
             ResolutionFingerprint = fingerprint,
             SuccessorCombat = completed.Value
