@@ -31,11 +31,12 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
         ICombatFlowPlanner flowPlanner,
         ICombatCommandHandler commands,
         IAutomaticFlowDriver automaticFlow,
-        IOperationalEventBus? eventBus = null)
+        IOperationalEventBus? eventBus = null, Core.Effects.IGameplayOccurrenceExecutor? occurrences = null)
     {
         _combatFactory = combatFactory;
         _runManager = runManager;
         _eventBus = eventBus;
+        _occurrences = occurrences;
         _flowPlanner = flowPlanner ?? throw new ArgumentNullException(nameof(flowPlanner));
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
         _automaticFlow = automaticFlow ?? throw new ArgumentNullException(nameof(automaticFlow));

@@ -16,6 +16,7 @@ namespace Core.Combat;
 
 public sealed partial class CombatRunCoordinator
 {
+    private readonly Core.Effects.IGameplayOccurrenceExecutor? _occurrences;
     /// <summary>Calculates the same complete action candidate under the coordinator gate, without commit, publication or receipt mutation.</summary>
     public Result<ObservedGameplayExecution<CombatResolutionCommit>> PlanObservedAction(Guid runId, Guid combatId,
         CombatActionCommand command, RunCommandIdentity identity, JsonElement payload = default)
@@ -63,6 +64,22 @@ public sealed partial class CombatRunCoordinator
     private Result<ActionCandidate> PrepareActionCandidate(RunState run, CombatState combat, Guid combatId,
         CombatActionCommand command, RunCommandIdentity? identity, JsonElement payload, GameplayEffectObservation? observation)
     {
+        GameplayEffectObservation? rootBefore = null; GameplayEffectObservation? rootStarted = null;
+        if (observation == null && _occurrences != null)
+        {
+            var prepared = _occurrences.PrepareOccurrenceObservation(run, combat);
+            if (prepared.IsFailure) return Result<ActionCandidate>.Failure(prepared.Error);
+            if (prepared.Value != null)
+            {
+                var rootIdentity = identity ?? CreateImplicitIdentity(run, combat, command);
+                var root = GameplayCommandObservation.Create(run, combatId, rootIdentity);
+                if (root.IsFailure) return Result<ActionCandidate>.Failure(root.Error);
+                rootBefore = root.Value;
+                var started = GameplayActionObservation.Begin(rootBefore, rootIdentity.Type, command.ActorId, "command.started", "command.input");
+                if (started.IsFailure) return Result<ActionCandidate>.Failure(started.Error);
+                observation = rootStarted = started.Value;
+            }
+        }
         var request = new CombatCommandHandlingRequest { CombatId = combatId, Run = run, Combat = combat, Command = command,
             Origin = CombatCommandOrigin.PlayerInput };
         Result<CombatCommandHandlingResult> handled;
@@ -94,6 +111,13 @@ public sealed partial class CombatRunCoordinator
             RootPayload = payload.ValueKind == JsonValueKind.Undefined ? handled.Value.Step.Payload : payload.Clone(),
             Steps = new[] { handled.Value.Step }.Concat(driven.Value.Steps).ToArray()
         };
+        if (rootBefore != null && rootStarted != null)
+        {
+            var completed = GameplayActionObservation.Complete(rootBefore, rootStarted, observation!, commit.RootCommand.Type,
+                command.ActorId, "command.completed", "command.input");
+            if (completed.IsFailure) return Result<ActionCandidate>.Failure(completed.Error);
+            observation = completed.Value;
+        }
         return Result<ActionCandidate>.Success(new(handled.Value, driven.Value, commit, observation));
     }
 

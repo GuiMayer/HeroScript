@@ -180,7 +180,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _flow,
             _combatCommands,
             _automaticFlow,
-            options.OperationalTelemetry);
+            options.OperationalTelemetry, _effectTriggers as IGameplayOccurrenceExecutor);
         var gateway = new GameplayCommandGateway(runCommands, runs, combats, _eventContext, _codec);
         return new GameplayRuntime(runs, runCommands, combats, gateway, _registeredCommandTypes);
     }
