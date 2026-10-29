@@ -40,45 +40,48 @@ public sealed partial class RunManager
         private GameplayEffectObservation _before = null!;
         private GameplayEffectObservation _started = null!;
 
-        public Result Begin(RunState state, Guid commandId, IReadOnlyList<Core.CardZones.CardZoneFlowStepRecord> initialSteps)
+        public Result<RunState> Begin(RunState state, Guid commandId, IReadOnlyList<Core.CardZones.CardZoneFlowStepRecord> initialSteps,
+            IRunGameplayOccurrenceExecutor? executor)
         {
             var catalog = GameplayCoreCatalog.Create(state.SettingId, state.Determinism.ContentRevision);
-            if (catalog.IsFailure) return Result.Failure(catalog.Error);
+            if (catalog.IsFailure) return Result<RunState>.Failure(catalog.Error);
             var transaction = GameplayEventTransaction.Create(new() { SettingId = state.SettingId,
                 ContentRevision = state.Determinism.ContentRevision, RunId = state.RunId.ToString("D"), BranchId = state.RunId.ToString("D"),
                 ActionId = commandId.ToString("D"), CommandId = commandId.ToString("D") }, catalog.Value, limits);
-            if (transaction.IsFailure) return Result.Failure(transaction.Error);
+            if (transaction.IsFailure) return Result<RunState>.Failure(transaction.Error);
             _before = new() { Events = transaction.Value, PublisherId = GameplayCoreCatalog.PublisherId, ReasonId = "effect.application",
                 CostReasonId = "cost.payment", RefundReasonId = "cost.refund" };
             var started = GameplayActionObservation.Begin(_before, RunCommandTypes.StartRun, state.PlayerEntityId, "command.started", "command.input");
-            if (started.IsFailure) return Result.Failure(started.Error);
+            if (started.IsFailure) return Result<RunState>.Failure(started.Error);
             _started = started.Value;
             var boundary = GameplayBoundaryObservation.Begin(_started, GameplayBoundary.RunStarted, state.RunId.ToString("D"), null,
                 new() { ContainerKind = "rule", ContainerId = "run.lifecycle", ComponentId = "creation",
                     ContentRevision = state.Determinism.ContentRevision }, "run.start");
-            if (boundary.IsFailure) return Result.Failure(boundary.Error);
+            if (boundary.IsFailure) return Result<RunState>.Failure(boundary.Error);
             // Bootstrap declarations are the genesis baseline. These records describe only the authored startup flows.
             var flowed = GameplayCardFlowObservation.Append(boundary.Value, initialSteps, state, state, state.PlayerEntityId);
-            if (flowed.IsFailure) return Result.Failure(flowed.Error);
+            if (flowed.IsFailure) return Result<RunState>.Failure(flowed.Error);
             Current = new(flowed.Value);
-            return Result.Success();
+            if (executor != null) Current.Bind(executor);
+            return Current.Dispatch(state, state, _before);
         }
 
-        public Result Complete(RunState state)
+        public Result<RunState> Complete(RunState state)
         {
+            var previous = Current!.Current;
             if (state.Lifecycle != RunLifecycleState.Active)
             {
                 var ended = GameplayBoundaryObservation.Begin(Current!.Current, GameplayBoundary.RunEnded, state.RunId.ToString("D"), null,
                     new() { ContainerKind = "rule", ContainerId = "run.lifecycle", ComponentId = state.Lifecycle.ToString(),
                         ContentRevision = state.Determinism.ContentRevision }, "run.end");
-                if (ended.IsFailure) return Result.Failure(ended.Error);
+                if (ended.IsFailure) return Result<RunState>.Failure(ended.Error);
                 Current.Accept(ended.Value);
             }
             var completed = GameplayActionObservation.Complete(_before, _started, Current!.Current, RunCommandTypes.StartRun,
                 state.PlayerEntityId, "command.completed", "command.input");
-            if (completed.IsFailure) return Result.Failure(completed.Error);
+            if (completed.IsFailure) return Result<RunState>.Failure(completed.Error);
             Current.Accept(completed.Value);
-            return Result.Success();
+            return Current.Dispatch(state, state, previous);
         }
     }
 }

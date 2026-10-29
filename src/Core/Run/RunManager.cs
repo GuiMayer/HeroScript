@@ -225,9 +225,24 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var compiled = CardZoneSystemCompiler.Compile(resolvedMode.CardZoneSystem);
         if (compiled.IsFailure)
             return Result<RunState>.Failure(compiled.Error);
+        var planOnly = planning != null;
+        ContentRuntime? creationRuntime = null;
+        if (_contentRuntimes != null)
+        {
+            var pinned = _contentRuntimes.Resolve(contentRevision!, options.ConfigName);
+            if (pinned.IsFailure) return Result<RunState>.Failure(pinned.Error);
+            creationRuntime = pinned.Value;
+        }
+        var deferStartup = creationRuntime?.ContainsGameplayResponses == true;
+        if (deferStartup)
+        {
+            if (_activityEffects is not IRunGameplayOccurrenceExecutor)
+                return Result<RunState>.Failure("Run creation responses require a persistent occurrence executor");
+            planning ??= new CreationObservation(null);
+        }
         var initialized = CardZoneRunInitializer.Initialize(
             compiled.Value, definition, startingCards, "$run", options.PlayerEntityId,
-            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, CardZoneFlows, eligibility.Value);
+            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, CardZoneFlows, eligibility.Value, applyInitialFlows: !deferStartup);
         if (initialized.IsFailure)
             return Result<RunState>.Failure(initialized.Error);
         var initialDeck = new DeckState { Topology = initialized.Value.State };
@@ -303,8 +318,17 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         };
         if (planning != null)
         {
-            var observed = planning.Begin(state, options.CreationCommandId!.Value, initialZoneSteps);
+            var observed = planning.Begin(state, options.CreationCommandId ?? new Guid(Convert.FromHexString(creationIdentity.Key)[..16]),
+                initialZoneSteps, _activityEffects as IRunGameplayOccurrenceExecutor);
             if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+            state = observed.Value;
+            if (deferStartup)
+            {
+                var startup = RunCreationFlows.Execute(state, definition, initialPlayableCardCount, compiled.Value,
+                    new ObservedRunCardZoneFlows(CardZoneFlows, planning.Current!));
+                if (startup.IsFailure) return Result<RunState>.Failure(startup.Error);
+                state = startup.Value;
+            }
         }
         var initialNode = state.Map.Nodes.FirstOrDefault(node => node.NodeId == state.CurrentNodeId);
         RunActivityEffectResult? initialActivityEffects = null;
@@ -318,9 +342,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
 
         if (planning != null)
         {
-            state = PrepareCommitCandidate(state, null);
             var completed = planning.Complete(state);
-            return completed.IsFailure ? Result<RunState>.Failure(completed.Error) : Result<RunState>.Success(state);
+            if (completed.IsFailure) return Result<RunState>.Failure(completed.Error);
+            state = completed.Value;
+            if (planOnly) return Result<RunState>.Success(PrepareCommitCandidate(state, null));
         }
         using (_sessionGates.Enter(state.RunId))
         {

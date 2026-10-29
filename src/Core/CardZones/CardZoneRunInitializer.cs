@@ -31,7 +31,8 @@ public static class CardZoneRunInitializer
         string configName,
         DeterministicContext context,
         ICardZoneFlowExecutor flows,
-        RunEligibilitySnapshot? eligibility = null)
+        RunEligibilitySnapshot? eligibility = null,
+        bool applyInitialFlows = true)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("card_zone_initialize");
         ArgumentNullException.ThrowIfNull(system);
@@ -81,6 +82,10 @@ public static class CardZoneRunInitializer
         };
         var bootstrapped = CardZoneBootstrapper.Create(system, plan, context);
         if (bootstrapped.IsFailure) return Result<CardZoneRunInitializationResult>.Failure(bootstrapped.Error);
+        // Deferred hosts execute the boundary once after materializing the complete run actor view.
+        if (!applyInitialFlows)
+            return Result<CardZoneRunInitializationResult>.Success(new(bootstrapped.Value.State,
+                bootstrapped.Value.Context, bootstrapped.Value.CreatedInstanceIds, [], bootstrapped.Value.Fingerprint));
         var executed = flows.ExecuteBoundary(system, bootstrapped.Value.State, bootstrapped.Value.Context,
             "run.started", new CardZoneFlowContext
             {
