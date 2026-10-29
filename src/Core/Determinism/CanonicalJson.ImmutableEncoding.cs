@@ -118,7 +118,8 @@ public static partial class CanonicalJson
         {
             lock (_gate)
             {
-                if (!_items.TryGetValue(key, out var entry)) { encoding = default; return false; }
+                if (!_items.TryGetValue(key, out var entry)) { Core.Diagnostics.OperationalTiming.Count("encoding_miss"); encoding = default; return false; }
+                Core.Diagnostics.OperationalTiming.Count("encoding_hit");
                 _order.Remove(entry.Node); _order.AddLast(entry.Node);
                 encoding = entry.Encoding;
                 return true;
@@ -132,6 +133,7 @@ public static partial class CanonicalJson
                 if (_items.ContainsKey(key)) return;
                 while (_items.Count >= 128 || _bytes + encoding.Bytes.Length > Budget)
                 {
+                    Core.Diagnostics.OperationalTiming.Count("encoding_eviction");
                     var first = _order.First!;
                     _bytes -= _items[first.Value].Encoding.Bytes.Length;
                     _items.Remove(first.Value); _order.RemoveFirst();

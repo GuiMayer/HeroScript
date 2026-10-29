@@ -52,7 +52,7 @@ public static partial class CanonicalJson
             var entry = ImmutableDefaults.GetValue(value, _ => new ImmutableHashes());
             lock (entry.Values)
             {
-                if (entry.Values.TryGetValue(typeof(T), out var known)) return known;
+                if (entry.Values.TryGetValue(typeof(T), out var known)) { Core.Diagnostics.OperationalTiming.Count("hash_hit"); return known; }
                 var hash = ComputeHashCore(value, effectiveOptions);
                 entry.Values[typeof(T)] = hash;
                 return hash;
@@ -86,6 +86,8 @@ public static partial class CanonicalJson
     private static string ComputeHashCore<T>(T value, JsonSerializerOptions options)
     {
         var bytes = CanonicalBytes(value, options);
+        Core.Diagnostics.OperationalTiming.Count("hash_digest_bytes", bytes.Bytes.Length);
+        using var digestTiming = Core.Diagnostics.OperationalTiming.Measure("canonical_digest");
         return Convert.ToHexStringLower(SHA256.HashData(bytes.Bytes.Span));
     }
 
@@ -163,6 +165,7 @@ public static partial class CanonicalJson
         // The reference writer deliberately retains its old element path. The
         // hash path owns and disposes the temporary document instead of leaving
         // its backing storage to GC on every small calculation/fingerprint.
+        Core.Diagnostics.OperationalTiming.Count("canonical_dom_fallback");
         using var document = fast ? JsonSerializer.SerializeToDocument(value, options ?? DefaultOptions) : null;
         var element = fast ? document!.RootElement : JsonSerializer.SerializeToElement(value, options ?? DefaultOptions);
         var buffer = new ArrayBufferWriter<byte>();

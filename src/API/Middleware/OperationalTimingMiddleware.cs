@@ -17,6 +17,7 @@ public sealed class OperationalTimingMiddleware(RequestDelegate next, IConfigura
             var entries = scope.Snapshot().Select(item => $"{item.Key};dur={item.Value.ToString("F2", CultureInfo.InvariantCulture)}");
             context.Response.Headers["Server-Timing"] = string.Join(", ", entries.Append(
                 $"headers;dur={Stopwatch.GetElapsedTime(started).TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture)}"));
+            context.Response.Headers["X-HeroScript-Work"] = System.Text.Json.JsonSerializer.Serialize(new { spans = scope.Details(), counters = scope.Counters() });
             return Task.CompletedTask;
         });
         try { await next(context); }

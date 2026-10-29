@@ -65,6 +65,7 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
             Assert.Equal(CanonicalJson.ComputeHash(after), CanonicalJson.ComputeHash(runs.GetRun(runId).Value));
             output.WriteLine($"setting={setting}; action={sample}; POST={commandMs:F2}ms; REST+session={total:F2}ms");
             output.WriteLine("Server-Timing: " + string.Join(", ", response.Headers.GetValues("Server-Timing")));
+            if (response.Headers.TryGetValues("X-HeroScript-Work", out var work)) output.WriteLine("WORK: " + string.Join("", work));
         }
         var ordered = postTimes.Order().ToArray();
         double Percentile(double p) => ordered[(int)Math.Ceiling(p * ordered.Length) - 1];

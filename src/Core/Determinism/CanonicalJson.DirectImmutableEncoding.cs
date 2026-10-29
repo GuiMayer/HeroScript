@@ -47,6 +47,7 @@ public static partial class CanonicalJson
 
     private static CanonicalEncoding EncodeImmutableLeaf(object? value, Type declaredType)
     {
+        Core.Diagnostics.OperationalTiming.Count("immutable_leaf_encode");
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
             JsonSerializer.Serialize(writer, value, declaredType, ImmutableEncodingOptions);
@@ -57,6 +58,7 @@ public static partial class CanonicalJson
         while (reader.Read())
             if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
                 depth = System.Math.Max(depth, reader.CurrentDepth + 1);
+        Core.Diagnostics.OperationalTiming.Count("immutable_leaf_bytes", buffer.WrittenCount);
         return new(buffer.WrittenMemory, depth);
     }
 

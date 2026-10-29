@@ -14,3 +14,7 @@ Baseline nova em `.runtime/post100-01`: três testes API aprovados (inventário 
 
 - POST_SUMMARY setting=default; n=3; p50=764.54; p95=1166.63; p99=1166.63; max=1166.63ms
 - POST_SUMMARY setting=ascendant; n=3; p50=375.66; p95=580.59; p99=580.59; max=580.59ms
+
+## Etapa 2 — medição exclusiva
+
+Implementados spans inclusivos/exclusivos/contagem, contador limitado a 128 nomes e métricas de bytes/hits/misses/evicções. Header de diagnóstico X-HeroScript-Work existe somente com Performance:DiagnosticsEnabled; não participa de estado/recibo/hashes. 21 testes Core focados e dois testes REST passaram. Perfil isolado em stage02-profile.log: cerca de 2143 serializações DOM, 1940 leituras de conteúdo e 56 coletas em um END_TURN; digest ~11ms, encoding exclusivo ~334ms. A coleta cria CardContentCompiler e resolve o baralho repetidamente, sendo o alvo principal após as provas de compatibilidade. Sem garantia de 100ms nesta etapa. Os tempos incluem overhead explícito de diagnóstico, não são um benchmark com observabilidade desligada.
