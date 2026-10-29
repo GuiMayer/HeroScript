@@ -47,6 +47,8 @@ public sealed class ContentKindRegistry : IContentKindRegistry
     private readonly bool _allowShadowResponseDeclarations;
 
     public static ContentKindRegistry Default { get; } = new(CreateDefaults());
+    // Structural parsing only. Executable publication additionally validates the schema-2 graph.
+    public static ContentKindRegistry Canonical { get; } = new(CreateDefaults(), allowShadowResponseDeclarations: true);
 
     public ContentKindRegistry(IEnumerable<ContentKindDescriptor> kinds, bool allowShadowResponseDeclarations = false)
     {

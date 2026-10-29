@@ -22,7 +22,7 @@ public static class GameplayContentResponseMigration
 
     public static Result<GameplayContentMigrationPlan> Plan(ContentBundle original)
     {
-        if (original.Manifest.SchemaVersion != 1)
+        if (original.Manifest.SchemaVersion is not (1 or 2))
             return Result<GameplayContentMigrationPlan>.Failure("Unsupported source content manifest schema for migration");
         var sourceRevision = Revision(original.Manifest);
         if (original.Manifest.Revision != sourceRevision)
@@ -49,7 +49,7 @@ public static class GameplayContentResponseMigration
         }
         if (changes.Count == 0)
             return Result<GameplayContentMigrationPlan>.Success(new(original, [], ShadowValidator().Validate(original)));
-        var manifest = original.Manifest with { Artifacts = original.Manifest.Artifacts.Select(artifact => artifact with {
+        var manifest = original.Manifest with { SchemaVersion = 2, Artifacts = original.Manifest.Artifacts.Select(artifact => artifact with {
             Hash = Hash(artifacts[artifact.Path]), DefinitionCount = artifacts[artifact.Path].EnumerateObject().Count() }).ToArray() };
         manifest = manifest with { Revision = Revision(manifest) };
         var candidate = original with { Manifest = manifest, Artifacts = artifacts.ToImmutable() };

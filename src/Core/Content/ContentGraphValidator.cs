@@ -63,6 +63,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         }
 
         var runtime = created.Value;
+        if (bundle.Manifest.SchemaVersion == 2)
+            errors.AddRange(CanonicalGameplayAuthoring.Validate(runtime));
         foreach (var id in runtime.GetDefinitions("deck-compartment-profiles").Keys)
         {
             var profile = runtime.GetDefinition<Run.DeckCompartments.DeckCompartmentProfileDefinition>("deck-compartment-profiles", id);

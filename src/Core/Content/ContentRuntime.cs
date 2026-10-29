@@ -44,6 +44,10 @@ public sealed class ContentRuntime
     {
         ArgumentNullException.ThrowIfNull(bundle);
         ArgumentNullException.ThrowIfNull(kinds);
+        if (bundle.Manifest.SchemaVersion is not (1 or 2))
+            return Result<ContentRuntime>.Failure("Unsupported content manifest schema");
+        if (bundle.Manifest.SchemaVersion == 2 && ReferenceEquals(kinds, ContentKindRegistry.Default))
+            kinds = ContentKindRegistry.Canonical;
         if (string.IsNullOrWhiteSpace(bundle.Manifest.Revision))
             return Result<ContentRuntime>.Failure("Content bundle revision is required");
 

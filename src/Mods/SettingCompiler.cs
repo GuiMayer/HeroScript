@@ -39,7 +39,7 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
             .FirstOrDefault(group => group.Count() > 1);
         if (duplicate != null)
             throw new ArgumentException($"Package provider id collision: {duplicate.Key}", nameof(providers));
-        _kinds = kinds ?? ContentKindRegistry.Default;
+        _kinds = kinds ?? ContentKindRegistry.Canonical;
     }
 
     public async Task<SettingCatalog> GetCatalogAsync(CancellationToken cancellationToken = default)
@@ -312,8 +312,11 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
         var packageChain = packages
             .Select(package => $"{package.Manifest.PackageId}@{package.Manifest.Version}")
             .ToImmutableArray();
+        var probe = ContentRuntime.Create(new ContentBundle { Manifest = new() { ConfigName = setting.SettingId,
+            Revision = "authoring-schema-probe", Artifacts = artifactManifests }, Artifacts = artifactPayloads }, _kinds);
+        if (probe.IsFailure) return Result<SettingCompilation>.Failure(probe.Error);
         var manifestPayload = new ContentManifestPayload(
-            1,
+            probe.Value.ContainsGameplayResponses ? 2 : 1,
             setting.SettingId,
             packageChain,
             artifactManifests);
