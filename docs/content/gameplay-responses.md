@@ -106,3 +106,14 @@ O materializador reconhece o componente `responses` e captura suas declaraÃ§Ãµes
 ### ExecuÃ§Ã£o normal pÃ³s-fato (9b, integraÃ§Ã£o parcial)
 
 O executor normal detecta declaraÃ§Ãµes tipadas no estado e no runtime imutÃ¡vel e usa os mesmos providers do caminho observado. A identidade de efeito deriva da causa de domÃ­nio; acrescentar observaÃ§Ã£o nÃ£o deve mudar o efeito. Testes cobrem buff de atributo, custo de recurso e um terceiro observador, comparando a saÃ­da completa dos caminhos normal/observado. A presenÃ§a por revisÃ£o Ã© apenas metadado derivado; nÃ£o contÃ©m contadores/RNG e nÃ£o Ã© compartilhada globalmente por nomes de revisÃ£o. Assinaturas novas da prÃ³pria fronteira ainda aguardam o broadcast Ãºnico do fluxo; os sub-lifecycles despacham somente seus gatilhos capturados nessa oportunidade para evitar duplicaÃ§Ã£o.
+
+
+### Composição, continuidade e produtores externos (9c–9h)
+
+A compilação de cartas preserva o catálogo nas resoluções de upgrades, bundles e contribuições de compartimentos. A zona real determina a disponibilidade; um componente concedido usa os mesmos providers e processador de efeitos. Cartas não ganham autoridade para publicar fatos.
+
+As quotas e o trabalho de respostas seguem por uma continuidade imutável dentro da candidata. Forks de simulação não compartilham contadores mutáveis. O despacho de fatos já produzidos exige snapshots reais, prefixo causal append-only e o mesmo agregado/revisão. Esta continuidade **ainda não é persistência durável** de frequência entre comandos.
+
+Status que reduzem duração/expiram e modificadores que expiram/reduzem duração nas fronteiras de combate também produzem respostas. O snapshot de status e os IDs elegíveis de modificadores são capturados antes das respostas da fronteira, evitando que instâncias recém-criadas sejam processadas retroativamente. O refresh primitivo de recursos conserva a política configurada e incorpora os sucessores da run e do combate, incluindo aplicações/passos das respostas.
+
+**Limite atual:** ainda falta ligar todos os movimentos externos de cartas, comandos fora de combate e a ação raiz comum. A publicação padrão de declarações continua bloqueada; não se deve tratar estas entradas candidatas como o cutover das etapas 11–12. PriorityStack, persistência, consultas REST e projeção localizada ainda não estão declaradas concluídas.

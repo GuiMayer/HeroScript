@@ -40,3 +40,20 @@ Resultados e caminhos das execuÃ§Ãµes estÃ£o no [progresso de implementaÃ§Ã£o](.
 A descriÃ§Ã£o anterior registra a instrumentaÃ§Ã£o da etapa 4. As reaÃ§Ãµes de recurso das relÃ­quias jÃ¡ foram migradas: a leitura de definiÃ§Ãµes capturadas ocorre em `LegacyResourceReactionObserverProvider` e o matching/agendamento ocorre no dispatcher comum de `EffectTriggerExecutor.Responses`. A coleta direta e `EffectReactionPolicies.Matches` foram removidos; `EffectReactionPolicies.Validate` permanece validando o formato histÃ³rico. Os cÃ¡lculos/outcomes e a aplicaÃ§Ã£o continuam exclusivamente no pipeline/executor canÃ´nicos.
 
 O executor normal usa fatos locais descartÃ¡veis quando hÃ¡ essa famÃ­lia de reaÃ§Ãµes; isso nÃ£o habilita gravaÃ§Ã£o de journal novo nem publica eventos intermediÃ¡rios. O executor observado exige os IDs reais de setting/root-run/branch. Os templates internos conservam IDs e parent.* histÃ³ricos, com comparaÃ§Ã£o de hashes completos contra a Ã¡rvore anterior Ã  migraÃ§Ã£o. Fronteiras, status periÃ³dicos/expiraÃ§Ã£o, gatilhos de relÃ­quias e fases continuam aguardando a migraÃ§Ã£o da etapa 8.
+
+
+## Integração atual dos consumidores (até 9h)
+
+| Caminho | Respostas no executor normal | Limite atual |
+|---|---|---|
+| Efeitos de recurso, atributo, status, carta/zona e sequência | Sim, com declarações capturadas e providers comuns | Publicação padrão bloqueada até o cutover. |
+| Gatilhos capturados de status, relíquias e fases | Sim, pelo dispatcher comum | Templates históricos internos preservam identidades. |
+| Fronteiras de combate/rodada/ativação e fases | Sim, uma oportunidade canônica por fronteira | Executor geral deve receber a capacidade de ocorrências (composição API já ligada). |
+| Duração/expiração de status | Sim | Snapshot da fronteira impede processamento retroativo de instâncias novas. |
+| Duração/expiração de modificadores em combate | Sim | Contadores ainda candidatos, sem durabilidade entre comandos. |
+| Refresh primitivo da ativação | Sim | Política original continua decidindo recurso/operando/timing. |
+| Movimentos externos de cartas e modificações fora de combate | Instrumentados; integração de respostas ainda pendente | Não considerar esta família migrada apenas porque já produz fatos observados. |
+| Intenções, PriorityStack e retomada | Integração anterior do jogo preservada | Nova causação/continuidade de respostas pertence à etapa 10. |
+| Journal/REST/mensagens de ocorrências | Pendente | Etapas 12–14; consultar timeline não executa respostas. |
+
+A etapa 8 está concluída. A etapa 9 permanece em execução; 10–15 não foram declaradas concluídas. Evidências por árvore/commit estão no documento de progresso.

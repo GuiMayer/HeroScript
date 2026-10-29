@@ -103,7 +103,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         var responseSteps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
         var responseApplications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var events = new List<CombatStatusLifecycleEvent>();
-        var boundarySnapshot = combat.StatusEffects;
+        var boundarySnapshot = observation?.BoundaryStatusSnapshot ?? combat.StatusEffects;
         IGameplayBoundaryExecutionScope? scope = null;
         if (boundarySnapshot.Values.SelectMany(items => items).Any(status => status.IsActive && status.Definition.Triggers.Count > 0))
         {

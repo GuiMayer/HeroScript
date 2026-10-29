@@ -228,6 +228,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (combat.IsActive) return Result<CombatRelicLifecycleResult>.Failure("Cannot finalize an active combat");
         using var combatBoundary = combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd) ? null
             : observation?.Boundary(Core.GameplayEvents.GameplayBoundary.CombatEnded, "combat.ended", combat);
+        var eligibleModifiers = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         var terminalResponses = combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd)
             ? new EffectBatchResult { State = combat, Run = run } : BoundaryResponses(observation, run, combat);
         run = terminalResponses.Run ?? run; combat = terminalResponses.State;
@@ -235,9 +236,12 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             : observation.Relic(_relicLifecycle, run, combat, CombatTriggerBoundaries.CombatEnd));
         if (result.IsFailure || combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd)) return result;
         var updatedRun = Core.Combat.Modifiers.ModifierTransitions.Tick(result.Value.Run ?? run,
-            Core.Combat.Modifiers.ModifierDurationBoundary.Combat, eligibleIds: run.Modifiers.Select(item => item.InstanceId).ToHashSet());
-        observation?.ModifierTicks(result.Value.Run ?? run, updatedRun);
-        return Result<CombatRelicLifecycleResult>.Success(result.Value with { Run = updatedRun, ResponseSteps = terminalResponses.Steps, ResponseApplications = terminalResponses.Records.ToImmutableArray() });
+            Core.Combat.Modifiers.ModifierDurationBoundary.Combat, eligibleIds: eligibleModifiers);
+        var tickResponses = observation?.ModifierTicks(result.Value.Run ?? run, updatedRun, result.Value.Combat);
+        return Result<CombatRelicLifecycleResult>.Success(result.Value with { Run = tickResponses?.Run ?? updatedRun,
+            Combat = tickResponses?.State ?? result.Value.Combat,
+            ResponseSteps = terminalResponses.Steps.AddRange(tickResponses?.Steps ?? []),
+            ResponseApplications = terminalResponses.Records.Concat(tickResponses?.Records ?? []).ToImmutableArray() });
     }
 
     public Result<CombatFlowAdvanceResult> AdvanceActivation(RunState run, CombatState combat, DeckState deck, DeterministicContext runDeterminism, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => WithOccurrenceObservation(run, combat, cursor => AdvanceActivationCore(run, combat, deck, runDeterminism, sequence, policies, turnOrderPolicy, cursor));
@@ -811,9 +815,9 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
     {
         using var boundaryFrame = observation?.Boundary(ToGameplayBoundary(boundary), boundary.ToString(), combat);
         run = run with { Deck = deck };
+        var eligibleModifiers = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         var responses = BoundaryResponses(observation, run, combat);
         run = responses.Run ?? run; combat = responses.State;
-        var eligibleModifiers = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
             ? Result<CombatStatusLifecycleResult>.Success(new(combat, []))
             : (observation == null ? _statusLifecycle.Process(run, combat, boundary, activeActorId)
@@ -825,21 +829,23 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 : observation.Relic(_relicLifecycle, run, processed.Value.Combat, boundary.ToString()));
         if (relics.IsFailure) return Result<CombatState>.Failure(relics.Error);
         run = relics.Value.Run ?? run;
+        var tickResponses = new EffectBatchResult { Run = run, State = relics.Value.Combat };
         if (boundary is StatusTriggerBoundary.EndActivation or StatusTriggerBoundary.EndRound)
         {
             var beforeTick = run;
             run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
                 boundary == StatusTriggerBoundary.EndActivation ? Core.Combat.Modifiers.ModifierDurationBoundary.Activation
                     : Core.Combat.Modifiers.ModifierDurationBoundary.Round, combat, activeActorId, eligibleModifiers);
-            observation?.ModifierTicks(beforeTick, run);
+            tickResponses = observation?.ModifierTicks(beforeTick, run, relics.Value.Combat) ?? tickResponses with { Run = run };
+            run = tickResponses.Run ?? run;
         }
         var evaluated = _outcomes.Evaluate(
-            relics.Value.Combat,
+            tickResponses.State,
             policies.Outcome,
             activeActorId,
             CombatOutcomeEvaluationPoint.LifecycleBoundary);
         var effectSteps = responses.Steps.Concat(processed.Value.Events.SelectMany(item => item.Steps)).Concat(processed.Value.ResponseSteps)
-            .Concat(relics.Value.Events.SelectMany(item => item.Steps))
+            .Concat(relics.Value.Events.SelectMany(item => item.Steps)).Concat(tickResponses.Steps)
             .ToArray();
         steps.Add(new CombatResolutionStep
         {
@@ -854,7 +860,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 .Select(item => item.Calculation!)
                 .ToArray(),
             Applications = responses.Records.Concat(processed.Value.Events.SelectMany(item => item.Applications)).Concat(processed.Value.ResponseApplications)
-                .Concat(relics.Value.Events.SelectMany(item => item.Applications))
+                .Concat(relics.Value.Events.SelectMany(item => item.Applications)).Concat(tickResponses.Records)
                 .ToArray(),
             Payload = JsonSerializer.SerializeToElement(new
             {

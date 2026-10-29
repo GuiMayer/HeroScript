@@ -28,6 +28,8 @@ public sealed record GameplayEffectObservation
     internal GameplayEventOrigin? ResponseOrigin { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     internal Core.GameplayEvents.Responses.GameplayResponseProgress? ResponseProgress { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableDictionary<string, ImmutableArray<Core.StatusEffects.StatusEffectInstance>>? BoundaryStatusSnapshot { get; init; }
     public ImmutableArray<UnobservedEffectApplication> Unobserved { get; init; } = [];
     public ImmutableDictionary<string, string> ImpactAnchors { get; init; } =
         ImmutableDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);

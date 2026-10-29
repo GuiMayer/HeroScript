@@ -186,3 +186,8 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Etapa 9g: refresh primitivo de recursos na abertura de ativação despacha os fatos reais com snapshots antes/depois e devolve ambos os sucessores (combate/run), passos e aplicações. Inicialização e ativação incorporam esses resultados; a política configurada continua autoritária. 193 testes focados existentes e 24 provas de fronteira/paridade aprovados, incluindo refresh observado cinco vezes e hashes dourados. Ainda faltam fluxos externos de cartas/modificadores e comandos fora de combate para concluir a etapa 9.
 
+
+- Certificação 9e–9g: commit 7ce9979d9ab50f967ac0e62ef2df2636f4ac08d0, exportado em .runtime/generic-events-stage9g-certified-index. Build completo sem avisos/erros, 2142 testes Core e 32 testes API focados aprovados, zero falhas/exclusões.
+
+- Etapa 9h: ticks/expiração de modificadores em combate despacham fatos pelo executor comum e incorporam os resultados em frames/finalização. Elegibilidade de status/modificadores é capturada antes das respostas da fronteira e restaurada entre frames aninhados. 198 testes focados aprovados, incluindo três regressões novas de snapshot sem processamento retroativo e resposta a duração/expiração de modificador. Inventário e documentação distinguem caminhos migrados de produtores apenas instrumentados. Autoria padrão bloqueada e etapas 10–15 ainda pendentes.
+

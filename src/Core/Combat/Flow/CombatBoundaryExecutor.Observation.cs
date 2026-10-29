@@ -59,6 +59,7 @@ public sealed partial class CombatBoundaryExecutor
             Current = Require(GameplayBoundaryObservation.Begin(Current, boundary, id, combat.ActivationState?.ActiveActorId,
                 new() { ContainerKind = "rule", ContainerId = "combat.flow", ComponentId = id, ContentRevision = Current.Events.Scope.ContentRevision },
                 $"combat.boundary/{Current.Events.Occurrences.Count}/{boundary}"));
+            Current = Current with { BoundaryStatusSnapshot = combat.StatusEffects };
             return new Frame(this, parent);
         }
 
@@ -109,8 +110,12 @@ public sealed partial class CombatBoundaryExecutor
         public void Cards(IReadOnlyList<CardZoneFlowStepRecord> steps, RunState before, RunState after, string? actorId) =>
             Current = Require(GameplayCardFlowObservation.Append(Current, steps, before, after, actorId));
 
-        public void ModifierTicks(RunState before, RunState after) =>
+        public EffectBatchResult ModifierTicks(RunState before, RunState after, CombatState combat)
+        {
+            var previous = Current;
             Current = Require(GameplayModifierObservation.AppendTicks(Current, before, after));
+            return Mutations(before, combat, after, combat, previous);
+        }
 
         public void ResourceMutation(ResolvedResourceMutation mutation, ResourceMutationRecord record, CombatActorState before, CombatActorState after)
         {
@@ -138,7 +143,11 @@ public sealed partial class CombatBoundaryExecutor
 
         private sealed class Frame(ObservationCursor cursor, string? parent) : IDisposable
         {
-            public void Dispose() { cursor.Current = cursor.Current with { ParentEventId = parent }; cursor._boundaries.Pop(); }
+            public void Dispose()
+            {
+                var before = cursor._boundaries.Pop();
+                cursor.Current = cursor.Current with { ParentEventId = parent, BoundaryStatusSnapshot = before.BoundaryStatusSnapshot };
+            }
         }
     }
 }
