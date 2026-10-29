@@ -14,7 +14,7 @@ using Core.CardZones;
 namespace Core.Content;
 
 /// <summary>Validates executable components, not merely the JSON shape or existence of their containers.</summary>
-internal sealed class GameplayContentValidator(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
+internal sealed partial class GameplayContentValidator(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
 {
     internal static Result ValidateCardContainer(ContentRuntime runtime, string path,
         IReadOnlyList<CardComponentDefinition> components)
@@ -24,8 +24,13 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         return errors.Count == 0 ? Result.Success() : Result.Failure(string.Join("; ", errors));
     }
 
+    private bool _responseFormulaContext;
+    private bool _responseInheritedVariables;
+    private ContentRuntime ResponseRuntime => runtime;
+
     public void Validate()
     {
+        ValidateGameplayResponses();
         Visit<CombatRulesDefinition>("combat-rules", (path, item) => {
             foreach (var condition in item.Flow.CommandConditions) Formula($"{path}/commandConditions/{condition.RuleId}", condition.AllowCondition, required: true);
             if (item.Flow.Outcome.ParticipantVictory is { } victory) {
@@ -299,6 +304,9 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                         Reference(address, "resources", resource.ResourceId, required: true);
                         Formula(address, resource.Formula);
                     }
+                    break;
+                case Core.GameplayEvents.Responses.CardResponseComponentDefinition response:
+                    Responses(address, response.Responses, "card");
                     break;
                 case CardEffectComponentDefinition effect: Effects(address, [effect.Effect]); break;
                 case CardConditionComponentDefinition condition: Formula(address, condition.Expression, required: true); break;
@@ -575,6 +583,11 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
 
     private bool IsGameplayVariable(string token)
     {
+        if (_responseFormulaContext && token is "stacks" or "duration") return _responseInheritedVariables;
+        if (_responseFormulaContext && (token.StartsWith("event.", StringComparison.Ordinal) ||
+            token.StartsWith("scope.", StringComparison.Ordinal) || token.StartsWith("owner.", StringComparison.Ordinal)))
+            return Core.GameplayEvents.Responses.GameplayResponseNumbers.SupportsReference(token,
+                resourceId => runtime.GetDefinitions("resources").ContainsKey(resourceId));
         if (runtime.GetDefinitions("combat-rules").Values.Any(definition =>
             definition.TryGetProperty("flow", out var flow) && (
                 flow.TryGetProperty("queries", out var queries) && queries.EnumerateArray().Any(query => query.TryGetProperty("variable", out var name) && name.GetString() == token) ||

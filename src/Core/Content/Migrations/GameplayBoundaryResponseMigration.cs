@@ -84,7 +84,7 @@ public static class GameplayBoundaryResponseMigration
                 Availability = new() { RequireLivingOwner = false }, Propagation = ResponsePropagation.AllowResponses,
                 Order = new() { Priority = trigger.Priority, Descending = true }, Effects = trigger.Effects.ToImmutableArray()
             };
-            var timing = GameplayContainerBoundaryResponses.Validate(response);
+            var timing = GameplayContainerBoundaryResponses.Validate(response, fromSource ? "status" : "relic");
             var compiled = GameplayResponseCompiler.Compile(response, catalog, new() { ContainerBoundary = true });
             if (timing.IsFailure || compiled.IsFailure)
                 return Result<ImmutableArray<GameplayResponseDefinition>?>.Failure(timing.IsFailure ? timing.Error : compiled.Error);

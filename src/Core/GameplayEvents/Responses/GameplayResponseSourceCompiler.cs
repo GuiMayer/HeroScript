@@ -54,7 +54,7 @@ public static class GameplayResponseSourceCompiler
                 if (response.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(response.Error);
                 if (lifecycle)
                 {
-                    var validTiming = GameplayContainerBoundaryResponses.Validate(definition);
+                    var validTiming = GameplayContainerBoundaryResponses.Validate(definition, providerId == "core.relic" ? "relic" : "status");
                     if (validTiming.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(validTiming.Error);
                     continue; // The owning lifecycle captures it; global broadcasts must not execute it again.
                 }

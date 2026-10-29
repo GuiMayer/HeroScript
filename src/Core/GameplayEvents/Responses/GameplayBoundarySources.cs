@@ -50,7 +50,7 @@ public static class GameplayBoundarySources
         var result = ImmutableArray.CreateBuilder<GameplayBoundaryInvocation>();
         foreach (var relic in run.Relics)
         {
-            var declared = GameplayContainerBoundaryResponses.Triggers(relic.Triggers, relic.Responses);
+            var declared = GameplayContainerBoundaryResponses.Triggers(relic.Triggers, relic.Responses, "relic");
             if (declared.IsFailure) return Result<ImmutableArray<GameplayBoundaryInvocation>>.Failure(declared.Error);
             foreach (var (trigger, response) in declared.Value)
             foreach (var owner in combat.GetAllActors().Where(actor => relic.Owner.Includes(actor, combat, run)))

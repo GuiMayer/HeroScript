@@ -40,10 +40,11 @@ public static class GameplayResponseNumbers
                 var components = actor?.Components ?? (snapshot.Combat == null && actorId != null && persistent?.InstanceId == actorId ? persistent!.Components : null);
                 if (components != null && path.Length == prefix + 2 && components.GetValueOrDefault(path[prefix]) is StatEntityComponentState stats &&
                     stats.Values.TryGetValue(path[prefix + 1], out var stat)) number = stat;
-                else if (components != null && path.Length == prefix + 3 && path[prefix] == "resources")
+                else if (components != null && path.Length >= prefix + 3 && path[prefix] == "resources")
                 {
-                    var pool = components.Values.OfType<ResourceEntityComponentState>().SingleOrDefault()?.State.Get(path[prefix + 1]);
-                    if (pool != null) number = path[prefix + 2] switch { "current" => pool.Current, "maximum" => pool.Maximum, "minimum" => pool.Minimum, _ => null };
+                    var pool = components.Values.OfType<ResourceEntityComponentState>().SingleOrDefault()?.State.Get(string.Join('.', path.Skip(prefix + 1).SkipLast(1)));
+                    if (pool != null) number = path[^1] switch { "current" => pool.Current, "maximum" => pool.Maximum, "minimum" => pool.Minimum,
+                        "percent" => pool.GetPercentage(), _ => null };
                 }
             }
             if (number == null || !double.IsFinite(number.Value) || !float.IsFinite((float)number.Value))
@@ -52,6 +53,43 @@ public static class GameplayResponseNumbers
         }
         return Result<ImmutableDictionary<string, float>>.Success(values.ToImmutable());
     }
+
+    internal static bool SupportsReference(string name, Func<string, bool> resourceExists)
+    {
+        if (ScalarNames.Contains(name)) return true;
+        var path = name.Split('.');
+        var prefix = path.Length > 1 && path[0] == "owner" ? 1
+            : path.Length > 2 && path[0] == "event" && path[1] is "source" or "subject" or "attributed" ? 2 : 0;
+        if (prefix == 0) return false;
+        if (path[prefix] == "resources")
+            return path.Length >= prefix + 3 && path[^1] is "current" or "maximum" or "minimum" or "percent" &&
+                resourceExists(string.Join('.', path.Skip(prefix + 1).SkipLast(1)));
+        return path.Length == prefix + 2 && path.Skip(prefix).All(EventValue.Valid);
+    }
+
+    private static readonly ImmutableHashSet<string> ScalarNames = ImmutableHashSet.Create(StringComparer.Ordinal,
+        "event.change.before",
+        "event.change.after",
+        "event.change.operand",
+        "event.change.requested_value",
+        "event.change.requested_delta",
+        "event.change.applied_delta",
+        "event.change.limited_delta",
+        "event.stacks.before",
+        "event.stacks.after",
+        "event.duration.before",
+        "event.duration.after",
+        "event.transport.before",
+        "event.transport.after",
+        "event.transport.requested_current",
+        "event.restriction.before_ceiling",
+        "event.restriction.after_ceiling",
+        "event.restriction.has_ceiling",
+        "event.ordinal",
+        "event.depth",
+        "scope.run_sequence",
+        "scope.container_stacks",
+        "scope.container_duration");
 
     private static double? Payload(GameplayOccurrencePayload payload, string name) => (payload, name) switch
     {

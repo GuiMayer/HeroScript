@@ -7,11 +7,12 @@ namespace Core.GameplayEvents.Responses;
 /// <summary>Explicit scheduling at an existing container boundary, separate from global post-fact broadcasts.</summary>
 internal static class GameplayContainerBoundaryResponses
 {
-    internal static Result Validate(GameplayResponseDefinition response)
+    internal static Result Validate(GameplayResponseDefinition response, string container = "status")
     {
         if (response == null || response.Timing != ResponseExecutionTiming.ContainerBoundary || response.Observe?.Boundary is not { } boundary ||
             boundary.BoundaryIds.IsDefaultOrEmpty || boundary.BoundaryIds.Length != 1 ||
-            !new[] { "CombatStart", "CombatEnd", "StartActivation", "EndActivation", "StartRound", "EndRound" }.Contains(boundary.BoundaryIds[0], StringComparer.Ordinal) ||
+            !(container == "relic" ? new[] { "CombatStart", "CombatEnd", "StartActivation", "EndActivation", "StartRound", "EndRound" }
+                : new[] { "StartActivation", "EndActivation", "StartRound", "EndRound" }).Contains(boundary.BoundaryIds[0], StringComparer.Ordinal) ||
             response.Observe.Resource != null || response.Frequency.Scope != ResponseFrequencyScope.Occurrence)
             return Result.Failure("Container boundary timing requires an explicit supported boundary and occurrence frequency");
         var expected = GameplayBoundarySources.Kind(boundary.BoundaryIds[0]);
@@ -32,7 +33,7 @@ internal static class GameplayContainerBoundaryResponses
     }
 
     internal static Result<ImmutableArray<(EffectTriggerDefinition Trigger, GameplayResponseDefinition? Response)>> Triggers(
-        IReadOnlyList<EffectTriggerDefinition> historical, ImmutableArray<GameplayResponseDefinition>? responses)
+        IReadOnlyList<EffectTriggerDefinition> historical, ImmutableArray<GameplayResponseDefinition>? responses, string container = "status")
     {
         if (responses is { } supplied && (supplied.IsDefault || supplied.Any(item => item == null)))
             return Result<ImmutableArray<(EffectTriggerDefinition, GameplayResponseDefinition?)>>.Failure("Boundary response declarations are invalid");
@@ -43,7 +44,7 @@ internal static class GameplayContainerBoundaryResponses
         if (responses is { } declarations)
         foreach (var response in declarations.Where(response => response.Timing == ResponseExecutionTiming.ContainerBoundary))
         {
-            var valid = Validate(response);
+            var valid = Validate(response, container);
             if (valid.IsFailure) return Result<ImmutableArray<(EffectTriggerDefinition, GameplayResponseDefinition?)>>.Failure(valid.Error);
             result.Add((new() { TriggerId = response.ResponseId, Boundary = response.Observe.Boundary!.BoundaryIds[0],
                 Priority = response.Order.Priority, Effects = response.Effects }, response));
