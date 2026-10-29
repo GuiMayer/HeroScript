@@ -337,6 +337,8 @@ public static class RunBranchTransitions
                 Combat = combat with
                 {
                     CombatId = childCombatId.Value,
+                    PriorityWindow = combat.PriorityWindow?.Responses is not { } counters ? combat.PriorityWindow
+                        : combat.PriorityWindow with { Responses = counters with { CombatId = childCombatId.Value.ToString("D") } },
                     RunId = allocated.Value,
                     Determinism = allocatedCombat.Context,
                     ActivationState = combat.ActivationState is null
@@ -353,6 +355,14 @@ public static class RunBranchTransitions
             command.SourceStateHash,
             source.ActiveEncounterId,
             command.BranchKey);
+        if (source.Lineage?.CausalAncestorRunIds != null || source.Encounters.Any(encounter =>
+            encounter.Combat.PendingActions.Any(pending => pending.OriginCause != null) ||
+            encounter.Combat.StatusEffects.Values.SelectMany(items => items).Any(status => status.OriginCause != null)))
+        {
+            var ancestors = (source.Lineage?.CausalAncestorRunIds ?? ImmutableSortedSet<Guid>.Empty).Add(rootRunId).Add(source.RunId);
+            if (ancestors.Count > 256) return Result<RunState>.Failure("Branch causal ancestry budget exceeded");
+            lineage = lineage with { CausalAncestorRunIds = ancestors };
+        }
         var loadouts = source.Loadouts;
         if (loadouts?.InventoryScope == Loadouts.InscriptionInventoryScope.Run)
         {

@@ -45,6 +45,8 @@ public sealed class GameplayResponseQuotas
             ResponseFrequencyScope.Impact => candidate.Occurrence.ImpactId,
             ResponseFrequencyScope.Proc => candidate.Occurrence.ProcId,
             ResponseFrequencyScope.RootAction => Scope.ActionId,
+            ResponseFrequencyScope.PriorityWindow => candidate.Snapshot.Combat?.PriorityWindow?.Responses?.WindowId ??
+                candidate.Snapshot.Combat?.PriorityWindow?.WindowId,
             _ => null
         };
         if (anchor == null) return Fail("Response frequency requires an explicit supported causal anchor");

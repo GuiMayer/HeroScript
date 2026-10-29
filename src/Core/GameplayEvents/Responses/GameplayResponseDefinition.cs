@@ -9,7 +9,7 @@ namespace Core.GameplayEvents.Responses;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ResponseSnapshot { BeforeOccurrence, AfterOccurrence }
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ResponseFrequencyScope { Occurrence, Impact, Proc, RootAction, Activation, Round, Combat, Run }
+public enum ResponseFrequencyScope { Occurrence, Impact, Proc, RootAction, Activation, Round, Combat, Run, PriorityWindow }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ResponsePropagation { RecordOnly, AllowResponses }
 [JsonConverter(typeof(JsonStringEnumConverter))]

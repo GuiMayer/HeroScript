@@ -62,6 +62,8 @@ public sealed record PendingResourceCost
 /// <summary>Serializable priority cursor. The pending actions live beside it on CombatState.</summary>
 public sealed record PriorityWindowState
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Core.GameplayEvents.Responses.GameplayPriorityResponseLedger? Responses { get; init; }
     private ImmutableArray<string> _eligibleActorIds = [];
 
     public string WindowId { get; init; } = string.Empty;

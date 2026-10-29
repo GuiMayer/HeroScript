@@ -1,4 +1,6 @@
 using Core.Common;
+using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 
 namespace Core.Run.Branching;
 
@@ -9,6 +11,8 @@ namespace Core.Run.Branching;
 public sealed record RunLineage
 {
     public Guid RootRunId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableSortedSet<Guid>? CausalAncestorRunIds { get; init; }
     public Guid? ParentRunId { get; init; }
     public int? SourceSequence { get; init; }
     public string? SourceStateHash { get; init; }
@@ -37,6 +41,9 @@ public sealed record RunLineage
 
     public Result Validate(Guid runId)
     {
+        if (CausalAncestorRunIds is { } ancestors && (ancestors.Count > 256 || ancestors.Contains(Guid.Empty) ||
+            ancestors.Contains(runId) || ParentRunId == null || !ancestors.Contains(ParentRunId.Value) || !ancestors.Contains(RootRunId)))
+            return Result.Failure("Run causal ancestry is invalid or exceeds its budget");
         if (runId == Guid.Empty || RootRunId == Guid.Empty)
             return Result.Failure("Run lineage requires run and root ids");
         if (ParentRunId == null)

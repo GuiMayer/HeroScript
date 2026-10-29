@@ -14,7 +14,7 @@ public static class GameplayCommandObservation
         if (catalog.IsFailure) return Result<GameplayEffectObservation>.Failure(catalog.Error);
         var transaction = GameplayEventTransaction.Create(new() { SettingId = run.SettingId, ContentRevision = run.Determinism.ContentRevision,
             RunId = (run.Lineage?.RootRunId ?? run.RunId).ToString("D"), BranchId = run.RunId.ToString("D"), CombatId = combatId?.ToString("D"),
-            ActionId = identity.CommandId.ToString("D"), CommandId = identity.CommandId.ToString("D") }, catalog.Value);
+            ActionId = identity.CommandId.ToString("D"), CommandId = identity.CommandId.ToString("D") }, catalog.Value, allowedAncestorBranches: run.Lineage?.CausalAncestorRunIds?.Select(id => id.ToString("D")));
         return transaction.IsFailure ? Result<GameplayEffectObservation>.Failure(transaction.Error)
             : Result<GameplayEffectObservation>.Success(new() { Events = transaction.Value, PublisherId = GameplayCoreCatalog.PublisherId,
                 ReasonId = "effect.application", CostReasonId = "cost.payment", RefundReasonId = "cost.refund" });

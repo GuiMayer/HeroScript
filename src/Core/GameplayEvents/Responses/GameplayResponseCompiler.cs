@@ -10,7 +10,7 @@ public sealed record GameplayResponseCapabilities
     internal bool EmptyEffects { get; init; }
     internal int MaximumEffects { get; init; } = 16;
     public ImmutableHashSet<ResponseFrequencyScope> Frequencies { get; init; } =
-        [ResponseFrequencyScope.Occurrence, ResponseFrequencyScope.Impact, ResponseFrequencyScope.Proc, ResponseFrequencyScope.RootAction];
+        [ResponseFrequencyScope.Occurrence, ResponseFrequencyScope.Impact, ResponseFrequencyScope.Proc, ResponseFrequencyScope.RootAction, ResponseFrequencyScope.PriorityWindow];
     public bool ExtensionTopics { get; init; }
 }
 

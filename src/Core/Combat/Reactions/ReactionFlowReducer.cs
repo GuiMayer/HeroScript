@@ -92,6 +92,7 @@ public sealed class ReactionFlowReducer : IReactionFlowReducer
             PriorityWindow = new PriorityWindowState
             {
                 WindowId = windowId,
+                Responses = combat.PriorityWindow?.Responses,
                 OpenedByActorId = pending.Command.ActorId,
                 EligibleActorIds = eligible,
                 HolderIndex = holderIndex,
@@ -172,6 +173,7 @@ public sealed class ReactionFlowReducer : IReactionFlowReducer
         {
             PriorityWindow = new PriorityWindowState
             {
+                Responses = combat.PriorityWindow?.Responses,
                 WindowId = CanonicalJson.ComputeHash(new
                 {
                     combat.CombatId,

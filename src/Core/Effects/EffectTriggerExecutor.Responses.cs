@@ -156,10 +156,14 @@ public sealed partial class EffectTriggerExecutor
             var boundary = candidate.Registration.BoundaryExecution;
             var capturedRequest = boundary?.Resolve(run, state);
             if (boundary != null && capturedRequest == null) continue;
+            var windowReservation = GameplayPriorityResponseLedger.Reserve(state, candidate);
+            if (windowReservation.IsFailure) return Result<EffectBatchResult?>.Failure(windowReservation.Error);
+            if (!windowReservation.Value.Accepted) continue;
             var reserved = session.Quotas.Reserve(candidate);
             if (reserved.IsFailure) return Result<EffectBatchResult?>.Failure(reserved.Error);
             if (!reserved.Value.Accepted) continue;
             session.Quotas = reserved.Value.Quotas;
+            state = windowReservation.Value.State;
             var legacy = candidate.Registration.LegacyResourceExecution;
             var variables = boundary != null ? Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty)
                 : legacy == null ? session.Variables(candidate)
