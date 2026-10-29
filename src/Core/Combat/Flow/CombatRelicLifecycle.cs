@@ -91,12 +91,13 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
         var current = combat;
         var events = new List<CombatRelicLifecycleEvent>();
         var invocations = GameplayBoundarySources.Relics(run, combat);
-        if (!invocations.IsEmpty)
+        if (invocations.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(invocations.Error);
+        if (!invocations.Value.IsEmpty)
         {
             var started = _triggers.BeginBoundaryScope(run, combat, observation);
             if (started.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(started.Error);
             var dispatched = started.Value.Dispatch(run, current, GameplayBoundarySources.Kind(boundary), boundary,
-                combat.ActivationState?.ActiveActorId, invocations, observation);
+                combat.ActivationState?.ActiveActorId, invocations.Value, observation);
             if (dispatched.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(dispatched.Error);
             current = dispatched.Value.Execution.State; run = dispatched.Value.Execution.Run ?? run;
             observation = dispatched.Value.Observation;

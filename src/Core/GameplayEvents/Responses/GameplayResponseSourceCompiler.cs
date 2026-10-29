@@ -46,8 +46,18 @@ public static class GameplayResponseSourceCompiler
                 : actors.Where(actor => source.Owner.Includes(actor, context.Combat, context.Run)).Select(actor => (string?)actor.InstanceId).ToArray();
             foreach (var definition in source.Definitions)
             {
-                var response = GameplayResponseCompiler.Compile(definition, context.Catalog, capabilities);
+                var lifecycle = definition.Timing == ResponseExecutionTiming.ContainerBoundary;
+                if (lifecycle && providerId is not ("core.status" or "core.relic"))
+                    return Result<ImmutableArray<GameplayObserverRegistration>>.Failure("This container does not support boundary-timed responses");
+                var response = GameplayResponseCompiler.Compile(definition, context.Catalog,
+                    lifecycle ? (capabilities ?? new()) with { ContainerBoundary = true } : capabilities);
                 if (response.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(response.Error);
+                if (lifecycle)
+                {
+                    var validTiming = GameplayContainerBoundaryResponses.Validate(definition);
+                    if (validTiming.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(validTiming.Error);
+                    continue; // The owning lifecycle captures it; global broadcasts must not execute it again.
+                }
                 var fingerprint = CanonicalJson.ComputeHash(definition);
                 foreach (var owner in owners)
                 {

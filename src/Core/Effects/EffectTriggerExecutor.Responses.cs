@@ -165,7 +165,7 @@ public sealed partial class EffectTriggerExecutor
             session.Quotas = reserved.Value.Quotas;
             state = windowReservation.Value.State;
             var legacy = candidate.Registration.LegacyResourceExecution;
-            var variables = boundary != null ? Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty)
+            var variables = boundary != null && boundary.Response == null ? Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty)
                 : legacy == null ? session.Variables(candidate)
                 : Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty.Add("stacks", legacy.Stacks));
             if (variables.IsFailure) return Result<EffectBatchResult?>.Failure(variables.Error);
@@ -185,6 +185,10 @@ public sealed partial class EffectTriggerExecutor
                 Variables = variables.Value, Provenance = new() { Kind = legacy == null ? EffectProvenanceKind.Rule : EffectProvenanceKind.Relic,
                     SourceId = legacy?.RelicInstanceId.ToString("D") ?? candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }
             };
+            if (boundary?.Response != null)
+                request = request with { OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,
+                    SelectedTargetEntityIds = [candidate.TargetActorId],
+                    Variables = request.Variables.ToImmutableDictionary(StringComparer.Ordinal).SetItems(variables.Value) };
             var childObservation = currentObservation with { ParentEventId = candidate.Occurrence.EventId,
                 ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin };
             if (view != null) childObservation = childObservation with { ResourceOwnerBindings = childObservation.ResourceOwnerBindings.Remove(view.ActorId) };

@@ -7,6 +7,7 @@ namespace Core.GameplayEvents.Responses;
 /// <summary>Host capabilities, never author-controlled grants. Longer-lived frequencies require their persisted counter implementation.</summary>
 public sealed record GameplayResponseCapabilities
 {
+    internal bool ContainerBoundary { get; init; }
     internal bool EmptyEffects { get; init; }
     internal int MaximumEffects { get; init; } = 16;
     public ImmutableHashSet<ResponseFrequencyScope> Frequencies { get; init; } =
@@ -27,6 +28,7 @@ public static class GameplayResponseCompiler
     {
         capabilities ??= new();
         if (definition == null || catalog == null || definition.SchemaVersion != 1 || !EventValue.Valid(definition.ResponseId) ||
+            !Enum.IsDefined(definition.Timing) || definition.Timing == ResponseExecutionTiming.ContainerBoundary && !capabilities.ContainerBoundary ||
             definition.Observe == null || definition.Bindings == null || definition.Availability == null || definition.Frequency == null || definition.Order == null ||
             !Enum.IsDefined(definition.Propagation) || definition.Condition is { Length: > 2048 } || definition.Condition != null && string.IsNullOrWhiteSpace(definition.Condition) ||
             capabilities.MaximumEffects is < 1 or > EffectExecutionLimits.MaximumSteps || definition.Effects.IsDefault ||

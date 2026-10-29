@@ -38,9 +38,9 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
 | 7 — Migração das reações de recurso | Concluída; um dispatcher, sem coleta/matcher paralelos |
 | 8 — Migração de lifecycle/fases | Concluída; despacho comum, timing/expiração/idempotência preservados |
-| 9 — Containers e respostas pós-fato | Integração implementada até 9t; certificação acumulada final em execução. Publicação aguarda o cutover. |
-| 10 — Intenções e janelas | Propostas/resoluções/fizzle e contadores PriorityWindow implementados; 2172 testes Core aprovados até 10b. Demais frequências continuam indisponíveis. |
-| 11 — Migração de conteúdo | Não iniciada |
+| 9 — Containers e respostas pós-fato | Concluída até 9t para os containers e limites documentados; 2173 Core e 33 API focados aprovados. Publicação aguarda cutover. |
+| 10 — Intenções e janelas | Integrada à pilha existente: proposta/resolução/fizzle, causalidade, save/load, contadores PriorityWindow e branches. Contratos adicionais e demais frequências seguem rejeitados. |
+| 11 — Migração de conteúdo | Em execução: timing canônico de container e conversão tipada de status/gatilhos de relíquias. Ferramenta/pacotes/cutover ainda pendentes. |
 | 12 — Persistência/replay/timeline | Não iniciada |
 | 13 — REST e inspeção | Não iniciada |
 | 14 — Mensagens e laboratório | Não iniciada |
@@ -228,3 +228,6 @@ Estado exato: etapa 8 concluída; etapa 9 em execução. Próximo ponto: fatos d
 
 - Etapa 9t: providers/registro efetivo propagam lotes imutáveis capturados para o executor universal do corpo da resposta. Isso permite ler a potência de stacks sem criar outra forma de cálculo. 28 provas de payload/origens aprovadas; comparação direta versus resposta real com mesmos valores/cálculos, cinco repetições e entrada imutável. A detecção de criação cobre também modo/nó/upgrades tipados, além do runtime revisionado.
 - Certificação Core até 10b: 2172 testes aprovados, sem falhas/exclusões, em `.runtime/generic-events-stage10b-certified-index`. Novos tópicos são fatos pós-transição; cancelar/prevenir arbitrariamente um efeito ou abrir uma segunda janela por JSON continua rejeitado, sem simular suporte inexistente. LIFO/FIFO, custo na proposta/resolução e fizzle/refund continuam pertencendo ao resolvedor canônico existente.
+
+- Certificação 9t/10b: commit eabf338e5c0cc8db7c6500a306a0d0ce897e628f, exportado em `.runtime/generic-events-stage9t-final`, build completo sem warnings/erros, 2173 testes Core e 33 testes API focados aprovados. A seleção API inclui branches além de controllers/jornada/sandbox/probes; não é declaração de suíte API inteira/Godot.
+- Etapa 11a: contrato explícito ContainerBoundary agenda a resposta no lifecycle já existente, sem outro dispatcher nem execução duplicada no broadcast global. Conversão tipada/pura de triggers de status/relíquia preserva fronteira, prioridade, source/owner, variáveis herdadas e lotes; defaults post-fact permanecem iguais. Mistura ambígua ou timing desconhecido falha antes da execução. 246 testes focados e quatro provas de migração aprovados (incluindo payload capturado, variável stacks, cinco repetições, RNG/duração/valores e relíquia fora da fronteira). Publicação nova continua bloqueada; reações de recurso, fases, ferramenta/diff, pacotes e cutover ainda não foram declarados concluídos.

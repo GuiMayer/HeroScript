@@ -10,6 +10,9 @@ namespace Core.GameplayEvents.Responses;
 /// <summary>Trusted captured timing adapter, not a second effect format and never stored in a snapshot.</summary>
 public sealed record GameplayBoundaryInvocation
 {
+    internal GameplayResponseDefinition? Response { get; init; }
+    internal int Stacks { get; init; } = 1;
+    internal int? Duration { get; init; }
     public required EffectTriggerExecutionRequest Template { get; init; }
     public required GameplayEventOrigin Origin { get; init; }
     public required string Kind { get; init; }
@@ -52,7 +55,7 @@ internal sealed class CapturedBoundaryObserverProvider(IReadOnlyList<GameplayBou
         foreach (var (invocation, index) in invocations.Select((item, index) => (item, index)))
         {
             var template = invocation.Template;
-            var definition = new GameplayResponseDefinition
+            var definition = invocation.Response ?? new GameplayResponseDefinition
             {
                 ResponseId = template.Trigger.TriggerId,
                 Observe = new() { Kinds = new() { Include = [invocation.Kind] }, Boundary = new() { BoundaryIds = [invocation.BoundaryId] } },
@@ -61,12 +64,15 @@ internal sealed class CapturedBoundaryObserverProvider(IReadOnlyList<GameplayBou
                 Order = new() { Priority = template.Trigger.Priority, Descending = true },
                 Effects = template.Trigger.Effects.ToImmutableArray()
             };
-            var compiled = GameplayResponseCompiler.Compile(definition, context.Catalog, new() { EmptyEffects = true, MaximumEffects = EffectExecutionLimits.MaximumSteps });
+            var compiled = GameplayResponseCompiler.Compile(definition, context.Catalog, new() { ContainerBoundary = invocation.Response != null, EmptyEffects = invocation.Response == null,
+                MaximumEffects = invocation.Response == null ? EffectExecutionLimits.MaximumSteps : 16 });
             if (compiled.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(compiled.Error);
             var identity = CanonicalJson.ComputeHash(new { invocation.Origin, template.Trigger, template.OwnerEntityId, template.SourceEntityId,
                 template.ContentRevision, template.Provenance, template.SelectedTargetEntityIds, invocation.StatusInstanceId });
             result.Add(new() { RegistrationId = $"{index:D6}:{identity}", ProviderId = ProviderId, Response = compiled.Value,
-                Origin = invocation.Origin, OwnerActorId = template.OwnerEntityId, SourceActorId = template.OwnerEntityId,
+                Stacks = invocation.Stacks, Duration = invocation.Duration,
+                Origin = invocation.Origin, OwnerActorId = template.OwnerEntityId,
+                SourceActorId = invocation.Response == null ? template.OwnerEntityId : template.SourceEntityId,
                 Order = invocation.Order, BoundaryExecution = invocation });
         }
         return Result<ImmutableArray<GameplayObserverRegistration>>.Success(result.ToImmutable());

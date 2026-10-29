@@ -37,10 +37,11 @@ internal sealed class GameplayResponseEvaluation(IRuntimeFormulaEvaluator formul
             expressions.AddRange(effect.Parameters.Where(parameter => parameter.FormulaValue != null).Select(parameter => parameter.FormulaValue!));
             foreach (var child in effect.ChainedEffects ?? []) pending.Push(child);
         }
-        return Variables(candidate, expressions);
+        return Variables(candidate, expressions, inheritedExecutionVariables: true);
     }
 
-    private Result<ImmutableDictionary<string, float>> Variables(GameplayResponseCandidate candidate, IEnumerable<string> expressions)
+    private Result<ImmutableDictionary<string, float>> Variables(GameplayResponseCandidate candidate, IEnumerable<string> expressions,
+        bool inheritedExecutionVariables = false)
     {
         var references = new HashSet<string>(StringComparer.Ordinal);
         foreach (var expression in expressions)
@@ -52,7 +53,8 @@ internal sealed class GameplayResponseEvaluation(IRuntimeFormulaEvaluator formul
             }
             else if (Typed(expression)) Add(expression);
             else if (!float.TryParse(expression, NumberStyles.Float, CultureInfo.InvariantCulture, out _) && expression is not ("$current" or "$initial") &&
-                !CanonicalExecutionVariable(expression))
+                !CanonicalExecutionVariable(expression) && !(inheritedExecutionVariables && candidate.Registration.BoundaryExecution is { } boundary &&
+                    (boundary.Template.Variables.ContainsKey(expression) || boundary.StatusInstanceId != null && expression is "stacks" or "duration")))
             {
                 if (runtimes == null) return Result<ImmutableDictionary<string, float>>.Failure("Response formula references require captured content");
                 var runtime = runtimes.Resolve(candidate.Registration.Origin.ContentRevision);

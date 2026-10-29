@@ -105,7 +105,8 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         var events = new List<CombatStatusLifecycleEvent>();
         var boundarySnapshot = observation?.BoundaryStatusSnapshot ?? combat.StatusEffects;
         IGameplayBoundaryExecutionScope? scope = null;
-        if (boundarySnapshot.Values.SelectMany(items => items).Any(status => status.IsActive && status.Definition.Triggers.Count > 0))
+        if (boundarySnapshot.Values.SelectMany(items => items).Any(status => status.IsActive && (status.Definition.Triggers.Count > 0 || status.Definition.Responses?.Any(response =>
+            response.Timing == ResponseExecutionTiming.ContainerBoundary) == true)))
         {
             var started = _triggers.BeginBoundaryScope(run, combat, observation);
             if (started.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(started.Error);
@@ -121,8 +122,9 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
             if (scope != null)
             {
                 var invocations = GameplayBoundarySources.Status(run, current, activeAtBoundary);
+                if (invocations.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(invocations.Error);
                 var dispatched = scope.Dispatch(run, current, GameplayBoundarySources.Kind(boundary.ToString()), boundary.ToString(),
-                    activeActorId, invocations, observation);
+                    activeActorId, invocations.Value, observation);
                 if (dispatched.IsFailure) return Result<CombatStatusLifecycleResult>.Failure(dispatched.Error);
                 current = dispatched.Value.Execution.State; run = dispatched.Value.Execution.Run ?? run;
                 observation = dispatched.Value.Observation;

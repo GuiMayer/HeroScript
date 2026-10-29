@@ -7,6 +7,8 @@ using Core.Resources;
 namespace Core.GameplayEvents.Responses;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ResponseExecutionTiming { PostFact, ContainerBoundary }
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ResponseSnapshot { BeforeOccurrence, AfterOccurrence }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ResponseFrequencyScope { Occurrence, Impact, Proc, RootAction, Activation, Round, Combat, Run, PriorityWindow }
@@ -115,6 +117,8 @@ public sealed record GameplayResponseOrder
 public sealed record GameplayResponseDefinition
 {
     public int SchemaVersion { get; init; } = 1;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public ResponseExecutionTiming Timing { get; init; }
     public string ResponseId { get; init; } = string.Empty;
     public GameplayResponseFilter Observe { get; init; } = new();
     public GameplayResponseBindings Bindings { get; init; } = new();
