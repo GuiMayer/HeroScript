@@ -107,8 +107,13 @@ public sealed partial class CombatBoundaryExecutor
             Current = observed.Observation;
             return Result<PhaseGraphResult>.Success(observed.Execution);
         }
-        public void Cards(IReadOnlyList<CardZoneFlowStepRecord> steps, RunState before, RunState after, string? actorId) =>
+        public EffectBatchResult Cards(IReadOnlyList<CardZoneFlowStepRecord> steps, RunState before, RunState after,
+            CombatState combat, string? actorId)
+        {
+            var previous = Current;
             Current = Require(GameplayCardFlowObservation.Append(Current, steps, before, after, actorId));
+            return Mutations(before, combat, after, combat, previous);
+        }
 
         public EffectBatchResult ModifierTicks(RunState before, RunState after, CombatState combat)
         {

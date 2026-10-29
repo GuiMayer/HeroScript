@@ -140,13 +140,12 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, run, run.Deck,
             run.Determinism, "encounter.started", combatSnapshot: combat);
         if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
-        observation?.Cards(flowed.Value.Steps, run, run with { Deck = new DeckState { Topology = flowed.Value.State } }, null);
+        var afterFlow = run with { Deck = new DeckState { Topology = flowed.Value.State }, Determinism = flowed.Value.Context };
+        var cardResponses = observation?.Cards(flowed.Value.Steps, run, afterFlow, combat, null);
         cardZoneSteps.AddRange(flowed.Value.Steps);
-        run = run with
-        {
-            Deck = new DeckState { Topology = flowed.Value.State },
-            Determinism = flowed.Value.Context
-        };
+        run = cardResponses?.Run ?? afterFlow;
+        combat = cardResponses?.State ?? combat;
+        effectSteps.AddRange(cardResponses?.Steps ?? []); applications.AddRange(cardResponses?.Records ?? []);
         var initialized = InitializeActivation(
             run,
             combat,
@@ -596,11 +595,14 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (endedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(endedDeck.Error);
 
+        run = endedDeck.Value.Responses?.Run ?? run;
+        var afterCards = endedDeck.Value.Responses?.State ?? exited.Value.Combat;
+        activation = afterCards.ActivationState ?? activation;
         var completed = activation.CompletedActorIds
             .Append(activation.ActiveActorId)
             .Distinct(StringComparer.Ordinal)
             .ToImmutableArray();
-        var endedCombat = exited.Value.Combat with
+        var endedCombat = afterCards with
         {
             ActivationState = activation with
             {
@@ -615,9 +617,9 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             Deck = endedDeck.Value.Deck,
             RunDeterminism = endedDeck.Value.Context,
             RunSnapshot = run with { Deck = endedDeck.Value.Deck, Determinism = endedDeck.Value.Context },
-            EffectSteps = exited.Value.Steps,
-            Calculations = exited.Value.Calculations,
-            Applications = exited.Value.Applications,
+            EffectSteps = exited.Value.Steps.AddRange(endedDeck.Value.Responses?.Steps ?? []),
+            Calculations = exited.Value.Calculations.AddRange(endedDeck.Value.Responses?.Calculations ?? []),
+            Applications = exited.Value.Applications.AddRange(endedDeck.Value.Responses?.Records ?? []),
             CardZoneSteps = endedDeck.Value.CardZoneSteps,
             Payload = JsonSerializer.SerializeToElement(new
             {
@@ -673,7 +675,8 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (startedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(startedDeck.Error);
 
-        run = run with { Deck = startedDeck.Value.Deck, Determinism = startedDeck.Value.Context };
+        run = (startedDeck.Value.Responses?.Run ?? run) with { Deck = startedDeck.Value.Deck, Determinism = startedDeck.Value.Context };
+        startedCombat = startedDeck.Value.Responses?.State ?? startedCombat;
         var startStep = new CombatResolutionStep
         {
             TransitionType = "combat.activation.started",
@@ -682,7 +685,9 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             RunDeterminism = run.Determinism,
             RunSnapshot = run,
             CardZoneSteps = startedDeck.Value.CardZoneSteps,
-            EffectSteps = refreshed.Value.Steps, Calculations = refreshed.Value.Calculations, Applications = refreshed.Value.Records,
+            EffectSteps = refreshed.Value.Steps.AddRange(startedDeck.Value.Responses?.Steps ?? []),
+            Calculations = refreshed.Value.Calculations.Concat(startedDeck.Value.Responses?.Calculations ?? []).ToArray(),
+            Applications = refreshed.Value.Records.Concat(startedDeck.Value.Responses?.Records ?? []).ToArray(),
             Payload = JsonSerializer.SerializeToElement(new
             {
                 actorId = nextActorId,
@@ -900,28 +905,6 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         RegenerationTiming.OUT_OF_COMBAT => "out_of_combat",
         _ => "unknown"
     };
-
-    private Result<CardZoneActivationStartResult> ApplyStartCardZoneLifecycle(
-        RunState run,
-        DeckState deck,
-        string actorId,
-        DeterministicContext context, CombatState? combatSnapshot = null, ObservationCursor? observation = null)
-    {
-        var result = CardZoneCombatLifecycle.Start(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
-        if (result.IsSuccess) observation?.Cards(result.Value.CardZoneSteps, run with { Deck = deck }, run with { Deck = result.Value.Deck }, actorId);
-        return result;
-    }
-
-    private Result<CardZoneActivationEndResult> ApplyEndCardZoneLifecycle(
-        RunState run,
-        DeckState deck,
-        string actorId,
-        DeterministicContext context, CombatState? combatSnapshot = null, ObservationCursor? observation = null)
-    {
-        var result = CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
-        if (result.IsSuccess) observation?.Cards(result.Value.CardZoneSteps, run with { Deck = deck }, run with { Deck = result.Value.Deck }, actorId);
-        return result;
-    }
 
     private static bool ScopeApplies(
         FlowActorScope scope,

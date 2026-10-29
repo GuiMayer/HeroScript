@@ -10,6 +10,8 @@ public sealed record CardZoneActivationStartResult(
     DeterministicContext Context,
     IReadOnlyList<string> NewlyPlayableDefinitionIds)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.Effects.EffectBatchResult? Responses { get; init; }
     public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
 }
 
@@ -18,6 +20,8 @@ public sealed record CardZoneActivationEndResult(
     DeterministicContext Context,
     IReadOnlyList<string> AffectedInstanceIds)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal Core.Effects.EffectBatchResult? Responses { get; init; }
     public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
 }
 
