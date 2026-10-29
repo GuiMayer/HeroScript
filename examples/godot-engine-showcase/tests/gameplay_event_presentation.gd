@@ -13,6 +13,7 @@ func _initialize() -> void:
 		assert(JSON.stringify(en) == JSON.stringify(Presenter.rows(fixture.batch, "fr", fixture.names)))
 		assert(en[0].message != pt[0].message)
 		assert(Presenter.details(en[0]).contains("Applied change"))
+		assert(Presenter.details(en[1]).contains("Earlier cause"))
 		assert(JSON.stringify(fixture) == before)
 		var view = View.new()
 		view.present(fixture.batch, "en", fixture.names)
@@ -23,5 +24,9 @@ func _initialize() -> void:
 	assert(Messages.resolve("unknown.reason", "resource.change.resolved", "en").contains("{resource}"))
 	assert(Messages.resolve("unknown.reason", "unknown.kind", "en").contains("{kind}"))
 	assert(Messages.resolve("unknown.reason", "status.applied", "pt_BR") == Messages.EN["kind.status"])
+	var environmental := {"occurrences": [{"eventId": "environment", "sourceActorId": null, "attributedActorId": null,
+		"subjectActorId": null, "kind": "unknown.kind", "reasonId": "unknown.reason", "payload": {}}]}
+	assert(Presenter.rows(environmental, "en")[0].message.begins_with("Environment"))
+	assert(Presenter.rows(environmental, "pt_BR")[0].message.begins_with("Ambiente"))
 	print("PASS gameplay event presentation: two settings, EN/PT, hierarchical fallback, read-only shared inspector")
 	quit()

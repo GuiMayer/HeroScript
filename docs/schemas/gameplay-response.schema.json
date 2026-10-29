@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Gameplay response definition — publication validates references and host capabilities",
-  "description": "Typed response contract. Publication validates references and host capabilities; new authored responses remain gated until cutover. Effects use the canonical EffectDefinitionValidator.",
+  "description": "Typed response contract. Publication validates references and host capabilities; canonical authoring requires content manifest schema 2; historical schema 1 stays captured. Effects use the canonical EffectDefinitionValidator.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,6 +1,6 @@
-# Inventário de produtores canônicos — etapa 4
+# Inventário atual de produtores e respostas canônicas
 
-Estado: instrumentação opt-in de candidatos, antes da migração dos consumidores. A autoridade numérica e de estado continua nos processadores/reduções existentes.
+Atualizado em 2026-10-29. Autoria atual schema 2; conteúdos schema 1 capturados conservam adaptadores históricos. O processador universal continua dono da matemática; fatos apenas descrevem resultados reais. O lote causal gravado no commit é a autoridade do diagnóstico histórico.
 
 | Família | Produtor observado | Composição que usa o fato |
 |---|---|---|
@@ -22,48 +22,18 @@ Estado: instrumentação opt-in de candidatos, antes da migração dos consumido
 | Revisão e rebind | `GameplayContentObservation` | Somente a ativação selecionada; origem da ação separada da revisão de destino. |
 | Comandos e continuação automática | Planos observados dos coordenadores e driver | Identidade real, escopo de branch, filhos e fechamento do comando. |
 
-## Limites conceituais
 
-- O bootstrap declarativo de personagens, recursos, cartas e zonas vazias constitui o estado gênese. Não é traduzido em dano, cura ou pagamentos fictícios. Os fluxos configurados que atuam após esse bootstrap são observados.
-- Hidratação, replay de snapshots, consultas, previews, alternativas de IA e candidatos descartados não publicam fatos como se fossem ações novas.
-- Alterar uma composição de carta/loadout não executa seus componentes. O cálculo de atributos derivados permanece uma consulta; os efeitos executados depois usam o produtor comum. Disponibilidade e registros desses componentes pertencem às etapas de providers/containers.
-- `action.completed` encerra o processamento daquele comando interno. Proposta, cancelamento, resolução e continuação da PriorityStack têm sua integração específica na etapa 10; não são simulados por esse nome.
-- Os contextos observados e cursores locais não fazem parte do snapshot, dos caches de legalidade ou do event bus operacional. As etapas 11–12 cuidarão do corte de autoria e da persistência das ocorrências/âncoras históricas.
-- `Unobserved` conserva lacunas reais de aplicações; não é um mecanismo para confirmar parcialmente uma ação ou ocultar um tipo novo sem produtor.
+## Fronteiras e limites
 
-## Evidência
+- Bootstrap declarativo é gênese; não inventa custos/dano/cura. Fluxos JSON posteriores produzem fatos.
+- Um evento por mudança primitiva real; settlements se relacionam ao cálculo original, não são dano adicional inferido pelo sinal/nome do recurso.
+- Status/relíquias/fases ContainerBoundary executam no lifecycle que os captura, uma única vez. Broadcast PostFact não os executa novamente.
+- Criação, comandos da run, abertura do encontro e resolução de combate levam suas observações até o commit. Append falho não publica candidata nem recibo. Somente candidatos confirmados se tornam histórico.
+- Âncoras de status/propostas e contadores PriorityWindow são estado serializado. Ocorrências/invocações pertencem ao envelope do comando; não são copiadas como comandos novos para branches. Ancestrais autorizados e igualdade por valor sobrevivem à serialização.
+- Hidratação, timeline, preview, simulação e alternativas de IA não reaplicam fatos históricos no estado original. O Core mantém o executor único para cálculos especulativos.
+- Ativação/rebind de conteúdo conserva revisão de origem da ação e revisão de destino no payload. Sua projeção não equivale a um gatilho arbitrário de hot reload; respostas que trocam revisão durante outra resposta não são uma capacidade concedida.
+- Activation/Round/Combat/Run como frequências duráveis e prevenção/cancelamento arbitrários permanecem explicitamente indisponíveis; não há fallback silencioso.
+- REST causal exige histórico + inspeção completa de cartas; recibos/timeline comuns não expõem o lote. Não existe endpoint para injetar fatos.
+- Autorias novas passam pelo grafo completo. Os oito arquivos de regras migrados e os seis pacotes 1.1.0 são o caminho atual; formatos antigos existem apenas para versões históricas e conversão explícita.
 
-Resultados e caminhos das execuções estão no [progresso de implementação](../plans/GENERIC_GAMEPLAY_EVENTS_IMPLEMENTATION_PROGRESS.md). A árvore versionada é certificada em uma cópia isolada para não misturar as alterações locais anteriores ao plano com os commits destas etapas.
-
-## Atualização após a etapa 7
-
-A descrição anterior registra a instrumentação da etapa 4. As reações de recurso das relíquias já foram migradas: a leitura de definições capturadas ocorre em `LegacyResourceReactionObserverProvider` e o matching/agendamento ocorre no dispatcher comum de `EffectTriggerExecutor.Responses`. A coleta direta e `EffectReactionPolicies.Matches` foram removidos; `EffectReactionPolicies.Validate` permanece validando o formato histórico. Os cálculos/outcomes e a aplicação continuam exclusivamente no pipeline/executor canônicos.
-
-O executor normal usa fatos locais descartáveis quando há essa família de reações; isso não habilita gravação de journal novo nem publica eventos intermediários. O executor observado exige os IDs reais de setting/root-run/branch. Os templates internos conservam IDs e parent.* históricos, com comparação de hashes completos contra a árvore anterior à migração. Fronteiras, status periódicos/expiração, gatilhos de relíquias e fases continuam aguardando a migração da etapa 8.
-
-
-## Integração dos consumidores (atualizada até 11c)
-
-| Caminho | Respostas no executor normal | Limite atual |
-|---|---|---|
-| Efeitos de recurso, atributo, status, carta/zona e sequência | Sim, com declarações capturadas e providers comuns | Publicação padrão bloqueada até o cutover. |
-| Gatilhos capturados de status, relíquias e fases | Sim, pelo dispatcher comum | Templates históricos internos preservam identidades. |
-| Fronteiras de combate/rodada/ativação e fases | Sim, uma oportunidade canônica por fronteira | Executor geral deve receber a capacidade de ocorrências (composição API já ligada). |
-| Duração/expiração de status | Sim | Snapshot da fronteira impede processamento retroativo de instâncias novas. |
-| Duração/expiração de modificadores em combate | Sim | Contadores ainda candidatos, sem durabilidade entre comandos. |
-| Refresh primitivo da ativação | Sim | Política original continua decidindo recurso/operando/timing. |
-| Movimentos externos de cartas e modificações fora de combate | Sim, com cursor privado e snapshots reais | Concessões, preparação, ticks e carteira preservam o sucessor completo; publicação nova bloqueada. |
-| Intenções, PriorityStack e retomada | Proposta/resolução/fizzle, âncora causal e frequência PriorityWindow integrados | Outros escopos e hooks anteriores arbitrários continuam rejeitados. |
-| Journal/REST/mensagens de ocorrências | Pendente | Etapas 12–14; consultar timeline não executa respostas. |
-
-As etapas 8–9 estão integradas; a etapa 10 acrescenta os contratos de prioridade explicitamente suportados. A migração de conteúdo (11) está em execução, com conversores tipados, sem cutover de publicação. Etapas 12–15 permanecem pendentes. Evidências por árvore/commit estão no documento de progresso.
-
-## Atualização após 9s e 10a
-
-Movimentos externos de cartas, concessões, preparação, ticks por comando/nó/run, carteira e término da run agora despacham respostas com snapshots reais. A criação com declarações adia somente o fluxo JSON até o personagem existir; bootstrap declarativo continua gênese. Comandos normais com respostas usam o plano observado privado antes do único commit. Provas cruzadas cobrem valores/RNG por origem.
-
-A etapa 10 conecta transições já autorizadas da pilha ao produtor de fatos de ação e conserva a causa na continuação serializável. Não há comando para injetar fatos, segunda pilha ou novo mecanismo de cancelamento arbitrário. Janelas/frequências entre comandos ainda estão em implementação. Projeções de transporte/rebind e troca de revisão aguardam a integração específica da etapa 12; não inferem dano/cura.
-
-## Agenda canônica de containers (11a–11c)
-
-ContainerBoundary conserva o ponto de execução interno de status/relíquia/fase. O provider global valida a declaração e não a executa no broadcast; o lifecycle captura a mesma definição para o único dispatcher. Lotes de potência são preservados. Os conversores mantêm fronteira, prioridade, source/owner e efeitos; não aplicam mudanças em arquivos nem alteram revisões históricas. Grupos explícitos preservam ordenação entre relíquias. A liberação de autoria continua bloqueada até concluir ferramenta/pacotes/equivalência/cutover.
+Consulte [certificação](GAMEPLAY_EVENTS_CERTIFICATION_REPORT.md) e [progresso por commit](../plans/GENERIC_GAMEPLAY_EVENTS_IMPLEMENTATION_PROGRESS.md).

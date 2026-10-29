@@ -58,7 +58,7 @@ public static class GameplayResponseSourceCompiler
                     if (validTiming.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(validTiming.Error);
                     continue; // The owning lifecycle captures it; global broadcasts must not execute it again.
                 }
-                var fingerprint = CanonicalJson.ComputeHash(definition);
+                var fingerprint = response.Value.DefinitionFingerprint;
                 foreach (var owner in owners)
                 {
                     if (result.Count == HierarchySelectorIndex.MaximumRegistrations)

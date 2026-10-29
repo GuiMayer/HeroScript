@@ -48,6 +48,20 @@ public sealed partial class EffectTriggerExecutor
         GameplayResponseQuotas quotas, GameplayResponseEvaluation evaluation, Guid? selectedCardId, Guid? resolvingCardId)
     {
         internal GameplayResponseQuotas Quotas = quotas;
+        private sealed record CapturedCollection(RunState Run, CombatState? Combat,
+            Result<ImmutableArray<GameplayObserverRegistration>> Registrations);
+        private readonly CapturedCollection?[] _collections = new CapturedCollection?[2];
+        private Result<ImmutableArray<GameplayObserverRegistration>> Collect(GameplayObserverCollectionContext context)
+        {
+            using var timing = Core.Diagnostics.OperationalTiming.Measure("response_collect");
+            var slot = (int)context.Snapshot;
+            var cached = _collections[slot];
+            if (cached != null && ReferenceEquals(cached.Run, context.Run) && ReferenceEquals(cached.Combat, context.Combat))
+                return cached.Registrations;
+            var result = GameplayObserverCollector.Collect(context, providers);
+            _collections[slot] = new(context.Run, context.Combat, result);
+            return result;
+        }
         internal GameplayObserverCollectionContext Snapshot(RunState run, CombatState combat, ResponseSnapshot snapshot) => new()
         { Run = run, Combat = combat, Catalog = catalog, Snapshot = snapshot, SelectedCardId = selectedCardId, ResolvingCardId = resolvingCardId };
 
@@ -59,11 +73,11 @@ public sealed partial class EffectTriggerExecutor
             foreach (var snapshot in new[] { Snapshot(runBefore, combatBefore, ResponseSnapshot.BeforeOccurrence),
                          Snapshot(runAfter, combatAfter, ResponseSnapshot.AfterOccurrence) })
             {
-                var registrations = GameplayObserverCollector.Collect(snapshot, providers);
+                var registrations = Collect(snapshot);
                 if (registrations.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(registrations.Error);
                 var view = RunWalletResponseView.Create(snapshot.Run, snapshot.Combat!, observation);
                 var genericSnapshot = view?.Apply(snapshot) ?? snapshot;
-                var genericRegistrations = view == null ? registrations : GameplayObserverCollector.Collect(genericSnapshot, providers);
+                var genericRegistrations = view == null ? registrations : Collect(genericSnapshot);
                 if (genericRegistrations.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(genericRegistrations.Error);
                 var combined = registrations.Value.Where(item => item.LegacyResourceExecution != null)
                     .Concat(genericRegistrations.Value.Where(item => item.LegacyResourceExecution == null));
@@ -112,7 +126,7 @@ public sealed partial class EffectTriggerExecutor
             if (availability.RevalidateOwner && (!snapshot.ContainsActor(candidate.OwnerActorId) ||
                 availability.RequireLivingOwner && !GameplayResponseMatcher.Alive(candidate.OwnerActorId, snapshot))) return Result<bool>.Success(false);
             if (!availability.RequireRegistrationStillActive) return Result<bool>.Success(true);
-            var registrations = GameplayObserverCollector.Collect(snapshot, providers);
+            var registrations = Collect(snapshot);
             return registrations.IsFailure ? Result<bool>.Failure(registrations.Error)
                 : Result<bool>.Success(registrations.Value.Any(item => item.RegistrationId == candidate.Registration.RegistrationId));
         }
@@ -135,6 +149,7 @@ public sealed partial class EffectTriggerExecutor
         ImmutableArray<GameplayOccurrence> facts, CombatState before, RunState runBefore, CombatState after, RunState runAfter,
         int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications, bool capturedBoundaryOnly = false)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("response_dispatch");
         var session = budget.Responses!;
         var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications, observation, capturedBoundaryOnly);
         if (frozen.IsFailure) return Result<EffectBatchResult?>.Failure(frozen.Error);
@@ -198,6 +213,7 @@ public sealed partial class EffectTriggerExecutor
                     ResponseId = definition.ResponseId, OwnerActorId = candidate.OwnerActorId, SourceActorId = candidate.SourceActorId,
                     TargetActorId = candidate.TargetActorId, Origin = candidate.Registration.Origin }) };
             if (view != null) childObservation = childObservation with { ResourceOwnerBindings = childObservation.ResourceOwnerBindings.Remove(view.ActorId) };
+            using var executionTiming = Core.Diagnostics.OperationalTiming.Measure("response_execute");
             var result = Execute(request, candidate.LegacyParent, budget, suppressReactions: boundary == null, baseDepth: boundary == null ? depth + 1 : 0,
                 observation: childObservation, dispatchResponses: definition.Propagation == ResponsePropagation.AllowResponses);
             if (result.IsFailure) return Result<EffectBatchResult?>.Failure(result.Error);

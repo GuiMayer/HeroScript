@@ -18,6 +18,8 @@ public sealed record GameplayResponseCapabilities
 public sealed record CompiledGameplayResponse(GameplayResponseDefinition Definition, HierarchySelector Kinds, HierarchySelector Reasons,
     string SettingId, string ContentRevision, bool HasKnownTopics)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal string DefinitionFingerprint { get; init; } = string.Empty;
     public long NormalizedPriority => Definition.Order.Descending ? -(long)Definition.Order.Priority : Definition.Order.Priority;
 }
 
@@ -26,7 +28,17 @@ public static class GameplayResponseCompiler
     public static Result<CompiledGameplayResponse> Compile(GameplayResponseDefinition definition, GameplayEventCatalog catalog,
         GameplayResponseCapabilities? capabilities = null)
     {
-        capabilities ??= new();
+        capabilities ??= DefaultCapabilities;
+        if (definition == null || catalog == null || capabilities.Frequencies == null)
+            return Result<CompiledGameplayResponse>.Failure("Response definition, catalogue and capabilities are required");
+        return GameplayResponseCompilationCache.Get(definition, catalog, capabilities, () => CompileUncached(definition, catalog, capabilities));
+    }
+
+    private static readonly GameplayResponseCapabilities DefaultCapabilities = new();
+    private static Result<CompiledGameplayResponse> CompileUncached(GameplayResponseDefinition definition, GameplayEventCatalog catalog,
+        GameplayResponseCapabilities capabilities)
+    {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("response_compile");
         if (definition == null || catalog == null || definition.SchemaVersion != 1 || !EventValue.Valid(definition.ResponseId) ||
             !Enum.IsDefined(definition.Timing) || definition.Timing == ResponseExecutionTiming.ContainerBoundary && !capabilities.ContainerBoundary ||
             definition.Observe == null || definition.Bindings == null || definition.Availability == null || definition.Frequency == null || definition.Order == null ||
@@ -72,7 +84,7 @@ public static class GameplayResponseCompiler
             return Result<CompiledGameplayResponse>.Failure("Response bindings or availability are incomplete or contradictory");
         var effects = EffectDefinitionValidator.Validate(definition.Effects);
         return effects.IsEmpty ? Result<CompiledGameplayResponse>.Success(new(definition, kinds.Value, reasons.Value,
-            catalog.SettingId, catalog.ContentRevision, known)) : Result<CompiledGameplayResponse>.Failure(string.Join("; ", effects));
+            catalog.SettingId, catalog.ContentRevision, known) { DefinitionFingerprint = Core.Determinism.CanonicalJson.ComputeHash(definition) }) : Result<CompiledGameplayResponse>.Failure(string.Join("; ", effects));
     }
 
     private static Result ValidatePatterns(HierarchySelector selector, IEnumerable<string> names, bool extensions)

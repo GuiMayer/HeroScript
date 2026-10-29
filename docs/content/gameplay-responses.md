@@ -1,6 +1,6 @@
 # Respostas de gameplay
 
-Estado atual: respostas pós-fato integradas aos containers suportados (etapa 9), transições/continuações da PriorityStack (10) e conversores tipados de conteúdo em implementação (11). A publicação padrão da autoria nova permanece bloqueada até o cutover. Persistência completa de ocorrências, REST causal, mensagens/laboratório e certificação final (12–15) continuam pendentes no [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
+Estado atual (2026-10-29): autoria canônica habilitada em conteúdo schema 2 e pacotes 1.1.0. Respostas dos containers, PriorityStack, migração, lote causal no commit, consultas REST e laboratório Godot estão integrados. O [relatório de certificação](../architecture/GAMEPLAY_EVENTS_CERTIFICATION_REPORT.md) registra testes, medições e limitações; o [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md) conserva as decisões de arquitetura.
 
 O [schema JSON](../schemas/gameplay-response.schema.json) descreve a definição. A publicação também verifica o catálogo capturado e o validador canônico de efeitos. A leitura usa as mesmas opções de conteúdo do projeto, incluindo enums por nome.
 
@@ -50,7 +50,7 @@ Occurrence, Impact, Proc e RootAction são escopos transacionais do contrato ini
 
 Os providers de modo, encontro, ator, relíquia, status e carta somente materializam registros. Definições podem carregar `responses`; atores e cartas usam componentes próprios. Status e relíquias conservam a revisão capturada. O nó guarda a revisão de suas respostas; não usa automaticamente uma revisão futura. Um registro de carta usa a composição efetiva existente, com upgrades e contribuições de compartimentos, e conserva os contribuidores que afetam aquele componente.
 
-Esses novos campos ficam ausentes na serialização quando não usados. A publicação padrão rejeita declarações ainda não executáveis. Ferramentas internas podem criar um runtime/compilador shadow explicitamente para testar a compilação; isso não habilita o conteúdo na API ou numa partida.
+Esses novos campos ficam ausentes na serialização quando não usados. A publicação schema 2 aceita declarações canônicas validadas e rejeita hooks históricos misturados. Schema 1 é reservado a bundles capturados; o registro histórico não habilita autoria nova. Ferramentas de migração validam o grafo candidato antes de publicar.
 
 ## Namespace numérico
 
@@ -69,7 +69,7 @@ Campo ausente, binding ausente ou valor que não cabe no contrato numérico exis
 
 O índice de kinds produz no máximo um candidato por registro/ocorrência; exclusões vencem e as demais dimensões são conjuntivas. Bindings não substituem um ator ausente por outro. O dono lógico pode diferir do dono físico capturado. Filtros de recurso usam o payload tipado e distinguem PrimaryEffect, Settlement e DirectMutation. Direção usa o delta efetivamente aplicado. IDs de recurso seguem a comparação canônica sem diferenciar maiúsculas; canais, tags e identidades são ordinais.
 
-As quotas locais retornam sucessores imutáveis por ação. Uma ocorrência não volta a invocar o mesmo registro mesmo com maximum maior que um. Impact e Proc exigem suas respectivas âncoras explícitas; não caem silenciosamente para ocorrência. Ultrapassar a quota declarada apenas impede a invocação; ultrapassar o orçamento global rejeita o candidato inteiro. Frequências duráveis permanecem indisponíveis. O matcher não avalia condições nem executa efeitos; o dispatcher é a próxima integração.
+As quotas locais retornam sucessores imutáveis por ação. Uma ocorrência não volta a invocar o mesmo registro mesmo com maximum maior que um. Impact e Proc exigem suas respectivas âncoras explícitas; não caem silenciosamente para ocorrência. Ultrapassar a quota declarada apenas impede a invocação; ultrapassar o orçamento global rejeita o candidato inteiro. PriorityWindow é durável; Activation, Round, Combat e Run permanecem rejeitados. O matcher não avalia condições nem executa efeitos; isso pertence ao dispatcher comum.
 
 ## Execução candidata explícita (etapa 6b)
 
@@ -116,7 +116,7 @@ As quotas e o trabalho de respostas seguem por uma continuidade imutável dentro
 
 Status que reduzem duração/expiram e modificadores que expiram/reduzem duração nas fronteiras de combate também produzem respostas. O snapshot de status e os IDs elegíveis de modificadores são capturados antes das respostas da fronteira, evitando que instâncias recém-criadas sejam processadas retroativamente. O refresh primitivo de recursos conserva a política configurada e incorpora os sucessores da run e do combate, incluindo aplicações/passos das respostas.
 
-**Limite atual:** os fluxos externos de cartas, comandos fora de combate, ação raiz e criação da run já integram o dispatcher comum. Transporte/projeção de recursos e ativação de revisão mantêm seus contratos específicos; sua integração histórica pertence à etapa 12. A publicação padrão continua bloqueada. Não há comando para injetar fatos nem hooks de prevenção/cancelamento arbitrários.
+**Limite atual:** fluxos externos de cartas, comandos fora de combate, ação raiz e criação da run integram o dispatcher comum. Transporte/projeção de recursos e ativação de revisão registram seus contratos específicos, sem inferir dano/cura ou habilitar hooks arbitrários na troca de revisão. Não há comando para injetar fatos nem prevenção/cancelamento arbitrários.
 
 ### Pilha e frequência entre comandos (10)
 
@@ -124,7 +124,7 @@ Status que reduzem duração/expiram e modificadores que expiram/reduzem duraç�
 
 `frequency.scope: PriorityWindow` limita as execuções por registro na janela lógica, inclusive propostas aninhadas e comandos novos. A janela armazena somente contadores derivados da execução autoritativa; consultas não os consomem. Branches copiam o estado imutável e evoluem independentemente. IDs de combate rebased não resetam os contadores de observadores do encontro.
 
-### Migração de conteúdo em andamento (11)
+### Migração de conteúdo e corte de autoria (11)
 
 O campo `timing` tem valor padrão `PostFact`. `ContainerBoundary` agenda a mesma definição no ponto já existente do lifecycle de status/relíquia/fase, separado do broadcast global. O host deve suportar explicitamente essa capacidade; o compilador genérico não a concede. A agenda exige frequência `Occurrence` e fronteira explícita. Fases usam `phase.entered`/`phase.exited` com seu ID de fase; status/relíquias usam os IDs canônicos de fronteira do ciclo. Source, owner, payloads e variáveis capturados continuam no executor universal.
 
@@ -149,3 +149,9 @@ Inspeção causal completa exige `timeline.inspect_state` e `debug.card_inspecti
 ## Projeção e laboratório Godot
 
 Abra `examples/godot-engine-showcase/scenes/gameplay_event_lab.tscn` para comparar os dois fixtures de apresentação (Ascendant e mesa circular), alternando inglês/português. Esses fixtures são explicitamente offline e não definem regras nem representam saves. `gameplay_event_view.gd` e seu presenter são os mesmos componentes usados pela timeline autorizada. A árvore permite selecionar a ocorrência e ver natureza/valor solicitado/aplicado/limitado; origem atrasada aponta branch e ocorrência anteriores. Fallback: motivo exato → ancestrais do motivo → tipo exato → ancestrais do tipo → mensagem genérica, consultando inglês quando faltar tradução. Nomes ausentes mantêm IDs; fonte ausente é Environment/Ambiente. Texto localizado nunca retorna à engine como comando/regra.
+
+## Custo e caches derivados
+
+O matcher cruza índices de tipo, motivo e fotografia de disponibilidade antes de revalidar atores/recursos. Compilações e fingerprints imutáveis têm cache por identidade do catálogo (setting/revisão), definição e capacidades, limitado a 4096 entradas por catálogo, com descarte integral ao atingir o limite e retenção fraca do catálogo. Cada sessão mantém no máximo duas coletas, reutilizadas somente para as mesmas referências imutáveis de run/combate. Mudança de composição/estado exige nova coleta. Nenhum cache guarda RNG, decisões de condição ou quotas autoritativas.
+
+`OperationalTiming` separa response_compile, response_collect, response_match, response_execute, response_dispatch e commit_serialize, além das métricas existentes de commit e REST. Tempos de despacho/execução aninhados são inclusivos; não se deve somá-los como fases exclusivas. Diagnóstico não entra nos hashes determinísticos.

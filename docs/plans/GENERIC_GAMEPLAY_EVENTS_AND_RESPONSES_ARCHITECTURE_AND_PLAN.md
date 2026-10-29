@@ -1,8 +1,8 @@
 # Eventos de gameplay e respostas genéricas — arquitetura e plano
 
-Data: 2026-10-28. Estado: **plano de implementação; nenhuma etapa executada por este documento**.
+Data do plano: 2026-10-28. Implementação atualizada em 2026-10-29. As etapas 11–15 foram concluídas no escopo/capacidades registrados, e a certificação está registrada no [relatório](../architecture/GAMEPLAY_EVENTS_CERTIFICATION_REPORT.md). O [progresso](GENERIC_GAMEPLAY_EVENTS_IMPLEMENTATION_PROGRESS.md) detalha os commits e as adaptações de escopo. Frequências Activation/Round/Combat/Run, prevenção arbitrária e novos publishers de extensões não são anunciados como implementados; capacidades não disponíveis continuam rejeitadas.
 
-Conceito aprovado: acontecimentos tipados, mudanças explícitas, motivos configuráveis, causalidade rastreável e componentes observadores independentes da origem dos efeitos. Este documento define a implementação e a migração dos mecanismos atuais; não declara essa generalização disponível na engine atual.
+Conceito aprovado: acontecimentos tipados, mudanças explícitas, motivos configuráveis, causalidade rastreável e componentes observadores independentes da origem dos efeitos. Este documento conserva a arquitetura e o plano aprovados; o relatório de certificação distingue o que está implementado das extensões ainda não disponíveis.
 
 ## 1. Objetivo e limites
 
@@ -191,7 +191,7 @@ Separar:
 1. `GameplayResponseDefinition`: conteúdo JSON imutável com filtros, condições, frequência e efeitos.
 2. `GameplayObserverRegistration`: instância ativa, dono opcional, escopo, definição/revisão, ordem e origem.
 3. `GameplayResponseInvocation`: correspondência congelada de uma assinatura com uma ocorrência.
-4. `GameplayResponseResult`: efeitos/fatos/counters gerados, sem mutar entrada.
+4. `GameplayResponseResult`: efeitos/fatos/counters Agerados, sem mutar entrada.
 
 Exemplo conceitual de “quando um inimigo recuperar um recurso por cura, conceder proteção ao dono”:
 

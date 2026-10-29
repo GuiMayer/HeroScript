@@ -16,20 +16,30 @@ public sealed class GameplayResponseMatcher
 {
     private readonly ImmutableDictionary<string, GameplayObserverRegistration> _registrations;
     private readonly HierarchySelectorIndex _index;
-    private GameplayResponseMatcher(ImmutableDictionary<string, GameplayObserverRegistration> registrations, HierarchySelectorIndex index)
-        => (_registrations, _index) = (registrations, index);
+    private readonly HierarchySelectorIndex _reasons;
+    private readonly ImmutableDictionary<ResponseSnapshot, ImmutableHashSet<string>> _snapshots;
+    private GameplayResponseMatcher(ImmutableDictionary<string, GameplayObserverRegistration> registrations, HierarchySelectorIndex index,
+        HierarchySelectorIndex reasons)
+    {
+        (_registrations, _index, _reasons) = (registrations, index, reasons);
+        _snapshots = registrations.Values.GroupBy(item => item.Response.Definition.Availability.Snapshot)
+            .ToImmutableDictionary(group => group.Key, group => group.Select(item => item.RegistrationId).ToImmutableHashSet(StringComparer.Ordinal));
+    }
 
     public static Result<GameplayResponseMatcher> Create(ImmutableArray<GameplayObserverRegistration> registrations)
     {
         if (registrations.IsDefault || registrations.Any(item => item?.Response == null))
             return Result<GameplayResponseMatcher>.Failure("Collected response registrations are required");
         var index = HierarchySelectorIndex.Build(registrations.Select(item => new HierarchyIndexRegistration(item.RegistrationId, item.Response.Kinds)));
-        return index.IsFailure ? Result<GameplayResponseMatcher>.Failure(index.Error)
-            : Result<GameplayResponseMatcher>.Success(new(registrations.ToImmutableDictionary(item => item.RegistrationId, StringComparer.Ordinal), index.Value));
+        if (index.IsFailure) return Result<GameplayResponseMatcher>.Failure(index.Error);
+        var reasons = HierarchySelectorIndex.Build(registrations.Select(item => new HierarchyIndexRegistration(item.RegistrationId, item.Response.Reasons)));
+        return reasons.IsFailure ? Result<GameplayResponseMatcher>.Failure(reasons.Error)
+            : Result<GameplayResponseMatcher>.Success(new(registrations.ToImmutableDictionary(item => item.RegistrationId, StringComparer.Ordinal), index.Value, reasons.Value));
     }
 
     public Result<ImmutableArray<GameplayResponseCandidate>> Match(GameplayOccurrence occurrence, GameplayObserverCollectionContext snapshot)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("response_match");
         Result<ImmutableArray<GameplayResponseCandidate>> Fail(string error) => Result<ImmutableArray<GameplayResponseCandidate>>.Failure(error);
         if (snapshot?.Run == null || snapshot.Catalog == null || occurrence?.Validate(snapshot.Catalog).IsSuccess != true ||
             snapshot.Run.SettingId != occurrence.Scope.SettingId || snapshot.Run.Determinism.ContentRevision != occurrence.Scope.ContentRevision ||
@@ -39,15 +49,18 @@ public sealed class GameplayResponseMatcher
             return Fail("Response matching requires a valid occurrence and its pinned snapshot");
         var indexed = _index.Match(occurrence.Kind);
         if (indexed.IsFailure) return Fail(indexed.Error);
-        var reason = HierarchicalName.Parse(occurrence.ReasonId).Value;
+        var reasons = _reasons.Match(occurrence.ReasonId);
+        if (reasons.IsFailure) return Fail(reasons.Error);
+        var reasonIds = reasons.Value.ToImmutableHashSet(StringComparer.Ordinal);
+        var snapshotIds = _snapshots.GetValueOrDefault(snapshot.Snapshot, ImmutableHashSet<string>.Empty);
         var result = ImmutableArray.CreateBuilder<GameplayResponseCandidate>();
-        foreach (var registration in indexed.Value.Select(id => _registrations[id]).OrderBy(item => item.Order))
+        foreach (var registration in indexed.Value.Where(id => reasonIds.Contains(id) && snapshotIds.Contains(id)).Select(id => _registrations[id]).OrderBy(item => item.Order))
         {
             var response = registration.Response;
             var definition = response.Definition;
             if (response.SettingId != snapshot.Catalog.SettingId || response.ContentRevision != snapshot.Catalog.ContentRevision)
                 return Fail("Response registration belongs to another action catalog");
-            if (!response.HasKnownTopics || definition.Availability.Snapshot != snapshot.Snapshot || !response.Reasons.Matches(reason)) continue;
+            if (!response.HasKnownTopics || definition.Availability.Snapshot != snapshot.Snapshot) continue;
             var filter = definition.Observe;
             if (!filter.RequiredTags.All(occurrence.Tags.Contains) || filter.ExcludedTags.Any(occurrence.Tags.Contains) ||
                 !ResourceMatches(filter.Resource, occurrence.Payload) ||

@@ -336,7 +336,9 @@ public sealed class PreparedRunCommit
                 StateDelta = RunStateDelta.Create(previousState!, liveState).Operations
             };
         persisted.ValidateEnvelope();
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(persisted, RunCommitJson.Options);
+        byte[] bytes;
+        using (Core.Diagnostics.OperationalTiming.Measure("commit_serialize"))
+            bytes = JsonSerializer.SerializeToUtf8Bytes(persisted, RunCommitJson.Options);
         return new PreparedRunCommit(
             persisted,
             liveState,
