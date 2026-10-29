@@ -286,17 +286,20 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
         }
         if (currentRun != null && request.Combat.CombatId == Guid.Empty)
             currentRun = currentRun with { Determinism = current.Determinism };
+        var completedSteps = steps.ToImmutable();
+        var completedRecords = records.ToImmutable();
+        var completedCalculations = calculations.ToImmutable();
         return Result<EffectBatchResult>.Success(new()
         {
             ExecutionId = executionId,
             Observation = CaptureProgress(observation, budget),
             State = current,
             Run = currentRun,
-            Records = records.ToImmutable(),
-            Calculations = calculations.ToImmutable(),
-            Steps = steps.ToImmutable(),
+            Records = completedRecords,
+            Calculations = completedCalculations,
+            Steps = completedSteps,
             Fingerprint = CanonicalJson.ComputeObjectHash(CanonicalJson.Property("state", current),
-                CanonicalJson.Property("steps", steps.ToImmutable()), CanonicalJson.Property("run", currentRun))
+                CanonicalJson.Property("steps", completedSteps), CanonicalJson.Property("run", currentRun))
         });
 
         Result ApplyResponses(CombatState responseBefore, RunState? responseRunBefore, int firstFact, int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications = null)

@@ -34,3 +34,7 @@ Encoder existente ampliado para atores, ResourceSet/ResourcePool e dicionários 
 ## Etapa 6 — identidades compatíveis
 
 ExecutionId compõe os mesmos 15 campos/bytes, reaproveitando os fragmentos do encoder existente; IDs de proc/impacto e agrupamento dos sorteios não foram simplificados. Nova prova compara a construção antiga do objeto embutido com a composição em 20 variantes de revisão/tags/alvos. 47 testes focados de identidade, origens, dispatcher e distribuição aprovaram; EngineVersion preservada.
+
+## Etapa 7 — materialização de trace
+
+O perfil não justificou adicionar um segundo protocolo lazy: hashes também alimentam fingerprints/identidades e o contrato exige o trace completo antes do append. Mantidos todos os campos e consumidores; o executor congela steps/records/calculations uma vez no retorno e reutiliza o mesmo array no fingerprint, eliminando cópia duplicada. 22 testes de transação/raízes/respostas passaram. Não houve descarte de diagnósticos, confirmação antecipada ou mudança do formato durável.
