@@ -26,3 +26,7 @@ O transcript JSON exato foi capturado do binário anterior às otimizações (4a
 ## Etapa 4 — reuso dentro do comando
 
 O gateway já compartilha escopo e os hashes de snapshots idênticos; não foi criado outro contexto paralelo. O perfil mostrou 205 misses/77 evicções com somente ~446KB de folhas codificadas. Ajustado o limite de entradas de 128 para 512 mantendo o teto de 8MiB e descarte ao terminar a operação, evitando expulsão prematura por quantidade. 20 testes de canonicalização/diagnóstico aprovados, incluindo bytes e evicção. O ganho de latência será medido junto à próxima composição; não é alegação de 100ms nem remoção de campos/hashes.
+
+## Etapa 5 — compartilhamento estrutural
+
+Encoder existente ampliado para atores, ResourceSet/ResourcePool e dicionários de atores/pools/componentes dentro de agregados já imutáveis. Componentes polimórficos mantêm o serializer de referência e discriminadores; não foi adicionado marcador global a tipos potencialmente extensíveis. Reuso é por identidade/tipo declarado e limitado ao orçamento operacional. 22 testes focados passaram; regressão nova confere bytes e SHA-256 independentes em 100 alterações de um único ator, preservando componentes compartilhados. Formato canônico não mudou.

@@ -18,7 +18,8 @@ public static partial class CanonicalJson
     // Deliberately narrow: only audited aggregate boundaries are decomposed.
     // Leaves still use the real serializer, including their polymorphic converters.
     private static bool IsAggregate(Type type) => type == typeof(RunState) ||
-        type == typeof(CombatState) || type == typeof(RunEncounterState);
+        type == typeof(CombatState) || type == typeof(RunEncounterState) ||
+        type == typeof(CombatActorState) || type == typeof(Core.Resources.ResourceSet) || type == typeof(Core.Resources.ResourcePool);
 
     private static CanonicalEncoding EncodeImmutable(object? value, Type declaredType, EncodingCache cache)
     {
@@ -28,6 +29,12 @@ public static partial class CanonicalJson
         CanonicalEncoding encoded;
         if (value != null && IsAggregate(declaredType) && Plan(declaredType) is { Supported: true } plan)
             encoded = EncodeAggregate(value, plan, cache);
+        else if (declaredType == typeof(IReadOnlyDictionary<string, CombatActorState>) && value is IReadOnlyDictionary<string, CombatActorState> actors)
+            encoded = EncodeDictionary(actors, cache);
+        else if (declaredType == typeof(IReadOnlyDictionary<string, Core.Resources.ResourcePool>) && value is IReadOnlyDictionary<string, Core.Resources.ResourcePool> pools)
+            encoded = EncodeDictionary(pools, cache);
+        else if (declaredType == typeof(IReadOnlyDictionary<string, EntityComponentState>) && value is IReadOnlyDictionary<string, EntityComponentState> components)
+            encoded = EncodeDictionary(components, cache);
         else if (declaredType == typeof(ImmutableArray<RunEncounterState>) &&
                  value is ImmutableArray<RunEncounterState> encounters && !encounters.IsDefault)
             encoded = EncodeEncounters(encounters, cache);
@@ -35,6 +42,23 @@ public static partial class CanonicalJson
             encoded = EncodeStandard(value, declaredType);
         if (canCache) cache.Put(key, encoded);
         return encoded;
+    }
+
+    private static CanonicalEncoding EncodeDictionary<T>(IReadOnlyDictionary<string, T> values, EncodingCache cache)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartObject();
+        var depth = 1;
+        foreach (var pair in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            var child = EncodeImmutable(pair.Value, typeof(T), cache);
+            if (child.Depth >= 64) throw new JsonException("Maximum canonical serialization depth exceeded");
+            writer.WritePropertyName(pair.Key); writer.WriteRawValue(child.Bytes.Span, skipInputValidation: true);
+            depth = System.Math.Max(depth, child.Depth + 1);
+        }
+        writer.WriteEndObject(); writer.Flush();
+        return new(buffer.WrittenMemory, depth);
     }
 
     private static AggregatePlan Plan(Type type) => AggregatePlans.GetOrAdd(type, type =>
