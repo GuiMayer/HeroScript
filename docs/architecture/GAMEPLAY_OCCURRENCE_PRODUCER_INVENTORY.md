@@ -42,7 +42,7 @@ A descrição anterior registra a instrumentação da etapa 4. As reações de r
 O executor normal usa fatos locais descartáveis quando há essa família de reações; isso não habilita gravação de journal novo nem publica eventos intermediários. O executor observado exige os IDs reais de setting/root-run/branch. Os templates internos conservam IDs e parent.* históricos, com comparação de hashes completos contra a árvore anterior à migração. Fronteiras, status periódicos/expiração, gatilhos de relíquias e fases continuam aguardando a migração da etapa 8.
 
 
-## Integração atual dos consumidores (até 9h)
+## Integração dos consumidores (atualizada até 11c)
 
 | Caminho | Respostas no executor normal | Limite atual |
 |---|---|---|
@@ -52,14 +52,18 @@ O executor normal usa fatos locais descartáveis quando há essa família de rea
 | Duração/expiração de status | Sim | Snapshot da fronteira impede processamento retroativo de instâncias novas. |
 | Duração/expiração de modificadores em combate | Sim | Contadores ainda candidatos, sem durabilidade entre comandos. |
 | Refresh primitivo da ativação | Sim | Política original continua decidindo recurso/operando/timing. |
-| Movimentos externos de cartas e modificações fora de combate | Instrumentados; integração de respostas ainda pendente | Não considerar esta família migrada apenas porque já produz fatos observados. |
-| Intenções, PriorityStack e retomada | Integração anterior do jogo preservada | Nova causação/continuidade de respostas pertence à etapa 10. |
+| Movimentos externos de cartas e modificações fora de combate | Sim, com cursor privado e snapshots reais | Concessões, preparação, ticks e carteira preservam o sucessor completo; publicação nova bloqueada. |
+| Intenções, PriorityStack e retomada | Proposta/resolução/fizzle, âncora causal e frequência PriorityWindow integrados | Outros escopos e hooks anteriores arbitrários continuam rejeitados. |
 | Journal/REST/mensagens de ocorrências | Pendente | Etapas 12–14; consultar timeline não executa respostas. |
 
-A etapa 8 está concluída. A etapa 9 permanece em execução; 10–15 não foram declaradas concluídas. Evidências por árvore/commit estão no documento de progresso.
+As etapas 8–9 estão integradas; a etapa 10 acrescenta os contratos de prioridade explicitamente suportados. A migração de conteúdo (11) está em execução, com conversores tipados, sem cutover de publicação. Etapas 12–15 permanecem pendentes. Evidências por árvore/commit estão no documento de progresso.
 
 ## Atualização após 9s e 10a
 
 Movimentos externos de cartas, concessões, preparação, ticks por comando/nó/run, carteira e término da run agora despacham respostas com snapshots reais. A criação com declarações adia somente o fluxo JSON até o personagem existir; bootstrap declarativo continua gênese. Comandos normais com respostas usam o plano observado privado antes do único commit. Provas cruzadas cobrem valores/RNG por origem.
 
 A etapa 10 conecta transições já autorizadas da pilha ao produtor de fatos de ação e conserva a causa na continuação serializável. Não há comando para injetar fatos, segunda pilha ou novo mecanismo de cancelamento arbitrário. Janelas/frequências entre comandos ainda estão em implementação. Projeções de transporte/rebind e troca de revisão aguardam a integração específica da etapa 12; não inferem dano/cura.
+
+## Agenda canônica de containers (11a–11c)
+
+ContainerBoundary conserva o ponto de execução interno de status/relíquia/fase. O provider global valida a declaração e não a executa no broadcast; o lifecycle captura a mesma definição para o único dispatcher. Lotes de potência são preservados. Os conversores mantêm fronteira, prioridade, source/owner e efeitos; não aplicam mudanças em arquivos nem alteram revisões históricas. Grupos explícitos preservam ordenação entre relíquias. A liberação de autoria continua bloqueada até concluir ferramenta/pacotes/equivalência/cutover.

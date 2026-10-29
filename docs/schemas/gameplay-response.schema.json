@@ -63,6 +63,13 @@
         "type": "object",
         "description": "Canonical effect component, validated without a source-specific processor."
       }
+    },
+    "timing": {
+      "enum": [
+        "PostFact",
+        "ContainerBoundary"
+      ],
+      "description": "PostFact by default. ContainerBoundary requires a supported status, relic or phase lifecycle host; generic compilation cannot grant this capability."
     }
   },
   "$defs": {
@@ -249,7 +256,8 @@
             "Occurrence",
             "Impact",
             "Proc",
-            "RootAction"
+            "RootAction",
+            "PriorityWindow"
           ]
         },
         "maximum": {
@@ -270,6 +278,12 @@
         },
         "descending": {
           "type": "boolean"
+        },
+        "group": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647,
+          "description": "Global ordering group before container instance order; default 0."
         }
       }
     },

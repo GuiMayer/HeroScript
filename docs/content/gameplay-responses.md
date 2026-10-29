@@ -1,6 +1,6 @@
 # Respostas de gameplay
 
-Estado atual: contratos/providers, dispatcher transacional candidato e migração das reações de recurso das relíquias (etapas 5–7). A autoria nova ainda não está liberada. Lifecycles/fases também usam o dispatcher comum (etapa 8). Os demais containers, persistência e endpoints continuam nas etapas seguintes do [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
+Estado atual: respostas pós-fato integradas aos containers suportados (etapa 9), transições/continuações da PriorityStack (10) e conversores tipados de conteúdo em implementação (11). A publicação padrão da autoria nova permanece bloqueada até o cutover. Persistência completa de ocorrências, REST causal, mensagens/laboratório e certificação final (12–15) continuam pendentes no [plano](../plans/GENERIC_GAMEPLAY_EVENTS_AND_RESPONSES_ARCHITECTURE_AND_PLAN.md).
 
 O [schema JSON](../schemas/gameplay-response.schema.json) descreve a definição. A publicação também verifica o catálogo capturado e o validador canônico de efeitos. A leitura usa as mesmas opções de conteúdo do projeto, incluindo enums por nome.
 
@@ -103,7 +103,7 @@ Escopos de fronteira são privados à candidata e não são salvos. Compartilham
 
 O materializador reconhece o componente `responses` e captura suas declarações no estado imutável do ator. O validador estrutural rejeita arrays não inicializados, mais de 16 declarações e IDs ausentes/duplicados; o compilador de respostas mantém a validação semântica/referencial antes de executar. A identidade, lado e binding de um ator continuam fixos durante sua vida no combate. O teste de integração dos providers verifica um terceiro ator que observa a cura entre dois outros, mantendo origem/alvo próprios em cada fato e a cadeia causal.
 
-### Execução normal pós-fato (9b, integração parcial)
+### Execução normal pós-fato (9)
 
 O executor normal detecta declarações tipadas no estado e no runtime imutável e usa os mesmos providers do caminho observado. A identidade de efeito deriva da causa de domínio; acrescentar observação não deve mudar o efeito. Testes cobrem buff de atributo, custo de recurso e um terceiro observador, comparando a saída completa dos caminhos normal/observado. A presença por revisão é apenas metadado derivado; não contém contadores/RNG e não é compartilhada globalmente por nomes de revisão. O broadcast único de combate/rodada/ativação já pertence ao executor geral do fluxo; fases também despacham sua própria fronteira uma vez. Os sub-lifecycles conservam as oportunidades capturadas históricas para não duplicar a assinatura nova.
 
@@ -112,8 +112,24 @@ O executor normal detecta declarações tipadas no estado e no runtime imutável
 
 A compilação de cartas preserva o catálogo nas resoluções de upgrades, bundles e contribuições de compartimentos. A zona real determina a disponibilidade; um componente concedido usa os mesmos providers e processador de efeitos. Cartas não ganham autoridade para publicar fatos.
 
-As quotas e o trabalho de respostas seguem por uma continuidade imutável dentro da candidata. Forks de simulação não compartilham contadores mutáveis. O despacho de fatos já produzidos exige snapshots reais, prefixo causal append-only e o mesmo agregado/revisão. Esta continuidade **ainda não é persistência durável** de frequência entre comandos.
+As quotas e o trabalho de respostas seguem por uma continuidade imutável dentro da candidata. Forks de simulação não compartilham contadores mutáveis. O despacho de fatos já produzidos exige snapshots reais, prefixo causal append-only e o mesmo agregado/revisão. Os contadores RootAction continuam locais à candidata. PriorityWindow possui contador imutável/bounded na continuação serializada da janela, preservado entre comandos, save/load e branches. Activation, Round, Combat e Run continuam rejeitados enquanto não houver sua implementação durável.
 
 Status que reduzem duração/expiram e modificadores que expiram/reduzem duração nas fronteiras de combate também produzem respostas. O snapshot de status e os IDs elegíveis de modificadores são capturados antes das respostas da fronteira, evitando que instâncias recém-criadas sejam processadas retroativamente. O refresh primitivo de recursos conserva a política configurada e incorpora os sucessores da run e do combate, incluindo aplicações/passos das respostas.
 
-**Limite atual:** ainda falta ligar todos os movimentos externos de cartas, comandos fora de combate e a ação raiz comum. A publicação padrão de declarações continua bloqueada; não se deve tratar estas entradas candidatas como o cutover das etapas 11–12. PriorityStack, persistência, consultas REST e projeção localizada ainda não estão declaradas concluídas.
+**Limite atual:** os fluxos externos de cartas, comandos fora de combate, ação raiz e criação da run já integram o dispatcher comum. Transporte/projeção de recursos e ativação de revisão mantêm seus contratos específicos; sua integração histórica pertence à etapa 12. A publicação padrão continua bloqueada. Não há comando para injetar fatos nem hooks de prevenção/cancelamento arbitrários.
+
+### Pilha e frequência entre comandos (10)
+
+`action.proposed` descreve uma proposta autorizada pela PriorityStack existente. `action.resolved` descreve resolução real, e `action.cancelled` descreve fizzle, mantendo a política configurada de custo/reembolso. Esses fatos não abrem uma segunda pilha nem desfazem fatos resolvidos. A proposta conserva sua âncora causal; a continuação usa o pai local quando ainda está no mesmo comando, ou a referência histórica quando está em outro. A ancestralidade autorizada é explícita e limitada.
+
+`frequency.scope: PriorityWindow` limita as execuções por registro na janela lógica, inclusive propostas aninhadas e comandos novos. A janela armazena somente contadores derivados da execução autoritativa; consultas não os consomem. Branches copiam o estado imutável e evoluem independentemente. IDs de combate rebased não resetam os contadores de observadores do encontro.
+
+### Migração de conteúdo em andamento (11)
+
+O campo `timing` tem valor padrão `PostFact`. `ContainerBoundary` agenda a mesma definição no ponto já existente do lifecycle de status/relíquia/fase, separado do broadcast global. O host deve suportar explicitamente essa capacidade; o compilador genérico não a concede. A agenda exige frequência `Occurrence` e fronteira explícita. Fases usam `phase.entered`/`phase.exited` com seu ID de fase; status/relíquias usam os IDs canônicos de fronteira do ciclo. Source, owner, payloads e variáveis capturados continuam no executor universal.
+
+Os conversores puros de `GameplayBoundaryResponseMigration` devolvem candidatas e não editam arquivos, publicam revisões ou alteram bundles de runs salvas. Eles cobrem triggers de status/relíquias, entryEffects/exitEffects de fases e reações de recurso com referências inline suportadas. A mistura ambígua entre a forma histórica e a canônica é rejeitada.
+
+`order.group` ordena grupos antes da identidade do container, preservando prioridades entre relíquias. As referências inline `parent.requested_change`, `parent.applied_change` e `parent.limited_change` migram para `event.change.requested_delta`, `event.change.applied_delta` e `event.change.limited_delta`; `stacks` migra para `scope.container_stacks` em reações de recurso. Não se deduz dano pelo nome do recurso ou pelo sinal do número.
+
+Referências externas não expandidas e corpos estocásticos/continuations cuja identidade ainda não tem migração certificada permanecem rejeitados. A ferramenta de arquivos/diff, migração dos pacotes e corte de autoria ainda não estão concluídos. Os templates históricos continuam necessários até esse corte e para bundles históricos suportados.
