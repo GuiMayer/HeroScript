@@ -20,6 +20,22 @@ public sealed record RunLineage
     public string? BranchKey { get; init; }
     public bool InternalSimulation { get; init; }
 
+    public bool Equals(RunLineage? other) => other != null && RootRunId == other.RootRunId &&
+        ParentRunId == other.ParentRunId && SourceSequence == other.SourceSequence && SourceStateHash == other.SourceStateHash &&
+        SourceCombatId == other.SourceCombatId && BranchKey == other.BranchKey && InternalSimulation == other.InternalSimulation &&
+        (CausalAncestorRunIds == null ? other.CausalAncestorRunIds == null
+            : other.CausalAncestorRunIds != null && CausalAncestorRunIds.SetEquals(other.CausalAncestorRunIds));
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(RootRunId); hash.Add(ParentRunId); hash.Add(SourceSequence); hash.Add(SourceStateHash, StringComparer.Ordinal);
+        hash.Add(SourceCombatId); hash.Add(BranchKey, StringComparer.Ordinal); hash.Add(InternalSimulation);
+        hash.Add(CausalAncestorRunIds != null);
+        if (CausalAncestorRunIds != null) foreach (var ancestor in CausalAncestorRunIds) hash.Add(ancestor);
+        return hash.ToHashCode();
+    }
+
     public static RunLineage Root(Guid runId) => new() { RootRunId = runId };
 
     public static RunLineage Branch(
