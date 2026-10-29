@@ -37,7 +37,9 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
         using var initialized = await client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new { commandId = Guid.NewGuid(), type = "START_ENCOUNTER",
             expectedSequence = state.Sequence, expectedStep = state.Determinism.Step, payload = start.GetProperty("validPayload") });
         Assert.True(initialized.IsSuccessStatusCode, await initialized.Content.ReadAsStringAsync());
-        for (var sample = 0; sample < 3; sample++)
+        var samples = int.TryParse(Environment.GetEnvironmentVariable("HEROSCRIPT_POST_SAMPLES"), out var requested) ? Math.Clamp(requested, 1, 1000) : 3;
+        var postTimes = new List<double>();
+        for (var sample = 0; sample < samples; sample++)
         {
             state = runs.GetRun(runId).Value;
             var combat = state.GetActiveEncounter()!.Combat;
@@ -52,6 +54,8 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.IsSuccessStatusCode, body);
             var commandMs = watch.Elapsed.TotalMilliseconds;
+            postTimes.Add(commandMs);
+            output.WriteLine($"POST_BYTES setting={setting}; sample={sample}; response={System.Text.Encoding.UTF8.GetByteCount(body)}");
             var after = runs.GetRun(runId).Value;
             using var session = await client.GetAsync($"/api/v1/runs/{runId}/session");
             var view = await session.Content.ReadFromJsonAsync<JsonElement>();
@@ -62,5 +66,17 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
             output.WriteLine($"setting={setting}; action={sample}; POST={commandMs:F2}ms; REST+session={total:F2}ms");
             output.WriteLine("Server-Timing: " + string.Join(", ", response.Headers.GetValues("Server-Timing")));
         }
+        var ordered = postTimes.Order().ToArray();
+        double Percentile(double p) => ordered[(int)Math.Ceiling(p * ordered.Length) - 1];
+        output.WriteLine($"POST_SUMMARY setting={setting}; n={ordered.Length}; p50={Percentile(.50):F2}; p95={Percentile(.95):F2}; p99={Percentile(.99):F2}; max={ordered[^1]:F2}ms");
+        var configuredBudget = Environment.GetEnvironmentVariable("HEROSCRIPT_POST_BUDGET_MS");
+        if (configuredBudget != null)
+        {
+            Assert.True(double.TryParse(configuredBudget, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var budget) && double.IsFinite(budget) && budget > 0,
+                "HEROSCRIPT_POST_BUDGET_MS must be a finite positive duration");
+            Assert.All(postTimes, elapsed => Assert.True(elapsed < budget, $"{setting}: POST {elapsed:F2}ms >= {budget:F2}ms"));
+        }
+
     }
 }
