@@ -155,10 +155,12 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             turnOrderPolicy,
             _turnOrder, observation);
         if (initialized.IsFailure) return Result<CombatInitializationResult>.Failure(initialized.Error);
+        run = initialized.Value.Run;
+        effectSteps.AddRange(initialized.Value.EffectSteps); applications.AddRange(initialized.Value.Applications);
         var regenerated = ApplyResourceLifecycle(
             run,
-            initialized.Value,
-            initialized.Value.ActivationState!.ActiveActorId!,
+            initialized.Value.Combat,
+            initialized.Value.Combat.ActivationState!.ActiveActorId!,
             RegenerationTiming.START_TURN,
             policies, observation);
         if (regenerated.IsFailure) return Result<CombatInitializationResult>.Failure(regenerated.Error);
@@ -174,7 +176,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var afterRelics = _outcomes.Evaluate(
             relics.Value.Combat,
             policies.Outcome,
-            initialized.Value.ActivationState?.ActiveActorId,
+            initialized.Value.Combat.ActivationState?.ActiveActorId,
             CombatOutcomeEvaluationPoint.LifecycleBoundary);
         var initial = ApplyInitialLifecycle(run, afterRelics, policies, observation);
         if (initial.IsFailure) return initial;
@@ -502,7 +504,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             : observation.Resource(_resourceLifecycle, run, combat, actorId, timing, exclusions);
     }
 
-    private static Result<CombatState> InitializeActivation(
+    private static Result<CombatInitializationResult> InitializeActivation(
         RunState run,
         CombatState combat,
         PhaseSequenceDefinition sequence,
@@ -511,31 +513,31 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         ITurnOrderResolver turnOrder, ObservationCursor? observation = null)
     {
         var validation = PhaseSequenceValidator.Validate(sequence);
-        if (validation.IsFailure) return Result<CombatState>.Failure(validation.Error);
+        if (validation.IsFailure) return Result<CombatInitializationResult>.Failure(validation.Error);
 
         if (run.Scenario is { } scenario)
             combat = combat with { Relationships = scenario.Relationships, Sides = scenario.Sides };
 
         var resolvedOrder = turnOrder.Initialize(combat, turnOrderPolicy);
         if (resolvedOrder.IsFailure)
-            return Result<CombatState>.Failure(resolvedOrder.Error);
+            return Result<CombatInitializationResult>.Failure(resolvedOrder.Error);
         combat = resolvedOrder.Value.State;
         var order = resolvedOrder.Value.Order;
         if (order.Count == 0)
-            return Result<CombatState>.Failure("No alive actors are available for combat activation");
+            return Result<CombatInitializationResult>.Failure("No alive actors are available for combat activation");
 
         var sequenceValidation = ActivationSequencePolicy.Validate(policies.ActivationSequence);
-        if (sequenceValidation.IsFailure) return Result<CombatState>.Failure(sequenceValidation.Error);
+        if (sequenceValidation.IsFailure) return Result<CombatInitializationResult>.Failure(sequenceValidation.Error);
         var circular = policies.ActivationSequence!.Strategy == ActivationSequenceStrategy.Circular;
         if (circular && (turnOrderPolicy.RecalculateAt != TurnOrderRecalculationBoundary.CombatStart ||
             turnOrderPolicy.Strategy == TurnOrderStrategy.Atb))
-            return Result<CombatState>.Failure("Circular requires a seat order fixed at CombatStart");
+            return Result<CombatInitializationResult>.Failure("Circular requires a seat order fixed at CombatStart");
         var actorId = circular && policies.ActivationSequence.Circular!.FirstActor == SequenceFirstActor.RunOwner
             ? run.PlayerEntityId : order[0];
-        if (!order.Contains(actorId, StringComparer.Ordinal)) return Result<CombatState>.Failure("First actor is not eligible");
+        if (!order.Contains(actorId, StringComparer.Ordinal)) return Result<CombatInitializationResult>.Failure("First actor is not eligible");
         var refreshed = RefreshActorResource(combat, actorId, policies.ResourceCycle, run, observation);
         if (refreshed.IsFailure)
-            return Result<CombatState>.Failure(refreshed.Error);
+            return Result<CombatInitializationResult>.Failure(refreshed.Error);
 
         var activation = new ActivationState
         {
@@ -548,15 +550,15 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             ActionsTaken = 0,
             ActivationOrder = order,
             CompletedActorIds = [],
-            WaitingForInput = IsPlayerActor(refreshed.Value, actorId),
+            WaitingForInput = IsPlayerActor(refreshed.Value.State, actorId),
             RunId = run.RunId,
-            StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
+            StartedAtUtc = refreshed.Value.State.Determinism.LogicalTimestamp.UtcDateTime
         };
 
-        return Result<CombatState>.Success(refreshed.Value with
+        return Result<CombatInitializationResult>.Success(CreateInitializationResult(refreshed.Value.State with
         {
             ActivationState = activation
-        });
+        }, refreshed.Value.Run ?? run, refreshed.Value.Steps, refreshed.Value.Records));
     }
 
     private Result<CombatResolutionStep> EndActivation(
@@ -638,6 +640,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (refreshed.IsFailure)
             return Result<CombatResolutionStep>.Failure(refreshed.Error);
 
+        run = refreshed.Value.Run ?? run;
         var nextActivation = activation with
         {
             ActiveActorId = nextActorId,
@@ -649,10 +652,10 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             CompletedActorIds = nextCompleted,
             Circular = circular,
             Facts = ImmutableSortedDictionary<string, int>.Empty.WithComparers(StringComparer.Ordinal),
-            WaitingForInput = IsPlayerActor(refreshed.Value, nextActorId),
-            StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
+            WaitingForInput = IsPlayerActor(refreshed.Value.State, nextActorId),
+            StartedAtUtc = refreshed.Value.State.Determinism.LogicalTimestamp.UtcDateTime
         };
-        var startedCombat = refreshed.Value with
+        var startedCombat = refreshed.Value.State with
         {
             ActivationState = nextActivation
         };
@@ -673,6 +676,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             RunDeterminism = run.Determinism,
             RunSnapshot = run,
             CardZoneSteps = startedDeck.Value.CardZoneSteps,
+            EffectSteps = refreshed.Value.Steps, Calculations = refreshed.Value.Calculations, Applications = refreshed.Value.Records,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 actorId = nextActorId,
@@ -909,46 +913,6 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var result = CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId, combatSnapshot);
         if (result.IsSuccess) observation?.Cards(result.Value.CardZoneSteps, run with { Deck = deck }, run with { Deck = result.Value.Deck }, actorId);
         return result;
-    }
-
-    private static Result<CombatState> RefreshActorResource(
-        CombatState combat,
-        string actorId,
-        ResourceCyclePolicyDefinition policy,
-        RunState run, ObservationCursor? observation = null)
-    {
-        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) ||
-            policy.StartActivation == ResourceRefreshStrategy.Preserve)
-            return Result<CombatState>.Success(combat);
-
-        var actor = combat.GetActor(actorId);
-        if (actor == null)
-            return Result<CombatState>.Failure($"Actor not found: {actorId}");
-        var resource = actor.GetResource(policy.ResourceId);
-        if (resource == null)
-            return Result<CombatState>.Failure(
-                $"Activation resource '{policy.ResourceId}' was not found on actor '{actorId}'");
-        var value = policy.StartActivation switch
-        {
-            ResourceRefreshStrategy.ResetToMax => resource.Maximum,
-            ResourceRefreshStrategy.Add => resource.Current + policy.Amount!.Value,
-            ResourceRefreshStrategy.Set => policy.Amount!.Value,
-            _ => resource.Current
-        };
-        var mutation = new ResolvedResourceMutation
-        {
-            MutationId = $"resource-cycle:start-activation:{actorId}:{policy.ResourceId}",
-            ResourceId = policy.ResourceId,
-            Operation = ResourceMutationOperation.Set,
-            Value = value
-        };
-        var reduced = new ResourceMutationReducer().Apply(actor.ResourceState.Resources, [mutation]);
-        if (reduced.IsFailure)
-            return Result<CombatState>.Failure(reduced.Error);
-        var resources = actor.ResourceState with { Resources = reduced.Value.Resources };
-        var updated = actor.WithResourceState(resources);
-        observation?.ResourceMutation(mutation, reduced.Value.Records.Single(), actor, updated);
-        return Result<CombatState>.Success(combat.ReplaceActor(updated));
     }
 
     private static bool ScopeApplies(

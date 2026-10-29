@@ -183,3 +183,6 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Etapa 9f: o executor geral de fronteiras é o ponto único de broadcast de combate/rodada/ativação, separado dos adaptadores capturados de status e relíquia. Caminho normal instala observação privada apenas com declarações; composição API injeta a capacidade explicitamente. Finalização idempotente não emite/dispara de novo. 189 testes focados existentes aprovados antes das novas provas; 23 testes de broadcast/paridade aprovados com quatro regressões novas, cinco repetições nas aberturas e hashes completos normais/observados. Próximo: alterações primitivas externas de recurso/cartas/modificadores e fechamento da etapa 9.
 
+
+- Etapa 9g: refresh primitivo de recursos na abertura de ativação despacha os fatos reais com snapshots antes/depois e devolve ambos os sucessores (combate/run), passos e aplicações. Inicialização e ativação incorporam esses resultados; a política configurada continua autoritária. 193 testes focados existentes e 24 provas de fronteira/paridade aprovados, incluindo refresh observado cinco vezes e hashes dourados. Ainda faltam fluxos externos de cartas/modificadores e comandos fora de combate para concluir a etapa 9.
+

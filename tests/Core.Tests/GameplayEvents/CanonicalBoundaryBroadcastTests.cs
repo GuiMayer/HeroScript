@@ -23,6 +23,7 @@ public sealed class CanonicalBoundaryBroadcastTests
     [InlineData("combat.started")]
     [InlineData("round.started")]
     [InlineData("activation.started")]
+    [InlineData("resource.change.resolved")]
     public void TimingOwnerBroadcastsOnceAcrossStatusRelicAndPhaseSubflows(string kind)
     {
         var (run, combat) = GameplayResponseContinuationTests.Fixture(kind);
@@ -37,13 +38,13 @@ public sealed class CanonicalBoundaryBroadcastTests
         var boundaries = new CombatBoundaryExecutor(new TurnOrderResolver(formulas), new CombatStatusLifecycle(triggers),
             new CombatRelicLifecycle(triggers), new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers),
             new CombatOutcomeResolver(), CombatFlowPlannerTests.ZoneExecutor(), occurrences: triggers);
-        var policy = CombatFlowPlannerTests.Policies() with { ResourceCycle = new() { ResourceId = "focus", StartActivation = ResourceRefreshStrategy.Preserve } };
+        var policy = CombatFlowPlannerTests.Policies() with { ResourceCycle = new() { ResourceId = "focus", ActorScope = FlowActorScope.All, StartActivation = kind == "resource.change.resolved" ? ResourceRefreshStrategy.Set : ResourceRefreshStrategy.Preserve, Amount = 3 } };
         var input = CanonicalJson.ComputeHash(new { run, combat }); var hashes = new HashSet<string>();
         for (var i = 0; i < 5; i++)
         {
             var result = boundaries.InitializeTransaction(run, combat, CombatFlowPlannerTests.Sequence(), policy, CombatFlowPlannerTests.TurnPolicy());
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-            Assert.Equal(10, result.Value.Combat.GetActor("ally")!.GetResource("focus")!.Current);
+            if (kind != "resource.change.resolved") Assert.Equal(10, result.Value.Combat.GetActor("ally")!.GetResource("focus")!.Current);
             Assert.Single(result.Value.EffectSteps);
             var observed = boundaries.InitializeObserved(run, combat, CombatFlowPlannerTests.Sequence(), policy, CombatFlowPlannerTests.TurnPolicy(),
                 GameplayObservedExecutorTests.ObservationFor(run, combat));

@@ -62,6 +62,15 @@ public sealed partial class CombatBoundaryExecutor
             return new Frame(this, parent);
         }
 
+        public EffectBatchResult Mutations(RunState beforeRun, CombatState beforeCombat, RunState afterRun, CombatState afterCombat,
+            GameplayEffectObservation before)
+        {
+            if (occurrences == null) return new() { Run = afterRun, State = afterCombat };
+            var result = Require(occurrences.DispatchOccurrencesObserved(beforeRun, beforeCombat, afterRun, afterCombat, before, Current));
+            Current = result.Observation;
+            return result.Execution;
+        }
+
         public EffectBatchResult Responses(RunState run, CombatState combat)
         {
             if (occurrences == null) return new() { Run = run, State = combat };
