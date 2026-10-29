@@ -104,16 +104,16 @@ internal sealed record EffectResultContext
         }
     }
 
-    public static string ExecutionId(EffectTriggerExecutionRequest request) => CanonicalJson.ComputeHash(new
-    {
-        state = CanonicalJson.ComputeHash(request.Combat),
-        run = request.Run == null ? null : CanonicalJson.ComputeHash(request.Run),
-        request.Trigger, request.Components, request.PrefixCommands,
-        request.Provenance, request.ContentRevision, request.OwnerEntityId, request.SourceEntityId,
-        request.Variables, tags = request.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToArray(), card = request.Card?.Fingerprint,
-        request.StackPayloadLots, request.Quantities,
-        targets = request.SelectedTargetEntityIds
-    });
+    public static string ExecutionId(EffectTriggerExecutionRequest request) => CanonicalJson.ComputeObjectHash(
+        CanonicalJson.Property("state", CanonicalJson.ComputeHash(request.Combat)),
+        CanonicalJson.Property("run", request.Run == null ? null : CanonicalJson.ComputeHash(request.Run)),
+        CanonicalJson.Property("trigger", request.Trigger), CanonicalJson.Property("components", request.Components),
+        CanonicalJson.Property("prefixCommands", request.PrefixCommands), CanonicalJson.Property("provenance", request.Provenance),
+        CanonicalJson.Property("contentRevision", request.ContentRevision), CanonicalJson.Property("ownerEntityId", request.OwnerEntityId),
+        CanonicalJson.Property("sourceEntityId", request.SourceEntityId), CanonicalJson.Property("variables", request.Variables),
+        CanonicalJson.Property("tags", request.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToArray()),
+        CanonicalJson.Property("card", request.Card?.Fingerprint), CanonicalJson.Property("stackPayloadLots", request.StackPayloadLots),
+        CanonicalJson.Property("quantities", request.Quantities), CanonicalJson.Property("targets", request.SelectedTargetEntityIds));
 
     public static EffectExecutionIdentity Identity(string executionId, string componentId,
         string path, int repeat, string targetId, string? parentProcId, string? outputId = null,

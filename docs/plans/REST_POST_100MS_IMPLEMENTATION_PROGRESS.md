@@ -30,3 +30,7 @@ O gateway já compartilha escopo e os hashes de snapshots idênticos; não foi c
 ## Etapa 5 — compartilhamento estrutural
 
 Encoder existente ampliado para atores, ResourceSet/ResourcePool e dicionários de atores/pools/componentes dentro de agregados já imutáveis. Componentes polimórficos mantêm o serializer de referência e discriminadores; não foi adicionado marcador global a tipos potencialmente extensíveis. Reuso é por identidade/tipo declarado e limitado ao orçamento operacional. 22 testes focados passaram; regressão nova confere bytes e SHA-256 independentes em 100 alterações de um único ator, preservando componentes compartilhados. Formato canônico não mudou.
+
+## Etapa 6 — identidades compatíveis
+
+ExecutionId compõe os mesmos 15 campos/bytes, reaproveitando os fragmentos do encoder existente; IDs de proc/impacto e agrupamento dos sorteios não foram simplificados. Nova prova compara a construção antiga do objeto embutido com a composição em 20 variantes de revisão/tags/alvos. 47 testes focados de identidade, origens, dispatcher e distribuição aprovaram; EngineVersion preservada.
