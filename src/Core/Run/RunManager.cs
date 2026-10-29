@@ -2512,6 +2512,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             {
                 var observed = ObserveRunEnding(previous, state, _observation);
                 if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+                state = observed.Value;
             }
             var snapshot = state;
             var previousHash = previous == null

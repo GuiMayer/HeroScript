@@ -44,19 +44,20 @@ public sealed partial class RunManager
     {
         if (observation == null) return Persist(candidate, RunCommandTypes.ResolveCombat, payload, identity,
             scope: "combat", combatId: combatId, activityEffects: diagnostics);
-        var normalized = PrepareCommitCandidate(candidate, previous);
-        var ending = ObserveRunEnding(previous, normalized, observation);
-        return ending.IsFailure ? Result<RunState>.Failure(ending.Error) : Result<RunState>.Success(normalized);
+        var ending = ObserveRunEnding(previous, candidate, observation);
+        return ending.IsFailure ? Result<RunState>.Failure(ending.Error)
+            : Result<RunState>.Success(PrepareCommitCandidate(ending.Value, previous));
     }
 
-    private static Result ObserveRunEnding(RunState? before, RunState after, GameplayRunObservation observation)
+    private static Result<RunState> ObserveRunEnding(RunState? before, RunState after, GameplayRunObservation observation)
     {
-        if (before?.Lifecycle != RunLifecycleState.Active || after.Lifecycle == RunLifecycleState.Active) return Result.Success();
+        if (before?.Lifecycle != RunLifecycleState.Active || after.Lifecycle == RunLifecycleState.Active) return Result<RunState>.Success(after);
+        var previousObservation = observation.Current;
         var observed = GameplayBoundaryObservation.Begin(observation.Current, GameplayBoundary.RunEnded, after.RunId.ToString("D"), null,
             new() { ContainerKind = "rule", ContainerId = "run.lifecycle", ComponentId = after.Lifecycle.ToString(),
                 ContentRevision = after.Determinism.ContentRevision }, $"run.end/{observation.Current.Events.Occurrences.Count}");
-        if (observed.IsFailure) return Result.Failure(observed.Error);
+        if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
         observation.Accept(observed.Value with { ParentEventId = observation.Current.ParentEventId });
-        return Result.Success();
+        return observation.Dispatch(before!, after, previousObservation);
     }
 }

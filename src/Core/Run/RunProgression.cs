@@ -218,9 +218,13 @@ public sealed class RunProgressionService(RunActivityRegistry activities)
             Core.Combat.Modifiers.ModifierDurationBoundary.Node);
         if (observation != null)
         {
-            var observed = Core.GameplayEvents.GameplayModifierObservation.AppendTicks(observation.Current, run, next);
+            var previousObservation = observation.Current;
+            var observed = Core.GameplayEvents.GameplayModifierObservation.AppendTicks(previousObservation, run, next);
             if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
             observation.Accept(observed.Value);
+            var dispatched = observation.Dispatch(run, next, previousObservation);
+            if (dispatched.IsFailure) return Result<RunState>.Failure(dispatched.Error);
+            next = dispatched.Value;
         }
         if (node.NextNodeIds.Count != 0)
             return Result<RunState>.Success(next);
@@ -231,9 +235,13 @@ public sealed class RunProgressionService(RunActivityRegistry activities)
             Core.Combat.Modifiers.ModifierDurationBoundary.Run);
         if (observation != null)
         {
-            var observed = Core.GameplayEvents.GameplayModifierObservation.AppendTicks(observation.Current, beforeRunTick, next);
+            var previousObservation = observation.Current;
+            var observed = Core.GameplayEvents.GameplayModifierObservation.AppendTicks(previousObservation, beforeRunTick, next);
             if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
             observation.Accept(observed.Value);
+            var dispatched = observation.Dispatch(beforeRunTick, next, previousObservation);
+            if (dispatched.IsFailure) return Result<RunState>.Failure(dispatched.Error);
+            next = dispatched.Value;
         }
         return Result<RunState>.Success(ApplyTransition(next, next.ResolvedMode?.ProgressionPolicy.EndOfMap
             ?? RunProgressionTransition.Complete));

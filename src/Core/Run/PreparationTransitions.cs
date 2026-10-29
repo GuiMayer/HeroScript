@@ -169,7 +169,8 @@ public static class PreparationTransitions
             }
         }
 
-        var updatedModifiers = (deck.Value.ResponsesState ?? state) with { Determinism = deck.Value.ResponsesState?.Determinism ?? plan.Context };
+        var updatedModifiers = (deck.Value.ResponsesState ?? state) with { Deck = deck.Value.State,
+            Determinism = deck.Value.ResponsesState?.Determinism ?? plan.Context };
         var appliedIds = new List<Guid>();
         foreach (var modifier in modifiers)
         {
@@ -179,6 +180,7 @@ public static class PreparationTransitions
             var applied = ModifierTransitions.Apply(updatedModifiers, modifier.Definition, owner, modifier.SourceId,
                 modifier.Stacks, modifier.Duration, modifier.InstanceId);
             if (applied.IsFailure) return Result<RunStateTransition<PreparationOptionState>>.Failure(applied.Error);
+            var previousModifierObservation = observation?.Current;
             if (observation != null)
             {
                 var observed = GameplayModifierObservation.AppendApplication(observation.Current, updatedModifiers, applied.Value,
@@ -187,7 +189,14 @@ public static class PreparationTransitions
                 if (observed.IsFailure) return Result<RunStateTransition<PreparationOptionState>>.Failure(observed.Error);
                 observation.Accept(observed.Value);
             }
-            updatedModifiers = applied.Value.Run;
+            var afterApplication = applied.Value.Run;
+            if (observation != null && previousModifierObservation != null)
+            {
+                var dispatched = observation.Dispatch(updatedModifiers, afterApplication, previousModifierObservation);
+                if (dispatched.IsFailure) return Result<RunStateTransition<PreparationOptionState>>.Failure(dispatched.Error);
+                afterApplication = dispatched.Value;
+            }
+            updatedModifiers = afterApplication;
             appliedIds.Add(applied.Value.Instance.InstanceId);
         }
 
@@ -201,10 +210,9 @@ public static class PreparationTransitions
             Options = preparation.Options.ToImmutableList().SetItem(optionIndex, updatedOption),
             AppliedOptionIds = preparation.AppliedOptionIds.Append(option.OptionId).ToImmutableList()
         };
-        var next = (deck.Value.ResponsesState ?? state) with
+        var next = updatedModifiers with
         {
-            ResourceState = deck.Value.ResponsesState?.ResourceState ?? spent.Value.State,
-            Deck = deck.Value.State,
+            Deck = updatedModifiers.Deck,
             Preparations = state.Preparations.SetItem(preparationIndex, updatedPreparation),
             Modifiers = updatedModifiers.Modifiers,
             Determinism = deck.Value.Context.AdvanceStep()
