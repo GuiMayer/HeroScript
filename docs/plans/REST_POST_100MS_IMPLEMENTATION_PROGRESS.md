@@ -18,3 +18,7 @@ Baseline nova em `.runtime/post100-01`: três testes API aprovados (inventário 
 ## Etapa 2 — medição exclusiva
 
 Implementados spans inclusivos/exclusivos/contagem, contador limitado a 128 nomes e métricas de bytes/hits/misses/evicções. Header de diagnóstico X-HeroScript-Work existe somente com Performance:DiagnosticsEnabled; não participa de estado/recibo/hashes. 21 testes Core focados e dois testes REST passaram. Perfil isolado em stage02-profile.log: cerca de 2143 serializações DOM, 1940 leituras de conteúdo e 56 coletas em um END_TURN; digest ~11ms, encoding exclusivo ~334ms. A coleta cria CardContentCompiler e resolve o baralho repetidamente, sendo o alvo principal após as provas de compatibilidade. Sem garantia de 100ms nesta etapa. Os tempos incluem overhead explícito de diagnóstico, não são um benchmark com observabilidade desligada.
+
+## Etapa 3 — oráculo congelado
+
+O transcript JSON exato foi capturado do binário anterior às otimizações (4a4a9c95) e salvo em tests/API.Tests/Fixtures/post100-command-oracle.json. O teste entre processos agora compara também esse valor fixo, além de comparar três processos entre si: inclui 18 hashes de recibos/commits, criticalHash e finalHash, dois settings e replay. Build sem warnings/erros; teste com três processos aprovado em 71s. O serializer de referência e as provas de bytes/formatos inválidos permanecem independentes no Core; não atualizar o fixture para acomodar divergências de otimização.

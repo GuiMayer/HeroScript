@@ -20,6 +20,7 @@ public sealed class CrossProcessFoundationTests(ITestOutputHelper output)
             ? Path.Combine(outputDirectory.Parent.Parent!.FullName, "Determinism.Probe", outputDirectory.Name, "Determinism.Probe.dll")
             : Path.Combine(repository.FullName, "tests", "Determinism.Probe", "bin", outputDirectory.Parent.Name, outputDirectory.Name, "Determinism.Probe.dll");
         Assert.True(File.Exists(probe), "Build HeroScript.slnx first; the cross-process probe is a solution test dependency.");
+        var frozen = File.ReadAllText(Path.Combine(repository.FullName, "tests", "API.Tests", "Fixtures", "post100-command-oracle.json")).Trim();
         string? baseline = null;
         for (var repetition = 0; repetition < 3; repetition++)
         {
@@ -35,6 +36,7 @@ public sealed class CrossProcessFoundationTests(ITestOutputHelper output)
             var text = await stdout; var error = await stderr;
             Assert.True(process.ExitCode == 0, $"Probe exited {process.ExitCode}: {text}\n{error}");
             var result = Assert.Single(text.Split('\n'), line => line.StartsWith("HEROSCRIPT_PROBE:", StringComparison.Ordinal))["HEROSCRIPT_PROBE:".Length..].Trim();
+            Assert.Equal(frozen, result); // Captured from 4a4a9c95, before any POST-100 optimisation.
             using var json = JsonDocument.Parse(result);
             Assert.Equal(18, json.RootElement.GetProperty("transcript").GetArrayLength());
             if (baseline == null) baseline = result; else Assert.Equal(baseline, result);
