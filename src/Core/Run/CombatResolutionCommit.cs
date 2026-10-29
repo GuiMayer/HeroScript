@@ -16,6 +16,8 @@ public sealed record CombatResolutionStep
     private ImmutableArray<EffectApplicationRecord> _applications = [];
     private ImmutableArray<CardZoneFlowStepRecord> _cardZoneSteps = [];
 
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
     public string TransitionType { get; init; } = string.Empty;
     public CombatState Combat { get; init; } = null!;
     public DeckState Deck { get; init; } = new();
@@ -49,6 +51,8 @@ public sealed record CombatResolutionCommit
 {
     private ImmutableArray<CombatResolutionStep> _steps = [];
 
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
     public Guid RunId { get; init; }
     public int ExpectedSequence { get; init; }
     public CombatState PreviousCombat { get; init; } = null!;

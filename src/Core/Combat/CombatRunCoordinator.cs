@@ -112,12 +112,22 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
             var effectiveIdentity = commandIdentity ?? CreateImplicitEncounterIdentity(run, combatResult.Value);
-            var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value);
+            var observation = PrepareEncounterObservation(run, combatResult.Value, effectiveIdentity);
+            if (observation.IsFailure) return Result<CombatRunEncounterResult>.Failure(observation.Error);
+            var startedObservation = observation.Value?.Current;
+            var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value, observation.Value);
             if (initialized.IsFailure)
             {
                 return Result<CombatRunEncounterResult>.Failure(initialized.Error);
             }
 
+            if (observation.Value != null)
+            {
+                var closed = GameplayActionObservation.Complete(startedObservation! with { ParentEventId = null }, startedObservation!,
+                    observation.Value.Current, effectiveIdentity.Type, run.PlayerEntityId, "command.completed", "command.input");
+                if (closed.IsFailure) return Result<CombatRunEncounterResult>.Failure(closed.Error);
+                observation.Value.Accept(closed.Value);
+            }
             var attached = _runManager.AttachEncounter(
                 runId,
                 effectiveIdentity.ExpectedSequence,
@@ -127,7 +137,7 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
                 initialized.Value.Run,
                 InitialCommand(combatResult.Value),
                 combatResult.Value,
-                InitializationStep(initialized.Value),
+                InitializationStep(initialized.Value) with { Observation = observation.Value?.Current },
                 commandPayload);
             if (attached.IsFailure)
             {
@@ -195,12 +205,22 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
             var effectiveIdentity = commandIdentity ?? CreateImplicitEncounterIdentity(run, combatResult.Value);
-            var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value);
+            var observation = PrepareEncounterObservation(run, combatResult.Value, effectiveIdentity);
+            if (observation.IsFailure) return Result<CombatRunEncounterResult>.Failure(observation.Error);
+            var startedObservation = observation.Value?.Current;
+            var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value, observation.Value);
             if (initialized.IsFailure)
             {
                 return Result<CombatRunEncounterResult>.Failure(initialized.Error);
             }
 
+            if (observation.Value != null)
+            {
+                var closed = GameplayActionObservation.Complete(startedObservation! with { ParentEventId = null }, startedObservation!,
+                    observation.Value.Current, effectiveIdentity.Type, run.PlayerEntityId, "command.completed", "command.input");
+                if (closed.IsFailure) return Result<CombatRunEncounterResult>.Failure(closed.Error);
+                observation.Value.Accept(closed.Value);
+            }
             var attached = _runManager.AttachEncounter(
                 runId,
                 effectiveIdentity.ExpectedSequence,
@@ -210,7 +230,7 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
                 initialized.Value.Run,
                 InitialCommand(combatResult.Value),
                 combatResult.Value,
-                InitializationStep(initialized.Value),
+                InitializationStep(initialized.Value) with { Observation = observation.Value?.Current },
                 commandPayload);
             if (attached.IsFailure)
             {

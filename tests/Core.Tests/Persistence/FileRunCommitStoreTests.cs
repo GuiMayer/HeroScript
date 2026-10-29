@@ -377,6 +377,58 @@ public sealed class FileRunCommitStoreTests : IDisposable
         Assert.Null(await store.LoadCommitAsync(commit.RunId, 1));
     }
 
+
+    [Fact]
+    public async Task GameplayEvents_SurviveCheckpointTailRestartAndDuplicateWithoutChangingStateHash()
+    {
+        var run = Guid.NewGuid();
+        var first = WithGameplayEvents(CreateCommit(run, 1, null, 1));
+        var second = WithGameplayEvents(CreateCommit(run, 2, first.StateHash, 2));
+        var original = CanonicalJson.ComputeHash(second.GameplayEvents);
+        using (var store = new FileRunCommitStore(_directory, NullLogger.Instance))
+        {
+            await store.AppendAsync(first);
+            var prepared = PreparedRunCommit.CreateVerified(second, second.StateHash, first.RequireState());
+            Assert.Equal(RunCommitStorageKind.Delta, prepared.Commit.StorageKind);
+            await store.AppendPreparedAsync(prepared);
+            var retry = await store.AppendPreparedAsync(prepared);
+            Assert.True(retry.Duplicate);
+        }
+        using var restarted = new FileRunCommitStore(_directory, NullLogger.Instance);
+        for (var read = 0; read < 5; read++)
+        {
+            var commit = await restarted.LoadCommitAsync(run, 2);
+            Assert.Equal(second.StateHash, commit!.StateHash);
+            Assert.Equal(original, CanonicalJson.ComputeHash(commit.GameplayEvents));
+            Assert.Equal(original, CanonicalJson.ComputeHash(commit.ToJournalEntry().GameplayEvents));
+            Assert.Equal(CanonicalJson.ComputeHash(second.RequireState()), CanonicalJson.ComputeHash(commit.RequireState()));
+        }
+        Assert.Equal(2, (await restarted.ListCommitSequencesAsync(run)).Count);
+    }
+
+    [Fact]
+    public void GameplayEvents_RejectForgedScopeAndBrokenCausalPrefix()
+    {
+        var commit = WithGameplayEvents(CreateCommit(Guid.NewGuid(), 1, null, 1));
+        Assert.Throws<InvalidOperationException>(() => (commit with { GameplayEvents = commit.GameplayEvents! with {
+            Scope = commit.GameplayEvents.Scope with { BranchId = Guid.NewGuid().ToString("D") } } }).Validate());
+        Assert.Throws<InvalidOperationException>(() => (commit with { GameplayEvents = commit.GameplayEvents! with {
+            Occurrences = commit.GameplayEvents.Occurrences.SetItem(0, commit.GameplayEvents.Occurrences[0] with {
+                ParentEventId = "missing", Depth = 1 }) } }).Validate());
+        var historical = commit with { GameplayEvents = null };
+        historical.Validate();
+        Assert.DoesNotContain("GameplayEvents", JsonSerializer.Serialize(historical, RunCommitJson.Options));
+    }
+
+    private static RunCommit WithGameplayEvents(RunCommit commit)
+    {
+        var state = commit.RequireState();
+        var root = Core.GameplayEvents.GameplayCommandObservation.Create(state, null, commit.RootCommand).Value;
+        var started = Core.GameplayEvents.GameplayActionObservation.Begin(root, "TEST", "hero", "command.started", "command.input").Value;
+        var completed = Core.GameplayEvents.GameplayActionObservation.Complete(root, started, started, "TEST", "hero", "command.completed", "command.input").Value;
+        return commit with { GameplayEvents = Core.GameplayEvents.GameplayEventBatch.Capture(completed) };
+    }
+
     private async Task usingScope(Func<FileRunCommitStore, Task> action)
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);

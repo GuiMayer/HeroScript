@@ -54,7 +54,7 @@ public sealed partial class CombatRunCoordinator
             var completed = GameplayActionObservation.Complete(observation, started.Value, candidate.Value.Observation!, identity.Type,
                 command.ActorId, "command.completed", "command.input");
             return completed.IsFailure ? Result<ObservedGameplayExecution<CombatResolutionCommit>>.Failure(completed.Error)
-                : Result<ObservedGameplayExecution<CombatResolutionCommit>>.Success(new(candidate.Value.Commit, completed.Value));
+                : Result<ObservedGameplayExecution<CombatResolutionCommit>>.Success(new(candidate.Value.Commit with { Observation = completed.Value }, completed.Value));
         }
     }
 
@@ -118,7 +118,19 @@ public sealed partial class CombatRunCoordinator
             if (completed.IsFailure) return Result<ActionCandidate>.Failure(completed.Error);
             observation = completed.Value;
         }
-        return Result<ActionCandidate>.Success(new(handled.Value, driven.Value, commit, observation));
+        return Result<ActionCandidate>.Success(new(handled.Value, driven.Value, commit with { Observation = observation }, observation));
+    }
+
+    private Result<GameplayRunObservation?> PrepareEncounterObservation(RunState run, CombatState combat, RunCommandIdentity identity)
+    {
+        var probe = _occurrences?.PrepareOccurrenceObservation(run, combat);
+        if (probe is { IsFailure: true }) return Result<GameplayRunObservation?>.Failure(probe.Error);
+        if (probe?.Value == null) return Result<GameplayRunObservation?>.Success(null);
+        var root = GameplayCommandObservation.Create(run, combat.CombatId, identity);
+        if (root.IsFailure) return Result<GameplayRunObservation?>.Failure(root.Error);
+        var started = GameplayActionObservation.Begin(root.Value, identity.Type, run.PlayerEntityId, "command.started", "command.input");
+        return started.IsFailure ? Result<GameplayRunObservation?>.Failure(started.Error)
+            : Result<GameplayRunObservation?>.Success(new(started.Value));
     }
 
 }

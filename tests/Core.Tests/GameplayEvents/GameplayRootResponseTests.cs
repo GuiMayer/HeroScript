@@ -67,6 +67,8 @@ public sealed class GameplayRootResponseTests
         var expected = coordinator.PlanObservedAction(run.RunId, combat.CombatId, command, identity);
         Assert.True(expected.IsSuccess, expected.IsFailure ? expected.Error : null);
         Assert.Empty(commits);
+        Assert.NotNull(expected.Value.Execution.Observation);
+        Assert.Single(expected.Value.Execution.Observation.Invocations);
         for (var i = 0; i < 5; i++)
         {
             var actual = coordinator.ExecuteAction(combat.CombatId, command, identity);

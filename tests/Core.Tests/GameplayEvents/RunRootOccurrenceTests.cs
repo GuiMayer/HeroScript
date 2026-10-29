@@ -55,12 +55,29 @@ public sealed class RunRootOccurrenceTests
         var executor = new RunGameplayOccurrenceExecutor(EffectTransactionTests.Executor());
         var descriptor = new GameplayCommandDescriptor("TEST_PAYMENT", typeof(Pay), GameplayCommandRoute.Run);
         var handler = new Handler(descriptor, executor);
+        var durable = new Mock<Core.Abstractions.Persistence.IRunCommitStore>();
+        Core.Abstractions.Persistence.RunCommit? committed = null;
+        var rejectAppend = !invalid;
+        durable.Setup(item => item.AppendAsync(It.IsAny<Core.Abstractions.Persistence.RunCommit>(), It.IsAny<CancellationToken>()))
+            .Returns((Core.Abstractions.Persistence.RunCommit value, CancellationToken _) =>
+            {
+                if (rejectAppend) throw new IOException("append unavailable");
+                committed = value;
+                return Task.FromResult(new Core.Abstractions.Persistence.RunCommitAppendResult(value, false));
+            });
         var coordinator = new RunSessionCoordinator(queries.Object, new GameplayCommandCodec([descriptor]), new([handler]),
-            state => { publications++; run = state; }, occurrences: executor);
+            state => { publications++; run = state; }, store: durable.Object, occurrences: executor);
         var command = new GameplayCommandEnvelope(new(Guid.Parse("77f58528-884b-432c-b719-d3c755a26775"), descriptor.Type,
             run.Sequence, run.Determinism.Step), JsonSerializer.SerializeToElement(new Pay(3)));
         var planned = coordinator.PlanObserved(run.RunId, command);
         Assert.Equal(0, publications); Assert.Equal(input, CanonicalJson.ComputeHash(original));
+        if (!invalid)
+        {
+            var failed = coordinator.Execute(run.RunId, command);
+            Assert.True(failed.IsFailure); Assert.Null(committed); Assert.Equal(0, publications);
+            Assert.Equal(input, CanonicalJson.ComputeHash(run));
+            rejectAppend = false;
+        }
         var executed = coordinator.Execute(run.RunId, command);
         if (invalid)
         {
@@ -73,9 +90,15 @@ public sealed class RunRootOccurrenceTests
         Assert.Equal(CanonicalJson.ComputeHash(planned.Value.Execution.CandidateState with { Sequence = run.Sequence }), CanonicalJson.ComputeHash(run));
         Assert.Equal(7, run.ResourceState.Get("focus")!.Current);
         Assert.Equal(12, run.PlayerEntity!.Component<ResourceEntityComponentState>()!.State.Get("focus")!.Current);
-        Assert.Equal(1, publications); Assert.Equal(2, handler.Calls);
+        Assert.Equal(1, publications); Assert.Equal(3, handler.Calls);
+        Assert.NotNull(committed!.GameplayEvents);
+        var batch = committed.GameplayEvents;
+        Assert.True(batch.Validate(run.RunId, command.Identity.CommandId).IsSuccess);
+        Assert.Single(batch.Invocations);
+        Assert.Equal(CanonicalJson.ComputeHash(batch), CanonicalJson.ComputeHash(executed.Value.JournalEntry!.GameplayEvents));
+        Assert.Equal(CanonicalJson.ComputeHash(GameplayEventBatch.Capture(planned.Value.Observation)), CanonicalJson.ComputeHash(batch));
         var retry = coordinator.Execute(run.RunId, command);
         Assert.True(retry.IsSuccess, retry.IsFailure ? retry.Error : null);
-        Assert.True(retry.Value.Duplicate); Assert.Equal(2, handler.Calls); Assert.Equal(1, publications);
+        Assert.True(retry.Value.Duplicate); Assert.Equal(3, handler.Calls); Assert.Equal(1, publications);
     }
 }

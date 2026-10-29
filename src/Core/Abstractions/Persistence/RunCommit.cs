@@ -102,6 +102,8 @@ public sealed record RunCommit
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string EngineVersion { get; init; } = DeterministicContext.CurrentEngineVersion;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.GameplayEvents.GameplayEventBatch? GameplayEvents { get; init; }
     public Guid RunId { get; init; }
     public int Sequence { get; init; }
     public RunCommandIdentity RootCommand { get; init; } = null!;
@@ -209,6 +211,8 @@ public sealed record RunCommit
         if (_frames.Length == 0 || _facts.Length == 0)
             throw new InvalidOperationException("Run commit requires at least one frame and one durable fact");
         ProfileProgress?.ValidateEnvelope(RunId, Sequence, RootCommand.CommandId);
+        if (GameplayEvents?.Validate(RunId, RootCommand.CommandId) is { IsFailure: true } invalidEvents)
+            throw new InvalidOperationException(invalidEvents.Error);
 
         if (CombatResolution is { } resolution &&
             (resolution.CommandId != RootCommand.CommandId ||
@@ -261,7 +265,8 @@ public sealed record RunCommit
             : Command.Clone(),
         PreviousStateHash = PreviousStateHash,
         StateHash = StateHash,
-        LogicalTimestamp = LogicalTimestamp
+        LogicalTimestamp = LogicalTimestamp,
+        GameplayEvents = GameplayEvents
     };
 }
 

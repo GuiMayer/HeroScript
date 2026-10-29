@@ -228,7 +228,8 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
             LogicalTimestamp = stateAfter.Determinism.LogicalTimestamp.UtcDateTime,
             StateAfter = stateAfter,
             Frames = frames,
-            Facts = facts
+            Facts = facts,
+            GameplayEvents = Core.GameplayEvents.GameplayEventBatch.Capture(plan.Observation)
         };
         var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, plan.PreviousState);
 

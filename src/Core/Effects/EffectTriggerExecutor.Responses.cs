@@ -192,7 +192,11 @@ public sealed partial class EffectTriggerExecutor
                     SelectedTargetEntityIds = [candidate.TargetActorId],
                     Variables = request.Variables.ToImmutableDictionary(StringComparer.Ordinal).SetItems(variables.Value) };
             var childObservation = currentObservation with { ParentEventId = candidate.Occurrence.EventId,
-                ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin };
+                ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin,
+                Invocations = currentObservation.Invocations.Add(new() { InvocationId = reserved.Value.InvocationId!,
+                    EventId = candidate.Occurrence.EventId, RegistrationId = candidate.Registration.RegistrationId,
+                    ResponseId = definition.ResponseId, OwnerActorId = candidate.OwnerActorId, SourceActorId = candidate.SourceActorId,
+                    TargetActorId = candidate.TargetActorId, Origin = candidate.Registration.Origin }) };
             if (view != null) childObservation = childObservation with { ResourceOwnerBindings = childObservation.ResourceOwnerBindings.Remove(view.ActorId) };
             var result = Execute(request, candidate.LegacyParent, budget, suppressReactions: boundary == null, baseDepth: boundary == null ? depth + 1 : 0,
                 observation: childObservation, dispatchResponses: definition.Propagation == ResponsePropagation.AllowResponses);

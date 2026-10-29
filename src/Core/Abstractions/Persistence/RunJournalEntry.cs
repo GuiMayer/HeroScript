@@ -4,6 +4,8 @@ namespace Core.Abstractions.Persistence;
 
 public sealed record RunJournalEntry
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.GameplayEvents.GameplayEventBatch? GameplayEvents { get; init; }
     public Guid RunId { get; init; }
     public Guid? CommandId { get; init; }
     public Guid? RootCommandId { get; init; }

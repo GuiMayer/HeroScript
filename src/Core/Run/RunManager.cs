@@ -369,9 +369,9 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                     SettingId = options.SettingId ?? options.ConfigName,
                     CapturedEligibility = eligibility.Value,
                     CapturedCreationIdentity = creationIdentity
-                }, commandIdentity: options.CreationCommandId is { } creationCommandId
+                }, commandIdentity: (options.CreationCommandId ?? (planning == null ? null : new Guid(Convert.FromHexString(creationIdentity.Key)[..16]))) is { } creationCommandId
                     ? new RunCommandIdentity(creationCommandId, RunCommandTypes.StartRun, 0, 0, string.Empty) : null,
-                activityEffects: initialActivityEffects);
+                activityEffects: initialActivityEffects, observation: planning?.Current?.Current);
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
@@ -1640,7 +1640,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 commandIdentity,
                 scope: "combat",
                 combatId: combatState.CombatId,
-                combatResolution: combatResolution);
+                combatResolution: combatResolution, observation: initializationStep?.Observation);
         }
     }
 
@@ -1664,7 +1664,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 resolution.PreviousCombat,
                 resolution.RootCommand,
                 resolution.Steps,
-                resolution.RootPayload);
+                resolution.RootPayload, resolution.Observation);
         }
     }
 
@@ -1673,7 +1673,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         CombatState previousCombat,
         RunCommandIdentity? rootCommand,
         IReadOnlyList<CombatResolutionStep> steps,
-        JsonElement rootPayload = default)
+        JsonElement rootPayload = default,
+        Core.GameplayEvents.GameplayEffectObservation? observation = null)
     {
         var encounterIndex = FindEncounterIndex(state, previousCombat.CombatId);
         if (encounterIndex < 0 || state.ActiveEncounterId != previousCombat.CombatId)
@@ -1732,7 +1733,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         if (rootCommand != null)
             combatResolution = CreateCombatResolutionRecord(state, previousCombat, rootCommand, candidates);
 
-        return PersistBatch(state, candidates, rootCommand, rootPayload, combatResolution);
+        return PersistBatch(state, candidates, rootCommand, rootPayload, combatResolution, observation);
     }
 
     private CombatResolutionRecord CreateCombatResolutionRecord(
@@ -2522,7 +2523,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         string scope = "run",
         Guid? combatId = null,
         CombatResolutionRecord? combatResolution = null,
-        RunActivityEffectResult? activityEffects = null)
+        RunActivityEffectResult? activityEffects = null,
+        Core.GameplayEvents.GameplayEffectObservation? observation = null)
     {
         _runs.TryGetValue(state.RunId, out var previous);
         try
@@ -2600,7 +2602,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 Lineage = nextSequence == 1 ? snapshot.Lineage : null,
                 CombatResolution = ToCommitResolution(combatResolution),
                 Frames = frames,
-                Facts = RunCommitFacts.FromFrames(frames)
+                Facts = RunCommitFacts.FromFrames(frames),
+                GameplayEvents = Core.GameplayEvents.GameplayEventBatch.Capture(observation)
             };
             var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, previous);
 
@@ -2630,7 +2633,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         IReadOnlyList<(RunState State, CombatResolutionStep Step)> candidates,
         RunCommandIdentity? rootCommand,
         JsonElement rootPayload = default,
-        CombatResolutionRecord? combatResolution = null)
+        CombatResolutionRecord? combatResolution = null,
+        Core.GameplayEvents.GameplayEffectObservation? observation = null)
     {
         try
         {
@@ -2700,7 +2704,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 StateAfter = finalState,
                 CombatResolution = ToCommitResolution(combatResolution),
                 Frames = frames,
-                Facts = RunCommitFacts.FromFrames(frames)
+                Facts = RunCommitFacts.FromFrames(frames),
+                GameplayEvents = Core.GameplayEvents.GameplayEventBatch.Capture(observation)
             };
             var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, previous);
 

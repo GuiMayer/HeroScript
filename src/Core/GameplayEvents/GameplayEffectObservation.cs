@@ -16,6 +16,7 @@ public sealed record ObservedEffectExecution(EffectBatchResult Execution, Gamepl
 /// </summary>
 public sealed record GameplayEffectObservation
 {
+    public ImmutableArray<GameplayResponseInvocation> Invocations { get; init; } = [];
     public GameplayEventTransaction Events { get; init; } = null!;
     public string PublisherId { get; init; } = string.Empty;
     public string ReasonId { get; init; } = string.Empty;

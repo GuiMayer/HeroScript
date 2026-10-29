@@ -133,3 +133,7 @@ Os conversores puros de `GameplayBoundaryResponseMigration` devolvem candidatas 
 `order.group` ordena grupos antes da identidade do container, preservando prioridades entre relíquias. As referências inline `parent.requested_change`, `parent.applied_change` e `parent.limited_change` migram para `event.change.requested_delta`, `event.change.applied_delta` e `event.change.limited_delta`; `stacks` migra para `scope.container_stacks` em reações de recurso. Não se deduz dano pelo nome do recurso ou pelo sinal do número.
 
 Referências externas não expandidas e corpos estocásticos/continuations cuja identidade ainda não tem migração certificada permanecem rejeitados. A ferramenta de arquivos/diff, migração dos pacotes e corte de autoria ainda não estão concluídos. Os templates históricos continuam necessários até esse corte e para bundles históricos suportados.
+
+## Persistência causal
+
+O commit schema 4 pode conter `GameplayEvents` (lote schema 1), com scope, occurrences e invocations. A candidata é gravada uma única vez antes de publicar o estado. O lote não faz parte do hash do estado nem constitui uma fila a executar ao carregar. As quotas de PriorityWindow permanecem no estado autoritativo da janela; quotas de ação são efêmeras. Commits anteriores sem esse campo são válidos e exibem ausência de diagnóstico, sem reconstrução heurística. Status e ações pendentes usam suas âncoras causais capturadas, inclusive entre branches autorizadas. Nova revisão não reescreve o conteúdo histórico.
