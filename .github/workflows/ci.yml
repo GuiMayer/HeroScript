@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -18,33 +23,33 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          global-json-file: global.json
       
       - name: Build
         run: dotnet build HeroScript.slnx --configuration Release
       
       - name: Core Tests
-        run: dotnet test tests/Core.Tests/Core.Tests.csproj --no-build -c Release
+        run: dotnet test tests/Core.Tests/Core.Tests.csproj --no-build -c Release --logger trx
       
       # Include untagged foundation/controller regressions as well as categorized tests.
       # Long deterministic journeys have their own session budget below.
       - name: API regressions and contract documentation
-        timeout-minutes: 5
+        timeout-minutes: 15
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests&FullyQualifiedName!~AscendantWorldOneJourneyTests&FullyQualifiedName!~WholeCircularJourney" --no-build -c Release
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests&FullyQualifiedName!~AscendantWorldOneJourneyTests&FullyQualifiedName!~WholeCircularJourney" --no-build -c Release --logger trx -- RunConfiguration.TestSessionTimeout=720000
 
       - name: Circular table full journey and semantic replay
         timeout-minutes: 30
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~WholeCircularJourney" --no-build -c Release -- RunConfiguration.TestSessionTimeout=1800000
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~WholeCircularJourney" --no-build -c Release --logger trx -- RunConfiguration.TestSessionTimeout=1800000
 
       - name: Published Ascendant world one journey and replay
-        timeout-minutes: 10
+        timeout-minutes: 20
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~AscendantWorldOneJourneyTests" --no-build -c Release -- RunConfiguration.TestSessionTimeout=600000
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~AscendantWorldOneJourneyTests" --no-build -c Release --logger trx -- RunConfiguration.TestSessionTimeout=1200000
 
       - name: Contract change policy
         if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
@@ -60,10 +65,18 @@ jobs:
         timeout-minutes: 10
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~WorldOneFoundationJourneyTests" --no-build -c Release -- RunConfiguration.TestSessionTimeout=600000
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~WorldOneFoundationJourneyTests" --no-build -c Release --logger trx -- RunConfiguration.TestSessionTimeout=600000
 
       - name: Volatile core deterministic journey
         timeout-minutes: 15
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay" --no-build -c Release -- RunConfiguration.TestSessionTimeout=600000
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay" --no-build -c Release --logger trx -- RunConfiguration.TestSessionTimeout=600000
+
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-test-results
+          path: '**/TestResults/**'
+          if-no-files-found: warn

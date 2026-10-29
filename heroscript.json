@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "projectId": "heroscript-example",
+  "projectVersion": "0.1.0",
+  "runtimeVersion": "0.1.0",
+  "contentDirectory": "data/configs",
+  "startupSettings": ["uno-clash", "circular-table"],
+  "allowedOrigins": ["null"],
+  "port": 5260,
+  "clientEntry": null
+}

@@ -1,0 +1,69 @@
+name: Runtime distribution
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version without v (e.g. 0.1.0)'
+        required: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  windows:
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $version = if ($env:INPUT_VERSION) { $env:INPUT_VERSION } else { $env:RELEASE_TAG -replace '^v','' }
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[A-Za-z0-9.-]+)?$') { throw 'Invalid version' }
+          "PACKAGE_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Core regression tests
+        run: dotnet test tests/Core.Tests/Core.Tests.csproj -c Release --logger trx --results-directory TestResults
+      - name: Build complete runtime package
+        run: python tools/distribution/package.py --version $env:PACKAGE_VERSION
+      - name: Test extracted distribution
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts/distribution/*.zip | Select-Object -First 1
+          Expand-Archive $zip.FullName 'artifacts/extracted package'
+          ./tools/distribution/smoke.ps1 -Package 'artifacts/extracted package'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-win-x64
+          path: |
+            artifacts/distribution/*.zip
+            artifacts/distribution/*.sha256
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-win-x64
+          path: packages
+      - name: Create draft release with verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" packages/* --verify-tag --draft --generate-notes
