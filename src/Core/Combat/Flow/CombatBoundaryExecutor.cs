@@ -645,6 +645,8 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             return Result<CombatResolutionStep>.Failure(refreshed.Error);
 
         run = refreshed.Value.Run ?? run;
+        deck = run.Deck;
+        drawContext = run.Determinism;
         var nextActivation = activation with
         {
             ActiveActorId = nextActorId,

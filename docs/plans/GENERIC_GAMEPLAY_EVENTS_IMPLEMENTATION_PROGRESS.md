@@ -191,3 +191,6 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Etapa 9h: ticks/expiração de modificadores em combate despacham fatos pelo executor comum e incorporam os resultados em frames/finalização. Elegibilidade de status/modificadores é capturada antes das respostas da fronteira e restaurada entre frames aninhados. 198 testes focados aprovados, incluindo três regressões novas de snapshot sem processamento retroativo e resposta a duração/expiração de modificador. Inventário e documentação distinguem caminhos migrados de produtores apenas instrumentados. Autoria padrão bloqueada e etapas 10–15 ainda pendentes.
 
+
+- Etapa 9i: corrigida a propagação do baralho/contexto resultantes de uma resposta ao refresh para o fluxo seguinte da ativação. A regressão usa executores/zonas reais, resposta CARD_ZONE_FLOW configurada e cinco repetições, sem mutar entrada. Prova negativa em .runtime/generic-events-stage9i-negative sobre d2a140a6: o teste falha porque a carta volta à reserva; no código corrigido passa. 15 testes focados aprovados. Esta correção de propagação não substitui a integração pendente dos fatos externos de movimentação.
+
