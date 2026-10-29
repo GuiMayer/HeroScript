@@ -131,7 +131,7 @@ public static partial class CanonicalJson
             lock (_gate)
             {
                 if (_items.ContainsKey(key)) return;
-                while (_items.Count >= 128 || _bytes + encoding.Bytes.Length > Budget)
+                while (_items.Count >= 512 || _bytes + encoding.Bytes.Length > Budget)
                 {
                     Core.Diagnostics.OperationalTiming.Count("encoding_eviction");
                     var first = _order.First!;

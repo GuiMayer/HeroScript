@@ -22,3 +22,7 @@ Implementados spans inclusivos/exclusivos/contagem, contador limitado a 128 nome
 ## Etapa 3 — oráculo congelado
 
 O transcript JSON exato foi capturado do binário anterior às otimizações (4a4a9c95) e salvo em tests/API.Tests/Fixtures/post100-command-oracle.json. O teste entre processos agora compara também esse valor fixo, além de comparar três processos entre si: inclui 18 hashes de recibos/commits, criticalHash e finalHash, dois settings e replay. Build sem warnings/erros; teste com três processos aprovado em 71s. O serializer de referência e as provas de bytes/formatos inválidos permanecem independentes no Core; não atualizar o fixture para acomodar divergências de otimização.
+
+## Etapa 4 — reuso dentro do comando
+
+O gateway já compartilha escopo e os hashes de snapshots idênticos; não foi criado outro contexto paralelo. O perfil mostrou 205 misses/77 evicções com somente ~446KB de folhas codificadas. Ajustado o limite de entradas de 128 para 512 mantendo o teto de 8MiB e descarte ao terminar a operação, evitando expulsão prematura por quantidade. 20 testes de canonicalização/diagnóstico aprovados, incluindo bytes e evicção. O ganho de latência será medido junto à próxima composição; não é alegação de 100ms nem remoção de campos/hashes.
