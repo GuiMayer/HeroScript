@@ -38,7 +38,7 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
 | 7 — Migração das reações de recurso | Concluída; um dispatcher, sem coleta/matcher paralelos |
 | 8 — Migração de lifecycle/fases | Concluída; despacho comum, timing/expiração/idempotência preservados |
-| 9 — Containers e respostas pós-fato | Em andamento: materialização de componentes de entidade e observador externo validados |
+| 9 — Containers e respostas pós-fato | Em andamento até 9i: entidades/cartas/compartimentos, efeitos, fronteiras e ticks/refresh integrados; faltam fluxos externos de cartas, comandos fora de combate e ação raiz |
 | 10 — Intenções e janelas | Não iniciada |
 | 11 — Migração de conteúdo | Não iniciada |
 | 12 — Persistência/replay/timeline | Não iniciada |
@@ -194,3 +194,7 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Etapa 9i: corrigida a propagação do baralho/contexto resultantes de uma resposta ao refresh para o fluxo seguinte da ativação. A regressão usa executores/zonas reais, resposta CARD_ZONE_FLOW configurada e cinco repetições, sem mutar entrada. Prova negativa em .runtime/generic-events-stage9i-negative sobre d2a140a6: o teste falha porque a carta volta à reserva; no código corrigido passa. 15 testes focados aprovados. Esta correção de propagação não substitui a integração pendente dos fatos externos de movimentação.
 
+
+- Certificação acumulada até 9i: commit 95f6f3ddbc200d05c5eb6539c7cf25649c63b4f4 exportado em `.runtime/generic-events-stage9i-certified-index`. Build completo sem warnings/erros; **2146 testes Core e 32 testes API focados aprovados**, sem falhas/exclusões. A seleção API cobre controllers, jornada de compartimentos, sandbox e probes entre processos; não representa a suíte API inteira/Godot nem certificação das etapas 10–15. A falha ampla 65/67 previamente reproduzida antes destas mudanças permanece registrada, sem ajuste de gameplay para escondê-la.
+
+Estado exato: etapa 8 concluída; etapa 9 em execução. Próximo ponto: fatos de movimentos externos de cartas e composição da ação raiz/atividades fora de combate. Etapas 10–15 não foram executadas e não há cutover de autoria, contadores duráveis, REST causal ou laboratório localizado anunciado como pronto. EngineVersion permanece 34 enquanto a publicação nova está bloqueada.

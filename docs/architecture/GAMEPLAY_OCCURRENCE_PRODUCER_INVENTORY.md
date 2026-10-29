@@ -42,18 +42,18 @@ A descriÃ§Ã£o anterior registra a instrumentaÃ§Ã£o da etapa 4. As reaÃ§Ãµes de r
 O executor normal usa fatos locais descartÃ¡veis quando hÃ¡ essa famÃ­lia de reaÃ§Ãµes; isso nÃ£o habilita gravaÃ§Ã£o de journal novo nem publica eventos intermediÃ¡rios. O executor observado exige os IDs reais de setting/root-run/branch. Os templates internos conservam IDs e parent.* histÃ³ricos, com comparaÃ§Ã£o de hashes completos contra a Ã¡rvore anterior Ã  migraÃ§Ã£o. Fronteiras, status periÃ³dicos/expiraÃ§Ã£o, gatilhos de relÃ­quias e fases continuam aguardando a migraÃ§Ã£o da etapa 8.
 
 
-## Integração atual dos consumidores (até 9h)
+## IntegraÃ§Ã£o atual dos consumidores (atÃ© 9h)
 
 | Caminho | Respostas no executor normal | Limite atual |
 |---|---|---|
-| Efeitos de recurso, atributo, status, carta/zona e sequência | Sim, com declarações capturadas e providers comuns | Publicação padrão bloqueada até o cutover. |
-| Gatilhos capturados de status, relíquias e fases | Sim, pelo dispatcher comum | Templates históricos internos preservam identidades. |
-| Fronteiras de combate/rodada/ativação e fases | Sim, uma oportunidade canônica por fronteira | Executor geral deve receber a capacidade de ocorrências (composição API já ligada). |
-| Duração/expiração de status | Sim | Snapshot da fronteira impede processamento retroativo de instâncias novas. |
-| Duração/expiração de modificadores em combate | Sim | Contadores ainda candidatos, sem durabilidade entre comandos. |
-| Refresh primitivo da ativação | Sim | Política original continua decidindo recurso/operando/timing. |
-| Movimentos externos de cartas e modificações fora de combate | Instrumentados; integração de respostas ainda pendente | Não considerar esta família migrada apenas porque já produz fatos observados. |
-| Intenções, PriorityStack e retomada | Integração anterior do jogo preservada | Nova causação/continuidade de respostas pertence à etapa 10. |
-| Journal/REST/mensagens de ocorrências | Pendente | Etapas 12–14; consultar timeline não executa respostas. |
+| Efeitos de recurso, atributo, status, carta/zona e sequÃªncia | Sim, com declaraÃ§Ãµes capturadas e providers comuns | PublicaÃ§Ã£o padrÃ£o bloqueada atÃ© o cutover. |
+| Gatilhos capturados de status, relÃ­quias e fases | Sim, pelo dispatcher comum | Templates histÃ³ricos internos preservam identidades. |
+| Fronteiras de combate/rodada/ativaÃ§Ã£o e fases | Sim, uma oportunidade canÃ´nica por fronteira | Executor geral deve receber a capacidade de ocorrÃªncias (composiÃ§Ã£o API jÃ¡ ligada). |
+| DuraÃ§Ã£o/expiraÃ§Ã£o de status | Sim | Snapshot da fronteira impede processamento retroativo de instÃ¢ncias novas. |
+| DuraÃ§Ã£o/expiraÃ§Ã£o de modificadores em combate | Sim | Contadores ainda candidatos, sem durabilidade entre comandos. |
+| Refresh primitivo da ativaÃ§Ã£o | Sim | PolÃ­tica original continua decidindo recurso/operando/timing. |
+| Movimentos externos de cartas e modificaÃ§Ãµes fora de combate | Instrumentados; integraÃ§Ã£o de respostas ainda pendente | NÃ£o considerar esta famÃ­lia migrada apenas porque jÃ¡ produz fatos observados. |
+| IntenÃ§Ãµes, PriorityStack e retomada | IntegraÃ§Ã£o anterior do jogo preservada | Nova causaÃ§Ã£o/continuidade de respostas pertence Ã  etapa 10. |
+| Journal/REST/mensagens de ocorrÃªncias | Pendente | Etapas 12â€“14; consultar timeline nÃ£o executa respostas. |
 
-A etapa 8 está concluída. A etapa 9 permanece em execução; 10–15 não foram declaradas concluídas. Evidências por árvore/commit estão no documento de progresso.
+A etapa 8 estÃ¡ concluÃ­da. A etapa 9 permanece em execuÃ§Ã£o; 10â€“15 nÃ£o foram declaradas concluÃ­das. EvidÃªncias por Ã¡rvore/commit estÃ£o no documento de progresso.
