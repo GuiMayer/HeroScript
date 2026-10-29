@@ -1962,8 +1962,9 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                         ResourceEffectOperation.SUBTRACT => ResourceMutationOperation.Subtract, _ => ResourceMutationOperation.Set }
                 }]);
                 if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
+                state = observed.Value;
             }
-            state = state with { ResourceState = changed.Value.State };
+            else state = state with { ResourceState = changed.Value.State };
             var mutation = changed.Value.Records.Single();
 
             state = state with { Determinism = state.Determinism.AdvanceStep() };

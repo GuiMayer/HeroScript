@@ -18,6 +18,7 @@ public sealed partial class RunManager
         if (_repository != null || _eventBus != null || !_runs.IsEmpty || _observation != null)
             throw new InvalidOperationException("Observation requires a fresh detached planning engine");
         _observation = observation;
+        if (_activityEffects is IRunGameplayOccurrenceExecutor executor) observation.Bind(executor);
         _observedActivityEffects = _activityEffects == null ? null : observation.Wrap(_activityEffects);
         _observedCardZoneFlows = _cardZoneFlows == null ? null : new ObservedRunCardZoneFlows(_cardZoneFlows, observation);
     }

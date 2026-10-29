@@ -123,6 +123,7 @@ public static class RunResourceTransitions
                 Operation = ResourceMutationOperation.Subtract, Value = cost.Amount }).ToImmutableArray();
             var observed = observation.RecordWallet(run, spent.Value, mutations, observation.Current.CostReasonId);
             if (observed.IsFailure) return Result<RunPayment>.Failure(observed.Error);
+            return Result<RunPayment>.Success(new(observed.Value, observed.Value.ResourceState));
         }
         return Result<RunPayment>.Success(new(run with { ResourceState = spent.Value.State }, spent.Value.State));
     }
@@ -141,6 +142,7 @@ public static class RunResourceTransitions
                 Operation = ResourceMutationOperation.Add, Value = amount.Amount }).ToImmutableArray();
             var observed = observation.RecordWallet(run, gained.Value, mutations);
             if (observed.IsFailure) return Result<RunPayment>.Failure(observed.Error);
+            return Result<RunPayment>.Success(new(observed.Value, observed.Value.ResourceState));
         }
         return Result<RunPayment>.Success(new(run with { ResourceState = gained.Value.State }, gained.Value.State));
     }

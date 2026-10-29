@@ -158,6 +158,11 @@ public sealed partial class EffectTriggerExecutor
                 : Result<ImmutableDictionary<string, float>>.Success(ImmutableDictionary<string, float>.Empty.Add("stacks", legacy.Stacks));
             if (variables.IsFailure) return Result<EffectBatchResult?>.Failure(variables.Error);
             var definition = candidate.Registration.Response.Definition;
+            if (currentObservation.RequirePersistentResponses && legacy == null && boundary == null)
+            {
+                var persistent = Core.Run.RunResponseEffectPolicies.Validate(definition.Effects);
+                if (persistent.IsFailure) return Result<EffectBatchResult?>.Failure(persistent.Error);
+            }
             var request = capturedRequest ?? new EffectTriggerExecutionRequest
             {
                 Combat = state, Run = run, OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,

@@ -27,6 +27,8 @@ public sealed record GameplayEffectObservation
     public string? LastApplicationEventId { get; init; }
     internal GameplayEventOrigin? ResponseOrigin { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
+    internal bool RequirePersistentResponses { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
     internal Core.GameplayEvents.Responses.GameplayResponseProgress? ResponseProgress { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     internal ImmutableDictionary<string, ImmutableArray<Core.StatusEffects.StatusEffectInstance>>? BoundaryStatusSnapshot { get; init; }

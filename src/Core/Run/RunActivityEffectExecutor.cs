@@ -51,8 +51,15 @@ public interface IRunActivityEffectExecutor
 /// synthetic owner exposes run resources through the same resource processor;
 /// deck and modifier effects already reduce the immutable run snapshot.
 /// </summary>
-public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : IRunActivityEffectExecutor
+public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : IRunActivityEffectExecutor, IRunGameplayOccurrenceExecutor
 {
+    private readonly RunGameplayOccurrenceExecutor? _occurrences = effects is IGameplayOccurrenceExecutor dispatcher ? new(dispatcher) : null;
+    public Result<GameplayEffectObservation?> Prepare(RunState run, GameplayEffectObservation? observation = null) =>
+        _occurrences?.Prepare(run, observation) ?? Result<GameplayEffectObservation?>.Success(observation);
+    public Result<ObservedGameplayExecution<RunState>> Dispatch(RunState before, RunState after, GameplayEffectObservation beforeObservation,
+        GameplayEffectObservation afterObservation) => _occurrences?.Dispatch(before, after, beforeObservation, afterObservation)
+        ?? Result<ObservedGameplayExecution<RunState>>.Success(new(after, afterObservation));
+
     public Result<RunActivityEffectResult> Execute(RunState run, RunMapNodeState node, RunActivityBoundary boundary) => ExecuteCore(run, node, boundary, null);
 
     public Result<ObservedGameplayExecution<RunActivityEffectResult>> ExecuteObserved(RunState run, RunMapNodeState node, RunActivityBoundary boundary,
