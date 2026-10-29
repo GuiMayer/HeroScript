@@ -46,6 +46,7 @@ public sealed record GameplayObserverRegistration
     public Guid? CardInstanceId { get; init; }
     public ImmutableArray<GameplayEventOrigin> Contributors { get; init; } = [];
     public GameplayResponseScheduleKey Order { get; init; } = new();
+    public ImmutableArray<Core.Effects.StackPayloadLot> PayloadLots { get; init; } = [];
     public int Stacks { get; init; } = 1;
     public int? Duration { get; init; }
 }
@@ -99,7 +100,8 @@ public static class GameplayObserverCollector
                     !EventValue.Valid(registration.Origin.ComponentId) || !EventValue.Valid(registration.Origin.ContentRevision) ||
                     HierarchicalName.Parse(registration.Origin.ContainerKind).IsFailure ||
                     registration.Response.SettingId != context.Catalog.SettingId || registration.Response.ContentRevision != context.Catalog.ContentRevision ||
-                    registration.Stacks < 0 || registration.Duration is < -1 || !EventValue.Optional(registration.SourceActorId) ||
+                    registration.PayloadLots.IsDefault || registration.PayloadLots.Length > Core.Effects.StackPayloadPolicies.MaximumLots ||
+                    registration.PayloadLots.Any(lot => lot == null) || registration.Stacks < 0 || registration.Duration is < -1 || !EventValue.Optional(registration.SourceActorId) ||
                     !EventValue.Optional(registration.OwnerActorId) || registration.OwnerActorId != null && !context.ContainsActor(registration.OwnerActorId) ||
                     registration.Contributors.IsDefault || registration.Contributors.Length > 64 || registration.Contributors.Any(origin => origin == null ||
                         HierarchicalName.Parse(origin.ContainerKind).IsFailure || !EventValue.Valid(origin.ContainerId) ||

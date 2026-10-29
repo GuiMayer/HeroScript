@@ -181,6 +181,7 @@ public sealed partial class EffectTriggerExecutor
                 ContentRevision = candidate.Registration.Origin.ContentRevision, SelectedTargetEntityIds = [candidate.TargetActorId],
                 Trigger = new() { TriggerId = legacy?.Definition.ReactionId ?? ResponseTriggerIdentity(candidate),
                     Boundary = legacy == null ? string.Empty : "ResourceApplied", Effects = definition.Effects },
+                StackPayloadLots = candidate.Registration.PayloadLots,
                 Variables = variables.Value, Provenance = new() { Kind = legacy == null ? EffectProvenanceKind.Rule : EffectProvenanceKind.Relic,
                     SourceId = legacy?.RelicInstanceId.ToString("D") ?? candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }
             };

@@ -233,7 +233,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (pinned.IsFailure) return Result<RunState>.Failure(pinned.Error);
             creationRuntime = pinned.Value;
         }
-        var deferStartup = creationRuntime?.ContainsGameplayResponses == true;
+        var deferStartup = creationRuntime?.ContainsGameplayResponses == true ||
+            Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations(resolvedMode.Definition) ||
+            mapResult.Value.Nodes.Any(Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations) ||
+            startingCards.SelectMany(card => card.Upgrades).Any(Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations);
         if (deferStartup)
         {
             if (_activityEffects is not IRunGameplayOccurrenceExecutor)

@@ -38,8 +38,8 @@ O registro de uma etapa só muda para concluída depois de implementação e tes
 | 6 — Dispatcher transacional | Concluída para execução candidata; integração/cutover nas etapas seguintes |
 | 7 — Migração das reações de recurso | Concluída; um dispatcher, sem coleta/matcher paralelos |
 | 8 — Migração de lifecycle/fases | Concluída; despacho comum, timing/expiração/idempotência preservados |
-| 9 — Containers e respostas pós-fato | Em andamento até 9i: entidades/cartas/compartimentos, efeitos, fronteiras e ticks/refresh integrados; faltam fluxos externos de cartas, comandos fora de combate e ação raiz |
-| 10 — Intenções e janelas | Não iniciada |
+| 9 — Containers e respostas pós-fato | Integração implementada até 9t; certificação acumulada final em execução. Publicação aguarda o cutover. |
+| 10 — Intenções e janelas | Propostas/resoluções/fizzle e contadores PriorityWindow implementados; 2172 testes Core aprovados até 10b. Demais frequências continuam indisponíveis. |
 | 11 — Migração de conteúdo | Não iniciada |
 | 12 — Persistência/replay/timeline | Não iniciada |
 | 13 — REST e inspeção | Não iniciada |
@@ -225,3 +225,6 @@ Estado exato: etapa 8 concluída; etapa 9 em execução. Próximo ponto: fatos d
 - Etapa 10a: transições reais autorizadas da PriorityStack produzem action.proposed, action.resolved e action.cancelled (fizzle, sem fingir aplicação). O mesmo dispatcher executa respostas antes do outcome. Proposta captura âncora causal na única pilha existente; resolução/refund usam causa local ou histórica e restauram o contexto do comando seguinte. 230 testes focados aprovados, incluindo três regressões de proposta, serialização da continuação e resolução/fizzle com autoria correta. Ainda em execução na etapa 10: frequência entre comandos e certificação de janelas, sem liberar cancelamento/pre-hooks arbitrários.
 
 - Etapa 10b: frequência PriorityWindow usa contador imutável/bounded na continuação já serializada da prioridade, preservado por propostas aninhadas e comandos novos. Branch canônica rebasa o identificador do combate sem resetar contadores e conserva ancestralidade causal explícita/bounded; criação de observação autoriza somente essa linhagem. 236 testes focados aprovados, incluindo save/load, comandos distintos, nova proposta, scope estrangeiro rejeitado, forks independentes e duas gerações reais de branch com causa/limite herdados. Fluxos sem contador/cause mantêm os campos ausentes e hashes anteriores. Escopos Activation/Round/Combat/Run continuam rejeitados até sua implementação durável; janelas novas continuam exclusivamente sob as regras PriorityStack existentes.
+
+- Etapa 9t: providers/registro efetivo propagam lotes imutáveis capturados para o executor universal do corpo da resposta. Isso permite ler a potência de stacks sem criar outra forma de cálculo. 28 provas de payload/origens aprovadas; comparação direta versus resposta real com mesmos valores/cálculos, cinco repetições e entrada imutável. A detecção de criação cobre também modo/nó/upgrades tipados, além do runtime revisionado.
+- Certificação Core até 10b: 2172 testes aprovados, sem falhas/exclusões, em `.runtime/generic-events-stage10b-certified-index`. Novos tópicos são fatos pós-transição; cancelar/prevenir arbitrariamente um efeito ou abrir uma segunda janela por JSON continua rejeitado, sem simular suporte inexistente. LIFO/FIFO, custo na proposta/resolução e fizzle/refund continuam pertencendo ao resolvedor canônico existente.

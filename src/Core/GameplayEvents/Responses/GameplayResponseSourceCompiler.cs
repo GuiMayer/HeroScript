@@ -14,6 +14,7 @@ public sealed record GameplayResponseContainerSource
     public Guid? CardInstanceId { get; init; }
     public ImmutableArray<GameplayEventOrigin> Contributors { get; init; } = [];
     public GameplayResponseScheduleKey Order { get; init; } = new();
+    public ImmutableArray<Core.Effects.StackPayloadLot> PayloadLots { get; init; } = [];
     public int Stacks { get; init; } = 1;
     public int? Duration { get; init; }
 }
@@ -57,7 +58,7 @@ public static class GameplayResponseSourceCompiler
                     result.Add(new() { ProviderId = providerId, RegistrationId = identity, Response = response.Value,
                         Origin = source.Origin, OwnerActorId = owner, SourceActorId = source.SourceActorId,
                         CardInstanceId = source.CardInstanceId, Contributors = source.Contributors, Order = source.Order,
-                        Stacks = source.Stacks, Duration = source.Duration });
+                        PayloadLots = source.PayloadLots, Stacks = source.Stacks, Duration = source.Duration });
                 }
             }
         }

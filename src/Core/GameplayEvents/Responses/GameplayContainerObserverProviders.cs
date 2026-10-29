@@ -55,6 +55,6 @@ public sealed class StatusGameplayObserverProvider : GameplayContainerObserverPr
             .Where(status => status.IsActive && status.Definition.Responses != null).OrderBy(status => status.InstanceId)
             .Select(status => new GameplayResponseContainerSource { Definitions = status.Definition.Responses!.Value,
                 Owner = new() { Kind = GameplayOwnerKind.Entity, Id = status.TargetId }, SourceActorId = status.SourceId,
-                Stacks = status.Stacks, Duration = status.Duration, Origin = new() { ContainerKind = "status", ContainerId = status.InstanceId.ToString("D"),
+                PayloadLots = status.PayloadLots, Stacks = status.Stacks, Duration = status.Duration, Origin = new() { ContainerKind = "status", ContainerId = status.InstanceId.ToString("D"),
                     ComponentId = "responses", ContentRevision = status.ContentRevision ?? string.Empty } })));
 }
