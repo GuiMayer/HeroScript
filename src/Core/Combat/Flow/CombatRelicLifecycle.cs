@@ -37,6 +37,10 @@ public sealed record CombatRelicLifecycleResult(
 {
     [System.Text.Json.Serialization.JsonIgnore]
     internal Core.GameplayEvents.GameplayEffectObservation? Observation { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableArray<EffectExecutionStep> ResponseSteps { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal ImmutableArray<EffectApplicationRecord> ResponseApplications { get; init; } = [];
 }
 
 public interface ICombatRelicLifecycle

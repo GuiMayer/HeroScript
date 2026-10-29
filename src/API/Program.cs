@@ -440,7 +440,8 @@ builder.Services.AddSingleton<ICombatBoundaryExecutor>(sp => new CombatBoundaryE
     sp.GetRequiredService<IPhaseGraphReducer>(),
     sp.GetRequiredService<ICombatOutcomeResolver>(),
     sp.GetRequiredService<ICardZoneFlowExecutor>(),
-    sp.GetRequiredService<IActivationExitGuard>()));
+    sp.GetRequiredService<IActivationExitGuard>(),
+    sp.GetRequiredService<IEffectTriggerExecutor>() as IGameplayOccurrenceExecutor));
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<ICombatBoundaryExecutor>(),

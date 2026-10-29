@@ -197,7 +197,7 @@ public sealed partial class AutomaticFlowDriver : IAutomaticFlowDriver
                 return Result<AutomaticFlowResult>.Failure(completed.Error);
             combat = completed.Value.Combat;
             run = completed.Value.Run ?? run;
-            var effectSteps = completed.Value.Events.SelectMany(item => item.Steps).ToArray();
+            var effectSteps = completed.Value.Events.SelectMany(item => item.Steps).Concat(completed.Value.ResponseSteps).ToArray();
             steps.Add(new CombatResolutionStep
             {
                 TransitionType = "combat.completed",
@@ -208,7 +208,7 @@ public sealed partial class AutomaticFlowDriver : IAutomaticFlowDriver
                 EffectSteps = effectSteps,
                 Calculations = effectSteps.Where(item => item.Calculation != null)
                     .Select(item => item.Calculation!).ToArray(),
-                Applications = completed.Value.Events.SelectMany(item => item.Applications).ToArray(),
+                Applications = completed.Value.Events.SelectMany(item => item.Applications).Concat(completed.Value.ResponseApplications).ToArray(),
                 Payload = JsonSerializer.SerializeToElement(new { events = completed.Value.Events })
             });
         }

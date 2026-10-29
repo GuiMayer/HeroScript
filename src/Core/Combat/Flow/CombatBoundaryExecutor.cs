@@ -102,7 +102,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         IPhaseGraphReducer phases,
         ICombatOutcomeResolver outcomes,
         ICardZoneFlowExecutor? cardZoneFlows = null,
-        IActivationExitGuard? exitGuard = null)
+        IActivationExitGuard? exitGuard = null, IGameplayOccurrenceExecutor? occurrences = null)
     {
         _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
         _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
@@ -112,9 +112,10 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         _outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
         _cardZoneFlows = cardZoneFlows;
         _exitGuard = exitGuard;
+        _occurrences = occurrences;
     }
 
-    public Result<CombatInitializationResult> InitializeTransaction(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => InitializeTransactionCore(run, combat, sequence, policies, turnOrderPolicy, null);
+    public Result<CombatInitializationResult> InitializeTransaction(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => WithOccurrenceObservation(run, combat, cursor => InitializeTransactionCore(run, combat, sequence, policies, turnOrderPolicy, cursor));
 
     private Result<CombatInitializationResult> InitializeTransactionCore(RunState run, CombatState combat, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy, ObservationCursor? observation)
     {
@@ -133,6 +134,9 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var applications = new List<EffectApplicationRecord>();
         var phaseTransitions = new List<PhaseTransitionRecord>();
         var cardZoneSteps = new List<CardZoneFlowStepRecord>();
+        var openingResponses = BoundaryResponses(observation, run, combat);
+        run = openingResponses.Run ?? run; combat = openingResponses.State;
+        effectSteps.AddRange(openingResponses.Steps); applications.AddRange(openingResponses.Records);
         var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, run, run.Deck,
             run.Determinism, "encounter.started", combatSnapshot: combat);
         if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
@@ -196,8 +200,8 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         {
             var completed = CompleteCore(run, current, observation);
             if (completed.IsFailure) return Result<CombatInitializationResult>.Failure(completed.Error);
-            effectSteps.AddRange(completed.Value.Events.SelectMany(item => item.Steps));
-            applications.AddRange(completed.Value.Events.SelectMany(item => item.Applications));
+            effectSteps.AddRange(completed.Value.Events.SelectMany(item => item.Steps).Concat(completed.Value.ResponseSteps));
+            applications.AddRange(completed.Value.Events.SelectMany(item => item.Applications).Concat(completed.Value.ResponseApplications));
             return Result<CombatInitializationResult>.Success(CreateInitializationResult(
                 completed.Value.Combat,
                 completed.Value.Run ?? run,
@@ -215,23 +219,26 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             cardZoneSteps));
     }
 
-    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat) => CompleteCore(run, combat, null);
+    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat) => WithOccurrenceObservation(run, combat, cursor => CompleteCore(run, combat, cursor));
 
     private Result<CombatRelicLifecycleResult> CompleteCore(RunState run, CombatState combat, ObservationCursor? observation)
     {
         if (combat.IsActive) return Result<CombatRelicLifecycleResult>.Failure("Cannot finalize an active combat");
         using var combatBoundary = combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd) ? null
             : observation?.Boundary(Core.GameplayEvents.GameplayBoundary.CombatEnded, "combat.ended", combat);
+        var terminalResponses = combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd)
+            ? new EffectBatchResult { State = combat, Run = run } : BoundaryResponses(observation, run, combat);
+        run = terminalResponses.Run ?? run; combat = terminalResponses.State;
         var result = (observation == null ? _relicLifecycle.Process(run, combat, CombatTriggerBoundaries.CombatEnd)
             : observation.Relic(_relicLifecycle, run, combat, CombatTriggerBoundaries.CombatEnd));
         if (result.IsFailure || combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd)) return result;
         var updatedRun = Core.Combat.Modifiers.ModifierTransitions.Tick(result.Value.Run ?? run,
             Core.Combat.Modifiers.ModifierDurationBoundary.Combat, eligibleIds: run.Modifiers.Select(item => item.InstanceId).ToHashSet());
         observation?.ModifierTicks(result.Value.Run ?? run, updatedRun);
-        return Result<CombatRelicLifecycleResult>.Success(result.Value with { Run = updatedRun });
+        return Result<CombatRelicLifecycleResult>.Success(result.Value with { Run = updatedRun, ResponseSteps = terminalResponses.Steps, ResponseApplications = terminalResponses.Records.ToImmutableArray() });
     }
 
-    public Result<CombatFlowAdvanceResult> AdvanceActivation(RunState run, CombatState combat, DeckState deck, DeterministicContext runDeterminism, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => AdvanceActivationCore(run, combat, deck, runDeterminism, sequence, policies, turnOrderPolicy, null);
+    public Result<CombatFlowAdvanceResult> AdvanceActivation(RunState run, CombatState combat, DeckState deck, DeterministicContext runDeterminism, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy) => WithOccurrenceObservation(run, combat, cursor => AdvanceActivationCore(run, combat, deck, runDeterminism, sequence, policies, turnOrderPolicy, cursor));
 
     private Result<CombatFlowAdvanceResult> AdvanceActivationCore(RunState run, CombatState combat, DeckState deck, DeterministicContext runDeterminism, PhaseSequenceDefinition sequence, CombatFlowPoliciesDefinition policies, TurnOrderPolicyDefinition turnOrderPolicy, ObservationCursor? observation)
     {
@@ -723,6 +730,9 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             if (boundary == StatusTriggerBoundary.StartRound && policies.ActivationSequence?.Strategy == ActivationSequenceStrategy.Circular &&
                 policies.ActivationSequence.Circular?.RoundPolicy == SequenceRoundStrategy.Disabled) continue;
             using var boundaryFrame = observation?.Boundary(ToGameplayBoundary(boundary), boundary.ToString(), current);
+            var responses = BoundaryResponses(observation, run, current);
+            run = responses.Run ?? run; current = responses.State;
+            effectSteps.AddRange(responses.Steps); applications.AddRange(responses.Records);
             var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
                 ? Result<CombatStatusLifecycleResult>.Success(new(current, [])) : (observation == null ? _statusLifecycle.Process(run, current, boundary, current.ActivationState?.ActiveActorId)
                     : observation.Status(_statusLifecycle, run, current, boundary, current.ActivationState?.ActiveActorId));
@@ -797,6 +807,8 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
     {
         using var boundaryFrame = observation?.Boundary(ToGameplayBoundary(boundary), boundary.ToString(), combat);
         run = run with { Deck = deck };
+        var responses = BoundaryResponses(observation, run, combat);
+        run = responses.Run ?? run; combat = responses.State;
         var eligibleModifiers = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
             ? Result<CombatStatusLifecycleResult>.Success(new(combat, []))
@@ -822,7 +834,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             policies.Outcome,
             activeActorId,
             CombatOutcomeEvaluationPoint.LifecycleBoundary);
-        var effectSteps = processed.Value.Events.SelectMany(item => item.Steps).Concat(processed.Value.ResponseSteps)
+        var effectSteps = responses.Steps.Concat(processed.Value.Events.SelectMany(item => item.Steps)).Concat(processed.Value.ResponseSteps)
             .Concat(relics.Value.Events.SelectMany(item => item.Steps))
             .ToArray();
         steps.Add(new CombatResolutionStep
@@ -837,7 +849,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 .Where(item => item.Calculation != null)
                 .Select(item => item.Calculation!)
                 .ToArray(),
-            Applications = processed.Value.Events.SelectMany(item => item.Applications).Concat(processed.Value.ResponseApplications)
+            Applications = responses.Records.Concat(processed.Value.Events.SelectMany(item => item.Applications)).Concat(processed.Value.ResponseApplications)
                 .Concat(relics.Value.Events.SelectMany(item => item.Applications))
                 .ToArray(),
             Payload = JsonSerializer.SerializeToElement(new

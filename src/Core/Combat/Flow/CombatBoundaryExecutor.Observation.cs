@@ -28,13 +28,13 @@ public sealed partial class CombatBoundaryExecutor
     public Result<ObservedGameplayExecution<CombatRelicLifecycleResult>> CompleteObserved(RunState run, CombatState combat,
         GameplayEffectObservation observation) => Observe(run, observation, cursor => CompleteCore(run, combat, cursor));
 
-    private static Result<ObservedGameplayExecution<T>> Observe<T>(RunState run, GameplayEffectObservation observation,
+    private Result<ObservedGameplayExecution<T>> Observe<T>(RunState run, GameplayEffectObservation observation,
         Func<ObservationCursor, Result<T>> execute)
     {
         if (observation?.Events == null || observation.Events.Scope.ContentRevision != run.Determinism.ContentRevision)
             return Result<ObservedGameplayExecution<T>>.Failure("Combat boundary observation requires the captured action revision");
         // This cursor is private to one call. Its values are immutable successors; neither cursor nor partial result escapes failure.
-        var cursor = new ObservationCursor(observation);
+        var cursor = new ObservationCursor(observation, _occurrences);
         try
         {
             var result = execute(cursor);
@@ -46,18 +46,28 @@ public sealed partial class CombatBoundaryExecutor
 
     private sealed class ObservationFailure(string message) : Exception(message);
 
-    private sealed class ObservationCursor(GameplayEffectObservation current)
+    private sealed class ObservationCursor(GameplayEffectObservation current, IGameplayOccurrenceExecutor? occurrences)
     {
         public GameplayEffectObservation Current { get; private set; } = current;
+        private readonly Stack<GameplayEffectObservation> _boundaries = new();
         private static T Require<T>(Result<T> result) => result.IsSuccess ? result.Value : throw new ObservationFailure(result.Error);
 
         public IDisposable Boundary(GameplayBoundary boundary, string id, CombatState combat)
         {
             var parent = Current.ParentEventId;
+            _boundaries.Push(Current);
             Current = Require(GameplayBoundaryObservation.Begin(Current, boundary, id, combat.ActivationState?.ActiveActorId,
                 new() { ContainerKind = "rule", ContainerId = "combat.flow", ComponentId = id, ContentRevision = Current.Events.Scope.ContentRevision },
                 $"combat.boundary/{Current.Events.Occurrences.Count}/{boundary}"));
             return new Frame(this, parent);
+        }
+
+        public EffectBatchResult Responses(RunState run, CombatState combat)
+        {
+            if (occurrences == null) return new() { Run = run, State = combat };
+            var result = Require(occurrences.DispatchOccurrencesObserved(run, combat, run, combat, _boundaries.Peek(), Current));
+            Current = result.Observation;
+            return result.Execution;
         }
 
         public Result<CombatStatusLifecycleResult> Status(ICombatStatusLifecycle lifecycle, RunState run, CombatState combat,
@@ -119,7 +129,7 @@ public sealed partial class CombatBoundaryExecutor
 
         private sealed class Frame(ObservationCursor cursor, string? parent) : IDisposable
         {
-            public void Dispose() => cursor.Current = cursor.Current with { ParentEventId = parent };
+            public void Dispose() { cursor.Current = cursor.Current with { ParentEventId = parent }; cursor._boundaries.Pop(); }
         }
     }
 }

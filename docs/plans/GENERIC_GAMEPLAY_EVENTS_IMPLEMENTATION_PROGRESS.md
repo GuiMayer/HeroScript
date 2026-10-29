@@ -180,3 +180,6 @@ Próximo bloco obrigatório: etapa 9, integração de todos os containers e das 
 
 - Etapa 9e: duração/expiração reais de status despacham respostas depois do lote canônico do participante; seus passos/aplicações integram os frames de combate sem inventar um status/trigger fictício. Fases emitem e despacham a fronteira uma única vez, inclusive sem entry/exit effects. Contexto privado é criado no caminho normal somente quando existe autoria de respostas. 187 testes focados aprovados, incluindo três regressões novas de duração, expiração e fase vazia, igualdade normal/observado e cinco repetições imutáveis. Restam fronteiras gerais e mutações externas; publicação continua bloqueada.
 
+
+- Etapa 9f: o executor geral de fronteiras é o ponto único de broadcast de combate/rodada/ativação, separado dos adaptadores capturados de status e relíquia. Caminho normal instala observação privada apenas com declarações; composição API injeta a capacidade explicitamente. Finalização idempotente não emite/dispara de novo. 189 testes focados existentes aprovados antes das novas provas; 23 testes de broadcast/paridade aprovados com quatro regressões novas, cinco repetições nas aberturas e hashes completos normais/observados. Próximo: alterações primitivas externas de recurso/cartas/modificadores e fechamento da etapa 9.
+
