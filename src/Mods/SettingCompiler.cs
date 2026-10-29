@@ -39,7 +39,7 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
             .FirstOrDefault(group => group.Count() > 1);
         if (duplicate != null)
             throw new ArgumentException($"Package provider id collision: {duplicate.Key}", nameof(providers));
-        _kinds = kinds ?? ContentKindRegistry.Canonical;
+        _kinds = kinds == null || ReferenceEquals(kinds, ContentKindRegistry.Default) ? ContentKindRegistry.Canonical : kinds;
     }
 
     public async Task<SettingCatalog> GetCatalogAsync(CancellationToken cancellationToken = default)
