@@ -30,6 +30,7 @@ var selected_entry: Dictionary = {}
 var _history_ticket
 var _history_widget
 var _history_commit: Dictionary = {}
+var _causal_view
 
 func setup(owner) -> void:
 	router = owner
@@ -178,6 +179,7 @@ func _select(index: int) -> void:
 			historical_cache[selected_sequence] = state.duplicate(true)
 	_history_commit = state
 	_mount_history(state)
+	_load_causal_events(ticket, selected_sequence)
 	frame_text.text = I18n.text("Saved state loaded. Frame playback only changes this inspector.")
 	next_button.disabled = not playback.has_frames()
 
@@ -295,3 +297,16 @@ func dispose() -> void:
 	if _history_ticket != null and not _history_ticket.done: _history_ticket.cancel()
 	if is_instance_valid(_history_widget): _history_widget.dispose()
 	historical_cache.clear()
+
+func _load_causal_events(ticket: int, sequence: int) -> void:
+	if is_instance_valid(_causal_view): _causal_view.queue_free()
+	_causal_view = null
+	if not GameSession.allows_tool("debug.card_inspection.full"): return
+	var response: Dictionary = await GameSession.gameplay_events(screen_run_id, sequence)
+	if not _valid() or ticket != request_epoch or sequence != selected_sequence: return
+	if not response.get("ok", false): return
+	var data: Dictionary = response.get("data", {})
+	var batch: Variant = data.get("batch")
+	_causal_view = preload("res://scripts/ui/gameplay_event_view.gd").new()
+	history_view.add_child(_causal_view)
+	_causal_view.present(batch if batch is Dictionary else {}, I18n.locale)

@@ -1,0 +1,108 @@
+[
+  {
+    "label": "Ascendant — resource settlement and delayed status",
+    "names": {
+      "hero": "Hero",
+      "enemy": "Enemy",
+      "health": "Health"
+    },
+    "batch": {
+      "scope": {
+        "settingId": "ascendant",
+        "contentRevision": "offline-presentation-fixture"
+      },
+      "occurrences": [
+        {
+          "eventId": "root",
+          "parentEventId": null,
+          "kind": "resource.change.resolved",
+          "reasonId": "effect.application",
+          "sourceActorId": "hero",
+          "attributedActorId": "hero",
+          "subjectActorId": "enemy",
+          "payload": {
+            "type": "resource",
+            "resourceId": "health",
+            "operation": "Subtract",
+            "field": "Current",
+            "before": 10,
+            "after": 4,
+            "requestedDelta": -9,
+            "appliedDelta": -6,
+            "limitedDelta": -3
+          }
+        },
+        {
+          "eventId": "child",
+          "parentEventId": "root",
+          "kind": "status.applied",
+          "reasonId": "effect.application",
+          "sourceActorId": "hero",
+          "attributedActorId": "hero",
+          "subjectActorId": "enemy",
+          "originCause": {
+            "branchId": "earlier-branch",
+            "eventId": "earlier-status-application"
+          },
+          "payload": {
+            "type": "status"
+          }
+        }
+      ],
+      "invocations": []
+    }
+  },
+  {
+    "label": "Circular table — arbitrary focus and transfer",
+    "names": {
+      "dealer": "Dealer",
+      "guest": "Guest",
+      "focus": "Focus"
+    },
+    "batch": {
+      "scope": {
+        "settingId": "circular-table",
+        "contentRevision": "offline-presentation-fixture"
+      },
+      "occurrences": [
+        {
+          "eventId": "root",
+          "parentEventId": null,
+          "kind": "resource.change.resolved",
+          "reasonId": "cost.payment",
+          "sourceActorId": "dealer",
+          "attributedActorId": "dealer",
+          "subjectActorId": "guest",
+          "payload": {
+            "type": "resource",
+            "resourceId": "focus",
+            "operation": "Subtract",
+            "field": "Current",
+            "before": 10,
+            "after": 4,
+            "requestedDelta": -9,
+            "appliedDelta": -6,
+            "limitedDelta": -3
+          }
+        },
+        {
+          "eventId": "child",
+          "parentEventId": "root",
+          "kind": "resource.transport.resolved",
+          "reasonId": "effect.application",
+          "sourceActorId": "dealer",
+          "attributedActorId": "dealer",
+          "subjectActorId": "guest",
+          "originCause": {
+            "branchId": "earlier-branch",
+            "eventId": "earlier-status-application"
+          },
+          "payload": {
+            "type": "resource_transport"
+          }
+        }
+      ],
+      "invocations": []
+    }
+  }
+]

@@ -702,3 +702,8 @@ func historical_state(sequence: int) -> Dictionary:
 
 func resolution(command_id: String) -> Dictionary:
 	return await _gateway.resolution(str(_combat.get("combatId", "")), command_id)
+
+func gameplay_events(run_id: String, sequence: int) -> Dictionary:
+	if not allows_tool("timeline.inspect_state") or not allows_tool("debug.card_inspection.full"):
+		return _tool_denied("debug.card_inspection.full")
+	return await _gateway.read_gameplay_events(run_id, sequence)
