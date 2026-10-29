@@ -98,6 +98,10 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
                 "Run activity effects must be guaranteed, target the run owner, and persist in run state");
         }
 
+        var preparedObservation = Prepare(run);
+        if (preparedObservation.IsFailure) return Result<RunActivityEffectResult>.Failure(preparedObservation.Error);
+        if (preparedObservation.Value != null) observation ??= preparedObservation.Value;
+        if (observation != null) observation = observation with { RequirePersistentResponses = true };
         var resourceComponentId = playerResources?.ComponentId ?? "resources";
         var owner = new CombatActorState
         {

@@ -53,7 +53,7 @@ public sealed partial class EffectTriggerExecutor
 
         internal Result<ImmutableArray<GameplayResponseCandidate>> Freeze(ImmutableArray<GameplayOccurrence> facts,
             RunState runBefore, CombatState combatBefore, RunState runAfter, CombatState combatAfter,
-            IReadOnlyList<EffectApplicationRecord>? sourceApplications, bool capturedBoundaryOnly = false)
+            IReadOnlyList<EffectApplicationRecord>? sourceApplications, GameplayEffectObservation observation, bool capturedBoundaryOnly = false)
         {
             var candidates = ImmutableArray.CreateBuilder<GameplayResponseCandidate>();
             foreach (var snapshot in new[] { Snapshot(runBefore, combatBefore, ResponseSnapshot.BeforeOccurrence),
@@ -61,7 +61,13 @@ public sealed partial class EffectTriggerExecutor
             {
                 var registrations = GameplayObserverCollector.Collect(snapshot, providers);
                 if (registrations.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(registrations.Error);
-                foreach (var legacyGroup in registrations.Value.Where(registration => !capturedBoundaryOnly || registration.BoundaryExecution != null)
+                var view = RunWalletResponseView.Create(snapshot.Run, snapshot.Combat!, observation);
+                var genericSnapshot = view?.Apply(snapshot) ?? snapshot;
+                var genericRegistrations = view == null ? registrations : GameplayObserverCollector.Collect(genericSnapshot, providers);
+                if (genericRegistrations.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(genericRegistrations.Error);
+                var combined = registrations.Value.Where(item => item.LegacyResourceExecution != null)
+                    .Concat(genericRegistrations.Value.Where(item => item.LegacyResourceExecution == null));
+                foreach (var legacyGroup in combined.Where(registration => !capturedBoundaryOnly || registration.BoundaryExecution != null)
                              .GroupBy(registration => registration.LegacyResourceExecution != null))
                 {
                     var matcher = GameplayResponseMatcher.Create(legacyGroup.ToImmutableArray());
@@ -80,7 +86,7 @@ public sealed partial class EffectTriggerExecutor
                             if (parent == null) continue;
                             matchingView = fact with { SubjectActorId = parent.TargetEntityId };
                         }
-                        var matches = matcher.Value.Match(matchingView, snapshot);
+                        var matches = matcher.Value.Match(matchingView, legacyGroup.Key ? snapshot : genericSnapshot);
                         if (matches.IsFailure) return Result<ImmutableArray<GameplayResponseCandidate>>.Failure(matches.Error);
                         foreach (var match in matches.Value)
                         {
@@ -130,7 +136,7 @@ public sealed partial class EffectTriggerExecutor
         int depth, IReadOnlyList<EffectApplicationRecord>? sourceApplications, bool capturedBoundaryOnly = false)
     {
         var session = budget.Responses!;
-        var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications, capturedBoundaryOnly);
+        var frozen = session.Freeze(facts, runBefore, before, runAfter, after, sourceApplications, observation, capturedBoundaryOnly);
         if (frozen.IsFailure) return Result<EffectBatchResult?>.Failure(frozen.Error);
         var state = after;
         var run = runAfter;
@@ -142,7 +148,9 @@ public sealed partial class EffectTriggerExecutor
         foreach (var candidate in frozen.Value)
         {
             if (capturedBoundaryOnly && candidate.Registration.BoundaryExecution == null) continue;
-            var revalidated = session.Revalidate(candidate, run, state);
+            var view = candidate.Registration.LegacyResourceExecution == null && candidate.Registration.BoundaryExecution == null
+                ? RunWalletResponseView.Create(run, state, currentObservation) : null;
+            var revalidated = session.Revalidate(candidate, view?.Run ?? run, view?.Combat ?? state);
             if (revalidated.IsFailure) return Result<EffectBatchResult?>.Failure(revalidated.Error);
             if (!revalidated.Value) continue;
             var boundary = candidate.Registration.BoundaryExecution;
@@ -165,7 +173,7 @@ public sealed partial class EffectTriggerExecutor
             }
             var request = capturedRequest ?? new EffectTriggerExecutionRequest
             {
-                Combat = state, Run = run, OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,
+                Combat = view?.Combat ?? state, Run = view?.Run ?? run, OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,
                 ContentRevision = candidate.Registration.Origin.ContentRevision, SelectedTargetEntityIds = [candidate.TargetActorId],
                 Trigger = new() { TriggerId = legacy?.Definition.ReactionId ?? ResponseTriggerIdentity(candidate),
                     Boundary = legacy == null ? string.Empty : "ResourceApplied", Effects = definition.Effects },
@@ -174,14 +182,17 @@ public sealed partial class EffectTriggerExecutor
             };
             var childObservation = currentObservation with { ParentEventId = candidate.Occurrence.EventId,
                 ReasonId = definition.ReasonId ?? observation.ReasonId, ResponseOrigin = candidate.Registration.Origin };
+            if (view != null) childObservation = childObservation with { ResourceOwnerBindings = childObservation.ResourceOwnerBindings.Remove(view.ActorId) };
             var result = Execute(request, candidate.LegacyParent, budget, suppressReactions: boundary == null, baseDepth: boundary == null ? depth + 1 : 0,
                 observation: childObservation, dispatchResponses: definition.Propagation == ResponsePropagation.AllowResponses);
             if (result.IsFailure) return Result<EffectBatchResult?>.Failure(result.Error);
             if (boundary != null) boundaryFrames.Add(new(boundary, result.Value));
             state = result.Value.State;
             run = result.Value.Run!;
+            if (view != null) (run, state) = view.Restore(run, state);
             currentObservation = result.Value.Observation! with { ParentEventId = observation.ParentEventId,
-                ReasonId = observation.ReasonId, LastApplicationEventId = observation.LastApplicationEventId, ResponseOrigin = observation.ResponseOrigin };
+                ReasonId = observation.ReasonId, LastApplicationEventId = observation.LastApplicationEventId, ResponseOrigin = observation.ResponseOrigin,
+                ResourceOwnerBindings = observation.ResourceOwnerBindings };
             records.AddRange(result.Value.Records); calculations.AddRange(result.Value.Calculations);
             foreach (var step in result.Value.Steps) steps.Add(step with { Index = steps.Count });
         }
