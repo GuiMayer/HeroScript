@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Determinism;
 
 namespace Core.GameplayEvents.Responses;
 
@@ -31,7 +32,13 @@ public sealed record GameplayPriorityResponseLedger
             ledger.RootRunId != scope.RunId || ledger.CombatId != state.CombatId.ToString("D") || ledger.Counts == null ||
             ledger.Counts.Count > GameplayResponseQuotas.MaximumInvocations || ledger.Counts.Any(pair => !EventValue.Valid(pair.Key) || pair.Value is < 1 or > GameplayResponseQuotas.MaximumInvocations))
             return Fail("Priority response counters do not match their captured continuation");
-        var key = candidate.Registration.RegistrationId;
+        var registration = candidate.Registration;
+        // Encounter presentation identity is rebased on a branch. The window is the stable logical continuation.
+        var key = registration.ProviderId == "core.encounter"
+            ? CanonicalJson.ComputeHash(new { registration.ProviderId,
+                Origin = registration.Origin with { ContainerId = ledger.WindowId }, registration.Response.Definition,
+                registration.OwnerActorId, registration.SourceActorId, registration.CardInstanceId, registration.Contributors })
+            : registration.RegistrationId;
         var count = ledger.Counts.GetValueOrDefault(key);
         if (count >= candidate.Registration.Response.Definition.Frequency.Maximum)
             return Result<(CombatState, bool)>.Success((state, false));

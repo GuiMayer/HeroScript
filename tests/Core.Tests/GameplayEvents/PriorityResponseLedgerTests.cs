@@ -65,10 +65,23 @@ public sealed class PriorityResponseLedgerTests
         Assert.True(bad.IsFailure); Assert.Contains("continuation", bad.Error);
     }
 
-    [Fact]
-    public void ActualBranchesRetainWindowCountsAndAuthorizedProposalAncestry()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ActualBranchesRetainWindowCountsAndAuthorizedProposalAncestry(bool encounterObserver)
     {
         var (run, combat) = Fixture();
+        var affected = encounterObserver ? "hero" : "ally";
+        if (encounterObserver)
+        {
+            var ally = combat.GetActor("ally")!;
+            var response = ((EntityResponseComponentState)ally.Components["watch"]).Responses!.Value[0];
+            combat = combat.ReplaceActor(ally with { Components = ally.Components.ToImmutableDictionary(StringComparer.Ordinal).Remove("watch") });
+            combat = combat with { RunNodeId = "node" };
+            run = run with { Map = new() { Nodes = [new() { NodeId = "node", Activity = new() { Type = RunActivityType.Encounter },
+                ResponseContentRevision = "revision", Responses = [response with { Bindings = response.Bindings with {
+                    Owner = new() { Kind = ResponseActorBindingKind.ExplicitActor, ActorId = "hero" } } }] }] } };
+        }
         var id = Guid.Parse("8add3ce8-55f8-422d-89f5-023b58b8097e");
         run = run with { RunId = id, Sequence = 1, Lineage = RunLineage.Root(id) };
         combat = combat with { RunId = id };
@@ -91,7 +104,7 @@ public sealed class PriorityResponseLedgerTests
                 .WithActionCause(snapshot.PendingActions[0].OriginCause);
             var result = effects.ExecuteObserved(request with { Run = branch, Combat = snapshot }, continuation);
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-            Assert.Equal(12, result.Value.Execution.State.GetActor("ally")!.GetResource("focus")!.Current);
+            Assert.Equal(12, result.Value.Execution.State.GetActor(affected)!.GetResource("focus")!.Current);
             Assert.Equal(proposal.EventId, result.Value.Observation.Events.Occurrences[0].OriginCause!.EventId);
             Assert.Equal(1, Assert.Single(result.Value.Execution.State.PriorityWindow!.Responses!.Counts).Value);
         }
