@@ -20,6 +20,17 @@ internal static class GameplayContainerBoundaryResponses
             ? Result.Failure("Container boundary selector cannot match its configured boundary") : Result.Success();
     }
 
+    internal static Result ValidatePhase(GameplayResponseDefinition response, string phaseId)
+    {
+        if (response == null || response.Timing != ResponseExecutionTiming.ContainerBoundary || response.Observe?.Boundary is not { } boundary ||
+            boundary.BoundaryIds.IsDefault || boundary.BoundaryIds.Length != 1 || boundary.BoundaryIds[0] != phaseId ||
+            response.Frequency.Scope != ResponseFrequencyScope.Occurrence || response.Observe.Resource != null)
+            return Result.Failure("Phase response requires its own phase boundary and occurrence frequency");
+        var kinds = HierarchySelector.Compile(response.Observe.Kinds.Include, response.Observe.Kinds.Exclude);
+        return kinds.IsFailure || !new[] { "phase.entered", "phase.exited" }.Any(kind => kinds.Value.Matches(HierarchicalName.Parse(kind).Value))
+            ? Result.Failure("Phase response selector cannot match entering or exiting its phase") : Result.Success();
+    }
+
     internal static Result<ImmutableArray<(EffectTriggerDefinition Trigger, GameplayResponseDefinition? Response)>> Triggers(
         IReadOnlyList<EffectTriggerDefinition> historical, ImmutableArray<GameplayResponseDefinition>? responses)
     {

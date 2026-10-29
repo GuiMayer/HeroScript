@@ -336,7 +336,20 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
                 Calculations = accumulator.Calculations.AddRange(execution.Calculations), Applications = accumulator.Applications.AddRange(execution.Records) };
         }
         var definitions = entering ? phase.EntryEffects : phase.ExitEffects;
-        if (definitions.Count == 0) return Result<Accumulator>.Success(accumulator with
+        var responses = phase.Responses ?? [];
+        if (responses.IsDefault || responses.Length > 16 || responses.Any(response => response == null))
+            return Result<Accumulator>.Failure("Phase response declarations exceed their budget or are invalid");
+        if ((phase.EntryEffects.Count > 0 || phase.ExitEffects.Count > 0) && !responses.IsEmpty)
+            return Result<Accumulator>.Failure("Mixed historical and canonical phase authoring is ambiguous");
+        foreach (var response in responses)
+        {
+            var valid = GameplayContainerBoundaryResponses.ValidatePhase(response, phase.PhaseId);
+            if (valid.IsFailure) return Result<Accumulator>.Failure(valid.Error);
+        }
+        var kind = entering ? "phase.entered" : "phase.exited";
+        responses = responses.Where(response => HierarchySelector.Compile(response.Observe.Kinds.Include,
+            response.Observe.Kinds.Exclude).Value.Matches(HierarchicalName.Parse(kind).Value)).ToImmutableArray();
+        if (definitions.Count == 0 && responses.IsEmpty) return Result<Accumulator>.Success(accumulator with
         { Observation = accumulator.Observation == null ? null : accumulator.Observation with { ParentEventId = parentEventId } });
         var actorId = accumulator.Combat.ActivationState?.ActiveActorId;
         if (string.IsNullOrWhiteSpace(actorId) || accumulator.Combat.GetActor(actorId) == null)
@@ -365,11 +378,13 @@ public sealed class PhaseGraphReducer : IPhaseGraphReducer
         };
         var startedScope = _effects.BeginBoundaryScope(accumulator.Run, accumulator.Combat, accumulator.Observation);
         if (startedScope.IsFailure) return Result<Accumulator>.Failure(startedScope.Error);
-        var invocation = GameplayBoundarySources.Phase(request, phase.PhaseId, entering);
-        var dispatched = startedScope.Value.Dispatch(accumulator.Run, accumulator.Combat, invocation.Kind, phase.PhaseId,
-            actorId, [invocation], accumulator.Observation);
+        var invocations = definitions.Count > 0 ? new[] { GameplayBoundarySources.Phase(request, phase.PhaseId, entering) }
+            : responses.Select(response => GameplayBoundarySources.Phase(request with { Trigger = request.Trigger with {
+                TriggerId = response.ResponseId, Priority = response.Order.Priority, Effects = response.Effects } }, phase.PhaseId, entering, response)).ToArray();
+        var dispatched = startedScope.Value.Dispatch(accumulator.Run, accumulator.Combat, kind, phase.PhaseId,
+            actorId, invocations, accumulator.Observation);
         if (dispatched.IsFailure) return Result<Accumulator>.Failure(dispatched.Error);
-        var executed = Result<EffectBatchResult>.Success(dispatched.Value.Invocations.Single().Execution);
+        var executed = Result<EffectBatchResult>.Success(dispatched.Value.Execution);
         accumulator = accumulator with { Observation = dispatched.Value.Observation == null ? null
             : dispatched.Value.Observation with { ParentEventId = parentEventId } };
         if (executed.IsFailure) return Result<Accumulator>.Failure(executed.Error);

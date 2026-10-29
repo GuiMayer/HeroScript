@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Common;
+using Core.Combat.TurnPhase;
 using Core.Effects;
 using Core.GameplayEvents;
 using Core.GameplayEvents.Responses;
@@ -25,6 +26,34 @@ public static class GameplayBoundaryResponseMigration
         var converted = Convert(definition.Triggers, definition.Responses, catalog, fromSource: false);
         return converted.IsFailure ? Result<RelicDefinition>.Failure(converted.Error)
             : Result<RelicDefinition>.Success(definition.Triggers.Count == 0 ? definition : definition with { Triggers = [], Responses = converted.Value });
+    }
+
+    public static Result<PhaseSequenceDefinition> Phases(PhaseSequenceDefinition sequence, GameplayEventCatalog catalog)
+    {
+        var phases = ImmutableArray.CreateBuilder<PhaseDefinition>();
+        var changed = false;
+        foreach (var phase in sequence.Phases)
+        {
+            if (phase.EntryEffects.Count == 0 && phase.ExitEffects.Count == 0) { phases.Add(phase); continue; }
+            if (phase.Responses is { IsEmpty: false } || phase.Responses is { IsDefault: true })
+                return Result<PhaseSequenceDefinition>.Failure("Mixed historical and canonical phase authoring is ambiguous");
+            var responses = ImmutableArray.CreateBuilder<GameplayResponseDefinition>();
+            foreach (var (label, kind, effects) in new[] { ("entry", "phase.entered", phase.EntryEffects), ("exit", "phase.exited", phase.ExitEffects) })
+            {
+                if (effects.Count == 0) continue;
+                var response = new GameplayResponseDefinition { ResponseId = $"phase:{sequence.SequenceId}:{phase.PhaseId}:{label}",
+                    Timing = ResponseExecutionTiming.ContainerBoundary,
+                    Observe = new() { Kinds = new() { Include = [kind] }, Boundary = new() { BoundaryIds = [phase.PhaseId] } },
+                    Bindings = new() { Target = new() { Kind = ResponseActorBindingKind.Owner }, Missing = MissingResponseBinding.RejectAction },
+                    Availability = new() { RequireLivingOwner = false }, Propagation = ResponsePropagation.AllowResponses,
+                    Order = new() { Descending = true }, Effects = effects.ToImmutableArray() };
+                var compiled = GameplayResponseCompiler.Compile(response, catalog, new() { ContainerBoundary = true });
+                if (compiled.IsFailure) return Result<PhaseSequenceDefinition>.Failure(compiled.Error);
+                responses.Add(response);
+            }
+            phases.Add(phase with { EntryEffects = [], ExitEffects = [], Responses = responses.ToImmutable() }); changed = true;
+        }
+        return Result<PhaseSequenceDefinition>.Success(changed ? sequence with { Phases = phases.ToImmutable() } : sequence);
     }
 
     private static Result<ImmutableArray<GameplayResponseDefinition>?> Convert(IReadOnlyList<EffectTriggerDefinition> triggers,

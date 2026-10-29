@@ -73,9 +73,10 @@ public static class GameplayBoundarySources
         return Result<ImmutableArray<GameplayBoundaryInvocation>>.Success(result.ToImmutable());
     }
 
-    public static GameplayBoundaryInvocation Phase(EffectTriggerExecutionRequest request, string phaseId, bool entering) => new()
+    public static GameplayBoundaryInvocation Phase(EffectTriggerExecutionRequest request, string phaseId, bool entering,
+        GameplayResponseDefinition? response = null) => new()
     {
-        Template = request, Kind = entering ? "phase.entered" : "phase.exited", BoundaryId = phaseId,
+        Response = response, Template = request, Kind = entering ? "phase.entered" : "phase.exited", BoundaryId = phaseId,
         Origin = new() { ContainerKind = "rule", ContainerId = request.Provenance.SourceId,
             ComponentId = request.Trigger.TriggerId, ContentRevision = request.ContentRevision }
     };

@@ -36,7 +36,7 @@ public static class GameplayResponseAuthoringGuard
 {
     internal static bool Supports(Type type) => typeof(IGameplayResponseDeclarations).IsAssignableFrom(type) ||
         type == typeof(EntityDefinition) || type == typeof(CardContentDefinition) || type == typeof(CardComponentBundleDefinition) ||
-        type == typeof(RunDefinition) || type == typeof(CardUpgradeDefinition);
+        type == typeof(Core.Combat.TurnPhase.PhaseSequenceDefinition) || type == typeof(RunDefinition) || type == typeof(CardUpgradeDefinition);
 
     internal static bool ContainsDeclarations(object value) => Sources(value).Any(source =>
         source.Responses is { } definitions && (definitions.IsDefault || !definitions.IsEmpty));
@@ -54,6 +54,7 @@ public static class GameplayResponseAuthoringGuard
             EntityDefinition entity => entity.Components.OfType<IGameplayResponseDeclarations>(),
             CardContentDefinition card => card.Components.OfType<IGameplayResponseDeclarations>(),
             CardComponentBundleDefinition bundle => bundle.Components.OfType<IGameplayResponseDeclarations>(),
+            Core.Combat.TurnPhase.PhaseSequenceDefinition sequence => sequence.Phases.OfType<IGameplayResponseDeclarations>(),
             RunDefinition run => run.MapNodes.OfType<IGameplayResponseDeclarations>(),
             CardUpgradeDefinition upgrade => upgrade.Patches.OfType<CardComponentPatchDefinition>().Select(item => item.Component)
                 .Concat(upgrade.Patches.OfType<CardBundleSnapshotPatchDefinition>().SelectMany(item => item.Components))

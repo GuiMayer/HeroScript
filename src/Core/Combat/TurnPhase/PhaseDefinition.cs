@@ -5,8 +5,10 @@ using Core.Effects;
 
 namespace Core.Combat.TurnPhase;
 
-public sealed record PhaseDefinition
+public sealed record PhaseDefinition : Core.GameplayEvents.Responses.IGameplayResponseDeclarations
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.GameplayEvents.Responses.GameplayResponseDefinition>? Responses { get; init; }
     private ImmutableArray<ActionType> _allowedActions = [];
     private ImmutableArray<string> _allowedCommandTags = [];
     private ImmutableArray<PhaseEdgeDefinition> _edges = [];
