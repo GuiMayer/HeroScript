@@ -137,3 +137,11 @@ Referências externas não expandidas e corpos estocásticos/continuations cuja 
 ## Persistência causal
 
 O commit schema 4 pode conter `GameplayEvents` (lote schema 1), com scope, occurrences e invocations. A candidata é gravada uma única vez antes de publicar o estado. O lote não faz parte do hash do estado nem constitui uma fila a executar ao carregar. As quotas de PriorityWindow permanecem no estado autoritativo da janela; quotas de ação são efêmeras. Commits anteriores sem esse campo são válidos e exibem ausência de diagnóstico, sem reconstrução heurística. Status e ações pendentes usam suas âncoras causais capturadas, inclusive entre branches autorizadas. Nova revisão não reescreve o conteúdo histórico.
+
+## Descoberta e inspeção REST
+
+- `GET /api/v1/content/{settingId}/revisions/{revision}/gameplay-events/catalog`: tópicos, motivos e convenções da revisão publicada.
+- `GET /api/v1/content/{settingId}/revisions/{revision}/gameplay-responses/schema`: schema de autoria vinculado ao mesmo escopo.
+- `GET /api/v1/runs/{runId}/commits/{sequence}/gameplay-events?contentRevision={revision}`: lote causal gravado. O parâmetro de revisão é opcional e valida a revisão da ação histórica, não a mais recente.
+
+Inspeção causal completa exige `timeline.inspect_state` e `debug.card_inspection.full`, intersectados com as permissões capturadas no modo. Sem ambas, 403 antes de ler os fatos; não se vaza identidade de cartas ocultas pela timeline normal/recibos. Histórico sem lote devolve `recorded: false`, não executa efeitos para fabricar fatos. Não existe POST para injetar ocorrência. Preview, simulação e IA continuam usando o planejador/dispatcher do gameplay; a API nova é somente consulta. O cliente Godot usa o gateway de comunicação existente.

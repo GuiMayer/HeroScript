@@ -111,7 +111,7 @@ public sealed class RunJournalController : BaseApiController
         var commit = await _commits.LoadCommitAsync(runId, sequence, cancellationToken);
         return commit == null
             ? ApiNotFound($"Run commit not found: {runId}/{sequence}")
-            : Ok(commit);
+            : Ok(commit with { GameplayEvents = null });
     }
 
     [HttpGet("timeline")]

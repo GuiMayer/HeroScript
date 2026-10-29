@@ -237,7 +237,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
                 using var branchResponse = await restartedClient.GetAsync(
                     $"/api/v1/sandbox/runs/{branchRunId}/snapshot");
                 var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
-                Assert.Equal(HttpStatusCode.OK, branchResponse.StatusCode);
+                Assert.True(branchResponse.IsSuccessStatusCode, branch.GetRawText());
                 Assert.Single(branch.GetProperty("combat").GetProperty("pendingActions").EnumerateArray());
                 Assert.Equal("hero", branch.GetProperty("combat").GetProperty("priorityWindow")
                     .GetProperty("holderActorId").GetString());
@@ -817,7 +817,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             $"/api/v1/combats/{combatId}/timeline/{historicalSequence}/branches",
             new { branchKey = "alternate-card-line" });
         var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, branchResponse.StatusCode);
+        Assert.True(branchResponse.IsSuccessStatusCode, branch.GetRawText());
         var branchRunId = branch.GetProperty("runId").GetGuid();
         var branchCombatId = branch.GetProperty("activeEncounterId").GetGuid();
         Assert.NotEqual(runId, branchRunId);
@@ -1054,8 +1054,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             .GetProperty("statuses")[0];
         Assert.Equal(
             "EndActivation",
-            appliedBurning.GetProperty("definition").GetProperty("triggers")[0]
-                .GetProperty("boundary").GetString());
+            appliedBurning.GetProperty("definition").GetProperty("responses")[0]
+                .GetProperty("observe").GetProperty("boundary").GetProperty("boundaryIds")[0].GetString());
         var firstActivation = afterFirst.GetProperty("activation").GetProperty("activationNumber").GetInt32();
 
         var afterSecond = await ExecuteCardCommand(runId, combatId, basicAttack, "goblin_a");

@@ -26,4 +26,7 @@
     </Content>
   </ItemGroup>
 
+<ItemGroup>
+    <EmbeddedResource Include="../../docs/schemas/gameplay-response.schema.json" LogicalName="GameplayResponseSchema" />
+  </ItemGroup>
 </Project>

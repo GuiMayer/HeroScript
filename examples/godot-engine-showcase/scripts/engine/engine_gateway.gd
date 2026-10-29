@@ -208,3 +208,12 @@ static func normalize_history(data: Dictionary) -> Dictionary:
 	result["combat"] = preload("res://scripts/contracts/snapshot_projection.gd").combat(result.get("combat", {}))
 	result["run"] = preload("res://scripts/contracts/snapshot_projection.gd").run(result.get("run", {}))
 	return result
+
+func read_gameplay_events(run_id: String, sequence: int, revision: String = "") -> Dictionary:
+	var path := "/api/v1/runs/%s/commits/%d/gameplay-events" % [run_id.uri_encode(), sequence]
+	if not revision.is_empty(): path += "?contentRevision=%s" % revision.uri_encode()
+	return await _transport.request(HTTPClient.METHOD_GET, path)
+
+func read_gameplay_event_catalog(setting_id: String, revision: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/content/%s/revisions/%s/gameplay-events/catalog" % [setting_id.uri_encode(), revision.uri_encode()])

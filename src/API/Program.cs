@@ -528,6 +528,7 @@ builder.Services.AddSingleton<GameplayRuntime>(sp =>
         sp.GetRequiredService<IOperationalEventBus>())));
 builder.Services.AddSingleton<RunManager>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<GameplayEventQueryService>();
 builder.Services.AddSingleton<IRunQueryService>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<IRunCreationService>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<IRunEncounterRuntime>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
