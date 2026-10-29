@@ -67,7 +67,7 @@ public static class GameplayResponseSourceCompiler
                         source.SourceActorId, source.CardInstanceId, source.Contributors });
                     result.Add(new() { ProviderId = providerId, RegistrationId = identity, Response = response.Value,
                         Origin = source.Origin, OwnerActorId = owner, SourceActorId = source.SourceActorId,
-                        CardInstanceId = source.CardInstanceId, Contributors = source.Contributors, Order = source.Order,
+                        CardInstanceId = source.CardInstanceId, Contributors = source.Contributors, Order = source.Order with { Group = source.Order.Group + definition.Order.Group },
                         PayloadLots = source.PayloadLots, Stacks = source.Stacks, Duration = source.Duration });
                 }
             }

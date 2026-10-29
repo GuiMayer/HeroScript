@@ -21,11 +21,19 @@ public static class GameplayBoundaryResponseMigration
 
     public static Result<RelicDefinition> Relic(RelicDefinition definition, GameplayEventCatalog catalog)
     {
-        if (definition.Reactions is { IsEmpty: false })
-            return Result<RelicDefinition>.Failure("Resource reactions require their own typed migration before the publication cutover");
+        if (definition.Reactions is { IsDefault: true }) return Result<RelicDefinition>.Failure("Resource reactions are invalid");
+        if (definition.Triggers.Count == 0 && definition.Reactions is not { IsEmpty: false })
+            return Result<RelicDefinition>.Success(definition);
         var converted = Convert(definition.Triggers, definition.Responses, catalog, fromSource: false);
-        return converted.IsFailure ? Result<RelicDefinition>.Failure(converted.Error)
-            : Result<RelicDefinition>.Success(definition.Triggers.Count == 0 ? definition : definition with { Triggers = [], Responses = converted.Value });
+        if (converted.IsFailure) return Result<RelicDefinition>.Failure(converted.Error);
+        var reactions = GameplayResourceResponseMigration.Convert(definition.Reactions ?? [], catalog);
+        if (reactions.IsFailure) return Result<RelicDefinition>.Failure(reactions.Error);
+        if (definition.Reactions is { IsEmpty: false } && definition.Responses is { IsEmpty: false })
+            return Result<RelicDefinition>.Failure("Mixed historical and canonical reaction authoring is ambiguous");
+        var all = (converted.Value ?? []).AddRange(reactions.Value);
+        if (all.Length > 16 || all.Select(item => item.ResponseId).Distinct(StringComparer.Ordinal).Count() != all.Length)
+            return Result<RelicDefinition>.Failure("Combined response IDs are ambiguous or exceed their budget");
+        return Result<RelicDefinition>.Success(definition with { Triggers = [], Reactions = null, Responses = all });
     }
 
     public static Result<PhaseSequenceDefinition> Phases(PhaseSequenceDefinition sequence, GameplayEventCatalog catalog)

@@ -108,6 +108,8 @@ public sealed record GameplayResponseFrequency
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GameplayResponseOrder
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Group { get; init; }
     public int Priority { get; init; }
     public bool Descending { get; init; }
 }
