@@ -83,7 +83,7 @@ public static class CardSelectionTransitions
             Completed = true,
             PickedCardIds = selection.PickedCardIds.Concat(picks).ToImmutableList()
         };
-        var next = state with
+        var next = (deck.Value.ResponsesState ?? state) with
         {
             Deck = deck.Value.State,
             CardSelections = state.CardSelections.SetItem(index, updated),

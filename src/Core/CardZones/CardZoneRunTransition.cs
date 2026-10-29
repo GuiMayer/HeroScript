@@ -7,4 +7,8 @@ namespace Core.CardZones;
 public sealed record CardZoneRunTransition(
     DeckState State,
     DeterministicContext Context,
-    ImmutableArray<string> CardDefinitionIds);
+    ImmutableArray<string> CardDefinitionIds)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal RunState? ResponsesState { get; init; }
+}

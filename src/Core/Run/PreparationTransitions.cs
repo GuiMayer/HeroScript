@@ -169,7 +169,7 @@ public static class PreparationTransitions
             }
         }
 
-        var updatedModifiers = state with { Determinism = plan.Context };
+        var updatedModifiers = (deck.Value.ResponsesState ?? state) with { Determinism = deck.Value.ResponsesState?.Determinism ?? plan.Context };
         var appliedIds = new List<Guid>();
         foreach (var modifier in modifiers)
         {
@@ -201,9 +201,9 @@ public static class PreparationTransitions
             Options = preparation.Options.ToImmutableList().SetItem(optionIndex, updatedOption),
             AppliedOptionIds = preparation.AppliedOptionIds.Append(option.OptionId).ToImmutableList()
         };
-        var next = state with
+        var next = (deck.Value.ResponsesState ?? state) with
         {
-            ResourceState = spent.Value.State,
+            ResourceState = deck.Value.ResponsesState?.ResourceState ?? spent.Value.State,
             Deck = deck.Value.State,
             Preparations = state.Preparations.SetItem(preparationIndex, updatedPreparation),
             Modifiers = updatedModifiers.Modifiers,

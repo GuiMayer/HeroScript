@@ -107,7 +107,7 @@ public static class ShopTransitions
             var deck = CardZoneGrantTransitions.Grant(next, [updatedItem.CardId], zoneFlows);
             if (deck.IsFailure)
                 return Result<RunStateTransition<ShopItemState>>.Failure(deck.Error);
-            next = next with { Deck = deck.Value.State, Determinism = deck.Value.Context };
+            next = (deck.Value.ResponsesState ?? next) with { Deck = deck.Value.State, Determinism = deck.Value.Context };
         }
 
         next = next with { Determinism = next.Determinism.AdvanceStep() };

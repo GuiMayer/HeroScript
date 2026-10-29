@@ -43,7 +43,11 @@ internal sealed class GameplayRunObservation(GameplayEffectObservation current)
             }, Current.PublisherId, $"wallet/{Current.Events.Occurrences.Count}", Current.ParentEventId);
         if (observed.IsFailure) return Result<RunState>.Failure(observed.Error);
         Current = Current with { Events = observed.Value };
-        var after = before with { ResourceState = result.State };
+        return Dispatch(before, before with { ResourceState = result.State }, previous);
+    }
+
+    internal Result<RunState> Dispatch(RunState before, RunState after, GameplayEffectObservation previous)
+    {
         if (_executor == null) return Result<RunState>.Success(after);
         var dispatched = _executor.Dispatch(before, after, previous, Current);
         if (dispatched.IsFailure) return Result<RunState>.Failure(dispatched.Error);

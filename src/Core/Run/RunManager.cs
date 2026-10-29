@@ -876,7 +876,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (flowed.IsFailure) return Result.Failure(flowed.Error);
             if (flowed.Value.Steps.IsEmpty)
                 return Result.Failure("Card-zone tool flow produced no transition");
-            var candidate = state with
+            var candidate = (flowed.Value.ResponsesState ?? state) with
             {
                 Deck = new DeckState { Topology = flowed.Value.State },
                 Determinism = flowed.Value.Context.AdvanceStep()
@@ -912,7 +912,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (flowed.IsFailure) return Result.Failure(flowed.Error);
             if (flowed.Value.Steps.IsEmpty)
                 return Result.Failure("Card-zone gameplay flow produced no transition");
-            var candidate = state with
+            var candidate = (flowed.Value.ResponsesState ?? state) with
             {
                 Deck = new DeckState { Topology = flowed.Value.State },
                 Determinism = flowed.Value.Context.AdvanceStep()
@@ -1793,11 +1793,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             var flowed = ExecuteCardZoneBoundary(state, "encounter.ended", observation);
             if (flowed.IsFailure)
                 return Result<RunState>.Failure(flowed.Error);
-            var cleanedState = state with
+            var cleanedState = (flowed.Value.ResponsesState ?? state) with
             {
                 Deck = new DeckState { Topology = flowed.Value.State },
                 Determinism = flowed.Value.Context
             };
+            encounter = cleanedState.GetActiveEncounter() ?? encounter;
 
             var retry = _progression.ShouldRestartEncounterActivity(cleanedState, encounter.Combat.Status);
             var promoted = PersistentPlayerTransitions.ResolveEncounterObserved(cleanedState, encounter.Combat, retry, observation);

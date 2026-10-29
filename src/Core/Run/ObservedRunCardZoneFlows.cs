@@ -24,9 +24,15 @@ internal sealed class ObservedRunCardZoneFlows(ICardZoneFlowExecutor inner, Game
             return Result<CardZoneFlowResult>.Failure("Observed run flow requires its captured run snapshot");
         var original = run with { Deck = new() { Topology = before } };
         var candidate = run with { Deck = new() { Topology = result.Value.State }, Determinism = result.Value.Context };
-        var observed = GameplayCardFlowObservation.Append(cursor.Current, result.Value.Steps, original, candidate, context.ActiveActorId);
+        var previous = cursor.Current;
+        var observed = GameplayCardFlowObservation.Append(previous, result.Value.Steps, original, candidate, context.ActiveActorId);
         if (observed.IsFailure) return Result<CardZoneFlowResult>.Failure(observed.Error);
         cursor.Accept(observed.Value);
-        return result;
+        var dispatched = cursor.Dispatch(original, candidate, previous);
+        if (dispatched.IsFailure) return Result<CardZoneFlowResult>.Failure(dispatched.Error);
+        if (ReferenceEquals(dispatched.Value, candidate)) return result;
+        return Result<CardZoneFlowResult>.Success(result.Value with { State = dispatched.Value.Deck.Topology,
+            Context = dispatched.Value.Determinism, ResponsesState = dispatched.Value,
+            Fingerprint = CanonicalJson.ComputeHash(new { flow = result.Value.Fingerprint, response = dispatched.Value }) });
     }
 }

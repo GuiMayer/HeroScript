@@ -32,6 +32,6 @@ public static class CardZoneGrantTransitions
         return Result<CardZoneRunTransition>.Success(new CardZoneRunTransition(
             new DeckState { Topology = result.Value.State },
             result.Value.Context,
-            cardDefinitionIds.ToImmutableArray()));
+            cardDefinitionIds.ToImmutableArray()) { ResponsesState = result.Value.ResponsesState });
     }
 }

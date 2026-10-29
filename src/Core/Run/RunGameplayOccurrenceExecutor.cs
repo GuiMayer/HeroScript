@@ -17,7 +17,7 @@ public interface IRunGameplayOccurrenceExecutor
 public sealed class RunGameplayOccurrenceExecutor(IGameplayOccurrenceExecutor executor) : IRunGameplayOccurrenceExecutor
 {
     public Result<GameplayEffectObservation?> Prepare(RunState run, GameplayEffectObservation? observation = null) =>
-        executor.PrepareOccurrenceObservation(run, Snapshot(run), observation);
+        executor.PrepareOccurrenceObservation(run, run.GetActiveEncounter()?.Combat ?? Snapshot(run), observation);
 
     public Result<ObservedGameplayExecution<RunState>> Dispatch(RunState before, RunState after,
         GameplayEffectObservation beforeObservation, GameplayEffectObservation afterObservation)
@@ -25,12 +25,20 @@ public sealed class RunGameplayOccurrenceExecutor(IGameplayOccurrenceExecutor ex
         var prepared = Prepare(after);
         if (prepared.IsFailure) return Result<ObservedGameplayExecution<RunState>>.Failure(prepared.Error);
         if (prepared.Value == null) return Result<ObservedGameplayExecution<RunState>>.Success(new(after, afterObservation));
-        if (before.ActiveEncounterId != null || after.ActiveEncounterId != null)
-            return Result<ObservedGameplayExecution<RunState>>.Failure("Persistent occurrences cannot replace an active encounter");
-        var result = executor.DispatchOccurrencesObserved(before, Snapshot(before), after, Snapshot(after), beforeObservation, afterObservation with { RequirePersistentResponses = true });
+        if (before.ActiveEncounterId != after.ActiveEncounterId)
+            return Result<ObservedGameplayExecution<RunState>>.Failure("Occurrence mutation cannot substitute the active encounter");
+        var beforeCombat = before.GetActiveEncounter()?.Combat; var afterCombat = after.GetActiveEncounter()?.Combat;
+        var result = executor.DispatchOccurrencesObserved(before, beforeCombat ?? Snapshot(before), after, afterCombat ?? Snapshot(after),
+            beforeObservation, afterObservation with { RequirePersistentResponses = afterCombat == null });
         if (result.IsFailure) return Result<ObservedGameplayExecution<RunState>>.Failure(result.Error);
         var state = result.Value.Execution.Run ?? after;
-        if (state.PlayerEntity is { } entity && result.Value.Execution.State.GetActor(entity.InstanceId) is { } actor)
+        if (afterCombat != null)
+        {
+            var index = Array.FindIndex(state.Encounters.ToArray(), item => item.Combat.CombatId == afterCombat.CombatId);
+            if (index < 0) return Result<ObservedGameplayExecution<RunState>>.Failure("Occurrence response lost its captured encounter");
+            state = state with { Encounters = state.Encounters.SetItem(index, state.Encounters[index] with { Combat = result.Value.Execution.State }) };
+        }
+        else if (state.PlayerEntity is { } entity && result.Value.Execution.State.GetActor(entity.InstanceId) is { } actor)
             state = state with { PlayerEntity = entity with { Components = actor.Components } };
         return Result<ObservedGameplayExecution<RunState>>.Success(new(state, result.Value.Observation));
     }

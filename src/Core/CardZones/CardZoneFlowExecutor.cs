@@ -75,6 +75,8 @@ public sealed record CardZoneFlowStepRecord
 
 public sealed record CardZoneFlowResult
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal RunState? ResponsesState { get; init; }
     public CardZoneTopologyState State { get; init; } = new();
     public DeterministicContext Context { get; init; } = null!;
     public ImmutableArray<CardZoneFlowStepRecord> Steps { get; init; } = [];
