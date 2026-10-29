@@ -4,5 +4,5 @@
   "displayName": "Deck Workshop",
   "description": "Optional character compartments grant ordinary card components. Configure your build before combat.",
   "launch": { "runDefinitionId": "compartment_lab_run", "playerEntityId": "player", "modeId": "compartment_lab" },
-  "packages": [{ "packageId": "heroscript.compartment-lab", "versionRange": "1.0.0" }]
+  "packages": [{ "packageId": "heroscript.compartment-lab", "versionRange": "1.1.0" }]
 }

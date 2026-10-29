@@ -312,11 +312,8 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
         var packageChain = packages
             .Select(package => $"{package.Manifest.PackageId}@{package.Manifest.Version}")
             .ToImmutableArray();
-        var probe = ContentRuntime.Create(new ContentBundle { Manifest = new() { ConfigName = setting.SettingId,
-            Revision = "authoring-schema-probe", Artifacts = artifactManifests }, Artifacts = artifactPayloads }, _kinds);
-        if (probe.IsFailure) return Result<SettingCompilation>.Failure(probe.Error);
         var manifestPayload = new ContentManifestPayload(
-            probe.Value.ContainsGameplayResponses ? 2 : 1,
+            2,
             setting.SettingId,
             packageChain,
             artifactManifests);

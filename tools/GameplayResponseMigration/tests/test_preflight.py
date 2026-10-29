@@ -1,5 +1,6 @@
 """CLI regression tests. Run after building the tool with --artifacts-path .runtime/tools."""
 import hashlib
+import shutil
 import json
 import pathlib
 import subprocess
@@ -90,6 +91,43 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual('{}', metadata.read_text(encoding='utf-8'))
             self.assertEqual(2, invoke(setting, '--output', temporary).returncode)
             self.assertEqual(before, digest(path))
+
+    def test_root_apply_validates_and_backs_up_the_exact_preimage(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary) / 'packages'
+            shutil.copytree(ROOT / 'data/configs', root)
+            path = root / 'default/Resources/status-effects/status_effects.json'
+            document = json.loads(path.read_text(encoding='utf-8'))
+            document['migration_fixture'] = {'statusId': 'migration_fixture', 'triggers': [{
+                'triggerId': 'fixture', 'boundary': 'EndRound', 'effects': [
+                    {'type': 'REMOVE_STATUS', 'statusId': 'migration_fixture'}]}]}
+            path.write_text(json.dumps(document), encoding='utf-8')
+            before = path.read_bytes()
+            backup = pathlib.Path(temporary) / 'backup'
+            result = subprocess.run(['dotnet', str(DLL), '--root', str(root), '--apply', str(backup)],
+                capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+            self.assertEqual(0, result.returncode, result.stderr + result.stdout)
+            self.assertEqual(before, (backup / path.relative_to(root)).read_bytes())
+            self.assertTrue((backup / 'completed').exists())
+            current = json.loads(path.read_text(encoding='utf-8'))['migration_fixture']
+            self.assertNotIn('triggers', current)
+            self.assertEqual('fixture', current['responses'][0]['responseId'])
+
+    def test_root_apply_rejects_invalid_graph_before_writing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary) / 'packages'
+            shutil.copytree(ROOT / 'data/configs', root)
+            path = root / 'default/Resources/status-effects/status_effects.json'
+            document = json.loads(path.read_text(encoding='utf-8'))
+            document['migration_fixture'] = {'statusId': 'migration_fixture', 'triggers': [{
+                'triggerId': 'fixture', 'boundary': 'EndRound', 'effects': [
+                    {'type': 'REMOVE_STATUS', 'statusId': 'nonexistent_migration_fixture'}]}]}
+            path.write_text(json.dumps(document), encoding='utf-8')
+            before = {p: digest(p) for p in root.rglob('*.json')}
+            result = subprocess.run(['dotnet', str(DLL), '--root', str(root), '--apply', str(pathlib.Path(temporary) / 'backup')],
+                capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+            self.assertEqual(2, result.returncode)
+            self.assertEqual(before, {p: digest(p) for p in before})
 
     @staticmethod
     def fixture(temporary):

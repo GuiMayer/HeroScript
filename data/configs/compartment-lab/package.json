@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "packageId": "heroscript.compartment-lab",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "dataOnly": true,
-  "dependencies": [{ "packageId": "heroscript.volatile-core", "versionRange": "1.0.0" }],
+  "dependencies": [{ "packageId": "heroscript.volatile-core", "versionRange": "1.1.0" }],
   "content": [
     { "schemaVersion": 1, "operation": "definition", "kind": "deck-compartment-profiles", "sourcePath": "Resources/profiles.json", "artifactPath": "deck-compartment-profiles/lab.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "deck-compartment-policies", "sourcePath": "Resources/policies.json", "artifactPath": "deck-compartment-policies/lab.json" },

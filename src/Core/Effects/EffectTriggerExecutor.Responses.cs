@@ -182,8 +182,10 @@ public sealed partial class EffectTriggerExecutor
                 Trigger = new() { TriggerId = legacy?.Definition.ReactionId ?? ResponseTriggerIdentity(candidate),
                     Boundary = legacy == null ? string.Empty : "ResourceApplied", Effects = definition.Effects },
                 StackPayloadLots = candidate.Registration.PayloadLots,
-                Variables = variables.Value, Provenance = new() { Kind = legacy == null ? EffectProvenanceKind.Rule : EffectProvenanceKind.Relic,
-                    SourceId = legacy?.RelicInstanceId.ToString("D") ?? candidate.Registration.RegistrationId, ComponentId = definition.ResponseId }
+                Variables = variables.Value, Provenance = new() { Kind = legacy != null ? EffectProvenanceKind.Relic : candidate.Registration.Origin.ContainerKind switch {
+                        "card" => EffectProvenanceKind.Card, "status" => EffectProvenanceKind.Status, "relic" => EffectProvenanceKind.Relic,
+                        "mode" => EffectProvenanceKind.GameMode, "encounter" => EffectProvenanceKind.Encounter, _ => EffectProvenanceKind.Rule },
+                    SourceId = legacy?.RelicInstanceId.ToString("D") ?? candidate.Registration.Origin.ContainerId, ComponentId = definition.ResponseId }
             };
             if (boundary?.Response != null)
                 request = request with { OwnerEntityId = candidate.OwnerActorId, SourceEntityId = candidate.SourceActorId,

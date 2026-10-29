@@ -8,23 +8,154 @@
     "MaxStacks": 99,
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
-    "Triggers": [
+    "Tags": [
+      "fire",
+      "dot",
+      "debuff"
+    ],
+    "responses": [
       {
-        "TriggerId": "burning.tick",
-        "Boundary": "EndActivation",
-        "Effects": [
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "burning.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
           {
-            "EffectId": "burning.resource-reduction",
-            "Type": "DAMAGE",
-            "Target": "SELF",
-            "FormulaValue": "stacks * 3",
-            "TargetResource": "health",
-            "Tags": ["damage", "fire", "dot"]
+            "effectId": "burning.resource-reduction",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "DAMAGE",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": "stacks * 3",
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "damage",
+              "fire",
+              "dot"
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
-    ],
-    "Tags": ["fire", "dot", "debuff"]
+    ]
   },
   "poison": {
     "StatusId": "poison",
@@ -35,23 +166,154 @@
     "MaxStacks": 99,
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
-    "Triggers": [
+    "Tags": [
+      "poison",
+      "dot",
+      "debuff"
+    ],
+    "responses": [
       {
-        "TriggerId": "poison.tick",
-        "Boundary": "EndActivation",
-        "Effects": [
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "poison.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
           {
-            "EffectId": "poison.resource-reduction",
-            "Type": "DAMAGE",
-            "Target": "SELF",
-            "FormulaValue": "stacks * 2",
-            "TargetResource": "health",
-            "Tags": ["damage", "poison", "dot"]
+            "effectId": "poison.resource-reduction",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "DAMAGE",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": "stacks * 2",
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "damage",
+              "poison",
+              "dot"
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
-    ],
-    "Tags": ["poison", "dot", "debuff"]
+    ]
   },
   "strength": {
     "StatusId": "strength",
@@ -69,10 +331,15 @@
         "Channel": "effect_amount",
         "Bucket": "increased",
         "Formula": "stacks * 0.25",
-        "RequiredTags": ["damage"]
+        "RequiredTags": [
+          "damage"
+        ]
       }
     ],
-    "Tags": ["buff", "damage"]
+    "Tags": [
+      "buff",
+      "damage"
+    ]
   },
   "weakness": {
     "StatusId": "weakness",
@@ -90,10 +357,15 @@
         "Channel": "effect_amount",
         "Bucket": "increased",
         "Formula": "stacks * -0.25",
-        "RequiredTags": ["damage"]
+        "RequiredTags": [
+          "damage"
+        ]
       }
     ],
-    "Tags": ["debuff", "damage"]
+    "Tags": [
+      "debuff",
+      "damage"
+    ]
   },
   "vulnerable": {
     "StatusId": "vulnerable",
@@ -111,10 +383,15 @@
         "Channel": "effect_amount",
         "Bucket": "increased",
         "Value": 0.5,
-        "RequiredTags": ["damage"]
+        "RequiredTags": [
+          "damage"
+        ]
       }
     ],
-    "Tags": ["debuff", "damage"]
+    "Tags": [
+      "debuff",
+      "damage"
+    ]
   },
   "regeneration": {
     "StatusId": "regeneration",
@@ -125,23 +402,154 @@
     "MaxStacks": 10,
     "DurationTickBoundary": "EndActivation",
     "Priority": 10,
-    "Triggers": [
+    "Tags": [
+      "buff",
+      "heal",
+      "hot"
+    ],
+    "responses": [
       {
-        "TriggerId": "regeneration.tick",
-        "Boundary": "EndActivation",
-        "Effects": [
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "regeneration.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
           {
-            "EffectId": "regeneration.restore",
-            "Type": "HEAL",
-            "Target": "SELF",
-            "FormulaValue": "stacks * 2",
-            "TargetResource": "health",
-            "Tags": ["heal", "regeneration", "hot"]
+            "effectId": "regeneration.restore",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "HEAL",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": "stacks * 2",
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "heal",
+              "regeneration",
+              "hot"
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
-    ],
-    "Tags": ["buff", "heal", "hot"]
+    ]
   },
   "fortified": {
     "StatusId": "fortified",
@@ -159,10 +567,15 @@
         "Channel": "effect_amount",
         "Bucket": "increased",
         "Value": -0.25,
-        "RequiredTags": ["damage"]
+        "RequiredTags": [
+          "damage"
+        ]
       }
     ],
-    "Tags": ["buff", "defense"]
+    "Tags": [
+      "buff",
+      "defense"
+    ]
   },
   "silenced": {
     "StatusId": "silenced",
@@ -171,7 +584,9 @@
     "ActionConstraints": [
       {
         "ConstraintId": "cannot-cast",
-        "RequiredActionTags": ["spell"],
+        "RequiredActionTags": [
+          "spell"
+        ],
         "Reason": "Cannot cast spells while silenced"
       }
     ],
@@ -180,20 +595,32 @@
     "MaxStacks": 1,
     "DurationTickBoundary": "EndActivation",
     "Priority": 30,
-    "Tags": ["debuff", "control"]
+    "Tags": [
+      "debuff",
+      "control"
+    ]
   },
   "stunned": {
     "StatusId": "stunned",
     "DisplayName": "Stunned",
     "Description": "Cannot act",
     "ActionConstraints": [
-      { "ConstraintId": "cannot-act", "RequiredActionTags": ["action"], "Reason": "Cannot act while stunned" }
+      {
+        "ConstraintId": "cannot-act",
+        "RequiredActionTags": [
+          "action"
+        ],
+        "Reason": "Cannot act while stunned"
+      }
     ],
     "DefaultDuration": 1,
     "DefaultStacks": 1,
     "MaxStacks": 1,
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
-    "Tags": ["debuff", "control"]
+    "Tags": [
+      "debuff",
+      "control"
+    ]
   }
 }

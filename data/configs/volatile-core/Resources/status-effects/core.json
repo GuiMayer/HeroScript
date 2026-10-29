@@ -58,31 +58,163 @@
       "ember",
       "residual"
     ],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "core_ember_damage.tick",
-        "boundary": "EndActivation",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "core_ember_damage.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
-            "type": "DAMAGE",
-            "operation": "ADD",
-            "target": "SELF",
-            "targetResource": "health",
-            "targetLoss": {
-              "policy": "Skip"
-            },
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
             "parameters": [
               {
                 "parameter": "Amount",
-                "unitId": "points",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
                 "channel": "core_magnitude",
                 "pipelineId": "core_magnitude",
+                "unitId": "points",
                 "stageIds": [
                   "core_target"
                 ],
-                "inputQuantityId": "payload.potency"
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
               }
-            ]
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "DAMAGE",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -114,31 +246,163 @@
       "ember",
       "residual"
     ],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "core_ember_heal.tick",
-        "boundary": "EndActivation",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "core_ember_heal.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
-            "type": "HEAL",
-            "operation": "ADD",
-            "target": "SELF",
-            "targetResource": "health",
-            "targetLoss": {
-              "policy": "Skip"
-            },
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
             "parameters": [
               {
                 "parameter": "Amount",
-                "unitId": "points",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
                 "channel": "core_magnitude",
                 "pipelineId": "core_magnitude",
+                "unitId": "points",
                 "stageIds": [
                   "core_target"
                 ],
-                "inputQuantityId": "payload.potency"
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
               }
-            ]
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "HEAL",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -170,31 +434,163 @@
       "frost",
       "residual"
     ],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "core_frost_damage.tick",
-        "boundary": "EndActivation",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "core_frost_damage.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
-            "type": "DAMAGE",
-            "operation": "ADD",
-            "target": "SELF",
-            "targetResource": "mana",
-            "targetLoss": {
-              "policy": "Skip"
-            },
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
             "parameters": [
               {
                 "parameter": "Amount",
-                "unitId": "points",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
                 "channel": "core_magnitude",
                 "pipelineId": "core_magnitude",
+                "unitId": "points",
                 "stageIds": [
                   "core_target"
                 ],
-                "inputQuantityId": "payload.potency"
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
               }
-            ]
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "DAMAGE",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
+            "targetResource": "mana",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -226,31 +622,163 @@
       "frost",
       "residual"
     ],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "core_frost_heal.tick",
-        "boundary": "EndActivation",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "core_frost_heal.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
-            "type": "MODIFY_RESOURCE",
-            "operation": "ADD",
-            "target": "SELF",
-            "targetResource": "block",
-            "targetLoss": {
-              "policy": "Skip"
-            },
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
             "parameters": [
               {
                 "parameter": "Amount",
-                "unitId": "points",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
                 "channel": "core_magnitude",
                 "pipelineId": "core_magnitude",
+                "unitId": "points",
                 "stageIds": [
                   "core_target"
                 ],
-                "inputQuantityId": "payload.potency"
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
               }
-            ]
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "MODIFY_RESOURCE",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
+            "targetResource": "block",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }

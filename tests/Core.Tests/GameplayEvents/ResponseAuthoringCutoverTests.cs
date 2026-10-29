@@ -1,4 +1,4 @@
-using Core.Config;
+using System.Text.Json;
 using Core.Content;
 using Core.Content.Migrations;
 using Core.Determinism;
@@ -12,8 +12,7 @@ public sealed class ResponseAuthoringCutoverTests
     [Fact]
     public async Task CanonicalSchemaPublishesAndRestartsWithoutChangingHistoricalBundle()
     {
-        var root = ResourceProviderFactory.FindProjectRoot()!;
-        var source = await new SettingCompiler([new DirectoryPackageProvider("shipped", Path.Combine(root, "data/configs"))]).CompileBundleAsync("default");
+        var source = Core.Common.Result<ContentBundle>.Success(HistoricalBundle());
         Assert.True(source.IsSuccess, source.IsFailure ? source.Error : null);
         var oldHash = CanonicalJson.ComputeHash(source.Value);
         var plan = GameplayContentResponseMigration.Plan(source.Value);
@@ -42,10 +41,9 @@ public sealed class ResponseAuthoringCutoverTests
     }
 
     [Fact]
-    public async Task CurrentSchemaRejectsHistoricalHooksAndSchemaOneCannotGrantCanonicalAuthoring()
+    public void CurrentSchemaRejectsHistoricalHooksAndSchemaOneCannotGrantCanonicalAuthoring()
     {
-        var root = ResourceProviderFactory.FindProjectRoot()!;
-        var source = (await new SettingCompiler([new DirectoryPackageProvider("shipped", Path.Combine(root, "data/configs"))]).CompileBundleAsync("default")).Value;
+        var source = HistoricalBundle();
         var plan = GameplayContentResponseMigration.Plan(source).Value;
         var strictLegacy = new ContentGraphValidator().Validate(source with { Manifest = source.Manifest with { SchemaVersion = 2 } });
         Assert.False(strictLegacy.IsValid);
@@ -54,4 +52,16 @@ public sealed class ResponseAuthoringCutoverTests
         Assert.True(wrongSchema.IsFailure);
         Assert.Equal("34", DeterministicContext.CurrentEngineVersion); // published schema-1 execution and hashes remain compatible
     }
+    private static ContentBundle HistoricalBundle()
+    {
+        var document = System.Text.Json.JsonSerializer.SerializeToElement(new Dictionary<string, Core.StatusEffects.StatusEffectDefinition> {
+            ["charges"] = new() { StatusId = "charges", Triggers = [new() { TriggerId = "tick", Boundary = "EndActivation",
+                Effects = [new() { Type = Core.Effects.EffectType.REMOVE_STATUS, StatusId = "charges" }] }] } });
+        var artifact = new ContentArtifactManifest { Kind = "status-effects", Path = "status-effects/test.json", DefinitionCount = 1,
+            Hash = CanonicalJson.ComputeHash(document.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>()!) };
+        var manifest = new ContentManifest { SchemaVersion = 1, ConfigName = "historical", ConfigChain = ["historical@1.0.0"], Artifacts = [artifact] };
+        manifest = manifest with { Revision = CanonicalJson.ComputeHash(new { manifest.SchemaVersion, manifest.ConfigName, manifest.ConfigChain, manifest.Artifacts }) };
+        return new() { Manifest = manifest, Artifacts = System.Collections.Immutable.ImmutableDictionary<string, System.Text.Json.JsonElement>.Empty.Add(artifact.Path, document) };
+    }
+
 }

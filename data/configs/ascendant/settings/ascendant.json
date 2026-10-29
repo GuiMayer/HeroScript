@@ -9,6 +9,6 @@
     "modeId": "ascendant_world_one"
   },
   "packages": [
-    { "packageId": "heroscript.ascendant", "versionRange": "1.0.0" }
+    { "packageId": "heroscript.ascendant", "versionRange": "1.1.0" }
   ]
 }

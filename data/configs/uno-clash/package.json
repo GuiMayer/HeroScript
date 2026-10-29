@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "packageId": "heroscript.uno-clash",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "dataOnly": true,
   "dependencies": [
     {
       "packageId": "heroscript.base",
-      "versionRange": "1.0.0"
+      "versionRange": "1.1.0"
     }
   ],
   "conflicts": [],

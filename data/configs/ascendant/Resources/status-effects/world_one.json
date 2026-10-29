@@ -2,7 +2,7 @@
   "w1_burn": {
     "statusId": "w1_burn",
     "displayName": "Scorch",
-    "description": "Each stack keeps its captured potency. Ticks at the affected actor's end of activation; release consumes all stacks.",
+    "description": "Each stack keeps its captured potency. Ticks at the affected actor\u0027s end of activation; release consumes all stacks.",
     "defaultDuration": 3,
     "durationTickBoundary": "EndActivation",
     "maxStacks": 99,
@@ -32,34 +32,166 @@
       "fire",
       "damage_payload"
     ],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "w1_burn.tick",
-        "boundary": "EndActivation",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "w1_burn.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
+                "channel": "w1_dot",
+                "pipelineId": "w1_dot",
+                "unitId": "points",
+                "stageIds": [
+                  "w1_target"
+                ],
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
+              }
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
             "type": "DAMAGE",
+            "sequenceMutation": null,
             "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
             "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
             "tags": [
               "damage",
               "residual"
             ],
-            "targetLoss": {
-              "policy": "Skip"
-            },
-            "parameters": [
-              {
-                "parameter": "Amount",
-                "inputQuantityId": "payload.potency",
-                "unitId": "points",
-                "channel": "w1_dot",
-                "pipelineId": "w1_dot",
-                "stageIds": [
-                  "w1_target"
-                ]
-              }
-            ]
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -68,7 +200,7 @@
   "w1_poison": {
     "statusId": "w1_poison",
     "displayName": "Corrosion",
-    "description": "Each stack keeps its captured potency. Ticks at the affected actor's end of activation; release consumes all stacks.",
+    "description": "Each stack keeps its captured potency. Ticks at the affected actor\u0027s end of activation; release consumes all stacks.",
     "defaultDuration": 3,
     "durationTickBoundary": "EndActivation",
     "maxStacks": 99,
@@ -98,34 +230,166 @@
       "poison",
       "damage_payload"
     ],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "w1_poison.tick",
-        "boundary": "EndActivation",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "w1_poison.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
+                "channel": "w1_dot",
+                "pipelineId": "w1_dot",
+                "unitId": "points",
+                "stageIds": [
+                  "w1_target"
+                ],
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
+              }
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
             "type": "DAMAGE",
+            "sequenceMutation": null,
             "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
             "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
             "tags": [
               "damage",
               "residual"
             ],
-            "targetLoss": {
-              "policy": "Skip"
-            },
-            "parameters": [
-              {
-                "parameter": "Amount",
-                "inputQuantityId": "payload.potency",
-                "unitId": "points",
-                "channel": "w1_dot",
-                "pipelineId": "w1_dot",
-                "stageIds": [
-                  "w1_target"
-                ]
-              }
-            ]
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -323,4 +587,3 @@
     ]
   }
 }
-

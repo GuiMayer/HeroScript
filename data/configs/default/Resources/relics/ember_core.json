@@ -2,29 +2,205 @@
   "ember_core": {
     "relicId": "ember_core",
     "stackLimit": 1,
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "ember_core.combat-start",
-        "boundary": "CombatStart",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "ember_core.combat-start",
+        "observe": {
+          "kinds": {
+            "include": [
+              "combat.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "CombatStart"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
             "effectId": "ember_core.energy-cap",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
             "type": "MODIFY_RESOURCE",
+            "sequenceMutation": null,
             "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
             "flatValue": 1,
+            "formulaValue": null,
             "targetResource": "energy",
-            "resourceField": "Maximum",
             "operation": "ADD",
-            "tags": ["resource", "energy", "maximum"]
+            "resourceField": "Maximum",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "resource",
+              "energy",
+              "maximum"
+            ],
+            "metadata": {},
+            "chainedEffects": null
           },
           {
             "effectId": "ember_core.energy",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
             "type": "MODIFY_RESOURCE",
+            "sequenceMutation": null,
             "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
             "flatValue": 1,
+            "formulaValue": null,
             "targetResource": "energy",
             "operation": "ADD",
-            "tags": ["resource", "energy"]
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "resource",
+              "energy"
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }

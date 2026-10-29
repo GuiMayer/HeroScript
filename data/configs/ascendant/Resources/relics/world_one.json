@@ -67,22 +67,144 @@
     "relicId": "w1_opening_ward",
     "stackLimit": 1,
     "influences": [],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "w1_opening_ward.entry",
-        "boundary": "CombatStart",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "w1_opening_ward.entry",
+        "observe": {
+          "kinds": {
+            "include": [
+              "combat.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "CombatStart"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
             "effectId": "w1_opening_ward.0",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
             "type": "MODIFY_RESOURCE",
+            "sequenceMutation": null,
             "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": 8,
+            "formulaValue": null,
             "targetResource": "block",
             "operation": "ADD",
-            "flatValue": 8,
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
             "tags": [
               "defense",
               "block"
-            ]
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -92,20 +214,143 @@
     "relicId": "w1_field_kit",
     "stackLimit": 1,
     "influences": [],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "w1_field_kit.entry",
-        "boundary": "CombatStart",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "w1_field_kit.entry",
+        "observe": {
+          "kinds": {
+            "include": [
+              "combat.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "CombatStart"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
             "effectId": "w1_field_kit.0",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
             "type": "HEAL",
+            "sequenceMutation": null,
             "target": "SELF",
-            "targetResource": "health",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
             "flatValue": 3,
+            "formulaValue": null,
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
             "tags": [
               "recovery"
-            ]
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
@@ -129,27 +374,150 @@
     "relicId": "w1_reserve_coil",
     "stackLimit": 1,
     "influences": [],
-    "triggers": [
+    "responses": [
       {
-        "triggerId": "w1_reserve_coil.entry",
-        "boundary": "CombatStart",
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "w1_reserve_coil.entry",
+        "observe": {
+          "kinds": {
+            "include": [
+              "combat.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "CombatStart"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
         "effects": [
           {
             "effectId": "w1_reserve_coil.0",
-            "type": "APPLY_STATUS",
-            "target": "SELF",
-            "statusId": "w1_reserve",
-            "statusStacks": 1,
-            "statusDuration": -1,
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [],
             "payloadBindings": [
               {
                 "parameterId": "potency",
-                "flatValue": 5
+                "cardEffectComponentId": null,
+                "flatValue": 5,
+                "formulaValue": null
               }
             ],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "APPLY_STATUS",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Fail",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
+            "targetResource": null,
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": "w1_reserve",
+            "statusStacks": 1,
+            "statusDuration": -1,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
             "tags": [
               "reserve"
-            ]
+            ],
+            "metadata": {},
+            "chainedEffects": null
           }
         ]
       }
