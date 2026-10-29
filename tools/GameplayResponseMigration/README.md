@@ -1,6 +1,6 @@
 # Gameplay response migration preflight
 
-This tool reads one configuration's own `Resources/status-effects`, `Resources/relics` and `Resources/phase-sequences` directories. Run it separately for inherited configurations. It invokes the Core typed converters, preserves unrelated JSON fields, and reports before/after definitions, proposed documents and file SHA-256 hashes. It does not edit content, publish revisions, migrate saves, or change the engine version.
+This tool reads one configuration's own `Resources/status-effects`, `Resources/relics` and `Resources/phase-sequences` directories. Run it separately for inherited configurations. It invokes the Core definition planner and typed converters, preserves unrelated JSON fields, and reports before/after definitions, proposed documents and file SHA-256 hashes. Reports must be written outside the setting directory. It does not edit content, publish revisions, migrate saves, or change the engine version.
 
 ```powershell
 dotnet run --project tools/GameplayResponseMigration -- --setting data/configs/ascendant --output migration-report.json
@@ -16,3 +16,5 @@ Regression checks:
 dotnet build tools/GameplayResponseMigration -c Release --artifacts-path .runtime/tools
 python -X utf8 -m unittest discover -s tools/GameplayResponseMigration/tests -v
 ```
+
+Core also exposes `GameplayContentResponseMigration.Plan` for an entire effective bundle, after inheritance. That plan recalculates artifact/revision hashes and checks the candidate with the captured graph validator. It leaves the original bundle intact and does not publish the candidate.

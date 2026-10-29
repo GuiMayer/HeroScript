@@ -76,6 +76,21 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual(2, invoke(setting, '--apply').returncode)
             self.assertEqual(before, digest(path))
 
+    def test_trailing_separator_and_report_errors_preserve_content(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            setting, path, _ = self.fixture(temporary)
+            before = digest(path)
+            result = invoke(str(setting) + '/')
+            self.assertEqual(0, result.returncode, result.stderr + result.stdout)
+            self.assertEqual(1, json.loads(result.stdout)['changedFiles'])
+            metadata = setting / 'settings/definition.json'
+            metadata.parent.mkdir()
+            metadata.write_text('{}', encoding='utf-8')
+            self.assertEqual(2, invoke(setting, '--output', metadata).returncode)
+            self.assertEqual('{}', metadata.read_text(encoding='utf-8'))
+            self.assertEqual(2, invoke(setting, '--output', temporary).returncode)
+            self.assertEqual(before, digest(path))
+
     @staticmethod
     def fixture(temporary):
         setting = pathlib.Path(temporary) / 'setting'
