@@ -285,6 +285,7 @@
     seedInput: document.getElementById("seedInput"),
     autoEndTurnToggle: document.getElementById("autoEndTurnToggle"),
     newRunBtn: document.getElementById("newRunBtn"),
+    centerNewRunBtn: document.getElementById("centerNewRunBtn"),
     toggleInspectorBtn: document.getElementById("toggleInspectorBtn"),
     closeInspectorBtn: document.getElementById("closeInspectorBtn"),
     engineInspector: document.getElementById("engineInspector"),
@@ -1347,6 +1348,7 @@
   }
 
   function showOutcomeModal(status, victory = null) {
+    if (typeof document !== "undefined" && document.body) document.body.dataset.gameState = "ended";
     suspendPlayerControls();
     el.wildModal.classList.add("hidden");
     el.outcomeModal.classList.remove("hidden");
@@ -1553,6 +1555,7 @@
     if (state.combatId) updateAutoTurn();
   }
   el.newRunBtn.addEventListener("click", openModePicker);
+  if (el.centerNewRunBtn) el.centerNewRunBtn.addEventListener("click", openModePicker);
   el.restartMatchBtn.addEventListener("click", openModePicker);
   el.closeModeBtn.addEventListener("click", closeModePicker);
   el.modeModal.addEventListener("click", event => { if (event.target === el.modeModal) closeModePicker(); });
