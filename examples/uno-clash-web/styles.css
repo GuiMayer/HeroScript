@@ -1,6 +1,6 @@
 :root {
-  --active-accent: var(--uno-red);
-  --active-glow: var(--uno-red-glow);
+  --active-accent: var(--clash-red);
+  --active-glow: var(--clash-red-glow);
 
   --font-display: 'Fredoka', cursive, sans-serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -14,23 +14,23 @@
 }
 
 body[data-active-color="red"] {
-  --active-accent: var(--uno-red);
-  --active-glow: var(--uno-red-glow);
+  --active-accent: var(--clash-red);
+  --active-glow: var(--clash-red-glow);
 }
 
 body[data-active-color="blue"] {
-  --active-accent: var(--uno-blue);
-  --active-glow: var(--uno-blue-glow);
+  --active-accent: var(--clash-blue);
+  --active-glow: var(--clash-blue-glow);
 }
 
 body[data-active-color="green"] {
-  --active-accent: var(--uno-green);
-  --active-glow: var(--uno-green-glow);
+  --active-accent: var(--clash-green);
+  --active-glow: var(--clash-green-glow);
 }
 
 body[data-active-color="yellow"] {
-  --active-accent: var(--uno-yellow);
-  --active-glow: var(--uno-yellow-glow);
+  --active-accent: var(--clash-yellow);
+  --active-glow: var(--clash-yellow-glow);
 }
 
 *, *::before, *::after {
@@ -221,11 +221,11 @@ html, body {
   flex-shrink: 0;
 }
 
-.uno-emblem {
+.clash-emblem {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
-  background: linear-gradient(135deg, var(--uno-red) 0%, var(--brand-red-end) 100%);
+  background: linear-gradient(135deg, var(--clash-red) 0%, var(--brand-red-end) 100%);
   padding: 5px 13px;
   border-radius: 999px;
   border: 2px solid var(--paper);
@@ -233,7 +233,7 @@ html, body {
   transform: rotate(-3deg);
 }
 
-.uno-emblem-text {
+.clash-emblem-text {
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
@@ -242,7 +242,7 @@ html, body {
   text-shadow: 2px 2px 0 var(--ink);
 }
 
-.uno-emblem-sub {
+.clash-emblem-sub {
   font-family: var(--font-display);
   font-size: 0.74rem;
   font-weight: 700;
@@ -398,7 +398,7 @@ html, body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--uno-red) 0%, var(--primary-red-end) 100%);
+  background: linear-gradient(135deg, var(--clash-red) 0%, var(--primary-red-end) 100%);
   color: var(--paper);
   border-color: var(--white-25);
   box-shadow: 0 4px 14px var(--red-glow-35);
@@ -508,7 +508,7 @@ html, body {
   width: 72%;
   height: 72%;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--uno-red) 0%, var(--brand-red-end) 100%);
+  background: linear-gradient(135deg, var(--clash-red) 0%, var(--brand-red-end) 100%);
   transform: rotate(-24deg);
   display: flex;
   align-items: center;
@@ -708,7 +708,7 @@ html, body {
   opacity: 0.58;
 }
 
-.uno-card-back {
+.clash-card-back {
   position: absolute;
   inset: 0;
   border-radius: var(--card-radius);
@@ -738,7 +738,7 @@ html, body {
   width: 74%;
   height: 74%;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--uno-red) 0%, var(--card-back-oval-end) 100%);
+  background: linear-gradient(135deg, var(--clash-red) 0%, var(--card-back-oval-end) 100%);
   transform: rotate(-28deg);
   display: flex;
   align-items: center;
@@ -845,7 +845,7 @@ html, body {
 }
 
 /* History cards layered under the active table card */
-.uno-card.discard-history-card {
+.clash-card.discard-history-card {
   position: absolute;
   width: calc(var(--card-w) * 1.06);
   height: calc(var(--card-h) * 1.06);
@@ -854,7 +854,7 @@ html, body {
   box-shadow: 0 8px 20px var(--shadow-50);
 }
 
-.uno-card.table-card {
+.clash-card.table-card {
   position: relative;
   z-index: 5;
   width: calc(var(--card-w) * 1.12);
@@ -863,7 +863,7 @@ html, body {
   box-shadow: 0 18px 42px var(--shadow-72), 0 0 32px var(--active-glow);
 }
 
-.uno-card.table-card.pop-land {
+.clash-card.table-card.pop-land {
   animation: tableCardLand 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -926,9 +926,9 @@ html, body {
 }
 
 /* ==========================================================================
-   Physical UNO Card Geometry
+   Physical Clash Card Geometry
    ========================================================================== */
-.uno-card {
+.clash-card {
   position: relative;
   width: var(--card-w);
   height: var(--card-h);
@@ -948,34 +948,34 @@ html, body {
   flex-shrink: 0;
 }
 
-.uno-card[data-color="red"] {
-  background: linear-gradient(145deg, var(--uno-red) 0%, var(--uno-red-dark) 100%);
+.clash-card[data-color="red"] {
+  background: linear-gradient(145deg, var(--clash-red) 0%, var(--clash-red-dark) 100%);
 }
 
-.uno-card[data-color="blue"] {
-  background: linear-gradient(145deg, var(--uno-blue) 0%, var(--uno-blue-dark) 100%);
+.clash-card[data-color="blue"] {
+  background: linear-gradient(145deg, var(--clash-blue) 0%, var(--clash-blue-dark) 100%);
 }
 
-.uno-card[data-color="green"] {
-  background: linear-gradient(145deg, var(--uno-green) 0%, var(--uno-green-dark) 100%);
+.clash-card[data-color="green"] {
+  background: linear-gradient(145deg, var(--clash-green) 0%, var(--clash-green-dark) 100%);
 }
 
-.uno-card[data-color="yellow"] {
-  background: linear-gradient(145deg, var(--uno-yellow) 0%, var(--uno-yellow-dark) 100%);
+.clash-card[data-color="yellow"] {
+  background: linear-gradient(145deg, var(--clash-yellow) 0%, var(--clash-yellow-dark) 100%);
 }
 
-.uno-card[data-color="wild"] {
+.clash-card[data-color="wild"] {
   background: conic-gradient(
     from 45deg,
-    var(--uno-red) 0deg 90deg,
-    var(--uno-blue) 90deg 180deg,
-    var(--uno-green) 180deg 270deg,
-    var(--uno-yellow) 270deg 360deg
+    var(--clash-red) 0deg 90deg,
+    var(--clash-blue) 90deg 180deg,
+    var(--clash-green) 180deg 270deg,
+    var(--clash-yellow) 270deg 360deg
   );
 }
 
 /* Inner White Rim & Tilted Oval */
-.uno-card::before {
+.clash-card::before {
   content: "";
   position: absolute;
   width: 82%;
@@ -987,12 +987,12 @@ html, body {
   pointer-events: none;
 }
 
-.uno-card[data-color="wild"]::before {
+.clash-card[data-color="wild"]::before {
   background: var(--card-wild-background);
 }
 
 /* Gloss sheen overlay */
-.uno-card::after {
+.clash-card::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1038,9 +1038,9 @@ html, body {
 }
 
 /* ==========================================================================
-   Action & UNO Callout Column
+   Action & Clash Callout Column
    ========================================================================== */
-.shout-uno-btn,
+.shout-clash-btn,
 .end-turn-btn {
   width: clamp(132px, 12vw, 158px);
   max-width: 100%;
@@ -1048,7 +1048,7 @@ html, body {
   align-self: center;
 }
 
-.shout-uno-btn {
+.shout-clash-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1057,23 +1057,23 @@ html, body {
   padding: clamp(9px, 1.2vh, 13px) 12px;
   border-radius: 15px;
   border: 2px solid var(--brand-yellow);
-  background: linear-gradient(135deg, var(--uno-red) 0%, var(--uno-button-end) 100%);
+  background: linear-gradient(135deg, var(--clash-red) 0%, var(--clash-button-end) 100%);
   color: var(--paper);
   cursor: pointer;
   box-shadow: 0 8px 22px var(--red-glow-45);
   transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
-.shout-uno-btn.urgent {
-  animation: unoPulse 1s ease-in-out infinite;
+.shout-clash-btn.urgent {
+  animation: clashPulse 1s ease-in-out infinite;
 }
 
-@keyframes unoPulse {
+@keyframes clashPulse {
   0%, 100% { box-shadow: 0 0 0 0 var(--yellow-glow-75); }
   50% { box-shadow: 0 0 28px 6px var(--yellow-glow-60); }
 }
 
-.shout-uno-btn:disabled {
+.shout-clash-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   border-color: var(--border-subtle);
@@ -1167,17 +1167,17 @@ html, body {
   padding: 4px 12px;
 }
 
-.player-hand-container .uno-card {
+.player-hand-container .clash-card {
   margin-left: var(--card-overlap, -18px);
   transform: translateY(var(--arc-y, 0px)) rotate(var(--arc-rot, 0deg));
   transform-origin: bottom center;
 }
 
-.player-hand-container .uno-card.hand-card-entering {
+.player-hand-container .clash-card.hand-card-entering {
   animation: cardDealIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-.player-hand-container .uno-card:first-child {
+.player-hand-container .clash-card:first-child {
   margin-left: 0;
 }
 
@@ -1188,12 +1188,12 @@ html, body {
   }
 }
 
-.player-hand-container .uno-card.is-legal {
+.player-hand-container .clash-card.is-legal {
   box-shadow: 0 12px 26px var(--shadow-65), 0 0 0 2px var(--brand-yellow);
   transform: translateY(calc(var(--arc-y, 0px) - 10px)) rotate(var(--arc-rot, 0deg));
 }
 
-.player-hand-container .uno-card.is-legal:hover {
+.player-hand-container .clash-card.is-legal:hover {
   transform: translateY(-28px) scale(1.11) rotate(0deg) !important;
   z-index: 30 !important;
   margin-left: calc(var(--card-overlap, -18px) + 10px);
@@ -1201,12 +1201,12 @@ html, body {
   box-shadow: 0 22px 42px var(--shadow-78), 0 0 26px var(--yellow-glow-72);
 }
 
-.player-hand-container .uno-card.is-illegal {
+.player-hand-container .clash-card.is-illegal {
   filter: saturate(0.42) brightness(0.66);
   cursor: not-allowed;
 }
 
-.player-hand-container .uno-card.is-illegal:hover {
+.player-hand-container .clash-card.is-illegal:hover {
   transform: translateY(calc(var(--arc-y, 0px) - 6px)) rotate(0deg);
   z-index: 25 !important;
 }
@@ -1281,7 +1281,7 @@ html, body {
   min-width: 0;
 }
 
-.telemetry-bot-card .uno-card {
+.telemetry-bot-card .clash-card {
   flex-shrink: 0;
   cursor: default;
   pointer-events: none;
@@ -1430,12 +1430,12 @@ body.is-dragging-draw {
   cursor: grabbing !important;
 }
 
-.uno-card.is-legal {
+.clash-card.is-legal {
   touch-action: none;
   cursor: grab;
 }
 
-.uno-card.is-legal:active {
+.clash-card.is-legal:active {
   cursor: grabbing;
 }
 
@@ -1444,7 +1444,7 @@ body.is-dragging-draw {
   cursor: grab;
 }
 
-.uno-card.is-being-dragged {
+.clash-card.is-being-dragged {
   opacity: 0.22 !important;
   filter: grayscale(0.5) !important;
   transform: translateY(4px) scale(0.92) !important;
@@ -1666,22 +1666,22 @@ body.is-dragging-card .discard-drop-badge {
 }
 
 .radial-sector.color-red {
-  background: radial-gradient(circle at 35% 35%, var(--red-sector-highlight) 0%, var(--uno-red) 55%, var(--red-sector-deep) 100%);
+  background: radial-gradient(circle at 35% 35%, var(--red-sector-highlight) 0%, var(--clash-red) 55%, var(--red-sector-deep) 100%);
   box-shadow: 0 8px 24px var(--red-glow-40);
 }
 
 .radial-sector.color-blue {
-  background: radial-gradient(circle at 65% 35%, var(--blue-sector-highlight) 0%, var(--uno-blue) 55%, var(--blue-sector-deep) 100%);
+  background: radial-gradient(circle at 65% 35%, var(--blue-sector-highlight) 0%, var(--clash-blue) 55%, var(--blue-sector-deep) 100%);
   box-shadow: 0 8px 24px var(--blue-glow-40);
 }
 
 .radial-sector.color-yellow {
-  background: radial-gradient(circle at 35% 65%, var(--yellow-sector-highlight) 0%, var(--uno-yellow) 55%, var(--yellow-sector-deep) 100%);
+  background: radial-gradient(circle at 35% 65%, var(--yellow-sector-highlight) 0%, var(--clash-yellow) 55%, var(--yellow-sector-deep) 100%);
   box-shadow: 0 8px 24px var(--gold-glow-40);
 }
 
 .radial-sector.color-green {
-  background: radial-gradient(circle at 65% 65%, var(--green-sector-highlight) 0%, var(--uno-green) 55%, var(--green-sector-deep) 100%);
+  background: radial-gradient(circle at 65% 65%, var(--green-sector-highlight) 0%, var(--clash-green) 55%, var(--green-sector-deep) 100%);
   box-shadow: 0 8px 24px var(--green-glow-40);
 }
 
@@ -2000,7 +2000,7 @@ body[data-game-mode="freeForAll"] .center-table { margin-inline: calc(var(--card
   body[data-game-mode="freeForAll"] .table-centerpiece { grid-area: center; }
   body[data-game-mode="freeForAll"] .pile-column { grid-area: pile; }
   body[data-game-mode="freeForAll"] .action-column { grid-area: actions; }
-  body[data-game-mode="freeForAll"] .shout-uno-btn,
+  body[data-game-mode="freeForAll"] .shout-clash-btn,
   body[data-game-mode="freeForAll"] .end-turn-btn { padding-inline: 4px; }
   body[data-game-mode="freeForAll"] .shout-burst { font-size: clamp(1.1rem, calc(8vw - 8px), 1.5rem); }
   body[data-game-mode="freeForAll"] .end-turn-title { font-size: clamp(0.8rem, 3.8vw, 1rem); }
