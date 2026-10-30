@@ -1,3 +1,4 @@
+@tool
 extends PanelContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
@@ -8,6 +9,25 @@ var target_button: Button
 var _battlefield_content: VBoxContainer
 var _projection := []
 var _model: Dictionary = {}
+
+func _ready() -> void:
+	if Engine.is_editor_hint() and _model.is_empty():
+		# Live preview in Godot editor 2D canvas
+		var dummy := {
+			"instanceId": "golem",
+			"definitionId": "stone_golem",
+			"name": "Stone Golem",
+			"relationship": "Enemy",
+			"resources": {
+				"health": {"current": 80, "minimum": 0, "maximum": 100},
+				"shield": {"current": 15, "minimum": 0, "maximum": 15}
+			},
+			"statuses": [
+				{"statusId": "burn", "stacks": 4, "duration": 2, "isActive": true},
+				{"statusId": "shield", "stacks": 1, "duration": 0, "isActive": true}
+			]
+		}
+		setup(dummy, true, {}, "Attack 12", false, true)
 
 func present_resource(application: Dictionary, duration: float) -> Tween:
 	var id := str(application.get("resourceId", ""))
