@@ -1,0 +1,8 @@
+{
+  "uno_opponents": {
+    "enemyPoolId": "uno_opponents",
+    "entityDefinitionIds": [
+      "uno_bot"
+    ]
+  }
+}

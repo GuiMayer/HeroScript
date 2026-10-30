@@ -1,0 +1,19 @@
+{
+  "experimental_tools": {
+    "capabilityPolicyId": "experimental_tools",
+    "allowScenarioAuthoring": false,
+    "allowCustomDeck": false,
+    "allowInitialEffects": false,
+    "allowResourceOverrides": false,
+    "allowTimelineFork": false,
+    "allowCombatSimulation": false,
+    "allowHotReloadActivation": false,
+    "allowRunResourceCheats": true,
+    "allowCardZoneCheats": true,
+    "cardInspectionDetail": "Resolved",
+    "maxCards": 100,
+    "maxActors": 6,
+    "maxBranchesPerRoot": 0,
+    "maxSimulationCommands": 0
+  }
+}

@@ -1,0 +1,871 @@
+{
+  "uno_setup_table": {
+    "actionId": "uno_setup_table",
+    "displayName": "Distribuir cartas reais",
+    "description": "Distribuir cartas reais",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "uno_setup",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_setup.player_return",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "setup.return-hand",
+        "cardCount": 1,
+        "tags": [
+          "uno"
+        ]
+      },
+      {
+        "effectId": "uno_setup.dealer_return",
+        "type": "CARD_ZONE_FLOW",
+        "target": "ALL_ENEMIES",
+        "cardZoneFlowId": "setup.return-hand",
+        "cardCount": 1,
+        "tags": [
+          "uno"
+        ]
+      },
+      {
+        "effectId": "uno_setup.pool",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "setup.prepare",
+        "cardCount": 1,
+        "tags": [
+          "uno"
+        ]
+      },
+      {
+        "effectId": "uno_setup.player_deal",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 7,
+        "tags": [
+          "uno"
+        ]
+      },
+      {
+        "effectId": "uno_setup.dealer_deal",
+        "type": "CARD_ZONE_FLOW",
+        "target": "ALL_ENEMIES",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 7,
+        "tags": [
+          "uno"
+        ]
+      },
+      {
+        "effectId": "uno_setup.ready",
+        "type": "MODIFY_RESOURCE",
+        "target": "ALL_ENEMIES",
+        "targetResource": "uno_setup",
+        "operation": "SET",
+        "flatValue": 0,
+        "tags": [
+          "uno"
+        ]
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_draw_card": {
+    "actionId": "uno_draw_card",
+    "displayName": "Comprar uma carta",
+    "description": "Comprar uma carta",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "uno_energy",
+          "amount": 1,
+          "formula": "uno_normal_cost"
+        },
+        {
+          "resourceId": "uno_draw_available",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_draw_card.amount",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_draw_amount",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "uno_draw_one"
+      },
+      {
+        "effectId": "uno_draw_card.draw",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 1,
+        "tags": [
+          "uno"
+        ],
+        "parameters": [
+          {
+            "parameter": "CardCount",
+            "formulaValue": "source.resources.uno_draw_amount.current",
+            "channel": "effect_amount",
+            "unitId": "scalar",
+            "conversion": {
+              "requireInteger": true
+            }
+          }
+        ],
+        "condition": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_draw_card.own_count",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "hand_count",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_draw_card.opponent_count",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "opponent_hand_count",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_draw_card.uno",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_called",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_draw_card.keep_play",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_energy",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_accept_draw2": {
+    "actionId": "uno_accept_draw2",
+    "displayName": "Comprar +2 acumulado",
+    "description": "Comprar +2 acumulado",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "uno_energy",
+          "amount": 1
+        },
+        {
+          "resourceId": "uno_draw2_due",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_accept_draw2.amount",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_draw_amount",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "uno_draw_stack"
+      },
+      {
+        "effectId": "uno_accept_draw2.draw",
+        "type": "CARD_ZONE_FLOW",
+        "target": "SELF",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 1,
+        "tags": [
+          "uno"
+        ],
+        "parameters": [
+          {
+            "parameter": "CardCount",
+            "formulaValue": "source.resources.uno_draw_amount.current",
+            "channel": "effect_amount",
+            "unitId": "scalar",
+            "conversion": {
+              "requireInteger": true
+            }
+          }
+        ],
+        "condition": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_accept_draw2.own_count",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "hand_count",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_accept_draw2.opponent_count",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "opponent_hand_count",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_accept_draw2.uno",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_called",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_accept_draw2.clear",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_draw2_pending",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_shout_uno": {
+    "actionId": "uno_shout_uno",
+    "displayName": "Declarar UNO",
+    "description": "Declarar UNO",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "uno_voice",
+          "amount": 1,
+          "formula": "resources.hand_count.current"
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_shout_uno.called",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_called",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_catch_no_uno": {
+    "actionId": "uno_catch_no_uno",
+    "displayName": "Cobrar UNO esquecido",
+    "description": "Cobrar UNO esquecido",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "uno_energy",
+          "amount": 1,
+          "formula": "uno_normal_cost"
+        },
+        {
+          "resourceId": "uno_catch_available",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_catch_no_uno.amount",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_draw_amount",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "uno_draw_two"
+      },
+      {
+        "effectId": "uno_catch_no_uno.draw",
+        "type": "CARD_ZONE_FLOW",
+        "target": "TARGET",
+        "cardZoneFlowId": "effect.draw",
+        "cardCount": 1,
+        "tags": [
+          "uno"
+        ],
+        "parameters": [
+          {
+            "parameter": "CardCount",
+            "formulaValue": "source.resources.uno_draw_amount.current",
+            "channel": "effect_amount",
+            "unitId": "scalar",
+            "conversion": {
+              "requireInteger": true
+            }
+          }
+        ],
+        "condition": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_catch_no_uno.own_count",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "hand_count",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_catch_no_uno.opponent_count",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "opponent_hand_count",
+        "operation": "ADD",
+        "tags": [
+          "uno"
+        ],
+        "formulaValue": "source.resources.uno_draw_amount.current"
+      },
+      {
+        "effectId": "uno_catch_no_uno.uno",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "uno_called",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_catch_no_uno.keep_card_turn",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "uno_energy",
+        "operation": "ADD",
+        "flatValue": 1,
+        "tags": [
+          "uno",
+          "non-card-action"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_choose_red": {
+    "actionId": "uno_choose_red",
+    "displayName": "Escolher Vermelho",
+    "description": "Escolher Vermelho",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "wild_color_token",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_choose_red.red.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_red.red.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_red.blue.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_red.blue.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_red.green.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_red.green.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_red.yellow.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_red.yellow.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_choose_blue": {
+    "actionId": "uno_choose_blue",
+    "displayName": "Escolher Azul",
+    "description": "Escolher Azul",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "wild_color_token",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_choose_blue.red.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_blue.red.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_blue.blue.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_blue.blue.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_blue.green.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_blue.green.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_blue.yellow.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_blue.yellow.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_choose_green": {
+    "actionId": "uno_choose_green",
+    "displayName": "Escolher Verde",
+    "description": "Escolher Verde",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "wild_color_token",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_choose_green.red.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_green.red.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_green.blue.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_green.blue.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_green.green.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_green.green.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_green.yellow.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_green.yellow.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  },
+  "uno_choose_yellow": {
+    "actionId": "uno_choose_yellow",
+    "displayName": "Escolher Amarelo",
+    "description": "Escolher Amarelo",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "wild_color_token",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "effectId": "uno_choose_yellow.red.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_yellow.red.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_red",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_yellow.blue.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_yellow.blue.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_blue",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_yellow.green.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_yellow.green.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_green",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 0
+      },
+      {
+        "effectId": "uno_choose_yellow.yellow.self",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      },
+      {
+        "effectId": "uno_choose_yellow.yellow.opponent",
+        "type": "MODIFY_RESOURCE",
+        "target": "TARGET",
+        "targetResource": "color_yellow",
+        "operation": "SET",
+        "tags": [
+          "uno"
+        ],
+        "flatValue": 1
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "uno"
+    ]
+  }
+}

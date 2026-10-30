@@ -1,0 +1,165 @@
+{
+  "t_no_debt": {
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.source.resources.t_debt.current"
+      },
+      {
+        "op": "MIN",
+        "value": "1"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "-1"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      }
+    ],
+    "params": {
+      "source.resources.t_debt.current": 0
+    }
+  },
+  "t_empty": {
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.myHand"
+      },
+      {
+        "op": "MIN",
+        "value": "1"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "-1"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.t_choice.current"
+      }
+    ],
+    "params": {
+      "myHand": 0,
+      "source.resources.t_choice.current": 0
+    }
+  },
+  "t_can_end": {
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.availableCards"
+      },
+      {
+        "op": "MIN",
+        "value": "1"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "-1"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      },
+      {
+        "op": "ADD",
+        "value": "params.drawAttempts"
+      },
+      {
+        "op": "ADD",
+        "value": "params.hasCard"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.t_energy.current"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      }
+    ],
+    "params": {
+      "availableCards": 0,
+      "drawAttempts": 0,
+      "hasCard": 0,
+      "source.resources.t_energy.current": 0
+    }
+  },
+  "t_one_card": {
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.myHand"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "1"
+      },
+      {
+        "op": "ABS"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "-1"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.t_called.current"
+      }
+    ],
+    "params": {
+      "myHand": 0,
+      "source.resources.t_called.current": 0
+    }
+  },
+  "t_catchable": {
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.targetHand"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "1"
+      },
+      {
+        "op": "ABS"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "-1"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.target.resources.t_called.current"
+      }
+    ],
+    "params": {
+      "targetHand": 0,
+      "target.resources.t_called.current": 0
+    }
+  }
+}

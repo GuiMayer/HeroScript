@@ -1,0 +1,33 @@
+{
+  "ember_core": {
+    "relicId": "ember_core",
+    "stackLimit": 1,
+    "triggers": [
+      {
+        "triggerId": "ember_core.combat-start",
+        "boundary": "CombatStart",
+        "effects": [
+          {
+            "effectId": "ember_core.energy-cap",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "flatValue": 1,
+            "targetResource": "energy",
+            "resourceField": "Maximum",
+            "operation": "ADD",
+            "tags": ["resource", "energy", "maximum"]
+          },
+          {
+            "effectId": "ember_core.energy",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "flatValue": 1,
+            "targetResource": "energy",
+            "operation": "ADD",
+            "tags": ["resource", "energy"]
+          }
+        ]
+      }
+    ]
+  }
+}

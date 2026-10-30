@@ -1,0 +1,57 @@
+{
+  "default_effect_amount": {
+    "pipelineId": "default_effect_amount",
+    "channel": "effect_amount",
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "order": 30,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "order": 40,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "order": 50,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "target.block.mitigation",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "scale": 1,
+        "offset": 0,
+        "priority": 100,
+        "requiredTags": ["effect.damage"],
+        "excludedTags": ["piercing"],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      }
+    ]
+  }
+}

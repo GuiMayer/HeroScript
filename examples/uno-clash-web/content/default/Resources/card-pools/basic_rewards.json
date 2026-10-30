@@ -1,0 +1,16 @@
+{
+  "basic_rewards": {
+    "poolId": "basic_rewards",
+    "includeTags": [],
+    "excludeTags": ["starter"],
+    "rarityWeights": {
+      "Common": 70,
+      "Uncommon": 25,
+      "Rare": 5
+    },
+    "explicitCardIds": [],
+    "metadata": {
+      "description": "Pool inicial de recompensas de cartas para validar raridades e filtros data-driven."
+    }
+  }
+}

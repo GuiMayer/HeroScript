@@ -1,0 +1,23 @@
+{
+  "core.ember.affinity": {
+    "upgradeId": "core.ember.affinity",
+    "category": "Affinity", "slotId": "affinity", "maxApplications": 1,
+    "cardDefinitionIds": ["basic_attack", "heal"],
+    "patches": [{ "type": "tags", "add": ["ember_affinity"] }],
+    "requirements": { "requiredTags": ["ember_affinity"] },
+    "compositionRules": [
+      {
+        "ruleId": "ember.attack", "priority": 10, "namespace": "ember_attack",
+        "bundleId": "core.ember.attack", "scope": "AfterImpact",
+        "when": { "requiredTags": ["ember_affinity"] },
+        "selector": { "effectTypes": ["DAMAGE"] }
+      },
+      {
+        "ruleId": "ember.heal", "priority": 10, "namespace": "ember_heal",
+        "bundleId": "core.ember.heal", "scope": "AfterImpact",
+        "when": { "requiredTags": ["ember_affinity"] },
+        "selector": { "effectTypes": ["HEAL"] }
+      }
+    ]
+  }
+}

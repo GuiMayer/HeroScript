@@ -1,0 +1,338 @@
+{
+  "uno_player": {
+    "definitionId": "uno_player",
+    "displayName": "Você (Desafiante)",
+    "description": "Jogador da mesa de UNO Clash.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "hand_count": {
+            "current": 7,
+            "max": 108
+          },
+          "opponent_hand_count": {
+            "current": 7,
+            "max": 108
+          },
+          "uno_energy": {
+            "current": 1,
+            "max": 10
+          },
+          "uno_voice": {
+            "current": 1,
+            "max": 1
+          },
+          "uno_called": {
+            "current": 0,
+            "max": 1
+          },
+          "wild_color_token": {
+            "current": 0,
+            "max": 1
+          },
+          "uno_draw_available": {
+            "current": 1,
+            "max": 1
+          },
+          "uno_draw2_pending": {
+            "current": 0,
+            "max": 108
+          },
+          "uno_draw2_due": {
+            "current": 0,
+            "max": 1
+          },
+          "uno_draw_amount": {
+            "current": 0,
+            "max": 108
+          },
+          "uno_setup": {
+            "current": 1,
+            "max": 1
+          },
+          "table_card_code": {
+            "current": 100,
+            "max": 999
+          },
+          "color_red": {
+            "current": 1,
+            "max": 1
+          },
+          "color_blue": {
+            "current": 0,
+            "max": 1
+          },
+          "color_green": {
+            "current": 0,
+            "max": 1
+          },
+          "color_yellow": {
+            "current": 0,
+            "max": 1
+          },
+          "val_0": {
+            "current": 1,
+            "max": 1
+          },
+          "val_1": {
+            "current": 0,
+            "max": 1
+          },
+          "val_2": {
+            "current": 0,
+            "max": 1
+          },
+          "val_3": {
+            "current": 0,
+            "max": 1
+          },
+          "val_4": {
+            "current": 0,
+            "max": 1
+          },
+          "val_5": {
+            "current": 0,
+            "max": 1
+          },
+          "val_6": {
+            "current": 0,
+            "max": 1
+          },
+          "val_7": {
+            "current": 0,
+            "max": 1
+          },
+          "val_8": {
+            "current": 0,
+            "max": 1
+          },
+          "val_9": {
+            "current": 0,
+            "max": 1
+          },
+          "val_skip": {
+            "current": 0,
+            "max": 1
+          },
+          "val_reverse": {
+            "current": 0,
+            "max": 1
+          },
+          "val_draw2": {
+            "current": 0,
+            "max": 1
+          },
+          "val_wild": {
+            "current": 0,
+            "max": 1
+          },
+          "prefer_red": {
+            "current": 1,
+            "max": 1
+          },
+          "prefer_blue": {
+            "current": 0,
+            "max": 1
+          },
+          "prefer_green": {
+            "current": 0,
+            "max": 1
+          },
+          "prefer_yellow": {
+            "current": 0,
+            "max": 1
+          },
+          "uno_catch_available": {
+            "current": 1,
+            "max": 1
+          }
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "uno_setup_table",
+          "uno_draw_card",
+          "uno_accept_draw2",
+          "uno_shout_uno",
+          "uno_catch_no_uno",
+          "uno_choose_red",
+          "uno_choose_blue",
+          "uno_choose_green",
+          "uno_choose_yellow"
+        ]
+      }
+    ]
+  },
+  "uno_bot": {
+    "definitionId": "uno_bot",
+    "displayName": "Bot",
+    "description": "Oponente do UNO Clash.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "hand_count": {
+            "current": 7,
+            "max": 108
+          },
+          "opponent_hand_count": {
+            "current": 7,
+            "max": 108
+          },
+          "uno_energy": {
+            "current": 1,
+            "max": 10
+          },
+          "uno_voice": {
+            "current": 1,
+            "max": 1
+          },
+          "uno_called": {
+            "current": 0,
+            "max": 1
+          },
+          "wild_color_token": {
+            "current": 0,
+            "max": 1
+          },
+          "uno_draw_available": {
+            "current": 1,
+            "max": 1
+          },
+          "uno_draw2_pending": {
+            "current": 0,
+            "max": 108
+          },
+          "uno_draw2_due": {
+            "current": 0,
+            "max": 1
+          },
+          "uno_draw_amount": {
+            "current": 0,
+            "max": 108
+          },
+          "uno_setup": {
+            "current": 1,
+            "max": 1
+          },
+          "table_card_code": {
+            "current": 100,
+            "max": 999
+          },
+          "color_red": {
+            "current": 1,
+            "max": 1
+          },
+          "color_blue": {
+            "current": 0,
+            "max": 1
+          },
+          "color_green": {
+            "current": 0,
+            "max": 1
+          },
+          "color_yellow": {
+            "current": 0,
+            "max": 1
+          },
+          "val_0": {
+            "current": 1,
+            "max": 1
+          },
+          "val_1": {
+            "current": 0,
+            "max": 1
+          },
+          "val_2": {
+            "current": 0,
+            "max": 1
+          },
+          "val_3": {
+            "current": 0,
+            "max": 1
+          },
+          "val_4": {
+            "current": 0,
+            "max": 1
+          },
+          "val_5": {
+            "current": 0,
+            "max": 1
+          },
+          "val_6": {
+            "current": 0,
+            "max": 1
+          },
+          "val_7": {
+            "current": 0,
+            "max": 1
+          },
+          "val_8": {
+            "current": 0,
+            "max": 1
+          },
+          "val_9": {
+            "current": 0,
+            "max": 1
+          },
+          "val_skip": {
+            "current": 0,
+            "max": 1
+          },
+          "val_reverse": {
+            "current": 0,
+            "max": 1
+          },
+          "val_draw2": {
+            "current": 0,
+            "max": 1
+          },
+          "val_wild": {
+            "current": 0,
+            "max": 1
+          },
+          "prefer_red": {
+            "current": 1,
+            "max": 1
+          },
+          "prefer_blue": {
+            "current": 0,
+            "max": 1
+          },
+          "prefer_green": {
+            "current": 0,
+            "max": 1
+          },
+          "prefer_yellow": {
+            "current": 0,
+            "max": 1
+          },
+          "uno_catch_available": {
+            "current": 1,
+            "max": 1
+          }
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "uno_setup_table",
+          "uno_draw_card",
+          "uno_accept_draw2",
+          "uno_shout_uno",
+          "uno_catch_no_uno",
+          "uno_choose_red",
+          "uno_choose_blue",
+          "uno_choose_green",
+          "uno_choose_yellow"
+        ]
+      }
+    ]
+  }
+}

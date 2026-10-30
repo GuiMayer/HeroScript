@@ -1,0 +1,6 @@
+{
+  "standard_enemies": {
+    "enemyPoolId": "standard_enemies",
+    "entityDefinitionIds": ["enemy_goblin", "enemy_orc_warrior"]
+  }
+}

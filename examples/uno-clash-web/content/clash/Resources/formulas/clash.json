@@ -1,0 +1,230 @@
+{
+  "uno_draw_one": {
+    "description": "Compra limitada as cartas fisicamente disponiveis",
+    "operations": [
+      {
+        "op": "SET",
+        "value": "108"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "1"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.hand_count.current"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.opponent_hand_count.current"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "MIN",
+        "value": "1"
+      }
+    ],
+    "params": {
+      "source.resources.hand_count.current": 0,
+      "source.resources.opponent_hand_count.current": 0
+    }
+  },
+  "uno_draw_two": {
+    "description": "Compra limitada as cartas fisicamente disponiveis",
+    "operations": [
+      {
+        "op": "SET",
+        "value": "108"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "1"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.hand_count.current"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.opponent_hand_count.current"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "MIN",
+        "value": "2"
+      }
+    ],
+    "params": {
+      "source.resources.hand_count.current": 0,
+      "source.resources.opponent_hand_count.current": 0
+    }
+  },
+  "uno_draw_four": {
+    "description": "Compra limitada as cartas fisicamente disponiveis",
+    "operations": [
+      {
+        "op": "SET",
+        "value": "108"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "1"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.hand_count.current"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.opponent_hand_count.current"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "MIN",
+        "value": "4"
+      }
+    ],
+    "params": {
+      "source.resources.hand_count.current": 0,
+      "source.resources.opponent_hand_count.current": 0
+    }
+  },
+  "uno_draw_stack": {
+    "description": "Compra limitada as cartas fisicamente disponiveis",
+    "operations": [
+      {
+        "op": "SET",
+        "value": "108"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "1"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.hand_count.current"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.opponent_hand_count.current"
+      },
+      {
+        "op": "MAX",
+        "value": "0"
+      },
+      {
+        "op": "MIN",
+        "value": "params.source.resources.uno_draw2_pending.current"
+      }
+    ],
+    "params": {
+      "source.resources.hand_count.current": 0,
+      "source.resources.opponent_hand_count.current": 0,
+      "source.resources.uno_draw2_pending.current": 0
+    }
+  },
+  "uno_normal_cost": {
+    "description": "Acao bloqueada antes da distribuicao, durante penalidade ou escolha de cor",
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.resources.uno_setup.current"
+      },
+      {
+        "op": "ADD",
+        "value": "params.resources.wild_color_token.current"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "100"
+      },
+      {
+        "op": "ADD",
+        "value": "params.resources.uno_draw2_pending.current"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      }
+    ],
+    "params": {
+      "resources.uno_setup.current": 0,
+      "resources.wild_color_token.current": 0,
+      "resources.uno_draw2_pending.current": 0
+    }
+  },
+  "uno_server_can_end": {
+    "operations": [
+      {
+        "op": "SET",
+        "value": "params.duelAvailable"
+      },
+      {
+        "op": "MIN",
+        "value": "1"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "-1"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      },
+      {
+        "op": "ADD",
+        "value": "params.duelHasCard"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "2"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.uno_draw_available.current"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      },
+      {
+        "op": "ADD",
+        "value": "params.source.resources.uno_draw2_pending.current"
+      },
+      {
+        "op": "ADD",
+        "value": "params.source.resources.uno_setup.current"
+      },
+      {
+        "op": "MULTIPLY",
+        "value": "params.source.resources.uno_energy.maximum"
+      },
+      {
+        "op": "SUBTRACT",
+        "value": "params.source.resources.uno_energy.current"
+      },
+      {
+        "op": "ADD",
+        "value": "1"
+      }
+    ],
+    "params": {
+      "duelAvailable": 0,
+      "duelHasCard": 0,
+      "source.resources.uno_draw_available.current": 0,
+      "source.resources.uno_draw2_pending.current": 0,
+      "source.resources.uno_setup.current": 0,
+      "source.resources.uno_energy.maximum": 0,
+      "source.resources.uno_energy.current": 0
+    }
+  }
+}

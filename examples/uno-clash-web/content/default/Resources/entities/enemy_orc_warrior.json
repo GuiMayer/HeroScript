@@ -1,0 +1,33 @@
+{
+  "enemy_orc_warrior": {
+    "definitionId": "enemy_orc_warrior",
+    "displayName": "Orc Warrior",
+    "description": "A tough melee fighter with balanced tactics",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": { "health": { "current": 100, "max": 100 } }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 16,
+          "dexterity": 14,
+          "intelligence": 6,
+          "constitution": 14,
+          "wisdom": 8,
+          "charisma": 6
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_basic_attack"]
+      }
+    ],
+    "iconPath": "icons/orc.png",
+    "spritePath": "sprites/orc.png"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "uno-clash",
+  "displayName": "UNO Clash — HeroScript Edition",
+  "description": "Jogo de cartas inspirado em UNO rodando 100% nas regras determinísticas do HeroScript: combinação por cor ou número/símbolo, Bloqueio, Inverter, +2, Coringas, grito de UNO! e IA tática.",
+  "launch": {
+    "runDefinitionId": "uno_clash_run",
+    "playerEntityId": "player",
+    "modeId": "uno_classic"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.uno-clash",
+      "versionRange": "1.0.0"
+    }
+  ]
+}

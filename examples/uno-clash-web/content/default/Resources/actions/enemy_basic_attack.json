@@ -1,0 +1,24 @@
+{
+  "enemy_basic_attack": {
+    "actionId": "enemy_basic_attack",
+    "displayName": "Enemy Strike",
+    "description": "Deal 6 damage without using the player's energy economy.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "flatValue": 6,
+        "targetResource": "health",
+        "tags": ["physical", "attack", "enemy", "damage"]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["attack", "enemy"]
+  }
+}

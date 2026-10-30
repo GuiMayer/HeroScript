@@ -1,0 +1,25 @@
+{
+  "table_mode": {
+    "modeId": "table_mode",
+    "runDefinitionId": "table_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "table_combat",
+    "calculationPipelineIds": [
+      "default_effect_amount",
+      "signed_resource_delta"
+    ],
+    "cardPoolIds": [
+      "table_cards"
+    ],
+    "enemyPoolIds": [
+      "table_actors"
+    ],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
+    "progressionPolicyId": "sandbox_progression",
+    "cardZoneSystemId": "table_zones"
+  }
+}

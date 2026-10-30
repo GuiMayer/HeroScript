@@ -1,0 +1,19 @@
+{
+  "dev_modder_tools": {
+    "capabilityPolicyId": "dev_modder_tools",
+    "allowScenarioAuthoring": true,
+    "allowCustomDeck": true,
+    "allowInitialEffects": true,
+    "allowResourceOverrides": true,
+    "allowTimelineFork": true,
+    "allowCombatSimulation": true,
+    "allowHotReloadActivation": true,
+    "allowRunResourceCheats": true,
+    "allowCardZoneCheats": true,
+    "cardInspectionDetail": "Full",
+    "maxCards": 250,
+    "maxActors": 24,
+    "maxBranchesPerRoot": 250,
+    "maxSimulationCommands": 1000
+  }
+}

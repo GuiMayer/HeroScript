@@ -1,0 +1,10 @@
+{
+  "standard_replay": {
+    "replayPolicyId": "standard_replay",
+    "semanticVerification": true,
+    "timelineAccess": "summary",
+    "allowHistoricalInspection": false,
+    "allowForkFromHistory": false,
+    "allowHeadRestore": false
+  }
+}

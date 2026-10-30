@@ -1,0 +1,26 @@
+{
+  "standard_progression": {
+    "progressionPolicyId": "standard_progression",
+    "encounterVictory": "Continue",
+    "encounterDefeat": "Fail",
+    "encounterDraw": "Fail",
+    "encounterAbandoned": "Fail",
+    "endOfMap": "Complete",
+    "encounterRetry": "Disabled",
+    "retryableEncounterOutcomes": [],
+    "allowAbandon": true,
+    "allowOutOfActivityCommands": false
+  },
+  "sandbox_progression": {
+    "progressionPolicyId": "sandbox_progression",
+    "encounterVictory": "Continue",
+    "encounterDefeat": "Continue",
+    "encounterDraw": "Continue",
+    "encounterAbandoned": "Continue",
+    "endOfMap": "Complete",
+    "encounterRetry": "RestartActivity",
+    "retryableEncounterOutcomes": ["DEFEAT", "DRAW", "ABANDONED"],
+    "allowAbandon": true,
+    "allowOutOfActivityCommands": true
+  }
+}

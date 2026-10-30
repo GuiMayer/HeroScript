@@ -1,0 +1,255 @@
+{
+  "spire_showcase_run": {
+    "runId": "spire_showcase_run",
+    "startingResources": {
+      "gold": 80,
+      "power_points": 2
+    },
+    "initialPlayableCardCount": 5,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "basic_attack",
+      "defend",
+      "venom_cut",
+      "fading_guard",
+      "chain_lightning",
+      "arcane_bolt",
+      "tactical_recall",
+      "expose_weakness",
+      "prismatic_burst",
+      "cleanse",
+      "execution"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "embers",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "spire_adept",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "wisp",
+                "definitionId": "spire_wisp",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [
+          {
+            "effectId": "embers.reward.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 25
+          }
+        ],
+        "nextNodeIds": ["relic"]
+      },
+      {
+        "nodeId": "relic",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "ember_core",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["keeper"]
+      },
+      {
+        "nodeId": "keeper",
+        "activity": { "type": "Dialogue", "definitionId": "ember_keeper" },
+        "completionPolicy": "Required",
+        "nextNodeIds": ["reward"]
+      },
+      {
+        "nodeId": "reward",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "basic_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["merchant"]
+      },
+      {
+        "nodeId": "merchant",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "basic_shop",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["camp"]
+      },
+      {
+        "nodeId": "camp",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "basic_preparation",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["forge"]
+      },
+      {
+        "nodeId": "forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [
+              "sharpened_edge",
+              "venom_edge",
+              "amplified_chain",
+              "reinforced_guard"
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["prism"]
+      },
+      {
+        "nodeId": "prism",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "mana_prism",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["swarm"]
+      },
+      {
+        "nodeId": "swarm",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "spire_adept",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "wisp",
+                "definitionId": "spire_wisp",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              },
+              {
+                "instanceId": "venomling",
+                "definitionId": "spire_venomling",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [
+          {
+            "effectId": "swarm.reward.power",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "power_points",
+            "operation": "ADD",
+            "flatValue": 2
+          }
+        ],
+        "nextNodeIds": ["lens"]
+      },
+      {
+        "nodeId": "lens",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "venom_lens",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["hexer"]
+      },
+      {
+        "nodeId": "hexer",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "spire_adept",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "hexer",
+                "definitionId": "spire_hexer",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["summit"]
+      },
+      {
+        "nodeId": "summit",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "spire_adept",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "bulwark",
+                "definitionId": "spire_bulwark",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": []
+      }
+    ],
+    "metadata": {
+      "displayName": "The Ember Path",
+      "description": "A compact campaign exercising combat, relics, rewards, shops, preparation, upgrades and a boss."
+    }
+  }
+}

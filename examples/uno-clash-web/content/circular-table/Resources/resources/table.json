@@ -1,0 +1,354 @@
+{
+  "t_color_red": {
+    "resourceId": "t_color_red",
+    "displayName": "t_color_red",
+    "shortName": "t_color_red",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_color_blue": {
+    "resourceId": "t_color_blue",
+    "displayName": "t_color_blue",
+    "shortName": "t_color_blue",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_color_green": {
+    "resourceId": "t_color_green",
+    "displayName": "t_color_green",
+    "shortName": "t_color_green",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_color_yellow": {
+    "resourceId": "t_color_yellow",
+    "displayName": "t_color_yellow",
+    "shortName": "t_color_yellow",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_0": {
+    "resourceId": "t_symbol_0",
+    "displayName": "t_symbol_0",
+    "shortName": "t_symbol_0",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_1": {
+    "resourceId": "t_symbol_1",
+    "displayName": "t_symbol_1",
+    "shortName": "t_symbol_1",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_2": {
+    "resourceId": "t_symbol_2",
+    "displayName": "t_symbol_2",
+    "shortName": "t_symbol_2",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_3": {
+    "resourceId": "t_symbol_3",
+    "displayName": "t_symbol_3",
+    "shortName": "t_symbol_3",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_4": {
+    "resourceId": "t_symbol_4",
+    "displayName": "t_symbol_4",
+    "shortName": "t_symbol_4",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_5": {
+    "resourceId": "t_symbol_5",
+    "displayName": "t_symbol_5",
+    "shortName": "t_symbol_5",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_6": {
+    "resourceId": "t_symbol_6",
+    "displayName": "t_symbol_6",
+    "shortName": "t_symbol_6",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_7": {
+    "resourceId": "t_symbol_7",
+    "displayName": "t_symbol_7",
+    "shortName": "t_symbol_7",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_8": {
+    "resourceId": "t_symbol_8",
+    "displayName": "t_symbol_8",
+    "shortName": "t_symbol_8",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_9": {
+    "resourceId": "t_symbol_9",
+    "displayName": "t_symbol_9",
+    "shortName": "t_symbol_9",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_skip": {
+    "resourceId": "t_symbol_skip",
+    "displayName": "t_symbol_skip",
+    "shortName": "t_symbol_skip",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_reverse": {
+    "resourceId": "t_symbol_reverse",
+    "displayName": "t_symbol_reverse",
+    "shortName": "t_symbol_reverse",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_draw2": {
+    "resourceId": "t_symbol_draw2",
+    "displayName": "t_symbol_draw2",
+    "shortName": "t_symbol_draw2",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_symbol_wild": {
+    "resourceId": "t_symbol_wild",
+    "displayName": "t_symbol_wild",
+    "shortName": "t_symbol_wild",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_energy": {
+    "resourceId": "t_energy",
+    "displayName": "t_energy",
+    "shortName": "t_energy",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_choice": {
+    "resourceId": "t_choice",
+    "displayName": "t_choice",
+    "shortName": "t_choice",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_called": {
+    "resourceId": "t_called",
+    "displayName": "t_called",
+    "shortName": "t_called",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 1,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  },
+  "t_debt": {
+    "resourceId": "t_debt",
+    "displayName": "t_debt",
+    "shortName": "t_debt",
+    "category": "TACTICAL",
+    "defaultMin": 0,
+    "defaultMax": 108,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "regeneration": {
+      "enabled": false,
+      "amountPerTurn": 0,
+      "timing": "START_TURN"
+    }
+  }
+}

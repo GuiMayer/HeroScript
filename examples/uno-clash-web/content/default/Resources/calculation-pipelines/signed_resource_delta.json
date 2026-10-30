@@ -1,0 +1,12 @@
+{
+  "signed_resource_delta": {
+    "pipelineId": "signed_resource_delta",
+    "channel": "resource_delta",
+    "buckets": [
+      { "bucketId": "flat", "order": 10, "operation": "Add" },
+      { "bucketId": "increased", "order": 20, "operation": "AddPercent" },
+      { "bucketId": "more", "order": 30, "operation": "Multiply" },
+      { "bucketId": "final", "order": 50, "operation": "Add" }
+    ]
+  }
+}

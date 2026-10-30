@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.clash",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.base",
+      "versionRange": "1.0.0"
+    }
+  ],
+  "conflicts": [],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/resources/clash.json",
+      "kind": "resources",
+      "artifactPath": "resources/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-zone-systems/clash.json",
+      "kind": "card-zone-systems",
+      "artifactPath": "card-zone-systems/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/cards/clash.json",
+      "kind": "cards",
+      "artifactPath": "cards/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/actions/clash.json",
+      "kind": "actions",
+      "artifactPath": "actions/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/gambits/clash.json",
+      "kind": "gambits",
+      "artifactPath": "gambits/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/entities/clash.json",
+      "kind": "entities",
+      "artifactPath": "entities/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/combat-rules/clash.json",
+      "kind": "combat-rules",
+      "artifactPath": "combat-rules/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-pools/clash.json",
+      "kind": "card-pools",
+      "artifactPath": "card-pools/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/enemy-pools/clash.json",
+      "kind": "enemy-pools",
+      "artifactPath": "enemy-pools/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/runs/clash.json",
+      "kind": "runs",
+      "artifactPath": "runs/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/modes/clash.json",
+      "kind": "modes",
+      "artifactPath": "modes/clash.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/formulas/clash.json",
+      "kind": "formulas",
+      "artifactPath": "formulas/clash.json"
+    }
+  ]
+}

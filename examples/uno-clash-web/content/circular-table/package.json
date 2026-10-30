@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.circular-table",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.base",
+      "versionRange": "1.0.0"
+    }
+  ],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "resources",
+      "sourcePath": "Resources/resources/table.json",
+      "artifactPath": "resources/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "formulas",
+      "sourcePath": "Resources/formulas/table.json",
+      "artifactPath": "formulas/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "cards",
+      "sourcePath": "Resources/cards/table.json",
+      "artifactPath": "cards/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "actions",
+      "sourcePath": "Resources/actions/table.json",
+      "artifactPath": "actions/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-zone-systems",
+      "sourcePath": "Resources/card-zone-systems/table.json",
+      "artifactPath": "card-zone-systems/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "gambits",
+      "sourcePath": "Resources/gambits/table.json",
+      "artifactPath": "gambits/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "combat-rules",
+      "sourcePath": "Resources/combat-rules/table.json",
+      "artifactPath": "combat-rules/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "entities",
+      "sourcePath": "Resources/entities/table.json",
+      "artifactPath": "entities/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "runs",
+      "sourcePath": "Resources/runs/table.json",
+      "artifactPath": "runs/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-pools",
+      "sourcePath": "Resources/card-pools/table.json",
+      "artifactPath": "card-pools/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "enemy-pools",
+      "sourcePath": "Resources/enemy-pools/table.json",
+      "artifactPath": "enemy-pools/table.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "modes",
+      "sourcePath": "Resources/modes/table.json",
+      "artifactPath": "modes/table.json"
+    }
+  ]
+}

@@ -1,0 +1,288 @@
+{
+  "HYPERBOLIC_CURVE": {
+    "description": "Hyperbolic curve for diminishing returns (e.g., armor)",
+    "params": {
+      "SCALING_VALUE": 100
+    },
+    "operations": [
+      { "op": "ADD", "value": "params.SCALING_VALUE" },
+      { "op": "DIVIDE_INVERSE", "value": "params.SCALING_VALUE" }
+    ]
+  },
+
+  "LINEAR_ADDITIVE": {
+    "description": "Linear additive sum - base function for damage + flat attributes",
+    "params": {
+      "FLAT_BONUS": 10
+    },
+    "operations": [
+      { "op": "ADD", "value": "params.FLAT_BONUS" }
+    ]
+  },
+
+  "MULTIPLICATIVE_BUFF": {
+    "description": "Percentage multiplier for buffs/debuffs",
+    "params": {
+      "MULTIPLIER": 1.5
+    },
+    "operations": [
+      { "op": "MULTIPLY", "value": "params.MULTIPLIER" }
+    ]
+  },
+
+  "EXPONENTIAL_SCALING": {
+    "description": "Exponential scaling for snowball mechanics",
+    "params": {
+      "BASE": 2,
+      "EXPONENT": 2
+    },
+    "operations": [
+      { "op": "MULTIPLY", "value": "params.BASE" },
+      { "op": "POW", "value": "params.EXPONENT" }
+    ]
+  },
+
+  "LOGARITHMIC_SCALING": {
+    "description": "Logarithmic scaling for bonuses with diminishing returns",
+    "params": {
+      "SCALE_FACTOR": 10
+    },
+    "operations": [
+      { "op": "LOG" },
+      { "op": "MULTIPLY", "value": "params.SCALE_FACTOR" }
+    ]
+  },
+
+  "SIGMOID_CURVE": {
+    "description": "Sigmoid curve (S-curve) for hit chance or status effects",
+    "params": {
+      "MIDPOINT": 50,
+      "STEEPNESS": 0.1,
+      "MAX_VALUE": 100
+    },
+    "operations": [
+      { "op": "SUBTRACT", "value": "params.MIDPOINT" },
+      { "op": "MULTIPLY", "value": "params.STEEPNESS" },
+      { "op": "NEGATE" },
+      { "op": "POW_BASE", "value": "2.718281828" },
+      { "op": "ADD", "value": "1" },
+      { "op": "DIVIDE_INVERSE", "value": "params.MAX_VALUE" }
+    ]
+  },
+
+  "CLAMP_SATURATION": {
+    "description": "Saturation with minimum and maximum limits",
+    "params": {
+      "MIN_VALUE": 0,
+      "MAX_VALUE": 999
+    },
+    "operations": [
+      { "op": "CLAMP", "min": "params.MIN_VALUE", "max": "params.MAX_VALUE" }
+    ]
+  },
+
+  "LIFE_STEAL_CONVERSION": {
+    "description": "Delta conversion for life steal (fraction of damage as healing)",
+    "params": {
+      "STEAL_PERCENTAGE": 0.2
+    },
+    "operations": [
+      { "op": "MULTIPLY", "value": "params.STEAL_PERCENTAGE" }
+    ]
+  },
+
+  "REFLECT_DAMAGE": {
+    "description": "Damage reflection (fraction of damage received returns to attacker)",
+    "params": {
+      "REFLECT_PERCENTAGE": 0.15
+    },
+    "operations": [
+      { "op": "MULTIPLY", "value": "params.REFLECT_PERCENTAGE" }
+    ]
+  },
+
+  "STEP_FUNCTION_MANA": {
+    "description": "Step function discretization - gain mana per X damage dealt",
+    "params": {
+      "DAMAGE_THRESHOLD": 10,
+      "MANA_PER_THRESHOLD": 1
+    },
+    "operations": [
+      { "op": "DIVIDE", "value": "params.DAMAGE_THRESHOLD" },
+      { "op": "MULTIPLY", "value": "params.MANA_PER_THRESHOLD" }
+    ]
+  },
+
+  "ARMOR_REDUCTION": {
+    "description": "Hyperbolic armor reduction (2x scaling): damage × (1 - armor / (armor + 2 × damage))",
+    "params": {
+      "ARMOR": 0,
+      "DAMAGE": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.DAMAGE" },
+      { "op": "MULTIPLY", "value": "2" },
+      { "op": "ADD", "value": "params.ARMOR" },
+      { "op": "DIVIDE_INVERSE", "value": "params.ARMOR" },
+      { "op": "SUBTRACT", "value": "1" },
+      { "op": "NEGATE" },
+      { "op": "MULTIPLY", "value": "params.DAMAGE" }
+    ]
+  },
+
+  "PERCENTAGE_BASED_DAMAGE": {
+    "description": "Percentage-based damage from base value",
+    "params": {
+      "BASE_DAMAGE": 100,
+      "PERCENTAGE": 0.5
+    },
+    "operations": [
+      { "op": "SET", "value": "params.BASE_DAMAGE" },
+      { "op": "MULTIPLY", "value": "params.PERCENTAGE" }
+    ]
+  },
+
+  "CRITICAL_MULTIPLIER": {
+    "description": "Critical damage multiplier with additive bonus",
+    "params": {
+      "CRIT_MULTIPLIER": 2.0,
+      "FLAT_BONUS": 50
+    },
+    "operations": [
+      { "op": "MULTIPLY", "value": "params.CRIT_MULTIPLIER" },
+      { "op": "ADD", "value": "params.FLAT_BONUS" }
+    ]
+  },
+
+  "COMPOUND_SCALING": {
+    "description": "Compound scaling - multiplicative followed by additive",
+    "params": {
+      "MULTIPLIER": 1.5,
+      "FLAT_BONUS": 25
+    },
+    "operations": [
+      { "op": "MULTIPLY", "value": "params.MULTIPLIER" },
+      { "op": "ADD", "value": "params.FLAT_BONUS" }
+    ]
+  },
+
+  "INVERSE_COMPOUND_SCALING": {
+    "description": "Inverse compound scaling - additive followed by multiplicative",
+    "params": {
+      "FLAT_BONUS": 25,
+      "MULTIPLIER": 1.5
+    },
+    "operations": [
+      { "op": "ADD", "value": "params.FLAT_BONUS" },
+      { "op": "MULTIPLY", "value": "params.MULTIPLIER" }
+    ]
+  },
+
+  "SQUARE_ROOT_SCALING": {
+    "description": "Square root scaling for moderate growth",
+    "params": {
+      "SCALE_FACTOR": 10
+    },
+    "operations": [
+      { "op": "SQRT" },
+      { "op": "MULTIPLY", "value": "params.SCALE_FACTOR" }
+    ]
+  },
+
+  "THRESHOLD_BONUS": {
+    "description": "Bonus activated only above a threshold",
+    "params": {
+      "THRESHOLD": 100,
+      "BONUS_MULTIPLIER": 1.25
+    },
+    "operations": [
+      { "op": "SUBTRACT", "value": "params.THRESHOLD" },
+      { "op": "CLAMP", "min": "0", "max": "9999" },
+      { "op": "MULTIPLY", "value": "params.BONUS_MULTIPLIER" },
+      { "op": "ADD", "value": "params.THRESHOLD" }
+    ]
+  },
+
+  "LERP": {
+    "description": "Linear interpolation between start value and target. Formula: START + (TARGET - START) * T",
+    "params": {
+      "START": 0,
+      "TARGET": 100,
+      "T": 0.5
+    },
+    "operations": [
+      { "op": "ADD", "value": "params.TARGET" },
+      { "op": "SUBTRACT", "value": "params.START" },
+      { "op": "MULTIPLY", "value": "params.T" },
+      { "op": "ADD", "value": "params.START" }
+    ]
+  },
+
+  "CRIT_GUARANTEED_TIER": {
+    "description": "Calculate guaranteed critical tier from crit chance. Formula: floor(crit_chance / 100)",
+    "params": {
+      "CRIT_CHANCE": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.CRIT_CHANCE" },
+      { "op": "DIVIDE", "value": "100" },
+      { "op": "FLOOR" }
+    ]
+  },
+
+  "CRIT_EXTRA_CHANCE": {
+    "description": "Calculate extra critical tier chance from crit chance. Formula: crit_chance % 100",
+    "params": {
+      "CRIT_CHANCE": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.CRIT_CHANCE" },
+      { "op": "MODULO", "value": "100" }
+    ]
+  },
+
+  "CRIT_DAMAGE_MULTIPLIER": {
+    "description": "Calculate critical damage multiplier from tier. Formula: 1 + (tier * (crit_mult - 1))",
+    "params": {
+      "CRIT_TIER": 0,
+      "CRIT_MULT": 2.0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.CRIT_MULT" },
+      { "op": "SUBTRACT", "value": "1" },
+      { "op": "MULTIPLY", "value": "params.CRIT_TIER" },
+      { "op": "ADD", "value": "1" }
+    ]
+  },
+
+  "puzzle_damage": {
+    "description": "Deterministic damage produced by a puzzle match",
+    "params": {
+      "base_damage": 10,
+      "match_count": 3,
+      "multiplier": 1,
+      "bonus": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.base_damage" },
+      { "op": "MULTIPLY", "value": "params.match_count" },
+      { "op": "MULTIPLY", "value": "params.multiplier" },
+      { "op": "ADD", "value": "params.bonus" }
+    ]
+  },
+
+  "combo_damage": {
+    "description": "Deterministic combo scaling with a 25 percent bonus per extra link",
+    "params": {
+      "base_damage": 10,
+      "combo_count": 1
+    },
+    "operations": [
+      { "op": "SET", "value": "params.combo_count" },
+      { "op": "SUBTRACT", "value": "1" },
+      { "op": "MULTIPLY", "value": "0.25" },
+      { "op": "ADD", "value": "1" },
+      { "op": "MULTIPLY", "value": "params.base_damage" }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "standard_gameplay": {
+    "capabilityPolicyId": "standard_gameplay",
+    "allowScenarioAuthoring": false,
+    "allowCustomDeck": false,
+    "allowInitialEffects": false,
+    "allowResourceOverrides": false,
+    "allowTimelineFork": false,
+    "allowCombatSimulation": false,
+    "allowHotReloadActivation": false,
+    "allowRunResourceCheats": false,
+    "allowCardZoneCheats": false,
+    "cardInspectionDetail": "Resolved",
+    "maxCards": 100,
+    "maxActors": 6,
+    "maxBranchesPerRoot": 50,
+    "maxSimulationCommands": 0
+  }
+}

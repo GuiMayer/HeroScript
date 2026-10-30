@@ -1,0 +1,19 @@
+{
+  "sandbox_tools": {
+    "capabilityPolicyId": "sandbox_tools",
+    "allowScenarioAuthoring": true,
+    "allowCustomDeck": true,
+    "allowInitialEffects": true,
+    "allowResourceOverrides": true,
+    "allowTimelineFork": true,
+    "allowCombatSimulation": true,
+    "allowHotReloadActivation": false,
+    "allowRunResourceCheats": true,
+    "allowCardZoneCheats": true,
+    "cardInspectionDetail": "Full",
+    "maxCards": 100,
+    "maxActors": 6,
+    "maxBranchesPerRoot": 50,
+    "maxSimulationCommands": 250
+  }
+}

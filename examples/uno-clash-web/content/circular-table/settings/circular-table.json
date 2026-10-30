@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "circular-table",
+  "displayName": "Four Seat Table",
+  "description": "Opt-in circular card table; existing duel and combat modes are preserved.",
+  "launch": {
+    "runDefinitionId": "table_run",
+    "playerEntityId": "seat_0",
+    "modeId": "table_mode"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.circular-table",
+      "versionRange": "1.0.0"
+    }
+  ]
+}

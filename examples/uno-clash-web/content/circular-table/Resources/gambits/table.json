@@ -1,0 +1,130 @@
+{
+  "g_t_choose_red": {
+    "gambitId": "g_t_choose_red",
+    "priority": 1000,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_choose_red"
+    }
+  },
+  "g_t_choose_blue": {
+    "gambitId": "g_t_choose_blue",
+    "priority": 999,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_choose_blue"
+    }
+  },
+  "g_t_choose_green": {
+    "gambitId": "g_t_choose_green",
+    "priority": 998,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_choose_green"
+    }
+  },
+  "g_t_choose_yellow": {
+    "gambitId": "g_t_choose_yellow",
+    "priority": 997,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_choose_yellow"
+    }
+  },
+  "g_t_accept": {
+    "gambitId": "g_t_accept",
+    "priority": 996,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_accept"
+    }
+  },
+  "g_t_call": {
+    "gambitId": "g_t_call",
+    "priority": 995,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_call"
+    }
+  },
+  "g_t_catch": {
+    "gambitId": "g_t_catch",
+    "priority": 994,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_catch"
+    }
+  },
+  "g_play": {
+    "gambitId": "g_play",
+    "priority": 500,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "PLAY_CARD"
+    }
+  },
+  "g_draw": {
+    "gambitId": "g_draw",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "t_draw"
+    }
+  },
+  "g_end": {
+    "gambitId": "g_end",
+    "priority": 0,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "END_TURN"
+    }
+  }
+}

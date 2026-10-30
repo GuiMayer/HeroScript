@@ -1,0 +1,80 @@
+{
+  "spire_adept": {
+    "definitionId": "spire_adept",
+    "displayName": "Adept of the Ember",
+    "description": "A compact player actor tuned for the Godot showcase campaign.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 72, "max": 72 },
+          "energy": { "current": 3, "max": 3 },
+          "block": { "current": 0, "max": 999 },
+          "mana": { "current": 4, "max": 4 }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 3,
+          "dexterity": 2,
+          "intelligence": 4
+        }
+      }
+    ]
+  },
+  "spire_wisp": {
+    "definitionId": "spire_wisp",
+    "displayName": "Ash Wisp",
+    "description": "A quick introductory opponent driven entirely by an AI gambit.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 28, "max": 28 },
+          "block": { "current": 0, "max": 999 },
+          "mana": { "current": 3, "max": 3 }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": { "strength": 1, "dexterity": 4, "intelligence": 2 }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_basic_attack"]
+      }
+    ]
+  },
+  "spire_sentinel": {
+    "definitionId": "spire_sentinel",
+    "displayName": "Obsidian Sentinel",
+    "description": "The showcase boss: a larger resource pool with the same reusable rules.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 52, "max": 52 },
+          "block": { "current": 0, "max": 999 },
+          "mana": { "current": 6, "max": 6 }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": { "strength": 4, "dexterity": 1, "intelligence": 2 }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_basic_attack"]
+      }
+    ]
+  }
+}

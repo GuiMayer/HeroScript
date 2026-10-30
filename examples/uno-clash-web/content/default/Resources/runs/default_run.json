@@ -1,0 +1,106 @@
+{
+  "default_run": {
+    "runId": "default_run",
+    "startingResources": {
+      "gold": 50,
+      "power_points": 0
+    },
+    "initialPlayableCardCount": 5,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "basic_attack",
+      "basic_attack",
+      "basic_attack",
+      "basic_attack",
+      "basic_attack",
+      "defend",
+      "defend",
+      "defend",
+      "fireball",
+      "heal"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "start",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "player_warrior",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "opponent",
+                "definitionId": "enemy_goblin",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["reward_1"]
+      },
+      {
+        "nodeId": "reward_1",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "basic_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["shop_1"]
+      },
+      {
+        "nodeId": "shop_1",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "basic_shop",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["boss_1"]
+      },
+      {
+        "nodeId": "boss_1",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "tier": "boss",
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "player_warrior",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "boss",
+                "definitionId": "enemy_orc_warrior",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": []
+      }
+    ],
+    "metadata": {
+      "description": "Default data-driven run definition for MVP loop"
+    }
+  }
+}
