@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UNO Clash — HeroScript Deterministic Card Arena</title>
+  <title>Clash — HeroScript Deterministic Card Arena</title>
   <script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,15 +21,14 @@
   <!-- Flying Card & Arcade Callout FX Layer -->
   <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
   <div class="callout-splash hidden" id="calloutSplash" aria-hidden="true">
-    <div class="callout-splash-inner" id="calloutSplashInner">UNO!</div>
+    <div class="callout-splash-inner" id="calloutSplashInner">CLASH!</div>
   </div>
 
   <!-- Controls and latest table event -->
   <header class="top-bar">
     <div class="brand-cluster">
-      <div class="uno-emblem">
-        <span class="uno-emblem-text">UNO</span>
-        <span class="uno-emblem-sub">CLASH</span>
+      <div class="clash-emblem">
+        <span class="clash-emblem-text">CLASH</span>
       </div>
       <div class="engine-badge" title="Todas as regras, zonas de cartas e IA rodam de forma determinística no HeroScript">
         <span class="status-dot" id="apiStatusDot"></span>
@@ -40,7 +39,7 @@
 
     <div class="ai-action-banner top-event-banner" id="aiActionBanner">
       <div class="ai-banner-header">
-        <span class="ai-banner-tag" id="turnOwnerBadge">UNO CLASH</span>
+        <span class="ai-banner-tag" id="turnOwnerBadge">CLASH</span>
         <span class="ai-banner-sub">Último Evento da Mesa</span>
       </div>
       <strong id="aiActionText">Escolha um modo em Nova Partida para começar.</strong>
@@ -95,12 +94,12 @@
       <div class="table-pod pile-column">
         <div class="pod-label" aria-hidden="true">Monte de Compras</div>
         <button class="draw-pile-btn" id="drawCardBtn" type="button" aria-label="Comprar carta" disabled>
-          <div class="uno-card-back stack-shadow-3"></div>
-          <div class="uno-card-back stack-shadow-2"></div>
-          <div class="uno-card-back stack-shadow-1"></div>
-          <div class="uno-card-back top-back" id="drawPileAnchor">
+          <div class="clash-card-back stack-shadow-3"></div>
+          <div class="clash-card-back stack-shadow-2"></div>
+          <div class="clash-card-back stack-shadow-1"></div>
+          <div class="clash-card-back top-back" id="drawPileAnchor">
             <div class="back-oval">
-              <span>UNO</span>
+              <span>CLASH</span>
             </div>
           </div>
         </button>
@@ -131,11 +130,12 @@
         </div>
       </div>
 
-      <!-- Right Pod: Action & UNO Callout Column -->
+      <!-- Right Pod: Action & CLASH Callout Column -->
       <div class="table-pod action-column">
         <div class="pod-label" aria-hidden="true">Ações de Turno</div>
-        <button class="shout-uno-btn" id="shoutUnoBtn" type="button" disabled>
-          <span class="shout-burst">UNO!</span>
+        <button class="shout-clash-btn" id="shoutClashBtn" type="button" disabled>
+          <span class="shout-burst">CLASH!</span>
+          <span class="shout-label">Gritar CLASH</span>
         </button>
 
         <button class="end-turn-btn" id="endTurnBtn" type="button" disabled>
@@ -232,7 +232,7 @@
         <!-- Top-Left Quadrant: Vermelho -->
         <button
           class="wild-color-choice radial-sector sector-tl color-red"
-          data-action="uno_choose_red"
+          data-action="clash_choose_red"
           data-color-key="red"
           data-color-label="Vermelho"
           type="button"
@@ -247,7 +247,7 @@
         <!-- Top-Right Quadrant: Azul -->
         <button
           class="wild-color-choice radial-sector sector-tr color-blue"
-          data-action="uno_choose_blue"
+          data-action="clash_choose_blue"
           data-color-key="blue"
           data-color-label="Azul"
           type="button"
@@ -262,7 +262,7 @@
         <!-- Bottom-Left Quadrant: Amarelo -->
         <button
           class="wild-color-choice radial-sector sector-bl color-yellow"
-          data-action="uno_choose_yellow"
+          data-action="clash_choose_yellow"
           data-color-key="yellow"
           data-color-label="Amarelo"
           type="button"
@@ -277,7 +277,7 @@
         <!-- Bottom-Right Quadrant: Verde -->
         <button
           class="wild-color-choice radial-sector sector-br color-green"
-          data-action="uno_choose_green"
+          data-action="clash_choose_green"
           data-color-key="green"
           data-color-label="Verde"
           type="button"

@@ -11,7 +11,7 @@
   };
 
   function modeConfig() {
-    return state.mode || UnoModes.duel;
+    return state.mode || ClashModes.duel;
   }
 
   function playerId() { return modeConfig().playerId; }
@@ -190,8 +190,8 @@
         else if (event.kind === "pass") messages.push(`${label} passou a vez.`);
         else if (event.actionId?.startsWith(actionId("choose"))) {
           messages.push(`🌈 O bot escolheu ${COLOR_LABELS[event.actionId.replace(actionId("choose"), "")]}.`);
-        } else if (event.actionId === actionId("call")) messages.push("📣 O bot declarou UNO!");
-        else if (event.actionId === actionId("catch")) messages.push("🚨 O bot cobrou o UNO esquecido.");
+        } else if (event.actionId === actionId("call")) messages.push("📣 O bot declarou CLASH!");
+        else if (event.actionId === actionId("catch")) messages.push("🚨 O bot cobrou o CLASH esquecido.");
         else if (event.actionId === actionId("draw") && !event.draws.some(draw => draw.count > 0)) {
           messages.push("O bot tentou comprar, mas não havia cartas disponíveis.");
         }
@@ -226,7 +226,7 @@
           if (splash) showCalloutSplash(splash);
         } else {
           presentEffectColor(event.payload);
-          if (event.actionId === actionId("call")) showCalloutSplash("📣 BOT: UNO!");
+          if (event.actionId === actionId("call")) showCalloutSplash("📣 BOT: CLASH!");
         }
         for (const draw of event.draws) {
           if (!draw.count) continue;
@@ -310,7 +310,7 @@
     activeColorLabel: document.getElementById("activeColorLabel"),
     activeValueLabel: document.getElementById("activeValueLabel"),
 
-    shoutUnoBtn: document.getElementById("shoutUnoBtn"),
+    shoutClashBtn: document.getElementById("shoutClashBtn"),
     endTurnBtn: document.getElementById("endTurnBtn"),
     endTurnProgress: document.getElementById("endTurnProgress"),
 
@@ -460,10 +460,10 @@
         });
       } else {
         flyEl = document.createElement("div");
-        flyEl.className = "uno-card-back flying-card";
+        flyEl.className = "clash-card-back flying-card";
         flyEl.style.width = `${fromRect.width || 96}px`;
         flyEl.style.height = `${fromRect.height || 140}px`;
-        flyEl.innerHTML = `<div class="back-oval"><span>UNO</span></div>`;
+        flyEl.innerHTML = '<div class="back-oval"><span>CLASH</span></div>';
       }
 
       if (landsOnTable) {
@@ -562,21 +562,21 @@
     el.drawCardBtn.classList.remove("must-draw-pulse");
     el.endTurnBtn.disabled = true;
     el.endTurnBtn.classList.remove("ready-glow");
-    el.shoutUnoBtn.disabled = true;
-    el.shoutUnoBtn.classList.remove("urgent");
+    el.shoutClashBtn.disabled = true;
+    el.shoutClashBtn.classList.remove("urgent");
     if (el.drawPileHint) el.drawPileHint.textContent = "Aguarde a jogada terminar";
   }
 
-  // Parse card definition ID (`uno_red_7`, `uno_blue_skip`, `uno_wild_draw4`) into visual presentation
+  // Parse card definition ID (`clash_red_7`, `clash_blue_skip`, `clash_wild_draw4`) into visual presentation
   function parseCardIdentity(definitionId) {
-    definitionId = definitionId.replace(/^t_/, "uno_").replace("uno_wild_wild", "uno_wild");
-    if (definitionId === "uno_wild") {
-      return { color: "wild", corner: "★", center: "★", label: "Coringa", isTextGlyph: false, specialSplash: "🌈 CORINGA!", isWild: true };
+    definitionId = definitionId.replace(/^t_/, "clash_").replace("clash_wild_wild", "clash_wild");
+    if (definitionId === "clash_wild") {
+      return { color: "wild", corner: "★", center: "★", label: "Coringa", isWild: true, isSpecial: true, isTextGlyph: false };
     }
-    if (definitionId === "uno_wild_draw4") {
-      return { color: "wild", corner: "+4", center: "+4", label: "Coringa +4", isTextGlyph: true, specialSplash: "🔥 CORINGA +4!", isWild: true };
+    if (definitionId === "clash_wild_draw4") {
+      return { color: "wild", corner: "+4", center: "+4", label: "Coringa +4", isWild: true, isSpecial: true, isTextGlyph: true };
     }
-    const parts = definitionId.replace(/^uno_/, "").split("_");
+    const parts = definitionId.replace(/^clash_/, "").split("_");
     const color = parts[0] || "red";
     const val = parts.slice(1).join("_");
 
@@ -594,7 +594,7 @@
 
   function createCardElement({ color, corner, center, isTextGlyph, extraClass = "" }) {
     const card = document.createElement("div");
-    card.className = `uno-card ${extraClass}`.trim();
+    card.className = ("clash-card " + extraClass).trim();
     card.dataset.color = color;
     card.innerHTML = `
       <span class="card-corner top-left">${corner}</span>
@@ -612,7 +612,7 @@
       while (fan.children.length < count) {
         const card = document.createElement("div");
         card.className = "ai-mini-card";
-        card.innerHTML = '<div class="ai-mini-oval">UNO</div>';
+        card.innerHTML = '<div class="ai-mini-oval">CLASH</div>';
         fan.appendChild(card);
       }
       const width = fan.firstElementChild?.offsetWidth || 0;
@@ -660,7 +660,7 @@
   }
 
   function renderDrawPile(count, recyclable = 0) {
-    const layers = [...el.drawCardBtn.querySelectorAll(".uno-card-back")];
+    const layers = [...el.drawCardBtn.querySelectorAll(".clash-card-back")];
     const visible = count === null ? layers.length : count > 0
       ? Math.max(1, Math.ceil(count / (state.deckCapacity || count) * layers.length)) : 0;
     layers.forEach((layer, index) => layer.classList.toggle("pile-layer-hidden", index < layers.length - visible));
@@ -736,7 +736,7 @@
   }
 
   async function initSettingAndStartRun(modeKey) {
-    state.mode = UnoModes[modeKey];
+    state.mode = ClashModes[modeKey];
     if (!state.mode) return;
     try {
       suspendPlayerControls();
@@ -771,25 +771,25 @@
       el.wildModal.classList.add("hidden");
 
       const settingsResp = await api("GET", "/api/v1/content/settings");
-      const unoSetting = (settingsResp.items || []).find(s => s.settingId === modeConfig().settingId);
-      if (!unoSetting) {
+      const clashSetting = (settingsResp.items || []).find(s => s.settingId === modeConfig().settingId);
+      if (!clashSetting) {
         throw new Error(`Modo ${modeConfig().label} indisponível. Reabra o jogo pelo BAT para carregar os dois modos.`);
       }
 
-      state.settingRevision = unoSetting.currentRevision;
+      state.settingRevision = clashSetting.currentRevision;
       el.apiStatusDot.className = "status-dot connected";
-      el.revisionBadge.textContent = `rev:${unoSetting.currentRevision.slice(0, 8)}`;
+      el.revisionBadge.textContent = `rev:${clashSetting.currentRevision.slice(0, 8)}`;
 
       const seedVal = parseInt(el.seedInput.value, 10) || Math.floor(Math.random() * 900000 + 100000);
       el.seedInput.value = seedVal;
 
       const runResp = await api("POST", "/api/v1/runs", {
         commandId: uuid(),
-        settingId: unoSetting.settingId,
+        settingId: clashSetting.settingId,
         contentRevision: state.settingRevision,
-        runDefinitionId: unoSetting.launch.runDefinitionId,
-        playerEntityId: unoSetting.launch.playerEntityId,
-        modeId: unoSetting.launch.modeId,
+        runDefinitionId: clashSetting.launch.runDefinitionId,
+        playerEntityId: clashSetting.launch.playerEntityId,
+        modeId: clashSetting.launch.modeId,
         seed: seedVal
       });
 
@@ -893,9 +893,9 @@
     }
     renderBotHandTelemetry();
     const resources = modeConfig().resources;
-    const unoEnergy = getRes(pRes, resources.energy);
+    const clashEnergy = getRes(pRes, resources.energy);
     const wildToken = getRes(pRes, resources.choice);
-    const unoCalled = getRes(pRes, resources.called);
+    const clashCalled = getRes(pRes, resources.called);
     let activeColor = Object.keys(COLOR_LABELS).find(color => getRes(pRes, resources.color + color) > 0) || "neutral";
     document.body.dataset.activeColor = activeColor;
     document.body.dataset.gameState = "playing";
@@ -965,8 +965,8 @@
       acceptPenalty || state.legalByActionId.get(actionId("draw"));
     el.drawCardBtn.disabled = !purchase;
     el.drawCardBtn.classList.toggle("must-draw-pulse", Boolean(purchase) && legalCardsCount === 0);
-    el.shoutUnoBtn.disabled = !state.legalByActionId.has(actionId("call"));
-    el.shoutUnoBtn.classList.toggle("urgent", !el.shoutUnoBtn.disabled);
+    el.shoutClashBtn.disabled = !state.legalByActionId.has(actionId("call"));
+    el.shoutClashBtn.classList.toggle("urgent", !el.shoutClashBtn.disabled);
     state.endTurnCandidate = acceptPenalty || legalSnap.candidates.find(candidate => candidate.command?.actionType === "END_TURN") || null;
     state.canEndTurn = Boolean(state.endTurnCandidate);
     el.endTurnBtn.disabled = !state.canEndTurn;
@@ -988,8 +988,8 @@
       [`${playerId()}.hand`, playerHandCount],
       ...Object.entries(state.botHands).map(([id, hand]) => [`${id}.hand`, hand.count]),
       ["table_card", tableCode || "-"],
-      [resources.energy, unoEnergy],
-      [resources.called, unoCalled],
+      [resources.energy, clashEnergy],
+      [resources.called, clashCalled],
       [resources.choice, wildToken],
       ...["red", "blue", "green", "yellow"].map(color => [resources.color + color, getRes(pRes, resources.color + color)])
     ];
@@ -1267,8 +1267,8 @@
 
       appendLog("EXECUTE_ACTION", `${logLabel} (${selectedActionId})`);
       if (selectedActionId === actionId("call")) {
-        showCalloutSplash("📣 UNO!");
-        setBannerMessage("📣 Você gritou UNO! Sua última carta está protegida!", true);
+        showCalloutSplash("📣 CLASH!");
+        setBannerMessage("📣 Você gritou CLASH! Sua última carta está protegida!", true);
       } else if (selectedActionId === actionId("accept")) {
         showCalloutSplash(`📥 COMPRA +${actualDrawCount}!`);
         setBannerMessage(`Você comprou ${actualDrawCount} cartas e perdeu a vez.`, true);
@@ -1407,10 +1407,10 @@
         }
 
         proxyEl = document.createElement("div");
-        proxyEl.className = "uno-card-back dragging-card-proxy";
+        proxyEl.className = "clash-card-back dragging-card-proxy";
         proxyEl.style.width = `${baseRect.width}px`;
         proxyEl.style.height = `${baseRect.height}px`;
-        proxyEl.innerHTML = `<div class="back-oval"><span>UNO</span></div>`;
+        proxyEl.innerHTML = '<div class="back-oval"><span>CLASH</span></div>';
         el.fxLayer.appendChild(proxyEl);
       }
 
@@ -1536,7 +1536,7 @@
 
   // Wire UI Events
   attachDrawPileDragAndClick();
-  el.shoutUnoBtn.addEventListener("click", () => handleExecuteAction(actionId("call"), "Gritou UNO!"));
+  el.shoutClashBtn.addEventListener("click", () => handleExecuteAction(actionId("call"), "Gritou CLASH!"));
   el.endTurnBtn.addEventListener("click", () => handleEndTurn());
   el.autoEndTurnToggle.addEventListener("change", () => updateAutoTurn());
 
