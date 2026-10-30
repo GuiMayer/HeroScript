@@ -41,6 +41,8 @@ func _run() -> void:
 	var prefs = root.get_node("Preferences")
 	var previous := {"locale": i18n.locale, "scale": prefs.text_scale, "contrast": prefs.high_contrast}
 	i18n.set_locale("en")
+	check_player_tooltip(i18n)
+	check_effect_duration(i18n)
 	prefs.text_scale = 1.0
 	prefs.high_contrast = false
 	var sections = load("res://scripts/presentation/card_section_presenter.gd").new(i18n, {"card_tag_labels": {"fire": "Fire"}}, [])
@@ -63,11 +65,26 @@ func _run() -> void:
 	check(passive.project(facts).effectRows[0].segments[1].text == i18n.text("Calculated — inspect"), "unknown source is not invented from flat definitions")
 	var style = load("res://data/default_card_visual_style.tres")
 	var calculation_lines: Array[String] = load("res://scripts/presentation/card_calculation_presenter.gd").new(i18n).describe(facts, true)
-	check("\n".join(calculation_lines).contains("Composed base 8") and not "\n".join(calculation_lines).contains("999"), "calculation tooltip formats declared layers without recomputing effects")
+	check("\n".join(calculation_lines).contains("base 8") and not "\n".join(calculation_lines).contains("999") and not "\n".join(calculation_lines).contains("Composed base"), "calculation tooltip formats only useful published values without implementation layers")
 	var calculation_tooltip = load("res://scripts/ui/card_details_panel.gd").new()
 	root.add_child(calculation_tooltip)
 	calculation_tooltip.configure(contextual, style, calculation_tooltip.DisplayMode.TOOLTIP)
 	check(passive_tooltip(calculation_tooltip) and calculation_tooltip.find_child("DetailedEffects", true, false) == null, "new tooltip explains calculation without repeating effect text or exposing an unreachable scrollbar")
+	var full_sentence := "Stores defense potency until released. It does not grant Block each turn. ".repeat(3)
+	for locale in ["en", "pt_BR"]:
+		i18n.set_locale(locale)
+		for scale in [1.0, 1.2]:
+			prefs.text_scale = scale
+			calculation_tooltip.visual_context.update_from(prefs, i18n, AppTheme.profile)
+			calculation_tooltip.configure({"presentationFacts": {"referencedRules": [{"definitionId": "wrapping_test", "name": "A long status name that must wrap instead of being clipped", "description": full_sentence}]}}, style, calculation_tooltip.DisplayMode.TOOLTIP)
+			calculation_tooltip.size = Vector2(style.tooltip_width, 0)
+			await settle()
+			var entry = calculation_tooltip.find_child("RuleExplanation_*", true, false)
+			var description: Label = entry.get_child(1)
+			check(description.text == full_sentence.strip_edges() and not description.clip_text and description.max_lines_visible == -1 and description.text_overrun_behavior == TextServer.OVERRUN_NO_TRIMMING, "tooltip preserves the complete sentence: %s / %s" % [locale, scale])
+			check(description.get_line_count() > 1 and description.get_visible_line_count() == description.get_line_count() and passive_tooltip(calculation_tooltip), "tooltip grows vertically for every wrapped line without unreachable scrolling")
+	i18n.set_locale("en")
+	prefs.text_scale = 1.0
 	calculation_tooltip.free()
 	check(style.value_color(6, 6) == Color.WHITE, "unchanged values are white")
 	check(style.value_color(3, 6) == style.lower_value_color, "lower values are red")
@@ -126,7 +143,7 @@ func _run() -> void:
 	var rules = card.find_child("Rules", true, false)
 	check(card.find_child("Availability", true, false) == null and card.find_child("DetailsHint", true, false) == null, "printed face contains no play or inspection instructions")
 	check(rules.numeric_colors == [style.higher_value_color, style.lower_value_color, style.base_value_color], "numeric colors are applied per value, never to the whole description")
-	check(card.find_child("Cost", true, false).position.y > card.find_child("CardName", true, false).position.y, "costs occupy their own strip below the name")
+	check(card.find_child("Cost", true, false).global_position.y > card.find_child("CardName", true, false).global_position.y, "costs occupy their own strip below the name")
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		check(card.get_theme_stylebox(state).border_color == style.rarity_color("rare"), "rarity is preserved in " + state)
 	var tooltip = card._make_custom_tooltip(card.tooltip_text)
@@ -217,3 +234,47 @@ func _run() -> void:
 	root.get_node("GameAudio").shutdown()
 	print("SHOWCASE_CARD_PRESENTATION failures=", failures)
 	quit(0 if failures == 0 else 1)
+
+func check_player_tooltip(i18n) -> void:
+	var calculator = load("res://scripts/presentation/card_calculation_presenter.gd").new(i18n)
+	var facts := {"faceValueMode": "Source", "effects": [{"effectPath": "heal", "definition": {"type": "HEAL", "targetResource": "health", "flatValue": 999},
+		"parameters": [{"parameter": "Amount", "values": {"composedBase": 4, "source": 24}}]}],
+		"explanations": [{"effectPath": "heal", "parameter": "Amount", "attributes": [
+			{"attributeId": "health", "scope": "Actor", "resourceField": "Maximum", "currentValue": 100, "eligible": true, "applied": true, "operation": "Add", "scale": 0.2, "offset": 0},
+			{"attributeId": "armor", "currentValue": 100, "eligible": false},
+			{"attributeId": "critical_chance", "currentValue": 100, "eligible": true, "applied": false},
+			{"attributeId": "target_only", "currentValue": 100, "eligible": true, "scope": "Target"}]}]}
+	var before := JSON.stringify(facts)
+	var summary := "\n".join(calculator.describe(facts, true))
+	check(summary.contains("24 (base 4)") and summary.contains("20% Maximum Health (100)"), "healing shows published total and relevant maximum-health coefficient")
+	check(not summary.contains("armor") and not summary.contains("critical") and not summary.contains("target_only") and not summary.contains("999"), "tooltip excludes irrelevant attributes and never recalculates authored flat values")
+	check(JSON.stringify(facts) == before, "tooltip leaves authoritative facts immutable")
+	facts.effects[0].parameters[0].values.source = 73
+	check("\n".join(calculator.describe(facts, true)).contains("73 (base 4)"), "engine result wins even when it differs from locally inferable arithmetic")
+	facts.explanations = []
+	facts.effects[0].parameters[0].values.source = 4
+	check(calculator.describe(facts, true).is_empty(), "unchanged values already on the face are not repeated")
+	var glossary = load("res://scripts/presentation/card_glossary_presenter.gd").new(i18n)
+	var entries = glossary.describe({"presentationFacts": {"effects": [{"definition": {"statusId": "w1_focus"}}, {"definition": {"statusId": "w1_reserve"}}, {"definition": {"statusId": "w1_focus"}}]}})
+	check(entries.size() == 2 and entries[0].description.contains("80") and entries[1].description.contains("does not grant Block"), "older receipts explain Focus and Guard reserve without duplicating references")
+	entries = glossary.describe({"presentationFacts": {"referencedRules": [{"definitionId": "custom_mod_status", "name": "Custom status", "description": "Restores 2 mana at end of activation."}]}})
+	check(entries.size() == 1 and entries[0].name == "Custom status" and entries[0].description.contains("Restores 2 mana"), "new settings can publish their own status descriptions without UI code")
+	check(glossary.describe({"summary": "Restores 2 mana at end of activation.", "presentationFacts": {"referencedRules": [{"definitionId": "custom_mod_status", "name": "Custom status", "description": "Restores 2 mana at end of activation."}]}}).is_empty(), "rules fully explained on the face are not repeated")
+
+func check_effect_duration(i18n) -> void:
+	var formatter = load("res://scripts/presentation/effect_duration_presenter.gd")
+	check(formatter.describe(-1, i18n) == "No time-based expiration", "permanent sentinel is never printed as a negative duration")
+	check(formatter.describe(3, i18n) == "Duration: 3 cycles", "unknown duration unit is not invented as turns")
+	check(formatter.describe(2, i18n, {"durationTickBoundary": "EndActivation"}).contains("affected actor's activation"), "finite status explains the declared lifecycle boundary")
+	check(formatter.describe(2, i18n, {"durationBoundary": "Combat"}).contains("each combat"), "modifier duration follows its own declared boundary")
+	check(formatter.describe(null, i18n) == "Duration determined when applied", "missing duration is not converted to permanent or zero")
+	var facts := {"faceValueMode": "ComposedBase", "effects": [{"effectPath": "focus", "definition": {"type": "APPLY_STATUS", "statusId": "w1_focus", "statusDuration": -1}, "parameters": [
+		{"parameter": "StatusStacks", "values": {"composedBase": 1}}, {"parameter": "StatusDuration", "values": {"composedBase": -1}}]}]}
+	var before := JSON.stringify(facts)
+	var presenter = load("res://scripts/presentation/card_facts_presenter.gd").new(i18n, {})
+	var model: Dictionary = presenter.project(facts)
+	check(model.summary.contains("No time-based expiration") and not model.summary.contains("-1"), "shared canonical card face renders an intuitive duration")
+	check(JSON.stringify(facts) == before, "duration formatting leaves engine facts unchanged")
+	i18n.set_locale("pt_BR")
+	check(formatter.describe(-1, i18n) == "Sem expiração por tempo", "duration is localized in Portuguese")
+	i18n.set_locale("en")

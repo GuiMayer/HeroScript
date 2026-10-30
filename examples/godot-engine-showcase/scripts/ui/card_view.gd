@@ -1,3 +1,4 @@
+@tool
 class_name CardView
 extends Button
 const ContextType = preload("res://scripts/ui/visual_context.gd")
@@ -70,12 +71,10 @@ func configure(data: Dictionary) -> void:
 	column.add_theme_constant_override("separation", 3)
 	margin.add_child(column)
 	var header := HBoxContainer.new()
+	header.name = "CardHeader"
+	header.custom_minimum_size.y = ceilf(visual_style.title_line_height * visual_context.text_scale)
 	header.add_theme_constant_override("separation", 5)
-	var title := visual_context.styles.title(str(data.get("name", "")), 17)
-	title.name = "CardName"
-	if visual_style.printed_face and visual_context.profile.title_font: title.add_theme_font_override("font", visual_context.profile.title_font)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	var title := preload("res://scripts/ui/card_title.gd").new(str(data.get("name", "")), visual_context, visual_style)
 	header.add_child(title)
 	if data.get("upgraded", false): header.add_child(visual_context.styles.title("↑", 15, visual_context.styles.INK))
 	column.add_child(header)
@@ -174,10 +173,10 @@ func configure(data: Dictionary) -> void:
 		visual_context.styles.apply_view_preferences(child, visual_context.text_scale, visual_context.high_contrast)
 
 func _cost_zone(data: Dictionary) -> Control:
-	var zone := HFlowContainer.new()
+	var zone := HBoxContainer.new()
 	zone.name = "Cost"
-	zone.add_theme_constant_override("h_separation", 3)
-	zone.add_theme_constant_override("v_separation", 3)
+	zone.add_theme_constant_override("separation", 3)
+	var line := preload("res://scripts/ui/card_cost_line.gd").new(zone, maxf(visual_style.cost_symbol_size.x, visual_style.cost_symbol_size.y) * visual_context.text_scale)
 	var options: Array = data.get("costOptions", [])
 	if options.size() > 1:
 		for index in options.size():
@@ -186,14 +185,14 @@ func _cost_zone(data: Dictionary) -> Control:
 				if j > 0: zone.add_child(visual_context.styles.title("+", 11))
 				zone.add_child(_cost_chip(options[index][j]))
 			if options[index].is_empty(): zone.add_child(visual_context.styles.title("0", 12))
-		return zone
+		return line
 	var costs: Array = data.get("costs", []) if data.get("costs") is Array else []
 	for index in costs.size():
 		if index > 0: zone.add_child(visual_context.styles.title("+", 11))
 		zone.add_child(_cost_chip(costs[index]))
 	if not bool(data.get("costsKnown", true)):
 		zone.add_child(visual_context.styles.title(str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 11))
-		return zone
+		return line
 	if costs.is_empty():
 		var fallback := str(data.get("cost", ""))
 		if fallback.is_empty(): fallback = "0"
@@ -204,7 +203,7 @@ func _cost_zone(data: Dictionary) -> Control:
 		label.add_theme_color_override("font_color", visual_context.styles.INK)
 		neutral.add_child(label)
 		zone.add_child(neutral)
-	return zone
+	return line
 
 func _cost_chip(cost: Dictionary) -> Control:
 	var appearance: Dictionary = visual_context.resource_style(str(cost.get("resourceId", "")))
@@ -278,6 +277,19 @@ func _ignore_mouse(control: Control) -> void:
 		if child is Control: _ignore_mouse(child)
 
 func _ready() -> void:
+	if Engine.is_editor_hint() and model.is_empty():
+		if visual_context == null:
+			visual_context = preload("res://scripts/ui/visual_context.gd").new()
+		configure({
+			"cardInstanceId": "preview_flame_strike",
+			"definitionId": "flame_strike",
+			"name": "Flame Strike",
+			"tone": "attack",
+			"rarityId": "uncommon",
+			"rarity": "Uncommon",
+			"cost": {"energy": 1},
+			"summary": "Deal 8 damage.\nApply 2 Burn."
+		})
 	pivot_offset = size * 0.5
 	resized.connect(func(): pivot_offset = size * 0.5)
 	mouse_entered.connect(func(): _emphasize(true))
