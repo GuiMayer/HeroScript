@@ -48,7 +48,7 @@ async function scenario() {
     for (const [id, facing] of [['leftHandFan', 1], ['rightHandFan', -1]]) {
       const fan = document.getElementById(id), card = fan.firstElementChild.getBoundingClientRect();
       const transform = new DOMMatrix(getComputedStyle(fan.parentElement).transform);
-      if (card.width >= card.height) throw Error('Side card is lying sideways: ' + id);
+      if (card.height < card.width * 0.6) throw Error('Side card is lying sideways: ' + id);
       if (transform.m31 * facing <= 0) throw Error('Side hand does not face inward upright: ' + id);
     }
     const left = document.querySelector('#leftHandFan');

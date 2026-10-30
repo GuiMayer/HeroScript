@@ -1899,7 +1899,7 @@ body[data-game-state="starting"] {
 
 body[data-game-state="idle"] .color-orbit-ring,
 body[data-game-state="starting"] .color-orbit-ring {
-  animation: orbitSpin 16s linear infinite;
+  animation: orbitSpin 120s linear infinite;
 }
 
 .pile-layer-hidden { visibility: hidden; }
@@ -1963,7 +1963,7 @@ body[data-game-state="starting"] .color-orbit-ring {
 }
 .side-opponent {
   position: absolute;
-  top: 50%;
+  top: 40%;
   width: calc(var(--card-h) * 0.8);
   height: min(42vh, 370px);
   transform: translateY(-50%);
@@ -1976,11 +1976,12 @@ body[data-game-state="starting"] .color-orbit-ring {
   top: 50%; left: 50%;
   width: clamp(190px, 25vh, 280px);
   transform-style: preserve-3d;
-  /* A slightly elevated view makes the lower edge recede from outside inward. */
-  transform: translate(-50%, -50%) perspective(900px) rotateX(-5deg) rotateY(58deg);
+}
+.side-opponent-left .side-hand-perspective {
+  transform: translate(-50%, -50%) rotate(-50deg) perspective(900px) rotateX(-5deg) rotateY(58deg);
 }
 .side-opponent-right .side-hand-perspective {
-  transform: translate(-50%, -50%) perspective(700px) rotateY(-58deg);
+  transform: translate(-50%, -50%) rotate(50deg) perspective(700px) rotateY(-58deg);
 }
 .side-hand-perspective .ai-hand-fan { transform-style: preserve-3d; perspective: none; }
 .side-hand-perspective .ai-mini-card { backface-visibility: hidden; }
