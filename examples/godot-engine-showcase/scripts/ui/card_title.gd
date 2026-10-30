@@ -1,3 +1,4 @@
+@tool
 extends Control
 ## Fixed title slot. Native shaping chooses one fitted line, then at most two.
 var visual_context

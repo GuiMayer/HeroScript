@@ -1,3 +1,4 @@
+@tool
 extends RefCounted
 ## Explicit, presentation-only projection. English defaults allow standalone components.
 signal changed
@@ -15,7 +16,7 @@ var _theme: Theme
 var _theme_key := ""
 var theme: Theme:
 	get:
-		var key := JSON.stringify([profile.presentation_key(), text_scale, high_contrast])
+		var key := JSON.stringify([profile.presentation_key() if profile and profile.has_method("presentation_key") else "", text_scale, high_contrast])
 		if _theme == null or _theme_key != key:
 			_sync_styles()
 			_theme = styles.build(high_contrast)
@@ -67,7 +68,8 @@ func _init(i18n = null, options: Dictionary = {}, theme_profile: Resource = null
 	_options = options.duplicate(true)
 	if theme_profile != null: profile = theme_profile
 	_sync_styles()
-	_revision_key = [_options.duplicate(true), translator.locale, profile.presentation_key()]
+	var profile_key: String = profile.presentation_key() if profile and profile.has_method("presentation_key") else ""
+	_revision_key = [_options.duplicate(true), translator.locale, profile_key]
 static func from_nodes(preferences, i18n):
 	var options := {}
 	for key in ["text_scale", "high_contrast", "reduced_motion", "reveal_text_gradually", "animation_speed", "animation_preset", "hand_layout_mode", "hand_emphasis"]:
@@ -81,7 +83,8 @@ func update_from(preferences, i18n, theme_profile: Resource) -> void:
 		next[key] = preferences.get(key)
 	next["action_labels"] = {}
 	for action in ["inspect_card", "end_turn", "confirm_action", "open_timeline", "pause_game", "open_character"]: next.action_labels[action] = preferences.action_label(action)
-	var revision: Array = [next, i18n.locale, theme_profile.presentation_key()]
+	var theme_key: String = theme_profile.presentation_key() if theme_profile and theme_profile.has_method("presentation_key") else ""
+	var revision: Array = [next, i18n.locale, theme_key]
 	if revision == _revision_key: return
 	_revision_key = revision.duplicate(true)
 	_options = next

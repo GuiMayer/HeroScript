@@ -1,3 +1,4 @@
+@tool
 extends Control
 ## One passive resource line; long alternative costs fit without wrapping the face.
 var content: HBoxContainer

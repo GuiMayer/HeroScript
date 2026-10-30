@@ -1,3 +1,4 @@
+@tool
 extends TextureRect
 var visual_context
 ## Replace art through the manifest, retaining anchors and interaction surfaces.

@@ -1,3 +1,4 @@
+@tool
 extends RichTextLabel
 var visual_context
 ## Typed text segments keep numeric comparisons separate from localized prose.
@@ -15,7 +16,9 @@ func reconcile_from(other) -> void:
 	mouse_filter = other.mouse_filter
 
 func configure(effect_rows: Array, style: Resource) -> void:
-	var key: String = JSON.stringify(effect_rows) + style.presentation_key() + visual_context.presentation_key()
+	var style_key: String = style.presentation_key() if style and style.has_method("presentation_key") else ""
+	var ctx_key: String = visual_context.presentation_key() if visual_context and visual_context.has_method("presentation_key") else ""
+	var key: String = JSON.stringify(effect_rows) + style_key + ctx_key
 	if key == _configuration_key: return
 	_configuration_key = key
 	# Incoming text is canonical/unscaled; preferences are applied by CardView.

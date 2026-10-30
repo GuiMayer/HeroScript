@@ -50,7 +50,7 @@ func reconcile_from(other) -> void:
 func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: String, compact := false, battlefield := false) -> void:
 	theme = visual_context.theme
 	_model = {"actor": actor.duplicate(true), "hostile": hostile, "presentation": presentation.duplicate(true), "intent": intent, "compact": compact, "battlefield": battlefield}
-	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, visual_context.translator.locale, visual_context.profile.presentation_key(), visual_context.get_instance_id()]
+	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, visual_context.translator.locale, visual_context.profile.presentation_key() if visual_context and visual_context.profile and visual_context.profile.has_method("presentation_key") else "", visual_context.get_instance_id()]
 	if projection == _projection: return
 	_projection = projection.duplicate(true)
 	if get_child_count() > 0:

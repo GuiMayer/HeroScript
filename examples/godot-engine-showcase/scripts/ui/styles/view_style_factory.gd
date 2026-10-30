@@ -1,3 +1,4 @@
+@tool
 extends RefCounted
 
 var INK: Color:
@@ -28,7 +29,9 @@ func configure_preferences(scale: float, contrast: bool) -> void:
 func set_profile(value: Resource) -> void:
 	profile = value
 	generation += 1
-func color(role: String) -> Color: return profile.color(role)
+func color(role: String) -> Color:
+	if profile != null and profile.has_method("color"): return profile.color(role)
+	return Color.WHITE
 func scoped_profile(value: Resource, construct: Callable):
 	# Synchronous construction/restyling only: never await or emit application actions.
 	# Native Theme/style resources capture the overlay palette; gameplay keeps its profile.
@@ -192,8 +195,8 @@ func _printed_controls(result: Theme, contrast: bool) -> void:
 func box(color: Color, radius := 8, border := Color.TRANSPARENT, width := 0) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
-	style.set_meta("background_role", profile.role_for(color))
-	style.set_meta("border_role", profile.role_for(border))
+	if profile != null and profile.has_method("role_for"): style.set_meta("background_role", profile.role_for(color))
+	if profile != null and profile.has_method("role_for"): style.set_meta("border_role", profile.role_for(border))
 	style.corner_radius_top_left = radius
 	style.corner_radius_top_right = radius
 	style.corner_radius_bottom_left = radius

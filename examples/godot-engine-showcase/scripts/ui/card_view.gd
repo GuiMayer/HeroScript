@@ -37,7 +37,9 @@ func configure(data: Dictionary) -> void:
 	face_data.erase("inspectionText")
 	face_data.erase("presentationFacts") # Version/impact traces affect inspection, not the printed face.
 	face_data.erase("availability")
-	var presentation_key: String = JSON.stringify(face_data) + visual_style.presentation_key() + visual_context.presentation_key()
+	var style_key: String = visual_style.presentation_key() if visual_style and visual_style.has_method("presentation_key") else ""
+	var ctx_key: String = visual_context.presentation_key() if visual_context and visual_context.has_method("presentation_key") else ""
+	var presentation_key: String = JSON.stringify(face_data) + style_key + ctx_key
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
 	configuration_count += 1

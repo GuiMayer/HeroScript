@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ## Independent visual configuration. Never contains game rules or command state.
 @export var profile_id := "preserved-scenery"
@@ -13,10 +14,11 @@ const DEFAULTS := {
 	"scenery.far": "#121526", "scenery.near": "#171a28"
 }
 func color(role: String) -> Color:
-	if not colors.has(role) and palette != null and palette_aliases.has(role):
+	if not colors.has(role) and palette != null and palette_aliases.has(role) and palette.has_method("color"):
 		return palette.color(str(palette_aliases[role]))
 	return Color.from_string(str(colors.get(role, DEFAULTS.get(role, "#ffffff"))), Color.WHITE)
 func manifest_for(setting: String) -> String:
 	return str(setting_art_manifests.get(setting, art_manifest))
 func presentation_key() -> String:
-	return JSON.stringify([profile_id, ambient_style, art_manifest, setting_art_manifests, mappings, colors, palette.presentation_key() if palette != null else "", palette_aliases])
+	var palette_key: String = palette.presentation_key() if palette != null and palette.has_method("presentation_key") else ""
+	return JSON.stringify([profile_id, ambient_style, art_manifest, setting_art_manifests, mappings, colors, palette_key, palette_aliases])

@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ## Presentation-only resource: optional setting-to-art mapping, never gameplay state.
 @export var profile_id := "preserved"
@@ -80,7 +81,7 @@ const DEFAULTS := {
 	"scenery.near": "#171a28"
 }
 func color(role: String) -> Color:
-	if not colors.has(role) and palette != null and palette.colors.has(role):
+	if not colors.has(role) and palette != null and palette.has_method("color") and "colors" in palette and palette.colors.has(role):
 		return palette.color(role)
 	return Color.from_string(str(colors.get(role, DEFAULTS.get(role, "#ffffff"))), Color.WHITE)
 func role_for(value: Color) -> String:
@@ -88,7 +89,9 @@ func role_for(value: Color) -> String:
 		if color(role).is_equal_approx(value): return str(role)
 	return ""
 func presentation_key() -> String:
-	return JSON.stringify([profile_id, colors, palette.presentation_key() if palette != null else "", font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest, printed_surfaces, resource_color_overrides, actor_art_max_height, compact_actor_hud, card_style.presentation_key() if card_style else ""])
+	var palette_key: String = palette.presentation_key() if palette != null and palette.has_method("presentation_key") else ""
+	var card_style_key: String = card_style.presentation_key() if card_style and card_style.has_method("presentation_key") else ""
+	return JSON.stringify([profile_id, colors, palette_key, font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest, printed_surfaces, resource_color_overrides, actor_art_max_height, compact_actor_hud, card_style_key])
 
 
 func font_size(role: String, fallback: float) -> float: return float(font_sizes.get(role, fallback))

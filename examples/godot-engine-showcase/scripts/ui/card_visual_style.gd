@@ -1,3 +1,4 @@
+@tool
 class_name CardVisualStyle
 extends Resource
 ## Shared visual policy. Never encodes resource semantics, game rules or scaling.
@@ -16,6 +17,10 @@ extends Resource
 @export var text_scale_height_margin := 120.0
 @export var rules_font_size := 14
 @export var art_height := 72.0
+@export var title_line_height := 24.0
+@export var title_font_size := 17
+@export var title_min_font_size := 12
+@export var title_min_two_line_font_size := 8
 @export_group("Printed face")
 @export var printed_face := false
 @export_enum("frame", "registration") var keyline_style := "frame"
@@ -23,8 +28,10 @@ extends Resource
 @export var effect_surface := Color.TRANSPARENT
 @export var effect_ink := Color("#f5ecd8")
 @export_group("Printed cost symbols")
-@export var cost_symbol_size := Vector2(40, 40)
+@export var cost_symbol_size := Vector2(24, 24)
 @export var cost_symbol_font_size := 16
+@export var cost_symbol_number_color := Color.WHITE
+@export var cost_symbol_fill_color := Color("#20201c")
 @export_group("Tooltip summary")
 @export var tooltip_width := 410.0
 @export_range(1, 8) var tooltip_effect_rows := 3

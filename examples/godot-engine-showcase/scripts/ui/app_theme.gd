@@ -1,3 +1,4 @@
+@tool
 class_name AppTheme
 extends RefCounted
 ## Composition facade. All construction is implemented by the context-bound factory.

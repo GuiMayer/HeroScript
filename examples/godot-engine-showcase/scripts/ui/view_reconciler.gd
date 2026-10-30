@@ -1,3 +1,4 @@
+@tool
 extends RefCounted
 ## Reconcile a passive subtree by semantic name (fallback: type/position).
 ## Signals stay on the retained node; desired nodes are never attached to the live tree.
