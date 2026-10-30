@@ -155,20 +155,61 @@
     };
   }
 
-  function presentEffectColor(payload) {
-    const prefix = modeConfig().resources.color;
-    const changes = (payload?.cardResolution?.applications || payload?.abilityResolution?.applications || [])
-      .filter(application => (application.targetEntityId || application.TargetEntityId) === playerId() &&
-        (application.resourceId || application.ResourceId)?.startsWith(prefix));
-    if (!changes.length) return;
-    const selected = changes.find(application => (application.currentValue ?? application.CurrentValue) > 0);
-    const color = selected ? (selected.resourceId || selected.ResourceId).slice(prefix.length) : "neutral";
-    document.body.dataset.activeColor = color;
-    state.lastActiveColor = color;
-    if (el.activeColorLabel) el.activeColorLabel.textContent = COLOR_LABELS[color] || "Sem cor";
-    const currentTable = el.discardStage?.querySelector(".table-card");
-    if (currentTable && currentTable.dataset.isWild === "true" && color !== "neutral" && color !== "wild") {
-      currentTable.dataset.color = color;
+  function presentEffectColor(payload, overrideColor = null) {
+    let color = overrideColor;
+    if (!color) {
+      const prefix = (typeof modeConfig === "function" && modeConfig()?.resources?.color) || "color_";
+      const pid = typeof playerId === "function" ? playerId() : null;
+      const changes = (payload?.cardResolution?.applications || payload?.abilityResolution?.applications || [])
+        .filter(application => (!pid || (application.targetEntityId || application.TargetEntityId) === pid) &&
+          (application.resourceId || application.ResourceId)?.startsWith(prefix));
+      if (!changes.length) return;
+      const selected = changes.find(application => (application.currentValue ?? application.CurrentValue) > 0);
+      color = selected ? (selected.resourceId || selected.ResourceId).slice(prefix.length) : "neutral";
+    }
+    if (typeof document !== "undefined" && document.body) {
+      document.body.dataset.activeColor = color;
+    }
+    if (typeof state !== "undefined") {
+      state.lastActiveColor = color;
+    }
+    if (typeof el !== "undefined" && el.activeColorLabel) {
+      el.activeColorLabel.textContent = (typeof COLOR_LABELS !== "undefined" && COLOR_LABELS[color]) || "Sem cor";
+    }
+    if (color !== "neutral" && color !== "wild") {
+      const applyColor = (cardEl) => {
+        if (!cardEl) return;
+        if (!cardEl.dataset) cardEl.dataset = {};
+        if (cardEl.dataset.isWild === "true" || cardEl.dataset.color === "wild" || cardEl.classList?.contains?.("flying-card")) {
+          cardEl.dataset.color = color;
+          if (typeof cardEl.animate === "function" && cardEl.classList?.contains?.("flying-card")) {
+            const sx = Number(cardEl.dataset.scaleX) || 1;
+            const sy = Number(cardEl.dataset.scaleY) || 1;
+            const x = Number(cardEl.dataset.endX) || 0;
+            const y = Number(cardEl.dataset.endY) || 0;
+            cardEl.animate([
+              { transform: `translate(${x}px, ${y}px) scale(${sx * 1.26}, ${sy * 1.26}) rotate(-6deg)` },
+              { transform: `translate(${x}px, ${y}px) scale(${sx * 0.96}, ${sy * 0.96}) rotate(2deg)`, offset: 0.65 },
+              { transform: `translate(${x}px, ${y}px) scale(${sx}, ${sy}) rotate(0deg)` }
+            ], {
+              duration: 380,
+              easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+              fill: "forwards"
+            });
+          } else if (cardEl.classList) {
+            cardEl.classList.remove("pop-land");
+            if (cardEl.offsetWidth) void cardEl.offsetWidth;
+            cardEl.classList.add("pop-land");
+          }
+        }
+      };
+      if (typeof state !== "undefined" && state.pendingTableFlight) {
+        applyColor(state.pendingTableFlight);
+      }
+      const currentTable = typeof el !== "undefined" && el.discardStage?.querySelector?.(".table-card");
+      if (currentTable) {
+        applyColor(currentTable);
+      }
     }
   }
 
@@ -224,6 +265,11 @@
           }
           const splash = cardEffectSplash(card, event.payload);
           if (splash) showCalloutSplash(splash);
+        } else if (Boolean(event.actionId && ((typeof actionId === "function" && event.actionId.startsWith(actionId("choose"))) || /(?:^|_)choose_([a-z]+)$/.test(event.actionId)))) {
+          const choosePrefix = typeof actionId === "function" ? actionId("choose") : "clash_choose_";
+          const chosenColor = event.actionId.startsWith(choosePrefix) ? event.actionId.replace(choosePrefix, "") : (event.actionId.match(/(?:^|_)choose_([a-z]+)$/)?.[1] || "");
+          presentEffectColor(event.payload, chosenColor);
+          spawnShockwave(el.discardStage);
         } else {
           presentEffectColor(event.payload);
           if (event.actionId === actionId("call")) showCalloutSplash("📣 BOT: CLASH!");
@@ -459,12 +505,17 @@
           isTextGlyph: cardSpec.isTextGlyph,
           extraClass: "flying-card"
         });
+        if (!flyEl.dataset) flyEl.dataset = {};
+        if (cardSpec.isWild || cardSpec.color === "wild") {
+          flyEl.dataset.isWild = "true";
+        }
       } else {
         flyEl = document.createElement("div");
         flyEl.className = "clash-card-back flying-card";
         flyEl.style.width = `${fromRect.width || 96}px`;
         flyEl.style.height = `${fromRect.height || 140}px`;
         flyEl.innerHTML = '<div class="back-oval"><span>CLASH</span></div>';
+        if (!flyEl.dataset) flyEl.dataset = {};
       }
 
       if (landsOnTable) {
@@ -486,6 +537,11 @@
       const midX = (startX + endX) / 2;
       const midY = Math.min(startY, endY) - 48;
       const finalTransform = `translate(${endX}px, ${endY}px) scale(${endScaleX}, ${endScaleY}) rotate(0deg)`;
+      if (!flyEl.dataset) flyEl.dataset = {};
+      flyEl.dataset.endX = endX;
+      flyEl.dataset.endY = endY;
+      flyEl.dataset.scaleX = endScaleX;
+      flyEl.dataset.scaleY = endScaleY;
 
       const finish = () => {
         if (landsOnTable && generation === state.tableFlightGeneration) {

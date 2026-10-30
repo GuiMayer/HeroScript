@@ -24,4 +24,52 @@ for (const mode of Object.values(modes)) {
     context.presentEffectColor({ abilityResolution: { applications: [app('red', 1, 'another-actor')] } });
     assert.equal(context.document.body.dataset.activeColor, 'green');
   });
+  test(`${mode.label}: wild card on table and pending flight update color and bounce when chosen`, () => {
+    let flightAnimated = false;
+    const pendingCard = {
+      dataset: { isWild: 'true', color: 'wild', endX: '100', endY: '200', scaleX: '1', scaleY: '1' },
+      classList: {
+        contains: cls => cls === 'flying-card',
+        remove() {},
+        add() {}
+      },
+      animate(keyframes, options) {
+        flightAnimated = true;
+        assert.equal(options.duration, 380);
+        return {};
+      }
+    };
+    const classes = new Set(['table-card']);
+    const tableCard = {
+      dataset: { isWild: 'true', color: 'wild' },
+      classList: {
+        contains: cls => classes.has(cls),
+        remove: cls => classes.delete(cls),
+        add: cls => classes.add(cls)
+      },
+      offsetWidth: 100
+    };
+    const context = vm.createContext({
+      state: { pendingTableFlight: pendingCard },
+      document: { body: { dataset: { activeColor: 'neutral' } } },
+      el: {
+        activeColorLabel: {},
+        discardStage: { querySelector: () => tableCard }
+      },
+      COLOR_LABELS: { blue: 'Azul', green: 'Verde', red: 'Vermelho', yellow: 'Amarelo' },
+      modeConfig: () => mode,
+      playerId: () => mode.playerId
+    });
+    const start = source.indexOf('  function presentEffectColor(');
+    vm.runInContext(source.slice(start, source.indexOf('  async function animateOpponentEvents(', start)), context);
+
+    context.presentEffectColor(null, 'blue');
+
+    assert.equal(context.document.body.dataset.activeColor, 'blue');
+    assert.equal(context.el.activeColorLabel.textContent, 'Azul');
+    assert.equal(pendingCard.dataset.color, 'blue');
+    assert.equal(flightAnimated, true);
+    assert.equal(tableCard.dataset.color, 'blue');
+    assert.equal(classes.has('pop-land'), true);
+  });
 }
