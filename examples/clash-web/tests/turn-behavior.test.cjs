@@ -13,11 +13,11 @@ function setup() {
     get classList() { return { remove: name => this.classes.delete(name) }; } });
   const context = vm.createContext({
     state: { canEndTurn: true, legalByActionId: new Map(), autoEndTurnEligible: true, autoEndTurnDelay: 680, combatId: 'match', combatStep: 3, busy: false },
-    el: { autoEndTurnToggle: { checked: true }, drawCardBtn: button(), endTurnBtn: button(), shoutClashBtn: button(), shoutUnoBtn: button(), drawPileHint: {} },
+    el: { autoEndTurnToggle: { checked: true }, drawCardBtn: button(), endTurnBtn: button(), shoutClashBtn: button(), drawPileHint: {} },
     clearTimeout(timer) { if (timer) timer.cancelled = true; },
     setTimeout(callback, delay) { pending = { callback, delay }; return pending; },
     resetAutoTurnProgress() {}, startAutoTurnProgress() {}, handleEndTurn() { passes++; },
-    actionId: role => role, purchase: null, pendingDraw2: 0, clashEnergy: 1, unoEnergy: 1, drawAvailable: 0, legalCardsCount: 1, playerHandCount: 3, clashCalled: 0, unoCalled: 0, canShoutClash: false, canShoutUno: false
+    actionId: role => role, purchase: null, pendingDraw2: 0, clashEnergy: 1, drawAvailable: 0, legalCardsCount: 1, playerHandCount: 3, clashCalled: 0, canShoutClash: false
   });
   vm.runInContext(helpers, context);
   return { context, schedule() { context.updateAutoTurn(); }, refresh() { vm.runInContext(autoRules, context); },

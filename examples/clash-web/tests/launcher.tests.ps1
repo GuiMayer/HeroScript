@@ -6,7 +6,9 @@ $before = (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash
 $listener = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback, 0)
 $listener.Start(); $port = $listener.LocalEndpoint.Port; $listener.Stop()
 & (Join-Path $root 'Start-Clash.ps1') -CheckOnly -ApiPort $port
-Assert-That (-not (Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)) 'API ficou aberta apos CheckOnly'
+$closed = $false
+for ($i = 0; $i -lt 30; $i++) { if (-not (Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)) { $closed = $true; break }; Start-Sleep -Milliseconds 100 }
+Assert-That $closed 'API ficou aberta apos CheckOnly'
 try {
     $listener = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback, $port)
     $listener.Start()

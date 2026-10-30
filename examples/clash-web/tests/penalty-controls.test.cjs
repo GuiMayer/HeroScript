@@ -16,7 +16,7 @@ function render(mode, responseCount, penalty) {
   const context = vm.createContext({ state, actionId: role => mode.actions[role],
     legalSnap: { candidates: penalty ? [accept] : [draw, end], blockedCommands: penalty ? [{ actionType: 'END_TURN', code: 'DEBT_REQUIRED' }] : [] },
     el: { drawCardBtn: { classList: { toggle(name, on) { on ? classes.add(name) : classes.delete(name); } } },
-      shoutClashBtn: { classList: { toggle() {} } }, shoutUnoBtn: { classList: { toggle() {} } }, endTurnBtn: {} } });
+      shoutClashBtn: { classList: { toggle() {} } }, endTurnBtn: {} } });
   const start = source.indexOf('    const legalCardsCount =');
   vm.runInContext(source.slice(start, source.indexOf('    el.turnOwnerBadge.textContent', start)), context);
   return { context, classes, accept, end };

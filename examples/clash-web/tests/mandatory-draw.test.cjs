@@ -6,9 +6,9 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 function render(allowed) {
   const context = vm.createContext({
-    clashEnergy: 1, unoEnergy: 1, wildToken: 0, acceptPenalty: null,
+    clashEnergy: 1, wildToken: 0, acceptPenalty: null,
     legalSnap: { candidates: allowed ? [{ command: { actionType: 'END_TURN' } }] : [],
-      blockedCommands: allowed ? [] : [{ actionType: 'END_TURN', reason: 'Sem carta jogável: compre 1 carta antes de passar.', code: 'DRAW_REQUIRED', messageKey: 'uno.draw_required' }] },
+      blockedCommands: allowed ? [] : [{ actionType: 'END_TURN', reason: 'Sem carta jogável: compre 1 carta antes de passar.', code: 'DRAW_REQUIRED', messageKey: 'clash.draw_required' }] },
     state: { busy: false, canEndTurn: true },
     el: { endTurnBtn: { classList: { toggle() {} } } }
   });
