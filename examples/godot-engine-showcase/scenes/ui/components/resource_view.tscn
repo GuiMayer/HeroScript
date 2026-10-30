@@ -1,0 +1,33 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/resource_view.gd" id="1_res"]
+
+[node name="ResourceView" type="HBoxContainer"]
+offset_right = 258.0
+offset_bottom = 22.0
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+script = ExtResource("1_res")
+
+[node name="ResourceLabel" type="Label" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "HEALTH"
+
+[node name="ProgressBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+show_percentage = false
+
+[node name="AmountLabel" type="Label" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(65, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "75/100"
+horizontal_alignment = 2
