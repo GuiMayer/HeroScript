@@ -1963,25 +1963,25 @@ body[data-game-state="starting"] .color-orbit-ring {
 }
 .side-opponent {
   position: absolute;
-  top: 40%;
+  top: 42%;
   width: calc(var(--card-h) * 0.8);
   height: min(42vh, 370px);
   transform: translateY(-50%);
   pointer-events: none;
 }
-.side-opponent-left { left: 8px; }
-.side-opponent-right { right: 8px; }
+.side-opponent-left { left: 14px; }
+.side-opponent-right { right: 14px; }
 .side-hand-perspective {
   position: absolute;
   top: 50%; left: 50%;
-  width: clamp(190px, 25vh, 280px);
+  width: 240px;
   transform-style: preserve-3d;
 }
 .side-opponent-left .side-hand-perspective {
-  transform: translate(-50%, -50%) rotate(-50deg) perspective(900px) rotateX(-5deg) rotateY(58deg);
+  transform: translate(-50%, -50%) rotate(-35deg) perspective(900px) rotateX(0deg) rotateY(46deg);
 }
 .side-opponent-right .side-hand-perspective {
-  transform: translate(-50%, -50%) rotate(50deg) perspective(700px) rotateY(-58deg);
+  transform: translate(-50%, -50%) rotate(35deg) perspective(900px) rotateX(0deg) rotateY(-46deg);
 }
 .side-hand-perspective .ai-hand-fan { transform-style: preserve-3d; perspective: none; }
 .side-hand-perspective .ai-mini-card { backface-visibility: hidden; }

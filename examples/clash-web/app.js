@@ -674,13 +674,15 @@
       }
       const width = fan.firstElementChild?.offsetWidth || 0;
       const available = Math.max(0, fan.clientWidth - 32);
-      fan.style.setProperty("--bot-card-overlap", `${count > 1 ? Math.min(-12, (available - width * count) / (count - 1)) : 0}px`);
+      const lateral = fan.dataset.seat === "left" || fan.dataset.seat === "right";
+      fan.style.setProperty("--bot-card-overlap", lateral
+        ? `${count > 1 ? Math.min(-14, available ? (available - width * count) / (count - 1) : -14) : 0}px`
+        : `${count > 1 ? Math.min(-12, (available - width * count) / (count - 1)) : 0}px`);
       [...fan.children].forEach((card, index) => {
         const norm = count > 1 ? (index - (count - 1) / 2) / ((count - 1) / 2) : 0;
-        const lateral = fan.dataset.seat === "left" || fan.dataset.seat === "right";
         const facing = fan.dataset.seat === "left" ? 1 : -1;
         card.style.transform = lateral
-          ? `translateZ(${norm * facing * 10}px) rotateY(${norm * facing * 4}deg)`
+          ? `translateZ(${norm * facing * 10}px) rotateY(${norm * facing * 0}deg) rotate(${norm * 2.5}deg) translateY(${norm * norm * 4}px) scale(1.00)`
           : `translateY(${norm * norm * 8}px) rotate(${norm * Math.min(count * 1.45, 11)}deg)`;
       });
       fan.setAttribute("aria-label", `${actorLabel(actorId)}: ${hand.count} cartas`);
