@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CLASH - Demo & Debug Mãos Laterais (Standalone)</title>
+  <script src="../theme.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../theme.css">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* Estilos do Painel de Debug Flutuante e Arrastável */
+    #debugPanel {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 9999;
+      width: 330px;
+      max-height: calc(100vh - 32px);
+      background: rgba(14, 18, 28, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(255, 204, 0, 0.45);
+      border-radius: 14px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.75), 0 0 28px rgba(255, 204, 0, 0.15);
+      color: #f0f3fa;
+      font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: max-height 0.28s ease, opacity 0.2s ease;
+      user-select: none;
+    }
+
+    #debugPanel.minimized {
+      max-height: 46px;
+    }
+
+    #debugPanel.minimized .debug-body {
+      display: none;
+    }
+
+    .debug-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: linear-gradient(90deg, rgba(230, 40, 40, 0.35) 0%, rgba(255, 204, 0, 0.2) 100%);
+      border-bottom: 1px solid rgba(255, 204, 0, 0.25);
+      cursor: grab;
+    }
+
+    .debug-header:active {
+      cursor: grabbing;
+    }
+
+    .debug-title {
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      color: #ffcc00;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .debug-header-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .debug-icon-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .debug-icon-btn:hover {
+      background: rgba(255, 204, 0, 0.3);
+      border-color: #ffcc00;
+    }
+
+    .debug-body {
+      padding: 12px 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .debug-section {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .debug-section-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #ffcc00;
+      margin-bottom: 1px;
+    }
+
+    .debug-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .debug-label-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      color: #ccd4e2;
+    }
+
+    .debug-value {
+      font-family: monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #55f3ff;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(85, 243, 255, 0.2);
+    }
+
+    .debug-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .debug-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #ffcc00;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
+      border: 1.5px solid #fff;
+      transition: transform 0.1s ease;
+    }
+
+    .debug-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    .debug-checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      color: #ccd4e2;
+      cursor: pointer;
+      padding: 2px 0;
+    }
+
+    .debug-checkbox {
+      accent-color: #ffcc00;
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .debug-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .debug-btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1.5px solid #ffcc00;
+      background: linear-gradient(135deg, #d32020 0%, #ff8800 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(220, 40, 40, 0.45);
+      transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .debug-btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.1);
+      box-shadow: 0 6px 18px rgba(220, 40, 40, 0.6);
+    }
+
+    .debug-btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .debug-btn-secondary {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f4;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .debug-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 204, 0, 0.5);
+    }
+
+    .debug-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .debug-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      opacity: 0;
+      background: #0d121f;
+      border: 2px solid #00e676;
+      color: #00e676;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 10px 22px;
+      border-radius: 999px;
+      box-shadow: 0 8px 30px rgba(0, 230, 118, 0.35);
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .debug-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Assegura visibilidade das mãos laterais na demo */
+    .side-opponent {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  </style>
+</head>
+<body data-game-mode="freeForAll" data-game-state="playing" data-active-color="red" data-turn-owner="player">
+  <!-- Ambient Velvet & Dynamic Color Spotlight -->
+  <div class="table-surface">
+    <div class="ambient-spotlight" id="ambientSpotlight"></div>
+    <div class="felt-grain"></div>
+  </div>
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="game-logo" aria-label="CLASH">
+        <span class="logo-text">CLASH</span>
+      </div>
+      <div class="api-badge ready" id="apiStatusBadge">
+        <span class="status-indicator"></span>
+        <span class="status-label">Modo Demo (Sem Engine)</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="ai-banner active" id="aiActionBanner" role="status">
+        <span class="ai-banner-badge" id="turnOwnerBadge">DEMO</span>
+        <span class="ai-banner-text" id="aiActionText">Cena de teste interativa das mãos laterais espelhadas</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="icon-toggle active" id="themeToggle" type="button" aria-pressed="true" title="Alternar tema">
+        <span class="theme-icon-light" aria-hidden="true">☀️</span>
+        <span class="theme-icon-dark" aria-hidden="true">🌙</span>
+        <span class="theme-toggle-label">Modo escuro</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Tabletop Layout -->
+  <main class="arena-grid">
+    <!-- Top Bot Hand -->
+    <section class="opponent-zone" aria-label="Mão do bot do topo">
+      <div class="ai-fan-wrapper">
+        <div class="ai-hand-fan" id="aiHandFan" data-seat="top" aria-label="Cartas do bot"></div>
+        <span class="opponent-count-pill" id="aiHandCountPill" aria-hidden="true">7 cartas</span>
+      </div>
+    </section>
+
+    <!-- Side Opponent Left -->
+    <section class="side-opponent side-opponent-left" id="sideOpponentLeft" aria-label="Bot da esquerda">
+      <div class="side-hand-perspective" id="sidePerspectiveLeft">
+        <div class="ai-hand-fan" id="leftHandFan" data-seat="left"></div>
+      </div>
+    </section>
+
+    <!-- Side Opponent Right -->
+    <section class="side-opponent side-opponent-right" id="sideOpponentRight" aria-label="Bot da direita">
+      <div class="side-hand-perspective" id="sidePerspectiveRight">
+        <div class="ai-hand-fan" id="rightHandFan" data-seat="right"></div>
+      </div>
+    </section>
+
+    <!-- Center Table -->
+    <section class="center-table" aria-label="Mesa Central">
+      <!-- Draw Pile -->
+      <div class="table-pod pile-column">
+        <div class="pod-label" aria-hidden="true">Monte de Compras</div>
+        <button class="draw-pile-btn" id="drawCardBtn" type="button" aria-label="Comprar carta">
+          <div class="clash-card-back stack-shadow-3"></div>
+          <div class="clash-card-back stack-shadow-2"></div>
+          <div class="clash-card-back stack-shadow-1"></div>
+          <div class="clash-card-back top-back" id="drawPileAnchor">
+            <div class="back-oval">
+              <span>CLASH</span>
+            </div>
+          </div>
+        </button>
+        <div class="pile-caption" aria-hidden="true">
+          <strong id="drawPileCount">53 cartas</strong>
+          <span id="drawPileHint">Monte de compras</span>
+        </div>
+      </div>
+
+      <!-- Centerpiece: Table Card & Orbit -->
+      <div class="table-centerpiece">
+        <div class="table-ellipse-ring" aria-hidden="true"></div>
+        <div class="color-orbit-ring" id="colorOrbitRing">
+          <div class="orbit-node orbit-node-top"></div>
+          <div class="orbit-node orbit-node-bottom"></div>
+        </div>
+
+        <div class="discard-stage" id="discardStage">
+          <!-- Renderizado via script com carta real de exemplo -->
+        </div>
+
+        <div class="active-state-pill" id="activeStatePill" aria-hidden="true">
+          <span class="color-swatch" id="activeColorSwatch"></span>
+          <span class="state-color-name" id="activeColorLabel">Vermelho</span>
+          <span class="pill-sep">•</span>
+          <strong id="activeValueLabel">Número 7</strong>
+        </div>
+      </div>
+
+      <!-- Action Column -->
+      <div class="table-pod action-column">
+        <div class="pod-label" aria-hidden="true">Ações de Turno</div>
+        <button class="shout-clash-btn" id="shoutClashBtn" type="button" aria-label="Gritar CLASH">
+          <span class="shout-burst">CLASH!</span>
+        </button>
+
+        <button class="end-turn-btn" id="endTurnBtn" type="button">
+          <span class="end-turn-title">PASSAR VEZ</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Player Hand Zone -->
+    <section class="player-zone" aria-label="Sua Mão">
+      <div class="player-hand-stage">
+        <div class="player-hand-container" id="playerHandContainer">
+          <!-- Cartas do jogador renderizadas estaticamente -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Debug Panel Flutuante -->
+  <aside id="debugPanel" aria-label="Painel de Debug das Mãos Laterais">
+    <div class="debug-header" id="debugHeader" title="Clique e arraste para reposicionar o painel">
+      <div class="debug-title">
+        <span>⚙️ Mãos Laterais</span>
+        <span style="font-size: 10px; opacity: 0.75; font-weight: normal;">(Espelhadas)</span>
+      </div>
+      <div class="debug-header-btns">
+        <button class="debug-icon-btn" id="debugDockBtn" type="button" title="Alternar lado (Esquerda ↔ Direita)">⇋</button>
+        <button class="debug-icon-btn" id="debugMinBtn" type="button" title="Minimizar / Expandir">_</button>
+      </div>
+    </div>
+
+    <div class="debug-body">
+      <!-- Ação Principal de Cópia -->
+      <div class="debug-actions">
+        <button class="debug-btn-primary" id="copyParamsBtn" type="button" title="Copiar CSS e parâmetros JS para a área de transferência">
+          <span>📋</span>
+          <span>Copiar parâmetros</span>
+        </button>
+      </div>
+
+      <!-- Grupo 1: Rotação & Posição -->
+      <div class="debug-section">
+        <div class="debug-section-title">Posicionamento & Rotação</div>
+        
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Rotação Mão (Z)</span>
+            <span class="debug-value" id="valHandRotation">-35°</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramHandRotation" min="-90" max="0" step="1" value="-35">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Posição Vertical (Top)</span>
+            <span class="debug-value" id="valTopPosition">42%</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramTopPosition" min="15" max="70" step="0.5" value="42">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Distância da Borda (Offset)</span>
+            <span class="debug-value" id="valSideOffset">14px</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramSideOffset" min="-20" max="140" step="2" value="14">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Inclinação 3D Mesa (RotateY)</span>
+            <span class="debug-value" id="valRotateY">46°</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramRotateY" min="0" max="85" step="1" value="46">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Elevação 3D (RotateX)</span>
+            <span class="debug-value" id="valRotateX">0°</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramRotateX" min="-30" max="30" step="1" value="0">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Perspectiva 3D</span>
+            <span class="debug-value" id="valPerspective">900px</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramPerspective" min="300" max="2000" step="50" value="900">
+        </div>
+      </div>
+
+      <!-- Grupo 2: Espaçamento & Dimensões -->
+      <div class="debug-section">
+        <div class="debug-section-title">Distribuição das Cartas</div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Quantidade de Cartas</span>
+            <span class="debug-value" id="valCardCount">4</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardCount" min="1" max="15" step="1" value="4">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Sobreposição (Overlap)</span>
+            <span class="debug-value" id="valCardOverlap">-14px</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardOverlap" min="-55" max="20" step="1" value="-14">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Largura do Container</span>
+            <span class="debug-value" id="valFanWidth">240px</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramFanWidth" min="140" max="380" step="5" value="240">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Escala das Cartas</span>
+            <span class="debug-value" id="valCardScale">1.00x</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardScale" min="0.6" max="1.3" step="0.05" value="1.0">
+        </div>
+      </div>
+
+      <!-- Grupo 3: Geometria de Cada Carta -->
+      <div class="debug-section">
+        <div class="debug-section-title">Leque & Curvatura Individual</div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Ângulo Individual (Leque)</span>
+            <span class="debug-value" id="valCardAngle">2.5°</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardAngle" min="0" max="25" step="0.5" value="2.5">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Curvatura em Arco (Parábola)</span>
+            <span class="debug-value" id="valCardArc">4px</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardArc" min="-30" max="30" step="1" value="4">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Profundidade 3D Z</span>
+            <span class="debug-value" id="valCardDepthZ">10px</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardDepthZ" min="0" max="30" step="1" value="10">
+        </div>
+
+        <div class="debug-row">
+          <div class="debug-label-wrap">
+            <span>Rotação 3D Y Individual</span>
+            <span class="debug-value" id="valCardAngleY">0°</span>
+          </div>
+          <input class="debug-slider" type="range" id="paramCardAngleY" min="0" max="15" step="0.5" value="0">
+        </div>
+      </div>
+
+      <!-- Presets & Reset -->
+      <div class="debug-section">
+        <div class="debug-section-title">Presets & Opções</div>
+        <label class="debug-checkbox-wrap">
+          <input type="checkbox" class="debug-checkbox" id="paramMirror" checked>
+          <span>Espelhar automaticamente</span>
+        </label>
+        
+        <div class="debug-btn-grid">
+          <button class="debug-btn-secondary" id="presetCurrent" type="button">Arco Atual (-50°)</button>
+          <button class="debug-btn-secondary" id="presetClassic" type="button">Horizontal (0°)</button>
+          <button class="debug-btn-secondary" id="presetSoft" type="button">Arco Suave (-35°)</button>
+          <button class="debug-btn-secondary" id="presetSteep" type="button">Arco Fechado (-65°)</button>
+        </div>
+
+        <button class="debug-btn-secondary" id="resetBtn" type="button" style="margin-top: 4px;">↺ Restaurar Padrões</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Toast de Confirmação de Cópia -->
+  <div class="debug-toast" id="debugToast">
+    <span>✅</span>
+    <span>Parâmetros copiados para a área de transferência!</span>
+  </div>
+
+  <script>
+    (() => {
+      // Estado dos parâmetros de debug
+      const defaults = {
+        handRotation: -35,
+        topPosition: 42,
+        sideOffset: 14,
+        rotateY: 46,
+        rotateX: 0,
+        perspective: 900,
+        cardCount: 4,
+        cardOverlap: -14,
+        fanWidth: 240,
+        cardScale: 1.0,
+        cardAngle: 2.5,
+        cardArc: 4,
+        cardDepthZ: 10,
+        cardAngleY: 0,
+        mirror: true
+      };
+
+      const params = { ...defaults };
+
+      // Elementos do DOM da cena
+      const el = {
+        leftOpponent: document.getElementById("sideOpponentLeft"),
+        rightOpponent: document.getElementById("sideOpponentRight"),
+        leftPerspective: document.getElementById("sidePerspectiveLeft"),
+        rightPerspective: document.getElementById("sidePerspectiveRight"),
+        leftFan: document.getElementById("leftHandFan"),
+        rightFan: document.getElementById("rightHandFan"),
+        topFan: document.getElementById("aiHandFan"),
+        discardStage: document.getElementById("discardStage"),
+        playerHandContainer: document.getElementById("playerHandContainer"),
+        debugPanel: document.getElementById("debugPanel"),
+        debugMinBtn: document.getElementById("debugMinBtn"),
+        debugDockBtn: document.getElementById("debugDockBtn"),
+        debugHeader: document.getElementById("debugHeader"),
+        copyParamsBtn: document.getElementById("copyParamsBtn"),
+        debugToast: document.getElementById("debugToast"),
+        themeToggle: document.getElementById("themeToggle")
+      };
+
+      // Mapeamento dos inputs
+      const inputs = {
+        handRotation: document.getElementById("paramHandRotation"),
+        topPosition: document.getElementById("paramTopPosition"),
+        sideOffset: document.getElementById("paramSideOffset"),
+        rotateY: document.getElementById("paramRotateY"),
+        rotateX: document.getElementById("paramRotateX"),
+        perspective: document.getElementById("paramPerspective"),
+        cardCount: document.getElementById("paramCardCount"),
+        cardOverlap: document.getElementById("paramCardOverlap"),
+        fanWidth: document.getElementById("paramFanWidth"),
+        cardScale: document.getElementById("paramCardScale"),
+        cardAngle: document.getElementById("paramCardAngle"),
+        cardArc: document.getElementById("paramCardArc"),
+        cardDepthZ: document.getElementById("paramCardDepthZ"),
+        cardAngleY: document.getElementById("paramCardAngleY"),
+        mirror: document.getElementById("paramMirror")
+      };
+
+      // Mapeamento dos displays de valor
+      const values = {
+        handRotation: document.getElementById("valHandRotation"),
+        topPosition: document.getElementById("valTopPosition"),
+        sideOffset: document.getElementById("valSideOffset"),
+        rotateY: document.getElementById("valRotateY"),
+        rotateX: document.getElementById("valRotateX"),
+        perspective: document.getElementById("valPerspective"),
+        cardCount: document.getElementById("valCardCount"),
+        cardOverlap: document.getElementById("valCardOverlap"),
+        fanWidth: document.getElementById("valFanWidth"),
+        cardScale: document.getElementById("valCardScale"),
+        cardAngle: document.getElementById("valCardAngle"),
+        cardArc: document.getElementById("valCardArc"),
+        cardDepthZ: document.getElementById("valCardDepthZ"),
+        cardAngleY: document.getElementById("valCardAngleY")
+      };
+
+      // Renderiza as mini-cartas do bot num fan
+      function renderFanCards(fan, count) {
+        fan.replaceChildren();
+        for (let i = 0; i < count; i++) {
+          const card = document.createElement("div");
+          card.className = "ai-mini-card";
+          card.innerHTML = '<div class="ai-mini-oval">CLASH</div>';
+          fan.appendChild(card);
+        }
+      }
+
+      // Aplica os parâmetros em tempo real aos elementos da cena
+      function applyParams() {
+        // Atualiza displays numéricos
+        values.handRotation.textContent = `${params.handRotation}°`;
+        values.topPosition.textContent = `${params.topPosition}%`;
+        values.sideOffset.textContent = `${params.sideOffset}px`;
+        values.rotateY.textContent = `${params.rotateY}°`;
+        values.rotateX.textContent = `${params.rotateX}°`;
+        values.perspective.textContent = `${params.perspective}px`;
+        values.cardCount.textContent = params.cardCount;
+        values.cardOverlap.textContent = `${params.cardOverlap}px`;
+        values.fanWidth.textContent = `${params.fanWidth}px`;
+        values.cardScale.textContent = `${params.cardScale.toFixed(2)}x`;
+        values.cardAngle.textContent = `${params.cardAngle}°`;
+        values.cardArc.textContent = `${params.cardArc}px`;
+        values.cardDepthZ.textContent = `${params.cardDepthZ}px`;
+        values.cardAngleY.textContent = `${params.cardAngleY}°`;
+
+        // Sincroniza contagem de cartas nas mãos
+        if (el.leftFan.children.length !== params.cardCount) renderFanCards(el.leftFan, params.cardCount);
+        if (el.rightFan.children.length !== params.cardCount) renderFanCards(el.rightFan, params.cardCount);
+
+        // 1. Posicionamento vertical e horizontal dos containers
+        el.leftOpponent.style.top = `${params.topPosition}%`;
+        el.leftOpponent.style.left = `${params.sideOffset}px`;
+
+        el.rightOpponent.style.top = `${params.topPosition}%`;
+        el.rightOpponent.style.right = `${params.sideOffset}px`;
+
+        // 2. Dimensões do leque
+        el.leftPerspective.style.width = `${params.fanWidth}px`;
+        el.rightPerspective.style.width = `${params.fanWidth}px`;
+
+        el.leftFan.style.setProperty("--bot-card-overlap", `${params.cardOverlap}px`);
+        el.rightFan.style.setProperty("--bot-card-overlap", `${params.cardOverlap}px`);
+
+        // 3. Transformação 3D principal (com espelhamento da direita)
+        const leftRotZ = params.handRotation;
+        const rightRotZ = params.mirror ? -params.handRotation : params.handRotation;
+
+        const leftRotY = params.rotateY;
+        const rightRotY = params.mirror ? -params.rotateY : params.rotateY;
+
+        el.leftPerspective.style.transform = `translate(-50%, -50%) rotate(${leftRotZ}deg) perspective(${params.perspective}px) rotateX(${params.rotateX}deg) rotateY(${leftRotY}deg)`;
+        el.rightPerspective.style.transform = `translate(-50%, -50%) rotate(${rightRotZ}deg) perspective(${params.perspective}px) rotateX(${params.rotateX}deg) rotateY(${rightRotY}deg)`;
+
+        // 4. Transformação individual de cada carta dentro das mãos
+        const count = params.cardCount;
+        [
+          { fan: el.leftFan, facing: 1 },
+          { fan: el.rightFan, facing: -1 }
+        ].forEach(({ fan, facing }) => {
+          [...fan.children].forEach((card, index) => {
+            const norm = count > 1 ? (index - (count - 1) / 2) / ((count - 1) / 2) : 0;
+            const z = norm * facing * params.cardDepthZ;
+            const yRot = norm * facing * params.cardAngleY;
+            const zRot = norm * params.cardAngle;
+            const yArc = norm * norm * params.cardArc;
+
+            card.style.transform = `translateZ(${z}px) rotateY(${yRot}deg) rotate(${zRot}deg) translateY(${yArc}px) scale(${params.cardScale})`;
+          });
+        });
+      }
+
+      // Lê valores dos inputs e atualiza params
+      function readInputs() {
+        params.handRotation = Number(inputs.handRotation.value);
+        params.topPosition = Number(inputs.topPosition.value);
+        params.sideOffset = Number(inputs.sideOffset.value);
+        params.rotateY = Number(inputs.rotateY.value);
+        params.rotateX = Number(inputs.rotateX.value);
+        params.perspective = Number(inputs.perspective.value);
+        params.cardCount = Number(inputs.cardCount.value);
+        params.cardOverlap = Number(inputs.cardOverlap.value);
+        params.fanWidth = Number(inputs.fanWidth.value);
+        params.cardScale = Number(inputs.cardScale.value);
+        params.cardAngle = Number(inputs.cardAngle.value);
+        params.cardArc = Number(inputs.cardArc.value);
+        params.cardDepthZ = Number(inputs.cardDepthZ.value);
+        params.cardAngleY = Number(inputs.cardAngleY.value);
+        params.mirror = inputs.mirror.checked;
+
+        applyParams();
+      }
+
+      // Define valores nos inputs a partir de um objeto
+      function setInputs(newVals) {
+        Object.assign(params, newVals);
+        for (const [key, input] of Object.entries(inputs)) {
+          if (key === "mirror") input.checked = params.mirror;
+          else if (input) input.value = params[key];
+        }
+        applyParams();
+      }
+
+      // Conecta os listeners de input em tempo real
+      for (const input of Object.values(inputs)) {
+        input.addEventListener("input", readInputs);
+        input.addEventListener("change", readInputs);
+      }
+
+      // Presets
+      document.getElementById("presetCurrent").addEventListener("click", () => {
+        setInputs({ handRotation: -50, topPosition: 40, sideOffset: 8, rotateY: 58, rotateX: -5, perspective: 900, cardOverlap: -12, cardAngle: 0, cardArc: 0, cardScale: 1.0 });
+      });
+
+      document.getElementById("presetClassic").addEventListener("click", () => {
+        setInputs({ handRotation: 0, topPosition: 50, sideOffset: 8, rotateY: 58, rotateX: -5, perspective: 900, cardOverlap: -12, cardAngle: 0, cardArc: 0, cardScale: 1.0 });
+      });
+
+      document.getElementById("presetSoft").addEventListener("click", () => {
+        setInputs({ handRotation: -35, topPosition: 42, sideOffset: 14, rotateY: 54, rotateX: -4, perspective: 900, cardOverlap: -14, cardAngle: 2, cardArc: 4, cardScale: 1.0 });
+      });
+
+      document.getElementById("presetSteep").addEventListener("click", () => {
+        setInputs({ handRotation: -65, topPosition: 37, sideOffset: 24, rotateY: 62, rotateX: -6, perspective: 850, cardOverlap: -10, cardAngle: 0, cardArc: 0, cardScale: 1.0 });
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        setInputs(defaults);
+      });
+
+      // Minimizar / Expandir Painel
+      function toggleMinimize() {
+        el.debugPanel.classList.toggle("minimized");
+        el.debugMinBtn.textContent = el.debugPanel.classList.contains("minimized") ? "+" : "_";
+      }
+      el.debugMinBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleMinimize(); });
+
+      // Alternar Lado (Dock Esquerda / Direita)
+      let dockedOnLeft = false;
+      el.debugDockBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dockedOnLeft = !dockedOnLeft;
+        if (dockedOnLeft) {
+          el.debugPanel.style.left = "16px";
+          el.debugPanel.style.right = "auto";
+        } else {
+          el.debugPanel.style.left = "auto";
+          el.debugPanel.style.right = "16px";
+        }
+        el.debugPanel.style.top = "16px";
+      });
+
+      // Arrastar Painel (Drag & Drop)
+      let isDragging = false, dragStartX = 0, dragStartY = 0, initPanelLeft = 0, initPanelTop = 0;
+
+      el.debugHeader.addEventListener("mousedown", (e) => {
+        if (e.target.closest("button")) return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        const rect = el.debugPanel.getBoundingClientRect();
+        initPanelLeft = rect.left;
+        initPanelTop = rect.top;
+        el.debugPanel.style.right = "auto";
+        el.debugPanel.style.left = `${initPanelLeft}px`;
+        el.debugPanel.style.top = `${initPanelTop}px`;
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        const newLeft = Math.max(8, Math.min(window.innerWidth - el.debugPanel.offsetWidth - 8, initPanelLeft + dx));
+        const newTop = Math.max(8, Math.min(window.innerHeight - 50, initPanelTop + dy));
+        el.debugPanel.style.left = `${newLeft}px`;
+        el.debugPanel.style.top = `${newTop}px`;
+      });
+
+      window.addEventListener("mouseup", () => { isDragging = false; });
+
+      // Copiar Parâmetros Formatados
+      function copyFormattedParameters() {
+        const rightRotZ = params.mirror ? -params.handRotation : params.handRotation;
+        const rightRotY = params.mirror ? -params.rotateY : params.rotateY;
+
+        const snippet = `/* ==========================================================================
+   Parâmetros Calibrados para as Mãos Laterais (clash-web)
+   ========================================================================== */
+
+/* 1. Em styles.css (.side-opponent e .side-hand-perspective): */
+.side-opponent {
+  top: ${params.topPosition}%;
+}
+.side-opponent-left {
+  left: ${params.sideOffset}px;
+}
+.side-opponent-right {
+  right: ${params.sideOffset}px;
+}
+.side-hand-perspective {
+  width: ${params.fanWidth}px;
+}
+.side-opponent-left .side-hand-perspective {
+  transform: translate(-50%, -50%) rotate(${params.handRotation}deg) perspective(${params.perspective}px) rotateX(${params.rotateX}deg) rotateY(${params.rotateY}deg);
+}
+.side-opponent-right .side-hand-perspective {
+  transform: translate(-50%, -50%) rotate(${rightRotZ}deg) perspective(${params.perspective}px) rotateX(${params.rotateX}deg) rotateY(${rightRotY}deg);
+}
+
+/* 2. Em app.js (renderBotHandFan): */
+// fan.style.setProperty("--bot-card-overlap", "${params.cardOverlap}px");
+// card.style.transform = lateral
+//   ? \`translateZ(\${norm * facing * ${params.cardDepthZ}}px) rotateY(\${norm * facing * ${params.cardAngleY}}deg) rotate(\${norm * ${params.cardAngle}}deg) translateY(\${norm * norm * ${params.cardArc}}px) scale(${params.cardScale.toFixed(2)})\`
+//   : \`translateY(\${norm * norm * 8}px) rotate(\${norm * Math.min(count * 1.45, 11)}deg)\`;
+
+/* 3. Objeto de Parâmetros JSON: */
+${JSON.stringify(params, null, 2)}
+`;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(snippet).then(showToast);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = snippet;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          showToast();
+        }
+      }
+
+      function showToast() {
+        el.debugToast.classList.add("show");
+        setTimeout(() => el.debugToast.classList.remove("show"), 2800);
+      }
+
+      el.copyParamsBtn.addEventListener("click", copyFormattedParameters);
+
+      // Alternar Tema Escuro / Claro
+      el.themeToggle.addEventListener("click", () => {
+        const isDark = document.documentElement.dataset.theme === "dark";
+        document.documentElement.dataset.theme = isDark ? "light" : "dark";
+        el.themeToggle.classList.toggle("active", !isDark);
+      });
+
+      // Inicialização estática do cenário para visualização rica
+      function initStaticScene() {
+        // 1. Mão do topo com 7 cartas
+        renderFanCards(el.topFan, 7);
+        [...el.topFan.children].forEach((card, index) => {
+          const norm = (index - 3) / 3;
+          card.style.transform = `translateY(${norm * norm * 8}px) rotate(${norm * 10}deg)`;
+        });
+
+        // 2. Carta central de descarte (Vermelho 7)
+        el.discardStage.innerHTML = `
+          <div class="clash-card table-card" data-color="red">
+            <span class="card-corner top-left">7</span>
+            <span class="card-center-glyph">7</span>
+            <span class="card-corner bottom-right">7</span>
+          </div>
+        `;
+
+        // 3. Mão do jogador com 7 cartas coloridas de demonstração
+        const sampleCards = [
+          { color: "green", corner: "1", center: "1", rot: -9, y: 4 },
+          { color: "blue", corner: "6", center: "6", rot: -6, y: 1 },
+          { color: "yellow", corner: "⇄", center: "⇄", rot: -3, y: 0 },
+          { color: "blue", corner: "2", center: "2", rot: 0, y: 0 },
+          { color: "green", corner: "⇄", center: "⇄", rot: 3, y: 0 },
+          { color: "blue", corner: "+2", center: "+2", rot: 6, y: 1 },
+          { color: "red", corner: "⊘", center: "⊘", rot: 9, y: 4 }
+        ];
+
+        el.playerHandContainer.innerHTML = sampleCards.map(c => `
+          <div class="clash-card player-card" data-color="${c.color}" style="transform: translateY(${c.y}px) rotate(${c.rot}deg); cursor: pointer;">
+            <span class="card-corner top-left">${c.corner}</span>
+            <span class="card-center-glyph">${c.center}</span>
+            <span class="card-corner bottom-right">${c.corner}</span>
+          </div>
+        `).join("");
+
+        // 4. Inicializa as mãos laterais com os valores padrão
+        readInputs();
+      }
+
+      initStaticScene();
+    })();
+  </script>
+</body>
+</html>

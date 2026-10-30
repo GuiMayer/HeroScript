@@ -9,3 +9,6 @@ coverage/
 Thumbs.db
 heroscript/
 .heroscript-session-*.json
+
+!debug/
+!debug/**
