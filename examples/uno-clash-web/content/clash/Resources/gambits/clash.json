@@ -1,7 +1,7 @@
 {
-  "uno_choose_red": {
-    "gambitId": "uno_choose_red",
-    "displayName": "uno_choose_red",
+  "clash_choose_red": {
+    "gambitId": "clash_choose_red",
+    "displayName": "clash_choose_red",
     "priority": 2000,
     "predicates": [
       {
@@ -11,20 +11,20 @@
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_choose_red",
+      "actionId": "clash_choose_red",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_choose_blue": {
-    "gambitId": "uno_choose_blue",
-    "displayName": "uno_choose_blue",
+  "clash_choose_blue": {
+    "gambitId": "clash_choose_blue",
+    "displayName": "clash_choose_blue",
     "priority": 2000,
     "predicates": [
       {
@@ -34,20 +34,20 @@
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_choose_blue",
+      "actionId": "clash_choose_blue",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_choose_green": {
-    "gambitId": "uno_choose_green",
-    "displayName": "uno_choose_green",
+  "clash_choose_green": {
+    "gambitId": "clash_choose_green",
+    "displayName": "clash_choose_green",
     "priority": 2000,
     "predicates": [
       {
@@ -57,20 +57,20 @@
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_choose_green",
+      "actionId": "clash_choose_green",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_choose_yellow": {
-    "gambitId": "uno_choose_yellow",
-    "displayName": "uno_choose_yellow",
+  "clash_choose_yellow": {
+    "gambitId": "clash_choose_yellow",
+    "displayName": "clash_choose_yellow",
     "priority": 2000,
     "predicates": [
       {
@@ -80,20 +80,20 @@
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_choose_yellow",
+      "actionId": "clash_choose_yellow",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_call": {
-    "gambitId": "uno_call",
-    "displayName": "uno_call",
+  "clash_call": {
+    "gambitId": "clash_call",
+    "displayName": "clash_call",
     "priority": 1900,
     "predicates": [
       {
@@ -102,140 +102,140 @@
         "maximum": 1
       },
       {
-        "expression": "actor_resource_uno_called_current",
+        "expression": "actor_resource_clash_called_current",
         "maximum": 0
       }
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_shout_uno",
+      "actionId": "clash_shout_clash",
       "targetSelector": {
         "strategy": "None"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_respond_red": {
-    "gambitId": "uno_respond_red",
-    "displayName": "uno_respond_red",
+  "clash_respond_red": {
+    "gambitId": "clash_respond_red",
+    "displayName": "clash_respond_red",
     "priority": 1500,
     "predicates": [
       {
-        "expression": "actor_resource_uno_draw2_pending_current",
+        "expression": "actor_resource_clash_draw2_pending_current",
         "minimum": 2
       }
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_draw2",
+      "cardDefinitionId": "clash_red_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_respond_blue": {
-    "gambitId": "uno_respond_blue",
-    "displayName": "uno_respond_blue",
+  "clash_respond_blue": {
+    "gambitId": "clash_respond_blue",
+    "displayName": "clash_respond_blue",
     "priority": 1500,
     "predicates": [
       {
-        "expression": "actor_resource_uno_draw2_pending_current",
+        "expression": "actor_resource_clash_draw2_pending_current",
         "minimum": 2
       }
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_draw2",
+      "cardDefinitionId": "clash_blue_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_respond_green": {
-    "gambitId": "uno_respond_green",
-    "displayName": "uno_respond_green",
+  "clash_respond_green": {
+    "gambitId": "clash_respond_green",
+    "displayName": "clash_respond_green",
     "priority": 1500,
     "predicates": [
       {
-        "expression": "actor_resource_uno_draw2_pending_current",
+        "expression": "actor_resource_clash_draw2_pending_current",
         "minimum": 2
       }
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_draw2",
+      "cardDefinitionId": "clash_green_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_respond_yellow": {
-    "gambitId": "uno_respond_yellow",
-    "displayName": "uno_respond_yellow",
+  "clash_respond_yellow": {
+    "gambitId": "clash_respond_yellow",
+    "displayName": "clash_respond_yellow",
     "priority": 1500,
     "predicates": [
       {
-        "expression": "actor_resource_uno_draw2_pending_current",
+        "expression": "actor_resource_clash_draw2_pending_current",
         "minimum": 2
       }
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_draw2",
+      "cardDefinitionId": "clash_yellow_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_accept": {
-    "gambitId": "uno_accept",
-    "displayName": "uno_accept",
+  "clash_accept": {
+    "gambitId": "clash_accept",
+    "displayName": "clash_accept",
     "priority": 1400,
     "predicates": [
       {
-        "expression": "actor_resource_uno_draw2_pending_current",
+        "expression": "actor_resource_clash_draw2_pending_current",
         "minimum": 2
       }
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_accept_draw2",
+      "actionId": "clash_accept_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_catch": {
-    "gambitId": "uno_catch",
-    "displayName": "uno_catch",
+  "clash_catch": {
+    "gambitId": "clash_catch",
+    "displayName": "clash_catch",
     "priority": 1300,
     "predicates": [
       {
@@ -244,26 +244,26 @@
         "maximum": 1
       },
       {
-        "expression": "target_resource_uno_called_current",
+        "expression": "target_resource_clash_called_current",
         "maximum": 0
       }
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_catch_no_uno",
+      "actionId": "clash_catch_missed_clash",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_0": {
-    "gambitId": "play_uno_red_0",
-    "displayName": "play_uno_red_0",
+  "play_clash_red_0": {
+    "gambitId": "play_clash_red_0",
+    "displayName": "play_clash_red_0",
     "priority": 500,
     "predicates": [
       {
@@ -272,20 +272,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_0",
+      "cardDefinitionId": "clash_red_0",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_1": {
-    "gambitId": "play_uno_red_1",
-    "displayName": "play_uno_red_1",
+  "play_clash_red_1": {
+    "gambitId": "play_clash_red_1",
+    "displayName": "play_clash_red_1",
     "priority": 500,
     "predicates": [
       {
@@ -294,20 +294,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_1",
+      "cardDefinitionId": "clash_red_1",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_2": {
-    "gambitId": "play_uno_red_2",
-    "displayName": "play_uno_red_2",
+  "play_clash_red_2": {
+    "gambitId": "play_clash_red_2",
+    "displayName": "play_clash_red_2",
     "priority": 500,
     "predicates": [
       {
@@ -316,20 +316,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_2",
+      "cardDefinitionId": "clash_red_2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_3": {
-    "gambitId": "play_uno_red_3",
-    "displayName": "play_uno_red_3",
+  "play_clash_red_3": {
+    "gambitId": "play_clash_red_3",
+    "displayName": "play_clash_red_3",
     "priority": 500,
     "predicates": [
       {
@@ -338,20 +338,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_3",
+      "cardDefinitionId": "clash_red_3",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_4": {
-    "gambitId": "play_uno_red_4",
-    "displayName": "play_uno_red_4",
+  "play_clash_red_4": {
+    "gambitId": "play_clash_red_4",
+    "displayName": "play_clash_red_4",
     "priority": 500,
     "predicates": [
       {
@@ -360,20 +360,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_4",
+      "cardDefinitionId": "clash_red_4",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_5": {
-    "gambitId": "play_uno_red_5",
-    "displayName": "play_uno_red_5",
+  "play_clash_red_5": {
+    "gambitId": "play_clash_red_5",
+    "displayName": "play_clash_red_5",
     "priority": 500,
     "predicates": [
       {
@@ -382,20 +382,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_5",
+      "cardDefinitionId": "clash_red_5",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_6": {
-    "gambitId": "play_uno_red_6",
-    "displayName": "play_uno_red_6",
+  "play_clash_red_6": {
+    "gambitId": "play_clash_red_6",
+    "displayName": "play_clash_red_6",
     "priority": 500,
     "predicates": [
       {
@@ -404,20 +404,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_6",
+      "cardDefinitionId": "clash_red_6",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_7": {
-    "gambitId": "play_uno_red_7",
-    "displayName": "play_uno_red_7",
+  "play_clash_red_7": {
+    "gambitId": "play_clash_red_7",
+    "displayName": "play_clash_red_7",
     "priority": 500,
     "predicates": [
       {
@@ -426,20 +426,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_7",
+      "cardDefinitionId": "clash_red_7",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_8": {
-    "gambitId": "play_uno_red_8",
-    "displayName": "play_uno_red_8",
+  "play_clash_red_8": {
+    "gambitId": "play_clash_red_8",
+    "displayName": "play_clash_red_8",
     "priority": 500,
     "predicates": [
       {
@@ -448,20 +448,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_8",
+      "cardDefinitionId": "clash_red_8",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_9": {
-    "gambitId": "play_uno_red_9",
-    "displayName": "play_uno_red_9",
+  "play_clash_red_9": {
+    "gambitId": "play_clash_red_9",
+    "displayName": "play_clash_red_9",
     "priority": 500,
     "predicates": [
       {
@@ -470,20 +470,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_9",
+      "cardDefinitionId": "clash_red_9",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_skip": {
-    "gambitId": "play_uno_red_skip",
-    "displayName": "play_uno_red_skip",
+  "play_clash_red_skip": {
+    "gambitId": "play_clash_red_skip",
+    "displayName": "play_clash_red_skip",
     "priority": 650,
     "predicates": [
       {
@@ -492,20 +492,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_skip",
+      "cardDefinitionId": "clash_red_skip",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_reverse": {
-    "gambitId": "play_uno_red_reverse",
-    "displayName": "play_uno_red_reverse",
+  "play_clash_red_reverse": {
+    "gambitId": "play_clash_red_reverse",
+    "displayName": "play_clash_red_reverse",
     "priority": 650,
     "predicates": [
       {
@@ -514,20 +514,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_reverse",
+      "cardDefinitionId": "clash_red_reverse",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_red_draw2": {
-    "gambitId": "play_uno_red_draw2",
-    "displayName": "play_uno_red_draw2",
+  "play_clash_red_draw2": {
+    "gambitId": "play_clash_red_draw2",
+    "displayName": "play_clash_red_draw2",
     "priority": 700,
     "predicates": [
       {
@@ -536,20 +536,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_red_draw2",
+      "cardDefinitionId": "clash_red_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_0": {
-    "gambitId": "play_uno_blue_0",
-    "displayName": "play_uno_blue_0",
+  "play_clash_blue_0": {
+    "gambitId": "play_clash_blue_0",
+    "displayName": "play_clash_blue_0",
     "priority": 500,
     "predicates": [
       {
@@ -558,20 +558,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_0",
+      "cardDefinitionId": "clash_blue_0",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_1": {
-    "gambitId": "play_uno_blue_1",
-    "displayName": "play_uno_blue_1",
+  "play_clash_blue_1": {
+    "gambitId": "play_clash_blue_1",
+    "displayName": "play_clash_blue_1",
     "priority": 500,
     "predicates": [
       {
@@ -580,20 +580,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_1",
+      "cardDefinitionId": "clash_blue_1",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_2": {
-    "gambitId": "play_uno_blue_2",
-    "displayName": "play_uno_blue_2",
+  "play_clash_blue_2": {
+    "gambitId": "play_clash_blue_2",
+    "displayName": "play_clash_blue_2",
     "priority": 500,
     "predicates": [
       {
@@ -602,20 +602,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_2",
+      "cardDefinitionId": "clash_blue_2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_3": {
-    "gambitId": "play_uno_blue_3",
-    "displayName": "play_uno_blue_3",
+  "play_clash_blue_3": {
+    "gambitId": "play_clash_blue_3",
+    "displayName": "play_clash_blue_3",
     "priority": 500,
     "predicates": [
       {
@@ -624,20 +624,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_3",
+      "cardDefinitionId": "clash_blue_3",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_4": {
-    "gambitId": "play_uno_blue_4",
-    "displayName": "play_uno_blue_4",
+  "play_clash_blue_4": {
+    "gambitId": "play_clash_blue_4",
+    "displayName": "play_clash_blue_4",
     "priority": 500,
     "predicates": [
       {
@@ -646,20 +646,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_4",
+      "cardDefinitionId": "clash_blue_4",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_5": {
-    "gambitId": "play_uno_blue_5",
-    "displayName": "play_uno_blue_5",
+  "play_clash_blue_5": {
+    "gambitId": "play_clash_blue_5",
+    "displayName": "play_clash_blue_5",
     "priority": 500,
     "predicates": [
       {
@@ -668,20 +668,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_5",
+      "cardDefinitionId": "clash_blue_5",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_6": {
-    "gambitId": "play_uno_blue_6",
-    "displayName": "play_uno_blue_6",
+  "play_clash_blue_6": {
+    "gambitId": "play_clash_blue_6",
+    "displayName": "play_clash_blue_6",
     "priority": 500,
     "predicates": [
       {
@@ -690,20 +690,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_6",
+      "cardDefinitionId": "clash_blue_6",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_7": {
-    "gambitId": "play_uno_blue_7",
-    "displayName": "play_uno_blue_7",
+  "play_clash_blue_7": {
+    "gambitId": "play_clash_blue_7",
+    "displayName": "play_clash_blue_7",
     "priority": 500,
     "predicates": [
       {
@@ -712,20 +712,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_7",
+      "cardDefinitionId": "clash_blue_7",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_8": {
-    "gambitId": "play_uno_blue_8",
-    "displayName": "play_uno_blue_8",
+  "play_clash_blue_8": {
+    "gambitId": "play_clash_blue_8",
+    "displayName": "play_clash_blue_8",
     "priority": 500,
     "predicates": [
       {
@@ -734,20 +734,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_8",
+      "cardDefinitionId": "clash_blue_8",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_9": {
-    "gambitId": "play_uno_blue_9",
-    "displayName": "play_uno_blue_9",
+  "play_clash_blue_9": {
+    "gambitId": "play_clash_blue_9",
+    "displayName": "play_clash_blue_9",
     "priority": 500,
     "predicates": [
       {
@@ -756,20 +756,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_9",
+      "cardDefinitionId": "clash_blue_9",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_skip": {
-    "gambitId": "play_uno_blue_skip",
-    "displayName": "play_uno_blue_skip",
+  "play_clash_blue_skip": {
+    "gambitId": "play_clash_blue_skip",
+    "displayName": "play_clash_blue_skip",
     "priority": 650,
     "predicates": [
       {
@@ -778,20 +778,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_skip",
+      "cardDefinitionId": "clash_blue_skip",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_reverse": {
-    "gambitId": "play_uno_blue_reverse",
-    "displayName": "play_uno_blue_reverse",
+  "play_clash_blue_reverse": {
+    "gambitId": "play_clash_blue_reverse",
+    "displayName": "play_clash_blue_reverse",
     "priority": 650,
     "predicates": [
       {
@@ -800,20 +800,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_reverse",
+      "cardDefinitionId": "clash_blue_reverse",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_blue_draw2": {
-    "gambitId": "play_uno_blue_draw2",
-    "displayName": "play_uno_blue_draw2",
+  "play_clash_blue_draw2": {
+    "gambitId": "play_clash_blue_draw2",
+    "displayName": "play_clash_blue_draw2",
     "priority": 700,
     "predicates": [
       {
@@ -822,20 +822,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_blue_draw2",
+      "cardDefinitionId": "clash_blue_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_0": {
-    "gambitId": "play_uno_green_0",
-    "displayName": "play_uno_green_0",
+  "play_clash_green_0": {
+    "gambitId": "play_clash_green_0",
+    "displayName": "play_clash_green_0",
     "priority": 500,
     "predicates": [
       {
@@ -844,20 +844,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_0",
+      "cardDefinitionId": "clash_green_0",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_1": {
-    "gambitId": "play_uno_green_1",
-    "displayName": "play_uno_green_1",
+  "play_clash_green_1": {
+    "gambitId": "play_clash_green_1",
+    "displayName": "play_clash_green_1",
     "priority": 500,
     "predicates": [
       {
@@ -866,20 +866,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_1",
+      "cardDefinitionId": "clash_green_1",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_2": {
-    "gambitId": "play_uno_green_2",
-    "displayName": "play_uno_green_2",
+  "play_clash_green_2": {
+    "gambitId": "play_clash_green_2",
+    "displayName": "play_clash_green_2",
     "priority": 500,
     "predicates": [
       {
@@ -888,20 +888,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_2",
+      "cardDefinitionId": "clash_green_2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_3": {
-    "gambitId": "play_uno_green_3",
-    "displayName": "play_uno_green_3",
+  "play_clash_green_3": {
+    "gambitId": "play_clash_green_3",
+    "displayName": "play_clash_green_3",
     "priority": 500,
     "predicates": [
       {
@@ -910,20 +910,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_3",
+      "cardDefinitionId": "clash_green_3",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_4": {
-    "gambitId": "play_uno_green_4",
-    "displayName": "play_uno_green_4",
+  "play_clash_green_4": {
+    "gambitId": "play_clash_green_4",
+    "displayName": "play_clash_green_4",
     "priority": 500,
     "predicates": [
       {
@@ -932,20 +932,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_4",
+      "cardDefinitionId": "clash_green_4",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_5": {
-    "gambitId": "play_uno_green_5",
-    "displayName": "play_uno_green_5",
+  "play_clash_green_5": {
+    "gambitId": "play_clash_green_5",
+    "displayName": "play_clash_green_5",
     "priority": 500,
     "predicates": [
       {
@@ -954,20 +954,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_5",
+      "cardDefinitionId": "clash_green_5",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_6": {
-    "gambitId": "play_uno_green_6",
-    "displayName": "play_uno_green_6",
+  "play_clash_green_6": {
+    "gambitId": "play_clash_green_6",
+    "displayName": "play_clash_green_6",
     "priority": 500,
     "predicates": [
       {
@@ -976,20 +976,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_6",
+      "cardDefinitionId": "clash_green_6",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_7": {
-    "gambitId": "play_uno_green_7",
-    "displayName": "play_uno_green_7",
+  "play_clash_green_7": {
+    "gambitId": "play_clash_green_7",
+    "displayName": "play_clash_green_7",
     "priority": 500,
     "predicates": [
       {
@@ -998,20 +998,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_7",
+      "cardDefinitionId": "clash_green_7",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_8": {
-    "gambitId": "play_uno_green_8",
-    "displayName": "play_uno_green_8",
+  "play_clash_green_8": {
+    "gambitId": "play_clash_green_8",
+    "displayName": "play_clash_green_8",
     "priority": 500,
     "predicates": [
       {
@@ -1020,20 +1020,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_8",
+      "cardDefinitionId": "clash_green_8",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_9": {
-    "gambitId": "play_uno_green_9",
-    "displayName": "play_uno_green_9",
+  "play_clash_green_9": {
+    "gambitId": "play_clash_green_9",
+    "displayName": "play_clash_green_9",
     "priority": 500,
     "predicates": [
       {
@@ -1042,20 +1042,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_9",
+      "cardDefinitionId": "clash_green_9",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_skip": {
-    "gambitId": "play_uno_green_skip",
-    "displayName": "play_uno_green_skip",
+  "play_clash_green_skip": {
+    "gambitId": "play_clash_green_skip",
+    "displayName": "play_clash_green_skip",
     "priority": 650,
     "predicates": [
       {
@@ -1064,20 +1064,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_skip",
+      "cardDefinitionId": "clash_green_skip",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_reverse": {
-    "gambitId": "play_uno_green_reverse",
-    "displayName": "play_uno_green_reverse",
+  "play_clash_green_reverse": {
+    "gambitId": "play_clash_green_reverse",
+    "displayName": "play_clash_green_reverse",
     "priority": 650,
     "predicates": [
       {
@@ -1086,20 +1086,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_reverse",
+      "cardDefinitionId": "clash_green_reverse",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_green_draw2": {
-    "gambitId": "play_uno_green_draw2",
-    "displayName": "play_uno_green_draw2",
+  "play_clash_green_draw2": {
+    "gambitId": "play_clash_green_draw2",
+    "displayName": "play_clash_green_draw2",
     "priority": 700,
     "predicates": [
       {
@@ -1108,20 +1108,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_green_draw2",
+      "cardDefinitionId": "clash_green_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_0": {
-    "gambitId": "play_uno_yellow_0",
-    "displayName": "play_uno_yellow_0",
+  "play_clash_yellow_0": {
+    "gambitId": "play_clash_yellow_0",
+    "displayName": "play_clash_yellow_0",
     "priority": 500,
     "predicates": [
       {
@@ -1130,20 +1130,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_0",
+      "cardDefinitionId": "clash_yellow_0",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_1": {
-    "gambitId": "play_uno_yellow_1",
-    "displayName": "play_uno_yellow_1",
+  "play_clash_yellow_1": {
+    "gambitId": "play_clash_yellow_1",
+    "displayName": "play_clash_yellow_1",
     "priority": 500,
     "predicates": [
       {
@@ -1152,20 +1152,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_1",
+      "cardDefinitionId": "clash_yellow_1",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_2": {
-    "gambitId": "play_uno_yellow_2",
-    "displayName": "play_uno_yellow_2",
+  "play_clash_yellow_2": {
+    "gambitId": "play_clash_yellow_2",
+    "displayName": "play_clash_yellow_2",
     "priority": 500,
     "predicates": [
       {
@@ -1174,20 +1174,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_2",
+      "cardDefinitionId": "clash_yellow_2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_3": {
-    "gambitId": "play_uno_yellow_3",
-    "displayName": "play_uno_yellow_3",
+  "play_clash_yellow_3": {
+    "gambitId": "play_clash_yellow_3",
+    "displayName": "play_clash_yellow_3",
     "priority": 500,
     "predicates": [
       {
@@ -1196,20 +1196,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_3",
+      "cardDefinitionId": "clash_yellow_3",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_4": {
-    "gambitId": "play_uno_yellow_4",
-    "displayName": "play_uno_yellow_4",
+  "play_clash_yellow_4": {
+    "gambitId": "play_clash_yellow_4",
+    "displayName": "play_clash_yellow_4",
     "priority": 500,
     "predicates": [
       {
@@ -1218,20 +1218,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_4",
+      "cardDefinitionId": "clash_yellow_4",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_5": {
-    "gambitId": "play_uno_yellow_5",
-    "displayName": "play_uno_yellow_5",
+  "play_clash_yellow_5": {
+    "gambitId": "play_clash_yellow_5",
+    "displayName": "play_clash_yellow_5",
     "priority": 500,
     "predicates": [
       {
@@ -1240,20 +1240,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_5",
+      "cardDefinitionId": "clash_yellow_5",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_6": {
-    "gambitId": "play_uno_yellow_6",
-    "displayName": "play_uno_yellow_6",
+  "play_clash_yellow_6": {
+    "gambitId": "play_clash_yellow_6",
+    "displayName": "play_clash_yellow_6",
     "priority": 500,
     "predicates": [
       {
@@ -1262,20 +1262,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_6",
+      "cardDefinitionId": "clash_yellow_6",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_7": {
-    "gambitId": "play_uno_yellow_7",
-    "displayName": "play_uno_yellow_7",
+  "play_clash_yellow_7": {
+    "gambitId": "play_clash_yellow_7",
+    "displayName": "play_clash_yellow_7",
     "priority": 500,
     "predicates": [
       {
@@ -1284,20 +1284,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_7",
+      "cardDefinitionId": "clash_yellow_7",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_8": {
-    "gambitId": "play_uno_yellow_8",
-    "displayName": "play_uno_yellow_8",
+  "play_clash_yellow_8": {
+    "gambitId": "play_clash_yellow_8",
+    "displayName": "play_clash_yellow_8",
     "priority": 500,
     "predicates": [
       {
@@ -1306,20 +1306,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_8",
+      "cardDefinitionId": "clash_yellow_8",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_9": {
-    "gambitId": "play_uno_yellow_9",
-    "displayName": "play_uno_yellow_9",
+  "play_clash_yellow_9": {
+    "gambitId": "play_clash_yellow_9",
+    "displayName": "play_clash_yellow_9",
     "priority": 500,
     "predicates": [
       {
@@ -1328,20 +1328,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_9",
+      "cardDefinitionId": "clash_yellow_9",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_skip": {
-    "gambitId": "play_uno_yellow_skip",
-    "displayName": "play_uno_yellow_skip",
+  "play_clash_yellow_skip": {
+    "gambitId": "play_clash_yellow_skip",
+    "displayName": "play_clash_yellow_skip",
     "priority": 650,
     "predicates": [
       {
@@ -1350,20 +1350,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_skip",
+      "cardDefinitionId": "clash_yellow_skip",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_reverse": {
-    "gambitId": "play_uno_yellow_reverse",
-    "displayName": "play_uno_yellow_reverse",
+  "play_clash_yellow_reverse": {
+    "gambitId": "play_clash_yellow_reverse",
+    "displayName": "play_clash_yellow_reverse",
     "priority": 650,
     "predicates": [
       {
@@ -1372,20 +1372,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_reverse",
+      "cardDefinitionId": "clash_yellow_reverse",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_yellow_draw2": {
-    "gambitId": "play_uno_yellow_draw2",
-    "displayName": "play_uno_yellow_draw2",
+  "play_clash_yellow_draw2": {
+    "gambitId": "play_clash_yellow_draw2",
+    "displayName": "play_clash_yellow_draw2",
     "priority": 700,
     "predicates": [
       {
@@ -1394,20 +1394,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_yellow_draw2",
+      "cardDefinitionId": "clash_yellow_draw2",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_wild": {
-    "gambitId": "play_uno_wild",
-    "displayName": "play_uno_wild",
+  "play_clash_wild": {
+    "gambitId": "play_clash_wild",
+    "displayName": "play_clash_wild",
     "priority": 90,
     "predicates": [
       {
@@ -1416,20 +1416,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_wild",
+      "cardDefinitionId": "clash_wild",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "play_uno_wild_draw4": {
-    "gambitId": "play_uno_wild_draw4",
-    "displayName": "play_uno_wild_draw4",
+  "play_clash_wild_draw4": {
+    "gambitId": "play_clash_wild_draw4",
+    "displayName": "play_clash_wild_draw4",
     "priority": 100,
     "predicates": [
       {
@@ -1438,20 +1438,20 @@
     ],
     "action": {
       "actionType": "PLAY_CARD",
-      "cardDefinitionId": "uno_wild_draw4",
+      "cardDefinitionId": "clash_wild_draw4",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_draw": {
-    "gambitId": "uno_draw",
-    "displayName": "uno_draw",
+  "clash_draw": {
+    "gambitId": "clash_draw",
+    "displayName": "clash_draw",
     "priority": 10,
     "predicates": [
       {
@@ -1460,19 +1460,19 @@
     ],
     "action": {
       "actionType": "POWER",
-      "actionId": "uno_draw_card",
+      "actionId": "clash_draw_card",
       "targetSelector": {
         "strategy": "FirstOrdinal",
         "relationship": "Enemy"
       }
     },
     "tags": [
-      "uno",
+      "clash",
       "ai"
     ]
   },
-  "uno_end": {
-    "gambitId": "uno_end",
+  "clash_end": {
+    "gambitId": "clash_end",
     "displayName": "Passar",
     "priority": 0,
     "predicates": [

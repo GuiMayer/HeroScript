@@ -1,8 +1,8 @@
 {
-  "uno_opponents": {
-    "enemyPoolId": "uno_opponents",
+  "clash_opponents": {
+    "enemyPoolId": "clash_opponents",
     "entityDefinitionIds": [
-      "uno_bot"
+      "clash_bot"
     ]
   }
 }

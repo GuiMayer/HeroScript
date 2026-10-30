@@ -1,6 +1,6 @@
 {
-  "uno_zones": {
-    "cardZoneSystemId": "uno_zones",
+  "clash_zones": {
+    "cardZoneSystemId": "clash_zones",
     "zones": [
       {
         "zoneId": "draw",
@@ -144,7 +144,7 @@
             "selection": {
               "strategy": "ByDefinition",
               "definitionIds": [
-                "uno_red_0"
+                "clash_red_0"
               ],
               "count": 1
             },

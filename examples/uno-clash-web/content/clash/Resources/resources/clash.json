@@ -15,7 +15,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "opponent_hand_count": {
@@ -34,7 +34,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ],
     "thresholdPolicies": [
       {
@@ -46,8 +46,8 @@
       }
     ]
   },
-  "uno_energy": {
-    "resourceId": "uno_energy",
+  "clash_energy": {
+    "resourceId": "clash_energy",
     "displayName": "Jogada",
     "shortName": "Jogada",
     "category": "TACTICAL",
@@ -62,13 +62,13 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_voice": {
-    "resourceId": "uno_voice",
-    "displayName": "Declarar UNO",
-    "shortName": "Declarar UNO",
+  "clash_voice": {
+    "resourceId": "clash_voice",
+    "displayName": "Declarar Clash",
+    "shortName": "Declarar Clash",
     "category": "TACTICAL",
     "defaultMin": 0,
     "defaultMax": 1,
@@ -81,13 +81,13 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_called": {
-    "resourceId": "uno_called",
-    "displayName": "UNO declarado",
-    "shortName": "UNO declarado",
+  "clash_called": {
+    "resourceId": "clash_called",
+    "displayName": "Clash declarado",
+    "shortName": "Clash declarado",
     "category": "TACTICAL",
     "defaultMin": 0,
     "defaultMax": 1,
@@ -100,7 +100,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "wild_color_token": {
@@ -119,11 +119,11 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_draw_available": {
-    "resourceId": "uno_draw_available",
+  "clash_draw_available": {
+    "resourceId": "clash_draw_available",
     "displayName": "Compra disponivel",
     "shortName": "Compra disponivel",
     "category": "TACTICAL",
@@ -138,11 +138,11 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_draw2_pending": {
-    "resourceId": "uno_draw2_pending",
+  "clash_draw2_pending": {
+    "resourceId": "clash_draw2_pending",
     "displayName": "+2 acumulado",
     "shortName": "+2 acumulado",
     "category": "TACTICAL",
@@ -157,11 +157,11 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_draw2_due": {
-    "resourceId": "uno_draw2_due",
+  "clash_draw2_due": {
+    "resourceId": "clash_draw2_due",
     "displayName": "Penalidade pendente",
     "shortName": "Penalidade pendente",
     "category": "TACTICAL",
@@ -176,11 +176,11 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_draw_amount": {
-    "resourceId": "uno_draw_amount",
+  "clash_draw_amount": {
+    "resourceId": "clash_draw_amount",
     "displayName": "Compra efetiva",
     "shortName": "Compra efetiva",
     "category": "TACTICAL",
@@ -195,11 +195,11 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_setup": {
-    "resourceId": "uno_setup",
+  "clash_setup": {
+    "resourceId": "clash_setup",
     "displayName": "Distribuir mesa",
     "shortName": "Distribuir mesa",
     "category": "TACTICAL",
@@ -214,7 +214,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "table_card_code": {
@@ -233,7 +233,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "color_red": {
@@ -252,7 +252,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "color_blue": {
@@ -271,7 +271,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "color_green": {
@@ -290,7 +290,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "color_yellow": {
@@ -309,7 +309,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_0": {
@@ -328,7 +328,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_1": {
@@ -347,7 +347,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_2": {
@@ -366,7 +366,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_3": {
@@ -385,7 +385,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_4": {
@@ -404,7 +404,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_5": {
@@ -423,7 +423,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_6": {
@@ -442,7 +442,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_7": {
@@ -461,7 +461,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_8": {
@@ -480,7 +480,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_9": {
@@ -499,7 +499,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_skip": {
@@ -518,7 +518,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_reverse": {
@@ -537,7 +537,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_draw2": {
@@ -556,7 +556,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "val_wild": {
@@ -575,7 +575,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "prefer_red": {
@@ -594,7 +594,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "prefer_blue": {
@@ -613,7 +613,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "prefer_green": {
@@ -632,7 +632,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
   "prefer_yellow": {
@@ -651,13 +651,13 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   },
-  "uno_catch_available": {
-    "resourceId": "uno_catch_available",
-    "displayName": "Cobrar UNO disponivel",
-    "shortName": "Cobrar UNO",
+  "clash_catch_available": {
+    "resourceId": "clash_catch_available",
+    "displayName": "Cobrar Clash disponivel",
+    "shortName": "Cobrar Clash",
     "category": "TACTICAL",
     "defaultMin": 0,
     "defaultMax": 1,
@@ -670,7 +670,7 @@
       "timing": "START_TURN"
     },
     "tags": [
-      "uno"
+      "clash"
     ]
   }
 }

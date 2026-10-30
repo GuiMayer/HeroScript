@@ -1,5 +1,5 @@
 {
-  "uno_draw_one": {
+  "clash_draw_one": {
     "description": "Compra limitada as cartas fisicamente disponiveis",
     "operations": [
       {
@@ -32,7 +32,7 @@
       "source.resources.opponent_hand_count.current": 0
     }
   },
-  "uno_draw_two": {
+  "clash_draw_two": {
     "description": "Compra limitada as cartas fisicamente disponiveis",
     "operations": [
       {
@@ -65,7 +65,7 @@
       "source.resources.opponent_hand_count.current": 0
     }
   },
-  "uno_draw_four": {
+  "clash_draw_four": {
     "description": "Compra limitada as cartas fisicamente disponiveis",
     "operations": [
       {
@@ -98,7 +98,7 @@
       "source.resources.opponent_hand_count.current": 0
     }
   },
-  "uno_draw_stack": {
+  "clash_draw_stack": {
     "description": "Compra limitada as cartas fisicamente disponiveis",
     "operations": [
       {
@@ -123,21 +123,21 @@
       },
       {
         "op": "MIN",
-        "value": "params.source.resources.uno_draw2_pending.current"
+        "value": "params.source.resources.clash_draw2_pending.current"
       }
     ],
     "params": {
       "source.resources.hand_count.current": 0,
       "source.resources.opponent_hand_count.current": 0,
-      "source.resources.uno_draw2_pending.current": 0
+      "source.resources.clash_draw2_pending.current": 0
     }
   },
-  "uno_normal_cost": {
+  "clash_normal_cost": {
     "description": "Acao bloqueada antes da distribuicao, durante penalidade ou escolha de cor",
     "operations": [
       {
         "op": "SET",
-        "value": "params.resources.uno_setup.current"
+        "value": "params.resources.clash_setup.current"
       },
       {
         "op": "ADD",
@@ -149,7 +149,7 @@
       },
       {
         "op": "ADD",
-        "value": "params.resources.uno_draw2_pending.current"
+        "value": "params.resources.clash_draw2_pending.current"
       },
       {
         "op": "ADD",
@@ -157,12 +157,12 @@
       }
     ],
     "params": {
-      "resources.uno_setup.current": 0,
+      "resources.clash_setup.current": 0,
       "resources.wild_color_token.current": 0,
-      "resources.uno_draw2_pending.current": 0
+      "resources.clash_draw2_pending.current": 0
     }
   },
-  "uno_server_can_end": {
+  "clash_server_can_end": {
     "operations": [
       {
         "op": "SET",
@@ -190,7 +190,7 @@
       },
       {
         "op": "SUBTRACT",
-        "value": "params.source.resources.uno_draw_available.current"
+        "value": "params.source.resources.clash_draw_available.current"
       },
       {
         "op": "ADD",
@@ -198,19 +198,19 @@
       },
       {
         "op": "ADD",
-        "value": "params.source.resources.uno_draw2_pending.current"
+        "value": "params.source.resources.clash_draw2_pending.current"
       },
       {
         "op": "ADD",
-        "value": "params.source.resources.uno_setup.current"
+        "value": "params.source.resources.clash_setup.current"
       },
       {
         "op": "MULTIPLY",
-        "value": "params.source.resources.uno_energy.maximum"
+        "value": "params.source.resources.clash_energy.maximum"
       },
       {
         "op": "SUBTRACT",
-        "value": "params.source.resources.uno_energy.current"
+        "value": "params.source.resources.clash_energy.current"
       },
       {
         "op": "ADD",
@@ -220,11 +220,11 @@
     "params": {
       "duelAvailable": 0,
       "duelHasCard": 0,
-      "source.resources.uno_draw_available.current": 0,
-      "source.resources.uno_draw2_pending.current": 0,
-      "source.resources.uno_setup.current": 0,
-      "source.resources.uno_energy.maximum": 0,
-      "source.resources.uno_energy.current": 0
+      "source.resources.clash_draw_available.current": 0,
+      "source.resources.clash_draw2_pending.current": 0,
+      "source.resources.clash_setup.current": 0,
+      "source.resources.clash_energy.maximum": 0,
+      "source.resources.clash_energy.current": 0
     }
   }
 }
