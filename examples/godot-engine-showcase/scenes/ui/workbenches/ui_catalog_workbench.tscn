@@ -1,0 +1,137 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/workbenches/ui_catalog_workbench.gd" id="1_wb"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/actor_panel.tscn" id="2_actor"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_view.tscn" id="3_card"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/resource_view.tscn" id="4_resource"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/status_badge.tscn" id="5_badge"]
+
+[node name="UICatalogWorkbench" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_wb")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0862745, 0.0862745, 0.101961, 1)
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="RootColumn" type="VBoxContainer" parent="Scroll/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderBox" type="VBoxContainer" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Scroll/Margin/RootColumn/HeaderBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "HeroScript Hybrid UI Component Workbench"
+
+[node name="Subtitle" type="Label" parent="Scroll/Margin/RootColumn/HeaderBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.65, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "Visual live preview (.tscn + @tool) for fine-tuning layout, badges, bars and cards (F6)"
+
+[node name="Sep1" type="HSeparator" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+
+[node name="ActorsSectionTitle" type="Label" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "1. Combat Actor Panels (ActorPanel.tscn)"
+
+[node name="ActorsRow" type="HBoxContainer" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="HeroActorPanel" parent="Scroll/Margin/RootColumn/ActorsRow" instance=ExtResource("2_actor")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BossActorPanel" parent="Scroll/Margin/RootColumn/ActorsRow" instance=ExtResource("2_actor")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Sep2" type="HSeparator" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+
+[node name="CardsSectionTitle" type="Label" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "2. Cards Showcase (CardView.tscn)"
+
+[node name="CardsRow" type="HBoxContainer" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="AttackCard" parent="Scroll/Margin/RootColumn/CardsRow" instance=ExtResource("3_card")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SkillCard" parent="Scroll/Margin/RootColumn/CardsRow" instance=ExtResource("3_card")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PowerCard" parent="Scroll/Margin/RootColumn/CardsRow" instance=ExtResource("3_card")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Sep3" type="HSeparator" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+
+[node name="BadgesSectionTitle" type="Label" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "3. Isolated Resource Bars & Status Badges (ResourceView.tscn & StatusBadge.tscn)"
+
+[node name="ComponentsRow" type="HBoxContainer" parent="Scroll/Margin/RootColumn"]
+layout_mode = 2
+theme_override_constants/separation = 48
+
+[node name="BarsColumn" type="VBoxContainer" parent="Scroll/Margin/RootColumn/ComponentsRow"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SampleHealthView" parent="Scroll/Margin/RootColumn/ComponentsRow/BarsColumn" instance=ExtResource("4_resource")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="SampleArmorView" parent="Scroll/Margin/RootColumn/ComponentsRow/BarsColumn" instance=ExtResource("4_resource")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="StatusBadgesContainer" type="HBoxContainer" parent="Scroll/Margin/RootColumn/ComponentsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
