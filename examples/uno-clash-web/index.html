@@ -4,12 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UNO Clash — HeroScript Deterministic Card Arena</title>
+  <script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body data-active-color="red" data-turn-owner="player">
+<body data-game-state="idle" data-active-color="neutral" data-turn-owner="player">
   <!-- Ambient Velvet & Dynamic Color Spotlight -->
   <div class="table-surface">
     <div class="ambient-spotlight" id="ambientSpotlight"></div>
@@ -38,13 +40,17 @@
 
     <div class="ai-action-banner top-event-banner" id="aiActionBanner">
       <div class="ai-banner-header">
-        <span class="ai-banner-tag" id="turnOwnerBadge">SUA VEZ</span>
+        <span class="ai-banner-tag" id="turnOwnerBadge">UNO CLASH</span>
         <span class="ai-banner-sub">Último Evento da Mesa</span>
       </div>
-      <strong id="aiActionText">Partida iniciada! Combine a cor ou o número da carta na mesa.</strong>
+      <strong id="aiActionText">Escolha um modo em Nova Partida para começar.</strong>
     </div>
 
     <div class="controls-cluster">
+      <button class="btn-secondary theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Ativar modo escuro">
+        <span id="themeToggleIcon" aria-hidden="true">☾</span>
+        <span id="themeToggleLabel">Modo escuro</span>
+      </button>
       <label class="auto-pass-toggle" title="Passa o turno automaticamente para o oponente quando sua energia de jogada chega a 0">
         <input type="checkbox" id="autoEndTurnToggle" checked />
         <span class="toggle-track"></span>
@@ -71,9 +77,16 @@
     <!-- Floating opponent hand, with no profile or enclosing panel. -->
     <section class="opponent-zone" aria-label="Mão do bot">
       <div class="ai-fan-wrapper">
-        <div class="ai-hand-fan" id="aiHandFan" aria-label="Cartas do bot"></div>
+        <div class="ai-hand-fan" id="aiHandFan" data-seat="top" aria-label="Cartas do bot"></div>
         <span class="opponent-count-pill hidden" id="aiHandCountPill" aria-hidden="true">7 cartas</span>
       </div>
+    </section>
+
+    <section class="side-opponent side-opponent-left hidden" aria-label="Bot da esquerda">
+      <div class="side-hand-perspective"><div class="ai-hand-fan" id="leftHandFan" data-seat="left"></div></div>
+    </section>
+    <section class="side-opponent side-opponent-right hidden" aria-label="Bot da direita">
+      <div class="side-hand-perspective"><div class="ai-hand-fan" id="rightHandFan" data-seat="right"></div></div>
     </section>
 
     <!-- Center Table: Draw Pile + Rotating Color Orbit + Discard Pile + Action Pod -->
@@ -191,6 +204,22 @@
     </div>
   </aside>
 
+  <div class="modal-backdrop mode-backdrop hidden" id="modeModal" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
+    <div class="mode-picker">
+      <h2 id="modeTitle">Escolha seu jogo</h2>
+      <div class="mode-wheel">
+        <button class="mode-choice mode-duel" data-mode="duel" type="button">
+          <span class="mode-glyph" aria-hidden="true">Ⅱ</span><strong>Duelo</strong><span>1 contra 1</span>
+        </button>
+        <button class="mode-choice mode-four" data-mode="freeForAll" type="button">
+          <span class="mode-glyph" aria-hidden="true">✣</span><strong>Todos contra Todos</strong><span>4 jogadores</span>
+        </button>
+        <button class="mode-wheel-close" id="closeModeBtn" type="button" aria-label="Fechar seleção de modo">✕</button>
+      </div>
+      <p>Uma mesa. Um baralho. Escolha seu desafio.</p>
+    </div>
+  </div>
+
   <!-- Radial Wild Color Chooser Menu (Triggered when wild_color_token == 1) -->
   <div class="modal-backdrop radial-backdrop hidden" id="wildModal">
     <div class="radial-menu-wrapper" id="radialMenuWrapper">
@@ -284,6 +313,7 @@
     </div>
   </div>
 
+  <script src="game-modes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

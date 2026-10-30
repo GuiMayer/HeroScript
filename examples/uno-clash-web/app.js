@@ -1,6 +1,6 @@
 (() => {
   const params = new URLSearchParams(window.location.search);
-  const API_BASE = (params.get("api") || "http://localhost:5260").replace(/\/+$/, "");
+  const API_BASE = (params.get("api") || "http://localhost:15260").replace(/\/+$/, "");
 
   const COLOR_LABELS = {
     red: "Vermelho",
@@ -9,6 +9,21 @@
     yellow: "Amarelo",
     wild: "Multicor"
   };
+
+  function modeConfig() {
+    return state.mode || UnoModes.duel;
+  }
+
+  function playerId() { return modeConfig().playerId; }
+  function actionId(role) { return modeConfig().actions[role]; }
+  function fanFor(actorId) {
+    return [el.aiHandFan, el.leftHandFan, el.rightHandFan].find(fan => fan?.dataset.actorId === actorId) || el.aiHandFan;
+  }
+  function actorLabel(actorId) {
+    if (actorId === playerId()) return "Você";
+    const seat = Object.entries(modeConfig().seats).find(([, id]) => id === actorId)?.[0];
+    return { top: "Bot do topo", left: "Bot da esquerda", right: "Bot da direita" }[seat] || "Bot";
+  }
 
   function movedCardsToHands(payload) {
     const byActor = new Map();
@@ -24,17 +39,55 @@
     return [...byActor].map(([actorId, ids]) => ({ actorId, count: ids.size }));
   }
 
+  function pileSnapshot(payload) {
+    let count = null, recycled = false;
+    for (const application of payload?.cardResolution?.applications || payload?.abilityResolution?.applications || []) {
+      for (const step of application.cardZoneSteps || application.CardZoneSteps || []) {
+        const source = step.sourceAddress || step.SourceAddress || "";
+        const target = step.targetAddress || step.TargetAddress || "";
+        const sourceAfter = step.sourceOrderAfter || step.SourceOrderAfter;
+        const targetAfter = step.targetOrderAfter || step.TargetOrderAfter;
+        if (source.endsWith("::draw") && Array.isArray(sourceAfter)) count = sourceAfter.length;
+        if (target.endsWith("::draw") && Array.isArray(targetAfter)) count = targetAfter.length;
+        recycled ||= source.endsWith("::discard") && target.endsWith("::draw");
+      }
+    }
+    return { count, recycled };
+  }
+
+  function presentPileSnapshot(snapshot) {
+    if (snapshot.count !== null) renderDrawPile(snapshot.count);
+    if (snapshot.recycled) {
+      el.drawCardBtn.classList.remove("pile-recycled");
+      void el.drawCardBtn.offsetWidth;
+      el.drawCardBtn.classList.add("pile-recycled");
+      setTimeout(() => el.drawCardBtn.classList.remove("pile-recycled"), 900);
+      appendLog("RECICLAGEM", "O descarte voltou ao monte. A carta ativa permanece na mesa.");
+    }
+  }
+
+  function cardEffectSplash(card, payload) {
+    if (card.corner !== "+2") return card.specialSplash;
+    const values = (payload?.cardResolution?.applications || [])
+      .filter(application => (application.resourceId || application.ResourceId) === modeConfig().resources.debt)
+      .map(application => application.currentValue ?? application.CurrentValue)
+      .filter(value => Number.isFinite(value) && value > 0);
+    return values.length ? `💥 COMPRA +${Math.max(...values)}!` : card.specialSplash;
+  }
+
   function opponentEvents(response) {
     const events = [];
     for (const frame of response.state?.resolution?.frames || []) {
       const payload = frame.payload || {};
       const command = payload.resolvedCommand || payload.command;
-      if ((command?.actorId || command?.ActorId) !== "dealer") continue;
+      const actorId = command?.actorId || command?.ActorId;
+      if (!actorId || actorId === playerId()) continue;
       const definitionId = payload.cardResolution?.definitionId;
       const actionId = command.powerId || command.PowerId;
-      if (definitionId) events.push({ kind: "card", definitionId, cardInstanceId: payload.consumedCardId || command.cardInstanceId || command.CardInstanceId, draws: movedCardsToHands(payload) });
-      else if (actionId) events.push({ kind: "action", actionId, draws: movedCardsToHands(payload) });
-      else if ((command.actionType || command.ActionType) === "END_TURN") events.push({ kind: "pass", draws: [] });
+      const pile = pileSnapshot(payload);
+      if (definitionId) events.push({ kind: "card", actorId, definitionId, payload, cardInstanceId: payload.consumedCardId || command.cardInstanceId || command.CardInstanceId, draws: movedCardsToHands(payload), pile });
+      else if (actionId) events.push({ kind: "action", actorId, actionId, payload, draws: movedCardsToHands(payload), pile });
+      else if ((command.actionType || command.ActionType) === "END_TURN") events.push({ kind: "pass", actorId, draws: [] });
     }
     return events;
   }
@@ -46,64 +99,165 @@
     if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
   }
 
+  function playerHandSnapshot(payload, ownerId = playerId()) {
+    let ids = null;
+    for (const application of payload?.cardResolution?.applications || payload?.abilityResolution?.applications || []) {
+      for (const step of application.cardZoneSteps || application.CardZoneSteps || []) {
+        const address = `$run::${ownerId}::hand`;
+        if ((step.sourceAddress || step.SourceAddress) === address) ids = step.sourceOrderAfter || step.SourceOrderAfter || ids;
+        if ((step.targetAddress || step.TargetAddress) === address) ids = step.targetOrderAfter || step.TargetOrderAfter || ids;
+      }
+    }
+    return ids;
+  }
+
+  async function preparePlayerHandPlayback(response) {
+    const frames = response.state?.resolution?.frames || [];
+    const known = new Map((state.playerCards || []).map(card => [card.presentation.identity.cardInstanceId, card]));
+    const snapshots = frames.map(frame => playerHandSnapshot(frame.payload));
+    if (snapshots.some(ids => ids?.some(id => !known.has(id)))) {
+      const evaluations = await api("GET", `/api/v1/combats/${state.combatId}/cards/evaluations?actorId=${encodeURIComponent(playerId())}`);
+      for (const card of evaluations.cards || []) known.set(card.presentation.identity.cardInstanceId, card);
+    }
+    return payload => {
+      let ids = playerHandSnapshot(payload);
+      const command = payload?.resolvedCommand || payload?.command;
+      const consumed = payload?.consumedCardId;
+      if (!ids && consumed && (command?.actorId || command?.ActorId) === playerId()) {
+        ids = (state.playerCards || []).map(card => card.presentation.identity.cardInstanceId).filter(id => id !== consumed);
+      }
+      if (!ids || ids.some(id => !known.has(id))) return;
+      // Replay the recorded hand order at this frame, never the final batch ahead of time.
+      state.playerCards = ids.map(id => known.get(id));
+      renderPlayerHand(state.playerCards, 0);
+    };
+  }
+
+  async function prepareBotHandPlayback(response) {
+    const frames = response.state?.resolution?.frames || [];
+    const known = new Map(Object.values(state.botHands).flatMap(hand => hand.cards).map(card => [card.cardInstanceId, card]));
+    for (const frame of frames) {
+      const payload = frame.payload || {}, command = payload.resolvedCommand || payload.command;
+      const id = payload.consumedCardId || command?.cardInstanceId || command?.CardInstanceId;
+      if (id && payload.cardResolution?.definitionId) known.set(id, { cardInstanceId: id, definitionId: payload.cardResolution.definitionId });
+    }
+    const orders = frames.flatMap(frame => Object.keys(state.botHands).map(owner => playerHandSnapshot(frame.payload, owner)));
+    if (orders.some(ids => ids?.some(id => !known.has(id)))) {
+      const zones = await api("GET", `/api/v1/runs/${state.runId}/card-zones`);
+      for (const zone of zones.zones || []) for (const card of zone.cards || []) known.set(card.cardInstanceId, card);
+    }
+    return (owner, payload) => {
+      const ids = playerHandSnapshot(payload, owner), hand = state.botHands[owner];
+      if (!ids || !hand) return false;
+      hand.count = ids.length;
+      hand.cards = ids.map(id => known.get(id)).filter(Boolean);
+      return true;
+    };
+  }
+
+  function presentEffectColor(payload) {
+    const prefix = modeConfig().resources.color;
+    const changes = (payload?.cardResolution?.applications || payload?.abilityResolution?.applications || [])
+      .filter(application => (application.targetEntityId || application.TargetEntityId) === playerId() &&
+        (application.resourceId || application.ResourceId)?.startsWith(prefix));
+    if (!changes.length) return;
+    const selected = changes.find(application => (application.currentValue ?? application.CurrentValue) > 0);
+    const color = selected ? (selected.resourceId || selected.ResourceId).slice(prefix.length) : "neutral";
+    document.body.dataset.activeColor = color;
+    state.lastActiveColor = color;
+    if (el.activeColorLabel) el.activeColorLabel.textContent = COLOR_LABELS[color] || "Sem cor";
+    const currentTable = el.discardStage?.querySelector(".table-card");
+    if (currentTable && currentTable.dataset.isWild === "true" && color !== "neutral" && color !== "wild") {
+      currentTable.dataset.color = color;
+    }
+  }
+
   async function animateOpponentEvents(response) {
+    const [presentPlayerHand, presentBotHand] = await Promise.all([
+      preparePlayerHandPlayback(response), prepareBotHandPlayback(response)
+    ]);
+    for (const frame of response.state?.resolution?.frames || []) {
+      const command = frame.payload?.resolvedCommand || frame.payload?.command;
+      if ((command?.actorId || command?.ActorId) === playerId()) presentPlayerHand(frame.payload);
+    }
     for (const event of opponentEvents(response)) {
       await withBotActionPacing(async () => {
         const messages = [];
+        const label = actorLabel(event.actorId);
+        const fan = fanFor(event.actorId);
         const card = event.kind === "card" ? parseCardIdentity(event.definitionId) : null;
-        if (card) messages.push(`🃏 O bot jogou ${card.label}.`);
-        else if (event.kind === "pass") messages.push("O bot passou a vez.");
-        else if (event.actionId.startsWith("uno_choose_")) {
-          messages.push(`🌈 O bot escolheu ${COLOR_LABELS[event.actionId.replace("uno_choose_", "")]}.`);
-        } else if (event.actionId === "uno_shout_uno") messages.push("📣 O bot declarou UNO!");
-        else if (event.actionId === "uno_catch_no_uno") messages.push("🚨 O bot cobrou o UNO esquecido.");
-        else if (event.actionId === "uno_draw_card" && !event.draws.some(draw => draw.count > 0)) {
+        if (card) messages.push(`🃏 ${label} jogou ${card.label}.`);
+        else if (event.kind === "pass") messages.push(`${label} passou a vez.`);
+        else if (event.actionId?.startsWith(actionId("choose"))) {
+          messages.push(`🌈 O bot escolheu ${COLOR_LABELS[event.actionId.replace(actionId("choose"), "")]}.`);
+        } else if (event.actionId === actionId("call")) messages.push("📣 O bot declarou UNO!");
+        else if (event.actionId === actionId("catch")) messages.push("🚨 O bot cobrou o UNO esquecido.");
+        else if (event.actionId === actionId("draw") && !event.draws.some(draw => draw.count > 0)) {
           messages.push("O bot tentou comprar, mas não havia cartas disponíveis.");
         }
         for (const draw of event.draws) {
-          if (draw.count) messages.push(`${draw.actorId === "player" ? "Você comprou" : "O bot comprou"} ${draw.count} carta(s) do monte.`);
+          if (draw.count) messages.push(`${actorLabel(draw.actorId)} comprou ${draw.count} carta(s) do monte.`);
         }
         if (messages.length) setBannerMessage(messages.join(" • "), true);
 
         if (card) {
-          const from = el.aiHandFan?.lastElementChild?.getBoundingClientRect() || el.aiHandFan?.getBoundingClientRect();
-          await animateCardFlight(from, el.discardStage, card, 380);
-          state.botHandCount = Math.max(0, state.botHandCount - 1);
-          state.botHandCards = state.botHandCards.filter(item => item.cardInstanceId !== event.cardInstanceId);
+          const sourceCard = fan?.lastElementChild;
+          const from = sourceCard?.getBoundingClientRect() || fan?.getBoundingClientRect();
+          const lateral = fan?.dataset?.seat === "left" || fan?.dataset?.seat === "right";
+          await animateCardFlight(from, el.discardStage, { ...card,
+            sourceWidth: lateral ? from?.width : sourceCard?.offsetWidth,
+            sourceHeight: lateral ? from?.height : sourceCard?.offsetHeight,
+            sourceRotation: lateral ? 0 : -8
+          }, 380);
+          const hand = state.botHands[event.actorId];
+          if (hand) {
+            hand.count = Math.max(0, hand.count - 1);
+            hand.cards = hand.cards.filter(item => item.cardInstanceId !== event.cardInstanceId);
+          }
           renderBotHandFan();
           renderBotHandTelemetry();
           spawnShockwave(el.discardStage);
+          presentEffectColor(event.payload);
           if (card.isReverse && el.colorOrbitRing) {
             state.orbitReversed = !state.orbitReversed;
             el.colorOrbitRing.classList.toggle("reversed", state.orbitReversed);
           }
-          if (card.specialSplash) showCalloutSplash(card.specialSplash);
-        } else if (event.actionId === "uno_shout_uno") showCalloutSplash("📣 BOT: UNO!");
+          const splash = cardEffectSplash(card, event.payload);
+          if (splash) showCalloutSplash(splash);
+        } else {
+          presentEffectColor(event.payload);
+          if (event.actionId === actionId("call")) showCalloutSplash("📣 BOT: UNO!");
+        }
         for (const draw of event.draws) {
           if (!draw.count) continue;
-          const player = draw.actorId === "player";
-          if (event.actionId === "uno_accept_draw2") showCalloutSplash(`📥 ${player ? "VOCÊ" : "BOT"} COMPRA +${draw.count}!`);
-          await animateCardFlight(el.drawPileAnchor?.getBoundingClientRect(), player ? el.playerHandContainer : el.aiHandFan, null, 360);
-          if (!player) {
-            state.botHandCount += draw.count;
+          const player = draw.actorId === playerId();
+          if (event.actionId === actionId("accept")) showCalloutSplash(`📥 ${player ? "VOCÊ" : "BOT"} COMPRA +${draw.count}!`);
+          await animateCardFlight(el.drawPileAnchor?.getBoundingClientRect(), player ? el.playerHandContainer : fanFor(draw.actorId), null, 360);
+          if (player) {
+            presentPlayerHand(event.payload);
+          } else {
+            if (!presentBotHand(draw.actorId, event.payload) && state.botHands[draw.actorId]) state.botHands[draw.actorId].count += draw.count;
             renderBotHandFan();
             renderBotHandTelemetry();
           }
         }
+        if (event.pile) presentPileSnapshot(event.pile);
         appendLog("BOT", card ? event.definitionId : event.actionId || "END_TURN");
       });
     }
   }
 
   const state = {
+    mode: null,
+    botHands: {},
+    endTurnCandidate: null,
+    matchStatus: null,
     settingRevision: null,
     runId: null,
     combatId: null,
     runSequence: 0,
     combatStep: 0,
     busy: false,
-    botHandCards: [],
-    botHandCount: 0,
     legalByCardInstance: new Map(),
     legalByActionId: new Map(),
     autoTurnTimer: null,
@@ -112,8 +266,6 @@
     autoEndTurnDelay: 680,
     pendingTableFlight: null,
     tableFlightGeneration: 0,
-    pendingDraw2: 0,
-    opponentPendingDraw2: 0,
     lastTableCode: null,
     lastActiveColor: null,
     discardHistory: [],
@@ -142,6 +294,10 @@
 
     aiHandCountPill: document.getElementById("aiHandCountPill"),
     aiHandFan: document.getElementById("aiHandFan"),
+    leftHandFan: document.getElementById("leftHandFan"),
+    rightHandFan: document.getElementById("rightHandFan"),
+    modeModal: document.getElementById("modeModal"),
+    closeModeBtn: document.getElementById("closeModeBtn"),
     aiActionBanner: document.getElementById("aiActionBanner"),
     turnOwnerBadge: document.getElementById("turnOwnerBadge"),
     aiActionText: document.getElementById("aiActionText"),
@@ -158,11 +314,6 @@
     endTurnBtn: document.getElementById("endTurnBtn"),
     endTurnProgress: document.getElementById("endTurnProgress"),
 
-    playerHandCountBadge: document.getElementById("playerHandCountBadge"),
-    playableCountBadge: document.getElementById("playableCountBadge"),
-    unoProtectedBadge: document.getElementById("unoProtectedBadge"),
-    extraTurnBadge: document.getElementById("extraTurnBadge"),
-    turnPromptText: document.getElementById("turnPromptText"),
     playerHandContainer: document.getElementById("playerHandContainer"),
 
     inspRunId: document.getElementById("inspRunId"),
@@ -232,7 +383,11 @@
   function appendLog(title, detail) {
     const item = document.createElement("div");
     item.className = "log-entry";
-    item.innerHTML = `<strong>${title}</strong><div>${detail}</div>`;
+    const heading = document.createElement("strong");
+    heading.textContent = title;
+    const body = document.createElement("div");
+    body.textContent = detail;
+    item.append(heading, body);
     el.engineEventLog.prepend(item);
     while (el.engineEventLog.children.length > 40) {
       el.engineEventLog.removeChild(el.engineEventLog.lastChild);
@@ -325,8 +480,8 @@
       const endY = toRect.top + toRect.height / 2 - height / 2;
       const endScaleX = landsOnTable ? toRect.width / width : 1.02;
       const endScaleY = landsOnTable ? toRect.height / height : 1.02;
-      const startScaleX = landsOnTable ? fromRect.width / width : 0.95;
-      const startScaleY = landsOnTable ? fromRect.height / height : 0.95;
+      const startScaleX = landsOnTable ? (cardSpec.sourceWidth || fromRect.width) / width : 0.95;
+      const startScaleY = landsOnTable ? (cardSpec.sourceHeight || fromRect.height) / height : 0.95;
       const midX = (startX + endX) / 2;
       const midY = Math.min(startY, endY) - 48;
       const finalTransform = `translate(${endX}px, ${endY}px) scale(${endScaleX}, ${endScaleY}) rotate(0deg)`;
@@ -344,7 +499,7 @@
       if (flyEl.animate) {
         const anim = flyEl.animate(
           [
-            { transform: `translate(${startX}px, ${startY}px) scale(${startScaleX}, ${startScaleY}) rotate(-8deg)`, opacity: 1 },
+            { transform: `translate(${startX}px, ${startY}px) scale(${startScaleX}, ${startScaleY}) rotate(${cardSpec?.sourceRotation ?? -8}deg)`, opacity: 1 },
             { transform: `translate(${midX}px, ${midY}px) scale(1.12) rotate(6deg)`, opacity: 1, offset: 0.55 },
             { transform: finalTransform, opacity: 1 }
           ],
@@ -414,11 +569,12 @@
 
   // Parse card definition ID (`uno_red_7`, `uno_blue_skip`, `uno_wild_draw4`) into visual presentation
   function parseCardIdentity(definitionId) {
+    definitionId = definitionId.replace(/^t_/, "uno_").replace("uno_wild_wild", "uno_wild");
     if (definitionId === "uno_wild") {
-      return { color: "wild", corner: "★", center: "UNO", label: "Coringa", isTextGlyph: true, specialSplash: "🌈 CORINGA!" };
+      return { color: "wild", corner: "★", center: "★", label: "Coringa", isTextGlyph: false, specialSplash: "🌈 CORINGA!", isWild: true };
     }
     if (definitionId === "uno_wild_draw4") {
-      return { color: "wild", corner: "+4", center: "+4", label: "Coringa +4", isTextGlyph: true, specialSplash: "🔥 CORINGA +4!" };
+      return { color: "wild", corner: "+4", center: "+4", label: "Coringa +4", isTextGlyph: true, specialSplash: "🔥 CORINGA +4!", isWild: true };
     }
     const parts = definitionId.replace(/^uno_/, "").split("_");
     const color = parts[0] || "red";
@@ -436,29 +592,6 @@
     return { color, corner: val, center: val, label: `${val} ${COLOR_LABELS[color]}`, isTextGlyph: false, specialSplash: null };
   }
 
-  // Decode table_card_code (100..414) + active color resources
-  function decodeTableCard(code, activeColorKey) {
-    const valCode = code % 100;
-    const color = activeColorKey || "red";
-    if (valCode === 10) {
-      return { color, corner: "⊘", center: "⊘", valueName: "Bloqueio (⊘)", isTextGlyph: false };
-    }
-    if (valCode === 11) {
-      return { color, corner: "⇄", center: "⇄", valueName: "Inverter (⇄)", isTextGlyph: false };
-    }
-    if (valCode === 12) {
-      return { color, corner: "+2", center: "+2", valueName: "Compra +2", isTextGlyph: true };
-    }
-    if (valCode === 13) {
-      return { color, corner: "★", center: "★", valueName: "Coringa", isTextGlyph: false };
-    }
-    if (valCode === 14) {
-      return { color, corner: "+4", center: "+4", valueName: "Coringa +4", isTextGlyph: true };
-    }
-    const numStr = String(valCode);
-    return { color, corner: numStr, center: numStr, valueName: `Número ${numStr}`, isTextGlyph: false };
-  }
-
   function createCardElement({ color, corner, center, isTextGlyph, extraClass = "" }) {
     const card = document.createElement("div");
     card.className = `uno-card ${extraClass}`.trim();
@@ -472,57 +605,68 @@
   }
 
   function renderBotHandFan() {
-    const count = state.botHandCount;
-    el.aiHandCountPill.textContent = `${count} ${count === 1 ? "carta (UNO!)" : "cartas"}`;
-    const fanCount = Math.max(0, Math.min(count, 14));
-    while (el.aiHandFan.children.length > fanCount) el.aiHandFan.lastElementChild.remove();
-    while (el.aiHandFan.children.length < fanCount) {
-      const mini = document.createElement("div");
-      mini.className = "ai-mini-card";
-      mini.innerHTML = `<div class="ai-mini-oval">UNO</div>`;
-      el.aiHandFan.appendChild(mini);
+    for (const [actorId, hand] of Object.entries(state.botHands)) {
+      const fan = fanFor(actorId);
+      const count = Math.max(0, Math.min(hand.count, 20));
+      while (fan.children.length > count) fan.lastElementChild.remove();
+      while (fan.children.length < count) {
+        const card = document.createElement("div");
+        card.className = "ai-mini-card";
+        card.innerHTML = '<div class="ai-mini-oval">UNO</div>';
+        fan.appendChild(card);
+      }
+      const width = fan.firstElementChild?.offsetWidth || 0;
+      const available = Math.max(0, fan.clientWidth - 32);
+      fan.style.setProperty("--bot-card-overlap", `${count > 1 ? Math.min(-12, (available - width * count) / (count - 1)) : 0}px`);
+      [...fan.children].forEach((card, index) => {
+        const norm = count > 1 ? (index - (count - 1) / 2) / ((count - 1) / 2) : 0;
+        const lateral = fan.dataset.seat === "left" || fan.dataset.seat === "right";
+        const facing = fan.dataset.seat === "left" ? 1 : -1;
+        card.style.transform = lateral
+          ? `translateZ(${norm * facing * 10}px) rotateY(${norm * facing * 4}deg)`
+          : `translateY(${norm * norm * 8}px) rotate(${norm * Math.min(count * 1.45, 11)}deg)`;
+      });
+      fan.setAttribute("aria-label", `${actorLabel(actorId)}: ${hand.count} cartas`);
     }
-    const cardWidth = el.aiHandFan.firstElementChild?.offsetWidth || 0;
-    const availableWidth = Math.max(0, el.aiHandFan.clientWidth - 32);
-    const overlap = fanCount > 1
-      ? Math.min(-12, (availableWidth - cardWidth * fanCount) / (fanCount - 1)) : 0;
-    el.aiHandFan.style.setProperty("--bot-card-overlap", `${overlap}px`);
-    [...el.aiHandFan.children].forEach((mini, i) => {
-      const norm = fanCount > 1 ? (i - (fanCount - 1) / 2) / ((fanCount - 1) / 2) : 0;
-      mini.style.transform = `translateY(${norm * norm * 8}px) rotate(${norm * Math.min(fanCount * 1.45, 11)}deg)`;
-    });
   }
 
   function renderBotHandTelemetry() {
     const visible = el.showBotCardsToggle.checked;
     el.telemetryBotCards.classList.toggle("hidden", !visible);
     el.telemetryBotCards.replaceChildren();
-    if (!visible) {
-      el.telemetryBotCardsStatus.textContent = "Ative para inspecionar a mão do bot.";
-      return;
+    el.telemetryBotCardsStatus.textContent = !state.combatId ? "Aguardando o início da partida."
+      : visible ? "Mãos publicadas pela API" : "Ative para inspecionar as mãos dos bots.";
+    if (!visible || !state.combatId) return;
+    for (const [actorId, hand] of Object.entries(state.botHands)) {
+      if (hand.cards.length !== hand.count) {
+        const notice = document.createElement("p");
+        notice.textContent = `${actorLabel(actorId)}: ${hand.count} cartas ocultas pela configuração.`;
+        el.telemetryBotCards.appendChild(notice);
+        continue;
+      }
+      for (const instance of hand.cards) {
+        const parsed = parseCardIdentity(instance.definitionId);
+        const item = document.createElement("figure");
+        item.className = "telemetry-bot-card";
+        item.setAttribute("role", "listitem");
+        item.dataset.cardInstanceId = instance.cardInstanceId;
+        const card = createCardElement(parsed);
+        const caption = document.createElement("figcaption");
+        caption.textContent = `${actorLabel(actorId)} · ${parsed.label}`;
+        item.append(card, caption);
+        el.telemetryBotCards.appendChild(item);
+      }
     }
-    if (!state.combatId) {
-      el.telemetryBotCardsStatus.textContent = "Aguardando o início da partida.";
-      return;
-    }
-    if (state.botHandCards.length !== state.botHandCount) {
-      el.telemetryBotCardsStatus.textContent = "Cartas indisponíveis nesta revisão. Reabra pelo BAT e inicie uma nova partida.";
-      return;
-    }
-    el.telemetryBotCardsStatus.textContent = `${state.botHandCount} ${state.botHandCount === 1 ? "carta na mão do bot" : "cartas na mão do bot"}`;
-    for (const instance of state.botHandCards) {
-      const parsed = parseCardIdentity(instance.definitionId);
-      const item = document.createElement("figure");
-      item.className = "telemetry-bot-card";
-      item.setAttribute("role", "listitem");
-      item.dataset.cardInstanceId = instance.cardInstanceId;
-      const card = createCardElement(parsed);
-      card.setAttribute("aria-label", parsed.label);
-      const caption = document.createElement("figcaption");
-      caption.textContent = parsed.label;
-      item.append(card, caption);
-      el.telemetryBotCards.appendChild(item);
-    }
+  }
+
+  function renderDrawPile(count, recyclable = 0) {
+    const layers = [...el.drawCardBtn.querySelectorAll(".uno-card-back")];
+    const visible = count === null ? layers.length : count > 0
+      ? Math.max(1, Math.ceil(count / (state.deckCapacity || count) * layers.length)) : 0;
+    layers.forEach((layer, index) => layer.classList.toggle("pile-layer-hidden", index < layers.length - visible));
+    el.drawCardBtn.classList.toggle("pile-empty", count === 0);
+    el.drawCardBtn.dataset.count = count === null ? "" : String(count);
+    el.drawCardBtn.setAttribute("aria-label", count === null ? "Baralho de compras" : `${count} cartas no monte${recyclable ? `, ${recyclable} no descarte` : ""}`);
   }
 
   function renderPlayerHand(cards, wildToken) {
@@ -543,7 +687,11 @@
     for (const [id, card] of previous) if (!wanted.has(id)) card.remove();
 
     const total = cards.length;
-    const overlap = total <= 5 ? -10 : Math.max(-52, Math.round(-12 - (total - 5) * 4.2));
+    const defaultOverlap = total <= 5 ? -10 : Math.max(-52, Math.round(-12 - (total - 5) * 4.2));
+    const cardWidth = container.firstElementChild?.offsetWidth || el.drawCardBtn?.offsetWidth || 0;
+    const availableWidth = Math.max(0, (container.parentElement?.clientWidth || 0) - 48);
+    const overlap = total > 1 && cardWidth && availableWidth
+      ? Math.min(defaultOverlap, (availableWidth - total * cardWidth) / (total - 1)) : defaultOverlap;
     container.style.setProperty("--card-overlap", `${overlap}px`);
     let entranceIndex = 0;
     cards.forEach((evaluation, index) => {
@@ -563,13 +711,11 @@
         // Bind once, including currently illegal cards; eligibility is checked at interaction time.
         attachCardDragAndClick(card, cardInstanceId, parsed);
       }
-      const legal = state.legalByCardInstance.has(cardInstanceId) && wildToken === 0;
+      const legal = state.legalByCardInstance.has(cardInstanceId);
       card.classList.toggle("is-legal", legal);
       card.classList.toggle("is-illegal", !legal);
       card.setAttribute("aria-label", parsed.label);
       card.setAttribute("aria-disabled", String(!legal));
-      const reasons = evaluation.evaluation?.failureReasons || [];
-      card.title = !legal && reasons.length ? `${parsed.label}: ${reasons.join("; ")}` : parsed.label;
       card.style.opacity = "";
       const norm = total > 1 ? (index - (total - 1) / 2) / ((total - 1) / 2) : 0;
       card.style.setProperty("--arc-rot", `${(norm * Math.min(total * 1.45, 11)).toFixed(2)}deg`);
@@ -589,22 +735,45 @@
     }
   }
 
-  async function initSettingAndStartRun() {
+  async function initSettingAndStartRun(modeKey) {
+    state.mode = UnoModes[modeKey];
+    if (!state.mode) return;
     try {
       suspendPlayerControls();
       clearTimeout(state.autoTurnTimer);
       resetAutoTurnProgress();
       state.busy = true;
+      state.runId = null;
+      state.combatId = null;
+      state.endTurnCandidate = null;
+      state.legalByCardInstance.clear();
+      state.legalByActionId.clear();
+      el.discardStage.replaceChildren();
+      renderDrawPile(null);
       clearTableFlight();
       state.discardHistory = [];
       state.lastTableCode = null;
+      state.orbitReversed = false;
+      el.colorOrbitRing.classList.remove("reversed");
+      state.botHands = {};
+      state.matchStatus = null;
+      el.playerHandContainer.replaceChildren();
+      for (const fan of [el.aiHandFan, el.leftHandFan, el.rightHandFan]) fan.replaceChildren();
+      for (const [seat, actorId] of Object.entries(modeConfig().seats)) {
+        const fan = { top: el.aiHandFan, left: el.leftHandFan, right: el.rightHandFan }[seat];
+        fan.dataset.actorId = actorId;
+        state.botHands[actorId] = { count: 0, cards: [] };
+      }
+      document.body.dataset.gameMode = modeKey;
+      document.body.dataset.gameState = "starting";
+      document.querySelectorAll(".side-opponent").forEach(node => node.classList.toggle("hidden", modeKey !== "freeForAll"));
       el.outcomeModal.classList.add("hidden");
       el.wildModal.classList.add("hidden");
 
       const settingsResp = await api("GET", "/api/v1/content/settings");
-      const unoSetting = (settingsResp.items || []).find(s => s.settingId === "uno-clash");
+      const unoSetting = (settingsResp.items || []).find(s => s.settingId === modeConfig().settingId);
       if (!unoSetting) {
-        throw new Error("Pacote 'uno-clash' não encontrado no HeroScript.");
+        throw new Error(`Modo ${modeConfig().label} indisponível. Reabra o jogo pelo BAT para carregar os dois modos.`);
       }
 
       state.settingRevision = unoSetting.currentRevision;
@@ -616,20 +785,21 @@
 
       const runResp = await api("POST", "/api/v1/runs", {
         commandId: uuid(),
-        settingId: "uno-clash",
+        settingId: unoSetting.settingId,
         contentRevision: state.settingRevision,
-        runDefinitionId: "uno_clash_run",
-        playerEntityId: "player",
-        modeId: "uno_classic",
+        runDefinitionId: unoSetting.launch.runDefinitionId,
+        playerEntityId: unoSetting.launch.playerEntityId,
+        modeId: unoSetting.launch.modeId,
         seed: seedVal
       });
 
       state.runId = runResp.runId;
-      appendLog("POST /api/v1/runs", `Run criada (seed <code>${seedVal}</code>)`);
+      appendLog("POST /api/v1/runs", `Run criada (seed ${seedVal})`);
 
       state.busy = false;
       await startCurrentNodeEncounter();
     } catch (err) {
+      document.body.dataset.gameState = "idle";
       el.apiStatusDot.className = "status-dot error";
       el.revisionBadge.textContent = "offline";
       setBannerMessage(`Erro ao conectar ao HeroScript (${API_BASE}): ${err.message}`, true);
@@ -667,9 +837,8 @@
         api("GET", `/api/v1/combats/${state.combatId}`),
         api("GET", `/api/v1/combats/${state.combatId}/legal-actions`)
       ]);
-      const setup = legal.candidates.find(candidate => candidate.actionId === "uno_setup_table");
-      if (!setup) throw new Error("Distribuição inicial de cartas indisponível. Inicie uma nova partida com as regras atuais.");
-      await api("POST", `/api/v1/combats/${state.combatId}/commands`, {
+      const setup = actionId("setup") ? legal.candidates.find(candidate => candidate.actionId === actionId("setup")) : null;
+      if (setup) await api("POST", `/api/v1/combats/${state.combatId}/commands`, {
         commandId: uuid(), type: "EXECUTE_ACTION", expectedSequence: currentRun.sequence,
         expectedStep: currentCombat.step, payload: toCombatPayload(setup.command)
       });
@@ -691,7 +860,7 @@
       api("GET", `/api/v1/runs/${state.runId}`),
       api("GET", `/api/v1/combats/${state.combatId}`),
       api("GET", `/api/v1/combats/${state.combatId}/legal-actions`),
-      api("GET", `/api/v1/combats/${state.combatId}/cards/evaluations?targetIds=dealer`),
+      api("GET", `/api/v1/combats/${state.combatId}/cards/evaluations?actorId=${encodeURIComponent(playerId())}`),
       api("GET", `/api/v1/runs/${state.runId}/card-zones`)
     ]);
 
@@ -709,56 +878,42 @@
       }
     }
 
-    const playerActor = combatSnap.actors.find(a => a.instanceId === "player");
-    const dealerActor = combatSnap.actors.find(a => a.instanceId === "dealer");
+    const playerActor = combatSnap.actors.find(a => a.instanceId === playerId());
     const pRes = (playerActor && playerActor.resources) || {};
-    const dRes = (dealerActor && dealerActor.resources) || {};
 
     const getRes = (bag, key, fallback = 0) => (bag[key] ? bag[key].current : fallback);
 
     const zoneCount = (zoneId, ownerId) => zoneSnap.zones.find(zone => zone.zoneId === zoneId && zone.ownerId === ownerId)?.count || 0;
-    const playerHandCount = zoneCount("hand", "player");
-    const aiHandCount = zoneCount("hand", "dealer");
-    state.botHandCards = zoneSnap.zones.find(zone => zone.zoneId === "hand" && zone.ownerId === "dealer")?.cards || [];
-    state.botHandCount = aiHandCount;
-    renderBotHandTelemetry();
-    const tableCode = getRes(pRes, "table_card_code", 100);
-    const unoEnergy = getRes(pRes, "uno_energy", 0);
-    const unoCalled = getRes(pRes, "uno_called", 0);
-    const drawAvailable = getRes(pRes, "uno_draw_available", 1);
-    const pendingDraw2 = getRes(pRes, "uno_draw2_pending", 0);
-    state.pendingDraw2 = pendingDraw2;
-    state.opponentPendingDraw2 = getRes(dRes, "uno_draw2_pending", 0);
-    const wildToken = getRes(pRes, "wild_color_token", 0);
-
-    // Determine active table color
-    let activeColor = "red";
-    if (getRes(pRes, "color_blue") > 0) activeColor = "blue";
-    else if (getRes(pRes, "color_green") > 0) activeColor = "green";
-    else if (getRes(pRes, "color_yellow") > 0) activeColor = "yellow";
-    else if (getRes(pRes, "color_red") > 0) activeColor = "red";
-
-    document.body.dataset.activeColor = activeColor;
-
-    // Record table discard history when the table card changes
-    const tableChanged = state.lastTableCode !== null && (state.lastTableCode !== tableCode || state.lastActiveColor !== activeColor);
-    if (state.lastTableCode !== null && state.lastTableCode !== tableCode) {
-      state.discardHistory.push({
-        code: state.lastTableCode,
-        color: state.lastActiveColor || activeColor
-      });
-      if (state.discardHistory.length > 3) {
-        state.discardHistory.shift();
-      }
+    state.deckCapacity = zoneSnap.zones.reduce((total, zone) => total + zone.count, 0);
+    const playerHandCount = zoneCount("hand", playerId());
+    for (const [actorId, hand] of Object.entries(state.botHands)) {
+      const zone = zoneSnap.zones.find(zone => zone.zoneId === "hand" && zone.ownerId === actorId);
+      hand.count = zone?.count || 0;
+      hand.cards = zone?.cards || [];
     }
-    state.lastTableCode = tableCode;
+    renderBotHandTelemetry();
+    const resources = modeConfig().resources;
+    const unoEnergy = getRes(pRes, resources.energy);
+    const wildToken = getRes(pRes, resources.choice);
+    const unoCalled = getRes(pRes, resources.called);
+    let activeColor = Object.keys(COLOR_LABELS).find(color => getRes(pRes, resources.color + color) > 0) || "neutral";
+    document.body.dataset.activeColor = activeColor;
+    document.body.dataset.gameState = "playing";
+    if (combatSnap.activationSequenceStrategy === "Circular") {
+      state.orbitReversed = combatSnap.activation?.circular?.direction === "Reverse";
+      el.colorOrbitRing.classList.toggle("reversed", state.orbitReversed);
+    }
+    state.discardHistory = (zoneSnap.zones.find(zone => zone.zoneId === "discard")?.cards || []).slice(-3);
+    const tableInstance = zoneSnap.zones.find(zone => zone.zoneId === "table")?.cards?.at(-1);
+    const tableChanged = state.lastTableCode !== null && state.lastTableCode !== tableInstance?.cardInstanceId;
+    state.lastTableCode = tableInstance?.cardInstanceId || null;
     state.lastActiveColor = activeColor;
-
+    const tableCode = tableInstance?.definitionId || "";
     // Update the floating opponent hand.
     renderBotHandFan();
 
     // Render Center Discard Stage (under-stack history + active top card)
-    const decodedTable = decodeTableCard(tableCode, activeColor);
+    const decodedTable = tableInstance ? parseCardIdentity(tableInstance.definitionId) : null;
     el.discardStage.innerHTML = "";
     const historyAngles = [-14, 11, -6];
     const historyOffsets = [
@@ -767,7 +922,7 @@
       [-3, -4]
     ];
     state.discardHistory.forEach((hItem, idx) => {
-      const hDecoded = decodeTableCard(hItem.code, hItem.color);
+      const hDecoded = parseCardIdentity(hItem.definitionId);
       const hEl = createCardElement({
         color: hDecoded.color,
         corner: hDecoded.corner,
@@ -782,52 +937,45 @@
     });
 
     const tableCardEl = createCardElement({
-      color: decodedTable.color,
-      corner: decodedTable.corner,
-      center: decodedTable.center,
-      isTextGlyph: decodedTable.isTextGlyph,
+      color: ((decodedTable?.color === "wild" || decodedTable?.isWild) && (typeof activeColor !== "undefined" && activeColor && activeColor !== "neutral" && activeColor !== "wild"))
+        ? activeColor
+        : decodedTable?.color,
+      corner: decodedTable?.corner,
+      center: decodedTable?.center,
+      isTextGlyph: decodedTable?.isTextGlyph,
       extraClass: `table-card ${tableChanged && !state.pendingTableFlight ? "pop-land" : ""}`.trim()
     });
-    el.discardStage.appendChild(tableCardEl);
+    if (decodedTable?.color === "wild" || decodedTable?.isWild) tableCardEl.dataset.isWild = "true";
+    // An empty table (e.g. before setup) renders no top card instead of crashing.
+    if (decodedTable) el.discardStage.appendChild(tableCardEl);
     clearTableFlight();
 
-    el.activeColorLabel.textContent = COLOR_LABELS[activeColor];
-    el.activeValueLabel.textContent = decodedTable.valueName;
+    el.activeColorLabel.textContent = COLOR_LABELS[activeColor] || "Sem cor";
+    el.activeValueLabel.textContent = decodedTable ? decodedTable.label : "Mesa vazia";
 
     // Actual physical cards left in the shared draw pile.
     const drawZoneCount = zoneCount("draw", "$run");
     el.drawPileCount.textContent = `${drawZoneCount} cartas`;
 
-    // Draw button & Shout UNO button states
+    renderDrawPile(drawZoneCount, zoneCount("discard", "$run"));
     const legalCardsCount = state.legalByCardInstance.size;
-    const canDraw = state.legalByActionId.has(pendingDraw2 > 0 ? "uno_accept_draw2" : "uno_draw_card") && wildToken === 0;
-    el.drawCardBtn.disabled = !canDraw;
-    el.drawCardBtn.classList.toggle("must-draw-pulse", canDraw && legalCardsCount === 0 && unoEnergy > 0);
-    if (el.drawPileHint) {
-      el.drawPileHint.textContent =
-        pendingDraw2 > 0 ? `+${pendingDraw2} acumulado: responda com +2 ou compre` :
-        canDraw && legalCardsCount === 0 && unoEnergy > 0
-          ? "⚡ Clique ou arraste para comprar!"
-          : drawAvailable === 0 ? "Compra usada: jogue ou passe" : "Clique ou arraste na sua vez";
-    }
-
-    const canShoutUno = state.legalByActionId.has("uno_shout_uno") && unoCalled === 0;
-    el.shoutUnoBtn.disabled = !canShoutUno;
-    el.shoutUnoBtn.classList.toggle("urgent", canShoutUno && playerHandCount <= 2);
-
-    // End Turn button
-    const canEndTurn = legalSnap.candidates.some(c => c.command && c.command.actionType === "END_TURN");
-    state.canEndTurn = canEndTurn;
-    el.endTurnBtn.disabled = !canEndTurn;
-    const blockedEnd = (legalSnap.blockedCommands || []).find(c => c.actionType === "END_TURN");
-    const blockedMessages = { "uno.draw_required": "Sem carta jogável: compre 1 carta antes de passar.", "uno.color_required": "Escolha a cor do coringa." };
-    el.endTurnBtn.title = blockedEnd ? (blockedMessages[blockedEnd.messageKey] || blockedEnd.reason || blockedEnd.code) : "";
-    el.endTurnBtn.classList.toggle("ready-glow", unoEnergy === 0 && wildToken === 0);
-
-    if (el.turnOwnerBadge) {
-      el.turnOwnerBadge.textContent = unoEnergy > 0 ? "SUA VEZ" : "FIM DO TURNO";
-    }
-
+    // Bind the server's penalty action to Pass; keep the pile available when no card response exists.
+    const acceptPenalty = state.legalByActionId.get(actionId("accept"));
+    const purchase = acceptPenalty && legalCardsCount > 0 ? null :
+      acceptPenalty || state.legalByActionId.get(actionId("draw"));
+    el.drawCardBtn.disabled = !purchase;
+    el.drawCardBtn.classList.toggle("must-draw-pulse", Boolean(purchase) && legalCardsCount === 0);
+    el.shoutUnoBtn.disabled = !state.legalByActionId.has(actionId("call"));
+    el.shoutUnoBtn.classList.toggle("urgent", !el.shoutUnoBtn.disabled);
+    state.endTurnCandidate = acceptPenalty || legalSnap.candidates.find(candidate => candidate.command?.actionType === "END_TURN") || null;
+    state.canEndTurn = Boolean(state.endTurnCandidate);
+    el.endTurnBtn.disabled = !state.canEndTurn;
+    const blockedEnd = (legalSnap.blockedCommands || []).find(command => command.actionType === "END_TURN");
+    el.endTurnBtn.title = acceptPenalty ? "Aceitar a penalidade e passar a vez" :
+      blockedEnd ? (blockedEnd.reason || blockedEnd.messageKey || blockedEnd.code) : "";
+    el.turnOwnerBadge.textContent = legalSnap.candidates.length ? "SUA VEZ" : "AGUARDE";
+    state.matchStatus = combatSnap.status;
+    state.playerCards = evalsSnap.cards || [];
     renderPlayerHand(evalsSnap.cards || [], wildToken);
 
     // Update Telemetry Inspector
@@ -837,30 +985,34 @@
     el.inspStateHash.textContent = combatSnap.stateHash || "-";
 
     const trackedRes = [
-      ["player.hand", playerHandCount],
-      ["dealer.hand", aiHandCount],
-      ["table_card_code", tableCode],
-      ["uno_energy", unoEnergy],
-      ["uno_called", unoCalled],
-      ["wild_color_token", wildToken],
-      ["color_red", getRes(pRes, "color_red")],
-      ["color_blue", getRes(pRes, "color_blue")],
-      ["color_green", getRes(pRes, "color_green")],
-      ["color_yellow", getRes(pRes, "color_yellow")]
+      [`${playerId()}.hand`, playerHandCount],
+      ...Object.entries(state.botHands).map(([id, hand]) => [`${id}.hand`, hand.count]),
+      ["table_card", tableCode || "-"],
+      [resources.energy, unoEnergy],
+      [resources.called, unoCalled],
+      [resources.choice, wildToken],
+      ...["red", "blue", "green", "yellow"].map(color => [resources.color + color, getRes(pRes, resources.color + color)])
     ];
-    el.inspResourceGrid.innerHTML = trackedRes
-      .map(([k, v]) => `<div class="res-chip"><span>${k}</span><strong>${v}</strong></div>`)
-      .join("");
+    el.inspResourceGrid.replaceChildren(...trackedRes.map(([k, v]) => {
+      const chip = document.createElement("div");
+      chip.className = "res-chip";
+      const key = document.createElement("span");
+      key.textContent = k;
+      const value = document.createElement("strong");
+      value.textContent = String(v);
+      chip.append(key, value);
+      return chip;
+    }));
 
     // Check Combat Outcome (VICTORY / DEFEAT)
     if (combatSnap.status && combatSnap.status !== "ACTIVE" && combatSnap.status !== "InProgress") {
       resetAutoTurnProgress();
-      showOutcomeModal(combatSnap.status);
+      showOutcomeModal(combatSnap.status, combatSnap.participantVictory);
       return;
     }
 
     // Check if Radial Wild Color Picker should open
-    if (wildToken > 0) {
+    if (Object.keys(COLOR_LABELS).some(color => state.legalByActionId.has(actionId("choose") + color))) {
       state.canEndTurn = false;
       state.autoEndTurnEligible = false;
       cancelAutoTurn();
@@ -871,9 +1023,9 @@
       el.wildModal.classList.add("hidden");
     }
 
-    // Buying keeps the play available. Only pass automatically if it cannot be used.
-    state.autoEndTurnEligible = unoEnergy === 0 || (pendingDraw2 > 0 ? legalCardsCount === 0 : drawAvailable === 0 && legalCardsCount === 0);
-    state.autoEndTurnDelay = playerHandCount === 1 && unoCalled === 0 && canShoutUno ? 1650 : 680;
+    // Optional automatic input schedules an already-legal server candidate.
+    state.autoEndTurnEligible = state.canEndTurn && legalCardsCount === 0 && !purchase;
+    state.autoEndTurnDelay = state.legalByActionId.has(actionId("call")) ? 1650 : 680;
     updateAutoTurn();
   }
 
@@ -886,8 +1038,8 @@
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dist = Math.hypot(clientX - cx, clientY - cy);
-    // Generous magnetic radius around center table OR upward flick >= 85px from hand
-    return dist <= Math.max(rect.width * 1.45, 165) || startY - clientY >= 85;
+    // Magnetic radius around the center table only; dragging upward elsewhere returns the card.
+    return dist <= Math.max(rect.width * 1.45, 165);
   }
 
   function attachCardDragAndClick(cardEl, instId, parsed) {
@@ -1047,37 +1199,52 @@
         animateCardFlight(sourceRect, el.discardStage, parsedCard, flightMs)
       ]);
 
+      const playerFrame = (resp.state?.resolution?.frames || []).find(frame =>
+        frame.payload?.cardResolution &&
+        (frame.payload.resolvedCommand?.ActorId || frame.payload.resolvedCommand?.actorId || frame.payload.command?.ActorId || frame.payload.command?.actorId) === playerId());
+      presentEffectColor(playerFrame?.payload);
       spawnShockwave(el.discardStage);
       if (parsedCard.isReverse && el.colorOrbitRing) {
         state.orbitReversed = !state.orbitReversed;
         el.colorOrbitRing.classList.toggle("reversed", state.orbitReversed);
       }
       if (parsedCard.specialSplash) {
-        showCalloutSplash(parsedCard.specialSplash);
+        showCalloutSplash(cardEffectSplash(parsedCard, playerFrame?.payload));
       }
 
-      appendLog("PLAY_CARD", `Jogou <code>${cand.cardDefinitionId}</code> (step ${resp.step})`);
-      await refreshArenaState();
+      appendLog("PLAY_CARD", `Jogou ${cand.cardDefinitionId} (step ${resp.step})`);
+      for (const frame of resp.state?.resolution?.frames || []) {
+        const payload = frame.payload || {};
+        const actor = payload.resolvedCommand?.ActorId || payload.resolvedCommand?.actorId || payload.command?.ActorId || payload.command?.actorId;
+        if (actor === playerId()) {
+          presentPileSnapshot(pileSnapshot(payload));
+          presentEffectColor(payload);
+        }
+      }
+      await presentAcceptedResult(resp);
     } catch (err) {
       clearTableFlight();
-      if (sourceCardEl) sourceCardEl.style.opacity = "";
-      setBannerMessage(`Jogada recusada pela engine: ${err.message}`, true);
+      if (err.acceptedByServer) {
+        await recoverAfterPresentationError(err);
+      } else {
+        if (sourceCardEl) sourceCardEl.style.opacity = "";
+        setBannerMessage(`Jogada recusada pela engine: ${err.message}`, true);
+      }
     } finally {
       state.busy = false;
     }
   }
 
-  async function handleExecuteAction(actionId, logLabel, customFromRect = null) {
+  async function handleExecuteAction(selectedActionId, logLabel, customFromRect = null) {
     if (state.busy) return;
-    if (actionId === "uno_draw_card" && state.pendingDraw2 > 0) actionId = "uno_accept_draw2";
-    const cand = state.legalByActionId.get(actionId);
+    const cand = state.legalByActionId.get(selectedActionId);
     if (!cand) return;
 
     try {
       suspendPlayerControls();
       state.busy = true;
 
-      const isDraw = actionId === "uno_draw_card" || actionId === "uno_accept_draw2";
+      const isDraw = selectedActionId === actionId("draw") || selectedActionId === actionId("accept");
       const drawRect = customFromRect || (isDraw && el.drawPileAnchor ? el.drawPileAnchor.getBoundingClientRect() : null);
       const flightMs = customFromRect ? 190 : 350;
 
@@ -1087,39 +1254,49 @@
       });
       const actualDrawCount = (resp.state?.resolution?.frames || [])
         .flatMap(frame => movedCardsToHands(frame.payload || {}))
-        .filter(draw => draw.actorId === "player").reduce((total, draw) => total + draw.count, 0);
+        .filter(draw => draw.actorId === playerId()).reduce((total, draw) => total + draw.count, 0);
       if (isDraw && actualDrawCount > 0) await animateCardFlight(drawRect, el.playerHandContainer, null, flightMs);
+      for (const frame of resp.state?.resolution?.frames || []) {
+        const payload = frame.payload || {};
+        const actor = payload.resolvedCommand?.ActorId || payload.resolvedCommand?.actorId || payload.command?.ActorId || payload.command?.actorId;
+        if (actor === playerId()) {
+          presentPileSnapshot(pileSnapshot(payload));
+          presentEffectColor(payload);
+        }
+      }
 
-      appendLog("EXECUTE_ACTION", `${logLabel} (<code>${actionId}</code>)`);
-      if (actionId === "uno_shout_uno") {
+      appendLog("EXECUTE_ACTION", `${logLabel} (${selectedActionId})`);
+      if (selectedActionId === actionId("call")) {
         showCalloutSplash("📣 UNO!");
         setBannerMessage("📣 Você gritou UNO! Sua última carta está protegida!", true);
-      } else if (actionId === "uno_accept_draw2") {
+      } else if (selectedActionId === actionId("accept")) {
         showCalloutSplash(`📥 COMPRA +${actualDrawCount}!`);
         setBannerMessage(`Você comprou ${actualDrawCount} cartas e perdeu a vez.`, true);
-      } else if (actionId === "uno_draw_card") {
+      } else if (selectedActionId === actionId("draw")) {
         setBannerMessage(actualDrawCount ? "📥 Você comprou 1 carta. Jogue uma carta compatível ou passe a vez." : "O monte não tem cartas disponíveis. Passe a vez.", false);
-      } else if (actionId.startsWith("uno_choose_")) {
-        const cKey = actionId.replace("uno_choose_", "");
+      } else if (selectedActionId.startsWith(actionId("choose"))) {
+        const cKey = selectedActionId.replace(actionId("choose"), "");
         spawnShockwave(el.discardStage);
         setBannerMessage(`🌈 Você escolheu a cor ${COLOR_LABELS[cKey]}!`, true);
       }
 
-      await refreshArenaState();
+      await presentAcceptedResult(resp);
     } catch (err) {
-      setBannerMessage(`Ação recusada pela engine: ${err.message}`, true);
+      if (err.acceptedByServer) await recoverAfterPresentationError(err);
+      else setBannerMessage(`Ação recusada pela engine: ${err.message}`, true);
     } finally {
       state.busy = false;
-    }
-    if (actionId === "uno_accept_draw2" && state.pendingDraw2 === 0 && state.canEndTurn) {
-      await handleEndTurn();
     }
   }
 
   async function handleEndTurn() {
     if (state.busy || !state.canEndTurn) return;
-    if (state.pendingDraw2 > 0) {
-      await handleExecuteAction("uno_accept_draw2", "Comprou o +2 acumulado");
+    if (state.endTurnCandidate?.actionId === actionId("accept")) {
+      await handleExecuteAction(actionId("accept"), "Aceitou a penalidade");
+      // Finish the user's Pass request using the newly authorized server command.
+      if (state.canEndTurn && state.endTurnCandidate?.command?.actionType === "END_TURN") {
+        return handleEndTurn();
+      }
       return;
     }
     try {
@@ -1135,25 +1312,41 @@
         type: "END_TURN",
         expectedSequence: state.runSequence,
         expectedStep: state.combatStep,
-        payload: {
-          actorId: "player",
-          actionType: "END_TURN"
-        }
+        payload: toCombatPayload(state.endTurnCandidate.command)
       });
 
       // Real card identities and draw movements come from the resolved commands.
-      await animateOpponentEvents(resp);
-
-      await refreshArenaState();
+      await presentAcceptedResult(resp);
     } catch (err) {
       clearTableFlight();
-      setBannerMessage(`Erro ao passar turno: ${err.message}`, true);
+      if (err.acceptedByServer) await recoverAfterPresentationError(err);
+      else setBannerMessage(`Erro ao passar turno: ${err.message}`, true);
     } finally {
       state.busy = false;
     }
   }
 
-  function showOutcomeModal(status) {
+  // The command was already applied by the server; failures from here on are presentation/sync errors.
+  async function presentAcceptedResult(resp) {
+    try {
+      await animateOpponentEvents(resp);
+      await refreshArenaState();
+    } catch (err) {
+      err.acceptedByServer = true;
+      throw err;
+    }
+  }
+
+  async function recoverAfterPresentationError(err) {
+    setBannerMessage(`A jogada foi aplicada, mas a mesa não pôde ser atualizada (${err.message}). Sincronizando...`, true);
+    try {
+      await refreshArenaState();
+    } catch (retryErr) {
+      setBannerMessage(`A jogada foi aplicada, mas a conexão com o HeroScript falhou: ${retryErr.message}`, true);
+    }
+  }
+
+  function showOutcomeModal(status, victory = null) {
     suspendPlayerControls();
     el.wildModal.classList.add("hidden");
     el.outcomeModal.classList.remove("hidden");
@@ -1161,7 +1354,7 @@
     const isVictory = status === "VICTORY";
     showCalloutSplash(isVictory ? "🏆 VITÓRIA!" : "💔 DERROTA");
     el.outcomeBadge.textContent = isVictory ? "VITÓRIA!" : "DERROTA";
-    el.outcomeTitle.textContent = isVictory ? "Você bateu primeiro!" : "O bot bateu primeiro!";
+    el.outcomeTitle.textContent = isVictory ? "Você bateu primeiro!" : `${actorLabel(victory?.actorIds?.[0])} venceu!`;
     el.outcomeDescription.textContent = isVictory
       ? "Suas cartas acabaram! Inicie uma nova partida para jogar novamente."
       : "O bot zerou as cartas da mão antes de você. Tente novamente com uma nova partida!";
@@ -1247,7 +1440,7 @@
 
       if (!isDragging) {
         if (!wasCancel && !el.drawCardBtn.disabled) {
-          handleExecuteAction("uno_draw_card", "Comprou 1 carta");
+          handleExecuteAction((state.legalByActionId.has(actionId("accept")) ? actionId("accept") : actionId("draw")), "Comprou cartas");
         }
         return;
       }
@@ -1258,7 +1451,7 @@
         proxyEl.remove();
         proxyEl = null;
         cleanupDrawDrag();
-        handleExecuteAction("uno_draw_card", "Comprou 1 carta", dropRect);
+        handleExecuteAction((state.legalByActionId.has(actionId("accept")) ? actionId("accept") : actionId("draw")), "Comprou cartas", dropRect);
       } else if (proxyEl) {
         const returnEl = proxyEl;
         proxyEl = null;
@@ -1331,23 +1524,53 @@
     });
   }
 
-  window.addEventListener("resize", () => { if (state.combatId) renderBotHandFan(); });
+  let resizeFrame = 0;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+      if (!state.combatId) return;
+      renderBotHandFan();
+      if (!state.busy) renderPlayerHand(state.playerCards || [], 0);
+    });
+  });
 
   // Wire UI Events
   attachDrawPileDragAndClick();
-  el.shoutUnoBtn.addEventListener("click", () => handleExecuteAction("uno_shout_uno", "Gritou UNO!"));
+  el.shoutUnoBtn.addEventListener("click", () => handleExecuteAction(actionId("call"), "Gritou UNO!"));
   el.endTurnBtn.addEventListener("click", () => handleEndTurn());
   el.autoEndTurnToggle.addEventListener("change", () => updateAutoTurn());
 
-  el.newRunBtn.addEventListener("click", () => {
-    el.seedInput.value = Math.floor(Math.random() * 899999 + 100000);
-    initSettingAndStartRun();
+  function openModePicker() {
+    if (state.busy) return;
+    cancelAutoTurn();
+    state.modeTrigger = document.activeElement;
+    el.modeModal.classList.remove("hidden");
+    el.modeModal.querySelector(".mode-choice").focus();
+  }
+  function closeModePicker() {
+    el.modeModal.classList.add("hidden");
+    (state.modeTrigger || el.newRunBtn).focus();
+    if (state.combatId) updateAutoTurn();
+  }
+  el.newRunBtn.addEventListener("click", openModePicker);
+  el.restartMatchBtn.addEventListener("click", openModePicker);
+  el.closeModeBtn.addEventListener("click", closeModePicker);
+  el.modeModal.addEventListener("click", event => { if (event.target === el.modeModal) closeModePicker(); });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !el.modeModal.classList.contains("hidden")) closeModePicker();
+    if (event.key === "Tab" && !el.modeModal.classList.contains("hidden")) {
+      const buttons = [...el.modeModal.querySelectorAll("button")];
+      const index = buttons.indexOf(document.activeElement);
+      event.preventDefault();
+      buttons[(index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus();
+    }
   });
-
-  el.restartMatchBtn.addEventListener("click", () => {
+  document.querySelectorAll(".mode-choice").forEach(button => button.addEventListener("click", () => {
+    if (state.busy) return;
+    el.modeModal.classList.add("hidden");
     el.seedInput.value = Math.floor(Math.random() * 899999 + 100000);
-    initSettingAndStartRun();
-  });
+    initSettingAndStartRun(button.dataset.mode);
+  }));
 
   el.toggleInspectorBtn.addEventListener("click", () => {
     el.engineInspector.classList.toggle("hidden");
@@ -1368,14 +1591,17 @@
       const now = Date.now();
       if (now - radialActionTriggeredAt < 350) return;
       radialActionTriggeredAt = now;
-      const actionId = btn.dataset.action;
-      handleExecuteAction(actionId, `Escolheu cor (${actionId})`);
+      const choice = actionId("choose") + btn.dataset.colorKey;
+      handleExecuteAction(choice, `Escolheu cor (${btn.dataset.colorLabel})`);
     }
 
     btn.addEventListener("pointerup", () => triggerSectorChoice());
     btn.addEventListener("click", () => triggerSectorChoice());
   });
 
-  // Launch automatically on page load
-  initSettingAndStartRun();
+  // No run is created until a mode is chosen.
+  suspendPlayerControls();
+  renderDrawPile(null);
+  el.revisionBadge.textContent = "pronto";
+  renderBotHandTelemetry();
 })();

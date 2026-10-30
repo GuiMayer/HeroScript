@@ -6,14 +6,14 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 function render(allowed) {
   const context = vm.createContext({
-    unoEnergy: 1, wildToken: 0,
+    unoEnergy: 1, wildToken: 0, acceptPenalty: null,
     legalSnap: { candidates: allowed ? [{ command: { actionType: 'END_TURN' } }] : [],
-      blockedCommands: allowed ? [] : [{ actionType: 'END_TURN', code: 'DRAW_REQUIRED', messageKey: 'uno.draw_required' }] },
+      blockedCommands: allowed ? [] : [{ actionType: 'END_TURN', reason: 'Sem carta jogável: compre 1 carta antes de passar.', code: 'DRAW_REQUIRED', messageKey: 'uno.draw_required' }] },
     state: { busy: false, canEndTurn: true },
     el: { endTurnBtn: { classList: { toggle() {} } } }
   });
-  const start = source.indexOf('    // End Turn button');
-  vm.runInContext(source.slice(start, source.indexOf('    if (el.turnOwnerBadge)', start)), context);
+  const start = source.indexOf('    state.endTurnCandidate = acceptPenalty');
+  vm.runInContext(source.slice(start, source.indexOf('    el.turnOwnerBadge.textContent', start)), context);
   return context;
 }
 test('the client no longer owns the draw-before-pass rule', () => {
