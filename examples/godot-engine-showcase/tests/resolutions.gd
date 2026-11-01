@@ -42,7 +42,7 @@ func _run() -> void:
 		"empty hand passes the vertical-text regression check")
 	empty_hand_host.free()
 	prefs.text_scale = 1.2
-	var card = load("res://scripts/ui/card_view.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
+	var card = load("res://scripts/ui/card_view.gd").create(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	card.animate_entry = false
 	var card_model := {"definitionId": "font-regression", "tone": "skill", "name": "Stable type",
 		"cardType": "SKILL", "rarity": "", "effects": ["Stable effect"], "costs": [],

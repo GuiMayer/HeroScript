@@ -7,7 +7,7 @@ var maximum := 17
 var minimum := 12
 var two_line_minimum := 8
 var fitting := false
-func _init(value: String, context, policy: CardVisualStyle) -> void:
+func configure(value: String, context, policy: CardVisualStyle) -> void:
 	name = "CardTitle"
 	visual_context = context
 	maximum = maxi(1, roundi(policy.title_font_size * context.text_scale))
@@ -17,18 +17,13 @@ func _init(value: String, context, policy: CardVisualStyle) -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip_contents = true
-	label = context.styles.title(value.replace("\n", " ").replace("\r", " "), policy.title_font_size)
-	label.name = "CardName"
+	label = get_node("CardName")
+	label.text = value.replace("\n", " ").replace("\r", " ")
+	label.add_theme_color_override("font_color", context.styles.INK)
 	if policy.printed_face and context.profile.title_font: label.add_theme_font_override("font", context.profile.title_font)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.max_lines_visible = 2
-	label.add_theme_constant_override("line_spacing", 0)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(label)
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fit()
 func _ready() -> void:
+	label = get_node("CardName")
 	resized.connect(_fit)
 	label.theme_changed.connect(_fit)
 	_fit()
@@ -49,7 +44,7 @@ func _fits(font: Font, point_size: int, lines: int) -> bool:
 	var count := paragraph.get_line_count()
 	return count <= 2 and paragraph.get_size().y + maxi(0, count - 1) * label.get_theme_constant("line_spacing") <= size.y
 func _fit() -> void:
-	if fitting or not is_inside_tree() or size.x <= 0 or size.y <= 0: return
+	if visual_context == null or fitting or not is_inside_tree() or size.x <= 0 or size.y <= 0: return
 	fitting = true
 	var font := label.get_theme_font("font")
 	var chosen := two_line_minimum

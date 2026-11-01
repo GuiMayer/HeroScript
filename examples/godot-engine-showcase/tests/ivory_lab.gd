@@ -47,7 +47,7 @@ func _run() -> void:
 	var native_coordinates := TextServerManager.get_primary_interface().font_get_variation_coordinates(AppTheme.profile.body_font.get_rids()[0])
 	check(native_coordinates.get(weight_axis, 0) == 500.0, "native font cache actually applies the requested weight")
 	var context = load("res://scripts/ui/visual_context.gd").new(locale, {}, AppTheme.profile)
-	var isolated_card := CardView.new(context)
+	var isolated_card := CardView.create(context)
 	isolated_card.configure(card.model)
 	context.profile = previous_profile
 	isolated_card.configure(card.model)

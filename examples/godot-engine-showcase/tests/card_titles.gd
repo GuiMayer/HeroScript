@@ -15,7 +15,7 @@ func run() -> void:
 		translator.set_locale(language)
 		for scale in [1.0, 1.2, 1.6]:
 			var context = preload("res://scripts/ui/visual_context.gd").new(translator, {"text_scale": scale, "reduced_motion": true}, preload("res://data/themes/ivory_theme.tres"))
-			var card := CardView.new(context)
+			var card := CardView.create(context)
 			card.animate_entry = false; card.hand_managed = true
 			root.add_child(card)
 			var reference := Vector2.ZERO

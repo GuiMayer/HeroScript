@@ -124,7 +124,7 @@ func _render() -> void:
 		var column := VBoxContainer.new(); grid.add_child(column)
 		var card = _card_cache.get(id)
 		if not is_instance_valid(card):
-			card = preload("res://scripts/ui/card_view.gd").new(visual_context); card.animate_entry = false; _card_cache[id] = card
+			card = preload("res://scripts/ui/card_view.gd").create(visual_context); card.animate_entry = false; _card_cache[id] = card
 		card.configure(model); card.select_card(subtab == "compartments" and selected_id == id)
 		if card.get_parent() == null: column.add_child(card)
 		else: card.reparent(column, false)

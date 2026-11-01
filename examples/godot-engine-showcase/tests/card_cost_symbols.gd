@@ -21,7 +21,7 @@ func _run() -> void:
 	var context = Context.new(root.get_node("I18n"), {"reduced_motion": true}, profile)
 	var presentation: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/presentation.json"))
 	context.set_resource_styles(presentation.resources)
-	var card := CardView.new(context)
+	var card := CardView.create(context)
 	card.animate_entry = false
 	var model := {"name": "Cost symbols", "rarityId": "common", "costs": [
 		{"resourceId": "energy", "name": "Energy", "symbol": "E", "amount": 1},

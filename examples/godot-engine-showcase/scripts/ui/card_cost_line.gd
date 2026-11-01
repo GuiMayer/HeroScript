@@ -2,12 +2,10 @@
 extends Control
 ## One passive resource line; long alternative costs fit without wrapping the face.
 var content: HBoxContainer
-func _init(row: HBoxContainer, height: float) -> void:
-	name = "CostLine"
+func configure(height: float) -> void:
 	custom_minimum_size.y = height
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content = row
-	add_child(content)
+	content = get_node("Cost")
+	_fit.call_deferred()
 func reconcile_from(other) -> void:
 	custom_minimum_size = other.custom_minimum_size
 	preload("res://scripts/ui/view_reconciler.gd").children(self, other)
@@ -15,13 +13,14 @@ func reconcile_from(other) -> void:
 	_subscribe()
 	_fit.call_deferred()
 func _ready() -> void:
+	content = get_node("Cost")
 	resized.connect(_fit)
 	_subscribe()
 	_fit.call_deferred()
 func _subscribe() -> void:
 	if not content.minimum_size_changed.is_connected(_fit): content.minimum_size_changed.connect(_fit)
 func _fit() -> void:
-	if not is_inside_tree(): return
+	if content == null or not is_inside_tree(): return
 	var natural := content.get_combined_minimum_size()
 	content.size = natural
 	var factor := minf(1.0, minf(size.x / maxf(natural.x, 1.0), size.y / maxf(natural.y, 1.0)))

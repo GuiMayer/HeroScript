@@ -70,7 +70,7 @@ func setup(visual_context, card_model: Dictionary = {}) -> void:
 		var column := VBoxContainer.new(); column.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cards.add_child(column)
 		column.add_child(context.styles.title(_text("Preview" if is_preview else "Baseline"),18))
 		var center := CenterContainer.new(); column.add_child(center)
-		var card := CardView.new(context); card.hand_managed = true; card.animate_entry = false; card.configure(model)
+		var card := CardView.create(context); card.hand_managed = true; card.animate_entry = false; card.configure(model)
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE; card.focus_mode = Control.FOCUS_NONE; center.add_child(card)
 		if is_preview: card_sample = card
 		else: card_baseline = card

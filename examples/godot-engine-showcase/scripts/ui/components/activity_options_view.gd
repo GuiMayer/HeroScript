@@ -45,7 +45,7 @@ func _build_actions() -> void:
 			choice_buttons.append(button)
 			secondary.add_child(button)
 		elif str(model.category) == "cards":
-			var card := CardView.new(visual_context)
+			var card := CardView.create(visual_context)
 			card.animate_entry = animate_card_entry
 			model["availability"] = label
 			# Offer price is not a card's play cost. This projection has no engine

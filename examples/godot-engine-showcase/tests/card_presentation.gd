@@ -134,7 +134,7 @@ func _run() -> void:
 	check(not unavailable_presenter.card_view_model("card").costsKnown, "missing alternative quotes are never presented as a known free cost")
 	model.merge({"name": "Presentation contract", "cardType": "ATTACK", "rarity": "RARE", "costs": [], "availability": "SELECT TO PLAY"})
 	model.effectRows.append({"segments": [{"text": "Lower "}, {"text": "3", "value": 3, "baseValue": 6}, {"text": " · Base "}, {"text": "6", "value": 6, "baseValue": 6}]})
-	var card = load("res://scripts/ui/card_view.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
+	var card = load("res://scripts/ui/card_view.gd").create(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	card.animate_entry = false
 	card.visual_context.update_from(root.get_node("Preferences"), root.get_node("I18n"), AppTheme.profile)
 	card.configure(model)

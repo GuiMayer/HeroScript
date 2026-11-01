@@ -49,7 +49,7 @@ func _select(item: Dictionary) -> void:
 		var facts: Array = _facts.filter(func(value): return str(value.get("identity", {}).get("cardInstanceId", "")) == id)
 		if facts.is_empty(): continue
 		var column := VBoxContainer.new()
-		var card := CardView.new(_context)
+		var card := CardView.create(_context)
 		card.animate_entry = false
 		card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(_context.translator, _appearance).project(facts[0]))
 		card.disabled = not compatibility.get("compatible", false)

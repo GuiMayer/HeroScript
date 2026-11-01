@@ -121,7 +121,6 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_title.text = name_text
 	_title.visible = not (battlefield and visual_context.profile.compact_actor_hud)
 	_title.add_theme_color_override("font_color", visual_context.styles.INK)
-	if visual_context.profile.title_font: _title.add_theme_font_override("font", visual_context.profile.title_font)
 	var relation := str(actor.get("relationship", "Enemy" if hostile else "Ally"))
 	var affiliation := "YOUR SIDE" if relation == "Ally" else ("No intent revealed" if relation == "Enemy" else "NEUTRAL")
 	_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)

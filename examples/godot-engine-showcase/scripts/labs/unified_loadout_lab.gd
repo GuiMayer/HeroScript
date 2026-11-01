@@ -30,7 +30,7 @@ func _ready() -> void:
 		var model: Dictionary = hand_fixture.cards[id].duplicate(true)
 		if I18n.locale == "pt_BR" and model.get("pt_BR") is Dictionary: model.merge(model.pt_BR, true)
 		model.erase("availability")
-		var card = preload("res://scripts/ui/card_view.gd").new(context); card.animate_entry = false; card.configure(model); cards.add_child(card)
+		var card = preload("res://scripts/ui/card_view.gd").create(context); card.animate_entry = false; card.configure(model); cards.add_child(card)
 	shell.install("deck", deck_scroll)
 	for id in ["overview", "relics"]:
 		var summary = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); summary.mount(context); summary.relics_only = id == "relics"

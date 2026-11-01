@@ -372,7 +372,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 		assert(not id.is_empty() and id not in incoming, "Hand models need unique instance IDs")
 		incoming.append(id)
 		if not _cards.has(id):
-			var card := CardView.new(visual_context)
+			var card := CardView.create(visual_context)
 			card.name = "HandCard_" + id.validate_node_name()
 			card.animate_entry = false
 			card.hand_managed = true
@@ -592,7 +592,7 @@ func _update_reading_proxy() -> void:
 		if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 		return
 	if not is_instance_valid(_reading_proxy):
-		_reading_proxy = CardView.new(visual_context)
+		_reading_proxy = CardView.create(visual_context)
 		_reading_proxy.name = "HandReadingProxy"
 		_reading_proxy.animate_entry = false
 		_reading_proxy.hand_managed = true

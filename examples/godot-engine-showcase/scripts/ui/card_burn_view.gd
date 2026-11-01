@@ -30,7 +30,7 @@ func setup(source: CardView, direction: String) -> void:
 	capture_viewport.size_2d_override_stretch = true
 	capture_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	add_child(capture_viewport)
-	var face := CardView.new(source.visual_context)
+	var face := CardView.create(source.visual_context)
 	face.name = "CapturedCardFace"
 	face.visual_style = source.visual_style
 	face.hand_managed = true

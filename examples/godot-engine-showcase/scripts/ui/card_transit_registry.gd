@@ -21,7 +21,7 @@ func acquire(id: String, model: Dictionary, source_visible: bool, start: Vector2
 		ghost = hand.borrow_card(id, overlay)
 		ghost.set_meta("borrowed_hand_card", true)
 	elif source_visible and not model.is_empty():
-		ghost = CardView.new(context); ghost.animate_entry = false; ghost.hand_managed = true
+		ghost = CardView.create(context); ghost.animate_entry = false; ghost.hand_managed = true
 		ghost.configure(model); ghost.size = context.card_style.effective_size(context.text_scale)
 	else:
 		ghost = preload("res://scripts/ui/card_back_view.gd").new(); ghost.ink = context.styles.INK

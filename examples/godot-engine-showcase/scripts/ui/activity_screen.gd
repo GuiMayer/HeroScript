@@ -91,7 +91,7 @@ func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> vo
 			for side in ["before", "after"]:
 				var column := VBoxContainer.new()
 				column.add_child(visual_context.styles.title(I18n.text("Before" if side == "before" else "After"), 18))
-				var card := CardView.new(visual_context)
+				var card := CardView.create(visual_context)
 				card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(I18n, presentation).project(assessment.get(side, {})))
 				column.add_child(card)
 				comparison.add_child(column)

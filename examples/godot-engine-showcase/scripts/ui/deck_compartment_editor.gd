@@ -114,7 +114,7 @@ func _render() -> void:
 		var id := str(entry.cardInstanceId)
 		var target := str(workspace.draft.get(id, ""))
 		if not columns.has(target): continue
-		var card = preload("res://scripts/ui/card_view.gd").new(visual_context)
+		var card = preload("res://scripts/ui/card_view.gd").create(visual_context)
 		card.animate_entry = false; card.configure(presenter.project(entry.presentation)); card.select_card(selected_id == id)
 		for compartment in compartments:
 			if str(compartment.compartmentId) == target:

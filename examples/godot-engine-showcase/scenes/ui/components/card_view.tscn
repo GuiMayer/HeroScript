@@ -1,16 +1,114 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=13 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/card_view.gd" id="1_card"]
+[ext_resource type="Script" path="res://scripts/ui/card_view.gd" id="card"]
+[ext_resource type="Script" path="res://scripts/ui/card_title.gd" id="title"]
+[ext_resource type="Script" path="res://scripts/ui/card_cost_line.gd" id="cost"]
+[ext_resource type="Script" path="res://scripts/ui/card_effect_text.gd" id="rules"]
+[ext_resource type="Script" path="res://scripts/ui/art_slot.gd" id="art"]
+[ext_resource type="Script" path="res://scripts/ui/card_keyline.gd" id="keyline"]
+
+[sub_resource type="StyleBoxFlat" id="Normal"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+border_width_left = 2
+border_width_right = 2
+border_width_top = 2
+border_width_bottom = 2
+
+[sub_resource type="StyleBoxFlat" id="Focus"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+border_width_left = 4
+border_width_right = 4
+border_width_top = 4
+border_width_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="Hover"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+border_width_left = 2
+border_width_right = 2
+border_width_top = 2
+border_width_bottom = 2
+
+[sub_resource type="StyleBoxFlat" id="ArtSurface"]
+resource_local_to_scene = true
+content_margin_left = 6.0
+content_margin_right = 6.0
+content_margin_top = 2.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+border_width_bottom = 1
+
+[sub_resource type="StyleBoxFlat" id="EffectSurface"]
+resource_local_to_scene = true
+content_margin_left = 6.0
+content_margin_right = 6.0
+content_margin_top = 2.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_left = 1
+corner_radius_bottom_right = 1
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+border_width_bottom = 0
 
 [node name="CardView" type="Button"]
-custom_minimum_size = Vector2(178, 260)
-offset_right = 178.0
-offset_bottom = 260.0
+script = ExtResource("card")
+custom_minimum_size = Vector2(248, 328)
+offset_right = 248.0
+offset_bottom = 328.0
 focus_mode = 2
-script = ExtResource("1_card")
+theme_override_styles/normal = SubResource("Normal")
+theme_override_styles/disabled = SubResource("Normal")
+theme_override_styles/pressed = SubResource("Normal")
+theme_override_styles/hover = SubResource("Hover")
+theme_override_styles/focus = SubResource("Focus")
+
+[node name="PrintedKeyline" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("keyline")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="CardFaceMargin" type="MarginContainer" parent="."]
 unique_name_in_owner = true
+layout_mode = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,8 +117,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
+theme_override_constants/margin_top = 12
 theme_override_constants/margin_bottom = 12
 
 [node name="Column" type="VBoxContainer" parent="CardFaceMargin"]
@@ -30,32 +128,186 @@ theme_override_constants/separation = 3
 
 [node name="CardHeader" type="HBoxContainer" parent="CardFaceMargin/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+custom_minimum_size = Vector2(0,24)
 mouse_filter = 2
 theme_override_constants/separation = 5
 
-[node name="Cost" type="HBoxContainer" parent="CardFaceMargin/Column"]
+[node name="CardTitle" type="Control" parent="CardFaceMargin/Column/CardHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("title")
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0,24)
+mouse_filter = 2
+clip_contents = true
+
+[node name="CardName" type="Label" parent="CardFaceMargin/Column/CardHeader/CardTitle"]
+unique_name_in_owner = true
+layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+vertical_alignment = 1
+autowrap_mode = 3
+max_lines_visible = 2
+text_overrun_behavior = 3
+theme_override_font_sizes/font_size = 17
+theme_override_constants/line_spacing = 0
+metadata/font_role = "body"
+
+[node name="UpgradeMarker" type="Label" parent="CardFaceMargin/Column/CardHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+text = "↑"
+mouse_filter = 2
+theme_override_font_sizes/font_size = 15
+metadata/font_role = "body"
+
+[node name="CostLine" type="Control" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("cost")
+custom_minimum_size = Vector2(0,24)
+mouse_filter = 2
+
+[node name="Cost" type="HBoxContainer" parent="CardFaceMargin/Column/CostLine"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 3
 
 [node name="Art" type="PanelContainer" parent="CardFaceMargin/Column"]
 unique_name_in_owner = true
-clip_contents = true
-custom_minimum_size = Vector2(0, 78)
 layout_mode = 2
+custom_minimum_size = Vector2(0,72)
+clip_contents = true
 mouse_filter = 2
+theme_override_styles/panel = SubResource("ArtSurface")
+
+[node name="CardArtwork" type="TextureRect" parent="CardFaceMargin/Column/Art"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("art")
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ArtOverlayName" type="Label" parent="CardFaceMargin/Column/Art"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+max_lines_visible = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 15
+theme_override_constants/outline_size = 4
+theme_override_colors/font_color = Color(1,1,1,1)
+
+[node name="ArtPlaceholderName" type="Label" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+mouse_filter = 2
+horizontal_alignment = 1
+max_lines_visible = 1
+text_overrun_behavior = 3
+theme_override_font_sizes/font_size = 11
+metadata/font_role = "caption"
 
 [node name="TypeLine" type="HBoxContainer" parent="CardFaceMargin/Column"]
-unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Rules" type="RichTextLabel" parent="CardFaceMargin/Column"]
+[node name="CardType" type="Label" parent="CardFaceMargin/Column/TypeLine"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 10
+metadata/font_role = "caption"
+
+[node name="Push" type="Control" parent="CardFaceMargin/Column/TypeLine"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Rarity" type="Label" parent="CardFaceMargin/Column/TypeLine"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = "Caption"
+theme_override_font_sizes/font_size = 10
+metadata/font_role = "caption"
+
+[node name="IdentityTags" type="Label" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+mouse_filter = 2
+custom_minimum_size = Vector2(160,0)
+clip_text = true
+autowrap_mode = 0
+text_overrun_behavior = 3
+theme_type_variation = "Caption"
+theme_override_font_sizes/font_size = 11
+metadata/font_role = "caption"
+
+[node name="Requirements" type="VBoxContainer" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="EffectsTitle" type="Label" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "EFFECTS"
+mouse_filter = 2
+theme_type_variation = "Caption"
+theme_override_font_sizes/font_size = 10
+metadata/font_role = "caption"
+
+[node name="EffectPanel" type="PanelContainer" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
+theme_override_styles/panel = SubResource("EffectSurface")
+metadata/contrast_surface_role = "surface.effects"
+
+[node name="Rules" type="RichTextLabel" parent="CardFaceMargin/Column/EffectPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("rules")
+custom_minimum_size = Vector2(0,68)
+size_flags_vertical = 3
+mouse_filter = 2
 scroll_active = false
+
+[node name="Behaviors" type="Label" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+mouse_filter = 2
+custom_minimum_size = Vector2(160,0)
+clip_text = true
+autowrap_mode = 0
+text_overrun_behavior = 3
+theme_type_variation = "Caption"
+theme_override_font_sizes/font_size = 11
+metadata/font_role = "caption"
+
+[node name="Changes" type="HFlowContainer" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+mouse_filter = 2
+theme_override_constants/h_separation = 4

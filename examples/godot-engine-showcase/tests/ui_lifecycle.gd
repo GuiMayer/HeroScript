@@ -59,7 +59,7 @@ func _run() -> void:
 	check(int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)) <= orphan_before, "closing modals, hand and interrupted flight leaves no new orphan nodes")
 	var warm_count := 0
 	for iteration in 31:
-		var sample := CardView.new(context)
+		var sample := CardView.create(context)
 		root.add_child(sample)
 		sample.configure({"cardInstanceId": "sample", "name": "Sample", "costs": []})
 		sample.queue_free()

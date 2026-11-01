@@ -7,7 +7,7 @@ func check(ok: bool, label: String) -> void:
 func _run() -> void:
 	var Context = load("res://scripts/ui/visual_context.gd")
 	var context = Context.new(null, {"text_scale": 1.2, "reduced_motion": true})
-	var card = load("res://scripts/ui/card_view.gd").new(context)
+	var card = load("res://scripts/ui/card_view.gd").create(context)
 	card.configure({"cardInstanceId": "a", "name": "Standalone", "summary": "Generic effect"})
 	check(card.custom_minimum_size.y > 328, "isolated card receives explicit scale without preferences")
 	card.free()

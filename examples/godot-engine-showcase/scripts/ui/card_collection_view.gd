@@ -41,7 +41,7 @@ func apply_model(data: Dictionary) -> void:
 		var id := str(item.cardInstanceId); live.append(id)
 		var card = cards.get(id)
 		if card == null:
-			card = CardView.new(visual_context); card.name = "CollectionCard_" + id.validate_node_name(); card.animate_entry = false
+			card = CardView.create(visual_context); card.name = "CollectionCard_" + id.validate_node_name(); card.animate_entry = false
 			card.pressed.connect(func(): card_requested.emit(str(card.model.cardInstanceId)))
 			_grid.add_child(card); cards[id] = card
 		card.configure(item); card.disabled = false
