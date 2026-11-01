@@ -10,44 +10,30 @@ var bar: ProgressBar
 var amount: Label
 var _model: Dictionary = {}
 var _value_motion: Tween
+var _fill_style: StyleBoxFlat
+@export var preview_resource_id := "health"
+@export var preview_state: Dictionary = {"current": 75, "minimum": 0, "maximum": 100}
 
 func _ready() -> void:
-	_ensure_nodes()
+	_bind_nodes()
 	if not _model.is_empty():
 		_apply_model()
 	elif Engine.is_editor_hint():
 		# Live preview in Godot editor 2D canvas
-		setup("health", {"current": 75, "minimum": 0, "maximum": 100}, {"color": "#e53935"})
+		setup(preview_resource_id, preview_state)
 
-func _ensure_nodes() -> void:
-	if label == null:
-		label = get_node_or_null("%ResourceLabel")
-		if label == null: label = find_child("ResourceLabel", true, false)
-		if label == null:
-			label = Label.new()
-			label.name = "ResourceLabel"
-			label.custom_minimum_size.x = 78
-			label.add_theme_font_size_override("font_size", 12)
-			add_child(label)
-	if bar == null:
-		bar = get_node_or_null("%ProgressBar")
-		if bar == null: bar = find_child("ProgressBar", true, false)
-		if bar == null:
-			bar = ProgressBar.new()
-			bar.name = "ProgressBar"
-			bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			bar.custom_minimum_size.y = 22
-			bar.show_percentage = false
-			add_child(bar)
-	if amount == null:
-		amount = get_node_or_null("%AmountLabel")
-		if amount == null: amount = find_child("AmountLabel", true, false)
-		if amount == null:
-			amount = Label.new()
-			amount.name = "AmountLabel"
-			amount.custom_minimum_size.x = 65
-			amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			add_child(amount)
+func _bind_nodes() -> void:
+	label = get_node("%ResourceLabel")
+	bar = get_node("%ProgressBar")
+	amount = get_node("%AmountLabel")
+	if _fill_style == null:
+		_fill_style = bar.get_theme_stylebox("fill").duplicate()
+		bar.add_theme_stylebox_override("fill", _fill_style)
+
+static func create(context = null) -> ResourceView:
+	var view = (load("res://scenes/ui/components/resource_view.tscn") as PackedScene).instantiate()
+	if context != null: view.visual_context = context
+	return view
 
 func present_change(application: Dictionary, duration: float) -> Tween:
 	if str(application.get("resourceId", "")) != str(_model.get("resourceId", "")) or application.get("currentValue") == null: return null
@@ -83,10 +69,9 @@ func apply_model(data: Dictionary) -> void:
 
 func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
-	_ensure_nodes()
 
 func setup(id: String, state: Dictionary, appearance: Dictionary = {}) -> void:
-	_ensure_nodes()
+	_bind_nodes()
 	theme = visual_context.theme
 	_model = {"resourceId": id, "state": state.duplicate(true), "appearance": appearance.duplicate(true)}
 	_apply_model()
@@ -105,7 +90,7 @@ func _apply_model() -> void:
 		bar.max_value = float(state.get("maximum", 0))
 		bar.value = model.current
 	var tone := Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown"))
-	bar.add_theme_stylebox_override("fill", visual_context.styles.box(tone, 5))
+	_fill_style.bg_color = tone
 	amount.text = visual_context.translator.number(model.current)
 	if state.has("maximum") and str(appearance.get("display", "bar")) != "counter": amount.text += "/" + visual_context.translator.number(float(state.maximum))
 	amount.size_flags_horizontal = Control.SIZE_FILL if bar.visible else Control.SIZE_EXPAND_FILL

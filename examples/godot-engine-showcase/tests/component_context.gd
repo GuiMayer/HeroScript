@@ -11,7 +11,7 @@ func _run() -> void:
 	card.configure({"cardInstanceId": "a", "name": "Standalone", "summary": "Generic effect"})
 	check(card.custom_minimum_size.y > 328, "isolated card receives explicit scale without preferences")
 	card.free()
-	var resource = load("res://scripts/ui/resource_view.gd").new(context)
+	var resource = load("res://scripts/ui/resource_view.gd").create(context)
 	resource.setup("unknown_resource", {"current": -7}, {})
 	check(not resource.bar.visible and resource.amount.text == "-7", "unbounded unknown resource remains textual and exact")
 	resource.setup("unknown_resource", {"current": -7, "minimum": -10, "maximum": -1}, {})

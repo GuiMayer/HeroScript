@@ -16,7 +16,7 @@ func _run() -> void:
 	cost.provenance.sourceId = "card"
 	check(preload("res://scripts/presentation/combat_audio_presenter.gd").cues(frame).is_empty(), "cost settlement cannot play a damage sound")
 	var context = preload("res://scripts/ui/visual_context.gd").new()
-	var view = preload("res://scripts/ui/resource_view.gd").new(context); root.add_child(view)
+	var view = preload("res://scripts/ui/resource_view.gd").create(context); root.add_child(view)
 	var state := {"current": 10, "minimum": 0, "maximum": 10}
 	view.setup("arbitrary", state)
 	view.present_change(damage, 0)

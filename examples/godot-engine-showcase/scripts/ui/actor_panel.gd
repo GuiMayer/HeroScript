@@ -136,7 +136,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		if not resources.has(id): continue
 		var appearance: Dictionary = visual_context.resource_appearance(str(id), presentation.get("resources", {}).get(id, {}))
 		if str(appearance.get("display", "bar")) == "bar":
-			var resource := preload("res://scripts/ui/resource_view.gd").new(visual_context)
+			var resource := preload("res://scripts/ui/resource_view.gd").create(visual_context)
 			resource.name = "Resource_" + str(id).validate_node_name()
 			resource.setup(id, resources[id], appearance)
 			content.add_child(resource)

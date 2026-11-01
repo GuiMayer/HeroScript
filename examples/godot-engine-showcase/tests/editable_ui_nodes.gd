@@ -16,5 +16,18 @@ func _run() -> void:
     check(badge.get_node("%StackLabel") == label, "Status updates retain authored nodes")
     check(label.text == "8" and label.get_theme_font_size("font_size") == 19, "Status data updates preserve inspector typography")
     check(badge.get_theme_stylebox("panel").content_margin_left == 7, "Status updates preserve scene padding")
+    var resource = load("res://scenes/ui/components/resource_view.tscn").instantiate()
+    var bar = resource.get_node("%ProgressBar")
+    bar.custom_minimum_size.y = 39
+    resource.setup("test", {"current": 5, "minimum": 0, "maximum": 10})
+    root.add_child(resource)
+    resource.setup("test", {"current": 9, "minimum": 0, "maximum": 10})
+    check(resource.bar == bar and resource.bar.value == 9, "Resource scene updates existing nodes before and after mounting")
+    check(resource.bar.custom_minimum_size.y == 39, "Resource data preserves authored bar height")
+    var source = {"current": 9, "minimum": 0, "maximum": 10}
+    resource.setup("test", source)
+    resource.present_change({"resourceId": "test", "resourceField": "Current", "previousValue": 9, "currentValue": 2}, 0)
+    check(resource.bar.value == 2 and source.current == 9, "Resource animation consumes snapshots without mutating input")
+    resource.free()
     badge.free()
     quit(1 if failures else 0)
