@@ -66,3 +66,7 @@ Spans combat_plan/resolution_project/receipt_lookup localizaram uma releitura: R
 ### Complemento estrutural após a certificação inicial
 
 A movimentação de cartas agora decompõe DeckState/topologia/zonas auditadas, preservando o encoder real de chaves Guid e reusando o registro imutável. 100 regressões de determinismo/zonas passaram. Prova adicional acompanha 100 movimentos, compara bytes independentes e exige menos da metade dos bytes de folhas que a recodificação integral do deck. Nenhuma finalidade de zona foi inferida. Comparação de latência e oráculo final serão repetidos antes do aceite.
+
+### Arrays imutáveis compartilhados
+
+O escopo existente agora reconhece ImmutableArray pelo tipo real e pela identidade de armazenamento, em vez da identidade transitória da caixa criada por getters. O orçamento continua 512 entradas/8MiB; arrays mutáveis e entradas públicas sem marcador mantêm o caminho anterior. Novas provas verificam bytes/ordem, cópia com armazenamento distinto, inputs mutáveis e volume recodificado. Core completo: 2.221 aprovados; rodada final focada: 35; oráculo fixo em três processos aprovado novamente. Novo lote de 1.000 POSTs por setting será comparado à campanha c646b3d9 antes de declarar ganho de latência.

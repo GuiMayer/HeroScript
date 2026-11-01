@@ -266,12 +266,13 @@ public static partial class CanonicalJson
         public static HashCacheKeyComparer Instance { get; } = new();
 
         public bool Equals(HashCacheKey x, HashCacheKey y) =>
-            ReferenceEquals(x.Value, y.Value) &&
+            (ReferenceEquals(x.Value, y.Value) || x.Value.GetType() == y.Value.GetType() &&
+                IsFrozenArray(x.Value) && x.Value.Equals(y.Value)) &&
             x.DeclaredType == y.DeclaredType &&
             ReferenceEquals(x.Options, y.Options);
 
         public int GetHashCode(HashCacheKey key) => HashCode.Combine(
-            RuntimeHelpers.GetHashCode(key.Value),
+            IsFrozenArray(key.Value) ? key.Value.GetHashCode() : RuntimeHelpers.GetHashCode(key.Value),
             key.DeclaredType,
             RuntimeHelpers.GetHashCode(key.Options));
     }
