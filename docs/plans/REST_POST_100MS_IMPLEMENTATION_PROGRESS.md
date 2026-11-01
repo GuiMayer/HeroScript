@@ -70,3 +70,11 @@ A movimentação de cartas agora decompõe DeckState/topologia/zonas auditadas, 
 ### Arrays imutáveis compartilhados
 
 O escopo existente agora reconhece ImmutableArray pelo tipo real e pela identidade de armazenamento, em vez da identidade transitória da caixa criada por getters. O orçamento continua 512 entradas/8MiB; arrays mutáveis e entradas públicas sem marcador mantêm o caminho anterior. Novas provas verificam bytes/ordem, cópia com armazenamento distinto, inputs mutáveis e volume recodificado. Core completo: 2.221 aprovados; rodada final focada: 35; oráculo fixo em três processos aprovado novamente. Novo lote de 1.000 POSTs por setting será comparado à campanha c646b3d9 antes de declarar ganho de latência.
+
+### Resultado do experimento com arrays — descartado
+
+Campanha c646b3d9: 1.000 END_TURN por setting, TCP/Release/corpo completo/flush, sem diagnósticos ou suítes concorrentes. Default: p50 54,73/p95 100,91/p99 131,00/max 286,82ms, 54 violações. Ascendant: p50 74,08/p95 166,57/p99 220,28/max 388,34ms, 178 violações. Nenhuma falha funcional antes do gate.
+
+Campanha 775c87b4 com as mesmas seeds/comandos: Default p50 57,87/p95 112,56/p99 152,67/max 302,50ms, 83 violações; Ascendant p50 74,79/p95 182,41/p99 242,39/max 448,57ms, 168 violações. O experimento reduziu recodificação sintética, mas não demonstrou ganho de latência real; foi removido junto com seus testes específicos. Os dois arquivos do encoder voltaram exatamente aos blobs certificados em c646b3d9. Ficam os 2.219 testes Core do caminho mantido, 58 API selecionados, seis verificações finais de oráculo/inventário, dez jornadas determinísticas e seis scripts Godot. O resultado de 2.221 testes refere-se apenas à variante experimental.
+
+Estado: mudanças das etapas 1–11 implementadas e verificadas; etapa 12 tem aquecimento de metadados/planos e cache escalar, mas ainda requer completar aquecimento puro de conteúdo/assinaturas e aceites de memória/concorrência da matriz. Etapa 13 parcial: correção aprovada nos cenários executados, gate de 100ms reprovado; amostragem ampla dos outros comandos/ferramentas ainda pendente. Não declarar o plano ou a meta concluídos.

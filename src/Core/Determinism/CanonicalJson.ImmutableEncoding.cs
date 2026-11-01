@@ -22,15 +22,9 @@ public static partial class CanonicalJson
         type == typeof(Core.CardZones.CardZoneState) || type == typeof(CombatAnimationFrame) || type == typeof(CombatState) || type == typeof(RunEncounterState) ||
         type == typeof(CombatActorState) || type == typeof(Core.Resources.ResourceSet) || type == typeof(Core.Resources.ResourcePool);
 
-    // ImmutableArray equality/hash use backing-storage identity, not element equality.
-    // A getter boxes the struct again; that must not force stable arrays to re-encode.
-    private static bool IsFrozenArray(object value) => value.GetType() is { IsConstructedGenericType: true } type &&
-        type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
-
     private static CanonicalEncoding EncodeImmutable(object? value, Type declaredType, EncodingCache cache)
     {
-        var canCache = value != null && value is not string &&
-            (!value.GetType().IsValueType || IsFrozenArray(value));
+        var canCache = value != null && value is not string && !value.GetType().IsValueType;
         var key = new HashCacheKey(value!, declaredType, DefaultOptions);
         if (canCache && cache.TryGet(key, out var cached)) return cached;
         CanonicalEncoding encoded;
