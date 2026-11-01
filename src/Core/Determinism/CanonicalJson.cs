@@ -41,6 +41,11 @@ public static partial class CanonicalJson
     {
         SerializationMetadataWarmup.Prepare(DefaultOptions, roots);
         SerializationMetadataWarmup.Prepare(ImmutableEncodingOptions, roots);
+        // Pure metadata only: no runs, random draws, state hashes or save writes.
+        foreach (var aggregate in new[] { typeof(Core.Run.RunState), typeof(Core.Combat.Models.CombatState),
+                     typeof(Core.Run.RunEncounterState), typeof(Core.Combat.Models.CombatActorState),
+                     typeof(Core.Resources.ResourceSet), typeof(Core.Resources.ResourcePool), typeof(Core.Run.CombatAnimationFrame) })
+            _ = Plan(aggregate);
     }
 
     public static string ComputeHash<T>(T value, JsonSerializerOptions? options = null)
@@ -156,6 +161,8 @@ public static partial class CanonicalJson
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_encode");
         var scope = ActiveHashScope.Value;
+        if (scope != null && ReferenceEquals(options, DefaultOptions) && TryScalarKey(value, typeof(T), out _))
+            return EncodeStandard(value, typeof(T));
         if (scope != null && value is ICanonicalHashMemoizable memoizable && ReferenceEquals(options, DefaultOptions))
             return EncodeImmutable(memoizable, typeof(T), scope.Encodings);
         var uncached = WriteCanonicalBytes(value, options, out var uncachedDepth, fast: true);

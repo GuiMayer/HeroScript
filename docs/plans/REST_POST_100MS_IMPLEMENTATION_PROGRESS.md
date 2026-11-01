@@ -54,3 +54,7 @@ Frames congelados reaproveitam fragmentos canônicos e StateAfter estrutural no 
 ## Etapa 11 — projeções REST
 
 Sessão reutiliza uma projeção por identidade fraca do snapshot confirmado, somente após validar versão e chave de permissões/perfil/schema. Não retém branches abandonadas nem resultados de erro; troca de snapshot gera outra projeção. Sete testes API passaram, incluindo reuso por identidade, avanço de versão e ETag. Contratos e frames dos POSTs permanecem iguais; não foi criado perfil mínimo que obrigue GET complementar. Benchmark aceita HEROSCRIPT_POST_DIAGNOSTICS=false e HEROSCRIPT_POST_PROFILE=default para medir separadamente o contrato padrão e o Prefer existente (combate mantém o mesmo corpo nos dois). Gateway, retry e animações Godot não precisaram mudar.
+
+## Etapa 12 — primeiro uso e alocações
+
+Startup prepara os planos dos agregados auditados, além dos metadados já existentes, sem criar runs/comandos ou consumir RNG. Reutilizado o cache escalar operacional limitado a 128 entradas no mesmo escopo, incluindo valores primitivos e strings curtas; chaves preservam bits de float/double e sinal/escala decimal. Nenhum buffer publicado é devolvido a pool. 46 testes focados passaram, incluindo zero negativo, escala, nullable, escaping, evicção, warmup e hot reload/concorrência disponíveis no filtro. Não foi introduzido paralelismo de efeitos nem alterado o cache histórico das revisões. Certificação e latência final continuam pendentes na etapa 13.

@@ -143,7 +143,38 @@ public static partial class CanonicalJson
     private static CanonicalEncoding EncodeStandard(object? value, Type declaredType)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_standard_encode");
+        var scope = ActiveHashScope.Value;
+        if (scope != null && TryScalarKey(value, declaredType, out var key))
+        {
+            if (scope.Scalars.TryGetValue(key, out var known))
+            { Core.Diagnostics.OperationalTiming.Count("scalar_encoding_hit"); return known; }
+            var encoded = EncodeImmutableLeaf(value, declaredType);
+            scope.Scalars.Set(key, encoded);
+            return encoded;
+        }
         return EncodeImmutableLeaf(value, declaredType);
+    }
+
+    private static bool TryScalarKey(object? value, Type declaredType, out ScalarEncodingKey key)
+    {
+        var type = Nullable.GetUnderlyingType(declaredType) ?? declaredType;
+        if (value != null && value.GetType() == type &&
+            (value is bool or byte or sbyte or short or ushort or int or uint or long or ulong or
+                float or double or decimal or char or Guid || value is string { Length: <= 256 }))
+        {
+            // Numeric equality alone merges signed zero and decimal scale, whose JSON bytes differ.
+            var variation = value switch
+            {
+                float number => BitConverter.SingleToInt32Bits(number),
+                double number => BitConverter.DoubleToInt64Bits(number),
+                decimal number => decimal.GetBits(number)[3],
+                _ => 0L
+            };
+            key = new(declaredType, value, variation);
+            return true;
+        }
+        key = default;
+        return false;
     }
 
     // Nested scopes share the operation budget. No cache survives the outer scope.
