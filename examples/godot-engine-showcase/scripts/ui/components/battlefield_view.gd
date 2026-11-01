@@ -53,7 +53,7 @@ func apply_model(actors: Array, presentation: Dictionary) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation: Dictionary) -> Control:
-	var panel := preload("res://scripts/ui/actor_panel.gd").new(visual_context)
+	var panel := preload("res://scripts/ui/actor_panel.gd").create(visual_context)
 	var id := str(actor.get("instanceId", ""))
 	panel.name = "ActorView_" + id.validate_node_name()
 	panel.setup(actor, hostile, presentation, intent, false, true)

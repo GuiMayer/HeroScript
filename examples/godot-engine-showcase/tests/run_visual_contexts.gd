@@ -14,8 +14,8 @@ func _run() -> void:
 	var b = Context.new(null, {"text_scale": 1.2}, profile_b)
 	var host := Control.new(); root.add_child(host)
 	var actor := {"instanceId": "neutral", "definitionId": "spire_wisp", "relationship": "Neutral", "resources": {}, "statuses": []}
-	var panel_a = load("res://scripts/ui/actor_panel.gd").new(a)
-	var panel_b = load("res://scripts/ui/actor_panel.gd").new(b)
+	var panel_a = load("res://scripts/ui/actor_panel.gd").create(a)
+	var panel_b = load("res://scripts/ui/actor_panel.gd").create(b)
 	panel_a.setup(actor, false, {}, ""); panel_b.setup(actor, false, {}, "")
 	host.add_child(panel_a); host.add_child(panel_b)
 	AppTheme.apply_view_preferences(host)

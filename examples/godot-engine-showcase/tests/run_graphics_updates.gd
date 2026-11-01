@@ -11,7 +11,7 @@ func settle() -> void:
 func _run() -> void:
 	var context = load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n"))
 	var actor := {"instanceId": "same-instance", "definitionId": "spire_wisp", "resources": {}, "statuses": []}
-	var panel = load("res://scripts/ui/actor_panel.gd").new(context)
+	var panel = load("res://scripts/ui/actor_panel.gd").create(context)
 	panel.setup(actor, true, {}, "", false, false); root.add_child(panel); await settle()
 	var portrait: Control = panel.portrait_view
 	actor.definitionId = "spire_sentinel"
@@ -36,7 +36,7 @@ func _run() -> void:
 	var model: Dictionary = portrait.model; model.contentId = "spire_wisp"
 	check(portrait.model.contentId == "spire_sentinel", "art model is defensively copied")
 	var next_context = load("res://scripts/ui/visual_context.gd").new(context.translator)
-	var incoming = load("res://scripts/ui/actor_panel.gd").new(next_context)
+	var incoming = load("res://scripts/ui/actor_panel.gd").create(next_context)
 	incoming.setup(actor, true, {}, "", false, false)
 	panel.reconcile_from(incoming); incoming.free(); await settle()
 	check(panel.portrait_view == portrait and not context.changed.has_connections() and next_context.changed.has_connections(), "context replacement rebinds live art without stale subscriptions")

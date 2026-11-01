@@ -17,7 +17,7 @@ func apply_frame_snapshot(combat: Dictionary) -> void:
 		visible_ids[id] = true
 		var panel = actor_panels.get(id)
 		if panel == null:
-			panel = preload("res://scripts/ui/actor_panel.gd").new(visual_context); _row.add_child(panel); actor_panels[id] = panel
+			panel = preload("res://scripts/ui/actor_panel.gd").create(visual_context); _row.add_child(panel); actor_panels[id] = panel
 		panel.setup(actor, presenter.relationship(actor, str(combat.get("activeActorId", ""))) == "Enemy", _appearance, presenter.intent_for(id))
 		panel.target_button.disabled = true; panel.target_button.focus_mode = Control.FOCUS_NONE
 	for id in actor_panels.keys():
@@ -40,7 +40,7 @@ func display(state: Dictionary, appearance: Dictionary) -> void:
 	_row = row
 	var viewpoint := str(combat.get("activation", {}).get("activeActorId", ""))
 	for actor in presenter.actors():
-		var panel := preload("res://scripts/ui/actor_panel.gd").new(visual_context)
+		var panel := preload("res://scripts/ui/actor_panel.gd").create(visual_context)
 		panel.setup(actor, presenter.relationship(actor, viewpoint) == "Enemy", appearance, presenter.intent_for(str(actor.get("instanceId", ""))))
 		panel.target_button.disabled = true
 		panel.target_button.focus_mode = Control.FOCUS_NONE

@@ -23,7 +23,7 @@ func _run() -> void:
 	check(view.bar.value == 4 and state.current == 10, "visual resource consumes published endpoints without modifying source state")
 	context.motion = preload("res://scripts/presentation/motion_policy.gd").capture("default", {"animation_preset": "instant"})
 	var feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(context); root.add_child(feedback)
-	var panel = preload("res://scripts/ui/actor_panel.gd").new(context); root.add_child(panel)
+	var panel = preload("res://scripts/ui/actor_panel.gd").create(context); root.add_child(panel)
 	panel.setup({"instanceId": "hero", "resources": {"arbitrary": state}}, false, {}, "")
 	var handle = preload("res://scripts/presentation/presentation_handle.gd").new()
 	var presenter = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [], context.translator)

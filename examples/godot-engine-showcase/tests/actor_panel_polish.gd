@@ -9,7 +9,7 @@ func check(ok: bool, label: String) -> void:
 
 func _run() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").new()
-	var panel = preload("res://scripts/ui/actor_panel.gd").new(context)
+	var panel = preload("res://scripts/ui/actor_panel.gd").create(context)
 	root.add_child(panel)
 
 	var actor_data := {
@@ -55,7 +55,7 @@ func _run() -> void:
 	# 4. Verify relative layout order: Health Bar is ABOVE Target Button (Portrait)
 	var content = panel.find_child("ActorContent", true, false)
 	check(content != null, "actor content container found")
-	var health_idx = content.get_children().find(health_bar)
+	var health_idx = content.get_children().find(health_bar.get_parent())
 	var status_idx = content.get_children().find(status_container)
 	var target_btn = panel.find_child("ActorTarget", true, false)
 	var target_idx = content.get_children().find(target_btn)

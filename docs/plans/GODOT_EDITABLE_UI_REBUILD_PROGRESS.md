@@ -11,3 +11,7 @@ Etapas 2–5 e auditoria das outras telas: pendentes.
 ## 2 — ResourceView
 
 Barra, legenda e valor são nós da cena; a fábrica create() instancia a mesma cena no combate, sidebar e testes. Sem construção alternativa no construtor. Cor é dado semântico; geometria do StyleBox e dimensões ficam no editor. Mantidos present_change/settle_motion e consumo imutável do snapshot. Testes editable_ui_nodes (6), semantic_cues (6), ui_reconciliation (4) aprovados.
+
+## 3 — ActorPanel
+
+Painel estático editável com título, intenção, recursos, status e alvo persistentes. Variações compacto/battlefield reusam os mesmos controles; listas instanciam ResourceView/StatusBadge e um template de contador. Sinal do alvo consulta a identidade atual, evitando closures antigas. Consumidores do combate/histórico migrados à fábrica da cena. Testes: editable_ui_nodes 10, actor_panel_polish 10, semantic_cues 6, ui_reconciliation 4, resolutions 88 aprovados.
