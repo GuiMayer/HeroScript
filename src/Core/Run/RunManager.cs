@@ -1765,7 +1765,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 ? candidate.Step.Combat
                 : null,
             SnapshotSequence = checked(state.Sequence + 1)
-        }).ToArray();
+        }).ToImmutableArray();
         return new CombatResolutionRecord
         {
             CommandId = rootCommand.CommandId,
@@ -1775,14 +1775,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             RootSequence = frames[0].RunSequence,
             InitialCombatStateHash = CanonicalJson.ComputeHash(previousCombat),
             FinalCombatStateHash = CanonicalJson.ComputeHash(candidates[^1].Step.Combat),
-            ResolutionFingerprint = CanonicalJson.ComputeHash(new
-            {
-                rootCommand.CommandId,
-                previousCombat.CombatId,
-                rootCommand.Type,
-                mode,
-                frames
-            }),
+            ResolutionFingerprint = CanonicalJson.ComputeObjectHash(
+                CanonicalJson.Property("commandId", rootCommand.CommandId),
+                CanonicalJson.Property("combatId", previousCombat.CombatId),
+                CanonicalJson.Property("type", rootCommand.Type),
+                CanonicalJson.Property("mode", mode),
+                CanonicalJson.FrozenArrayProperty("frames", frames)),
             Frames = frames
         };
     }

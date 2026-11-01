@@ -46,3 +46,7 @@ Coletas reutilizam os compiladores e resolvedores limitados já registrados, com
 ## Etapa 9 — execução selecionada
 
 Auditoria confirma Evaluate/EvaluateObserved para o comando escolhido, sem resolver toda a mão no POST. Adicionada regressão VerifyNoOtherCalls para jogador e controlador automático: 14 testes aprovados. Preservados isolamento causal de EvaluateObserved, opções e decisões de IA; não foi adicionado executor ou cache de decisões duplicado.
+
+## Etapa 10 — frames e preparação do commit
+
+Frames congelados reaproveitam fragmentos canônicos e StateAfter estrutural no fingerprint, sem hash de subhashes. O array publicado é imutável; o encoder só aceita ImmutableArray e tipos auditados. 32 testes focados passaram e o oráculo fixo coincidiu em três processos independentes (69s), incluindo 18 hashes de commits/recibos e replay. Build sem avisos/erros. Mantidos PreparedRunCommit, validação, ByteHash, append atômico e flush durável; não foi alterada a política de checkpoints.

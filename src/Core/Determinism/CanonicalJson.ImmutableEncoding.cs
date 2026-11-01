@@ -18,7 +18,7 @@ public static partial class CanonicalJson
     // Deliberately narrow: only audited aggregate boundaries are decomposed.
     // Leaves still use the real serializer, including their polymorphic converters.
     private static bool IsAggregate(Type type) => type == typeof(RunState) ||
-        type == typeof(CombatState) || type == typeof(RunEncounterState) ||
+        type == typeof(CombatAnimationFrame) || type == typeof(CombatState) || type == typeof(RunEncounterState) ||
         type == typeof(CombatActorState) || type == typeof(Core.Resources.ResourceSet) || type == typeof(Core.Resources.ResourcePool);
 
     private static CanonicalEncoding EncodeImmutable(object? value, Type declaredType, EncodingCache cache)
@@ -42,6 +42,24 @@ public static partial class CanonicalJson
             encoded = EncodeStandard(value, declaredType);
         if (canCache) cache.Put(key, encoded);
         return encoded;
+    }
+
+    private static CanonicalEncoding EncodeFrozenArray<T>(ImmutableArray<T> values, EncodingCache cache)
+    {
+        if (values.IsDefault) return EncodeStandard(values, typeof(ImmutableArray<T>));
+        var buffer = new ArrayBufferWriter<byte>();
+        using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartArray();
+        var depth = 1;
+        foreach (var value in values)
+        {
+            var child = EncodeImmutable(value, typeof(T), cache);
+            if (child.Depth >= 64) throw new JsonException("Maximum canonical serialization depth exceeded");
+            writer.WriteRawValue(child.Bytes.Span, skipInputValidation: true);
+            depth = System.Math.Max(depth, child.Depth + 1);
+        }
+        writer.WriteEndArray(); writer.Flush();
+        return new(buffer.WrittenMemory, depth);
     }
 
     private static CanonicalEncoding EncodeDictionary<T>(IReadOnlyDictionary<string, T> values, EncodingCache cache)

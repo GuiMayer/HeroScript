@@ -93,10 +93,10 @@ public static partial class CanonicalJson
 
     // Composition preserves the original embedded JSON, not a hash-of-hashes.
     // Only deeply immutable instances with the default serializer are reused.
-    private readonly record struct CanonicalEncoding(ReadOnlyMemory<byte> Bytes, int Depth);
+    internal readonly record struct CanonicalEncoding(ReadOnlyMemory<byte> Bytes, int Depth);
     internal readonly struct CanonicalProperty
     {
-        private CanonicalProperty(string name, CanonicalEncoding encoded)
+        internal CanonicalProperty(string name, CanonicalEncoding encoded)
         { Name = name; Bytes = encoded.Bytes; Depth = encoded.Depth; }
         public string Name { get; }
         public ReadOnlyMemory<byte> Bytes { get; }
@@ -108,6 +108,13 @@ public static partial class CanonicalJson
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("canonical_hash");
         return CanonicalProperty.Create(name, value);
+    }
+
+    internal static CanonicalProperty FrozenArrayProperty<T>(string name, System.Collections.Immutable.ImmutableArray<T> values)
+        where T : ICanonicalHashMemoizable
+    {
+        var cache = ActiveHashScope.Value?.Encodings ?? new EncodingCache();
+        return new(name, EncodeFrozenArray(values, cache));
     }
 
     internal static string ComputeObjectHash(params CanonicalProperty[] properties)

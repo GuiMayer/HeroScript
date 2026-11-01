@@ -8,7 +8,7 @@ using Core.CardZones;
 
 namespace Core.Run;
 
-public sealed record CombatAnimationFrame
+public sealed record CombatAnimationFrame : Core.Determinism.ICanonicalHashMemoizable
 {
     private ImmutableArray<EffectExecutionStep> _effectSteps = [];
     private ImmutableArray<CalculationResult> _calculations = [];
