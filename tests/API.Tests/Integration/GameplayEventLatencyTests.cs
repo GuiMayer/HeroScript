@@ -36,7 +36,7 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
             var available = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{id}/available-commands");
             var start = available.GetProperty("commands").EnumerateArray().Single(item => item.GetProperty("type").GetString() == "START_ENCOUNTER");
             var initial = runs.GetRun(id).Value;
-            using var initialized = await client.PostAsJsonAsync($"/api/v1/runs/{id}/commands", new { commandId = Guid.NewGuid(), type = "START_ENCOUNTER",
+            using var initialized = await client.PostAsJsonAsync($"/api/v1/runs/{id}/commands", new { commandId = DeterministicId.Create(541 + (ulong)batch, 0, $"post100:{setting}:start"), type = "START_ENCOUNTER",
                 expectedSequence = initial.Sequence, expectedStep = initial.Determinism.Step, payload = start.GetProperty("validPayload") });
             Assert.True(initialized.IsSuccessStatusCode, await initialized.Content.ReadAsStringAsync());
             return id;
@@ -52,7 +52,7 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
             state = runs.GetRun(runId).Value;
             var combat = state.GetActiveEncounter()!.Combat;
             var inputActor = combat.GetAllActors().Single(actor => actor.ControllerBinding.Kind == Core.Combat.Models.ControllerKind.Player).InstanceId;
-            var commandId = Guid.NewGuid();
+            var commandId = DeterministicId.Create(541 + (ulong)(sample / 3), (ulong)sample, $"post100:{setting}:end-turn");
             var payload = new { commandId, type = "END_TURN", expectedSequence = state.Sequence,
                 expectedStep = combat.Determinism.Step, payload = new { actorId = inputActor } };
             var watch = Stopwatch.StartNew();

@@ -18,7 +18,8 @@ public static partial class CanonicalJson
     // Deliberately narrow: only audited aggregate boundaries are decomposed.
     // Leaves still use the real serializer, including their polymorphic converters.
     private static bool IsAggregate(Type type) => type == typeof(RunState) ||
-        type == typeof(CombatAnimationFrame) || type == typeof(CombatState) || type == typeof(RunEncounterState) ||
+        type == typeof(DeckState) || type == typeof(Core.CardZones.CardZoneTopologyState) ||
+        type == typeof(Core.CardZones.CardZoneState) || type == typeof(CombatAnimationFrame) || type == typeof(CombatState) || type == typeof(RunEncounterState) ||
         type == typeof(CombatActorState) || type == typeof(Core.Resources.ResourceSet) || type == typeof(Core.Resources.ResourcePool);
 
     private static CanonicalEncoding EncodeImmutable(object? value, Type declaredType, EncodingCache cache)
@@ -33,6 +34,8 @@ public static partial class CanonicalJson
             encoded = EncodeDictionary(actors, cache);
         else if (declaredType == typeof(IReadOnlyDictionary<string, Core.Resources.ResourcePool>) && value is IReadOnlyDictionary<string, Core.Resources.ResourcePool> pools)
             encoded = EncodeDictionary(pools, cache);
+        else if (declaredType == typeof(IReadOnlyDictionary<string, Core.CardZones.CardZoneState>) && value is IReadOnlyDictionary<string, Core.CardZones.CardZoneState> zones)
+            encoded = EncodeDictionary(zones, cache);
         else if (declaredType == typeof(IReadOnlyDictionary<string, EntityComponentState>) && value is IReadOnlyDictionary<string, EntityComponentState> components)
             encoded = EncodeDictionary(components, cache);
         else if (declaredType == typeof(ImmutableArray<RunEncounterState>) &&

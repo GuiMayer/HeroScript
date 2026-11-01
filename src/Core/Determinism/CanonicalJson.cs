@@ -44,7 +44,8 @@ public static partial class CanonicalJson
         // Pure metadata only: no runs, random draws, state hashes or save writes.
         foreach (var aggregate in new[] { typeof(Core.Run.RunState), typeof(Core.Combat.Models.CombatState),
                      typeof(Core.Run.RunEncounterState), typeof(Core.Combat.Models.CombatActorState),
-                     typeof(Core.Resources.ResourceSet), typeof(Core.Resources.ResourcePool), typeof(Core.Run.CombatAnimationFrame) })
+                     typeof(Core.Resources.ResourceSet), typeof(Core.Resources.ResourcePool), typeof(Core.Run.CombatAnimationFrame),
+                     typeof(Core.Run.DeckState), typeof(Core.CardZones.CardZoneTopologyState), typeof(Core.CardZones.CardZoneState) })
             _ = Plan(aggregate);
     }
 
