@@ -7,7 +7,17 @@ namespace Core.GameplayEvents;
 public static class GameplayCoreCatalog
 {
     public const string PublisherId = "core.gameplay";
+    private static readonly Core.Caching.LruCache<(string Setting, string Revision), GameplayEventCatalog> Catalogs = new(128);
+    public static Core.Caching.ICacheService CacheService { get; } = new Core.Caching.LruCacheService<(string Setting, string Revision), GameplayEventCatalog>(Catalogs, "GameplayCoreCatalogs");
     public static Result<GameplayEventCatalog> Create(string setting, string revision)
+    {
+        var key = (setting, revision);
+        if (Catalogs.TryGetValue(key, out var cached)) return Result<GameplayEventCatalog>.Success(cached!);
+        var created = CreateCore(setting, revision);
+        if (created.IsSuccess) Catalogs.Set(key, created.Value);
+        return created;
+    }
+    private static Result<GameplayEventCatalog> CreateCore(string setting, string revision)
     {
         var kinds = new List<GameplayEventKindDefinition>();
         void Add(GameplayPayloadKind payload, params string[] ids) => kinds.AddRange(ids.Select(id => new GameplayEventKindDefinition

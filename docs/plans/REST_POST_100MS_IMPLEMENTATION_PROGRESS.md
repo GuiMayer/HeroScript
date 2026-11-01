@@ -38,3 +38,7 @@ ExecutionId compõe os mesmos 15 campos/bytes, reaproveitando os fragmentos do e
 ## Etapa 7 — materialização de trace
 
 O perfil não justificou adicionar um segundo protocolo lazy: hashes também alimentam fingerprints/identidades e o contrato exige o trace completo antes do append. Mantidos todos os campos e consumidores; o executor congela steps/records/calculations uma vez no retorno e reutiliza o mesmo array no fingerprint, eliminando cópia duplicada. 22 testes de transação/raízes/respostas passaram. Não houve descarte de diagnósticos, confirmação antecipada ou mudança do formato durável.
+
+## Etapa 8 — composição de observadores
+
+Coletas reutilizam os compiladores e resolvedores limitados já registrados, com isolamento por catálogo para catálogos personalizados. Catálogos internos possuem cache limitado e invalidável; decisões e quotas continuam avaliadas no estado atual. 253 testes focados, uma regressão de hits/invalidação e dois testes REST aprovados. Diagnóstico ligado: Default p50 225,43/max 448,91ms; Ascendant p50 231,94/max 294,09ms (n=3). Em um END_TURN, leituras de conteúdo caíram de 1940 para 69 e coleta para ~7ms. Meta de 100ms ainda pendente.

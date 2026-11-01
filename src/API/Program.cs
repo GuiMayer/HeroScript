@@ -294,7 +294,9 @@ builder.Services.AddSingleton<IEffectTriggerExecutor>(sp => new EffectTriggerExe
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<ICalculationEngine>(),
     sp.GetRequiredService<ICalculationInfluenceProvider>(),
-    cardZoneFlows: sp.GetRequiredService<ICardZoneFlowExecutor>()));
+    cardZoneFlows: sp.GetRequiredService<ICardZoneFlowExecutor>(),
+    observerCards: sp.GetRequiredService<ICardContentCompiler>(),
+    observerCardResolver: sp.GetRequiredService<IEffectiveCardResolver>()));
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
     new ResourceCatalog<RelicDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -637,6 +639,7 @@ foreach (var settingId in startupSettingIds)
 var cacheCoordinator = app.Services.GetRequiredService<ICacheCoordinator>();
 var applicationCaches = new ICacheService[]
 {
+    Core.GameplayEvents.GameplayCoreCatalog.CacheService,
     (ICacheService)app.Services.GetRequiredService<IContentPublicationService>(),
     app.Services.GetRequiredService<TypedContentDefinitionCache>(),
     (ICacheService)app.Services.GetRequiredService<ICardContentCompiler>(),

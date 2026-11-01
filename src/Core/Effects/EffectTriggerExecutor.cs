@@ -71,6 +71,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
     private readonly ICalculationSettlementPlanner _settlements;
     private readonly bool _allowUnconfiguredCalculations;
     private readonly ICardZoneFlowExecutor? _cardZoneFlows;
+    private readonly Core.GameplayEvents.Responses.CardGameplayObserverProvider? _cardObservers;
 
     public EffectTriggerExecutor(
         IRuntimeFormulaEvaluator formulas,
@@ -80,7 +81,9 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
         ICalculationInfluenceProvider? influences = null,
         ICalculationSettlementPlanner? settlements = null,
         bool allowUnconfiguredCalculations = false,
-        ICardZoneFlowExecutor? cardZoneFlows = null)
+        ICardZoneFlowExecutor? cardZoneFlows = null,
+        Core.Run.Content.ICardContentCompiler? observerCards = null,
+        Core.Run.Content.IEffectiveCardResolver? observerCardResolver = null)
     {
         _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
@@ -90,6 +93,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
         _settlements = settlements ?? new CalculationSettlementPlanner();
         _allowUnconfiguredCalculations = allowUnconfiguredCalculations;
         _cardZoneFlows = cardZoneFlows;
+        _cardObservers = contentRuntimes == null ? null : new(contentRuntimes, observerCards, observerCardResolver);
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)

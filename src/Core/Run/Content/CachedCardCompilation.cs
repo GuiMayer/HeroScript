@@ -10,7 +10,9 @@ public sealed class CachedCardContentCompiler : ICardContentCompiler, ICacheServ
 {
     private sealed record Key(ContentRuntime Runtime, string CardId);
     private readonly LruCache<Key, CompiledCardDefinition> _cache = new(256);
-    private readonly CardContentCompiler _compiler = new();
+    private readonly CardContentCompiler _compiler;
+    public CachedCardContentCompiler() => _compiler = new();
+    internal CachedCardContentCompiler(Core.GameplayEvents.GameplayEventCatalog catalog) => _compiler = new(catalog);
     private readonly object[] _stripes = Enumerable.Range(0, 32).Select(_ => new object()).ToArray();
     private int _generation;
     public string CacheName => "CompiledCardContainers";
@@ -38,7 +40,9 @@ public sealed class CachedCardContentCompiler : ICardContentCompiler, ICacheServ
 public sealed class CachedEffectiveCardResolver : IEffectiveCardResolver, ICacheService
 {
     private readonly LruCache<string, EffectiveCardDefinition> _cache = new(128);
-    private readonly EffectiveCardResolver _resolver = new();
+    private readonly EffectiveCardResolver _resolver;
+    public CachedEffectiveCardResolver() => _resolver = new();
+    internal CachedEffectiveCardResolver(ICardContentCompiler compiler) => _resolver = new(compiler);
     private readonly object[] _stripes = Enumerable.Range(0, 32).Select(_ => new object()).ToArray();
     private int _generation;
     public string CacheName => "ComposedCardContainers";

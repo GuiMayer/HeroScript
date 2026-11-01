@@ -101,6 +101,26 @@ public sealed class CardGameplayObserverProviderTests
         Assert.Single(outputs); Assert.Equal(original, CanonicalJson.ComputeHash(request));
     }
 
+    [Fact]
+    public void CanonicalObserverCollectionUsesTheSharedCompilationCachesAndKeepsTheSameRegistrations()
+    {
+        var fixture = Fixture(false);
+        var catalog = fixture.Runtime.GameplayCatalog.Value;
+        var context = fixture.Context with { Catalog = catalog, Run = fixture.Context.Run with { SettingId = catalog.SettingId } };
+        var compiler = new CachedCardContentCompiler();
+        var resolver = new CachedEffectiveCardResolver();
+        var provider = new CardGameplayObserverProvider(fixture.Runtimes, compiler, resolver);
+        var first = GameplayObserverCollector.Collect(context, [provider]);
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        var second = GameplayObserverCollector.Collect(context, [provider]);
+        Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(second.Value));
+        Assert.True(compiler.GetStats().Hits > 0);
+        Assert.True(resolver.GetStats().Hits > 0);
+        compiler.Invalidate(); resolver.Invalidate();
+        Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(GameplayObserverCollector.Collect(context, [provider]).Value));
+    }
+
     private sealed class EmptyInfluences : ICalculationInfluenceProvider
     {
         public string ProviderId => "test.empty";

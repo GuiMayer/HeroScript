@@ -11,8 +11,11 @@ using Core.Run.DeckCompartments;
 namespace Core.GameplayEvents.Responses;
 
 /// <summary>Reads the same effective container and compartment contributions as card execution. Zone purpose is irrelevant.</summary>
-public sealed class CardGameplayObserverProvider(IContentRuntimeResolver runtimes) : GameplayContainerObserverProvider
+public sealed class CardGameplayObserverProvider(IContentRuntimeResolver runtimes, ICardContentCompiler? sharedCompiler = null, IEffectiveCardResolver? sharedResolver = null) : GameplayContainerObserverProvider
 {
+    private sealed record Services(ICardContentCompiler Compiler, IEffectiveCardResolver Resolver);
+    private readonly Services _shared = new(sharedCompiler ?? new CachedCardContentCompiler(), sharedResolver ?? new CachedEffectiveCardResolver());
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameplayEventCatalog, Services> _custom = new();
     public override string ProviderId => "core.card";
 
     protected override Result<ImmutableArray<GameplayResponseContainerSource>> Sources(GameplayObserverCollectionContext context)
@@ -22,8 +25,15 @@ public sealed class CardGameplayObserverProvider(IContentRuntimeResolver runtime
             return Result<ImmutableArray<GameplayResponseContainerSource>>.Failure("Card observer scan exceeds its input budget");
         var runtime = runtimes.Resolve(context.Run.Determinism.ContentRevision, context.Run.ConfigName);
         if (runtime.IsFailure) return Result<ImmutableArray<GameplayResponseContainerSource>>.Failure(runtime.Error);
-        var compiler = new CardContentCompiler(context.Catalog);
-        var resolver = new EffectiveCardResolver(compiler);
+        var canonical = runtime.Value.GameplayCatalog;
+        if (canonical.IsFailure) return Result<ImmutableArray<GameplayResponseContainerSource>>.Failure(canonical.Error);
+        var services = ReferenceEquals(context.Catalog, canonical.Value) ? _shared : _custom.GetValue(context.Catalog, catalog =>
+        {
+            var capturedCompiler = new CachedCardContentCompiler(catalog);
+            return new(capturedCompiler, new CachedEffectiveCardResolver(capturedCompiler));
+        });
+        var compiler = services.Compiler;
+        var resolver = services.Resolver;
         var definitions = new Dictionary<string, CompiledCardDefinition>(StringComparer.Ordinal);
         var sources = ImmutableArray.CreateBuilder<GameplayResponseContainerSource>();
         foreach (var instance in context.Run.Deck.Topology.Instances.Values.OrderBy(card => card.CreationOrdinal).ThenBy(card => card.CardInstanceId))
