@@ -42,3 +42,7 @@ O perfil não justificou adicionar um segundo protocolo lazy: hashes também ali
 ## Etapa 8 — composição de observadores
 
 Coletas reutilizam os compiladores e resolvedores limitados já registrados, com isolamento por catálogo para catálogos personalizados. Catálogos internos possuem cache limitado e invalidável; decisões e quotas continuam avaliadas no estado atual. 253 testes focados, uma regressão de hits/invalidação e dois testes REST aprovados. Diagnóstico ligado: Default p50 225,43/max 448,91ms; Ascendant p50 231,94/max 294,09ms (n=3). Em um END_TURN, leituras de conteúdo caíram de 1940 para 69 e coleta para ~7ms. Meta de 100ms ainda pendente.
+
+## Etapa 9 — execução selecionada
+
+Auditoria confirma Evaluate/EvaluateObserved para o comando escolhido, sem resolver toda a mão no POST. Adicionada regressão VerifyNoOtherCalls para jogador e controlador automático: 14 testes aprovados. Preservados isolamento causal de EvaluateObserved, opções e decisões de IA; não foi adicionado executor ou cache de decisões duplicado.

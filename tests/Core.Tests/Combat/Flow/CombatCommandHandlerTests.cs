@@ -123,6 +123,7 @@ public sealed class CombatCommandHandlerTests
             run, playerCombat, It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput), Times.Once);
         legal.Verify(service => service.Evaluate(
             run, automaticCombat, It.IsAny<CombatActionCommand>(), CombatCommandOrigin.AutomaticController), Times.Once);
+        legal.VerifyNoOtherCalls(); // A selected command must not enumerate unrelated actions.
         reducer.Verify(service => service.Apply(
             It.IsAny<RunState>(),
             It.IsAny<CombatState>(),
