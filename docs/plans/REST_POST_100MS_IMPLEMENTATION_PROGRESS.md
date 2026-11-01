@@ -50,3 +50,7 @@ Auditoria confirma Evaluate/EvaluateObserved para o comando escolhido, sem resol
 ## Etapa 10 — frames e preparação do commit
 
 Frames congelados reaproveitam fragmentos canônicos e StateAfter estrutural no fingerprint, sem hash de subhashes. O array publicado é imutável; o encoder só aceita ImmutableArray e tipos auditados. 32 testes focados passaram e o oráculo fixo coincidiu em três processos independentes (69s), incluindo 18 hashes de commits/recibos e replay. Build sem avisos/erros. Mantidos PreparedRunCommit, validação, ByteHash, append atômico e flush durável; não foi alterada a política de checkpoints.
+
+## Etapa 11 — projeções REST
+
+Sessão reutiliza uma projeção por identidade fraca do snapshot confirmado, somente após validar versão e chave de permissões/perfil/schema. Não retém branches abandonadas nem resultados de erro; troca de snapshot gera outra projeção. Sete testes API passaram, incluindo reuso por identidade, avanço de versão e ETag. Contratos e frames dos POSTs permanecem iguais; não foi criado perfil mínimo que obrigue GET complementar. Benchmark aceita HEROSCRIPT_POST_DIAGNOSTICS=false e HEROSCRIPT_POST_PROFILE=default para medir separadamente o contrato padrão e o Prefer existente (combate mantém o mesmo corpo nos dois). Gateway, retry e animações Godot não precisaram mudar.

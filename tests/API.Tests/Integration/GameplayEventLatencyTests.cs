@@ -16,7 +16,7 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
     private sealed class TimedFactory : TestWebApplicationFactory
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
-        { base.ConfigureWebHost(builder); builder.UseSetting("Performance:DiagnosticsEnabled", "true"); }
+        { base.ConfigureWebHost(builder); builder.UseSetting("Performance:DiagnosticsEnabled", Environment.GetEnvironmentVariable("HEROSCRIPT_POST_DIAGNOSTICS") ?? "true"); }
     }
 
     [Theory]
@@ -49,7 +49,8 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
                 expectedStep = combat.Determinism.Step, payload = new { actorId = inputActor } };
             var watch = Stopwatch.StartNew();
             using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/combats/{combat.CombatId}/commands") { Content = JsonContent.Create(payload) };
-            request.Headers.Add("Prefer", "return=minimal");
+            if (Environment.GetEnvironmentVariable("HEROSCRIPT_POST_PROFILE") != "default")
+                request.Headers.Add("Prefer", "return=minimal");
             using var response = await client.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.IsSuccessStatusCode, body);
@@ -64,7 +65,7 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
             Assert.Equal(CanonicalJson.ComputeHash(after), view.GetProperty("version").GetProperty("stateFingerprint").GetString());
             Assert.Equal(CanonicalJson.ComputeHash(after), CanonicalJson.ComputeHash(runs.GetRun(runId).Value));
             output.WriteLine($"setting={setting}; action={sample}; POST={commandMs:F2}ms; REST+session={total:F2}ms");
-            output.WriteLine("Server-Timing: " + string.Join(", ", response.Headers.GetValues("Server-Timing")));
+            if (response.Headers.TryGetValues("Server-Timing", out var timings)) output.WriteLine("Server-Timing: " + string.Join(", ", timings));
             if (response.Headers.TryGetValues("X-HeroScript-Work", out var work)) output.WriteLine("WORK: " + string.Join("", work));
         }
         var ordered = postTimes.Order().ToArray();

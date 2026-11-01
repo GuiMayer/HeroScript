@@ -23,6 +23,12 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
     ICardModifierItemQueryService items, IActorAttributeProjectionService attributes,
     ILegalActionResolver legal, IToolAccessPolicy access)
 {
+    // Weak snapshot keys release old runs/branches; only one authorized projection per snapshot.
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<RunState, ProjectionSlot> _projections = new();
+    private sealed class ProjectionSlot
+    {
+        public InteractionSessionRead? Value;
+    }
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
     private static JsonElement Json<T>(T value) => JsonSerializer.SerializeToElement(value, Options);
     public Result<InteractionSessionRead> Read(Guid runId, int? expectedSequence, string? ifNoneMatch)
@@ -38,6 +44,10 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
         var granted = access.EffectiveFor(run);
         var etag = "\"" + CanonicalJson.ComputeHash(new { context.Version, granted, access.Snapshot.Profile, schema = 2 }) + "\"";
         if (ifNoneMatch == etag) return Result<InteractionSessionRead>.Success(new(etag, null));
+        var slot = _projections.GetValue(run, _ => new ProjectionSlot());
+        lock (slot)
+            if (slot.Value is { } cached && cached.ETag == etag)
+                return Result<InteractionSessionRead>.Success(cached);
         var combat = run.GetActiveEncounter()?.Combat;
         var commands = runs.GetAvailableCommands(run);
         if (commands.IsFailure) return Result<InteractionSessionRead>.Failure(commands.Error);
@@ -59,7 +69,7 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
             if (options.IsFailure) return Result<InteractionSessionRead>.Failure(options.Error);
             actions = options.Value.Candidates.ToImmutableArray();
         }
-        return Result<InteractionSessionRead>.Success(new(etag, new(context.Version,
+        var projected = new InteractionSessionRead(etag, new(context.Version,
             RunInteractionProjection.Project(context, granted.Contains(ToolCapabilities.CheatCardZones)),
             Json(combat == null ? null : CombatStateResponse.From(combat)),
             Json(new { run.RunId, run.Sequence, run.Determinism.Step, commands = commands.Value }),
@@ -69,6 +79,8 @@ public sealed class InteractionSessionService(IRunQueryService runs, ICardPresen
                 value.CandidateId, value.Source, value.Command, value.ActionId, value.CardDefinitionId,
                 value.Costs, value.Applications, value.OutcomeUncertain, value.ReactionTransition,
                 value.ResolutionFingerprint
-            }) }), Json(new { cards = evaluations.ToImmutable() }))));
+            }) }), Json(new { cards = evaluations.ToImmutable() })));
+        lock (slot) slot.Value = projected;
+        return Result<InteractionSessionRead>.Success(projected);
     }
 }

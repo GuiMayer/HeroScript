@@ -75,6 +75,13 @@ public sealed class InteractionSessionTests
             Assert.Equal(active.Sequence, card.GetProperty("version").GetProperty("runSequence").GetInt32());
         });
         Assert.Equal(activeHash, CanonicalJson.ComputeHash(runs.GetRun(id).Value));
+        var projections = factory.Services.GetRequiredService<InteractionSessionService>();
+        var firstProjection = projections.Read(id, active.Sequence, null);
+        var repeatedProjection = projections.Read(id, active.Sequence, null);
+        Assert.True(firstProjection.IsSuccess);
+        Assert.True(repeatedProjection.IsSuccess);
+        Assert.Same(firstProjection.Value.Session, repeatedProjection.Value.Session);
+        Assert.NotEqual(session.GetProperty("version").GetRawText(), combat.GetProperty("version").GetRawText());
         using var old = await client.GetAsync($"/api/v1/runs/{id}/session?expectedSequence={before.Sequence}");
         Assert.Equal(HttpStatusCode.Conflict, old.StatusCode);
     }
