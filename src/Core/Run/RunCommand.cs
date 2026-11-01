@@ -42,6 +42,13 @@ public interface IRunCommandReceiptReader
     Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId);
 }
 
+/// <summary>Internal evidence published only after append; never a negative-lookup cache.</summary>
+internal interface ILocalCommittedReceiptReader
+{
+    IRunCommitReader? ReceiptHistory { get; }
+    bool TryGetCommittedReceipt(Guid runId, Guid commandId, out RunCommandReceipt receipt);
+}
+
 public interface IRunCommandGateway : IRunCommandReceiptReader
 {
     Task<Result<RunCommandReceipt>> ExecuteAsync(

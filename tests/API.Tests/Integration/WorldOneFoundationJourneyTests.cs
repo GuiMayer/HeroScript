@@ -23,9 +23,17 @@ public sealed class WorldOneFoundationJourneyTests(ITestOutputHelper output)
     {
         List<string>? baseline = null;
         var commandTimes = new List<double>(); var previewTimes = new List<double>();
+        var byType = new Dictionary<string, List<double>>(StringComparer.Ordinal);
+        void Record(string type, double milliseconds)
+        {
+            if (!byType.TryGetValue(type, out var values)) byType[type] = values = [];
+            values.Add(milliseconds);
+        }
         for (var repetition = 0; repetition < 10; repetition++)
         {
             using var factory = new TestWebApplicationFactory();
+            if (Environment.GetEnvironmentVariable("HEROSCRIPT_FOUNDATION_TCP") == "true")
+                factory.UseKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
             using var client = factory.CreateClient();
             var game = new GameEngineClientSimulator(client);
             var revision = await PublishFixture(factory);
@@ -37,10 +45,12 @@ public sealed class WorldOneFoundationJourneyTests(ITestOutputHelper output)
             async Task<JsonElement> Start(string setting, string player, ulong seed, string? pinned = null)
             {
                 if (pinned == null) pinned = (await Read(client, $"/api/v1/content/revisions?configName={setting}")).GetProperty("currentRevision").GetString();
+                var timer = Stopwatch.StartNew();
                 var json = await Post(client, "/api/v1/runs", new { settingId = setting,
                     runDefinitionId = setting == "ascendant" ? "ascendant_showcase_run" : "default_run",
                     modeId = setting == "ascendant" ? "ascendant_showcase" : "standard",
                     playerEntityId = player, seed, contentRevision = pinned });
+                Record("START_RUN", timer.Elapsed.TotalMilliseconds);
                 transcript.Add(CanonicalJson.ComputeHash(json));
                 var commit = await store.LoadCommitAsync(json.GetProperty("runId").GetGuid(), 1);
                 transcript.Add(CanonicalJson.ComputeHash(commit));
@@ -65,7 +75,9 @@ public sealed class WorldOneFoundationJourneyTests(ITestOutputHelper output)
                 var route = combatId == null ? $"/api/v1/runs/{runId}/commands" : $"/api/v1/combats/{combatId}/commands";
                 var timer = Stopwatch.StartNew();
                 var receipt = await Post(client, route, envelope);
-                commandTimes.Add(timer.Elapsed.TotalMilliseconds);
+                var elapsed = timer.Elapsed.TotalMilliseconds;
+                commandTimes.Add(elapsed);
+                Record(type, elapsed);
                 transcript.Add(CanonicalJson.ComputeHash(receipt));
                 var commit = await store.LoadCommitAsync(runId, receipt.GetProperty("sequence").GetInt32());
                 transcript.Add(CanonicalJson.ComputeHash(commit));
@@ -209,6 +221,8 @@ public sealed class WorldOneFoundationJourneyTests(ITestOutputHelper output)
             if (baseline == null) baseline = transcript; else Assert.Equal(baseline, transcript);
             output.WriteLine($"repetition={repetition + 1}; commands={nextCommand}; transcript={CanonicalJson.ComputeHash(transcript)}; final={final.GetProperty("stateHash").GetString()}");
         }
+        foreach (var (type, values) in byType.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            output.WriteLine($"POST_MATRIX type={type}; n={values.Count}; p50={Percentile(values, .50):F2}; p95={Percentile(values, .95):F2}; p99={Percentile(values, .99):F2}; max={values.Max():F2}ms");
         output.WriteLine($"commands n={commandTimes.Count} p95={Percentile(commandTimes, .95):F2}ms max={commandTimes.Max():F2}ms; previews n={previewTimes.Count} p95={Percentile(previewTimes, .95):F2}ms max={previewTimes.Max():F2}ms");
     }
 

@@ -64,6 +64,7 @@ public sealed partial class CombatRunCoordinator
     private Result<ActionCandidate> PrepareActionCandidate(RunState run, CombatState combat, Guid combatId,
         CombatActionCommand command, RunCommandIdentity? identity, JsonElement payload, GameplayEffectObservation? observation)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("combat_plan");
         GameplayEffectObservation? rootBefore = null; GameplayEffectObservation? rootStarted = null;
         if (observation == null && _occurrences != null)
         {

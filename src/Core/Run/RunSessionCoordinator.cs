@@ -262,6 +262,9 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
     {
         if (_receipts.TryGetValue((runId, commandId), out var cached))
             return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
+        var local = _receiptFallback as ILocalCommittedReceiptReader;
+        if (local != null && local.TryGetCommittedReceipt(runId, commandId, out cached))
+            return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
         if (_history == null)
             return _receiptFallback?.FindReceipt(runId, commandId)
                 ?? Result<RunCommandReceipt?>.Success(null);
@@ -276,6 +279,10 @@ public sealed partial class RunSessionCoordinator : IRunCommandProcessor
                 _receipts[(runId, commandId)] = cached;
                 return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
             }
+            // Both readers share the exact durable backend: a second miss cannot add evidence.
+            // Do not retain the miss; another process may append before the next request.
+            if (local != null && ReferenceEquals(local.ReceiptHistory, _history))
+                return Result<RunCommandReceipt?>.Success(null);
             return _receiptFallback?.FindReceipt(runId, commandId)
                 ?? Result<RunCommandReceipt?>.Success(null);
         }

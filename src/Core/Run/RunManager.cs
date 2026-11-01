@@ -24,7 +24,7 @@ using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
-public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, IContentRevisionActivationPreviewService
+public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, IContentRevisionActivationPreviewService, ILocalCommittedReceiptReader
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -654,6 +654,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         return runtime.IsFailure ? Result<IReadOnlyList<CardTransformationOption>>.Failure(runtime.Error)
             : new CardTransformationPlanner(runtime.Value).Options(run, cardInstanceId);
     }
+
+    IRunCommitReader? ILocalCommittedReceiptReader.ReceiptHistory => _repository;
+    bool ILocalCommittedReceiptReader.TryGetCommittedReceipt(Guid runId, Guid commandId, out RunCommandReceipt receipt) =>
+        _commandReceipts.TryGetValue((runId, commandId), out receipt!);
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId)
     {
@@ -1676,6 +1680,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         JsonElement rootPayload = default,
         Core.GameplayEvents.GameplayEffectObservation? observation = null)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("resolution_project");
         var encounterIndex = FindEncounterIndex(state, previousCombat.CombatId);
         if (encounterIndex < 0 || state.ActiveEncounterId != previousCombat.CombatId)
             return Result<RunState>.Failure($"Active run encounter not found: {previousCombat.CombatId}");

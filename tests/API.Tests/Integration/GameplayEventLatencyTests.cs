@@ -29,18 +29,26 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
         using var client = factory.CreateClient();
         var game = new GameEngineClientSimulator(client);
         var player = "player";
-        var runId = await game.StartRunAsync(setting, definition, player, 541, mode);
         var runs = factory.Services.GetRequiredService<IRunQueryService>();
-        var available = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{runId}/available-commands");
-        var start = available.GetProperty("commands").EnumerateArray().Single(item => item.GetProperty("type").GetString() == "START_ENCOUNTER");
+        async Task<Guid> StartInitializedRun(int batch)
+        {
+            var id = await game.StartRunAsync(setting, definition, player, 541 + (ulong)batch, mode);
+            var available = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{id}/available-commands");
+            var start = available.GetProperty("commands").EnumerateArray().Single(item => item.GetProperty("type").GetString() == "START_ENCOUNTER");
+            var initial = runs.GetRun(id).Value;
+            using var initialized = await client.PostAsJsonAsync($"/api/v1/runs/{id}/commands", new { commandId = Guid.NewGuid(), type = "START_ENCOUNTER",
+                expectedSequence = initial.Sequence, expectedStep = initial.Determinism.Step, payload = start.GetProperty("validPayload") });
+            Assert.True(initialized.IsSuccessStatusCode, await initialized.Content.ReadAsStringAsync());
+            return id;
+        }
+        var runId = await StartInitializedRun(0);
         var state = runs.GetRun(runId).Value;
-        using var initialized = await client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new { commandId = Guid.NewGuid(), type = "START_ENCOUNTER",
-            expectedSequence = state.Sequence, expectedStep = state.Determinism.Step, payload = start.GetProperty("validPayload") });
-        Assert.True(initialized.IsSuccessStatusCode, await initialized.Content.ReadAsStringAsync());
         var samples = int.TryParse(Environment.GetEnvironmentVariable("HEROSCRIPT_POST_SAMPLES"), out var requested) ? Math.Clamp(requested, 1, 1000) : 3;
         var postTimes = new List<double>();
         for (var sample = 0; sample < samples; sample++)
         {
+            // Distribute long campaigns over valid encounters instead of ending turns after death.
+            if (sample > 0 && sample % 3 == 0) runId = await StartInitializedRun(sample / 3);
             state = runs.GetRun(runId).Value;
             var combat = state.GetActiveEncounter()!.Combat;
             var inputActor = combat.GetAllActors().Single(actor => actor.ControllerBinding.Kind == Core.Combat.Models.ControllerKind.Player).InstanceId;

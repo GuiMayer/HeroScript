@@ -349,6 +349,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         Guid commandId,
         CancellationToken ct = default)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("receipt_lookup");
         var gate = Gate(runId);
         await gate.WaitAsync(ct).ConfigureAwait(false);
         try

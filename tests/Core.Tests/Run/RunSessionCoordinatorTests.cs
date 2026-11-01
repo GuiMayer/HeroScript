@@ -106,6 +106,51 @@ public sealed class RunSessionCoordinatorTests
         Assert.Equal(2, store.AppendCount);
     }
 
+    [Fact]
+    public async Task SharedReceiptReaderReusesOnlyCommittedResultsAndDoesNotRetainMisses()
+    {
+        var state = CreateState(Guid.NewGuid(), 67);
+        var queries = new TestQueries(state);
+        var store = new TestCommitStore();
+        var local = new LocalReceipts(store);
+        var descriptor = new GameplayCommandDescriptor(TestCommandType, typeof(TestValueCommand), GameplayCommandRoute.Run);
+        var reader = new RunSessionCoordinator(queries, new GameplayCommandCodec([descriptor]),
+            new RunCommandHandlerRegistry([new TestHandler(descriptor)]), queries.Publish, store, store, local);
+        var command = Command(state, Guid.NewGuid(), 1);
+        Assert.Null(reader.FindReceipt(state.RunId, command.Identity.CommandId).Value);
+        Assert.Equal(1, store.FindCommandCount);
+        Assert.Equal(0, local.FallbackReads);
+        var producer = CreateCoordinator(queries, store);
+        var committed = await producer.ExecuteAsync(state.RunId, command);
+        Assert.True(committed.IsSuccess);
+        var reads = store.FindCommandCount;
+        // A fresh lookup must see a commit appended since the earlier negative lookup.
+        Assert.Equal(committed.Value.StateHash, reader.FindReceipt(state.RunId, command.Identity.CommandId).Value!.StateHash);
+        Assert.Equal(reads + 1, store.FindCommandCount);
+        var otherReader = new RunSessionCoordinator(queries, new GameplayCommandCodec([descriptor]),
+            new RunCommandHandlerRegistry([new TestHandler(descriptor)]), queries.Publish, store, store, local);
+        local.Receipt = committed.Value;
+        reads = store.FindCommandCount;
+        var reused = otherReader.FindReceipt(state.RunId, command.Identity.CommandId);
+        Assert.True(reused.Value!.Duplicate);
+        Assert.Same(committed.Value.State, reused.Value.State);
+        Assert.Equal(reads, store.FindCommandCount);
+    }
+
+    private sealed class LocalReceipts(IRunCommitReader history) : IRunCommandReceiptReader, ILocalCommittedReceiptReader
+    {
+        public RunCommandReceipt? Receipt;
+        public int FallbackReads;
+        public IRunCommitReader? ReceiptHistory => history;
+        public bool TryGetCommittedReceipt(Guid runId, Guid commandId, out RunCommandReceipt receipt)
+        {
+            receipt = Receipt!;
+            return Receipt?.State.RunId == runId && Receipt.CommandId == commandId;
+        }
+        public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId)
+        { FallbackReads++; return Result<RunCommandReceipt?>.Success(null); }
+    }
+
     private static RunSessionCoordinator CreateCoordinator(TestQueries queries, TestCommitStore store)
     {
         var descriptor = new GameplayCommandDescriptor(

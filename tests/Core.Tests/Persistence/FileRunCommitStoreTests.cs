@@ -236,6 +236,25 @@ public sealed class FileRunCommitStoreTests : IDisposable
             store.AppendAsync(current with { EngineVersion = "future" }));
     }
 
+    [Fact]
+    public async Task ReceiptLookupReadsFreshIndicesAfterAnotherStoreAppendsAndAfterRebuild()
+    {
+        var runId = Guid.NewGuid();
+        var first = CreateCommit(runId, 1, null, 1);
+        var second = CreateCommit(runId, 2, first.StateHash, 2);
+        using var reader = new FileRunCommitStore(_directory, NullLogger.Instance);
+        using var writer = new FileRunCommitStore(_directory, NullLogger.Instance);
+        await writer.AppendAsync(first);
+        Assert.Null(await reader.FindCommandAsync(runId, second.RootCommand.CommandId));
+        await writer.AppendAsync(second);
+        Assert.Equal(second.StateHash, (await reader.FindCommandAsync(runId, second.RootCommand.CommandId))!.StateHash);
+        File.Delete(Path.Combine(_directory, runId.ToString("D"), "index", "head.idx"));
+        Assert.Null(await reader.FindCommandAsync(runId, Guid.NewGuid()));
+        Assert.Equal(second.StateHash, (await reader.FindCommandAsync(runId, second.RootCommand.CommandId))!.StateHash);
+        using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.FindCommandAsync(runId, Guid.NewGuid(), cancelled.Token));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
