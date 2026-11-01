@@ -7,31 +7,26 @@ const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
 var model: Dictionary = {}
 
-@onready var icon_rect: TextureRect = %IconRect
-@onready var glyph_label: Label = %GlyphLabel
-@onready var stack_label: Label = %StackLabel
+@export var preview_status: Dictionary = {"statusId": "burn", "stacks": 4, "duration": 2}
+var icon_rect: TextureRect
+var glyph_label: Label
+var stack_label: Label
+var _panel_style: StyleBoxFlat
 
 func _ready() -> void:
-	_ensure_nodes()
-	if not model.is_empty():
+	_bind_nodes()
+	if Engine.is_editor_hint() and model.is_empty():
+		apply_status(preview_status)
+	elif not model.is_empty():
 		_apply_model()
-	elif Engine.is_editor_hint():
-		# Live preview in Godot editor 2D canvas
-		apply_status({"statusId": "burn", "stacks": 4, "duration": 2})
 
-func _ensure_nodes() -> void:
-	if icon_rect == null:
-		icon_rect = get_node_or_null("%IconRect")
-		if icon_rect == null:
-			icon_rect = find_child("IconRect", true, false)
-	if glyph_label == null:
-		glyph_label = get_node_or_null("%GlyphLabel")
-		if glyph_label == null:
-			glyph_label = find_child("GlyphLabel", true, false)
-	if stack_label == null:
-		stack_label = get_node_or_null("%StackLabel")
-		if stack_label == null:
-			stack_label = find_child("StackLabel", true, false)
+func _bind_nodes() -> void:
+	icon_rect = get_node("%IconRect")
+	glyph_label = get_node("%GlyphLabel")
+	stack_label = get_node("%StackLabel")
+	if _panel_style == null:
+		_panel_style = get_theme_stylebox("panel").duplicate()
+		add_theme_stylebox_override("panel", _panel_style)
 
 func presentation_model() -> Dictionary:
 	return model.duplicate(true)
@@ -44,7 +39,7 @@ func apply_status(status_data: Dictionary, context = null) -> void:
 	model = status_data.duplicate(true)
 	if context != null:
 		visual_context = context
-	_ensure_nodes()
+	_bind_nodes()
 	_apply_model()
 
 func _apply_model() -> void:
@@ -53,17 +48,9 @@ func _apply_model() -> void:
 	var duration: int = int(model.get("duration", 0))
 	var tone := _status_tone(status_id)
 
-	# StyleBox
-	var style := StyleBoxFlat.new()
-	style.bg_color = tone.bg
-	style.border_color = tone.border
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 2
-	style.content_margin_right = 2
-	style.content_margin_top = 2
-	style.content_margin_bottom = 2
-	add_theme_stylebox_override("panel", style)
+	# Preserve the scene's editable border widths, padding and corner radii.
+	_panel_style.bg_color = tone.bg
+	_panel_style.border_color = tone.border
 
 	if icon_rect == null or glyph_label == null or stack_label == null:
 		return
