@@ -326,7 +326,7 @@ func show_timeline() -> void:
 		return
 	current_screen = "timeline"
 	_clear_host()
-	var screen = TimelineScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("timeline")
 	screen.setup(self)
 	host.add_child(screen)
 
@@ -356,7 +356,7 @@ func show_history() -> void:
 	if GameSession.busy: return
 	current_screen = "history"
 	_clear_host()
-	var screen = RunHistoryScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("run_history")
 	screen.setup(self)
 	host.add_child(screen)
 

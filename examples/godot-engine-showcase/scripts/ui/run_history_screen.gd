@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 ## Read-only archive browser. It never activates a run unless Continue is chosen.
 
@@ -12,58 +13,38 @@ var verify_button: Button
 var loading := false
 var unlock_summary: Label
 
+var _connected := false
+func _ready() -> void:
+	_bind_nodes()
+	if Engine.is_editor_hint():
+		mount(ContextType.new()); theme = visual_context.theme
+func _bind_nodes() -> void:
+	continue_button = get_node("Body/DetailsPanel/Information/ContinueButton")
+	details = get_node("Body/DetailsPanel/Information/RunHistoryDetails")
+	list = get_node("Body/ArchivePanel/Archive/RunHistoryList")
+	replay_button = get_node("Body/DetailsPanel/Information/WatchReplayButton")
+	unlock_summary = get_node("ProfileUnlockSummary")
+	verify_button = get_node("Body/DetailsPanel/Information/VerifyButton")
 func setup(owner) -> void:
 	router = owner
 	mount(owner.visual_context)
-	add_theme_constant_override("separation", 12)
-	var header := HBoxContainer.new()
-	header.add_child(AppTheme.title(I18n.text("JOURNEY HISTORY"), 30))
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(push)
-	header.add_child(_button(I18n.text("BACK"), router.back_to_menu))
-	add_child(header)
-	var setting_name := I18n.text(str(GameSession.selected_setting.get("displayName", GameSession.selected_setting_id)))
-	add_child(AppTheme.title(setting_name, 18, AppTheme.TEAL))
-	unlock_summary = AppTheme.muted("", 13)
-	unlock_summary.name = "ProfileUnlockSummary"
-	add_child(unlock_summary)
-	add_child(AppTheme.muted(I18n.text("Every journey is an immutable engine record. Inspect, verify or replay it without changing its outcome.")))
-	var body := HSplitContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(body)
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 410
-	left.add_child(AppTheme.muted(I18n.text("RECORDED JOURNEYS"), 13))
-	list = ItemList.new()
-	list.name = "RunHistoryList"
-	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	list.item_selected.connect(_select)
-	left.add_child(list)
-	body.add_child(AppTheme.panel(left))
-	var right := VBoxContainer.new()
-	right.add_theme_constant_override("separation", 12)
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	details = RichTextLabel.new()
-	details.name = "RunHistoryDetails"
-	details.bbcode_enabled = true
-	details.fit_content = true
-	details.custom_minimum_size.y = 250
-	right.add_child(details)
-	replay_button = _button(I18n.text("WATCH REPLAY"), _watch)
-	replay_button.name = "WatchReplayButton"
-	replay_button.disabled = true
-	right.add_child(replay_button)
-	verify_button = _button(I18n.text("VERIFY INTEGRITY"), _verify)
-	verify_button.disabled = true
-	right.add_child(verify_button)
-	continue_button = _button(I18n.text("CONTINUE JOURNEY"), _continue)
-	continue_button.disabled = true
-	right.add_child(continue_button)
-	var flex := Control.new()
-	flex.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(flex)
-	body.add_child(AppTheme.panel(right))
+	_bind_nodes()
+	theme = visual_context.theme
+	get_node("Header/Back").text = I18n.text("BACK")
+	get_node("Header/Title").text = I18n.text("JOURNEY HISTORY")
+	get_node("Body/DetailsPanel/Information/ContinueButton").text = I18n.text("CONTINUE JOURNEY")
+	get_node("Body/DetailsPanel/Information/WatchReplayButton").text = I18n.text("WATCH REPLAY")
+	get_node("Body/DetailsPanel/Information/VerifyButton").text = I18n.text("VERIFY INTEGRITY")
+	get_node("Body/ArchivePanel/Archive/Heading").text = I18n.text("RECORDED JOURNEYS")
+	get_node("Description").text = I18n.text("Every journey is an immutable engine record. Inspect, verify or replay it without changing its outcome.")
+	get_node("SettingName").text = I18n.text(str(GameSession.selected_setting.get("displayName", GameSession.selected_setting_id)))
+	if not _connected:
+		_connected = true
+		list.item_selected.connect(_select)
+		_wire_button(get_node("Header/Back"), router.back_to_menu)
+		_wire_button(get_node("Body/DetailsPanel/Information/WatchReplayButton"), _watch)
+		_wire_button(get_node("Body/DetailsPanel/Information/ContinueButton"), _continue)
+		_wire_button(get_node("Body/DetailsPanel/Information/VerifyButton"), _verify)
 	call_deferred("_load")
 
 func _load() -> void:
@@ -148,7 +129,5 @@ func _continue() -> void:
 func _lifecycle(value: String) -> String:
 	return I18n.text({"active": "IN PROGRESS", "completed": "COMPLETED", "abandoned": "ABANDONED"}.get(value.to_lower(), value.to_upper()))
 
-func _button(text: String, action: Callable) -> Button:
-	var value := AppTheme.button(text)
+func _wire_button(value: Button, action: Callable) -> void:
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
-	return value

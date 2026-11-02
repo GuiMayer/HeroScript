@@ -1,0 +1,189 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/timeline_screen.gd" id="1_mmo6h"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sp0tk"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.panel"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l5mst"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.panel"
+metadata/border_role = "stroke.disabled"
+
+[node name="TimelineScreen" type="VBoxContainer" unique_id=1102731912]
+theme_override_constants/separation = 8
+script = ExtResource("1_mmo6h")
+
+[node name="Header" type="HBoxContainer" parent="." unique_id=1061759828]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Header" unique_id=755113860]
+layout_mode = 2
+theme_type_variation = &"ScreenTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 28
+text = "DETERMINISTIC TIMELINE"
+metadata/font_role = "screen_title"
+metadata/text_role = "text.primary"
+
+[node name="Spacer" type="Control" parent="Header" unique_id=1335988554]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Back" type="Button" parent="Header" unique_id=169154644]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "BACK TO COMBAT"
+
+[node name="Description" type="Label" parent="." unique_id=1243140587]
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 15
+text = "Inspect history without changing the run. Create or activate a branch to play another path."
+autowrap_mode = 3
+metadata/font_role = "caption"
+
+[node name="Body" type="HSplitContainer" parent="." unique_id=843763796]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ArchivePanel" type="PanelContainer" parent="Body" unique_id=1981572309]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_sp0tk")
+
+[node name="Archive" type="VBoxContainer" parent="Body/ArchivePanel" unique_id=1953735168]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+
+[node name="List" type="ItemList" parent="Body/ArchivePanel/Archive" unique_id=1193594576]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MoreButton" type="Button" parent="Body/ArchivePanel/Archive" unique_id=890644984]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "LOAD MORE"
+
+[node name="TreeView" type="Tree" parent="Body/ArchivePanel/Archive" unique_id=1068462737]
+visible = false
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+columns = 2
+column_titles_visible = true
+
+[node name="Timer12" type="Timer" parent="Body/ArchivePanel/Archive/TreeView" unique_id=750642853]
+one_shot = true
+
+[node name="ActivateButton" type="Button" parent="Body/ArchivePanel/Archive" unique_id=353701594]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "ACTIVATE BRANCH"
+
+[node name="DetailsPanel" type="PanelContainer" parent="Body" unique_id=1948966207]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_l5mst")
+
+[node name="Information" type="VBoxContainer" parent="Body/DetailsPanel" unique_id=1131849676]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Details" type="RichTextLabel" parent="Body/DetailsPanel/Information" unique_id=1142577730]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+
+[node name="Scrubber" type="HSlider" parent="Body/DetailsPanel/Information" unique_id=401137055]
+layout_mode = 2
+
+[node name="HistoryView" type="VBoxContainer" parent="Body/DetailsPanel/Information" unique_id=2104037547]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FrameText" type="RichTextLabel" parent="Body/DetailsPanel/Information" unique_id=626995264]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+focus_mode = 2
+selection_enabled = true
+
+[node name="PlaybackControls" type="HFlowContainer" parent="Body/DetailsPanel/Information" unique_id=994198585]
+layout_mode = 2
+
+[node name="Restart" type="Button" parent="Body/DetailsPanel/Information/PlaybackControls" unique_id=162960941]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "RESTART ANIMATIONS"
+
+[node name="NextButton" type="Button" parent="Body/DetailsPanel/Information/PlaybackControls" unique_id=743991931]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "NEXT FRAME"
+
+[node name="Inspect" type="Button" parent="Body/DetailsPanel/Information/PlaybackControls" unique_id=185863233]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Show engine details"
+
+[node name="BranchControls" type="HFlowContainer" parent="Body/DetailsPanel/Information" unique_id=781016680]
+layout_mode = 2
+
+[node name="BranchKey" type="LineEdit" parent="Body/DetailsPanel/Information/BranchControls" unique_id=627035979]
+visible = false
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+text = "alternative"
+placeholder_text = "branch-name"
+
+[node name="BranchButton" type="Button" parent="Body/DetailsPanel/Information/BranchControls" unique_id=2108302656]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+disabled = true
+text = "BRANCH HERE"
+
+[node name="Simulate" type="Button" parent="Body/DetailsPanel/Information/BranchControls" unique_id=564461720]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "SIMULATE CURRENT STATE"
+
+[node name="Verify" type="Button" parent="Body/DetailsPanel/Information/BranchControls" unique_id=607647505]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "VERIFY REPLAY"

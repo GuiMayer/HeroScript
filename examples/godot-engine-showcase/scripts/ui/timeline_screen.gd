@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 
 const TimelinePresenter = preload("res://scripts/presentation/timeline_presenter.gd")
@@ -32,6 +33,23 @@ var _history_widget
 var _history_commit: Dictionary = {}
 var _causal_view
 
+var _connected := false
+func _ready() -> void:
+	_bind_nodes()
+	if Engine.is_editor_hint():
+		mount(ContextType.new()); theme = visual_context.theme
+func _bind_nodes() -> void:
+	activate_button = get_node("Body/ArchivePanel/Archive/ActivateButton")
+	branch_button = get_node("Body/DetailsPanel/Information/BranchControls/BranchButton")
+	branch_key = get_node("Body/DetailsPanel/Information/BranchControls/BranchKey")
+	details = get_node("Body/DetailsPanel/Information/Details")
+	frame_text = get_node("Body/DetailsPanel/Information/FrameText")
+	history_view = get_node("Body/DetailsPanel/Information/HistoryView")
+	list = get_node("Body/ArchivePanel/Archive/List")
+	more_button = get_node("Body/ArchivePanel/Archive/MoreButton")
+	next_button = get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton")
+	scrubber = get_node("Body/DetailsPanel/Information/Scrubber")
+	tree_view = get_node("Body/ArchivePanel/Archive/TreeView")
 func setup(owner) -> void:
 	router = owner
 	mount(owner.visual_context)
@@ -40,78 +58,39 @@ func setup(owner) -> void:
 	fork_allowed = GameSession.allows_tool("timeline.branch.create")
 	branch_read_allowed = GameSession.allows_tool("timeline.branch.read")
 	simulation_allowed = GameSession.allows_tool("simulation.run")
-	add_theme_constant_override("separation", 8)
-	var header := HBoxContainer.new()
-	header.add_child(AppTheme.title(I18n.text("DETERMINISTIC TIMELINE"), 28))
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(push)
-	header.add_child(_button(I18n.text("BACK TO COMBAT"), router.open_game))
-	add_child(header)
-	add_child(AppTheme.muted(I18n.text("Inspect history without changing the run. Create or activate a branch to play another path.")))
-	var body := HSplitContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(body)
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 330
-	list = ItemList.new()
-	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	list.item_selected.connect(_select)
-	left.add_child(list)
-	more_button = _button(I18n.text("LOAD MORE"), _load)
-	left.add_child(more_button)
-	tree_view = Tree.new()
-	tree_view.custom_minimum_size.y = 190
-	tree_view.columns = 2
+	_bind_nodes()
+	theme = visual_context.theme
+	get_node("Header/Back").text = I18n.text("BACK TO COMBAT")
+	get_node("Header/Title").text = I18n.text("DETERMINISTIC TIMELINE")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/Restart").text = I18n.text("RESTART ANIMATIONS")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/Inspect").text = I18n.text("Show engine details")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton").text = I18n.text("NEXT FRAME")
+	get_node("Body/DetailsPanel/Information/BranchControls/BranchButton").text = I18n.text("BRANCH HERE")
+	get_node("Body/DetailsPanel/Information/BranchControls/Simulate").text = I18n.text("SIMULATE CURRENT STATE")
+	get_node("Body/DetailsPanel/Information/BranchControls/Verify").text = I18n.text("VERIFY REPLAY")
+	get_node("Body/ArchivePanel/Archive/ActivateButton").text = I18n.text("ACTIVATE BRANCH")
+	get_node("Body/ArchivePanel/Archive/MoreButton").text = I18n.text("LOAD MORE")
+	get_node("Description").text = I18n.text("Inspect history without changing the run. Create or activate a branch to play another path.")
 	tree_view.set_column_title(0, I18n.text("Branch"))
 	tree_view.set_column_title(1, I18n.text("From command"))
-	tree_view.column_titles_visible = true
-	tree_view.item_activated.connect(_activate_selected)
-	tree_view.visible = branch_read_allowed
-	left.add_child(tree_view)
-	activate_button = _button(I18n.text("ACTIVATE BRANCH"), _activate_selected)
-	activate_button.visible = branch_read_allowed
-	left.add_child(activate_button)
-	body.add_child(AppTheme.panel(left))
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	details = RichTextLabel.new()
-	details.custom_minimum_size.y = 68
-	right.add_child(details)
-	scrubber = HSlider.new()
-	scrubber.step = 1
-	scrubber.value_changed.connect(func(value): _select(int(value)))
-	right.add_child(scrubber)
-	history_view = VBoxContainer.new()
-	history_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(history_view)
-	frame_text = RichTextLabel.new()
-	frame_text.custom_minimum_size.y = 100
-	frame_text.selection_enabled = true
-	right.add_child(frame_text)
-	var playback_row := HFlowContainer.new()
-	playback_row.add_child(_button(I18n.text("RESTART ANIMATIONS"), _restart_frames))
-	next_button = _button(I18n.text("NEXT FRAME"), _next_frame)
-	playback_row.add_child(next_button)
-	playback_row.add_child(_button(I18n.text("Show engine details"), _inspect_raw))
-	right.add_child(playback_row)
-	var actions := HFlowContainer.new()
-	branch_key = LineEdit.new()
-	branch_key.custom_minimum_size.x = 180
-	branch_key.placeholder_text = I18n.text("branch-name")
-	branch_key.text = "alternative"
-	branch_key.visible = fork_allowed
-	actions.add_child(branch_key)
-	branch_button = _button(I18n.text("BRANCH HERE"), _branch)
-	branch_button.disabled = not fork_allowed
-	branch_button.visible = fork_allowed
-	actions.add_child(branch_button)
-	var simulate_button := _button(I18n.text("SIMULATE CURRENT STATE"), _simulate)
-	simulate_button.visible = simulation_allowed
-	actions.add_child(simulate_button)
-	actions.add_child(_button(I18n.text("VERIFY REPLAY"), _verify))
-	right.add_child(actions)
-	body.add_child(AppTheme.panel(right))
+	tree_view.visible = branch_read_allowed; activate_button.visible = branch_read_allowed
+	branch_key.placeholder_text = I18n.text("branch-name"); branch_key.visible = fork_allowed
+	branch_button.disabled = not fork_allowed; branch_button.visible = fork_allowed
+	get_node("Body/DetailsPanel/Information/BranchControls/Simulate").visible = simulation_allowed
+	if not _connected:
+		_connected = true
+		list.item_selected.connect(_select)
+		tree_view.item_activated.connect(_activate_selected)
+		scrubber.value_changed.connect(func(value): _select(int(value)))
+		_wire_button(get_node("Header/Back"), router.open_game)
+		_wire_button(get_node("Body/ArchivePanel/Archive/MoreButton"), _load)
+		_wire_button(get_node("Body/ArchivePanel/Archive/ActivateButton"), _activate_selected)
+		_wire_button(get_node("Body/DetailsPanel/Information/BranchControls/BranchButton"), _branch)
+		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton"), _next_frame)
+		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/Restart"), _restart_frames)
+		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/Inspect"), _inspect_raw)
+		_wire_button(get_node("Body/DetailsPanel/Information/BranchControls/Simulate"), _simulate)
+		_wire_button(get_node("Body/DetailsPanel/Information/BranchControls/Verify"), _verify)
 	call_deferred("_load")
 	if branch_read_allowed: call_deferred("_load_tree")
 
@@ -286,11 +265,8 @@ func _inspect_raw() -> void:
 	add_child(dialog)
 	dialog.popup_centered()
 
-func _button(text: String, action: Callable) -> Button:
-	var value := AppTheme.button(text)
+func _wire_button(value: Button, action: Callable) -> void:
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
-	return value
-
 
 func dispose() -> void:
 	request_epoch += 1

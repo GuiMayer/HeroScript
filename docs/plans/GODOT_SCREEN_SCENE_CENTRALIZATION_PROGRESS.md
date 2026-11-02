@@ -96,4 +96,10 @@ DialogueScreen, DialogueScene, DialoguePanel e itens de escolha possuem composi�
 
 Testes aprovados: contratos 6, coordenação 6, leitura/acessibilidade/pause/histórico 38, lifecycle 7 e edição/reconciliação 7. Regressão verifica identidade, espaçamento editado, referência opaca, disponibilidade atual, imutabilidade e ausência de requisições no preview.
 
-Etapas 16–20: pendentes.
+## Etapa 16 — Histórico e timeline
+
+Histórico e timeline usam composições completas com ItemList, Tree, scrubber, detalhes e ferramentas editáveis. Scripts vinculam os nodes, traduzem e conectam sinais uma vez. Preservados escopo por setting, paginação, cursor local, permissões, epochs e operações de branch.
+
+Testes aprovados: edição/seleção passiva 7, lifecycle de replay 11, leitura integrada 38 e progressão por setting 30. O preview nativo não consulta a API e selecionar um registro duplica a projeção sem mutá-la.
+
+Etapas 17–20: pendentes.
