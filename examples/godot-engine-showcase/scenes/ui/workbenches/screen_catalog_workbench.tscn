@@ -41,6 +41,15 @@ layout_mode = 2
 [node name="Description" type="Label" parent="Margin/Column"]
 layout_mode = 2
 text = "Offline presentation fixtures · shared production scenes · no run or preference writes"
+[node name="States" type="HBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+[node name="StateSelector" type="OptionButton" parent="Margin/Column/States"]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="PreviewState" type="Label" parent="Margin/Column/States"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Offline fixture"
 [node name="ContentHost" type="Control" parent="Margin/Column"]
 unique_name_in_owner = true
 layout_mode = 2

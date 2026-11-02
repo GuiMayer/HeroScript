@@ -146,7 +146,7 @@ func _build_header() -> void:
 		header_view.tools_requested.connect(_open_zone_tools)
 		header_view.pause_requested.connect(func(): intent_requested.emit("pause", []))
 		move_child(header_view, 0)
-		action_buttons.append(header_view.tool_button) if is_instance_valid(header_view.tool_button) else null
+		if is_instance_valid(header_view.tool_button): action_buttons.append(header_view.tool_button)
 	var row = header_view
 	row.visual_context = visual_context
 	row.apply_model(presenter.header_model({"open_timeline": visual_context.action_label("open_timeline")}).to_dictionary())

@@ -114,4 +114,12 @@ Sandbox e codex possuem shells completos. Modos e abas variáveis instanciam tem
 
 Testes aprovados: templates/interação 8, menus 90, lifecycle 7 e arquitetura 28. Regressões verificam modos sem duplicação, JSON imutável, constraints, rotas de conteúdo e ausência de tráfego em seleção local.
 
-Etapas 19–20: pendentes.
+## Etapa 19 — Laboratórios e catálogo
+
+Shells de mão, inscrições, loadout unificado, compartimentos e eventos são autorados; o laboratório de efeitos também possui cena própria. Os controles de laboratório apenas alimentam componentes/executores existentes. Corrigida a captura de anchors da raiz da mão antes da validação, sem mudar o layout. O catálogo agora oferece 21 composições canônicas e seletores de estado (cheio, vazio, bloqueado, loading, erro e modal). Fixtures são externas à produção; adapters de labs que alteram preferências não são executados pelo catálogo.
+
+A montagem tardia do combate expôs uma expressão ternária que tentava consumir o retorno void de Array.append. Substituída por if equivalente; a regressão do catálogo cobre aplicar projeção após entrada na árvore.
+
+Testes aprovados: mão 118, compra 106, inscrições 146, layout unificado 48, input 6, efeitos 20, controles de animação 50, burn 32 e reorder 13; catálogo 49 e registro 7, incluindo zero requisições, estado de sessão intacto e zero escrita de preferências.
+
+Etapa 20: pendente — limpeza, documentação e certificação final.

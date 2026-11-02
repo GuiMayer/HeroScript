@@ -29,64 +29,62 @@ const TEXT := {
 	"Ready":"Pronto", "Playing":"Reproduzindo", "Skipped: no animation or wait":"Omitido: sem animação ou espera"}
 static func label_for(locale: String, key: String) -> String: return str(TEXT.get(key,key)) if locale == "pt_BR" else key
 func _text(key: String) -> String: return label_for(context.translator.locale,key)
+var _bound := false
+static func create(): return load("res://scenes/ui/overlays/art_effect_lab.tscn").instantiate()
 func setup(visual_context, card_model: Dictionary = {}) -> void:
 	context = visual_context
 	name = "ArtEffectLab"; title = _text("Art effects lab"); ok_button_text = _text("Close"); unresizable = false
 	theme = context.theme
-	var body := VBoxContainer.new(); body.add_theme_constant_override("separation",14); add_child(body)
-	var intro: Label = context.styles.muted(_text("Shared ArtSlot · ivory palette · no API or gameplay changes"),14)
-	intro.custom_minimum_size.x = 620
-	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; body.add_child(intro)
-	var tools := HFlowContainer.new(); tools.add_theme_constant_override("h_separation",12); body.add_child(tools)
-	picker = OptionButton.new(); picker.name = "ArtEffectPicker"
+	actor_stage = get_node("Content/ActorStage")
+	baseline = get_node("Content/ActorStage/BaselineActor/Baseline")
+	card_baseline = get_node("Content/CardStage/Cards/BaselineCard/Center/CardBaseline")
+	card_sample = get_node("Content/CardStage/Cards/PreviewCard/Center/CardSample")
+	card_stage = get_node("Content/CardStage")
+	paused = get_node("Content/Actions/Paused")
+	picker = get_node("Content/Tools/ArtEffectPicker")
+	reduced = get_node("Content/Actions/Reduced")
+	result = get_node("Content/Result")
+	sample = get_node("Content/ActorStage/PreviewActor/Sample")
+	seconds = get_node("Content/Tools/Seconds")
+	strength = get_node("Content/Tools/Strength")
+	get_node("Content/ActorStage/BaselineActor/Title").text = _text("Baseline")
+	get_node("Content/ActorStage/PreviewActor/Title").text = _text("Preview")
+	get_node("Content/CardStage/Cards/BaselineCard/Title").text = _text("Baseline")
+	get_node("Content/CardStage/Cards/PreviewCard/Title").text = _text("Preview")
+	get_node("Content/Actions/Play").text = _text("Play effect")
+	get_node("Content/Actions/Reset").text = _text("Reset")
+	get_node("Content/Actions/Paused").text = _text("Pause preview")
+	get_node("Content/Actions/Reduced").text = _text("Reduced motion")
+	get_node("Content/Tools/DurationLabel").text = _text("Duration (s)")
+	get_node("Content/Tools/IntensityLabel").text = _text("Intensity")
+	get_node("Content/Introduction").text = _text("Shared ArtSlot · ivory palette · no API or gameplay changes")
+	get_node("Content/Result").text = _text("Ready")
+	picker.clear()
 	for id in _options: picker.add_item(_text(_keys[id]))
-	tools.add_child(picker)
-	picker.item_selected.connect(_choose)
-	tools.add_child(context.styles.title(_text("Duration (s)"),14))
-	seconds = SpinBox.new(); seconds.min_value = 0; seconds.max_value = 2; seconds.step = .01; seconds.value = .16; seconds.custom_minimum_size.x = 110; tools.add_child(seconds)
-	tools.add_child(context.styles.title(_text("Intensity"),14))
-	strength = HSlider.new(); strength.min_value = 0; strength.max_value = 1; strength.step = .05; strength.value = .7; strength.custom_minimum_size.x = 140; tools.add_child(strength)
-	actor_stage = HBoxContainer.new(); actor_stage.add_theme_constant_override("separation",24); body.add_child(actor_stage)
 	var actor_context = preload("res://scripts/ui/visual_context.gd").new(context.translator,{},preload("res://data/themes/ivory_run.tres"))
 	actor_context.set_scenery_profile(preload("res://data/themes/ivory_scenery.tres"))
-	for is_preview in [false,true]:
-		var column := VBoxContainer.new(); column.size_flags_horizontal = Control.SIZE_EXPAND_FILL; actor_stage.add_child(column)
-		column.add_child(context.styles.title(_text("Preview" if is_preview else "Baseline"),18))
-		var art = Slot.new(actor_context); art.custom_minimum_size = Vector2(240,240); art.size_flags_horizontal = Control.SIZE_EXPAND_FILL; art.setup("actors","opponent")
-		column.add_child(art)
-		if is_preview: sample = art
-		else: baseline = art
-	card_stage = ScrollContainer.new(); card_stage.custom_minimum_size.y = 340
-	card_stage.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	body.add_child(card_stage)
-	var cards := HBoxContainer.new(); cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards.add_theme_constant_override("separation",24); card_stage.add_child(cards)
+	for art in [baseline,sample]:
+		art.visual_context = actor_context; art.setup("actors","opponent")
 	var model := card_model.duplicate(true)
 	if model.is_empty():
 		model = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/card_hand_lab.json")).cards.strike.duplicate(true)
 		if context.translator.locale == "pt_BR": model.merge(model.get("pt_BR",{}),true)
 		model.erase("pt_BR"); model["rarityId"] = str(model.get("rarity","common")).to_lower()
-	for is_preview in [false,true]:
-		var column := VBoxContainer.new(); column.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cards.add_child(column)
-		column.add_child(context.styles.title(_text("Preview" if is_preview else "Baseline"),18))
-		var center := CenterContainer.new(); column.add_child(center)
-		var card := CardView.create(context); card.hand_managed = true; card.animate_entry = false; card.configure(model)
-		card.mouse_filter = Control.MOUSE_FILTER_IGNORE; card.focus_mode = Control.FOCUS_NONE; center.add_child(card)
-		if is_preview: card_sample = card
-		else: card_baseline = card
-	card_stage.hide()
-	var actions := HFlowContainer.new(); actions.add_theme_constant_override("h_separation",12); body.add_child(actions)
-	for item in [["Play effect",play_effect],["Reset",reset]]:
-		var button: Button = context.styles.button(_text(item[0])); button.pressed.connect(item[1]); actions.add_child(button)
-	paused = CheckButton.new(); paused.text = _text("Pause preview"); actions.add_child(paused)
+	for card in [card_baseline,card_sample]:
+		card.visual_context = context; card.hand_managed = true; card.animate_entry = false; card.configure(model)
+	card_stage.hide(); actor_stage.show()
+	reduced.set_pressed_no_signal(context.reduced_motion)
+	if _bound: return
+	_bound = true
+	picker.item_selected.connect(_choose)
+	get_node("Content/Actions/Play").pressed.connect(play_effect)
+	get_node("Content/Actions/Reset").pressed.connect(reset)
 	paused.toggled.connect(func(value):
 		var effect = active_art().art_effects
 		if effect != null and effect.tween != null and effect.tween.is_valid():
 			if value: effect.tween.pause()
 			else: effect.tween.play())
-	reduced = CheckButton.new(); reduced.text = _text("Reduced motion"); reduced.button_pressed = context.reduced_motion; actions.add_child(reduced)
 	reduced.toggled.connect(func(_value): reset())
-	result = context.styles.muted(_text("Ready"),14); body.add_child(result)
 	about_to_popup.connect(func(): sample.effect_player().warmup())
 	visibility_changed.connect(func(): if not visible: reset())
 func play_effect() -> void:

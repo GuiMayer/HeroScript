@@ -1,0 +1,398 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/labs/art_effect_lab.gd" id="3_5t6jv"]
+[ext_resource type="Texture2D" path="res://assets/tactical-pieces/enemy-striker.svg" id="4_e4gtk"]
+[ext_resource type="Script" path="res://scripts/ui/art_slot.gd" id="5_uqb54"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_view.tscn" id="6_jvie5"]
+[ext_resource type="Script" path="res://scripts/ui/card_view.gd" id="7_dk7vd"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tjv7g"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l7sob"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_crlrs"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t3f4b"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wdllc"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iq8rl"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ji8ny"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ov8u1"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kcolq"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e3s0h"]
+resource_local_to_scene = true
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="ArtEffectLab" type="AcceptDialog" unique_id=104470684]
+title = "Art effects lab"
+ok_button_text = "Close"
+script = ExtResource("3_5t6jv")
+
+[node name="Content" type="VBoxContainer" parent="." unique_id=1614289248]
+theme_override_constants/separation = 14
+
+[node name="Introduction" type="Label" parent="Content" unique_id=2140196256]
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 14
+text = "Shared ArtSlot · ivory palette · no API or gameplay changes"
+autowrap_mode = 3
+metadata/font_role = "caption"
+
+[node name="Tools" type="HFlowContainer" parent="Content" unique_id=1864652558]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+
+[node name="ArtEffectPicker" type="OptionButton" parent="Content/Tools" unique_id=7440128]
+layout_mode = 2
+selected = 0
+item_count = 4
+popup/item_0/text = "Impact flash"
+popup/item_0/id = 0
+popup/item_1/text = "Outline · available"
+popup/item_1/id = 1
+popup/item_2/text = "Outline · selected"
+popup/item_2/id = 2
+popup/item_3/text = "Improvement sheen"
+popup/item_3/id = 3
+
+[node name="DurationLabel" type="Label" parent="Content/Tools" unique_id=1885312846]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 14
+text = "Duration (s)"
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+
+[node name="Seconds" type="SpinBox" parent="Content/Tools" unique_id=1563729928]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+max_value = 2.0
+step = 0.01
+value = 0.16
+
+[node name="IntensityLabel" type="Label" parent="Content/Tools" unique_id=319488715]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 14
+text = "Intensity"
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+
+[node name="Strength" type="HSlider" parent="Content/Tools" unique_id=189426788]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.7
+
+[node name="ActorStage" type="HBoxContainer" parent="Content" unique_id=2141721091]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="BaselineActor" type="VBoxContainer" parent="Content/ActorStage" unique_id=711823270]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="Content/ActorStage/BaselineActor" unique_id=522543119]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 18
+text = "Baseline"
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+
+[node name="Baseline" type="TextureRect" parent="Content/ActorStage/BaselineActor" unique_id=318597352]
+custom_minimum_size = Vector2(240, 240)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+texture = ExtResource("4_e4gtk")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("5_uqb54")
+metadata/art_slot = "actor_unknown"
+
+[node name="PreviewActor" type="VBoxContainer" parent="Content/ActorStage" unique_id=1325803095]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="Content/ActorStage/PreviewActor" unique_id=948391032]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 18
+text = "Preview"
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+
+[node name="Sample" type="TextureRect" parent="Content/ActorStage/PreviewActor" unique_id=1398796868]
+custom_minimum_size = Vector2(240, 240)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+texture = ExtResource("4_e4gtk")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("5_uqb54")
+metadata/art_slot = "actor_unknown"
+
+[node name="CardStage" type="ScrollContainer" parent="Content" unique_id=1417180831]
+visible = false
+custom_minimum_size = Vector2(0, 340)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Cards" type="HBoxContainer" parent="Content/CardStage" unique_id=730188176]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="BaselineCard" type="VBoxContainer" parent="Content/CardStage/Cards" unique_id=1378270371]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="Content/CardStage/Cards/BaselineCard" unique_id=324068885]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 18
+text = "Baseline"
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+
+[node name="Center" type="CenterContainer" parent="Content/CardStage/Cards/BaselineCard" unique_id=345835446]
+layout_mode = 2
+
+[node name="CardBaseline" type="Button" parent="Content/CardStage/Cards/BaselineCard/Center" unique_id=1844122341 instance=ExtResource("6_jvie5")]
+custom_minimum_size = Vector2(248, 360)
+layout_mode = 2
+tooltip_text = "Strike
+Cost: 1 Energy"
+focus_mode = 0
+mouse_filter = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_tjv7g")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_l7sob")
+theme_override_styles/hover = SubResource("StyleBoxFlat_crlrs")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_t3f4b")
+theme_override_styles/focus = SubResource("StyleBoxFlat_wdllc")
+script = ExtResource("7_dk7vd")
+animate_entry = false
+hand_managed = true
+metadata/semantic_border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+
+[node name="PreviewCard" type="VBoxContainer" parent="Content/CardStage/Cards" unique_id=1393464498]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="Content/CardStage/Cards/PreviewCard" unique_id=2072402055]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 18
+text = "Preview"
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+
+[node name="Center" type="CenterContainer" parent="Content/CardStage/Cards/PreviewCard" unique_id=1671819455]
+layout_mode = 2
+
+[node name="CardSample" type="Button" parent="Content/CardStage/Cards/PreviewCard/Center" unique_id=1619369813 instance=ExtResource("6_jvie5")]
+custom_minimum_size = Vector2(248, 360)
+layout_mode = 2
+tooltip_text = "Strike
+Cost: 1 Energy"
+focus_mode = 0
+mouse_filter = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_iq8rl")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ji8ny")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ov8u1")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_kcolq")
+theme_override_styles/focus = SubResource("StyleBoxFlat_e3s0h")
+script = ExtResource("7_dk7vd")
+animate_entry = false
+hand_managed = true
+metadata/semantic_border_color = Color(0.7882353, 0.79607844, 0.827451, 1)
+
+[node name="Actions" type="HFlowContainer" parent="Content" unique_id=1806763417]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+
+[node name="Play" type="Button" parent="Content/Actions" unique_id=551933998]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Play effect"
+
+[node name="Reset" type="Button" parent="Content/Actions" unique_id=1353583773]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Reset"
+
+[node name="Paused" type="CheckButton" parent="Content/Actions" unique_id=1910543195]
+layout_mode = 2
+text = "Pause preview"
+
+[node name="Reduced" type="CheckButton" parent="Content/Actions" unique_id=620547438]
+layout_mode = 2
+text = "Reduced motion"
+
+[node name="Result" type="Label" parent="Content" unique_id=2108194573]
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 14
+text = "Ready"
+autowrap_mode = 3
+metadata/font_role = "caption"

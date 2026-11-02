@@ -1,12 +1,328 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/labs/card_hand_lab.gd" id="1_lab"]
+[ext_resource type="Script" path="res://scripts/labs/card_hand_lab.gd" id="1_p027b"]
+[ext_resource type="Script" path="res://scripts/ui/components/circuit_trace.gd" id="2_l520j"]
+[ext_resource type="Script" path="res://scripts/labs/lab_animation_picker.gd" id="3_qy5br"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_hand.tscn" id="4_55kk1"]
+[ext_resource type="Script" path="res://scripts/ui/card_hand_view.gd" id="7_j8qdp"]
 
-[node name="CardHandLab" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_601vo"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_color = Color(1, 1, 1, 0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "text.inverse"
+metadata/border_role = ""
+
+[node name="CardHandLab" type="Control" unique_id=307109163]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_lab")
+script = ExtResource("1_p027b")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1753968110]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="PrintedCircuit" type="Control" parent="." unique_id=977404863]
+anchors_preset = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -510.0
+offset_top = 18.0
+offset_right = -30.0
+offset_bottom = 96.0
+script = ExtResource("2_l520j")
+tracks = 3
+mirrored = true
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1214796966]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Outer" type="VBoxContainer" parent="Margin" unique_id=645602228]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="UpperScroll" type="ScrollContainer" parent="Margin/Outer" unique_id=1078523283]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Column" type="VBoxContainer" parent="Margin/Outer/UpperScroll" unique_id=1607622625]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Margin/Outer/UpperScroll/Column" unique_id=1932824773]
+layout_mode = 2
+theme_type_variation = &"ScreenTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 30
+text = "IVORY / CARD LAB"
+metadata/font_role = "screen_title"
+metadata/text_role = "text.primary"
+metadata/lab_label = "IVORY / CARD LAB"
+
+[node name="Subtitle" type="Label" parent="Margin/Outer/UpperScroll/Column" unique_id=142468224]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 14
+text = "Shared game components. Visual samples only — no rules or API calls."
+autowrap_mode = 3
+metadata/font_role = "caption"
+metadata/lab_label = "Shared game components. Visual samples only — no rules or API calls."
+
+[node name="Tools" type="HFlowContainer" parent="Margin/Outer/UpperScroll/Column" unique_id=1052457410]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+
+[node name="FixturePreset" type="OptionButton" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=1543272163]
+custom_minimum_size = Vector2(340, 40)
+layout_mode = 2
+selected = 0
+item_count = 4
+popup/item_0/text = "Ember Archive · familiar cards"
+popup/item_0/id = 0
+popup/item_1/text = "Volatile Crucible · transformations"
+popup/item_1/id = 1
+popup/item_2/text = "Ascendant Matrix · layered costs"
+popup/item_2/id = 2
+popup/item_3/text = "Stress · custom content / mods"
+popup/item_3/id = 3
+
+[node name="CountLabel" type="Label" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=1495698501]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 14
+text = "Cards"
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+metadata/lab_label = "Cards"
+
+[node name="HandCount" type="SpinBox" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=526309394]
+custom_minimum_size = Vector2(85, 40)
+layout_mode = 2
+value = 5.0
+
+[node name="LanguagePicker" type="OptionButton" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=109919732]
+layout_mode = 2
+selected = 0
+item_count = 2
+popup/item_0/text = "English"
+popup/item_0/id = 0
+popup/item_1/text = "Português"
+popup/item_1/id = 1
+
+[node name="ScalePicker" type="OptionButton" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=1832517967]
+layout_mode = 2
+selected = 1
+item_count = 3
+popup/item_0/text = "Text 90%"
+popup/item_0/id = 0
+popup/item_1/text = "Text 100%"
+popup/item_1/id = 1
+popup/item_2/text = "Text 120%"
+popup/item_2/id = 2
+
+[node name="Contrast" type="CheckButton" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=513079939]
+layout_mode = 2
+text = "High contrast"
+metadata/lab_label = "High contrast"
+
+[node name="Motion" type="CheckButton" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=1848500836]
+layout_mode = 2
+text = "Reduced motion"
+metadata/lab_label = "Reduced motion"
+
+[node name="LabHandLayout" type="OptionButton" parent="Margin/Outer/UpperScroll/Column/Tools" unique_id=860359968]
+layout_mode = 2
+selected = 0
+item_count = 2
+popup/item_0/text = "Adaptive fan"
+popup/item_0/id = 0
+popup/item_1/text = "Reading — no overlap"
+popup/item_1/id = 1
+
+[node name="Actions" type="HFlowContainer" parent="Margin/Outer/UpperScroll/Column" unique_id=1043757319]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+
+[node name="Empty" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=962487613]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Empty hand"
+metadata/lab_label = "Empty hand"
+
+[node name="Restore" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=1353970890]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Restore preset"
+metadata/lab_label = "Restore preset"
+
+[node name="Rotate" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=510551451]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Rotate sample"
+metadata/lab_label = "Rotate sample"
+
+[node name="Remove" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=464514061]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Remove selected"
+metadata/lab_label = "Remove selected"
+
+[node name="Inspect" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=651204816]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Inspect selected"
+metadata/lab_label = "Inspect selected"
+
+[node name="OpenArtEffectLab" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=714423546]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Art effects lab"
+metadata/lab_label = "Art effects lab"
+metadata/lab_fx_label = "Art effects lab"
+
+[node name="Add" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=772631729]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Add sample"
+metadata/lab_label = "Add sample"
+
+[node name="Enrich" type="Button" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=1843621645]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Enrich selected"
+metadata/lab_label = "Enrich selected"
+
+[node name="ReadOnly" type="CheckButton" parent="Margin/Outer/UpperScroll/Column/Actions" unique_id=627959351]
+layout_mode = 2
+text = "Read-only / busy"
+metadata/lab_label = "Read-only / busy"
+
+[node name="SampleDetails" type="PanelContainer" parent="Margin/Outer/UpperScroll/Column" unique_id=678839821]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_601vo")
+
+[node name="FullSampleText" type="RichTextLabel" parent="Margin/Outer/UpperScroll/Column/SampleDetails" unique_id=1935202809]
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 16
+selection_enabled = true
+
+[node name="LabStatus" type="Label" parent="Margin/Outer/UpperScroll/Column" unique_id=656417600]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 13
+clip_text = true
+text_overrun_behavior = 3
+metadata/font_role = "caption"
+
+[node name="AnimationControls" type="HFlowContainer" parent="Margin/Outer" unique_id=831467095]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="LabAnimationPicker" type="MenuButton" parent="Margin/Outer/AnimationControls" unique_id=2111861331]
+custom_minimum_size = Vector2(340, 40)
+layout_mode = 2
+tooltip_text = "Card use › Burn › From center"
+text = "Card use › Burn › From center"
+flat = false
+text_overrun_behavior = 3
+script = ExtResource("3_qy5br")
+
+[node name="CycleLabel" type="Label" parent="Margin/Outer/AnimationControls" unique_id=647054944]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 14
+text = "Cycle duration (s)"
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+metadata/lab_label = "Cycle duration (s)"
+
+[node name="AnimationCycleSeconds" type="SpinBox" parent="Margin/Outer/AnimationControls" unique_id=645966689]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+tooltip_text = "Total active animation time. Zero is instant; pause and manual steps do not count."
+max_value = 30.0
+step = 0.05
+value = 0.5
+suffix = " s"
+
+[node name="Instant" type="CheckButton" parent="Margin/Outer/AnimationControls" unique_id=810112119]
+layout_mode = 2
+text = "Instant preview"
+metadata/lab_label = "Instant preview"
+
+[node name="Manual" type="CheckButton" parent="Margin/Outer/AnimationControls" unique_id=1289411632]
+layout_mode = 2
+text = "Manual animation steps"
+metadata/lab_label = "Manual animation steps"
+
+[node name="PlayAnimationButton" type="Button" parent="Margin/Outer/AnimationControls" unique_id=384176442]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Play animation"
+metadata/lab_label = "Play animation"
+
+[node name="ApplyAnimationButton" type="Button" parent="Margin/Outer/AnimationControls" unique_id=368898359]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Apply animation to combat"
+metadata/lab_label = "Apply animation to combat"
+
+[node name="Next" type="Button" parent="Margin/Outer/AnimationControls" unique_id=1820319833]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Next"
+metadata/lab_label = "Next"
+
+[node name="Skip" type="Button" parent="Margin/Outer/AnimationControls" unique_id=216895145]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Skip presentation"
+metadata/lab_label = "Skip presentation"
+
+[node name="Hand" type="VBoxContainer" parent="Margin/Outer" unique_id=1353445398 instance=ExtResource("4_55kk1")]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+script = ExtResource("7_j8qdp")

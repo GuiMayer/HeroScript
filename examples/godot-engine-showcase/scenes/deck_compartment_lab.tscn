@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/labs/deck_compartment_lab.gd" id="1"]
+
+[ext_resource type="PackedScene" path="res://scenes/ui/screens/deck_compartment_editor.tscn" id="Editor"]
 
 [node name="DeckCompartmentLab" type="Control"]
 layout_mode = 3
@@ -20,3 +22,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 1)
+
+[node name="Status" type="Label" parent="."]
+text = "Connecting to Deck Workshop…"
+[node name="Editor" parent="." instance=ExtResource("Editor")]
+visible = false

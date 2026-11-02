@@ -7,7 +7,7 @@ var _status: Label
 func _ready() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
 	get_node("Background").color = AppTheme.NIGHT
-	_status = Label.new(); _status.text = "Connecting to Deck Workshop…"; add_child(_status)
+	_status = get_node("Status")
 	_transport = preload("res://scripts/engine/http_transport.gd").new(); _transport.base_url = Preferences.api_url; add_child(_transport)
 	_gateway = preload("res://scripts/engine/engine_gateway.gd").new(_transport)
 	_start.call_deferred()
@@ -25,8 +25,7 @@ func _start() -> void:
 	if not is_inside_tree(): return
 	if not created.get("ok", false): _status.text = str(created.get("error", created)); return
 	var id := str(created.data.get("runId", ""))
-	var editor = preload("res://scripts/ui/deck_compartment_editor.gd").create()
+	var editor = get_node("Editor")
 	editor.service = preload("res://scripts/engine/deck_compartment_gateway.gd").new(_transport, _gateway, id)
-	editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	editor.back_requested.connect(func(): get_tree().change_scene_to_file("res://main.tscn"))
-	_status.hide(); add_child(editor)
+	_status.hide(); editor.show(); editor.read_state.call_deferred()

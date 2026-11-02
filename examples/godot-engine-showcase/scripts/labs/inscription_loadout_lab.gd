@@ -11,12 +11,12 @@ var _loading := false
 var _ticket := 0
 var _fixture: Dictionary = {}
 var _visual_drafts := {}
-var _actor_picker := OptionButton.new()
-var _scope_picker := OptionButton.new()
-var _connection_note := Label.new()
+var _actor_picker: OptionButton
+var _scope_picker: OptionButton
+var _connection_note: Label
 var _preview_button: Button
 var _confirm_button: Button
-var _discard_dialog := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog)
+var _discard_dialog: ConfirmationDialog
 
 func _ready() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -24,57 +24,33 @@ func _ready() -> void:
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(
 		preload("res://data/themes/ivory_theme.tres"))
 	theme = visual_context.theme
-	var paper := ColorRect.new()
-	paper.color = visual_context.styles.NIGHT
-	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(paper)
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 20)
-	add_child(margin)
-	var scroll := ScrollContainer.new()
-	scroll.name = "LoadoutPageScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	margin.add_child(scroll)
+	_actor_picker = get_node("Margin/LoadoutPageScroll/Page/Connection/LoadoutActorPicker")
+	_confirm_button = get_node("Margin/LoadoutPageScroll/Page/Actions/ConfirmButton")
+	_connection_note = get_node("Margin/LoadoutPageScroll/Page/ConnectionNote")
+	_discard_dialog = get_node("DiscardDialog")
+	_preview_button = get_node("Margin/LoadoutPageScroll/Page/Actions/PreviewButton")
+	_scope_picker = get_node("Margin/LoadoutPageScroll/Page/Connection/ScopePicker")
+	view = get_node("Margin/LoadoutPageScroll/Page/View")
+	get_node("Background").color = visual_context.styles.NIGHT
 	var document = JSON.parse_string(FileAccess.get_file_as_string(fixture_path))
 	fixture_error = draft.configure(document) if document is Dictionary else "Invalid visual fixture."
 	if not fixture_error.is_empty():
-		var message := Label.new()
-		message.text = fixture_error
-		scroll.add_child(message)
-		return
-	_fixture = document.duplicate(true)
-	_visual_drafts["Actor:0"] = draft
-	var page := VBoxContainer.new()
-	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(page)
-	var connection := HBoxContainer.new()
-	page.add_child(connection)
-	for entry in [["Example (offline)", _offline], ["Connect current run", _connect_run], ["Recover / refresh run", _recover]]:
-		var button: Button = visual_context.styles.button(I18n.text(entry[0]))
-		button.pressed.connect(entry[1]); connection.add_child(button)
-	_actor_picker.name = "LoadoutActorPicker"
+		get_node("Margin/LoadoutPageScroll/FixtureError").text = fixture_error
+		get_node("Margin/LoadoutPageScroll/FixtureError").show()
+		get_node("Margin/LoadoutPageScroll/Page").hide(); return
+	_fixture = document.duplicate(true); _visual_drafts["Actor:0"] = draft
+	for entry in [["Offline", "Example (offline)", _offline],["Connect", "Connect current run", _connect_run],["Recover", "Recover / refresh run", _recover]]:
+		var button: Button = get_node("Margin/LoadoutPageScroll/Page/Connection/" + str(entry[0]))
+		button.text = I18n.text(entry[1]); button.pressed.connect(entry[2])
+	_actor_picker.clear(); _scope_picker.clear()
 	_actor_picker.add_item(I18n.text("Example character 1")); _actor_picker.add_item(I18n.text("Example character 2"))
 	_actor_picker.item_selected.connect(_actor_selected)
-	connection.add_child(_actor_picker)
 	_scope_picker.add_item(I18n.text("Actor inventory")); _scope_picker.add_item(I18n.text("Run inventory"))
 	_scope_picker.item_selected.connect(func(_index): _select_visual())
-	connection.add_child(_scope_picker)
-	_connection_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	page.add_child(_connection_note)
-	var actions := HBoxContainer.new()
-	page.add_child(actions)
-	_preview_button = visual_context.styles.button(I18n.text("Preview draft"))
-	_preview_button.pressed.connect(_preview); actions.add_child(_preview_button)
-	_confirm_button = visual_context.styles.button(I18n.text("Confirm equipment"))
-	_confirm_button.pressed.connect(_confirm); actions.add_child(_confirm_button)
+	_preview_button.text = I18n.text("Preview draft"); _preview_button.pressed.connect(_preview)
+	_confirm_button.text = I18n.text("Confirm equipment"); _confirm_button.pressed.connect(_confirm)
 	_discard_dialog.dialog_text = I18n.text("Discard unconfirmed loadout changes?")
-	add_child(_discard_dialog)
-	view = preload("res://scripts/ui/loadout/loadout_view.gd").create()
 	view.mount(visual_context)
-	page.add_child(view)
 	view.item_requested.connect(func(id): _edit("select_item", [id]))
 	view.slot_requested.connect(func(id): _edit("select_slot", [id]))
 	view.equip_requested.connect(func(): _edit("stage_selected"))

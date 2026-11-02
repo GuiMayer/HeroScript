@@ -8,34 +8,16 @@ var fixtures: Array = []
 
 func _ready() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
-	var background := ColorRect.new()
-	background.color = AppTheme.NIGHT
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 24)
-	add_child(margin)
-	var column := VBoxContainer.new()
-	margin.add_child(column)
-	column.add_child(AppTheme.title("Gameplay events — presentation laboratory", 26))
-	column.add_child(AppTheme.muted("Offline fixtures. The same inspector is available in the authorized timeline."))
-	var controls := HBoxContainer.new()
-	column.add_child(controls)
-	setting_picker = OptionButton.new()
-	language_picker = OptionButton.new()
-	controls.add_child(setting_picker)
-	controls.add_child(language_picker)
+	get_node("Background").color = AppTheme.NIGHT
+	setting_picker = get_node("Margin/Column/Controls/Setting")
+	language_picker = get_node("Margin/Column/Controls/Language")
 	language_picker.add_item("English")
 	language_picker.add_item("Português")
 	fixtures = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/gameplay_events.json"))
 	for fixture in fixtures: setting_picker.add_item(str(fixture.label))
 	setting_picker.item_selected.connect(func(_index): _show_fixture())
 	language_picker.item_selected.connect(func(_index): _show_fixture())
-	inspector = EventView.create()
-	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(inspector)
+	inspector = get_node("Margin/Column/Inspector")
 	_show_fixture()
 
 func _show_fixture() -> void:
