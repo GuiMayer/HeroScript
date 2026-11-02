@@ -6,7 +6,7 @@ Escopo autorizado: reconstruir StatusBadge, ResourceView, ActorPanel, CardView e
 
 Reconstruído com StyleBox local editável, nós únicos persistentes e preview configurável. Atualizações preservam tipografia, margens e identidade dos filhos. Testes: editable_ui_nodes (3 verificações) e actor_panel_polish (10), aprovados em cópia isolada.
 
-Etapas 1–5 implementadas. A auditoria complementar está em conclusão.
+Etapas 1–5 e auditoria complementar concluídas. Veja o [guia de edição e próximas migrações](../architecture/GODOT_EDITABLE_UI_SCENES_AUDIT.md).
 
 ## 2 — ResourceView
 
@@ -24,3 +24,9 @@ Face reconstruída como árvore estática: título adaptativo, custo, arte, tipo
 Bancada reconstruída com instâncias reais das quatro cenas, amostras editáveis no Inspector e contexto visual compartilhado sem chamar a API. Corrigidos os campos das amostras de custos e limites dos recursos; testes agora verificam os dados exibidos, não apenas a existência dos nós. Atualizar o preview preserva os controles. Corrigida também a troca de contexto das artes persistentes: o contexto anterior é desconectado antes de assinar o novo, tanto no ator quanto na carta.
 
 Validação desta etapa em projeto isolado: workbench_smoke 10, editable_ui_nodes 14, actor_panel_polish 10, run_graphics_updates 12 e component_context 14 verificações aprovadas.
+
+## Certificação e auditoria final
+
+Concluída a auditoria das telas ainda procedurais e o guia de edição. Atualização de contexto visual equivalente conserva o cache da carta, mas troca corretamente a assinatura da arte; bancada passou com 12 verificações após essa regressão adicional. Testes finais também cobriram estabilidade da carta (34), reconciliação (4), colaboradores do combate (12), contextos da run (8), contrato de animações (8), contador transitório (24) e nós editáveis (14). Bancada renderizada pela Godot para inspeção visual.
+
+Commits de implementação: `cc5d5f2f` (status), `ecc36aa2` (recurso), `c4820862` (ator), `e217b511` (carta), `330fe0b8` (bancada), seguidos da correção de atualização de contexto equivalente. A validação usa modelos injetados, sem comandos na API real. Pendências de versionamento pré-existentes que limitam a suíte no export só de HEAD estão descritas na auditoria; alterações alheias a esta tarefa foram preservadas.

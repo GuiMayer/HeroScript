@@ -200,4 +200,3 @@ func fit_battlefield_height(available: float) -> void:
 	for child in _battlefield_content.get_children():
 		if child != target_button and child is Control and child.visible: fixed += child.get_combined_minimum_size().y
 	target_button.custom_minimum_size.y = clampf(available - fixed - 1, 60, visual_context.profile.actor_art_max_height)
-

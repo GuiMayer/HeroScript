@@ -1,6 +1,8 @@
 # Plano Detalhado: Migração da UI Godot para o Modelo Híbrido
 
-**Status:** Concluído com Sucesso (5/5 etapas implementadas e commitadas)  
+**Status histórico:** implementação inicial entregue; reconstrução corretiva das cinco cenas concluída em 2026-11-01.
+> A implementação inicial abaixo não garantia que todos os consumidores usassem a cena editável. Para o estado atual, consulte [a reconstrução](GODOT_EDITABLE_UI_REBUILD_PROGRESS.md) e [a auditoria/guia de edição](../architecture/GODOT_EDITABLE_UI_SCENES_AUDIT.md). A migração do restante da aplicação continua pendente.
+
 **Objetivo:** Permitir ajustes finos visuais diretamente no editor da Godot (arrastar âncoras, ajustar margens, inspecionar fontes e cores no 2D Canvas) mantendo o mesmo repositório e a suíte completa de testes automatizados headless intacta.
 
 ---
