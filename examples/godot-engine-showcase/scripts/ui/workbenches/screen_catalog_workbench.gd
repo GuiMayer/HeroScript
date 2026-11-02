@@ -10,6 +10,7 @@ func _ready() -> void:
 	var selector: OptionButton = get_node("%ScreenSelector")
 	selector.add_item("Shared components")
 	selector.add_item("Loadout laboratory")
+	selector.add_item("Main menu")
 	selector.item_selected.connect(show_preview)
 	show_preview(0)
 func show_preview(index: int) -> void:
@@ -17,5 +18,7 @@ func show_preview(index: int) -> void:
 	if is_instance_valid(preview):
 		host.remove_child(preview)
 		preview.queue_free()
-	preview = Registry.instantiate("loadout_lab") if index == 1 else load("res://scenes/ui/workbenches/ui_catalog_workbench.tscn").instantiate()
+	if index == 1: preview = Registry.instantiate("loadout_lab")
+	elif index == 2: preview = Registry.instantiate("menu")
+	else: preview = load("res://scenes/ui/workbenches/ui_catalog_workbench.tscn").instantiate()
 	host.add_child(preview)

@@ -40,4 +40,8 @@ ApplicationShell possui hosts estáticos de cenário, tela e notificações; o a
 
 Testes: shell editável 10, pause/layers 24, menus 90, leitura/retomada de diálogo 38, arquitetura gráfica 28, contextos 8 e overlays 9 aprovados. O teste do histórico consulta o RichTextLabel pelo binding canônico, não pela posição antiga entre os filhos. Comparação com a baseline em escalas 1.0 e 1.6 confirmou retângulos equivalentes de overlay, painel, resume, trace e toast. Relatório em docs/architecture/baselines/godot-scene-centralization/shell.geometry.json.
 
-Etapas 6–20: pendentes.
+## Etapa 6 — Menu principal e seleção de setting
+
+Menu principal centralizado em cena editável, registrada no router e no catálogo offline. Atualizações reutilizam os controles, preservando a invalidação de consultas assíncronas de continuar. Paper e shell também são instâncias autoradas. Testes: menu editável 8, layout 41, menus 90, progressão por setting 30, registro 7 e pause 24 aprovados. Comparação com a baseline em três larguras e duas escalas confirmou geometria equivalente; relatório menu.geometry.json.
+
+Etapas 7–20: pendentes.

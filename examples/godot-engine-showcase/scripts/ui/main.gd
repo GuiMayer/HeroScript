@@ -10,7 +10,6 @@ const CombatScreen = preload("res://scripts/ui/combat_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
 const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
-const MainMenuView = preload("res://scripts/ui/main_menu_view.gd")
 const MenuProfile = preload("res://data/themes/ivory_theme.tres")
 
 var visual_context
@@ -56,13 +55,8 @@ func _ready() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
 	_load_presentation()
 	visual_context.setting_id = GameSession.selected_setting_id
-	_menu_paper = ColorRect.new()
-	_menu_paper.name = "MenuPaper"
-	_menu_paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_menu_paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(_menu_paper)
-	shell = preload("res://scenes/ui/application_shell.tscn").instantiate()
-	add_child(shell)
+	_menu_paper = get_node("%MenuPaper")
+	shell = get_node("%ApplicationShell")
 	shell.mount(visual_context)
 	shell.theme = theme
 	shell.resume_requested.connect(toggle_pause)
@@ -161,11 +155,18 @@ func _is_menu_route() -> bool:
 
 func _show_main_menu() -> void:
 	_prune_hand_arrangements()
-	current_screen = "menu"
+	var view
+	if current_screen == "menu" and host.get_child_count() == 1 and host.get_child(0).scene_file_path == "res://scenes/ui/screens/main_menu.tscn":
+		view = host.get_child(0)
+		navigation_epoch += 1 # Preserve invalidation of older resume lookups without rebuilding chrome.
+		_apply_route_profile()
+	else:
+		current_screen = "menu"; _clear_host()
+		view = preload("res://scripts/ui/scene_registry.gd").instantiate("menu")
+		view.mount(visual_context)
+		view.setting_requested.connect(_select_setting_from_menu.bind(view.setting_selector))
+		view.action_requested.connect(_menu_action)
 	continuation_run_id = ""
-	_clear_host()
-	var view = MainMenuView.new()
-	view.mount(visual_context)
 	var chosen_setting := GameSession.selected_setting
 	var setting_name := I18n.text(str(chosen_setting.get("displayName", "Ember Archive")))
 	var setting_description := str(chosen_setting.get("description",
@@ -173,10 +174,9 @@ func _show_main_menu() -> void:
 	view.apply_model({"settingName": setting_name, "description": I18n.text(setting_description),
 		"settings": GameSession.settings, "selectedSettingId": GameSession.selected_setting_id,
 		"available": GameSession.available, "pending": GameSession.has_pending_command, "connecting": _probing_engine})
-	view.setting_requested.connect(_select_setting_from_menu.bind(view.setting_selector))
-	view.action_requested.connect(_menu_action)
 	AppTheme.apply_view_preferences(view, visual_context.text_scale, visual_context.high_contrast)
-	host.add_child(view)
+	if view.get_parent() == null: host.add_child(view)
+	else: preload("res://scripts/ui/focus_navigation.gd").queue(view)
 	if GameSession.available:
 		_resolve_menu_resume.call_deferred(weakref(view.continue_button), navigation_epoch)
 

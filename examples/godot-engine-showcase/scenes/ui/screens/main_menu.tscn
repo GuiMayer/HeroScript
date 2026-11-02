@@ -1,0 +1,311 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/ui/main_menu_view.gd" id="1"]
+[sub_resource type="StyleBoxLine" id="Divider"]
+resource_local_to_scene = true
+color = Color(0.6,0.6,0.6,1)
+thickness = 1
+
+[node name="MainMenuView" type="Control"]
+script = ExtResource("1")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MenuComposition" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+
+[node name="Masthead" type="HBoxContainer" parent="MenuComposition"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0,86)
+
+[node name="Brand" type="Label" parent="MenuComposition/Masthead"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+text = "HEROSCRIPT"
+metadata/translation_key = "HEROSCRIPT"
+size_flags_vertical = 0
+theme_type_variation = &"SectionTitle"
+
+[node name="Push" type="Control" parent="MenuComposition/Masthead"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EngineStatus" type="Label" parent="MenuComposition/Masthead"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+size_flags_vertical = 0
+
+[node name="MenuScroll" type="ScrollContainer" parent="MenuComposition"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_scroll_mode = 0
+size_flags_vertical = 3
+follow_focus = true
+
+[node name="Center" type="CenterContainer" parent="MenuComposition/MenuScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MenuBody" type="BoxContainer" parent="MenuComposition/MenuScroll/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 80
+
+[node name="JourneyColumn" type="VBoxContainer" parent="MenuComposition/MenuScroll/Center/MenuBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="Eyebrow" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+metadata/text_role = "accent.warm"
+text = "A DATA-DRIVEN SHOWCASE"
+metadata/translation_key = "A DATA-DRIVEN SHOWCASE"
+
+[node name="SettingTitle" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 52
+metadata/font_role = "screen_title"
+metadata/text_role = "text.primary"
+theme_type_variation = &"ScreenTitle"
+autowrap_mode = 3
+max_lines_visible = 2
+text_overrun_behavior = 3
+
+[node name="SettingDescription" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+theme_type_variation = &"Caption"
+autowrap_mode = 3
+
+[node name="SettingDivider" type="HSeparator" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/separator = SubResource("Divider")
+
+[node name="SettingLabel" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+text = "GAME SETTING"
+metadata/translation_key = "GAME SETTING"
+
+[node name="SettingSelector" type="OptionButton" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0,46)
+fit_to_longest_item = false
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="SettingHint" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+text = "A setting swaps the complete rules and content package used by a new journey."
+metadata/translation_key = "A setting swaps the complete rules and content package used by a new journey."
+theme_type_variation = &"Caption"
+autowrap_mode = 3
+
+[node name="Launch" type="HBoxContainer" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NewJourneyButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn/Launch"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NEW JOURNEY"
+metadata/translation_key = "NEW JOURNEY"
+metadata/action = "new"
+metadata/menu_link = false
+custom_minimum_size = Vector2(0,54)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"PrimaryAction"
+size_flags_horizontal = 3
+metadata/initial_focus = true
+
+[node name="ContinueButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn/Launch"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "CONTINUE"
+metadata/translation_key = "CONTINUE"
+metadata/action = "continue"
+metadata/menu_link = false
+custom_minimum_size = Vector2(0,54)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"SecondaryAction"
+size_flags_horizontal = 3
+disabled = true
+
+[node name="ReconnectButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "RECONNECT"
+metadata/translation_key = "RECONNECT"
+metadata/action = "reconnect"
+metadata/menu_link = false
+custom_minimum_size = Vector2(0,54)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"SecondaryAction"
+
+[node name="NavigationColumn" type="VBoxContainer" parent="MenuComposition/MenuScroll/Center/MenuBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+
+[node name="NavigationTitle" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+metadata/text_role = "text.secondary"
+text = "MAIN MENU"
+metadata/translation_key = "MAIN MENU"
+
+[node name="NavigationDivider" type="HSeparator" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/separator = SubResource("Divider")
+
+[node name="HistoryButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "JOURNEY HISTORY"
+metadata/translation_key = "JOURNEY HISTORY"
+metadata/action = "history"
+metadata/menu_link = true
+custom_minimum_size = Vector2(0,46)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"MenuLink"
+alignment = 0
+
+[node name="RulesLabButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "RULES LAB"
+metadata/translation_key = "RULES LAB"
+metadata/action = "sandbox"
+metadata/menu_link = true
+custom_minimum_size = Vector2(0,46)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"MenuLink"
+alignment = 0
+
+[node name="LoadoutLabButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "LOADOUT LAB"
+metadata/translation_key = "LOADOUT LAB"
+metadata/action = "loadout_lab"
+metadata/menu_link = true
+custom_minimum_size = Vector2(0,46)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"MenuLink"
+alignment = 0
+
+[node name="CodexButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "CONTENT CODEX"
+metadata/translation_key = "CONTENT CODEX"
+metadata/action = "codex"
+metadata/menu_link = true
+custom_minimum_size = Vector2(0,46)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"MenuLink"
+alignment = 0
+
+[node name="SettingsDivider" type="HSeparator" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/separator = SubResource("Divider")
+
+[node name="SettingsButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SETTINGS"
+metadata/translation_key = "SETTINGS"
+metadata/action = "settings"
+metadata/menu_link = true
+custom_minimum_size = Vector2(0,46)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"MenuLink"
+alignment = 0
+
+[node name="QuitButton" type="Button" parent="MenuComposition/MenuScroll/Center/MenuBody/NavigationColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "QUIT"
+metadata/translation_key = "QUIT"
+metadata/action = "quit"
+metadata/menu_link = true
+custom_minimum_size = Vector2(0,46)
+focus_mode = 2
+text_overrun_behavior = 3
+theme_type_variation = &"MenuLink"
+alignment = 0
+
+[node name="Footer" type="HBoxContainer" parent="MenuComposition"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0,90)
+
+[node name="FooterPush" type="Control" parent="MenuComposition/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MenuSignature" type="Label" parent="MenuComposition/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+metadata/text_role = "text.primary"
+text = "HeroScript decides  •  REST connects  •  Godot presents"
+metadata/translation_key = "HeroScript decides  •  REST connects  •  Godot presents"
+theme_type_variation = &"Caption"
+autowrap_mode = 0
+size_flags_vertical = 8
