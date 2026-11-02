@@ -5,6 +5,8 @@ var _gateway
 var _status: Label
 
 func _ready() -> void:
+	theme = AppTheme.build(Preferences.high_contrast)
+	get_node("Background").color = AppTheme.NIGHT
 	_status = Label.new(); _status.text = "Connecting to Deck Workshop…"; add_child(_status)
 	_transport = preload("res://scripts/engine/http_transport.gd").new(); _transport.base_url = Preferences.api_url; add_child(_transport)
 	_gateway = preload("res://scripts/engine/engine_gateway.gd").new(_transport)

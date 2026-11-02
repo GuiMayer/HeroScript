@@ -7,6 +7,7 @@ var language_picker: OptionButton
 var fixtures: Array = []
 
 func _ready() -> void:
+	theme = AppTheme.build(Preferences.high_contrast)
 	var background := ColorRect.new()
 	background.color = AppTheme.NIGHT
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

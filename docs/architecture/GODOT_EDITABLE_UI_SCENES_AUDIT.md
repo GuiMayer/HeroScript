@@ -72,3 +72,26 @@ O renderizador alternativo de face escura/arredondada e o recurso `default_card_
 `tests/card_style_canonical.gd` cobre a cena isolada, os custos, a anatomia única, o fallback e a remoção do recurso antigo. Atualizações de efeitos preservam os símbolos de custo quando seu conteúdo e contexto não mudam.
 
 Validação da remoção: 17 suítes focadas, 845 verificações aprovadas no workspace isolado. Cobrem apresentação/títulos, cena standalone, custos, estabilidade, mão/compra, animações, menus, contexto, componentes e laboratório (incluindo resolução ultrawide e idiomas). Captura renderizada da bancada confirmou o perfil atual. Gameplay e contratos REST não foram alterados.
+
+## Auditoria dos demais previews e cenas
+
+Revisados os `.tscn` de `scenes/` e `main.tscn`, seus scripts de entrada e os perfis recebidos em runtime.
+
+| Grupo | Resultado |
+| --- | --- |
+| Main, menu, pause e configurações | Entradas do jogo já selecionam ivory_theme/ivory_run explicitamente. Não usam a face antiga da carta. |
+| CardView e UICatalogWorkbench | Perfil atual já unificado na correção anterior. |
+| ActorPanel, ResourceView e StatusBadge | Contexto atual, mas F6 não preenchia os exemplos: somente o editor recebia preview. Corrigido para usar amostras apenas quando o componente é raiz isolada e não tem dados fornecidos. Instâncias embutidas não recebem dados fictícios. Status também aplica o Theme do próprio contexto. |
+| CardHandLab | Perfil de laboratório atual/programmer art; dimensões maiores de inspeção são uma variação deliberada da mesma carta. |
+| InscriptionLoadoutLab, UnifiedLoadoutLab e RunLoadout | Selecionam ivory_theme explicitamente. A tela de run requer o personagem/run reais; não foi transformada em exemplo offline. |
+| GameplayEventLab | Usava helpers globais cujo padrão ainda era preserved. O padrão global foi corrigido para ivory_run e o root agora recebe o Theme, incluindo seletores nativos. |
+| DeckCompartmentLab | Não aplicava Theme/canvas antes da conexão. Agora usa o padrão atual e um Background editável, sem alterar a criação da run dedicada ou os comandos da API. |
+| CombatComposition e CombatLateralTest | São hosts de composição e variante de layout, respectivamente; não mantêm uma versão antiga da arte. Precisam do controller/modelos para montar o combate. |
+| ApplicationShell e DialogueScene | Hosts ainda parcialmente procedurais, conforme a auditoria anterior. Não são previews completos nem versões antigas dos respectivos sistemas. |
+| Templates de custo, badges de mudança, labels e contadores | Recebem os dados/estilo do componente pai. Não constituem telas standalone nem renderizadores alternativos. |
+
+A fábrica global de estilos agora nasce no mesmo perfil atual do VisualContext, evitando que cenas abertas diretamente dependam de o menu ter sido visitado antes. Corrigido também o papel semântico de painéis: quando painel e canvas têm o mesmo branco, a troca de tema deve conservar `surface.panel`, sem deduzir a função apenas pelo RGB.
+
+`tests/scene_preview_profiles.gd` valida os exemplos isolados, o tema global, a ausência de amostras em componentes embutidos e a preservação de dados fornecidos. O laboratório online de compartimentos é exercitado com startup da API substituído por um fixture vazio; nenhum comando é enviado. `theme_contracts.gd` cobre troca de perfil com painéis persistentes. Layout, animações e regras de gameplay permanecem inalterados. O recurso preserved continua apenas como fixture explícito de testes de troca de perfil; nenhuma cena de produção o seleciona como padrão.
+
+Validação desta auditoria: 15 verificações novas de previews/temas aprovadas, além das regressões de nós editáveis, bancada, atores, contratos de tema/paleta, contexto, menus, apresentação de eventos, reconciliação, colaboradores do combate e estabilidade das cartas. Testes executados em cópia isolada, sem iniciar o fluxo online do laboratório de compartimentos.

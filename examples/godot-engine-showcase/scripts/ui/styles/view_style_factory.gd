@@ -19,7 +19,7 @@ var PANEL: Color:
 	get: return color("surface.panel")
 var PANEL_LIGHT: Color:
 	get: return color("surface.raised")
-var profile: Resource = preload("res://data/themes/preserved.tres")
+var profile: Resource = preload("res://data/themes/ivory_run.tres")
 var generation := 0
 var text_scale := 1.0
 var high_contrast_enabled := false
@@ -265,8 +265,12 @@ func button(text: String, min_width := 0) -> Button:
 func panel(content: Control, color = null) -> PanelContainer:
 	var wrapper := PanelContainer.new()
 	var resolved: Color = PANEL if color == null else color
-	wrapper.add_theme_stylebox_override("panel", box(resolved, profile.corner_radius if profile.printed_surfaces else 13,
-		self.color("stroke.panel") if profile.printed_surfaces else resolved.lightened(0.18), 1))
+	var surface := box(resolved, profile.corner_radius if profile.printed_surfaces else 13,
+		self.color("stroke.panel") if profile.printed_surfaces else resolved.lightened(0.18), 1)
+	# White palettes can assign identical RGB values to unrelated semantic roles.
+	# A default panel remains a panel when a later profile separates those colors.
+	if color == null: surface.set_meta("background_role", "surface.panel")
+	wrapper.add_theme_stylebox_override("panel", surface)
 	wrapper.add_child(content)
 	return wrapper
 

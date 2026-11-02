@@ -18,7 +18,7 @@ func _ready() -> void:
 	_bind_nodes()
 	if not _model.is_empty():
 		_apply_model()
-	elif Engine.is_editor_hint():
+	elif Engine.is_editor_hint() or get_parent() == get_tree().root:
 		# Live preview in Godot editor 2D canvas
 		setup(preview_resource_id, preview_state)
 

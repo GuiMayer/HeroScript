@@ -44,7 +44,7 @@ static func create(context = null) -> ActorPanel:
 
 func _ready() -> void:
 	_bind_nodes()
-	if Engine.is_editor_hint() and _model.is_empty(): setup(preview_actor, preview_hostile, {}, preview_intent, preview_compact, preview_battlefield)
+	if _model.is_empty() and (Engine.is_editor_hint() or get_parent() == get_tree().root): setup(preview_actor, preview_hostile, {}, preview_intent, preview_compact, preview_battlefield)
 
 func _bind_nodes() -> void:
 	_root_content = get_node("%ActorRootContent")

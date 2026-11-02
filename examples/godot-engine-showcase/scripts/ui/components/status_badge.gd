@@ -4,7 +4,7 @@ extends PanelContainer
 
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 
-var visual_context: ContextType
+var visual_context: ContextType = ContextType.new()
 var model: Dictionary = {}
 
 @export var preview_status: Dictionary = {"statusId": "burn", "stacks": 4, "duration": 2}
@@ -15,7 +15,7 @@ var _panel_style: StyleBoxFlat
 
 func _ready() -> void:
 	_bind_nodes()
-	if Engine.is_editor_hint() and model.is_empty():
+	if model.is_empty() and (Engine.is_editor_hint() or get_parent() == get_tree().root):
 		apply_status(preview_status)
 	elif not model.is_empty():
 		_apply_model()
@@ -40,6 +40,7 @@ func apply_status(status_data: Dictionary, context = null) -> void:
 	if context != null:
 		visual_context = context
 	_bind_nodes()
+	if visual_context != null: theme = visual_context.theme
 	_apply_model()
 
 func _apply_model() -> void:
