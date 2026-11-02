@@ -298,7 +298,7 @@ func _build_character_sidebar() -> Control:
 	_ensure_floating_hud()
 	var view = character_sidebar
 	if not is_instance_valid(view):
-		view = preload("res://scripts/ui/components/combat_attributes_drawer.gd").new()
+		view = preload("res://scripts/ui/components/combat_attributes_drawer.gd").create()
 		view.mount(visual_context)
 		view.open_changed.connect(func(value): character_sidebar_expanded = value)
 		floating_hud.replace_slot("sidebar", view)

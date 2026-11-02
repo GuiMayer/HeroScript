@@ -168,7 +168,7 @@ func _build() -> void:
 	board_panel.get_child(0).get_child(0).name = "LoadoutBoardTitle"
 	board_panel.size_flags_stretch_ratio = 1.3
 	columns.add_child(board_panel)
-	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").new()
+	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").create()
 	attributes_view.mount(visual_context)
 	columns.add_child(_panel("CHARACTER ATTRIBUTES", attributes_view, 300))
 
@@ -223,7 +223,7 @@ func _build_editorial() -> void:
 	var board_panel := _panel("", board, 330); board_panel.size_flags_stretch_ratio = 0.40; columns.add_child(board_panel)
 	if shared_attributes: return
 	_editorial_separator()
-	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").new(); attributes_view.editorial_layout = true
+	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").create(); attributes_view.editorial_layout = true
 	attributes_view.mount(visual_context)
 	var character_panel := _panel("CHARACTER", attributes_view, 260); character_panel.size_flags_stretch_ratio = 0.26; columns.add_child(character_panel)
 

@@ -28,4 +28,10 @@ CardDetails usa cena própria com seções e linhas/templates editáveis. Toolti
 
 Testes: edição/inspeção 12, apresentação 86, coleções 9, overlays 9, seleção 19, estabilidade 34, menus 90 e itens modificadores 33 aprovados. Eliminados os warnings de owner na alternância de hosts. Tipos, efeitos e cálculos continuam vindo dos presenters existentes.
 
-Etapas 4–20: pendentes.
+## Etapa 4 — Atributos compartilhados e drawer
+
+CharacterAttributesView e CombatAttributesDrawer possuem cenas reais; linhas e grupos variáveis instanciam templates de atributos. Loadout, laboratório e combate usam a mesma cena. Preservados autosave/adapters, atalho I, hover da borda, animação de abertura e projeção dos dados publicados. Fontes-base de edição são mantidas em cache privado, sem gravar metadados de preview no asset. Atualizações preservam padding, estado de abertura e sinais.
+
+Testes: nós de atributos 10, drawer do combate 23, layout editorial 187, input do loadout 6, laboratório de inscrições 146 e registro/catálogo 7 aprovados. Corrigido o teste antigo que ainda esperava a entrada de laboratório anterior ao shell unificado. Comparação com as classes da baseline em escalas 1.0 e 1.6 confirmou retângulos equivalentes para painel, toggle, título, scroll, nome e linhas de atributos. Relatório em docs/architecture/baselines/godot-scene-centralization/attributes.geometry.json.
+
+Etapas 5–20: pendentes.

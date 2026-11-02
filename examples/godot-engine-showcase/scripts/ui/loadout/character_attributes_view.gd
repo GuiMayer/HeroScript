@@ -1,71 +1,67 @@
+@tool
+class_name CharacterAttributesView
 extends VBoxContainer
-## Passive attribute projection, independent from cards, REST and the lab adapter.
+const Context = preload("res://scripts/ui/visual_context.gd")
+const RowScene = preload("res://scenes/ui/components/loadout/attribute_row.tscn")
+const GroupScene = preload("res://scenes/ui/components/loadout/attribute_group.tscn")
 var visual_context
-var editorial_layout := false
-var fill_available_height := false
-var value_heading := "Equipped"
+@export var editorial_layout := false
+@export var fill_available_height := false
+@export var value_heading := "Equipped"
+@export var preview_character: Dictionary = {"name":"Preview hero","attributes":[{"id":"health","group":"Resources","label":"Health","base":72,"value":80,"change":8,"format":"number","sources":[]}]}
 var _rows := {}
-var _character_name := Label.new()
-var _table := VBoxContainer.new()
-var _scroll := ScrollContainer.new()
+var _character_name: Label
+var _table: VBoxContainer
+var _scroll: ScrollContainer
 var _schema: Array = []
-
+var _authored_font_sizes: Dictionary = {}
+static func create() -> CharacterAttributesView:
+	return (load("res://scenes/ui/components/loadout/character_attributes_view.tscn") as PackedScene).instantiate()
+func _bind_nodes() -> void:
+	_character_name = get_node("%CharacterName")
+	_table = get_node("%Table"); _scroll = get_node("%LoadoutAttributeScroll")
 func _ready() -> void:
+	_bind_nodes()
+	if visual_context == null and (Engine.is_editor_hint() or get_parent() == get_tree().root):
+		mount(Context.new()); present(preview_character)
 	_fit_scroll()
-	resized.connect(_fit_scroll)
-	get_viewport().size_changed.connect(_fit_scroll)
-
+	if not resized.is_connected(_fit_scroll): resized.connect(_fit_scroll)
+	var viewport := get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_fit_scroll): viewport.size_changed.connect(_fit_scroll)
 func _fit_scroll() -> void:
+	if _scroll == null: return
 	if fill_available_height:
-		_scroll.custom_minimum_size.y = 0
-		return
-	if is_inside_tree(): _scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - (450 if editorial_layout else 340), 270 if editorial_layout else 300, 650 if editorial_layout else 700)
-
-func mount(context) -> void:
-	visual_context = context
-	name = "LoadoutCharacterAttributes"
-	add_theme_constant_override("separation", 10)
-	_character_name.add_theme_font_size_override("font_size", roundi(19 * context.text_scale))
-	_character_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if editorial_layout:
-		var identity := HBoxContainer.new(); identity.add_theme_constant_override("separation", 16)
-		var portrait := TextureRect.new(); portrait.texture = preload("res://assets/ivory/actor-adept.svg")
-		portrait.custom_minimum_size = Vector2(64, 86); portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		identity.add_child(portrait); _character_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL; identity.add_child(_character_name); add_child(identity)
-	else:
-		add_child(_character_name)
-		add_child(_label("Base character → with equipped inscriptions.", 13))
-	var scroll := _scroll
-	scroll.name = "LoadoutAttributeScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size.y = 0 if fill_available_height else 300
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL if fill_available_height else Control.SIZE_FILL
-	_table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_table.add_theme_constant_override("separation", 7)
-	scroll.add_child(_table)
-	add_child(scroll)
-	var header := HBoxContainer.new()
-	var title := _label("Attribute", 12)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title)
-	for key in ["Base", "Equipped"]:
-		var caption := _label(value_heading if key == "Equipped" else key, 12)
-		if editorial_layout and key == "Base": caption.hide()
-		caption.custom_minimum_size.x = 65 * context.text_scale
-		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		header.add_child(caption)
-	_table.add_child(header)
-	if not editorial_layout: add_child(_label("Critical damage is the bonus per tier. Armor mitigation and dodge rolls are not simulated here.", 12))
-
-func _label(key: String, font_size: int) -> Label:
-	var label := Label.new()
-	label.set_meta("attribute_translation_key", key)
+		_scroll.custom_minimum_size.y = 0; return
+	if is_inside_tree(): _scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - (450 if editorial_layout else 340),270 if editorial_layout else 300,650 if editorial_layout else 700)
+func configure_text(label: Label, key: String, size: int) -> void:
+	label.set_meta("attribute_translation_key",key)
+	label.set_meta("attribute_base_font_size",size)
 	label.text = visual_context.translator.text(key)
-	label.add_theme_font_size_override("font_size", roundi(font_size * visual_context.text_scale))
-	label.add_theme_color_override("font_color", visual_context.styles.color("text.primary"))
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	return label
-
+	label.add_theme_font_size_override("font_size",roundi(size * visual_context.text_scale))
+	label.add_theme_color_override("font_color",visual_context.styles.color("text.primary"))
+func mount(context) -> void:
+	_bind_nodes(); visual_context = context; theme = context.theme
+	name = "LoadoutCharacterAttributes"
+	for label in find_children("*","Label",true,false):
+		var base_size: float
+		if label.has_meta("attribute_base_font_size"):
+			base_size = float(label.get_meta("attribute_base_font_size"))
+		else:
+			var id := label.get_instance_id()
+			if not _authored_font_sizes.has(id): _authored_font_sizes[id] = label.get_theme_font_size("font_size")
+			base_size = float(_authored_font_sizes[id])
+		label.add_theme_font_size_override("font_size",roundi(base_size * context.text_scale))
+		label.add_theme_color_override("font_color",context.styles.color(str(label.get_meta("attribute_color_role","text.primary"))))
+		if label.has_meta("attribute_translation_key"): label.text = context.translator.text(str(label.get_meta("attribute_translation_key")))
+	get_node("%Portrait").visible = editorial_layout
+	get_node("%Description").visible = not editorial_layout
+	get_node("%Explanation").visible = not editorial_layout
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL if fill_available_height else Control.SIZE_FILL
+	_scroll.custom_minimum_size.y = 0 if fill_available_height else 300
+	get_node("%Base").visible = not editorial_layout
+	get_node("%Equipped").set_meta("attribute_translation_key",value_heading)
+	get_node("%Equipped").text = context.translator.text(value_heading)
+	for caption in [get_node("%Base"),get_node("%Equipped")]: caption.custom_minimum_size.x = 65 * context.text_scale
 func present(character: Dictionary) -> void:
 	var translator = visual_context.translator
 	for label in find_children("*", "Label", true, false):
@@ -85,27 +81,25 @@ func present(character: Dictionary) -> void:
 		if not _rows.has(stat.id):
 			if stat.group != group:
 				group = stat.group
-				_table.add_child(HSeparator.new())
-				var heading := _label(stat.group, 12)
-				heading.add_theme_color_override("font_color", visual_context.styles.color("accent.primary"))
+				var heading = GroupScene.instantiate()
+				configure_text(heading.get_node("Heading"), stat.group, 12)
+				heading.get_node("Heading").set_meta("attribute_color_role","accent.primary")
+				heading.get_node("Heading").add_theme_color_override("font_color", visual_context.styles.color("accent.primary"))
 				_table.add_child(heading)
-			var row := HBoxContainer.new()
+			var row = RowScene.instantiate()
 			row.name = "Attribute_" + str(stat.id)
-			var marker := ColorRect.new(); marker.color = visual_context.styles.color("accent.primary"); marker.custom_minimum_size.x = 3
-			marker.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(marker)
-			var label := _label(stat.label, 14)
-			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(label)
-			var base := _label("", 14)
-			var equipped := _label("", 14)
+			var marker = row.get_node("Marker"); marker.color = visual_context.styles.color("accent.primary")
+			configure_text(row.get_node("Label"), stat.label, 14)
+			var base = row.get_node("Base"); var equipped = row.get_node("Equipped")
 			for number in [base, equipped]:
+				configure_text(number, "", 14)
 				number.custom_minimum_size.x = 65 * visual_context.text_scale
-				number.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				row.add_child(number)
-			if editorial_layout: base.hide()
+			base.visible = not editorial_layout
 			_table.add_child(row)
-			_rows[stat.id] = {"row": row, "base": base, "equipped": equipped, "marker": marker}
+			_rows[stat.id] = {"row": row,"base": base,"equipped": equipped,"marker": marker}
 		var controls: Dictionary = _rows[stat.id]
+		controls.base.visible = not editorial_layout
+		controls.marker.color = visual_context.styles.color("accent.primary")
 		controls.marker.visible = editorial_layout and stat.id in character.get("highlightedAttributeIds", [])
 		controls.base.text = preload("res://scripts/ui/loadout/loadout_stat_text.gd").value(stat, stat.base, translator)
 		controls.equipped.text = preload("res://scripts/ui/loadout/loadout_stat_text.gd").value(stat, stat.value, translator)

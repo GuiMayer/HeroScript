@@ -1,6 +1,7 @@
+@tool
+class_name CombatAttributesDrawer
 extends PanelContainer
 ## Floating shell around the exact passive attribute component used by loadout.
-const Attributes = preload("res://scripts/ui/loadout/character_attributes_view.gd")
 const Presenter = preload("res://scripts/presentation/loadout_presenter.gd")
 signal open_changed(value: bool)
 @export var transition_seconds := .22
@@ -15,41 +16,44 @@ var _edge_armed := true
 var _tween: Tween
 var _left := 0.0
 var _projection: Array = []
+var _surface: StyleBoxFlat
 var openness := 0.0:
 	set(value):
 		openness = value
 		position.x = _left - (size.x + 12) * (1.0 - value)
 
+static func create() -> CombatAttributesDrawer:
+	return (load("res://scenes/ui/components/combat/combat_attributes_drawer.tscn") as PackedScene).instantiate()
+func _ready() -> void:
+	if visual_context == null and (Engine.is_editor_hint() or get_parent() == get_tree().root):
+		mount(preload("res://scripts/ui/visual_context.gd").new(null,{"reduced_motion":true}))
+		attributes_view.present(attributes_view.preview_character)
+		expanded = true; openness = 1; show()
 func mount(context) -> void:
-	visual_context = context
-	name = "CharacterSidebar"
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
-	add_child(column)
-	var toolbar := HBoxContainer.new()
-	title_label = context.styles.title(context.translator.text("Attributes"), 18)
-	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	toolbar.add_child(title_label)
-	toggle_button = context.styles.button("×", 36)
-	toggle_button.name = "CharacterSidebarToggle"
+	var first_mount := visual_context == null
+	visual_context = context; theme = context.theme
+	title_label = get_node("%Title"); toggle_button = get_node("%CharacterSidebarToggle")
+	attributes_view = get_node("%LoadoutCharacterAttributes")
+	if _surface == null:
+		_surface = get_theme_stylebox("panel").duplicate()
+		add_theme_stylebox_override("panel",_surface)
+	title_label.text = context.translator.text("Attributes")
+	title_label.add_theme_color_override("font_color",context.styles.INK)
 	toggle_button.tooltip_text = context.translator.text("Close")
-	toggle_button.pressed.connect(func(): set_open(false))
-	toolbar.add_child(toggle_button); column.add_child(toolbar)
-	attributes_view = Attributes.new()
-	attributes_view.editorial_layout = true
-	attributes_view.fill_available_height = true
-	attributes_view.value_heading = "Current"
-	attributes_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if not toggle_button.pressed.is_connected(_close): toggle_button.pressed.connect(_close)
 	attributes_view.mount(context)
-	column.add_child(attributes_view)
 	content_scroll = attributes_view._scroll
-	hide()
+	if first_mount and not Engine.is_editor_hint(): hide()
+func _close() -> void: set_open(false)
 
 func present(model: Dictionary, context) -> void:
 	visual_context = context
 	theme = context.theme
-	add_theme_stylebox_override("panel", context.styles.box(context.styles.PANEL, 2, context.styles.color("stroke.panel"), 1))
+	_surface.bg_color = context.styles.PANEL
+	_surface.border_color = context.styles.color("stroke.panel")
+	if has_meta("base_style_panel"): remove_meta("base_style_panel")
+	if has_meta("visual_preferences_revision"): remove_meta("visual_preferences_revision")
+	add_theme_stylebox_override("panel",_surface)
 	attributes_view.visual_context = context
 	title_label.text = "%s [%s]" % [context.translator.text("Attributes"), context.action_label("open_character")]
 	var actors: Array = model.get("actors", [])

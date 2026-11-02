@@ -45,7 +45,7 @@ func mount(context) -> void:
 	body.add_theme_constant_override("separation", 18); page.add_child(body)
 	content = Control.new(); content.name = "LoadoutModuleHost"; content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL; body.add_child(content)
-	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").new()
+	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").create()
 	attributes_view.editorial_layout = true; attributes_view.mount(context)
 	attributes_view.add_child(button("Attribute sources", attribute_sources_requested.emit))
 	attributes_panel = context.styles.panel(attributes_view); attributes_panel.name = "SharedCharacterAttributes"
