@@ -13,93 +13,54 @@ var pause_layer: Control
 var pause_canvas: CanvasLayer
 var _previous_focus: WeakRef
 var _toast_motion: Tween
+var _toast_surface: StyleBoxFlat
 const PauseProfile = preload("res://data/themes/ivory_theme.tres")
 var pause_context
 var _history_dialog: AcceptDialog
 func mount(context) -> void:
 	visual_context = context
-	run_scenery = preload("res://scripts/ui/shell/run_scenery_host.gd").new()
-	add_child(run_scenery)
+	run_scenery = get_node("%RunSceneryHost")
 	run_scenery.mount(context)
-	move_child(run_scenery, 0)
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host = get_node("ScreenHost")
-	host.process_mode = Node.PROCESS_MODE_PAUSABLE
-	for side in ["left", "right"]: host.add_theme_constant_override("margin_" + side, roundi(context.profile.screen_margin.x))
-	for side in ["top", "bottom"]: host.add_theme_constant_override("margin_" + side, roundi(context.profile.screen_margin.y))
-	var notices := CanvasLayer.new()
-	notices.layer = Layers.NOTIFICATION
-	add_child(notices)
-	toast = preload("res://scenes/ui/overlays/toast.tscn").instantiate()
-	toast.visible = false
-	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	toast.position = Vector2(-260, 18)
-	toast.size = Vector2(520, 52)
-	toast.add_theme_stylebox_override("normal", AppTheme.box(AppTheme.color("surface.toast"), 10, AppTheme.EMBER, 1))
-	toast.add_theme_font_size_override("font_size", 16)
-	notices.add_child(toast)
+	for side in ["left","right"]: host.add_theme_constant_override("margin_"+side,roundi(context.profile.screen_margin.x))
+	for side in ["top","bottom"]: host.add_theme_constant_override("margin_"+side,roundi(context.profile.screen_margin.y))
+	toast = get_node("%Toast")
+	if _toast_surface == null: _toast_surface = toast.get_theme_stylebox("normal").duplicate()
+	_refresh_toast_style()
+func _refresh_toast_style() -> void:
+	_toast_surface.bg_color = visual_context.styles.color("surface.toast")
+	_toast_surface.border_color = visual_context.styles.EMBER
+	toast.add_theme_stylebox_override("normal",_toast_surface)
+	if toast.has_meta("base_style_normal"): toast.remove_meta("base_style_normal")
+	if toast.has_meta("visual_preferences_revision"): toast.remove_meta("visual_preferences_revision")
+	visual_context.styles.apply_view_preferences(toast,visual_context.text_scale,visual_context.high_contrast)
 func show_pause(abandon: Dictionary, conversation_history: Array = []) -> void:
-	_previous_focus = weakref(get_viewport().gui_get_focus_owner()) if get_viewport().gui_get_focus_owner() else null
+	var viewport := get_viewport()
+	var focused = viewport.gui_get_focus_owner() if viewport != null else null
+	_previous_focus = weakref(focused) if focused != null else null
 	pause_context = visual_context.derive(PauseProfile)
 	AppTheme.scoped_profile(PauseProfile, func(): _build_pause(abandon, conversation_history.duplicate(true)))
 	var resume: Button = pause_layer.find_child("ResumeButton", true, false)
-	resume.grab_focus()
-	preload("res://scripts/ui/focus_navigation.gd").queue(pause_layer)
+	if resume.is_inside_tree():
+		resume.grab_focus()
+		preload("res://scripts/ui/focus_navigation.gd").queue(pause_layer)
 func _build_pause(abandon: Dictionary, conversation_history: Array) -> void:
-	pause_canvas = CanvasLayer.new()
-	pause_canvas.name = "PauseCanvas"
-	pause_canvas.layer = Layers.MODAL
-	pause_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_canvas = preload("res://scenes/ui/overlays/pause_menu.tscn").instantiate()
+	pause_canvas.setup(pause_context,not abandon.is_empty(),not conversation_history.is_empty())
+	pause_layer = pause_canvas.get_node("%PauseOverlay")
+	pause_canvas.intent_requested.connect(func(action):
+		match action:
+			"resume": resume_requested.emit()
+			"settings": settings_requested.emit()
+			"history": _open_conversation_history(conversation_history)
+			"abandon": confirm_abandon(abandon)
+			"menu": menu_requested.emit()
+	)
 	add_child(pause_canvas)
-	pause_layer = ColorRect.new()
-	pause_layer.name = "PauseOverlay"
-	pause_layer.theme = AppTheme.build(pause_context.high_contrast)
-	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
-	pause_layer.color = AppTheme.color("surface.modal_scrim")
-	pause_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pause_canvas.add_child(pause_layer)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pause_layer.add_child(center)
-	var content := VBoxContainer.new()
-	content.custom_minimum_size = Vector2(420, 0)
-	content.add_theme_constant_override("separation", 13)
-	var trace := preload("res://scripts/ui/components/circuit_trace.gd").new()
-	trace.name = "PauseCircuit"
-	trace.custom_minimum_size.y = 80
-	trace.simplified = pause_context.high_contrast
-	content.add_child(trace)
-	var i18n = pause_context.translator
-	content.add_child(AppTheme.title(i18n.text("PAUSE"), 42))
-	content.add_child(AppTheme.muted(i18n.text("Take your time. Your progress is preserved while the game is paused."), 15, 380))
-	var resume := _button(i18n.text("RESUME"), resume_requested.emit)
-	resume.name = "ResumeButton"
-	resume.theme_type_variation = "PrimaryAction"
-	content.add_child(resume)
-	content.add_child(_button(i18n.text("SETTINGS"), settings_requested.emit))
-	var history := _button(i18n.text("CONVERSATION HISTORY"), func(): _open_conversation_history(conversation_history))
-	history.name = "ConversationHistoryButton"
-	history.disabled = conversation_history.is_empty()
-	content.add_child(history)
-	if not abandon.is_empty():
-		var button := _button(i18n.text("ABANDON RUN"), func(): confirm_abandon(abandon))
-		button.name = "AbandonRunButton"
-		button.theme_type_variation = "DangerAction"
-		content.add_child(button)
-	content.add_child(_button(i18n.text("MAIN MENU"), menu_requested.emit))
-	center.add_child(AppTheme.panel(content))
-	AppTheme.apply_view_preferences(pause_layer, pause_context.text_scale, pause_context.high_contrast)
 func refresh_pause_visuals() -> void:
 	if not is_instance_valid(pause_layer): return
 	pause_context = visual_context.derive(PauseProfile)
-	AppTheme.scoped_profile(PauseProfile, func():
-		pause_layer.theme = AppTheme.build(pause_context.high_contrast)
-		pause_layer.color = AppTheme.color("surface.modal_scrim")
-		AppTheme.apply_view_preferences(pause_layer, pause_context.text_scale, pause_context.high_contrast)
-		pause_layer.find_child("PauseCircuit", true, false).simplified = pause_context.high_contrast)
+	pause_canvas.apply_context(pause_context)
 func close_pause() -> void:
 	# Windows detach from their embedded viewport immediately with the pause canvas.
 	if is_instance_valid(_history_dialog):
@@ -161,13 +122,7 @@ func apply_visual_profile() -> void:
 	# Notices live outside the screen host; avoid stale dark styles on menu paper.
 	for side in ["left", "right"]: host.add_theme_constant_override("margin_" + side, roundi(visual_context.profile.screen_margin.x))
 	for side in ["top", "bottom"]: host.add_theme_constant_override("margin_" + side, roundi(visual_context.profile.screen_margin.y))
-	toast.add_theme_stylebox_override("normal", AppTheme.box(AppTheme.color("surface.toast"), AppTheme.profile.corner_radius, AppTheme.EMBER, 1))
-	if toast.has_meta("base_style_normal"): toast.remove_meta("base_style_normal")
-	AppTheme.apply_view_preferences(toast, visual_context.text_scale, visual_context.high_contrast)
-func _button(text: String, action: Callable) -> Button:
-	var value := AppTheme.button(text, 360)
-	value.pressed.connect(action)
-	return value
+	_refresh_toast_style()
 func dispose() -> void:
 	if _toast_motion: _toast_motion.kill()
 	close_pause()

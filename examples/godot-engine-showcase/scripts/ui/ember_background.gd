@@ -1,3 +1,4 @@
+@tool
 class_name EmberBackground
 extends Control
 

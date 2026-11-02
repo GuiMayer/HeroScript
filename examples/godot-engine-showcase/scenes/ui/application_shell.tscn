@@ -1,5 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 [ext_resource type="Script" path="res://scripts/ui/shell/application_shell.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat/run_scenery_host.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/overlays/toast.tscn" id="3"]
 [node name="ApplicationShell" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -9,6 +11,9 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1")
+[node name="RunSceneryHost" parent="." instance=ExtResource("2")]
+unique_name_in_owner = true
+layout_mode = 1
 [node name="ScreenHost" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -16,3 +21,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+process_mode = 1
+[node name="Notifications" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+layer = 20
+[node name="Toast" parent="Notifications" instance=ExtResource("3")]
+unique_name_in_owner = true

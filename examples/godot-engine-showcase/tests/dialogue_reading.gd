@@ -85,7 +85,7 @@ func _preferences_and_pause() -> void:
 		var snapshot := JSON.stringify(session.run)
 		history.pressed.emit(); await settle()
 		var dialog: AcceptDialog = router.shell._history_dialog
-		var transcript: RichTextLabel = dialog.content.get_child(0)
+		var transcript: RichTextLabel = dialog.get_node("%Summary")
 		check(dialog.visible and dialog.can_process() and dialog.exclusive and router.pause_layer.is_ancestor_of(dialog) and paused, "history opens as an interactive modal over paused gameplay")
 		check(transcript.text.contains("Welcome" if language == "en" else "Bem-vindo") and transcript.text.contains("A previous choice" if language == "en" else "Uma escolha anterior"), "history displays localized transcript, including choices")
 		await capture("conversation-history-" + language)

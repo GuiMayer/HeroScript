@@ -1,3 +1,4 @@
+@tool
 extends Control
 ## Shell-owned ambient scenery. UI theme/palette cannot recolor it.
 var background: EmberBackground
@@ -14,16 +15,15 @@ func release_combat(node: Control) -> void:
 	_combat_scenery = null
 	remove_child(node)
 	node.queue_free()
+func _ready() -> void:
+	if background == null and (Engine.is_editor_hint() or get_parent() == get_tree().root):
+		var context = preload("res://scripts/ui/visual_context.gd").new()
+		context.set_scenery_profile(preload("res://data/themes/ivory_scenery.tres"))
+		mount(context); set_active(true)
 func mount(context) -> void:
-	process_mode = Node.PROCESS_MODE_PAUSABLE
-	name = "RunSceneryHost"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background = EmberBackground.new()
+	background = get_node("%GameplayBackground")
 	background.visual_context = context
-	background.name = "GameplayBackground"
-	add_child(background)
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.queue_redraw()
 
 func set_active(value: bool) -> void:
 	visible = value

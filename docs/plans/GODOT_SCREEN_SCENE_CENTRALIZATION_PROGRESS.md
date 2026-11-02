@@ -34,4 +34,10 @@ CharacterAttributesView e CombatAttributesDrawer possuem cenas reais; linhas e g
 
 Testes: nós de atributos 10, drawer do combate 23, layout editorial 187, input do loadout 6, laboratório de inscrições 146 e registro/catálogo 7 aprovados. Corrigido o teste antigo que ainda esperava a entrada de laboratório anterior ao shell unificado. Comparação com as classes da baseline em escalas 1.0 e 1.6 confirmou retângulos equivalentes para painel, toggle, título, scroll, nome e linhas de atributos. Relatório em docs/architecture/baselines/godot-scene-centralization/attributes.geometry.json.
 
-Etapas 5–20: pendentes.
+## Etapa 5 — Shell, pause e notificações
+
+ApplicationShell possui hosts estáticos de cenário, tela e notificações; o ambiente é uma subcena com desenho procedural compartilhado. PauseMenu é uma cena passiva completa, com todos os controles, painel e layer editáveis. A shell liga as intenções aos mesmos callbacks de aplicação, sem reconstruir chrome no refresh. Foco, histórico de conversa, abandono e descarte do modal continuam no coordenador. Toast usa a cena existente, com superfície local editável.
+
+Testes: shell editável 10, pause/layers 24, menus 90, leitura/retomada de diálogo 38, arquitetura gráfica 28, contextos 8 e overlays 9 aprovados. O teste do histórico consulta o RichTextLabel pelo binding canônico, não pela posição antiga entre os filhos. Comparação com a baseline em escalas 1.0 e 1.6 confirmou retângulos equivalentes de overlay, painel, resume, trace e toast. Relatório em docs/architecture/baselines/godot-scene-centralization/shell.geometry.json.
+
+Etapas 6–20: pendentes.
