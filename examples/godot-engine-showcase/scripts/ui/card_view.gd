@@ -74,7 +74,7 @@ func configure(data: Dictionary) -> void:
 	art_style.bg_color = visual_context.styles.color("surface.card_art"); art_style.border_color = tone.darkened(.28)
 	art_frame.add_theme_stylebox_override("panel", art_style)
 	var art = get_node("%CardArtwork")
-	art.visual_context = visual_context; art.setup("cards", str(data.get("definitionId", "")))
+	art.rebind_context(visual_context); art.setup("cards", str(data.get("definitionId", "")))
 	var placeholder: bool = art.is_placeholder and bool(data.get("artPlaceholder", true))
 	var name_text: String = str(data.get("name", "")).trim_suffix(" +").to_upper()
 	get_node("%ArtPlaceholderName").visible = placeholder and visual_style.printed_face

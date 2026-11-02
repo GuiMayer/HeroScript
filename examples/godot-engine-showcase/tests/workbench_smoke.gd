@@ -1,40 +1,31 @@
 extends SceneTree
-
-func _init() -> void:
-	call_deferred("_run")
-
+var failures := 0
+func _init() -> void: call_deferred("_run")
+func check(ok: bool, message: String) -> void:
+    print(("[PASS] " if ok else "[FAIL] ") + message)
+    if not ok: failures += 1
 func _run() -> void:
-	print("[TEST] Loading ui_catalog_workbench.tscn...")
-	var scene = load("res://scenes/ui/workbenches/ui_catalog_workbench.tscn")
-	if scene == null:
-		printerr("[FAIL] Could not load ui_catalog_workbench.tscn")
-		quit(1)
-		return
-	
-	var instance = scene.instantiate()
-	if instance == null:
-		printerr("[FAIL] Could not instantiate ui_catalog_workbench.tscn")
-		quit(1)
-		return
-	
-	root.add_child(instance)
-	for frame in 5:
-		await process_frame
-		
-	var hero = instance.find_child("HeroActorPanel", true, false)
-	var boss = instance.find_child("BossActorPanel", true, false)
-	var attack_card = instance.find_child("AttackCard", true, false)
-	var badges = instance.find_child("StatusBadgesContainer", true, false)
-	
-	if hero == null or boss == null or attack_card == null or badges == null:
-		printerr("[FAIL] One or more workbench components could not be located in tree")
-		quit(1)
-		return
-		
-	print("[PASS] Workbench instantiated and components populated successfully")
-	print("[PASS] Hero ActorPanel: ", hero.name)
-	print("[PASS] Boss ActorPanel: ", boss.name)
-	print("[PASS] Attack Card: ", attack_card.name)
-	print("[PASS] Badges count: ", badges.get_child_count())
-	instance.free()
-	quit(0)
+    var scene = load("res://scenes/ui/workbenches/ui_catalog_workbench.tscn")
+    var instance = scene.instantiate()
+    root.add_child(instance)
+    for frame in 5: await process_frame
+    var hero = instance.get_node("%HeroActorPanel")
+    var boss = instance.get_node("%BossActorPanel")
+    var card = instance.get_node("%AttackCard")
+    var health = instance.get_node("%SampleHealthView")
+    var armor = instance.get_node("%SampleArmorView")
+    check(hero.presentation_model().actor.instanceId == "hero", "Hero receives authored preview data")
+    check(boss.presentation_model().hostile and boss.presentation_model().intent == "Attack 12", "Boss receives authored affiliation and intent")
+    check(card.model.name == "Flame Strike" and card.model.costs[0].amount == 2, "Card receives valid presentation costs")
+    check(card.get_node("%Rules").get_parsed_text().contains("12"), "Card sample displays its effects")
+    check(health.bar.value == 75 and health.bar.max_value == 100, "Health sample uses actual resource bounds")
+    check(armor.bar.value == 25 and armor.bar.max_value == 50, "Armor sample uses actual resource bounds")
+    check(instance.get_node("%StatusBadgesContainer").get_child_count() == 6, "All six badges are authored scene instances")
+    check(not card.animate_entry and card.hand_managed, "Workbench never starts card entry animations")
+    var title = card.get_node("%CardName")
+    var target = hero.target_button
+    instance._populate_workbench()
+    check(card.get_node("%CardName") == title and hero.target_button == target, "Refreshing preview preserves authored controls")
+    check(card.visual_context == hero.visual_context and card.visual_context.reduced_motion, "Components share an isolated reduced-motion context")
+    instance.free()
+    quit(1 if failures else 0)

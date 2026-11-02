@@ -31,6 +31,10 @@ var _authored_content_gap: int
 @export var compact_content_width := 264.0
 @export var compact_target_size := Vector2(76, 112)
 @export var battlefield_target_size := Vector2(180, 100)
+@export var preview_hostile := true
+@export var preview_intent := "Attack 12"
+@export var preview_compact := false
+@export var preview_battlefield := false
 @export var preview_actor: Dictionary = {"instanceId": "preview", "name": "Stone Golem", "definitionId": "stone_golem", "resources": {"health": {"current": 80, "minimum": 0, "maximum": 100}}, "statuses": [{"statusId": "burn", "stacks": 4}]}
 
 static func create(context = null) -> ActorPanel:
@@ -40,7 +44,7 @@ static func create(context = null) -> ActorPanel:
 
 func _ready() -> void:
 	_bind_nodes()
-	if Engine.is_editor_hint() and _model.is_empty(): setup(preview_actor, true, {}, "Attack 12")
+	if Engine.is_editor_hint() and _model.is_empty(): setup(preview_actor, preview_hostile, {}, preview_intent, preview_compact, preview_battlefield)
 
 func _bind_nodes() -> void:
 	_root_content = get_node("%ActorRootContent")
@@ -145,7 +149,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()
 	target_button.tooltip_text = name_text + "\n" + _intent.text + "\n" + visual_context.translator.text("Choose a highlighted target.")
-	portrait_view.visual_context = visual_context
+	portrait_view.rebind_context(visual_context)
 	if not battlefield: portrait_view.setup("actors", str(actor.get("definitionId", "")))
 	else: portrait_view.texture = null
 	for state in ["hover", "focus", "pressed"]:
