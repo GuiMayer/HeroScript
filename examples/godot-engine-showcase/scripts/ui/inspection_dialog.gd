@@ -27,7 +27,7 @@ func setup(title_text: String, summary: String, data: Dictionary = {}, card_mode
     var slot = get_node("%DetailSlot")
     if not card_model.is_empty():
         if not is_instance_valid(_detail):
-            _detail = preload("res://scripts/ui/card_details_panel.gd").new(visual_context)
+            _detail = preload("res://scripts/ui/card_details_panel.gd").create(visual_context)
             _detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
             slot.add_child(_detail)
         _detail.configure(card_model, style if style != null else visual_context.card_style)
@@ -48,3 +48,6 @@ func _on_visibility_changed() -> void:
     if not is_instance_valid(content): return
     if visible: preload("res://scripts/ui/panel_motion.gd").enter(content, visual_context)
     else: preload("res://scripts/ui/panel_motion.gd").cancel(content)
+func set_status(message: String) -> void:
+    var label: Label = get_node("%CollectionInspectionStatus")
+    label.text = message; label.visible = true

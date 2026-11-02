@@ -197,7 +197,7 @@ func _change_badges(items) -> Control:
 
 func _make_custom_tooltip(for_text: String) -> Object:
 	if for_text.is_empty(): return null
-	var detail := preload("res://scripts/ui/card_details_panel.gd").new(visual_context)
+	var detail := preload("res://scripts/ui/card_details_panel.gd").create(visual_context)
 	detail.configure(model, visual_style, detail.DisplayMode.TOOLTIP)
 	return detail
 

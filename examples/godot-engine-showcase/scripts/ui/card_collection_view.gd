@@ -1,3 +1,4 @@
+class_name CardCollectionView
 extends VBoxContainer
 ## Read-only collection, not a second playable hand.
 signal card_requested(id: String)
@@ -5,31 +6,36 @@ const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
 var model: Dictionary = {}
 var cards := {}
-var _search := LineEdit.new()
-var _sort := OptionButton.new()
-var _scroll := ScrollContainer.new()
-var _grid := GridContainer.new()
+var _search: LineEdit
+var _sort: OptionButton
+var _scroll: ScrollContainer
+var _grid: GridContainer
 var _message: Label
-var _back := TextureRect.new()
+var _back: TextureRect
 func _init(context = null) -> void:
 	visual_context = context if context != null else ContextType.new()
-	theme = visual_context.theme; add_theme_constant_override("separation", 12)
-	var tools := HBoxContainer.new()
-	_search.placeholder_text = visual_context.translator.text("Search cards"); _search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_search.text_changed.connect(func(_value): _filter()); tools.add_child(_search)
-	_sort.add_item(visual_context.translator.text("Published order")); _sort.add_item(visual_context.translator.text("By name"))
-	_sort.item_selected.connect(func(_index): _filter()); tools.add_child(_sort); add_child(tools)
-	_message = visual_context.styles.muted("", 16); add_child(_message)
+static func create(context = null) -> CardCollectionView:
+	var view = (load("res://scenes/ui/components/card_collection_view.tscn") as PackedScene).instantiate()
+	if context != null: view.visual_context = context
+	return view
+func _bind_nodes() -> void:
+	_search = get_node("%Search"); _sort = get_node("%Sort")
+	_scroll = get_node("%CollectionScroll"); _grid = get_node("%Cards")
+	_message = get_node("%Message"); _back = get_node("%HiddenContents")
+	theme = visual_context.theme
+	_search.placeholder_text = visual_context.translator.text("Search cards")
+	if not _search.text_changed.is_connected(_on_search): _search.text_changed.connect(_on_search)
+	if not _sort.item_selected.is_connected(_on_sort): _sort.item_selected.connect(_on_sort)
+	if not _scroll.resized.is_connected(_columns): _scroll.resized.connect(_columns)
+	if _sort.item_count == 0: _sort.add_item(""); _sort.add_item("")
+	_sort.set_item_text(0,visual_context.translator.text("Published order"))
+	_sort.set_item_text(1,visual_context.translator.text("By name"))
 	_back.texture = preload("res://scripts/ui/combat_chrome.gd").texture("pile")
-	_back.modulate = visual_context.styles.INK; _back.custom_minimum_size = Vector2(64, 90)
-	_back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_back.mouse_filter = Control.MOUSE_FILTER_IGNORE; _back.hide(); add_child(_back)
-	_scroll.custom_minimum_size = Vector2(600, 430); _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.follow_focus = true
-	_grid.add_theme_constant_override("h_separation", 16); _grid.add_theme_constant_override("v_separation", 16)
-	_grid.columns = 2 # Match the minimum viewport before the native popup measures us.
-	_scroll.add_child(_grid); add_child(_scroll); _scroll.resized.connect(_columns)
+	_back.modulate = visual_context.styles.INK
+func _on_search(_value: String) -> void: _filter()
+func _on_sort(_index: int) -> void: _filter()
 func apply_model(data: Dictionary) -> void:
+	_bind_nodes()
 	model = data.duplicate(true)
 	_search.editable = bool(model.visible)
 	_sort.disabled = not bool(model.visible); _scroll.visible = bool(model.visible)

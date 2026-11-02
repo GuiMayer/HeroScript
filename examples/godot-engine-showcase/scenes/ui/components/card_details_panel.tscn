@@ -1,0 +1,162 @@
+[gd_scene load_steps=5 format=3]
+[ext_resource type="Script" path="res://scripts/ui/card_details_panel.gd" id="script"]
+[ext_resource type="Script" path="res://scripts/ui/card_effect_text.gd" id="rules"]
+[sub_resource type="StyleBoxFlat" id="Surface"]
+resource_local_to_scene = true
+bg_color = Color(1,1,1,1)
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+border_width_left = 2
+border_width_right = 2
+border_width_top = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+[sub_resource type="StyleBoxFlat" id="EffectSurface"]
+resource_local_to_scene = true
+bg_color = Color(0.12549,0.129412,0.141176,1)
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_left = 1
+corner_radius_bottom_right = 1
+
+[node name="CardDetails" type="PanelContainer"]
+script = ExtResource("script")
+theme_override_styles/panel = SubResource("Surface")
+
+[node name="CardDetailsScroll" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_scroll_mode = 0
+size_flags_vertical = 3
+focus_mode = 2
+follow_focus = true
+
+[node name="CardDetailContent" type="VBoxContainer" parent="CardDetailsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Glossary" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Facts" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Classic" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ScalingHeading" type="Label" parent="CardDetailsScroll/CardDetailContent/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+
+[node name="ScalingLines" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FactExtras" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EmptyFacts" type="Label" parent="CardDetailsScroll/CardDetailContent/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 14
+metadata/font_role = "caption"
+autowrap_mode = 3
+
+[node name="PrintedIdentity" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent/Classic"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DetailTitle" type="Label" parent="CardDetailsScroll/CardDetailContent/Classic/PrintedIdentity"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_override_font_sizes/font_size = 22
+metadata/font_role = "section_title"
+autowrap_mode = 3
+theme_type_variation = &"SectionTitle"
+
+[node name="TypeRarity" type="Label" parent="CardDetailsScroll/CardDetailContent/Classic/PrintedIdentity"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_override_font_sizes/font_size = 13
+metadata/font_role = "caption"
+autowrap_mode = 3
+theme_type_variation = &"Caption"
+
+[node name="CostSummary" type="Label" parent="CardDetailsScroll/CardDetailContent/Classic/PrintedIdentity"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_override_font_sizes/font_size = 14
+metadata/font_role = "caption"
+autowrap_mode = 3
+theme_type_variation = &"Caption"
+
+[node name="UnknownCost" type="Label" parent="CardDetailsScroll/CardDetailContent/Classic/PrintedIdentity"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_override_font_sizes/font_size = 14
+metadata/font_role = "caption"
+autowrap_mode = 3
+theme_type_variation = &"Caption"
+
+[node name="DetailRequirements" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent/Classic"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EffectPanel" type="PanelContainer" parent="CardDetailsScroll/CardDetailContent/Classic"]
+unique_name_in_owner = true
+layout_mode = 2
+metadata/contrast_surface_role = "surface.effects"
+theme_override_styles/panel = SubResource("EffectSurface")
+
+[node name="DetailedEffects" type="RichTextLabel" parent="CardDetailsScroll/CardDetailContent/Classic/EffectPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("rules")
+size_flags_horizontal = 3
+scroll_active = false
+fit_content = true
+
+[node name="DetailExtras" type="VBoxContainer" parent="CardDetailsScroll/CardDetailContent/Classic"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="InspectionHint" type="Label" parent="CardDetailsScroll/CardDetailContent/Classic"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+metadata/font_role = "caption"
+autowrap_mode = 3

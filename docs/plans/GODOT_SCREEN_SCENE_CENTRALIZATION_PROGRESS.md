@@ -22,4 +22,10 @@ Contrato em docs/architecture/GODOT_SCENE_OWNERSHIP_CONTRACT.md. Registro inicia
 
 InspectionDialog agora tem árvore estática editável e binding idempotente. ConfirmationDialog mantém o contrato nativo numa cena compartilhada; histórico de conversa herda o mesmo shell de inspeção; toast também é uma cena. Consumidores de runtime e testes adotam as fábricas/cenas. Mantidos painel animado, foco/modalidade e metadados da inspeção. Testes: overlays 9, apresentação 86, pause/layers 24, contexto 14, menus 90 e shell do loadout 9 aprovados.
 
-Etapas 3–20: pendentes.
+## Etapa 3 — Inspeção e coleções de cartas
+
+CardDetails usa cena própria com seções e linhas/templates editáveis. Tooltip passivo e inspeção persistente reusam os mesmos nós; hosts inativos são destacados apenas em runtime, mantendo a propriedade dos nós intacta no editor. Coleção, diálogo de pilha e formulário de flows também são cenas; busca/ordenação, visibilidade e sinais permanecem com os mesmos contratos. Modos preservam nós e espaçamento; nenhum conteúdo oculto é fabricado. Consumidores migrados para as fábricas canônicas.
+
+Testes: edição/inspeção 12, apresentação 86, coleções 9, overlays 9, seleção 19, estabilidade 34, menus 90 e itens modificadores 33 aprovados. Eliminados os warnings de owner na alternância de hosts. Tipos, efeitos e cálculos continuam vindo dos presenters existentes.
+
+Etapas 4–20: pendentes.

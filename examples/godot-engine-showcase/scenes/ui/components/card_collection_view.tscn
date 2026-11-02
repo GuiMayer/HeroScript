@@ -1,0 +1,41 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/ui/card_collection_view.gd" id="1"]
+[node name="CardCollection" type="VBoxContainer"]
+script = ExtResource("1")
+theme_override_constants/separation = 12
+[node name="Tools" type="HBoxContainer" parent="."]
+layout_mode = 2
+[node name="Search" type="LineEdit" parent="Tools"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Sort" type="OptionButton" parent="Tools"]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="Message" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 16
+metadata/font_role = "caption"
+[node name="HiddenContents" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+custom_minimum_size = Vector2(64,90)
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+[node name="CollectionScroll" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(600,430)
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+follow_focus = true
+[node name="Cards" type="GridContainer" parent="CollectionScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16

@@ -66,7 +66,7 @@ func _run() -> void:
 	var style = load("res://data/themes/ivory_run_card_style.tres")
 	var calculation_lines: Array[String] = load("res://scripts/presentation/card_calculation_presenter.gd").new(i18n).describe(facts, true)
 	check("\n".join(calculation_lines).contains("base 8") and not "\n".join(calculation_lines).contains("999") and not "\n".join(calculation_lines).contains("Composed base"), "calculation tooltip formats only useful published values without implementation layers")
-	var calculation_tooltip = load("res://scripts/ui/card_details_panel.gd").new()
+	var calculation_tooltip = load("res://scripts/ui/card_details_panel.gd").create()
 	root.add_child(calculation_tooltip)
 	calculation_tooltip.configure(contextual, style, calculation_tooltip.DisplayMode.TOOLTIP)
 	check(passive_tooltip(calculation_tooltip) and calculation_tooltip.find_child("DetailedEffects", true, false) == null, "new tooltip explains calculation without repeating effect text or exposing an unreachable scrollbar")
@@ -185,7 +185,7 @@ func _run() -> void:
 			summary.free()
 	i18n.set_locale("en")
 	prefs.text_scale = 1.0
-	var complete = load("res://scripts/ui/card_details_panel.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
+	var complete = load("res://scripts/ui/card_details_panel.gd").create(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	complete.configure(verbose_model, style)
 	complete.position = Vector2(600, 100)
 	root.add_child(complete)

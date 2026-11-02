@@ -158,6 +158,6 @@ func _accepts(payload) -> bool:
 	return not _model.get("busy", false) and _model.get("canChange", false) and payload is Dictionary and payload.get("kind") == "loadout_compartment" and payload.get("context") == _model.get("context")
 func _inspect(model: Dictionary) -> void:
 	var dialog := AcceptDialog.new(); dialog.title = visual_context.translator.text("Card details"); dialog.size = Vector2i(500, 540)
-	var details = preload("res://scripts/ui/card_details_panel.gd").new(); details.visual_context = visual_context
+	var details = preload("res://scripts/ui/card_details_panel.gd").create(); details.visual_context = visual_context
 	details.configure(model, visual_context.card_style); dialog.add_child(details); add_child(dialog)
 	dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free); dialog.popup_centered()

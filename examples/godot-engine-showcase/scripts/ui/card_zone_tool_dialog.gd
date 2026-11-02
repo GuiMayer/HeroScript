@@ -1,3 +1,4 @@
+class_name CardZoneToolDialogView
 extends ConfirmationDialog
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType = ContextType.new()
@@ -13,41 +14,25 @@ var _definitions: LineEdit
 var _instances: LineEdit
 var _actor: LineEdit
 
+static func create() -> CardZoneToolDialogView:
+	return (load("res://scenes/ui/overlays/card_zone_tools.tscn") as PackedScene).instantiate()
 func setup(flows: Array, selected_instance_id := "") -> void:
-	theme = visual_context.theme
-	_flows = flows.duplicate(true)
+	theme = visual_context.theme; _flows = flows.duplicate(true)
 	title = visual_context.translator.text("Card zone tools")
 	ok_button_text = visual_context.translator.text("Run flow")
-	min_size = Vector2i(600, 320)
-	var form := VBoxContainer.new()
-	form.add_theme_constant_override("separation", 10)
-	add_child(form)
-	form.add_child(_label("Configured flow"))
-	_selector = OptionButton.new()
-	_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for flow in _flows:
-		_selector.add_item(str(flow.get("flowId", "")))
-	form.add_child(_selector)
-	_summary = _label("")
-	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	form.add_child(_summary)
-	form.add_child(_label("Card definition IDs (comma-separated)"))
-	_definitions = LineEdit.new()
-	_definitions.placeholder_text = "basic_attack, defend"
-	form.add_child(_definitions)
-	form.add_child(_label("Card instance IDs (comma-separated)"))
-	_instances = LineEdit.new()
+	_selector = get_node("%FlowSelector"); _summary = get_node("%FlowSummary")
+	_definitions = get_node("%Definitions"); _instances = get_node("%Instances"); _actor = get_node("%Actor")
+	for child in get_node("Form").get_children():
+		if child.has_meta("translation_key"): child.text = visual_context.translator.text(str(child.get_meta("translation_key")))
+	_selector.clear()
+	for flow in _flows: _selector.add_item(str(flow.get("flowId","")))
 	_instances.text = selected_instance_id
-	form.add_child(_instances)
-	form.add_child(_label("Actor ID (optional)"))
-	_actor = LineEdit.new()
-	form.add_child(_actor)
-	_selector.item_selected.connect(func(_index): _show_flow())
-	confirmed.connect(_submit)
-	confirmed.connect(queue_free)
-	canceled.connect(queue_free)
+	if not _selector.item_selected.is_connected(_on_flow): _selector.item_selected.connect(_on_flow)
+	if not confirmed.is_connected(_submit): confirmed.connect(_submit)
+	if not confirmed.is_connected(queue_free): confirmed.connect(queue_free)
+	if not canceled.is_connected(queue_free): canceled.connect(queue_free)
 	_show_flow()
-
+func _on_flow(_index: int) -> void: _show_flow()
 func _show_flow() -> void:
 	if _flows.is_empty(): return
 	var flow: Dictionary = _flows[_selector.selected]
@@ -72,8 +57,3 @@ func _show_flow() -> void:
 func _submit() -> void:
 	if _flows.is_empty(): return
 	flow_requested.emit(Zones.tool_payload(_flows[_selector.selected], _definitions.text, _instances.text, _actor.text))
-
-func _label(value: String) -> Label:
-	var label := Label.new()
-	label.text = visual_context.translator.text(value)
-	return label

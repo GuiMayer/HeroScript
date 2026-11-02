@@ -498,7 +498,7 @@ func _open_zone_tools() -> void:
 	if _locked(): return
 	var flows: Array = CardZonePresenter.tool_flows(_run_snapshot)
 	if flows.is_empty(): return
-	var dialog := preload("res://scripts/ui/card_zone_tool_dialog.gd").new()
+	var dialog := preload("res://scripts/ui/card_zone_tool_dialog.gd").create()
 	dialog.visual_context = visual_context
 	dialog.setup(flows, selected_card)
 	dialog.flow_requested.connect(_execute_zone_flow)

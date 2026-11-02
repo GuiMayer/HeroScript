@@ -18,7 +18,7 @@ func _run() -> void:
 	check(not model.visible and model.cards.is_empty() and model.count == 2, "hidden contents are distinct from empty and never projected")
 	check(projection.find({"zones": [zone]}, {"zoneId": "custom", "ownerId": "other", "scopeId": "combat"}).is_empty(), "full zone address prevents crossing owners")
 	zone.contentsVisible = true; model = projection.build(zone, presenter, context.translator)
-	var dialog = load("res://scripts/ui/card_zone_dialog.gd").new(context); root.add_child(dialog); dialog.setup(model)
+	var dialog = load("res://scripts/ui/card_zone_dialog.gd").create(context); root.add_child(dialog); dialog.setup(model)
 	dialog.popup_centered_clamped(Vector2i(1000, 700), .9)
 	for _i in 10: await process_frame
 	check(dialog.size.y >= dialog.get_contents_minimum_size().y and dialog.size.y <= root.get_visible_rect().size.y, "collection and close action fit the viewport without popup auto-growth")
