@@ -1,3 +1,4 @@
+@tool
 extends VBoxContainer
 ## Reused by timeline and isolated laboratory. Consumes only authorized, committed data.
 const Presenter = preload("res://scripts/presentation/gameplay_event_presenter.gd")
@@ -10,19 +11,11 @@ var _locale := "en"
 func _ready() -> void:
 	_build()
 
+static func create(): return load("res://scenes/ui/components/gameplay_events.tscn").instantiate()
 func _build() -> void:
 	if is_instance_valid(tree): return
-	tree = Tree.new()
-	tree.hide_root = true
-	tree.custom_minimum_size.y = 140
-	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tree = get_node("Events"); detail = get_node("Detail")
 	tree.item_selected.connect(_select)
-	add_child(tree)
-	detail = RichTextLabel.new()
-	detail.bbcode_enabled = false
-	detail.custom_minimum_size.y = 120
-	add_child(detail)
-
 func present(batch: Dictionary, locale := "en", names: Dictionary = {}) -> void:
 	_build()
 	_locale = locale

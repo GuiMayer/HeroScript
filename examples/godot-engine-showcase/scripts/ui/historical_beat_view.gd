@@ -1,3 +1,4 @@
+@tool
 extends VBoxContainer
 ## Read-only session of the same planner/director/feedback used by live combat.
 signal settled(result: String)
@@ -17,22 +18,33 @@ func set_paused(value: bool) -> void:
 class Options extends RefCounted:
 	var auto_animations := true
 	var animation_speed := 1.0
-func _init(context = null) -> void:
-	visual_context = context.derive(context.profile) if context != null else preload("res://scripts/ui/visual_context.gd").new()
+var _bound := false
+static func create(context = null):
+	var view = load("res://scenes/ui/components/historical_beat.tscn").instantiate()
+	view.visual_context = context.derive(context.profile) if context != null else preload("res://scripts/ui/visual_context.gd").new()
+	return view
+func _ready() -> void:
+	_bind_nodes()
+func _bind_nodes() -> void:
+	history = get_node("History"); feedback = get_node("Feedback"); status = get_node("Status")
+	if visual_context == null: visual_context = preload("res://scripts/ui/visual_context.gd").new()
+	theme = visual_context.theme
+	if _bound: return
+	_bound = true
+	get_node("Controls/Next").pressed.connect(func(): if director: director.advance())
+	get_node("Controls/Skip").pressed.connect(func(): if director: director.skip())
 func load_commit(commit: Dictionary, appearance: Dictionary, automatic := true) -> void:
+	_bind_nodes()
 	var saved: Dictionary = preload("res://scripts/presentation/historical_presentation.gd").state(commit)
 	visual_context.setting_id = str(saved.run.get("settingId", saved.run.get("configName", visual_context.setting_id)))
 	visual_context.capture_motion()
 	playback = preload("res://scripts/presentation/playback.gd").new(); add_child(playback)
 	var options := Options.new(); options.auto_animations = automatic; options.animation_speed = visual_context.animation_speed
 	director = preload("res://scripts/ui/controllers/presentation_director.gd").new(playback, options, func(): return get_tree().paused); add_child(director)
-	history = preload("res://scripts/ui/historical_combat_view.gd").new(visual_context); history.size_flags_vertical = Control.SIZE_EXPAND_FILL; add_child(history)
-	history.display(saved, appearance)
-	feedback = preload("res://scripts/ui/components/combat_feedback.gd").create(visual_context); add_child(feedback)
-	status = visual_context.styles.caption("", 12, 280); add_child(status)
-	var controls := HBoxContainer.new()
-	var next: Button = visual_context.styles.button(visual_context.translator.text("NEXT")); next.pressed.connect(func(): director.advance()); controls.add_child(next)
-	var skip: Button = visual_context.styles.button(visual_context.translator.text("Skip presentation")); skip.pressed.connect(func(): director.skip()); controls.add_child(skip); add_child(controls)
+	history.visual_context = visual_context; history.display(saved, appearance)
+	feedback.visual_context = visual_context
+	get_node("Controls/Next").text = visual_context.translator.text("NEXT")
+	get_node("Controls/Skip").text = visual_context.translator.text("Skip presentation")
 	playback.executor = _execute
 	playback.visual_resolver = _can_animate
 	playback.settled.connect(func(result, _generation): _finish(result))

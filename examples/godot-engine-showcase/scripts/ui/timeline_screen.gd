@@ -164,7 +164,7 @@ func _select(index: int) -> void:
 
 func _mount_history(commit: Dictionary) -> void:
 	if is_instance_valid(_history_widget): _history_widget.dispose(); _history_widget.queue_free()
-	_history_widget = preload("res://scripts/ui/historical_beat_view.gd").new(visual_context)
+	_history_widget = preload("res://scripts/ui/historical_beat_view.gd").create(visual_context)
 	history_view.add_child(_history_widget)
 	_history_widget.load_commit(commit, router.presentation, false)
 	playback = _history_widget.playback
@@ -283,6 +283,6 @@ func _load_causal_events(ticket: int, sequence: int) -> void:
 	if not response.get("ok", false): return
 	var data: Dictionary = response.get("data", {})
 	var batch: Variant = data.get("batch")
-	_causal_view = preload("res://scripts/ui/gameplay_event_view.gd").new()
+	_causal_view = preload("res://scripts/ui/gameplay_event_view.gd").create()
 	history_view.add_child(_causal_view)
 	_causal_view.present(batch if batch is Dictionary else {}, I18n.locale)

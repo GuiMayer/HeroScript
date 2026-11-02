@@ -12,7 +12,7 @@ func _run() -> void:
 	check(projection.state(commit).combat.combatId == "finished" and projection.frames(commit).size() == 1, "archived combat is read by canonical commit, independent of current encounter")
 	var context = preload("res://scripts/ui/visual_context.gd").new(); context.setting_id = "default"
 	commit.stateAfter.settingId = "ascendant"; before = JSON.stringify(commit)
-	var view = preload("res://scripts/ui/historical_beat_view.gd").new(context); root.add_child(view)
+	var view = preload("res://scripts/ui/historical_beat_view.gd").create(context); root.add_child(view)
 	view.load_commit(commit, {})
 	check(context.setting_id == "default" and view.visual_context.setting_id == "ascendant", "historical motion uses the saved setting without changing the live context")
 	view.director._process(.01)

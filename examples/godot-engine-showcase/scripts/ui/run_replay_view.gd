@@ -1,3 +1,4 @@
+@tool
 extends VBoxContainer
 ## Passive replay interface. No session, transport, commands or playback authority.
 signal intent_requested(action: String, arguments: Array)
@@ -20,76 +21,56 @@ var visual_scroll: ScrollContainer
 var loaded_count: Label
 var _last_selected := -2
 
+var _bound := false
+static func create(): return load("res://scenes/ui/components/run_replay_view.tscn").instantiate()
+func _ready() -> void:
+	_bind_nodes()
+	if Engine.is_editor_hint():
+		visual_context = ContextType.new(); theme = visual_context.theme
+func _bind_nodes() -> void:
+	frame_text = get_node("Body/DetailsPanel/Information/FrameText")
+	heading = get_node("Body/DetailsPanel/Information/Heading")
+	inspect_button = get_node("Body/DetailsPanel/Information/PlaybackControls/InspectButton")
+	list = get_node("Body/ArchivePanel/Archive/ReplayCommandList")
+	loaded_count = get_node("Body/ArchivePanel/Archive/LoadedCount")
+	more_button = get_node("Body/ArchivePanel/Archive/MoreButton")
+	next_button = get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton")
+	play_button = get_node("Body/DetailsPanel/Information/PlaybackControls/ReplayPlayButton")
+	previous_button = get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousButton")
+	progress = get_node("Body/DetailsPanel/Information/ReplayProgress")
+	state_text = get_node("Body/DetailsPanel/Information/StateText")
+	verify_button = get_node("Body/DetailsPanel/Information/PlaybackControls/VerifyButton")
+	visual_scroll = get_node("Body/DetailsPanel/Information/VisualScroll")
+	visual_slot = get_node("Body/DetailsPanel/Information/VisualScroll/VisualSlot")
+	watch_button = get_node("Body/DetailsPanel/Information/PlaybackControls/WatchButton")
 func setup(context, from_history := false) -> void:
-	visual_context = context
-	theme = visual_context.theme
-	var return_to_history: bool = from_history
-	add_theme_constant_override("separation", 10)
-	var header := HBoxContainer.new()
-	header.add_child(visual_context.styles.title(visual_context.translator.text("JOURNEY REPLAY"), 30))
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(push)
-	header.add_child(_button(visual_context.translator.text("BACK TO HISTORY") if return_to_history else visual_context.translator.text("BACK TO RESULT"), "back"))
-	add_child(header)
-	add_child(visual_context.styles.muted(visual_context.translator.text("This is the immutable recording produced by the engine. Playback only moves a local viewing cursor.")))
-	var body := HSplitContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(body)
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 390
-	left.add_child(visual_context.styles.muted(visual_context.translator.text("COMMAND TIMELINE"), 13))
-	list = ItemList.new()
-	list.name = "ReplayCommandList"
-	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	visual_context = context; theme = context.theme; _bind_nodes()
+	get_node("Header/Back").text = context.translator.text("BACK TO RESULT")
+	get_node("Header/Title").text = context.translator.text("JOURNEY REPLAY")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/Restart").text = context.translator.text("RESTART")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/InspectButton").text = context.translator.text("Show engine details")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton").text = context.translator.text("NEXT")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/ReplayPlayButton").text = context.translator.text("PLAY")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousButton").text = context.translator.text("PREVIOUS")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/VerifyButton").text = context.translator.text("VERIFY INTEGRITY")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/WatchButton").text = context.translator.text("Watch combat")
+	get_node("Body/DetailsPanel/Information/Heading").text = context.translator.text("Loading replay…")
+	get_node("Body/ArchivePanel/Archive/Heading").text = context.translator.text("COMMAND TIMELINE")
+	get_node("Body/ArchivePanel/Archive/MoreButton").text = context.translator.text("LOAD MORE")
+	get_node("Description").text = context.translator.text("This is the immutable recording produced by the engine. Playback only moves a local viewing cursor.")
+	get_node("Header/Back").text = context.translator.text("BACK TO HISTORY" if from_history else "BACK TO RESULT")
+	if _bound: return
+	_bound = true
 	list.item_selected.connect(func(index): intent_requested.emit("select", [index]))
-	left.add_child(list)
-	loaded_count = visual_context.styles.muted("", 13)
-	left.add_child(loaded_count)
-	more_button = _button(visual_context.translator.text("LOAD MORE"), "more")
-	left.add_child(more_button)
-	body.add_child(visual_context.styles.panel(left))
-	var right := VBoxContainer.new()
-	right.add_theme_constant_override("separation", 8)
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading = visual_context.styles.title(visual_context.translator.text("Loading replay…"), 24, visual_context.styles.GOLD)
-	right.add_child(heading)
-	progress = ProgressBar.new()
-	progress.name = "ReplayProgress"
-	progress.show_percentage = false
-	right.add_child(progress)
-	state_text = RichTextLabel.new()
-	state_text.bbcode_enabled = true
-	state_text.fit_content = true
-	state_text.custom_minimum_size.y = 170
-	right.add_child(state_text)
-	frame_text = RichTextLabel.new()
-	frame_text.bbcode_enabled = true
-	frame_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame_text.custom_minimum_size.y = 160
-	right.add_child(frame_text)
-	visual_scroll = ScrollContainer.new(); visual_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; visual_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	visual_slot = VBoxContainer.new(); visual_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	visual_scroll.add_child(visual_slot); visual_scroll.hide(); right.add_child(visual_scroll)
-	var controls := HFlowContainer.new()
-	controls.add_child(_button(visual_context.translator.text("RESTART"), "restart"))
-	previous_button = _button(visual_context.translator.text("PREVIOUS"), "previous")
-	controls.add_child(previous_button)
-	play_button = _button(visual_context.translator.text("PLAY"), "toggle_play")
-	play_button.name = "ReplayPlayButton"
-	controls.add_child(play_button)
-	next_button = _button(visual_context.translator.text("NEXT"), "next")
-	controls.add_child(next_button)
-	verify_button = _button(visual_context.translator.text("VERIFY INTEGRITY"), "verify")
-	controls.add_child(verify_button)
-	inspect_button = _button(visual_context.translator.text("Show engine details"), "inspect")
-	controls.add_child(inspect_button)
-	watch_button = _button(visual_context.translator.text("Watch combat"), "watch")
-	controls.add_child(watch_button)
-	right.add_child(controls)
-	body.add_child(visual_context.styles.panel(right))
-	previous_button.disabled = true; next_button.disabled = true; play_button.disabled = true
-
+	get_node("Header/Back").pressed.connect(func(): intent_requested.emit("back", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/Restart").pressed.connect(func(): intent_requested.emit("restart", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousButton").pressed.connect(func(): intent_requested.emit("previous", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton").pressed.connect(func(): intent_requested.emit("next", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/ReplayPlayButton").pressed.connect(func(): intent_requested.emit("toggle_play", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/VerifyButton").pressed.connect(func(): intent_requested.emit("verify", []))
+	get_node("Body/ArchivePanel/Archive/MoreButton").pressed.connect(func(): intent_requested.emit("more", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/InspectButton").pressed.connect(func(): intent_requested.emit("inspect", []))
+	get_node("Body/DetailsPanel/Information/PlaybackControls/WatchButton").pressed.connect(func(): intent_requested.emit("watch", []))
 
 func apply_model(model: Dictionary) -> void:
 	var entries: Array = model.entries
@@ -118,7 +99,3 @@ func apply_model(model: Dictionary) -> void:
 	inspect_button.visible = model.inspection_allowed
 	inspect_button.disabled = model.presentation_loading or model.selected_index < 0
 	watch_button.visible = model.inspection_allowed; watch_button.disabled = inspect_button.disabled
-func _button(text: String, action: String) -> Button:
-	var value := visual_context.styles.button(text)
-	value.pressed.connect(func(): intent_requested.emit(action, []))
-	return value

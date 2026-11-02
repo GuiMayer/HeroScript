@@ -1,8 +1,14 @@
+@tool
 extends VBoxContainer
 ## Read-only visual state after a saved command, not an intermediate reconstruction.
 var visual_context
-func _init(context = null) -> void:
-	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
+static func create(context = null):
+	var view = load("res://scenes/ui/components/historical_combat.tscn").instantiate()
+	view.visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
+	return view
+func _ready() -> void:
+	if visual_context == null: visual_context = preload("res://scripts/ui/visual_context.gd").new()
+	theme = visual_context.theme
 var presenter
 var actor_panels := {}
 var _row: HBoxContainer
@@ -26,18 +32,16 @@ func apply_frame_snapshot(combat: Dictionary) -> void:
 		_row.remove_child(removed); removed.queue_free(); actor_panels.erase(id)
 
 func display(state: Dictionary, appearance: Dictionary) -> void:
-	for child in get_children():
-		remove_child(child)
+	_row = get_node("Scroll/Actors")
+	for child in _row.get_children():
+		_row.remove_child(child)
 		child.queue_free()
 	actor_panels.clear()
 	var combat: Dictionary = state.get("combat", {})
 	_run = state.get("run", {}).duplicate(true); _appearance = appearance.duplicate(true)
 	presenter = preload("res://scripts/presentation/combat_presenter.gd").new(state.get("run", {}), combat, [], visual_context.translator)
-	add_child(AppTheme.muted(visual_context.translator.text("Saved state after command #%s") % int(state.get("runSequence", 0))))
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var row := HBoxContainer.new()
-	_row = row
+	theme = visual_context.theme
+	get_node("Heading").text = visual_context.translator.text("Saved state after command #%s") % int(state.get("runSequence", 0))
 	var viewpoint := str(combat.get("activation", {}).get("activeActorId", ""))
 	for actor in presenter.actors():
 		var panel := preload("res://scripts/ui/actor_panel.gd").create(visual_context)
@@ -45,7 +49,5 @@ func display(state: Dictionary, appearance: Dictionary) -> void:
 		panel.target_button.disabled = true
 		panel.target_button.focus_mode = Control.FOCUS_NONE
 		actor_panels[str(actor.get("instanceId", ""))] = panel
-		row.add_child(panel)
-	scroll.add_child(row)
-	add_child(scroll)
+		_row.add_child(panel)
 	AppTheme.apply_view_preferences(self)

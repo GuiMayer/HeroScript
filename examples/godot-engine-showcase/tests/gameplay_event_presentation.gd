@@ -15,7 +15,7 @@ func _initialize() -> void:
 		assert(Presenter.details(en[0]).contains("Applied change"))
 		assert(Presenter.details(en[1]).contains("Earlier cause"))
 		assert(JSON.stringify(fixture) == before)
-		var view = View.new()
+		var view = View.create()
 		view.present(fixture.batch, "en", fixture.names)
 		assert(view.tree.get_root().get_child_count() > 0)
 		view.present({})

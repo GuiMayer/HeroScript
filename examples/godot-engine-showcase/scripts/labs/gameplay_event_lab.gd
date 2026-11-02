@@ -33,7 +33,7 @@ func _ready() -> void:
 	for fixture in fixtures: setting_picker.add_item(str(fixture.label))
 	setting_picker.item_selected.connect(func(_index): _show_fixture())
 	language_picker.item_selected.connect(func(_index): _show_fixture())
-	inspector = EventView.new()
+	inspector = EventView.create()
 	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(inspector)
 	_show_fixture()

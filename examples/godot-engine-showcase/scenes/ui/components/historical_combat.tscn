@@ -1,0 +1,15 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/historical_combat_view.gd" id="Script"]
+[node name="HistoricalCombat" type="VBoxContainer"]
+script = ExtResource("Script")
+[node name="Heading" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+metadata/text_role = "text.secondary"
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+[node name="Actors" type="HBoxContainer" parent="Scroll"]
+layout_mode = 2

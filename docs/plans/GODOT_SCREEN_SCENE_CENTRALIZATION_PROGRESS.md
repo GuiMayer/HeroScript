@@ -102,4 +102,10 @@ Histórico e timeline usam composições completas com ItemList, Tree, scrubber,
 
 Testes aprovados: edição/seleção passiva 7, lifecycle de replay 11, leitura integrada 38 e progressão por setting 30. O preview nativo não consulta a API e selecionar um registro duplica a projeção sem mutá-la.
 
-Etapas 17–20: pendentes.
+## Etapa 17 — Replay e inspeção histórica
+
+Replay usa shell e controles nativos; visualização histórica, hosts de feedback e inspector causal têm cenas compartilhadas pela timeline e laboratório. Atores continuam ActorPanel; playback, director, snapshots e cancelamento permanecem nos comportamentos atuais. Refresh histórico conserva heading/scroll/host em vez de recriar a estrutura estática.
+
+Testes aprovados: edição/reconciliação 6, lifecycle 11, carregamento progressivo 13, transporte 5, apresentação histórica 6 e arquitetura 28. Fixtures de eventos passaram em EN/PT, fallback hierárquico e uso do mesmo inspector. As novas regressões verificam sinais únicos, identidade, capacidades e modelos imutáveis, sem tráfego no preview.
+
+Etapas 18–20: pendentes.

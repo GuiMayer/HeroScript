@@ -24,9 +24,8 @@ func setup(owner, run_id: String, from_history := false) -> void:
 	router = owner; mount(owner.visual_context); replay_run_id = run_id; return_to_history = from_history
 	controller = preload("res://scripts/ui/controllers/run_replay_controller.gd").new()
 	controller.setup(GameSession, run_id, visual_context.translator)
-	view = preload("res://scripts/ui/run_replay_view.gd").new()
-	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(view); view.setup(visual_context, from_history)
+	view = get_node("RunReplayView")
+	view.setup(visual_context, from_history)
 	view.intent_requested.connect(_intent); controller.changed.connect(_update)
 	_update(); controller.start.call_deferred()
 func _update() -> void:
@@ -100,7 +99,7 @@ func _watch() -> void:
 	if str(response.data.get("runId", "")) != replay_run_id or int(response.data.get("sequence", -1)) != sequence: return
 	if JSON.stringify(response.data).to_utf8_buffer().size() > controller.max_cache_bytes: router.show_toast(I18n.text("Visual replay payload is too large.")); return
 	_visual_sequence = sequence
-	_visual_replay = preload("res://scripts/ui/historical_beat_view.gd").new(visual_context.derive(visual_context.profile))
+	_visual_replay = preload("res://scripts/ui/historical_beat_view.gd").create(visual_context.derive(visual_context.profile))
 	view.visual_slot.add_child(_visual_replay); view.visual_scroll.show(); view.frame_text.hide()
 	_visual_replay.load_commit(response.data, router.presentation)
 func _verify() -> void:

@@ -365,7 +365,7 @@ func show_run_replay(run_id: String, from_history := false) -> void:
 	current_screen = "run_replay"
 	replay_from_history = from_history
 	_clear_host()
-	var screen = RunReplayScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("run_replay")
 	screen.setup(self, run_id, from_history)
 	host.add_child(screen)
 

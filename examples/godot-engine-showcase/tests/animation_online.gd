@@ -69,7 +69,7 @@ func _run() -> void:
 		if check(not candidate.is_empty() and await session.submit_candidate(candidate), "record historical QA command"):
 			var response: Dictionary = await session.begin_replay_inspection(str(session.run.runId), int(session.run.sequence)).result()
 			if check(response.get("ok", false), "load authorized canonical commit on demand"):
-				var history = preload("res://scripts/ui/historical_beat_view.gd").new(); root.add_child(history)
+				var history = preload("res://scripts/ui/historical_beat_view.gd").create(); root.add_child(history)
 				history.load_commit(response.data, {})
 				var started := Time.get_ticks_msec()
 				while history.blocking() and Time.get_ticks_msec() - started < 8000: await process_frame
