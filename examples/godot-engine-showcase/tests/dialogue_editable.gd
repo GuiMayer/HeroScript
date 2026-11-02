@@ -11,6 +11,7 @@ func _run() -> void:
 	var view = screen.get_node("DialogueScene")
 	check(view.get_node("DialoguePanel/Stage/Portrait") != null, "production scene contains the editable portrait and reading panel before setup")
 	root.add_child(screen)
+	for _frame in 3: await process_frame # Unconfigured F6/preview adapters must remain passive.
 	var panel = view.get_node("DialoguePanel")
 	panel.get_node("SpeechPanel/Content").add_theme_constant_override("separation", 19)
 	var model := {"runId":"r", "branchId":"b", "dialogueInstanceId":"d", "nodeId":"n", "title":"Title", "speaker":"Speaker", "text":"Read this", "portrait":"", "options":[{"id":"one", "text":"Choose", "available":true, "cost":"", "reason":"", "reference":"opaque", "command":{"type":"CHOICE", "revision":1}}]}

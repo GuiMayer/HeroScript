@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <title>enemy-bulwark</title>
+<path fill="#24241F" d="M57 95H88V115H105V95H135V115H152V95H183V160L165 174 174 238 188 258V274L205 284V300H35V284L52 274V258L66 238 75 174 57 160Z"/>
+      <path fill="#F2EBDD" d="M107 144H133V193H107Z"/>
+      <path fill="#BC3D27" d="M78 213H162L165 232H75Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M67 262H173M49 282H191"/>
+</svg>

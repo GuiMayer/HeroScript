@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <title>hero-wanderer</title>
+<g transform="translate(10 0)"><!-- The hood and mantle are the silhouette of a single solid token. -->
+      <path fill="#24241F" d="M61 89 110 29 163 58 178 121 152 142 164 201 184 241 168 259 173 281 190 294V310H30V294L47 281 52 259 36 241 62 189 78 142Z"/>
+      <path fill="#F2EBDD" d="m110 58 35 21 10 37-30 14-37-12 8-33Z"/>
+      <path fill="#24241F" d="m96 105 43-13-13 38-25-6Z"/>
+      <path fill="#BC3D27" d="m71 137 80-14 8 27-54 20-25 54-11-38 20-26Z"/>
+      <path fill="#F2EBDD" d="m140 170 4 57-12 14-4-30Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M59 280H161M44 293H176"/></g>
+</svg>

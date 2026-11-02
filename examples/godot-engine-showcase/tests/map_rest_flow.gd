@@ -60,7 +60,7 @@ func combat_score(candidate: Dictionary) -> float:
 		if app.get("resourceId") == "block" and app.get("targetEntityId") == player: result += minf(6, maxf(0, delta)) * .8
 	return result
 func _run() -> void:
-	if root.get_node("Preferences").api_url != "http://127.0.0.1:61987":
+	if not OS.get_user_data_dir().contains("HeroScript-ui-refactor-") or root.get_node("Preferences").api_url != "http://127.0.0.1:61987":
 		check(false, "real map flow requires isolated API/store on port 61987"); quit(1); return
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--lab-output="): output = argument.trim_prefix("--lab-output=")

@@ -1,6 +1,6 @@
 # Plano de centralização das telas em cenas editáveis da Godot
 
-Data: 2026-11-01. Estado: proposto; nenhuma etapa de implementação deste plano foi executada.
+Data: 2026-11-01. Estado: etapas 0–20 implementadas e certificadas. Ver [evidências de execução](GODOT_SCREEN_SCENE_CENTRALIZATION_PROGRESS.md).
 
 Escopo: examples/godot-engine-showcase. Referência: [auditoria atual](../architecture/GODOT_EDITABLE_UI_SCENES_AUDIT.md). Este plano substitui a afirmação de que a migração híbrida inicial já cobria toda a interface. Os exemplos web e a engine C# não fazem parte da migração visual.
 
@@ -12,7 +12,7 @@ Centralizar não significa criar uma cena gigantesca. Significa ter uma definiç
 
 A migração deve manter o visual branco/programmer art atual, disposição, dimensões, variantes responsivas, animações e durações configuradas, interação, sons, localização e integração REST. Não inclui redesign, novos modos, implementação de companions ou alteração de regras/conteúdo.
 
-## 2. Diagnóstico confirmado
+## 2. Diagnóstico inicial (antes da migração)
 
 - CardView, ActorPanel, ResourceView e StatusBadge já possuem cenas compartilhadas efetivamente consumidas. Não recriar suas faces ou estruturas nas próximas etapas.
 - A bancada UICatalogWorkbench instancia esses componentes e já usa o perfil atual. O estilo antigo da carta e o caminho alternativo de renderização foram removidos.

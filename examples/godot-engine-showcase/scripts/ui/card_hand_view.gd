@@ -130,7 +130,7 @@ func _preferences_changed() -> void:
 	for card in _cards.values(): card.configure(card.model)
 	request_layout()
 
-func layout_mode() -> String:
+func resolved_hand_mode() -> String:
 	return mode_override if not mode_override.is_empty() else visual_context.hand_layout_mode
 func card_for(id: String): return _cards.get(id)
 func active_card_id() -> String:
@@ -242,7 +242,7 @@ func destination_pose(id: String) -> Dictionary:
 	var position: Vector2
 	var rotation: float
 	if _presenting and id in _destination_order:
-		var target := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, layout_mode())
+		var target := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, resolved_hand_mode())
 		var index := _destination_order.find(id)
 		position = target.positions[index]; rotation = target.rotations[index]
 	else:
@@ -477,7 +477,7 @@ func _relayout() -> void:
 	relayout_count += 1
 	var default_style = visual_context.card_style
 	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
-	var policy_key: String = default_style.presentation_key() + visual_style.presentation_key() + layout_mode()
+	var policy_key: String = default_style.presentation_key() + visual_style.presentation_key() + resolved_hand_mode()
 	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key:
 		_reserved_card_size = Vector2.ZERO; custom_minimum_size.y = 0
 	_layout_card_style_key = policy_key
@@ -485,10 +485,10 @@ func _relayout() -> void:
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
 	dimensions = dimensions.max(_reserved_card_size)
 	_reserved_card_size = dimensions
-	_layout = Layout.calculate(order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
+	_layout = Layout.calculate(order.size(), maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
 	if _presenting:
-		var target_layout := Layout.calculate(_presentation_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
-		var arrival_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, layout_mode())
+		var target_layout := Layout.calculate(_presentation_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
+		var arrival_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
 		for i in order.size():
 			var target_index := _destination_order.find(order[i]) if _aligning_arrivals else _presentation_order.find(order[i])
 			if target_index >= 0:
@@ -769,7 +769,7 @@ func contains_reorder_point(point: Vector2) -> bool:
 func _update_reorder_preview(point: Vector2) -> void:
 	if not contains_reorder_point(point) or not is_instance_valid(_ghost): _cancel_reorder_preview(); return
 	if arrangement.dragged != _ghost_id: arrangement.begin(_ghost_id); _preview_slot = order.find(_ghost_id)
-	var geometry := Layout.calculate(order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, layout_mode())
+	var geometry := Layout.calculate(order.size(), maxf(1, scroll.size.x), _reserved_card_size, visual_style, resolved_hand_mode())
 	var centers: Array = geometry.positions.map(func(position): return position.x + _reserved_card_size.x * .5)
 	var center: Vector2 = surface.get_global_transform().affine_inverse() * preload("res://scripts/ui/card_motion_pose.gd").read(_ghost).center
 	_preview_slot = Layout.insertion_index(centers, center.x, _preview_slot, visual_style.pointer_hysteresis)

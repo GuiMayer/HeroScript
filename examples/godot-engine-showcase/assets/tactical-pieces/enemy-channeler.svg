@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+  <title>enemy-channeler</title>
+<circle cx="120" cy="92" r="61" fill="#24241F"/>
+      <circle cx="120" cy="92" r="34" fill="#F2EBDD"/>
+      <path fill="#24241F" d="M107 142H133L138 215 157 248 174 262V275L190 285V300H50V285L66 275V262L83 248 102 215Z"/>
+      <path fill="#BC3D27" d="m120 71 21 21-21 21-21-21Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M78 263H162M64 282H176"/>
+</svg>

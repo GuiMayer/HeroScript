@@ -99,8 +99,8 @@ static func execute(steps: Array, snapshots: Array, models: Dictionary, anchor: 
 		var delay: float = item.delay
 		var following: bool = item.following
 		if item.hidden > 1 or (i == visible.size() - 1 and transfers.size() > visible.size()):
-			var count := Label.new(); count.text = "×%s" % (item.hidden if item.hidden > 1 else transfers.size() - visible.size() + 1)
-			count.add_theme_font_size_override("font_size", 36); count.mouse_filter = Control.MOUSE_FILTER_IGNORE; ghost.add_child(count)
+			var count: Label = preload("res://scenes/ui/components/card_transit_counter.tscn").instantiate(); count.text = "×%s" % (item.hidden if item.hidden > 1 else transfers.size() - visible.size() + 1)
+			ghost.add_child(count)
 		var tween := ghost.create_tween(); handle.own(tween)
 		var pose := {"center": item.start, "scale": Vector2.ONE * .35, "rotation": 0.0}
 		tween.tween_callback(func():

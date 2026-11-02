@@ -42,6 +42,11 @@ func release(id: String, ghost: Control, reveal_card := false) -> void:
 	_staged.erase(id)
 	if _records.get(id) == ghost: _records.erase(id)
 	if is_instance_valid(ghost):
+		# Decorations belong to the transit, even when the visual is a borrowed hand card.
+		# Detach before returning; queue_free alone would leak the label for one frame.
+		for child in ghost.get_children():
+			if child.get_meta(&"card_transit_counter", false):
+				ghost.remove_child(child); child.queue_free()
 		if ghost.has_meta("borrowed_hand_card") and hand != null and is_instance_valid(hand):
 			hand.return_card(id, ghost, reveal_card)
 		else: ghost.hide(); ghost.queue_free()

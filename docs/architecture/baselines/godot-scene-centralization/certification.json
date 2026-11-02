@@ -1,0 +1,237 @@
+{
+  "date": "2026-11-02",
+  "tested_code_tree": "5548f19a54af7b1202b71aa1c5bbd82f782c93f9",
+  "godot": "4.7.2.stable.steam",
+  "clean_export": true,
+  "offline_suites": 27,
+  "offline_checks": 604,
+  "offline_results": [
+    {
+      "test": "editable_ui_nodes",
+      "exit": 0,
+      "checks": 14,
+      "errors": [],
+      "elapsed_ms": 745
+    },
+    {
+      "test": "scene_preview_profiles",
+      "exit": 0,
+      "checks": 15,
+      "errors": [],
+      "elapsed_ms": 932
+    },
+    {
+      "test": "dialogue_reading",
+      "exit": 0,
+      "checks": 38,
+      "errors": [],
+      "elapsed_ms": 5711
+    },
+    {
+      "test": "editable_combat_shell",
+      "exit": 0,
+      "checks": 9,
+      "errors": [],
+      "elapsed_ms": 3162
+    },
+    {
+      "test": "editable_map_scenes",
+      "exit": 0,
+      "checks": 8,
+      "errors": [],
+      "elapsed_ms": 3060
+    },
+    {
+      "test": "editable_activity_scenes",
+      "exit": 0,
+      "checks": 7,
+      "errors": [],
+      "elapsed_ms": 3060
+    },
+    {
+      "test": "replay_editable",
+      "exit": 0,
+      "checks": 6,
+      "errors": [],
+      "elapsed_ms": 930
+    },
+    {
+      "test": "editable_settings",
+      "exit": 0,
+      "checks": 7,
+      "errors": [],
+      "elapsed_ms": 3273
+    },
+    {
+      "test": "editable_loadout_modules",
+      "exit": 0,
+      "checks": 8,
+      "errors": [],
+      "elapsed_ms": 936
+    },
+    {
+      "test": "unified_loadout_autosave",
+      "exit": 0,
+      "checks": 9,
+      "errors": [],
+      "elapsed_ms": 1215
+    },
+    {
+      "test": "unified_loadout_recovery",
+      "exit": 0,
+      "checks": 9,
+      "errors": [],
+      "elapsed_ms": 561
+    },
+    {
+      "test": "loadout_input",
+      "exit": 0,
+      "checks": 6,
+      "errors": [],
+      "elapsed_ms": 1951
+    },
+    {
+      "test": "card_hand_lab",
+      "exit": 0,
+      "checks": 118,
+      "errors": [],
+      "elapsed_ms": 10041
+    },
+    {
+      "test": "hand_selection",
+      "exit": 0,
+      "checks": 19,
+      "errors": [],
+      "elapsed_ms": 2325
+    },
+    {
+      "test": "card_draw_pose",
+      "exit": 0,
+      "checks": 106,
+      "errors": [],
+      "elapsed_ms": 5728
+    },
+    {
+      "test": "animation_contracts",
+      "exit": 0,
+      "checks": 8,
+      "errors": [],
+      "elapsed_ms": 850
+    },
+    {
+      "test": "animation_limits",
+      "exit": 0,
+      "checks": 4,
+      "errors": [],
+      "elapsed_ms": 846
+    },
+    {
+      "test": "pause_layers",
+      "exit": 0,
+      "checks": 24,
+      "errors": [],
+      "elapsed_ms": 4214
+    },
+    {
+      "test": "map_camera_motion",
+      "exit": 0,
+      "checks": 51,
+      "errors": [],
+      "elapsed_ms": 4287
+    },
+    {
+      "test": "map_topology_refresh",
+      "exit": 0,
+      "checks": 30,
+      "errors": [],
+      "elapsed_ms": 3439
+    },
+    {
+      "test": "replay_progressive",
+      "exit": 0,
+      "checks": 13,
+      "errors": [],
+      "elapsed_ms": 652
+    },
+    {
+      "test": "gameplay_event_presentation",
+      "exit": 0,
+      "checks": 0,
+      "errors": [],
+      "elapsed_ms": 468
+    },
+    {
+      "test": "archive_editable",
+      "exit": 0,
+      "checks": 7,
+      "errors": [],
+      "elapsed_ms": 839
+    },
+    {
+      "test": "import",
+      "exit": 0,
+      "checks": 0,
+      "errors": [],
+      "elapsed_ms": 15599
+    },
+    {
+      "test": "screen_catalog_full",
+      "exit": 0,
+      "checks": 49,
+      "errors": [],
+      "elapsed_ms": 4809
+    },
+    {
+      "test": "card_transit_counter",
+      "exit": 0,
+      "checks": 24,
+      "errors": [],
+      "elapsed_ms": 1147
+    },
+    {
+      "test": "dialogue_editable",
+      "exit": 0,
+      "checks": 7,
+      "errors": [],
+      "elapsed_ms": 841
+    },
+    {
+      "test": "tools_editable",
+      "exit": 0,
+      "checks": 8,
+      "errors": [],
+      "elapsed_ms": 747
+    }
+  ],
+  "real_rest": {
+    "port": 61987,
+    "store": ".runtime/screen-centralization/api-store",
+    "loadout_input_online": 8,
+    "map_rest_flow": 443,
+    "animation_online": 29,
+    "scene_history_online": 12,
+    "total_checks": 492,
+    "semantic_replay_verified": true,
+    "settings": [
+      "default",
+      "ascendant",
+      "volatile-core"
+    ]
+  },
+  "visual": {
+    "captures": 20,
+    "failures": 0,
+    "resolutions": [
+      "1280x720",
+      "2560x1080"
+    ],
+    "local_images": ".runtime/screen-centralization/final-captures"
+  },
+  "scope": "Presentation migration only. Source engine/content/launcher/preferences/audio changes already pending in workspace remain outside these commits. Tests use dedicated client directories and REST store.",
+  "limitations": [
+    "Focused combinations, not a Cartesian product of all resolutions/locales/scales/mod content.",
+    "Synchronous refresh metrics exclude REST, GPU and deferred layout.",
+    "Existing unrelated workspace changes remain uncommitted."
+  ],
+  "clean_import_passed": true
+}

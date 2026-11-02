@@ -26,7 +26,7 @@ func refresh_state(data: Dictionary) -> void:
 	view.apply_projection(_model, visual_context)
 	_interaction()
 func _start_if_needed() -> void:
-	if not _alive or not is_inside_tree() or get_tree().paused or controller.locked() or _start_attempted or not _model.is_empty(): return
+	if controller == null or not _alive or not is_inside_tree() or get_tree().paused or controller.locked() or _start_attempted or not _model.is_empty(): return
 	_start_attempted = true
 	if await controller.execute_published("START_DIALOGUE") and _alive: router.open_game()
 func _process(_delta: float) -> void:

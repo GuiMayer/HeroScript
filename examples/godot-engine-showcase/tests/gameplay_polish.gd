@@ -18,6 +18,9 @@ func settle() -> void:
 	for _frame in 8: await process_frame
 
 func _run() -> void:
+	if not OS.get_user_data_dir().contains("HeroScript-ui-refactor-") or root.get_node("Preferences").api_url != "http://127.0.0.1:61987":
+		check(false,"real gameplay test requires isolated user directory and API/store on port 61987"); quit(1); return
+
 	prefs = root.get_node("Preferences")
 	session = root.get_node("GameSession")
 	session.failed.connect(func(error): print("GAMEPLAY_REQUEST_FAILED ", error))

@@ -1,11 +1,5 @@
 extends Control
 
-const SandboxScreen = preload("res://scripts/ui/sandbox_screen.gd")
-const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
-const DialogueScreen = preload("res://scripts/ui/dialogue_screen.gd")
-const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
-const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
-const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
 const MenuProfile = preload("res://data/themes/ivory_theme.tres")
 
 var visual_context
@@ -120,13 +114,6 @@ func _prepare_combat_capture() -> void:
 		if not start.is_empty() and await GameSession.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})):
 			show_combat()
 	set_meta("capture_ready", true)
-
-func _screen() -> VBoxContainer:
-	_clear_host()
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 20)
-	host.add_child(root)
-	return root
 
 func _clear_host() -> void:
 	navigation_epoch += 1

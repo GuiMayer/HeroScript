@@ -32,6 +32,7 @@ func _run():
 	codex.current_items = [{"definitionId":"entry","components":{"value":2}}]; codex._select_item(0)
 	check(codex.detail.text.contains('"value": 2') and not codex.detail.editable, "codex native details remain read only")
 	sandbox.queue_free(); codex.queue_free(); owner.free(); await process_frame
+	probe = null; await process_frame
 	check(root.get_node("GameServices").diagnostics().size() == requests, "tool preview and local selections issue no gameplay requests")
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

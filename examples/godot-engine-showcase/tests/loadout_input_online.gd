@@ -2,7 +2,7 @@ extends "res://tests/loadout_input.gd"
 ## Explicit isolated API only. Never run against the player's production port.
 func _run() -> void:
 	var prefs = root.get_node("Preferences")
-	if prefs.api_url != "http://127.0.0.1:61987":
+	if not OS.get_user_data_dir().contains("HeroScript-ui-refactor-") or prefs.api_url != "http://127.0.0.1:61987":
 		check(false, "live equipment test requires the isolated QA API on port 61987"); quit(1); return
 	root.size = Vector2i(1920, 1080); root.content_scale_size = root.size
 	var session = root.get_node("GameSession")
@@ -23,21 +23,22 @@ func _run() -> void:
 	check(root.gui_is_dragging(), "real run inventory supports native drag")
 	move_mouse(end, true); await settle(); mouse_button(end, false)
 	deadline = Time.get_ticks_msec() + 15000
-	while (screen.controller.busy or screen.controller.inscriptions.assignments.get(slot) != id) and Time.get_ticks_msec() < deadline: await process_frame
+	while (not screen.controller.editable() or screen.controller.inscriptions.assignments.get(slot) != id) and Time.get_ticks_msec() < deadline: await process_frame
 	await settle()
 	var response: Dictionary = await session.read_loadout(str(session.run.playerEntityId))
 	check(response.ok and response.data.assignments.get(slot) == id and not screen.controller.busy, "native drop persists through actual REST preview and canonical APPLY_LOADOUT")
 	if failures: print("LOADOUT_DIAGNOSTIC=", screen.shell.feedback.text, " / ", screen.controller.inscriptions.message, " / assignments=", screen.controller.inscriptions.assignments)
 	screen.controller.edit_inscription("clear")
 	deadline = Time.get_ticks_msec() + 15000
-	while screen.controller.busy and Time.get_ticks_msec() < deadline: await process_frame
+	while not screen.controller.editable() and Time.get_ticks_msec() < deadline: await process_frame
 	await settle()
 	response = await session.read_loadout(str(session.run.playerEntityId))
 	check(response.ok and response.data.assignments.is_empty(), "clear saves an empty equipment state through the real API")
 	move_mouse(start); mouse_button(start, true); mouse_button(start, false); await settle()
+
 	move_mouse(end); mouse_button(end, true); mouse_button(end, false)
 	deadline = Time.get_ticks_msec() + 15000
-	while screen.controller.busy and Time.get_ticks_msec() < deadline: await process_frame
+	while not screen.controller.editable() and Time.get_ticks_msec() < deadline: await process_frame
 	await settle()
 	response = await session.read_loadout(str(session.run.playerEntityId))
 	check(response.ok and response.data.assignments.get(slot) == id, "native item-then-slot clicks also persist directly through the real API")

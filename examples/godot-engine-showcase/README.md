@@ -412,9 +412,8 @@ mão flutuante, ancorada no rodapé, sem painel nem título de seção. Os retra
 verticais usam o espaço disponível acima das cartas; informações, intenções e
 alvos permanecem separados da área da mão. Pilhas e ferramentas ficam abaixo
 das cartas. O painel do personagem começa recolhido e é flutuante também quando
-aberto: não reserva coluna nem redimensiona o campo ou a mão. Recolhido, aparece
-somente a seta no canto superior direito. Aberto, oferece detalhes com rolagem
-própria e bloqueia cliques através do painel. O foco de teclado acompanha a seta;
+aberto: não reserva coluna nem redimensiona o campo ou a mão. A borda esquerda abre o painel temporariamente; I alterna abertura fixa. Aberto, oferece detalhes com rolagem
+própria e bloqueia cliques através do painel. O foco de teclado permanece no HUD;
 atualizações do combate preservam o estado escolhido. Um único dock inferior
 agrupa preview, avanço manual da apresentação, cancelar/passar e encerrar turno.
 Opções de pagamento/alvos alternativos surgem em um painel contextual flutuante,
@@ -458,3 +457,9 @@ Teste adicional offline: `godot --headless --path . --script tests/volatile_core
 O painel de atributos reutiliza `scripts/ui/loadout/character_attributes_view.gd`, o mesmo componente do loadout. Aproxime o mouse da borda esquerda para abrir temporariamente; ao sair do painel ele recolhe. **I** abre/fecha mantendo-o visível; **Escape** fecha antes de abrir a pausa. O painel flutua sobre o combate sem reservar espaço para uma coluna e apresenta os recursos/atributos atuais do personagem do jogador, inclusive durante ativações inimigas.
 
 A transição usa 0,22 s e respeita movimento reduzido. **Inspecionar carta** passa a **V** por padrão, conservando o acesso pelo mouse e pelo controle. Preferências antigas com a inspeção padrão em I são migradas em memória; atalhos podem ser remapeados nas configurações. A navegação do painel não envia comandos à engine nem altera a run.
+
+## Editar a interface na Godot
+
+Abra `scenes/ui/workbenches/screen_catalog_workbench.tscn` para inspecionar as composições reais e fixtures offline. Telas, overlays e shells dos laboratórios possuem nodes editáveis; scripts preenchem dados, reconciliam itens e mantêm os comportamentos existentes. `scripts/ui/scene_registry.gd` reúne as rotas de produção.
+
+Consulte o [guia de edição e responsabilidades](../../docs/guides/godot-ui-scene-editing.md) e as [evidências da centralização](../../docs/plans/GODOT_SCREEN_SCENE_CENTRALIZATION_PROGRESS.md). Mão, atores, cartas, atributos e executores de animação continuam compartilhados com o combate.

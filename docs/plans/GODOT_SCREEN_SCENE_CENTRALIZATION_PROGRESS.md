@@ -122,4 +122,14 @@ A montagem tardia do combate expôs uma expressão ternária que tentava consumi
 
 Testes aprovados: mão 118, compra 106, inscrições 146, layout unificado 48, input 6, efeitos 20, controles de animação 50, burn 32 e reorder 13; catálogo 49 e registro 7, incluindo zero requisições, estado de sessão intacto e zero escrita de preferências.
 
-Etapa 20: pendente — limpeza, documentação e certificação final.
+## Etapa 20 — Limpeza e certificação
+
+Removidos o construtor de tela vazio sem consumidores, imports antigos e o painel procedural de atributos usado apenas por teste. O teste passou a consumir o drawer e o mesmo componente de atributos do loadout. O contador de trânsito agora usa template; sua limpeza em conclusão/cancelamento, já existente no workspace, foi incluída como dependência para conservar o comportamento no checkout limpo. O método de seleção de layout da mão foi renomeado internamente para não conflitar com a propriedade nativa layout_mode. Adapter de diálogo sem controller permanece passivo no preview.
+
+Incluídos os sete SVGs de peças táticas e metadados de importação já utilizados pelo jogo: a certificação limpa identificou essa dependência visual não versionada. Corrigido também o teardown do probe de teste do codex. O teste online de equipamento agora aguarda o estado realmente editável após a releitura; aguardar apenas busy causava uma asserção intermitente antes da sincronização terminar. Nenhum fluxo de gameplay foi alterado.
+
+Validação final: **27 suítes / 604 verificações aprovadas** na exportação isolada dos arquivos do índice Git, sem erros de script/importação. Após resolver dependências, uma nova exportação integral repetiu importação e os cenários de catálogo, trânsito, diálogo e ferramentas. **492 verificações com API real**: equipamento 8, mapa/combate/atividade/retorno 443, animações em três settings 29, histórico/timeline/replay 12. As verificações semânticas de replay passaram; snapshots retidos não foram alterados pelas views/animações. API/store e diretórios do cliente foram exclusivos dos testes, sem abrir saves do jogador.
+
+Captura renderizada: **20 imagens, zero falhas**, em 1280×720 e 2560×1080, abrangendo menu, combate, preview, atributos, pause, mão vazia, atividade, oferta, configurações e replay. Comparações geométricas das etapas anteriores e métricas antes/depois estão em docs/architecture/baselines/godot-scene-centralization. As métricas medem refresh síncrono com fixtures; não representam latência REST/GPU. Não se declara cobertura do produto cartesiano de todas as configurações e mods.
+
+Documentação atualizada: plano, auditoria, README do showcase e guia de edição com localização das cenas, componentes compartilhados, políticas e validação. Evidências consolidadas em certification.json e metrics.after.json. **Etapas 0–20 concluídas.**

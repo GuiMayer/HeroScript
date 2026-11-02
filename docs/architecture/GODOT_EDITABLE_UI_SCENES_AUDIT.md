@@ -1,97 +1,46 @@
-# UI editável da Godot: arquitetura, edição e migrações restantes
+# UI editável da Godot: arquitetura e estado atual
 
-Revisão: 2026-11-01. Projeto: `examples/godot-engine-showcase`.
+Revisão: 2026-11-02. Projeto: `examples/godot-engine-showcase`.
 
-## Escopo concluído
+## Resultado
 
-As cinco cenas recentes foram reconstruídas. A hierarquia estática agora pertence aos arquivos `.tscn`; atualizações preenchem os controles existentes. Isso não significa que toda a aplicação já foi migrada.
+As etapas 0–20 do plano centralizaram as telas, overlays e shells dos laboratórios em cenas editáveis. A certificação final aprovou 604 verificações em 27 suítes e importação da exportação do índice Git, 492 verificações REST com dados exclusivos de teste e 20 capturas sem falhas. O [registro por etapa](../plans/GODOT_SCREEN_SCENE_CENTRALIZATION_PROGRESS.md) detalha commits, regressões e limites; o [guia de edição](../guides/godot-ui-scene-editing.md) indica os arquivos de cada tela.
 
-| Cena | Responsabilidade | Dados de preview no Inspector |
-| --- | --- | --- |
-| `scenes/ui/components/status_badge.tscn` | Ícone, glifo, stacks e superfície do status | `preview_status` |
-| `scenes/ui/components/resource_view.tscn` | Nome, barra e valor do recurso | `preview_resource_id`, `preview_state` |
-| `scenes/ui/components/actor_panel.tscn` | Título, intenção, retrato/alvo e outlets de recursos/status | `preview_actor`, `preview_hostile`, `preview_intent`, variantes compact/battlefield |
-| `scenes/ui/components/card_view.tscn` | Cabeçalho, custo, arte, regras, condições e alterações | `preview_data`, `visual_style`, `use_profile_metrics` |
-| `scenes/ui/workbenches/ui_catalog_workbench.tscn` | Composição de exemplos das quatro cenas reais | Dados dos filhos, `visual_profile`, escala e contraste |
+A cena possui a árvore estática. Scripts vinculam nodes, preenchem modelos, conectam sinais e instanciam templates para coleções variáveis. Controllers, presenters, workspaces, gateways e políticas de animação permanecem nos papéis existentes. Não foram alteradas regras, endpoints, conteúdo de gameplay, durações ou autoridade dos dados.
 
-A fábrica `create(context)` de CardView, ActorPanel e ResourceView instancia a cena correspondente. Combate, mão, coleção, laboratório, loadout e ghosts usam essa mesma implementação; não há uma segunda face procedural. Status, recursos e custos variáveis instanciam templates de itens. Os scripts mantêm sinais, bindings, acessibilidade e animações de apresentação; regras e comandos continuam na engine/API.
+## Composição canônica
 
-Templates auxiliares: `resource_counter.tscn`, `card_cost_symbol.tscn`, `card_cost_chip.tscn`, `card_inline_label.tscn`, `card_change_badge.tscn`. O contorno impresso é um nó próprio com desenho procedural (`card_keyline.gd`), sem reconstruir a árvore.
-
-## Como editar e validar
-
-1. Abra `ui_catalog_workbench.tscn` e pressione F6. Não precisa da API; as amostras não criam runs nem enviam comandos.
-2. Abra a cena do componente para alterar hierarquia, âncoras, alinhamento, margens, separações, fontes e StyleBoxes locais. Instâncias podem usar overrides/Editable Children para ajustes específicos.
-3. Preserve os nomes únicos `%...` usados pelos bindings. Remover ou renomear esses nós exige atualizar o script e os testes juntos.
-4. Altere os dicionários `preview_*` para testar dados diferentes. O preview consome o formato de apresentação do cliente: custos são arrays de objetos com `resourceId` e `amount`; recursos usam `current`, `minimum` e `maximum`.
-5. Após mudar dados de amostra, reabra a cena ou execute F6. Escala, contraste e perfil da bancada atualizam o contexto de preview; não é um editor de conteúdo de gameplay.
-6. Execute os testes em uma cópia isolada antes de substituir a aparência do jogo.
-
-### Propriedades que continuam dirigidas por políticas
-
-Cores de raridade, valor, relação/hostilidade e recurso são semânticas: dados/contexto podem substituir as cores do Inspector. Para mudanças globais, edite o perfil e os recursos de estilo, não adicione cores por chamada.
-
-Na carta, `use_profile_metrics=true` mantém dimensões, altura do título/arte e escala acessível atuais. Use `visual_style`/CardVisualStyle para editar essas métricas em conjunto. Para experimentar dimensões locais da cena, desligue `use_profile_metrics`; título continua com ajuste de fonte e custos conservam proporção 1:1. Padding da face e nós internos permanecem editáveis. O estilo também dirige raio, superfície de efeitos e tipografia: não são promessas de preservar qualquer override de Inspector contra uma política explícita.
-
-Containers calculam o layout dos filhos: arrastar um filho gerenciado por Container não fixa sua posição. Ajuste mínimos, flags, separação, alinhamento e margens. HandView continua responsável pelo fan, drag, ordem e trajetória; não fixe manualmente as posições das cartas da mão.
-
-## O que ainda precisa de cena própria
-
-Prioridade considera frequência de edição visual, complexidade e reuso. Uma cena existente com apenas um host não representa uma migração completa.
-
-| Prioridade | Área / evidência atual | Próximas cenas sugeridas | Deve permanecer em código |
-| --- | --- | --- | --- |
-| Alta | `combat_view.gd` cria HUD, cabeçalho, mão, pilhas e controles; `combat_composition.tscn` contém somente CombatBody/CombatGameplay. `components/battlefield_view.gd` e `floating_hud.gd` montam partes internas. | Shell do combate, cabeçalho, controles de turno/pilhas/preview e drawer de atributos; templates de slots de atores. | Coordenador, read models, posicionamento responsivo e executor de animações. |
-| Alta | `main_menu_view.gd` monta coluna, seletor, navegação e rodapé. `settings_screen.gd` monta páginas, linhas e controles. `shell/application_shell.gd` cria o pause e notificações. | Menu principal, pause, settings shell e linhas reutilizáveis de slider/toggle/seletor. | Binding de preferências, navegação, foco e callbacks. Não recriar a página ao alterar sliders. |
-| Alta | `map_view.gd` cria header, workspace, scroll/canvas e inspector flutuante. | MapScreen, MapInspector e template de nó do grafo. | Topologia, câmera/interpolação, centralização, navegação e desenho das conexões. Inspector continua flutuante. |
-| Alta | `card_details_panel.gd`, `inspection_dialog.gd`, `card_zone_dialog.gd`, `card_collection_view.gd` ainda constroem shells e seções. | CardDetails, InspectionDialog, CardZoneDialog, CardCollection e linhas de explicação. | Glossário/cálculo do presenter e coleções de CardView; tooltip passivo não ganha scroll inacessível. |
-| Média | `unified_loadout_screen.gd` e `loadout/loadout_page_view.gd` montam módulos, abas, atributos e confirmações. | LoadoutPage, InscriptionsModule, DeckModule, AttributesPanel e templates de inscrição/slot. | Controllers, autosave e transações REST. Laboratório continua separado da run. |
-| Média | `activity_screen.gd` e `components/activity_options_view.gd` montam escolhas e variações de loja/recompensa/upgrade. | ActivityShell e templates de ofertas/ações com componentes de carta compartilhados. | Opções disponíveis e consequências vêm da engine. |
-| Média | `dialogue_scene.tscn` possui só o root com script; `dialogue_view.gd` cria header/painel e `dialogue_panel.gd` monta o conteúdo. | DialogueScene completa, DialoguePanel, ChoiceItem e histórico. | Leitura gradual, coordenação e comandos; a view não interpreta consequências. |
-| Média | `timeline_screen.gd` e `run_history_screen.gd` montam listas e ferramentas de inspeção. | TimelineScreen, BranchItem, CommandRow, RunHistory e RunHistoryItem. | Paginação, seleção, replay e consulta dos dados publicados. |
-
-Ordem recomendada: shells compartilhados/menu/pause/settings → combate → mapa → inspeção de cartas → loadout → atividades/diálogo → timeline/histórico. Cada migração deve preservar a composição atual e trocar a criação estática por bindings, sem redesenhar a interface no mesmo passo.
-
-Não migrar algoritmos para cenas por obrigação: fan/hit testing/drag, câmera, desenho de grafos, shaders, tweens, transporte, presenters e controllers são comportamentos. Coleções variáveis precisam de templates de itens, não de um número fixo de filhos pré-criados. `application_shell.tscn` já fornece ScreenHost, mas ainda não cobre todo o chrome gerado pelo script.
-
-## Critérios e evidências de validação
-
-- Atualizações mantêm identidade dos controles estáticos e overrides de margens/tipografia cobertos por `tests/editable_ui_nodes.gd` (14 verificações).
-- `tests/workbench_smoke.gd` verifica atores, afiliação/intenção, custos, efeitos, limites de recursos, seis badges, ausência de animação de entrada e estabilidade dos filhos (12 verificações).
-- Geometria da carta antes/depois comparada em preserved/ivory, escalas 1.0/1.6: mínimos e retângulos de cabeçalho, nome, custo, arte e regras idênticos.
-- Testes de apresentação, títulos, linhas, custos, seleção, movimento, compra curvilínea, ciclo de turno, contexto e animação passaram na cópia isolada do workspace. A bancada também foi renderizada pela Godot para inspeção visual.
-- Certificação final no workspace isolado: bancada 12, nós editáveis 14, estabilidade da carta 34, reconciliação 4, colaboradores do combate 12, contextos da run 8, contrato de animações 8 e contador transitório 24. Atualização de arte/contexto passou em mais 12 verificações, incluindo troca de contexto sem refazer a face.
-- Nenhuma definição JSON de gameplay, endpoint, comando ou estado da engine foi alterado por esta reconstrução. Os testes são de apresentação com modelos injetados; não equivalem a uma certificação end-to-end com API real.
-
-A validação adicional de um export só de HEAD encontrou uma inconsistência anterior a este trabalho: `card_presentation.gd` referencia `card_glossary_presenter.gd` e `effect_duration_presenter.gd`, ainda não versionados, e pressupõe um tooltip alterado apenas no workspace. As referências e o teste já existiam no commit anterior à reconstrução. A suíte de apresentação passa com esses arquivos locais presentes; esse conjunto deve ser revisado/versionado em etapa própria, sem incluir silenciosamente as alterações pendentes no commit da migração visual.
-
-## Remoção do visual antigo das cartas
-
-O renderizador alternativo de face escura/arredondada e o recurso `default_card_visual_style.tres` foram removidos. Não existe mais a opção `printed_face`. CardVisualStyle nasce com os valores atuais; contextos sem política de carta usam `ivory_run_card_style.tres`. Cena isolada, F6 e bancada usam o perfil atual `ivory_run.tres`. O laboratório mantém a variação de dimensões de inspeção, usando a mesma anatomia, custos e renderizador. Perfis de teste genéricos continuam disponíveis para validar troca de contexto, sem reintroduzir uma face antiga de carta.
-
-`tests/card_style_canonical.gd` cobre a cena isolada, os custos, a anatomia única, o fallback e a remoção do recurso antigo. Atualizações de efeitos preservam os símbolos de custo quando seu conteúdo e contexto não mudam.
-
-Validação da remoção: 17 suítes focadas, 845 verificações aprovadas no workspace isolado. Cobrem apresentação/títulos, cena standalone, custos, estabilidade, mão/compra, animações, menus, contexto, componentes e laboratório (incluindo resolução ultrawide e idiomas). Captura renderizada da bancada confirmou o perfil atual. Gameplay e contratos REST não foram alterados.
-
-## Auditoria dos demais previews e cenas
-
-Revisados os `.tscn` de `scenes/` e `main.tscn`, seus scripts de entrada e os perfis recebidos em runtime.
-
-| Grupo | Resultado |
+| Área | Implementação atual |
 | --- | --- |
-| Main, menu, pause e configurações | Entradas do jogo já selecionam ivory_theme/ivory_run explicitamente. Não usam a face antiga da carta. |
-| CardView e UICatalogWorkbench | Perfil atual já unificado na correção anterior. |
-| ActorPanel, ResourceView e StatusBadge | Contexto atual, mas F6 não preenchia os exemplos: somente o editor recebia preview. Corrigido para usar amostras apenas quando o componente é raiz isolada e não tem dados fornecidos. Instâncias embutidas não recebem dados fictícios. Status também aplica o Theme do próprio contexto. |
-| CardHandLab | Perfil de laboratório atual/programmer art; dimensões maiores de inspeção são uma variação deliberada da mesma carta. |
-| InscriptionLoadoutLab, UnifiedLoadoutLab e RunLoadout | Selecionam ivory_theme explicitamente. A tela de run requer o personagem/run reais; não foi transformada em exemplo offline. |
-| GameplayEventLab | Usava helpers globais cujo padrão ainda era preserved. O padrão global foi corrigido para ivory_run e o root agora recebe o Theme, incluindo seletores nativos. |
-| DeckCompartmentLab | Não aplicava Theme/canvas antes da conexão. Agora usa o padrão atual e um Background editável, sem alterar a criação da run dedicada ou os comandos da API. |
-| CombatComposition e CombatLateralTest | São hosts de composição e variante de layout, respectivamente; não mantêm uma versão antiga da arte. Precisam do controller/modelos para montar o combate. |
-| ApplicationShell e DialogueScene | Hosts ainda parcialmente procedurais, conforme a auditoria anterior. Não são previews completos nem versões antigas dos respectivos sistemas. |
-| Templates de custo, badges de mudança, labels e contadores | Recebem os dados/estilo do componente pai. Não constituem telas standalone nem renderizadores alternativos. |
+| Entrada/router | `main.tscn` e `scripts/ui/scene_registry.gd`; cada rota instancia um PackedScene |
+| Shell/pause | ApplicationShell, pause, toast, confirmações e histórico de conversa autorados |
+| Cartas/atores | CardView, ActorPanel, ResourceView e StatusBadge compartilhados; não há face alternativa antiga |
+| Menus | MainMenuView e Settings completos, incluindo páginas persistentes e controles de remapeamento |
+| Loadout | Shell, inscrições, slots, inventário, deck, compartimentos, fontes de atributos e resumos autorados; companions continua placeholder |
+| Combate | Header, battlefield, cenário, mão, dock, pilhas, preview, drawer de atributos, feedback e hosts autorados |
+| Mapa | Shell, RouteView, nós, ações e inspector flutuante; layout do grafo/câmera continuam algoritmos |
+| Atividades | Header, resumo, encerramento, ofertas de carta/itens, opções e confirmação Before/After |
+| Diálogo | Tela, retrato, texto, paginação, recuperação e escolhas reconciliadas por identidade |
+| Histórico/timeline/replay | Composições completas, listas/árvore/scrubber nativos e inspectores históricos/causais compartilhados |
+| Sandbox/codex | Shells, editor JSON, seletores e templates de modos/abas; operações continuam REST |
+| Laboratórios | Mão, inscrições, loadout, compartimentos, eventos e efeitos usam shells editáveis e componentes reais |
 
-A fábrica global de estilos agora nasce no mesmo perfil atual do VisualContext, evitando que cenas abertas diretamente dependam de o menu ter sido visitado antes. Corrigido também o papel semântico de painéis: quando painel e canvas têm o mesmo branco, a troca de tema deve conservar `surface.panel`, sem deduzir a função apenas pelo RGB.
+`scenes/run_loadout.tscn` herda a cena unificada e apenas seleciona a aba inicial de inscrições. O antigo script de tela de loadout foi removido. O painel procedural antigo de personagem, ainda referenciado somente por um teste, também foi retirado; esse teste agora exercita o drawer e o componente compartilhado de atributos.
 
-`tests/scene_preview_profiles.gd` valida os exemplos isolados, o tema global, a ausência de amostras em componentes embutidos e a preservação de dados fornecidos. O laboratório online de compartimentos é exercitado com startup da API substituído por um fixture vazio; nenhum comando é enviado. `theme_contracts.gd` cobre troca de perfil com painéis persistentes. Layout, animações e regras de gameplay permanecem inalterados. O recurso preserved continua apenas como fixture explícito de testes de troca de perfil; nenhuma cena de produção o seleciona como padrão.
+Os sete SVGs de peças táticas já usados pela apresentação foram incluídos como dependências visuais; a cópia limpa expôs que ainda não estavam versionados. A limpeza de contadores em cartas emprestadas também foi versionada para conservar a correção de cancelamento que já existia no workspace.
 
-Validação desta auditoria: 15 verificações novas de previews/temas aprovadas, além das regressões de nós editáveis, bancada, atores, contratos de tema/paleta, contexto, menus, apresentação de eventos, reconciliação, colaboradores do combate e estabilidade das cartas. Testes executados em cópia isolada, sem iniciar o fluxo online do laboratório de compartimentos.
+## Edição e políticas
+
+Abra `scenes/ui/workbenches/screen_catalog_workbench.tscn` para os 21 previews canônicos. O catálogo usa fixtures de apresentação, não configura controllers de aplicação nem inicia servidor, HTTP ou gravações. Oferece estados cheio, vazio, bloqueado, loading, erro e modal conforme a view. Adapters de laboratórios com opções de persistência não são executados pelo catálogo.
+
+Preserve nomes usados pelos bindings. Containers controlam seus filhos: ajuste mínimos, flags, gaps, margens e alinhamento. Cores semânticas, contraste e tipografia vêm do contexto e dos recursos em `data/themes`. CardVisualStyle dirige métricas quando `use_profile_metrics=true`; métricas locais exigem desligar essa política. CombatLayoutProfile e MapLayoutProfile continuam autoridades das variantes responsivas.
+
+Quantidades de cartas, atores, escolhas, ofertas e nós continuam dinâmicas por templates. Tree/ItemList mantêm itens nativos. Fan, hit testing, drag, reordenação, câmera, keylines, shaders e tweens continuam em comportamentos próprios. Recursos, controllers e algoritmos podem continuar usando construtores; a migração não consiste em remover todo `.new()`.
+
+## Validação e limites
+
+A certificação usa cópias isoladas do cliente e uma API na porta 61987 com stores próprios, sem abrir saves do jogador. Os fluxos reais cobrem equipamento/autosave, combate e retorno ao mapa, animação em três settings, histórico, timeline e replay. Verificações de replay semântico confirmam a integridade das runs de teste; modelos retidos antes de comandos permanecem inalterados.
+
+As comparações geométricas por etapa estão em `baselines/godot-scene-centralization/`. A captura final contém 20 imagens em 1280×720 e 2560×1080. Métricas de refresh são síncronas e sintéticas: não representam latência REST nem tempo de GPU. Suítes focadas cobrem idiomas, escalas, pause, durações zero, cancelamento, drag/reorder, respostas tardias e falhas de leitura.
+
+Não se declara cobertura do produto cartesiano de todas as configurações de resolução, locale, escala e conteúdo de mods. Uma tela de aplicação precisa do router para receber sessão/controller; para inspeção sem gameplay, use o catálogo ou uma view passiva. Fixtures não autorizam ferramentas ou consequências que a engine não publicou.
