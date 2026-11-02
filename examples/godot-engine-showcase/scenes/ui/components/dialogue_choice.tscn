@@ -1,0 +1,16 @@
+[gd_scene format=3]
+[node name="DialogueChoice" type="VBoxContainer"]
+theme_override_constants/separation = 8
+[node name="Choose" type="Button" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(0,48)
+theme_type_variation = &"SecondaryAction"
+alignment = 0
+autowrap_mode = 3
+[node name="Reason" type="Label" parent="."]
+layout_mode = 2
+visible = false
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+metadata/text_role = "text.secondary"

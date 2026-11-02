@@ -30,7 +30,7 @@ func _run() -> void:
 	check(not reading.gradual and not state.has("gradual"), "local reading state never overrides accessibility preferences")
 	model.branchId = "other"; reading.bind(model, "en", 45); reading.restore(state)
 	check(reading.page == 0, "reading state cannot leak to another branch")
-	var panel = load("res://scripts/ui/dialogue_panel.gd").new()
+	var panel = load("res://scripts/ui/dialogue_panel.gd").create()
 	root.add_child(panel); panel.size = Vector2(1000, 620)
 	model.merge({"title": "A conversation", "speaker": "", "portrait": "", "history": [], "options": [{"id": "one", "text": "A costly choice", "available": true, "cost": "5 Gold", "reason": "", "command": {"type": "CHOOSE_DIALOGUE_OPTION"}}]})
 	panel.apply_model(model)

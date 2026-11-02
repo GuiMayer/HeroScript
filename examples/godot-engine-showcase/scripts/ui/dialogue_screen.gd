@@ -11,10 +11,8 @@ func setup(owner, data: Dictionary) -> void:
 	router = owner; mount(owner.visual_context); presentation = data.duplicate(true)
 	controller = preload("res://scripts/ui/controllers/dialogue_controller.gd").new(GameSession)
 	controller.changed.connect(_interaction)
-	view = preload("res://scenes/ui/dialogue_scene.tscn").instantiate()
+	view = get_node("DialogueScene")
 	view.intent_requested.connect(_intent)
-	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(view)
 	refresh_state(data)
 	view.restore_local_state(router.dialogue_reading_states.get(_reading_scope(), {}))
 	_start_if_needed.call_deferred()

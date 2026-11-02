@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/dialogue_panel.gd" id="3_ourlo"]
+[ext_resource type="Texture2D" path="res://assets/tactical-pieces/enemy-striker.svg" id="4_olyqy"]
+[ext_resource type="Script" path="res://scripts/ui/art_slot.gd" id="5_rthkj"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p83jo"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.panel"
+metadata/border_role = "stroke.disabled"
+
+[node name="DialoguePanel" type="VBoxContainer" unique_id=713164315]
+theme_override_constants/separation = 14
+script = ExtResource("3_ourlo")
+
+[node name="Stage" type="HBoxContainer" parent="." unique_id=1404918216]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Portrait" type="TextureRect" parent="Stage" unique_id=852526122]
+custom_minimum_size = Vector2(160, 150)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+texture = ExtResource("4_olyqy")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("5_rthkj")
+metadata/art_slot = "actor_unknown"
+
+[node name="Title" type="Label" parent="Stage" unique_id=1997607545]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ScreenTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 28
+text = "Conversation"
+autowrap_mode = 3
+metadata/font_role = "screen_title"
+metadata/text_role = "text.primary"
+
+[node name="SpeechPanel" type="PanelContainer" parent="." unique_id=1760391053]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_p83jo")
+
+[node name="Content" type="VBoxContainer" parent="SpeechPanel" unique_id=1476301759]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Speaker" type="Label" parent="SpeechPanel/Content" unique_id=526752156]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 21
+text = "Speaker"
+metadata/font_role = "section_title"
+metadata/text_role = "text.primary"
+
+[node name="DialogueText" type="RichTextLabel" parent="SpeechPanel/Content" unique_id=1784626688]
+custom_minimum_size = Vector2(0, 115)
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 21
+text = "Preview line."
+selection_enabled = true
+
+[node name="Tools" type="HFlowContainer" parent="SpeechPanel/Content" unique_id=1154400711]
+layout_mode = 2
+
+[node name="DialogueReadNext" type="Button" parent="SpeechPanel/Content/Tools" unique_id=2066904594]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Next page · 1/1"
+
+[node name="ChoiceScroll" type="ScrollContainer" parent="." unique_id=153915828]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Choices" type="VBoxContainer" parent="ChoiceScroll" unique_id=850922722]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8

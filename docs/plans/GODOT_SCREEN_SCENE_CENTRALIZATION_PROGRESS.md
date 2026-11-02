@@ -90,4 +90,10 @@ ActivityScreen e JourneyView compõem header, resumo, encerramento e host de op�
 
 Testes aprovados: cenas editáveis 7, reconciliação 21, ingresso 11, conclusão de atividade 12, modificadores 33 e menus 90. Testes com engine real continuam reservados para API/store isolados na certificação final. Comparação de encontro, recompensa e encerramento em duas resoluções e duas escalas confirmou geometria equivalente (activity.geometry.json). A separação inicial menor do encerramento é exposta como propriedade visual, preservando a apresentação anterior.
 
-Etapas 15–20: pendentes.
+## Etapa 15 — Diálogo
+
+DialogueScreen, DialogueScene, DialoguePanel e itens de escolha possuem composição nativa editável. A view vincula retrato, texto, paginação e recuperação; escolhas são reconciliadas por identidade com comandos atuais. DialogueController e DialogueReading permanecem autoridades existentes, sem consequências interpretadas pela view.
+
+Testes aprovados: contratos 6, coordenação 6, leitura/acessibilidade/pause/histórico 38, lifecycle 7 e edição/reconciliação 7. Regressão verifica identidade, espaçamento editado, referência opaca, disponibilidade atual, imutabilidade e ausência de requisições no preview.
+
+Etapas 16–20: pendentes.

@@ -287,7 +287,7 @@ func show_dialogue() -> void:
 	if current_screen == "dialogue" and host.get_child_count() == 1:
 		host.get_child(0).refresh_state(presentation); return
 	current_screen = "dialogue"; _clear_host()
-	var screen = DialogueScreen.new(); screen.setup(self, presentation); host.add_child(screen)
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("dialogue"); screen.setup(self, presentation); host.add_child(screen)
 
 func show_activity(inspect_map := false) -> void:
 	if inspect_map and str(GameSession.run.get("lifecycle", "Active")).to_lower() == "active": show_map(); return

@@ -1,3 +1,4 @@
+@tool
 extends VBoxContainer
 ## Single passive narrative composition. Does not interpret consequences.
 const ContextType = preload("res://scripts/ui/visual_context.gd")
@@ -14,11 +15,24 @@ var _choices: VBoxContainer
 var _next: Button
 var _locked := false
 var _choices_key := ""
-func _init(context = null) -> void:
-	visual_context = context if context != null else ContextType.new()
+static func create(context = null):
+	var view = load("res://scenes/ui/components/dialogue_panel.tscn").instantiate()
+	view.visual_context = context if context != null else ContextType.new()
+	return view
+func _ready() -> void:
+	_bind_nodes()
+	if visual_context == null: visual_context = ContextType.new()
+	theme = visual_context.theme
+func _bind_nodes() -> void:
+	if is_instance_valid(_speech): return
+	_portrait = get_node("Stage/Portrait"); _title = get_node("Stage/Title")
+	_speaker = get_node("SpeechPanel/Content/Speaker"); _speech = get_node("SpeechPanel/Content/DialogueText")
+	_next = get_node("SpeechPanel/Content/Tools/DialogueReadNext"); _choices = get_node("ChoiceScroll/Choices")
+	_next.pressed.connect(advance_reading)
 func apply_model(data: Dictionary) -> void:
 	theme = visual_context.theme; model = data.duplicate(true)
-	if not is_instance_valid(_speech): _build()
+	_bind_nodes()
+	if visual_context == null: visual_context = ContextType.new()
 	reading.bind(model, visual_context.translator.locale)
 	reading.gradual = visual_context.reveal_text_gradually
 	_title.text = str(model.get("title", ""))
@@ -28,54 +42,33 @@ func apply_model(data: Dictionary) -> void:
 	var key := JSON.stringify([model.get("options", []), visual_context.presentation_key()])
 	if key != _choices_key:
 		_choices_key = key
-		var desired := VBoxContainer.new()
+		var live: Array[String] = []
+		choice_buttons.clear()
 		for option in model.get("options", []):
-			var button := visual_context.styles.button(str(option.text))
-			button.name = "Choice_" + str(option.id)
+			var id := "Choice_" + str(option.id); live.append(id)
+			var row = _choices.get_node_or_null(NodePath(id))
+			if row == null:
+				row = preload("res://scenes/ui/components/dialogue_choice.tscn").instantiate()
+				row.name = id; _choices.add_child(row)
+				var target: Button = row.get_node("Choose")
+				target.pressed.connect(func():
+					if not target.disabled: choice_requested.emit(target.get_meta("dialogue_command").duplicate(true)))
+			_choices.move_child(row, live.size()-1)
+			var button: Button = row.get_node("Choose")
+			button.text = str(option.text)
 			if not str(option.cost).is_empty(): button.text += "   ·   " + str(option.cost)
-			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			button.set_meta("engine_disabled", not bool(option.available))
 			button.set_meta("dialogue_command", option.command.duplicate(true))
 			button.tooltip_text = str(option.reason)
-			button.pressed.connect(func():
-				if not button.disabled: choice_requested.emit(button.get_meta("dialogue_command").duplicate(true)))
-			desired.add_child(button)
-			if not str(option.reason).is_empty():
-				var reason := visual_context.styles.muted(str(option.reason), 15)
-				reason.name = "Reason_" + str(option.id); desired.add_child(reason)
-		preload("res://scripts/ui/view_reconciler.gd").children(_choices, desired)
-		desired.free(); choice_buttons.clear()
-		for child in _choices.get_children():
-			if child is Button: choice_buttons.append(child)
+			row.get_node("Reason").text = str(option.reason)
+			row.get_node("Reason").visible = not str(option.reason).is_empty()
+			choice_buttons.append(button)
+		for row in _choices.get_children():
+			if str(row.name) not in live: _choices.remove_child(row); row.queue_free()
 	_sync_reading()
-func _build() -> void:
-	name = "DialoguePanel"; add_theme_constant_override("separation", 14)
-	var stage := HBoxContainer.new(); stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_portrait = preload("res://scripts/ui/art_slot.gd").new(visual_context)
-	_portrait.custom_minimum_size = Vector2(160, 150); _portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stage.add_child(_portrait)
-	_title = visual_context.styles.title("", 28); _title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	stage.add_child(_title); add_child(stage)
-	var speech_box := VBoxContainer.new(); speech_box.add_theme_constant_override("separation", 10)
-	_speaker = visual_context.styles.title("", 21); speech_box.add_child(_speaker)
-	_speech = RichTextLabel.new(); _speech.name = "DialogueText"
-	_speech.custom_minimum_size.y = 115; _speech.selection_enabled = true
-	_speech.add_theme_font_size_override("normal_font_size", 21)
-	_speech.bbcode_enabled = false; speech_box.add_child(_speech)
-	var tools := HFlowContainer.new()
-	_next = visual_context.styles.button(""); _next.name = "DialogueReadNext"
-	_next.pressed.connect(advance_reading); tools.add_child(_next)
-	speech_box.add_child(tools)
-	add_child(visual_context.styles.panel(speech_box))
-	var scroll := ScrollContainer.new(); scroll.custom_minimum_size.y = 150
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_choices = VBoxContainer.new(); _choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_choices.add_theme_constant_override("separation", 8); scroll.add_child(_choices); add_child(scroll)
 func advance_reading() -> void: reading.advance_reading(); _sync_reading()
 func _sync_reading() -> void:
-	if not is_instance_valid(_speech): return
+	if not is_instance_valid(_speech) or model.is_empty(): return
 	if _speech.text != reading.text(): _speech.text = reading.text()
 	_speech.visible_characters = -1 if reading.fully_revealed() else int(reading.revealed)
 	_next.visible = not reading.fully_revealed() or not reading.last_page()
@@ -84,7 +77,7 @@ func _sync_reading() -> void:
 	for button in choice_buttons: button.disabled = _locked or not _choices.visible or bool(button.get_meta("engine_disabled", false))
 func set_read_only(value: bool) -> void: _locked = value; _sync_reading()
 func _process(delta: float) -> void:
-	if not is_instance_valid(_speech) or reading.fully_revealed(): return
+	if Engine.is_editor_hint() or model.is_empty() or not is_instance_valid(_speech) or reading.fully_revealed(): return
 	reading.revealed += delta * 45.; _sync_reading()
 func capture_local_state() -> Dictionary: return reading.capture()
 func restore_local_state(state: Dictionary) -> void: reading.restore(state); _sync_reading()

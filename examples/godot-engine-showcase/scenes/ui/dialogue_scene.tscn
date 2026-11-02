@@ -1,5 +1,57 @@
-[gd_scene load_steps=2 format=3]
-[ext_resource type="Script" path="res://scripts/ui/dialogue_view.gd" id="1"]
-[node name="DialogueScene" type="VBoxContainer"]
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/dialogue_view.gd" id="3_6hplp"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/dialogue_panel.tscn" id="4_rir4m"]
+[ext_resource type="Script" path="res://scripts/ui/dialogue_panel.gd" id="5_0cymy"]
+
+[node name="DialogueScene" type="VBoxContainer" unique_id=872705181]
+script = ExtResource("3_6hplp")
+
+[node name="Header" type="HBoxContainer" parent="." unique_id=1243421031]
+layout_mode = 2
+
+[node name="ConversationTitle" type="Label" parent="Header" unique_id=1855008021]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SectionTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 26
+text = "CONVERSATION"
+metadata/font_role = "section_title"
+metadata/text_role = "text.primary"
+metadata/base_font_size = 26
+
+[node name="Conversation_map" type="Button" parent="Header" unique_id=1328393550]
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "MAP"
+
+[node name="Conversation_pause" type="Button" parent="Header" unique_id=398119191]
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "PAUSE"
+
+[node name="Loading" type="Label" parent="." unique_id=1769969573]
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 18
+text = "Loading conversation…"
+autowrap_mode = 3
+metadata/font_role = "caption"
+metadata/base_font_size = 18
+
+[node name="Recover" type="Button" parent="." unique_id=1680304817]
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "RECONNECT"
+
+[node name="DialoguePanel" type="VBoxContainer" parent="." unique_id=713164315 instance=ExtResource("4_rir4m")]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-script = ExtResource("1")
+theme_override_constants/separation = 14
+script = ExtResource("5_0cymy")

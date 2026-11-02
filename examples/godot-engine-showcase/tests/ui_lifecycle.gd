@@ -8,7 +8,7 @@ func check(ok: bool, label: String) -> void:
 func settle() -> void:
 	for _i in 8: await process_frame
 func _run() -> void:
-	var panel = load("res://scripts/ui/dialogue_panel.gd").new()
+	var panel = load("res://scripts/ui/dialogue_panel.gd").create()
 	root.add_child(panel)
 	var model := {"title": "Dialogue", "speaker": "Speaker", "text": "First", "portrait": "unknown", "history": [],
 		"options": [{"id": "same", "text": "Choose", "cost": "", "reason": "", "available": true, "command": {"payload": {"node": "first"}}}]}
