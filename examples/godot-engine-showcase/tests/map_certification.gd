@@ -32,7 +32,7 @@ func _run() -> void:
 				var margin := MarginContainer.new()
 				for side in ["left","top","right","bottom"]: margin.add_theme_constant_override("margin_" + side,24)
 				host.add_child(margin)
-				var view = load("res://scripts/ui/map_view.gd").new(); margin.add_child(view)
+				var view = load("res://scripts/ui/map_view.gd").create(); margin.add_child(view)
 				view.intent_requested.connect(func(action,args): commands.append([action,args]))
 				var presenter = load("res://scripts/presentation/activity_presenter.gd").new(run,choices,{},context.translator)
 				view.apply_projection(run,choices,presenter,context); await settle()

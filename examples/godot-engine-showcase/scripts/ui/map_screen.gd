@@ -10,10 +10,9 @@ var _alive := true
 func setup(owner, data: Dictionary) -> void:
 	router = owner; mount(owner.visual_context)
 	controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(GameSession)
-	view = preload("res://scripts/ui/map_view.gd").new()
+	view = get_node("MapView")
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	view.intent_requested.connect(_intent)
-	add_child(view)
 	refresh_state(data)
 func refresh_state(data: Dictionary) -> void:
 	presentation = data.duplicate(true)

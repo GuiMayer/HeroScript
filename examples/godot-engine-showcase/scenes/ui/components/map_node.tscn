@@ -1,0 +1,27 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/art_slot.gd" id="Art"]
+[ext_resource type="Script" path="res://scripts/ui/components/map_node_glyph.gd" id="Glyph"]
+[node name="MapNodeView" type="Button"]
+theme_override_font_sizes/font_size = 14
+toggle_mode = true
+clip_text = true
+text_overrun_behavior = 3
+alignment = 1
+[node name="Caption" type="Label" parent="."]
+mouse_filter = 2
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+theme_override_font_sizes/font_size = 13
+[node name="MapArt" type="TextureRect" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("Art")
+[node name="MapGlyph" type="Control" parent="."]
+mouse_filter = 2
+script = ExtResource("Glyph")

@@ -4,7 +4,6 @@ const SandboxScreen = preload("res://scripts/ui/sandbox_screen.gd")
 const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
 const ActivityScreen = preload("res://scripts/ui/activity_screen.gd")
 const DialogueScreen = preload("res://scripts/ui/dialogue_screen.gd")
-const MapScreen = preload("res://scripts/ui/map_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
 const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
@@ -309,7 +308,7 @@ func show_map() -> void:
 	if current_screen == "map" and host.get_child_count() == 1:
 		host.get_child(0).refresh_state(presentation); return
 	current_screen = "map"; _clear_host()
-	var screen = MapScreen.new(); screen.setup(self, presentation); host.add_child(screen)
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("map"); screen.setup(self, presentation); host.add_child(screen)
 
 func show_combat() -> void:
 	if current_screen == "combat" and host.get_child_count() == 1:

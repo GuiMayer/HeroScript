@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 ## Read-only map inspection and explicit semantic actions. No rule evaluation.
 signal intent_requested(action: String, arguments: Array)
@@ -26,6 +27,12 @@ var _last_current := ""
 var _resume_button: Button
 var _compartments_button: Button
 
+static func create():
+	return (load("res://scenes/ui/components/map_view.tscn") as PackedScene).instantiate()
+func _ready() -> void:
+	if visual_context == null:
+		mount(ContextType.new()); theme = visual_context.theme
+	if not is_instance_valid(route): _build()
 func set_compartments_available(value: bool) -> void:
 	# The unified page is available for inspection even when this module is disabled.
 	pass
@@ -81,56 +88,29 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 			_camera_restore_from = ""
 		_center_current.call_deferred(progressed)
 func _build() -> void:
-	add_theme_constant_override("separation", 16)
-	var header := HBoxContainer.new(); add_child(header)
-	_header = visual_context.styles.title("", 27); _header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(_header)
-	_compartments_button = visual_context.styles.button(visual_context.translator.text("LOADOUT"), 140)
-	_compartments_button.name = "UnifiedLoadoutButton"
-	_compartments_button.pressed.connect(func(): intent_requested.emit("loadout", [])); header.add_child(_compartments_button)
-	_resume_button = visual_context.styles.button("", 160); _resume_button.name = "MapResumeRun"
-	_resume_button.visible = false
-	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))
-	_resource_badges = visual_context.styles.muted("", 15)
-	_resource_badges.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_resource_badges)
-	_body = Control.new(); _body.name = "MapWorkspace"; _body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_body.custom_minimum_size.y = 180; add_child(_body)
-	_scroll = ScrollContainer.new(); _scroll.name = "MapScroll"
-	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER; _scroll.follow_focus = false
-	_scroll.resized.connect(_resize_camera)
-	route = preload("res://scripts/ui/route_view.gd").new()
-	route.mouse_filter = Control.MOUSE_FILTER_PASS
+	_header = get_node("Header/MapTitle"); _resource_badges = get_node("MapResources")
+	_compartments_button = get_node("Header/UnifiedLoadoutButton")
+	_compartments_button.text = visual_context.translator.text("LOADOUT")
+	_compartments_button.pressed.connect(func(): intent_requested.emit("loadout", []))
+	_body = get_node("MapWorkspace"); _scroll = _body.get_node("MapScroll")
+	_canvas = _scroll.get_node("MapCanvas"); route = _canvas.get_node("RouteView")
 	route.inspection_requested.connect(func(id): _inspect(id); _set_inspector_open(true))
 	route.focus_requested.connect(func(id):
 		navigation.focused = id
 		if not camera.pressed: _inspect(id); _reveal_node(id))
 	route.hover_changed.connect(func(id): navigation.hovered = id; route.set_hover(id))
-	_canvas = Control.new(); _canvas.name = "MapCanvas"; _canvas.mouse_filter = Control.MOUSE_FILTER_PASS
-	_canvas.add_child(route); _scroll.add_child(_canvas); _body.add_child(_scroll)
-	_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_inspector_panel = PanelContainer.new(); _inspector_panel.name = "MapFloatingInspector"
-	_inspector_panel.add_theme_stylebox_override("panel", visual_context.styles.box(visual_context.styles.color("surface.route_current"), visual_context.profile.corner_radius, visual_context.styles.color("text.primary"), 1))
-	_body.add_child(_inspector_panel)
-	var margin := MarginContainer.new()
-	for side in ["left","top","right","bottom"]: margin.add_theme_constant_override("margin_" + side, 14)
-	_inspector_panel.add_child(margin)
-	var inspector_scroll := ScrollContainer.new()
-	inspector_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_inspector = VBoxContainer.new(); _inspector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_inspector.add_theme_constant_override("separation", 12)
-	inspector_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var detail_stack := VBoxContainer.new(); detail_stack.add_theme_constant_override("separation", 12)
-	margin.add_child(detail_stack); detail_stack.add_child(inspector_scroll); detail_stack.add_child(_resume_button)
-	inspector_scroll.add_child(_inspector)
-	_inspector_toggle = visual_context.styles.button("›", 44); _inspector_toggle.name = "MapInspectorToggle"
-	_inspector_toggle.custom_minimum_size = Vector2(44,44)
+	_scroll.resized.connect(_resize_camera)
+	_inspector_panel = _body.get_node("MapFloatingInspector")
+	var surface: StyleBoxFlat = _inspector_panel.get_theme_stylebox("panel").duplicate()
+	surface.bg_color = visual_context.styles.color("surface.route_current"); surface.border_color = visual_context.styles.color("text.primary")
+	_inspector_panel.add_theme_stylebox_override("panel", surface)
+	_inspector = _inspector_panel.get_node("Margin/Stack/Scroll/Body")
+	_resume_button = _inspector_panel.get_node("Margin/Stack/MapResumeRun")
+	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))
+	_inspector.get_node("Actions/MapResumeDialogue").pressed.connect(func(): intent_requested.emit("resume_dialogue", []))
+	_inspector_toggle = _body.get_node("MapInspectorToggle")
 	_inspector_toggle.pressed.connect(func(): _set_inspector_open(not _inspector_open))
-	_body.add_child(_inspector_toggle)
-	_body.resized.connect(_layout_inspector)
-	_layout_inspector.call_deferred()
+	_body.resized.connect(_layout_inspector); _layout_inspector.call_deferred()
 
 func _set_inspector_open(value: bool) -> void:
 	if _inspector_open == value: return
@@ -171,21 +151,28 @@ func _inspect(id: String) -> void:
 	var viewport := get_viewport() if is_inside_tree() else null
 	var old_focus: Control = viewport.gui_get_focus_owner() if viewport != null else null
 	var focus_name := str(old_focus.name) if old_focus != null and _inspector.is_ancestor_of(old_focus) else ""
-	for child in _inspector.get_children(): _inspector.remove_child(child); child.queue_free()
+	var actions = _inspector.get_node("Actions")
+	for child in actions.get_children():
+		if child.has_meta("map_action"): actions.remove_child(child); child.queue_free()
+	var information = _inspector.get_node("Information")
+	information.hide(); actions.hide(); actions.get_node("MapResumeDialogue").hide()
 	_action_buttons.clear()
 	var matches: Array = route.nodes.filter(func(node): return str(node.id) == id)
 	if matches.is_empty(): return
 	var node: Dictionary = matches[0]
-	_inspector.add_child(visual_context.styles.wrap(visual_context.styles.title(str(node.name), 25), 260))
-	_inspector.add_child(visual_context.styles.muted(visual_context.translator.content_name(str(node.kind)), 16, 260))
-	if not str(node.get("risk", "")).is_empty(): _inspector.add_child(visual_context.styles.muted(visual_context.translator.text("Risk: %s") % str(node.risk), 15, 260))
-	if not str(node.get("benefit", "")).is_empty(): _inspector.add_child(visual_context.styles.muted(str(node.benefit), 16, 260))
-	_inspector.add_child(visual_context.styles.muted(str(node.get("description", "")), 17, 260))
+	information.show()
+	information.get_node("Title").text = str(node.name)
+	information.get_node("Kind").text = visual_context.translator.content_name(str(node.kind))
+	information.get_node("Risk").text = visual_context.translator.text("Risk: %s") % str(node.get("risk", ""))
+	information.get_node("Risk").visible = not str(node.get("risk", "")).is_empty()
+	information.get_node("Benefit").text = str(node.get("benefit", ""))
+	information.get_node("Benefit").visible = not str(node.get("benefit", "")).is_empty()
+	information.get_node("Description").text = str(node.get("description", ""))
 	var statuses: Array[String] = []
 	if node.current: statuses.append(visual_context.translator.text("YOU ARE HERE"))
 	if node.resolved: statuses.append(visual_context.translator.text("COMPLETED"))
 	if statuses.is_empty(): statuses.append(visual_context.translator.text("Available" if not node.travel.is_empty() else "Unavailable"))
-	_inspector.add_child(visual_context.styles.title(" · ".join(statuses), 16))
+	information.get_node("Status").text = " · ".join(statuses)
 	if not node.travel.is_empty(): _action(visual_context.translator.text("TRAVEL"), node.travel)
 	if node.current:
 		for choice in _choices:
@@ -195,21 +182,23 @@ func _inspect(id: String) -> void:
 			_action(_presenter.choice_label(choice), choice)
 		var active_dialogue: bool = _run.get("dialogues", []).any(func(item): return str(item.get("activityNodeId", "")) == id and not bool(item.get("completed", false)))
 		if str(node.kind) == "Dialogue" and not node.resolved and active_dialogue:
-			var resume := visual_context.styles.button(visual_context.translator.text("Resume conversation"))
-			resume.name = "MapResumeDialogue"
-			resume.pressed.connect(func(): intent_requested.emit("resume_dialogue", [])); _inspector.add_child(resume)
+			actions.get_node("MapResumeDialogue").text = visual_context.translator.text("Resume conversation")
+			actions.get_node("MapResumeDialogue").show()
+	actions.visible = not _action_buttons.is_empty() or actions.get_node("MapResumeDialogue").visible
 	visual_context.styles.apply_view_preferences(_inspector)
 	if not focus_name.is_empty():
 		var replacement := _inspector.find_child(focus_name, true, false)
 		if replacement is Control: replacement.grab_focus.call_deferred()
 func _action(label: String, choice: Dictionary) -> void:
 	var reference: String = _presenter.option_reference(choice)
-	var button := visual_context.styles.button(label)
+	var button: Button = preload("res://scenes/ui/components/map_action.tscn").instantiate()
+	button.text = label
 	button.name = "MapAction_" + str(choice.get("type", ""))
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.disabled = _locked
 	button.pressed.connect(func(): intent_requested.emit("command", [reference]))
-	_inspector.add_child(button); _action_buttons.append(button)
+	var actions = _inspector.get_node("Actions")
+	actions.add_child(button); actions.move_child(button, _action_buttons.size()); _action_buttons.append(button)
 func set_read_only(value: bool) -> void:
 	_locked = value
 	for button in _action_buttons:

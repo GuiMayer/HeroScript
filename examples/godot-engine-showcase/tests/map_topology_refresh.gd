@@ -20,7 +20,7 @@ func run() -> void:
 	for dimensions in [Vector2i(1280, 800), Vector2i(1920, 1080), Vector2i(2560, 1080)]:
 		root.size = dimensions
 		var holder := VBoxContainer.new(); holder.position = Vector2(24, 24); holder.size = Vector2(dimensions) - Vector2(48, 48); root.add_child(holder)
-		var view = load("res://scripts/ui/map_view.gd").new(); view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var view = load("res://scripts/ui/map_view.gd").create(); view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var state := {"runId": "map-refresh", "currentNodeId": "s01_arrival", "map": {"nodes": [fixture.nodes[0].duplicate(true)], "resolvedNodeIds": []}}
 		view.apply_projection(state, [], Presenter.new(state, [], {}, context.translator), context)
 		holder.add_child(view); await settle()

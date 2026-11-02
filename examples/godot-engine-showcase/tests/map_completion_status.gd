@@ -15,7 +15,7 @@ func _run() -> void:
 		var run := {"runId":"completion-qa", "currentNodeId":"a", "map":{"resolvedNodeIds":[], "nodes":[
 			{"nodeId":"a", "activity":{"type":"Shop"}, "nextNodeIds":["b"]},
 			{"nodeId":"b", "activity":{"type":"Encounter"}, "nextNodeIds":[]}]}}
-		var view = load("res://scripts/ui/map_view.gd").new()
+		var view = load("res://scripts/ui/map_view.gd").create()
 		view.size = Vector2(1200,650); root.add_child(view)
 		var intents: Array = []
 		view.intent_requested.connect(func(action,args): intents.append([action,args]))

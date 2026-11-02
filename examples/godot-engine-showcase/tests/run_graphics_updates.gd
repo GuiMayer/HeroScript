@@ -20,7 +20,7 @@ func _run() -> void:
 	for _repeat in 3:
 		context.changed.emit(); await settle()
 		check(portrait.slot_key == "actor_sentinel", "context update never restores old actor art")
-	var route = load("res://scripts/ui/route_view.gd").new()
+	var route = load("res://scripts/ui/route_view.gd").create()
 	var nodes := [{"id": "a", "name": "Stop", "current": false, "resolved": false, "kind": "Encounter", "next": [], "risk": "High", "travel": {"type": "ADVANCE_NODE", "payload": {"targetNodeId": "a"}}}]
 	root.add_child(route); route.setup(nodes)
 	var button: Button = route.buttons.a

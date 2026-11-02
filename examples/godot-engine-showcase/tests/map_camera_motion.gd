@@ -17,12 +17,17 @@ func run() -> void:
 		root.size = dimensions
 		var context = Context.new(null, {}, load("res://data/themes/ivory_run.tres"))
 		var holder := VBoxContainer.new(); holder.position = Vector2(24, 24); holder.size = Vector2(dimensions) - Vector2(48, 48); root.add_child(holder)
-		var view = load("res://scripts/ui/map_view.gd").new(); view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var view = load("res://scripts/ui/map_view.gd").create(); view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var state := {"runId": "map-motion", "currentNodeId": "s01_arrival", "map": {"nodes": fixture.nodes.duplicate(true), "resolvedNodeIds": []}}
 		apply(view, state, context); holder.add_child(view); await settle()
 		check(view._camera_tween == null, "initial framing is immediate: " + str(dimensions))
 		var origin := offset(view)
-		state.currentNodeId = "r01"; apply(view, state, context); await settle()
+		state.currentNodeId = "r01"; apply(view, state, context)
+		# Pause as soon as the deferred tween exists; waiting eight real frames
+		# before manually stepping can round an almost-finished pan to its target.
+		for frame in 8:
+			if view._camera_tween != null: break
+			await process_frame
 		check(view._camera_tween != null and view._camera_tween.is_valid() and offset(view) != view._camera_target.round(), "node progress starts interpolation rather than teleporting")
 		var tween: Tween = view._camera_tween
 		tween.pause(); tween.custom_step(.14)
@@ -58,7 +63,7 @@ func run() -> void:
 		# node still supplies an origin, even though the old view was disposed.
 		var saved := {"current": "s01_arrival", "selected": "s01_arrival"}
 		holder.remove_child(view); view.queue_free()
-		view = load("res://scripts/ui/map_view.gd").new(); view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		view = load("res://scripts/ui/map_view.gd").create(); view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		apply(view, state, context)
 		view.restore_local_state(saved)
 		check(view._camera_restore_from == "s01_arrival", "detached map reserves the previous stop before its first visible framing")

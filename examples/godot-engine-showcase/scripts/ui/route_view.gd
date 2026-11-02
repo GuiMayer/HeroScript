@@ -1,8 +1,9 @@
+@tool
 extends Control
 ## Engine-published topology and choices; geometry is a separate pure dependency.
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType = ContextType.new()
-var layout_profile: Resource = preload("res://scripts/ui/styles/map_layout_profile.gd").new()
+@export var layout_profile: Resource = preload("res://scripts/ui/styles/map_layout_profile.gd").new()
 var _layout = preload("res://scripts/presentation/map_layout.gd").new()
 var _geometry: Dictionary = {}
 signal inspection_requested(node_id: String)
@@ -15,6 +16,10 @@ var _hovered := ""
 var nodes: Array = []
 var markers := {}
 var buttons := {}
+static func create():
+	return (load("res://scenes/ui/components/route_view.tscn") as PackedScene).instantiate()
+func _ready() -> void:
+	theme = visual_context.theme
 func reconcile_from(other) -> void:
 	visual_context = other.visual_context
 	layout_profile = other.layout_profile
@@ -35,7 +40,7 @@ func setup(route: Array) -> void:
 		live.append(id)
 		var button: Button = buttons.get(id)
 		if button == null:
-			button = Button.new()
+			button = preload("res://scenes/ui/components/map_node.tscn").instantiate()
 			button.name = "Stop_" + id.validate_node_name()
 			button.pressed.connect(func():
 				if not suppress_activation: inspection_requested.emit(str(button.get_meta("node_id", ""))))
@@ -50,13 +55,7 @@ func setup(route: Array) -> void:
 		button.position = _geometry.rects[id].position + Vector2((layout_profile.node_size.x - layout_profile.hit_size.x) * .5, 0)
 		button.size = layout_profile.hit_size
 		button.text = ""
-		var caption: Label = button.get_node_or_null("Caption")
-		if caption == null:
-			caption = Label.new(); caption.name = "Caption"; caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			caption.clip_text = true; caption.add_theme_font_size_override("font_size", 13)
-			button.add_child(caption)
+		var caption: Label = button.get_node("Caption")
 		caption.position = Vector2((layout_profile.hit_size.x - layout_profile.node_size.x) * .5, layout_profile.hit_size.y + 2)
 		caption.size = Vector2(layout_profile.node_size.x, 38)
 		# Location and completion are independent: returning keeps both states.
@@ -72,23 +71,13 @@ func setup(route: Array) -> void:
 		button.toggle_mode = true
 		button.set_pressed_no_signal(id == _selected)
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var art = button.get_meta("map_art") if button.has_meta("map_art") else null
-		if not is_instance_valid(art):
-			art = preload("res://scripts/ui/art_slot.gd").new(visual_context)
-			button.add_child(art); button.set_meta("map_art", art)
-			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			art.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-			art.offset_left = -layout_profile.symbol_size * .5; art.offset_right = layout_profile.symbol_size * .5
-			art.offset_top = -layout_profile.symbol_size * .5; art.offset_bottom = layout_profile.symbol_size * .5
+		var art = button.get_node("MapArt"); button.set_meta("map_art", art)
 		art.rebind_context(visual_context); art.setup("activities", str(node.kind))
 		var auxiliary: bool = layout_profile.compact_auxiliary and str(node.kind) in layout_profile.auxiliary_kinds
 		var symbol_size: float = layout_profile.auxiliary_symbol_size if auxiliary else layout_profile.symbol_size
 		art.offset_left = -symbol_size * .5; art.offset_right = symbol_size * .5
 		art.offset_top = -symbol_size * .5; art.offset_bottom = symbol_size * .5
-		var glyph = button.get_node_or_null("MapGlyph")
-		if glyph == null:
-			glyph = preload("res://scripts/ui/components/map_node_glyph.gd").new(); glyph.name = "MapGlyph"
-			glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE; button.add_child(glyph)
+		var glyph = button.get_node("MapGlyph")
 		glyph.kind = str(node.kind); glyph.ink = visual_context.styles.color("text.primary")
 		glyph.position = (layout_profile.hit_size - Vector2.ONE * symbol_size) * .5; glyph.size = Vector2.ONE * symbol_size
 		glyph.visible = art.is_placeholder; art.visible = not art.is_placeholder; glyph.queue_redraw()

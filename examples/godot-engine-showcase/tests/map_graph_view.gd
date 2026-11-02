@@ -14,7 +14,7 @@ func _run() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.position = Vector2(24, 24); scroll.size = Vector2(360, 520)
 	scroll.follow_focus = true; root.add_child(scroll)
-	var route = load("res://scripts/ui/route_view.gd").new(); scroll.add_child(route)
+	var route = load("res://scripts/ui/route_view.gd").create(); scroll.add_child(route)
 	var nodes := [node("start", ["a", "b"]), node("a", ["boss"]), node("b", ["boss"], true), node("boss", [])]
 	route.setup(nodes); await settle()
 	for resolution in [Vector2i(1280, 720), Vector2i(2560, 1080)]:

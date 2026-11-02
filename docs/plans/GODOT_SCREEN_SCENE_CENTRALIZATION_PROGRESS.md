@@ -78,4 +78,10 @@ Battlefield, grupos variáveis, cenário, slots de arte, HUD flutuante e feedbac
 
 Testes aprovados: hosts editáveis 8, arquitetura 28, shell 9, composição 13, contratos de animação 8, limites 4, responsividade 2, cues 6, peças táticas 126, interrupções de reorder 15, compra 106 e pause 24. A regressão confirma duração zero sem node decorativo nem tail. Comparação do shell, mão, dock e anchors de atores em duas resoluções e duas escalas confirmou geometria equivalente (battlefield.geometry.json).
 
-Etapas 13–20: pendentes.
+## Etapa 13 — Mapa, nós e inspector
+
+MapScreen, MapView, RouteView, nós e inspector flutuante possuem cenas próprias. Labels fixos do inspector são preenchidos; ações variáveis instanciam templates. Mantidos navigation model, layout profile exportado, câmera, desenho das conexões, referências opacas e guards existentes. O inspector continua fora do layout que calcula a área do mapa.
+
+Testes aprovados: edição 8, grafo 10, geometria 12, seleção 26, topologia 30, conclusão 30, câmera 51, primeira saída de combate 8 e conclusão de atividade 12. O teste da câmera já apresentava falhas na baseline por avançar manualmente um tween após aguardar tempo real; agora pausa na criação antes do avanço controlado, sem mudar a duração em produção. Teste REST protegido para exigir API isolada; execução real permanece para a certificação final. Comparação em duas resoluções e duas escalas confirmou geometria equivalente de mapa, nós, captions e inspector (map.geometry.json).
+
+Etapas 14–20: pendentes.

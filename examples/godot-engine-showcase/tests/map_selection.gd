@@ -9,10 +9,10 @@ func _run() -> void:
 	var run := {"runId": "r", "currentNodeId": "a", "map": {"nodes": [{"nodeId": "a", "activity": {"type": "Encounter"}, "nextNodeIds": ["b", "c"]}, {"nodeId": "b", "activity": {"type": "Shop"}, "nextNodeIds": []}, {"nodeId": "c", "activity": {"type": "Custom"}, "nextNodeIds": []}]}}
 	var choice := {"type": "ADVANCE_NODE", "subjectId": "b", "payload": {"targetNodeId": "b"}}
 	var presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [choice], {}, context.translator)
-	var view = load("res://scripts/ui/map_view.gd").new(); view.size = Vector2(1200, 650)
+	var view = load("res://scripts/ui/map_view.gd").create(); view.size = Vector2(1200, 650)
 	# Production router calls setup/apply_projection before host.add_child(screen).
 	view.apply_projection(run, [choice], presenter, context)
-	check(not view.is_inside_tree() and view.route.buttons.size() == 3 and view._inspector.get_child_count() >= 4, "detached projection builds full map details without requiring viewport focus")
+	check(not view.is_inside_tree() and view.route.buttons.size() == 3 and view._inspector.get_node("Information").visible and not view._inspector.get_node("Information/Status").text.is_empty(), "detached projection builds full map details without requiring viewport focus")
 	view._input(InputEventMouseMotion.new())
 	root.add_child(view)
 	var intents: Array = []; view.intent_requested.connect(func(action, arguments): intents.append([action, arguments]))
@@ -87,10 +87,10 @@ func _run() -> void:
 	presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [], {}, context.translator)
 	view.apply_projection(run, [], presenter, context); view.restore_local_state(state)
 	check(view._selected == "c", "return after authoritative progress selects the new current node instead of obsolete reading state")
-	check(view.find_child("MapResumeDialogue", true, false) == null, "conversation at another stop does not create a resume action here")
+	check(not view.find_child("MapResumeDialogue", true, false).visible, "conversation at another stop does not expose a resume action here")
 	run.dialogues.append({"activityNodeId": "c", "completed": false})
 	view.apply_projection(run, [], presenter, context)
-	check(view.find_child("MapResumeDialogue", true, false) != null, "same-stop narrative projection refreshes its resume action without geometry changes")
+	check(view.find_child("MapResumeDialogue", true, false).visible, "same-stop narrative projection refreshes its resume action without geometry changes")
 	view.queue_free(); for _i in 8: await process_frame
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)
