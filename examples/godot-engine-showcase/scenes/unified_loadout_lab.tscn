@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/labs/unified_loadout_lab.gd" id="1"]
+
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_page.tscn" id="Page"]
 
 [node name="UnifiedLoadoutLab" type="Control"]
 layout_mode = 3
@@ -11,3 +13,5 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
+
+[node name="LoadoutPage" parent="." instance=ExtResource("Page")]

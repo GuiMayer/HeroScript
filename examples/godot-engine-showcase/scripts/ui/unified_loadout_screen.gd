@@ -11,23 +11,24 @@ var relics_view
 var _pending_item := ""
 var _clear_dialog: ConfirmationDialog
 var _inscriptions_empty: Label
-var initial_tab := "overview"
-var initial_deck_tab := "cards"
+@export var initial_tab := "overview"
+@export var initial_deck_tab := "cards"
 
 func _ready() -> void:
 	if session == null: session = GameSession
 	controller = preload("res://scripts/application/unified_loadout_controller.gd").new(session)
 	var context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(preload("res://data/themes/ivory_theme.tres"))
-	shell = preload("res://scripts/ui/loadout/loadout_page_view.gd").new(); add_child(shell); shell.mount(context)
+	shell = get_node("LoadoutPage"); shell.mount(context)
 	var setting_id := str(session.run.get("settingId", session.run.get("configName", "")))
 	shell.heading.text = I18n.content_name(str(session.run.get("playerEntityId", ""))) + " · " + I18n.content_name(setting_id, setting_id.capitalize())
 	shell.tab_requested.connect(_select_tab); shell.back_requested.connect(_back); shell.recovery_requested.connect(controller.recover)
 	shell.attribute_sources_requested.connect(_attribute_sources)
 	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
 	inscriptions_view.editorial_layout = true; inscriptions_view.shared_attributes = true; inscriptions_view.mount(context)
-	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; scroll.follow_focus = true
-	var inscription_body := VBoxContainer.new(); inscription_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(inscription_body)
-	_inscriptions_empty = context.styles.muted(I18n.text("Inscriptions are not available for this character or setting."), 17, 600); inscription_body.add_child(_inscriptions_empty)
+	var scroll: ScrollContainer = shell.content.get_node("InscriptionsScroll")
+	var inscription_body: VBoxContainer = scroll.get_node("InscriptionBody")
+	_inscriptions_empty = inscription_body.get_node("InscriptionsUnavailable")
+	_inscriptions_empty.text = I18n.text("Inscriptions are not available for this character or setting.")
 	inscriptions_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL; inscription_body.add_child(inscriptions_view)
 	shell.install("inscriptions", scroll)
 	inscriptions_view.item_requested.connect(_select_item)
@@ -38,8 +39,8 @@ func _ready() -> void:
 	inscriptions_view.clear_requested.connect(func(): _clear_dialog.popup_centered())
 	inscriptions_view.search_requested.connect(func(value):
 		if controller.inscriptions != null: controller.inscriptions.search = value; _render())
-	_clear_dialog = (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); _clear_dialog.dialog_text = I18n.text("Unequip all inscriptions? Changes are saved automatically.")
-	_clear_dialog.confirmed.connect(func(): controller.edit_inscription("clear")); add_child(_clear_dialog)
+	_clear_dialog = get_node("ClearEquipment"); _clear_dialog.dialog_text = I18n.text("Unequip all inscriptions? Changes are saved automatically.")
+	_clear_dialog.confirmed.connect(func(): controller.edit_inscription("clear"))
 	deck_view = preload("res://scripts/ui/loadout/deck_module_view.gd").new(); deck_view.mount(context); shell.install("deck", deck_view)
 	deck_view.move_requested.connect(controller.move_card)
 	deck_view.modifier_requested.connect(controller.apply_modifier)
@@ -68,7 +69,7 @@ func _select_slot(id: String) -> void:
 func _render() -> void:
 	if not is_instance_valid(shell): return
 	var usable: bool = controller.current()
-	if not usable: shell.present_attributes({"name": "", "attributes": []})
+	if not usable: _present_attributes({"name": "", "attributes": []})
 	_inscriptions_empty.visible = usable and controller.inscriptions == null
 	for button in shell.buttons.values(): button.disabled = not usable
 	shell.set_feedback(controller.message if usable else "Run or character changed. Reopen loadout.", controller.uncertain or controller.read_error)
@@ -78,7 +79,7 @@ func _render() -> void:
 		model.canEdit = controller.editable() and model.canEdit
 		inscriptions_view.present(model)
 		inscriptions_view.find_child("LoadoutClearButton", true, false).text = I18n.text("Unequip all")
-		shell.present_attributes(model.character)
+		_present_attributes(model.character)
 	if is_instance_valid(deck_view):
 		deck_view.visible = usable and shell.active_tab == "deck"
 		var snapshot: Dictionary = controller.compartments.source if controller.compartments != null else {}
@@ -90,14 +91,23 @@ func _render() -> void:
 			"busy": not controller.editable(), "context": controller.identity + controller.version()}
 		deck_view.present(deck_model)
 	if controller.info_ready and usable:
-		shell.present_attributes(preload("res://scripts/presentation/loadout_presenter.gd").character(controller.attributes, str(session.run.get("playerEntityId", "")), session.run.get("characterResources", {}), I18n))
-	elif controller.inscriptions == null: shell.present_attributes({"name": "", "attributes": []})
+		_present_attributes(preload("res://scripts/presentation/loadout_presenter.gd").character(controller.attributes, str(session.run.get("playerEntityId", "")), session.run.get("characterResources", {}), I18n))
+	elif controller.inscriptions == null: _present_attributes({"name": "", "attributes": []})
 	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null and usable else 0, "cards": controller.deck_cards.size() if usable else 0, "relics": controller.relics if usable else []}
 	if is_instance_valid(overview_view): overview_view.present(summary)
 	if is_instance_valid(relics_view): relics_view.present(summary)
 func _back() -> void:
 	if controller.can_leave(): back_requested.emit()
 	else: shell.set_feedback("Wait for equipment to finish saving, or recover the pending operation.", controller.uncertain)
+
+func _present_attributes(character: Dictionary) -> void:
+	var model := character.duplicate(true)
+	if controller.inscriptions != null:
+		var snapshot: Dictionary = controller.inscriptions.snapshot()
+		for item in snapshot.get("items", []):
+			if str(item.get("instanceId", "")) == str(snapshot.get("selectedItem", "")):
+				model["highlightedAttributeIds"] = item.get("attributeIds", item.get("attributeBonuses", []).map(func(bonus): return str(bonus.get("attributeId", ""))))
+	shell.present_attributes(model)
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause_game") or event.is_action_pressed("ui_cancel"):
 		_back(); get_viewport().set_input_as_handled()

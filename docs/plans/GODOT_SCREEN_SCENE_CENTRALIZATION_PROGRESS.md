@@ -48,4 +48,10 @@ Menu principal centralizado em cena editável, registrada no router e no catálo
 
 Shell e seis páginas de configuração possuem nodes estáticos editáveis. Scripts apenas traduzem e ligam os controles ao schema/controller existentes. Abas alternam visibilidade sem recriar sliders nem callbacks. Preview aplica tema sem iniciar sessão nem persistir opções. Testes: cenas editáveis 7, contratos 8, interação 86, recuperação 69 e menus 90 aprovados. Comparação das seis abas em duas resoluções e duas escalas confirmou geometria equivalente (settings.geometry.json).
 
-Etapas 8–20: pendentes.
+## Etapa 8 — Shell unificado do loadout
+
+LoadoutPage possui header, hosts, feedback, recuperação e atributos autorados. Tabs usam ModuleCatalog e template compartilhado, sem duplicar IDs na cena. A composição unified_loadout.tscn e o laboratório instanciam a mesma shell. run_loadout.tscn agora delega à composição canônica; removida a implementação antiga com polling e autoridade paralela. Testes migrados conservam verificação de inventário atual, isolamento por personagem/run, respostas atrasadas e equipar/limpar com autosave. Restaurado destaque de atributos da inscrição no painel compartilhado.
+
+Testes aprovados: shell editável 6, navegação 9, layout 48, autosave 9, recuperação 9, fluxo de run 22, input nativo 6 e layout editorial 187. Comparação da shell em três resoluções e duas escalas confirmou geometria equivalente (loadout-shell.geometry.json).
+
+Etapas 9–20: pendentes.

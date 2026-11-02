@@ -6,7 +6,7 @@ func check(value: bool, label: String) -> void:
 	if not value: failures += 1
 func _run() -> void:
 	var session = load("res://tests/fixtures/unified_loadout_session.gd").new()
-	var screen = load("res://scripts/ui/unified_loadout_screen.gd").new(); screen.session = session; root.add_child(screen)
+	var screen = load("res://scenes/ui/screens/unified_loadout.tscn").instantiate(); screen.session = session; root.add_child(screen)
 	await process_frame; await process_frame
 	check(screen.controller.inscriptions != null, "canonical current-character loadout mounted")
 	check(screen.inscriptions_view.attributes_view == null, "module does not duplicate shared attributes")

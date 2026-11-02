@@ -18,7 +18,7 @@ func _run() -> void:
 		check(await session.connect_engine(setting), "connect real setting: " + setting)
 		check(await session.start_campaign(80741 if setting == "ascendant" else 80742), "create isolated QA run: " + setting)
 		if failures: quit(1); return
-		var screen = load("res://scripts/ui/unified_loadout_screen.gd").new(); root.add_child(screen); await idle(screen)
+		var screen = load("res://scenes/ui/screens/unified_loadout.tscn").instantiate(); root.add_child(screen); await idle(screen)
 		check(screen.controller.info_ready, "load canonical relic and attribute projections")
 		if failures: print(screen.controller.message); quit(1); return
 		var sequence: int = int(session.run.sequence)
@@ -47,7 +47,7 @@ func _run() -> void:
 		var run_id: String = session.run.runId
 		screen.queue_free(); await process_frame
 		check(await session.continue_run(run_id), "reopen persisted run")
-		screen = load("res://scripts/ui/unified_loadout_screen.gd").new(); root.add_child(screen); await idle(screen)
+		screen = load("res://scenes/ui/screens/unified_loadout.tscn").instantiate(); root.add_child(screen); await idle(screen)
 		check(screen.controller.info_ready and screen.controller.can_leave(), "reentry loads confirmed build without pending draft")
 		var verified: Dictionary = await session.verify_run(run_id)
 		check(verified.get("ok", false) and verified.data.get("isValid", false), "autosave preserves semantic deterministic replay")

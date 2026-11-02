@@ -1,3 +1,5 @@
+@tool
+class_name LoadoutPageView
 extends Control
 ## Stable shell. All domain operations belong to the controller, never to this view.
 signal tab_requested(id: String)
@@ -19,48 +21,46 @@ var attributes_button: Button
 var _drawer_open := false
 var _last_focus := {}
 
+static func create() -> LoadoutPageView:
+	return (load("res://scenes/ui/components/loadout/loadout_page.tscn") as PackedScene).instantiate()
+func _ready() -> void:
+	if visual_context == null:
+		mount(preload("res://scripts/ui/visual_context.gd").new(null, {}, preload("res://data/themes/ivory_theme.tres")))
 func mount(context) -> void:
 	visual_context = context; theme = context.theme
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var paper := ColorRect.new(); paper.color = context.styles.NIGHT
-	paper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); paper.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(paper)
-	var margin := MarginContainer.new(); margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 24)
-	add_child(margin)
-	var page := VBoxContainer.new(); page.add_theme_constant_override("separation", 12); margin.add_child(page)
-	var header := HBoxContainer.new(); page.add_child(header)
-	header.add_child(context.styles.title(tr_text("LOADOUT"), 32))
-	heading = context.styles.muted(""); heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL; header.add_child(heading)
-	attributes_button = button("Attributes", func(): _drawer_open = not _drawer_open; _responsive())
-	header.add_child(attributes_button)
-	header.add_child(button("BACK", back_requested.emit))
-	var tabs := HBoxContainer.new(); tabs.name = "LoadoutModuleTabs"; page.add_child(tabs)
+	heading = get_node("%Heading"); feedback = get_node("%Feedback"); recovery = get_node("%Recovery")
+	body = get_node("%Body"); content = get_node("%LoadoutModuleHost")
+	attributes_panel = get_node("%SharedCharacterAttributes")
+	attributes_view = attributes_panel.get_node("LoadoutCharacterAttributes")
+	attributes_view.mount(context)
+	attributes_button = get_node("%AttributesButton")
+	get_node("%Paper").color = context.styles.NIGHT
+	get_node("%Title").text = tr_text("LOADOUT")
+	for entry in [[attributes_button, "Attributes"], [get_node("%BackButton"), "BACK"], [recovery, "Retry pending operation"], [attributes_view.get_node("AttributeSources"), "Attribute sources"]]: entry[0].text = tr_text(entry[1])
+	var surface: StyleBoxFlat = attributes_panel.get_theme_stylebox("panel").duplicate()
+	surface.bg_color = context.styles.color("surface.panel"); surface.border_color = context.styles.color("stroke.panel")
+	attributes_panel.add_theme_stylebox_override("panel", surface)
+	if buttons.is_empty():
+		attributes_button.pressed.connect(func(): _drawer_open = not _drawer_open; _responsive())
+		get_node("%BackButton").pressed.connect(back_requested.emit)
+		recovery.pressed.connect(recovery_requested.emit)
+		attributes_view.get_node("AttributeSources").pressed.connect(attribute_sources_requested.emit)
+		for entry in preload("res://scripts/ui/loadout/module_catalog.gd").entries():
+			var id: String = entry.id
+			var control: Button = preload("res://scenes/ui/components/loadout/module_tab.tscn").instantiate()
+			control.name = "Tab_" + id; control.text = tr_text(entry.label)
+			control.pressed.connect(func(): tab_requested.emit(id))
+			get_node("%LoadoutModuleTabs").add_child(control); buttons[id] = control
 	for entry in preload("res://scripts/ui/loadout/module_catalog.gd").entries():
-		var id: String = entry.id
-		var control := button(entry.label, func(): tab_requested.emit(id))
-		control.toggle_mode = true; control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tabs.add_child(control); buttons[id] = control
-	page.add_child(HSeparator.new())
-	body = HBoxContainer.new(); body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 18); page.add_child(body)
-	content = Control.new(); content.name = "LoadoutModuleHost"; content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL; body.add_child(content)
-	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").create()
-	attributes_view.editorial_layout = true; attributes_view.mount(context)
-	attributes_view.add_child(button("Attribute sources", attribute_sources_requested.emit))
-	attributes_panel = context.styles.panel(attributes_view); attributes_panel.name = "SharedCharacterAttributes"
-	attributes_panel.custom_minimum_size.x = 310; body.add_child(attributes_panel)
-	var footer := HBoxContainer.new(); page.add_child(footer)
-	feedback = context.styles.muted(""); feedback.size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(feedback)
-	recovery = button("Retry pending operation", recovery_requested.emit); recovery.hide(); footer.add_child(recovery)
-	resized.connect(_responsive); _responsive.call_deferred()
+		buttons[entry.id].text = tr_text(entry.label)
+	if not resized.is_connected(_responsive): resized.connect(_responsive)
+	_responsive.call_deferred()
 
 func tr_text(key: String) -> String: return visual_context.translator.text(key)
-func button(key: String, action: Callable) -> Button:
-	var result: Button = visual_context.styles.button(tr_text(key)); result.pressed.connect(action); return result
 func install(id: String, control: Control) -> void:
 	if modules.has(id): return
-	modules[id] = control; content.add_child(control)
+	modules[id] = control
+	if control.get_parent() != content: content.add_child(control)
 	control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); control.visible = id == active_tab
 func select(id: String) -> void:
 	if not buttons.has(id): return
@@ -80,11 +80,13 @@ func set_feedback(message: String, recoverable := false) -> void:
 func present_attributes(character: Dictionary) -> void:
 	attributes_view.present(character.duplicate(true))
 func _responsive() -> void:
-	if not is_instance_valid(attributes_panel) or size.x <= 0: return
+	if not is_instance_valid(attributes_panel) or size.x <= 0 or visual_context == null: return
+	if Engine.is_editor_hint(): return
 	var narrow: bool = size.x < 1450 * visual_context.text_scale
 	attributes_button.visible = narrow
 	if narrow:
-		if attributes_panel.get_parent() != self: attributes_panel.reparent(self)
+		if attributes_panel.get_parent() != self:
+			attributes_panel.owner = null; attributes_panel.reparent(self); attributes_panel.owner = self
 		attributes_panel.position = Vector2(maxf(24, size.x - 360), 130)
 		attributes_panel.size = Vector2(336, maxf(300, size.y - 190))
 		var viewport = get_viewport()
@@ -92,6 +94,6 @@ func _responsive() -> void:
 		attributes_panel.visible = _drawer_open
 		if not _drawer_open and is_instance_valid(focused) and attributes_panel.is_ancestor_of(focused): attributes_button.grab_focus()
 	else:
-		if attributes_panel.get_parent() != body: attributes_panel.reparent(body)
+		if attributes_panel.get_parent() != body:
+			attributes_panel.owner = null; attributes_panel.reparent(body); attributes_panel.owner = self
 		attributes_panel.visible = true
-

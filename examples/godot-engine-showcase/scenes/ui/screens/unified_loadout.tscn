@@ -1,0 +1,33 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/unified_loadout_screen.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_page.tscn" id="Page"]
+[ext_resource type="PackedScene" path="res://scenes/ui/overlays/confirmation_dialog.tscn" id="Confirm"]
+[node name="UnifiedLoadout" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("Script")
+
+[node name="LoadoutPage" parent="." instance=ExtResource("Page")]
+
+[node name="InscriptionsScroll" type="ScrollContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost"]
+layout_mode = 0
+horizontal_scroll_mode = 0
+follow_focus = true
+
+[node name="InscriptionBody" type="VBoxContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InscriptionsUnavailable" type="Label" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsScroll/InscriptionBody"]
+layout_mode = 2
+custom_minimum_size = Vector2(600,0)
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
+text = "Inscriptions are not available for this character or setting."
+
+[node name="ClearEquipment" parent="." instance=ExtResource("Confirm")]
