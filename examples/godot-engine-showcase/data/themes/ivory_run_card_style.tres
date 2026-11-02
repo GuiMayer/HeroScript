@@ -2,7 +2,6 @@
 [ext_resource type="Script" path="res://scripts/ui/card_visual_style.gd" id="1"]
 [resource]
 script = ExtResource("1")
-printed_face = true
 face_radius = 2
 card_size = Vector2(248, 360)
 art_height = 64.0

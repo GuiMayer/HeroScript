@@ -36,7 +36,7 @@ func _run() -> void:
 		for character in "ÁÉÍÓÚáéíóúâêôãõçÇ0123456789": supported = supported and font.has_char(character.unicode_at(0))
 		check(supported, "bundled typeface supports Portuguese accents and numerals")
 	var card: CardView = lab.card_controls[0]
-	check(card.visual_style == lab.visual_context.card_style and card.visual_style.printed_face, "hand injects the shared printed card policy")
+	check(card.visual_style == lab.visual_context.card_style, "hand injects the shared printed card policy")
 	check(card.get_node("PrintedKeyline").mouse_filter == Control.MOUSE_FILTER_IGNORE, "ink keyline supplements rarity without capturing input")
 	var style: CardVisualStyle = card.visual_style
 	var rules: RichTextLabel = card.find_child("Rules", true, false)
@@ -51,7 +51,7 @@ func _run() -> void:
 	isolated_card.configure(card.model)
 	context.profile = previous_profile
 	isolated_card.configure(card.model)
-	check(not isolated_card.visual_style.printed_face, "same card can return to the production policy after profile change")
+	check(isolated_card.visual_style == context.card_style, "profile changes retain the current card anatomy")
 	isolated_card.visual_style = style
 	isolated_card.configure(card.model)
 	check(isolated_card.visual_style == style, "explicit component policy still takes precedence over profile")

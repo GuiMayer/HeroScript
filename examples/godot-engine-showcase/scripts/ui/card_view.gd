@@ -20,16 +20,17 @@ func reconcile_from(other) -> void:
 @export var hand_managed := false
 var configuration_count := 0
 var _configuration_key := ""
+var _cost_configuration_key := ""
 var _context_card_style: CardVisualStyle
 @export var use_profile_metrics := true
-@export var visual_style: CardVisualStyle = preload("res://data/default_card_visual_style.tres")
+@export var visual_style: CardVisualStyle = preload("res://data/themes/ivory_run_card_style.tres")
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 const CostSymbol = preload("res://scripts/ui/card_cost_symbol.gd")
 
 func configure(data: Dictionary) -> void:
 	theme = visual_context.theme
 	# Follow profile changes unless the consumer explicitly injected another policy.
-	if visual_style == _context_card_style or visual_style == preload("res://data/default_card_visual_style.tres"):
+	if visual_style == _context_card_style or visual_style == preload("res://data/themes/ivory_run_card_style.tres"):
 		_context_card_style = visual_context.card_style
 		visual_style = _context_card_style
 	# Diagnostics belong to persistent inspection, not the printed face. Keep
@@ -60,12 +61,12 @@ func configure(data: Dictionary) -> void:
 		if str(key).begins_with("base_style_"): remove_meta(key)
 	for state in ["normal", "disabled", "pressed", "hover", "focus"]:
 		var box: StyleBoxFlat = get_theme_stylebox(state).duplicate()
-		box.bg_color = Color.TRANSPARENT if state == "focus" else (visual_context.styles.PANEL if visual_style.printed_face else tone.darkened(.62 if state in ["pressed", "hover"] else .76))
+		box.bg_color = Color.TRANSPARENT if state == "focus" else visual_context.styles.PANEL
 		box.border_color = border
 		box.set_corner_radius_all(visual_style.face_radius)
 		add_theme_stylebox_override(state, box)
 	var keyline = get_node("%PrintedKeyline")
-	keyline.visible = visual_style.printed_face
+	keyline.visible = true
 	keyline.ink = visual_context.styles.INK; keyline.style = visual_style.keyline_style; keyline.queue_redraw()
 	if use_profile_metrics:
 		get_node("%CardHeader").custom_minimum_size.y = ceilf(visual_style.title_line_height * visual_context.text_scale)
@@ -81,12 +82,10 @@ func configure(data: Dictionary) -> void:
 	art.rebind_context(visual_context); art.setup("cards", str(data.get("definitionId", "")))
 	var placeholder: bool = art.is_placeholder and bool(data.get("artPlaceholder", true))
 	var name_text: String = str(data.get("name", "")).trim_suffix(" +").to_upper()
-	get_node("%ArtPlaceholderName").visible = placeholder and visual_style.printed_face
+	get_node("%ArtPlaceholderName").visible = placeholder
 	get_node("%ArtPlaceholderName").text = name_text
-	get_node("%ArtOverlayName").visible = placeholder and not visual_style.printed_face
-	get_node("%ArtOverlayName").text = name_text
 	get_node("%CardType").text = str(data.get("cardType", str(data.get("tone", "skill")).to_upper()))
-	get_node("%CardType").add_theme_color_override("font_color", tone.darkened(.15) if visual_style.printed_face else tone.lightened(.28))
+	get_node("%CardType").add_theme_color_override("font_color", tone.darkened(.15))
 	get_node("%Rarity").text = str(data.get("rarity", "")); get_node("%Rarity").visible = not str(data.get("rarity", "")).is_empty()
 	get_node("%IdentityTags").text = " · ".join(data.get("identityTags", []))
 	get_node("%IdentityTags").visible = not data.get("identityTags", []).is_empty()
@@ -106,9 +105,7 @@ func configure(data: Dictionary) -> void:
 	rules.configure(rows, visual_style)
 	var effect_panel = get_node("%EffectPanel")
 	var effect_style: StyleBoxFlat = effect_panel.get_theme_stylebox("panel").duplicate()
-	effect_style.bg_color = visual_style.effect_surface if visual_style.printed_face else Color.TRANSPARENT
-	if not visual_style.printed_face:
-		for side in [SIDE_LEFT, SIDE_RIGHT, SIDE_TOP, SIDE_BOTTOM]: effect_style.set_content_margin(side, 0)
+	effect_style.bg_color = visual_style.effect_surface
 	effect_panel.add_theme_stylebox_override("panel", effect_style)
 	get_node("%Behaviors").text = " · ".join(data.get("behaviors", [])); get_node("%Behaviors").visible = not data.get("behaviors", []).is_empty()
 	_change_badges(data.get("changeBadges", []))
@@ -141,6 +138,9 @@ func _cost_zone(data: Dictionary) -> Control:
 	var line = get_node("%CostLine")
 	line.configure(maxf(visual_style.cost_symbol_size.x, visual_style.cost_symbol_size.y) * visual_context.text_scale)
 	var zone: HBoxContainer = line.content
+	var key := JSON.stringify([data.get("costs", []), data.get("costOptions", []), data.get("cost", ""), data.get("costsKnown", true), data.get("costUnknownLabel", ""), visual_style.presentation_key(), visual_context.presentation_key()])
+	if key == _cost_configuration_key: return line
+	_cost_configuration_key = key
 	_clear_items(zone)
 	var options: Array = data.get("costOptions", [])
 	if options.size() > 1:
@@ -172,18 +172,7 @@ func _cost_zone(data: Dictionary) -> Control:
 
 func _cost_chip(cost: Dictionary) -> Control:
 	var appearance: Dictionary = visual_context.resource_style(str(cost.get("resourceId", "")))
-	if visual_style.printed_face:
-		return CostSymbol.create(cost, appearance, visual_context, visual_style)
-	var color := Color.from_string(str(appearance.get("cost_color", "")), visual_context.styles.color("resource.unknown"))
-	var chip = (load("res://scenes/ui/components/card_cost_chip.tscn") as PackedScene).instantiate()
-	var style: StyleBoxFlat = chip.get_theme_stylebox("panel").duplicate()
-	style.bg_color = color.darkened(.58); style.border_color = color.lightened(.18)
-	chip.add_theme_stylebox_override("panel", style)
-	var label: Label = chip.get_node("Label")
-	label.text = "%s %s" % [cost.get("symbol", "•"), visual_context.translator.number(float(cost.get("amount", 0)))]
-	label.add_theme_color_override("font_color", Color.WHITE)
-	chip.tooltip_text = "%s: %s" % [str(cost.get("name", cost.get("resourceId", ""))), visual_context.translator.number(float(cost.get("amount", 0)))]
-	return chip
+	return CostSymbol.create(cost, appearance, visual_context, visual_style)
 
 func _change_badges(items) -> Control:
 	var row = get_node("%Changes")
@@ -195,7 +184,7 @@ func _change_badges(items) -> Control:
 		var kind := str(item.get("kind", "modified"))
 		var color: Color = {"upgrade": visual_context.styles.color("change.upgrade"), "buff": visual_context.styles.color("change.buff"), "debuff": visual_context.styles.color("change.debuff")}.get(kind, visual_context.styles.color("change.modified"))
 		var badge = (load("res://scenes/ui/components/card_change_badge.tscn") as PackedScene).instantiate()
-		if visual_style.printed_face: badge.set_meta("contrast_preserve_colors", true)
+		badge.set_meta("contrast_preserve_colors", true)
 		var style: StyleBoxFlat = badge.get_theme_stylebox("panel").duplicate()
 		style.bg_color = color.darkened(.72); style.border_color = color
 		badge.add_theme_stylebox_override("panel", style)
@@ -222,7 +211,7 @@ func _cost_accessible_text(data: Dictionary) -> String:
 	return visual_context.translator.text("Cost: %s") % " + ".join(parts)
 
 func _ready() -> void:
-	if Engine.is_editor_hint() and model.is_empty():
+	if model.is_empty() and (Engine.is_editor_hint() or get_parent() == get_tree().root):
 		if visual_context == null:
 			visual_context = preload("res://scripts/ui/visual_context.gd").new()
 		configure(preview_data)

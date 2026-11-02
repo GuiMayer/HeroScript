@@ -7,7 +7,7 @@ func check(ok: bool, label: String) -> void:
 func _run() -> void:
 	var context = load("res://scripts/ui/visual_context.gd").new(null, {}, load("res://data/themes/ivory_run.tres"))
 	context.set_scenery_profile(load("res://data/themes/ivory_scenery.tres"))
-	check(context.profile.printed_surfaces and context.card_style.printed_face, "run reuses the approved printed card anatomy")
+	check(context.profile.printed_surfaces and context.card_style == load("res://data/themes/ivory_run_card_style.tres"), "run reuses the approved printed card anatomy")
 	check(context.styles.color("surface.canvas") == Color.WHITE and context.scenery_profile.ambient_style == "paper", "white canvas preserves the independent paper scenery style")
 	var actors := ["spire_adept", "spire_wisp", "spire_sentinel", "unknown-mod-actor"]
 	for id in actors:

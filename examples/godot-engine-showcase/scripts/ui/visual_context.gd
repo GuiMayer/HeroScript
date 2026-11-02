@@ -8,7 +8,7 @@ class English extends RefCounted:
 	func content_name(id: String, fallback := "") -> String: return fallback if not fallback.is_empty() else id.replace("_", " ").capitalize()
 	func number(value: float) -> String: return str(roundi(value)) if is_equal_approx(value, roundi(value)) else String.num(value, 3)
 var translator = English.new()
-var profile: Resource = preload("res://data/themes/preserved.tres")
+var profile: Resource = preload("res://data/themes/ivory_run.tres")
 var scenery_profile: Resource = preload("res://scripts/ui/styles/scenery_visual_profile.gd").new()
 const StyleFactory = preload("res://scripts/ui/styles/view_style_factory.gd")
 var styles: StyleFactory = StyleFactory.new()
@@ -50,7 +50,7 @@ func presentation_key() -> String:
 var text_scale: float:
 	get: return float(_options.get("text_scale", 1.0))
 var card_style: CardVisualStyle:
-	get: return profile.card_style if profile.card_style else preload("res://data/default_card_visual_style.tres")
+	get: return profile.card_style if profile.card_style else preload("res://data/themes/ivory_run_card_style.tres")
 var high_contrast: bool:
 	get: return bool(_options.get("high_contrast", false))
 var reduced_motion: bool:

@@ -76,7 +76,7 @@ func _run() -> void:
 	check(session.busy and session.run.sequence == 1, "pending refresh does not expose partial state or allow another command")
 	fixture.release.emit(); await settle()
 	check(completions == [true] and published.size() == 2 and published[1].contains("10"), "new authoritative value is published once after inspection")
-	check(hand.card_for("card") == card and card.find_child("Rules", true, false) == rules and card.find_child("CardName", true, false) == name_label and card.find_child("CostSymbol", true, false) == cost, "effect, title and cost nodes survive a changed value")
+	check(cost != null and hand.card_for("card") == card and card.find_child("Rules", true, false) == rules and card.find_child("CardName", true, false) == name_label and card.find_child("CostSymbol", true, false) == cost, "effect, title and cost nodes survive a changed value")
 	check(published.all(func(text): return not text.contains("GENERIC")), "no generic fallback was observable between revisions")
 	var copies: Array = session.card_evaluations; copies.clear()
 	check(session.card_evaluations.size() == 1, "inspection snapshot is defensively copied")

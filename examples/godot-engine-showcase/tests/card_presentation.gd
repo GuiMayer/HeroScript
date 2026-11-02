@@ -63,7 +63,7 @@ func _run() -> void:
 	check(contextual.effectRows[0].segments[1].value == 12 and contextual.effectRows[0].segments[1].baseValue == 8, "combat source value compares with composed base, not original")
 	facts.effects[0].parameters[0].values.source = null
 	check(passive.project(facts).effectRows[0].segments[1].text == i18n.text("Calculated — inspect"), "unknown source is not invented from flat definitions")
-	var style = load("res://data/default_card_visual_style.tres")
+	var style = load("res://data/themes/ivory_run_card_style.tres")
 	var calculation_lines: Array[String] = load("res://scripts/presentation/card_calculation_presenter.gd").new(i18n).describe(facts, true)
 	check("\n".join(calculation_lines).contains("base 8") and not "\n".join(calculation_lines).contains("999") and not "\n".join(calculation_lines).contains("Composed base"), "calculation tooltip formats only useful published values without implementation layers")
 	var calculation_tooltip = load("res://scripts/ui/card_details_panel.gd").new()

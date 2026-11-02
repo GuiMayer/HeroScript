@@ -110,7 +110,7 @@ func _run() -> void:
 			var snapshot := JSON.stringify([session.run, session.combat, session.legal_actions])
 			var reads: int = session._gateway.reads
 			var generation := AppTheme.generation
-			check(AppTheme.profile == original and card.visual_style.printed_face, "combat uses the independent ivory run profile and printed cards")
+			check(AppTheme.profile == original and card.visual_style == card.visual_context.card_style, "combat uses the independent ivory run profile and printed cards")
 			router.toggle_pause()
 			await settle()
 			check(AppTheme.profile == original and AppTheme.generation == generation and card.get_theme_stylebox("normal") == card_theme and card.configuration_count == card_count and session._gateway.reads == reads, "pause styling cannot recolor/rebuild gameplay or trigger engine reads")

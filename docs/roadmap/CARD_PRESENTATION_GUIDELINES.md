@@ -96,7 +96,7 @@ Hover e seleção podem alterar o fundo. Foco usa uma borda mais grossa da mesma
 | Arquivo da demo | Responsabilidade |
 | --- | --- |
 | `scripts/ui/card_visual_style.gd` | Variáveis exportadas de raridade, valores, dimensões e tipografia. Não contém regras de jogo. |
-| `data/default_card_visual_style.tres` | Instância compartilhada da política visual padrão. |
+| `data/themes/ivory_run_card_style.tres` | Instância compartilhada da política visual padrão. |
 | `scripts/ui/card_view.gd` | Anatomia da face, estados, custos e tooltip. Recebe um modelo de apresentação. |
 | `scripts/ui/card_effect_text.gd` | Texto com segmentos numéricos tipados e comparação de cores. Não executa BBCode vindo de conteúdo. |
 | `scripts/ui/card_details_panel.gd` | Dois modos explícitos: resumo passivo para tooltip e inspeção completa, persistente e rolável. Compartilham cores e texto numérico, não os controles de interação. |

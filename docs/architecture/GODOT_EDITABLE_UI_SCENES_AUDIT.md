@@ -64,3 +64,11 @@ Não migrar algoritmos para cenas por obrigação: fan/hit testing/drag, câmera
 - Nenhuma definição JSON de gameplay, endpoint, comando ou estado da engine foi alterado por esta reconstrução. Os testes são de apresentação com modelos injetados; não equivalem a uma certificação end-to-end com API real.
 
 A validação adicional de um export só de HEAD encontrou uma inconsistência anterior a este trabalho: `card_presentation.gd` referencia `card_glossary_presenter.gd` e `effect_duration_presenter.gd`, ainda não versionados, e pressupõe um tooltip alterado apenas no workspace. As referências e o teste já existiam no commit anterior à reconstrução. A suíte de apresentação passa com esses arquivos locais presentes; esse conjunto deve ser revisado/versionado em etapa própria, sem incluir silenciosamente as alterações pendentes no commit da migração visual.
+
+## Remoção do visual antigo das cartas
+
+O renderizador alternativo de face escura/arredondada e o recurso `default_card_visual_style.tres` foram removidos. Não existe mais a opção `printed_face`. CardVisualStyle nasce com os valores atuais; contextos sem política de carta usam `ivory_run_card_style.tres`. Cena isolada, F6 e bancada usam o perfil atual `ivory_run.tres`. O laboratório mantém a variação de dimensões de inspeção, usando a mesma anatomia, custos e renderizador. Perfis de teste genéricos continuam disponíveis para validar troca de contexto, sem reintroduzir uma face antiga de carta.
+
+`tests/card_style_canonical.gd` cobre a cena isolada, os custos, a anatomia única, o fallback e a remoção do recurso antigo. Atualizações de efeitos preservam os símbolos de custo quando seu conteúdo e contexto não mudam.
+
+Validação da remoção: 17 suítes focadas, 845 verificações aprovadas no workspace isolado. Cobrem apresentação/títulos, cena standalone, custos, estabilidade, mão/compra, animações, menus, contexto, componentes e laboratório (incluindo resolução ultrawide e idiomas). Captura renderizada da bancada confirmou o perfil atual. Gameplay e contratos REST não foram alterados.

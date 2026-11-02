@@ -13,20 +13,19 @@ extends Resource
 @export var lower_value_color := Color("#ff7373")
 @export var higher_value_color := Color("#72b7ff")
 @export_group("Layout")
-@export var card_size := Vector2(248, 328)
+@export var card_size := Vector2(248, 360)
 @export var text_scale_height_margin := 120.0
-@export var rules_font_size := 14
-@export var art_height := 72.0
+@export var rules_font_size := 16
+@export var art_height := 64.0
 @export var title_line_height := 24.0
 @export var title_font_size := 17
 @export var title_min_font_size := 12
 @export var title_min_two_line_font_size := 8
 @export_group("Printed face")
-@export var printed_face := false
-@export_enum("frame", "registration") var keyline_style := "frame"
-@export var face_radius := 12
-@export var effect_surface := Color.TRANSPARENT
-@export var effect_ink := Color("#f5ecd8")
+@export_enum("frame", "registration") var keyline_style := "registration"
+@export var face_radius := 2
+@export var effect_surface := Color("#202124")
+@export var effect_ink := Color.WHITE
 @export_group("Printed cost symbols")
 @export var cost_symbol_size := Vector2(24, 24)
 @export var cost_symbol_font_size := 16

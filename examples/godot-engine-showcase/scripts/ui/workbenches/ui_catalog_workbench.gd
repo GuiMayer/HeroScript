@@ -2,7 +2,7 @@
 class_name UICatalogWorkbench
 extends Control
 ## The editor owns all nodes and sample values. This adapter only populates them.
-@export var visual_profile: Resource = preload("res://data/themes/preserved.tres"):
+@export var visual_profile: Resource = preload("res://data/themes/ivory_run.tres"):
     set(value):
         visual_profile = value
         _queue_preview()
@@ -25,6 +25,7 @@ func _populate_workbench() -> void:
     var context = preload("res://scripts/ui/visual_context.gd").new(null,
         {"text_scale": preview_text_scale, "high_contrast": preview_high_contrast, "reduced_motion": true}, visual_profile)
     theme = context.theme
+    get_node("Background").color = context.styles.NIGHT
     for key in ["HeroActorPanel", "BossActorPanel"]:
         var actor = get_node("%" + key)
         actor.visual_context = context

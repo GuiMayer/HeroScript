@@ -17,7 +17,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.0862745, 0.0862745, 0.101961, 1)
+color = Color(1, 1, 1, 1)
 mouse_filter = 2
 [node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
