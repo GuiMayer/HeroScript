@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 
 const KINDS := ["cards", "entities", "resources", "status-effects", "relics", "modifiers", "modes", "combat-rules", "runs"]
@@ -8,45 +9,32 @@ var list: ItemList
 var detail: TextEdit
 var current_items: Array = []
 
+var _bound := false
+func _ready() -> void:
+	_bind_nodes()
+	if Engine.is_editor_hint():
+		mount(ContextType.new()); theme = visual_context.theme
+func _bind_nodes() -> void:
+	detail = get_node("Columns/Detail")
+	list = get_node("Columns/List")
 func setup(owner) -> void:
 	router = owner
 	mount(owner.visual_context)
-	add_theme_constant_override("separation", 16)
-	var header := HBoxContainer.new()
-	var titles := VBoxContainer.new()
-	titles.add_child(AppTheme.title(I18n.text("ENGINE CODEX"), 34))
-	titles.add_child(AppTheme.muted(I18n.text("Browse the published content used by the game."), 15, 280))
-	header.add_child(titles)
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(push)
-	header.add_child(_button(I18n.text("MENU"), router.back_to_menu, 120))
-	add_child(header)
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
-	for kind in KINDS:
-		var names := [I18n.text("Cards"), I18n.text("Entities"), I18n.text("Resources"),
-			I18n.text("Statuses"), I18n.text("Relics"), I18n.text("Modifiers"),
-			I18n.text("Modes"), I18n.text("Rules"), I18n.text("Runs")]
-		tabs.add_child(_button(names[KINDS.find(kind)].to_upper(), func(): _load_kind(kind)))
-	var tabs_scroll := ScrollContainer.new()
-	tabs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	tabs_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	tabs_scroll.custom_minimum_size.y = 58
-	tabs_scroll.add_child(tabs)
-	add_child(tabs_scroll)
-	var columns := HSplitContainer.new()
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(columns)
-	list = ItemList.new()
-	list.custom_minimum_size.x = 310
-	list.item_selected.connect(_select_item)
-	columns.add_child(list)
-	detail = TextEdit.new()
-	detail.editable = false
-	detail.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	columns.add_child(detail)
+	_bind_nodes(); theme = visual_context.theme
+	get_node("Header/Menu").text = I18n.text("MENU")
+	get_node("Header/Titles/Title").text = I18n.text("ENGINE CODEX")
+	get_node("Header/Titles/Description").text = I18n.text("Browse the published content used by the game.")
+	if not _bound:
+		_bound = true
+		get_node("Header/Menu").pressed.connect(func(): GameAudio.ui(); router.back_to_menu())
+		list.item_selected.connect(_select_item)
+	var tabs = get_node("TabsScroll/Tabs")
+	if tabs.get_child_count() == 0:
+		var names := ["Cards", "Entities", "Resources", "Statuses", "Relics", "Modifiers", "Modes", "Rules", "Runs"]
+		for kind in KINDS:
+			var button: Button = preload("res://scenes/ui/components/codex_tab.tscn").instantiate()
+			button.text = I18n.text(names[KINDS.find(kind)]).to_upper()
+			button.pressed.connect(func(): GameAudio.ui(); _load_kind(kind)); tabs.add_child(button)
 	call_deferred("_load_kind", "cards")
 
 func _load_kind(kind: String) -> void:
@@ -71,12 +59,6 @@ func _select_item(index: int) -> void:
 	if index < 0 or index >= current_items.size():
 		return
 	detail.text = JSON.stringify(current_items[index], "  ")
-
-func _button(text: String, action: Callable, width := 0) -> Button:
-	var value := AppTheme.button(text, width)
-	value.custom_minimum_size.y = 42
-	value.pressed.connect(func(): GameAudio.ui(); action.call())
-	return value
 
 
 func dispose() -> void:

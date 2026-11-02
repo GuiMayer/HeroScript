@@ -108,4 +108,10 @@ Replay usa shell e controles nativos; visualização histórica, hosts de feedba
 
 Testes aprovados: edição/reconciliação 6, lifecycle 11, carregamento progressivo 13, transporte 5, apresentação histórica 6 e arquitetura 28. Fixtures de eventos passaram em EN/PT, fallback hierárquico e uso do mesmo inspector. As novas regressões verificam sinais únicos, identidade, capacidades e modelos imutáveis, sem tráfego no preview.
 
-Etapas 18–20: pendentes.
+## Etapa 18 — Sandbox e codex
+
+Sandbox e codex possuem shells completos. Modos e abas variáveis instanciam templates; seeds, editor JSON, listas e detalhes são nodes editáveis. Nenhuma nova ferramenta ou regra foi criada. Launch e leituras mantêm os gateways e guards existentes; preview não executa setup de aplicação.
+
+Testes aprovados: templates/interação 8, menus 90, lifecycle 7 e arquitetura 28. Regressões verificam modos sem duplicação, JSON imutável, constraints, rotas de conteúdo e ausência de tráfego em seleção local.
+
+Etapas 19–20: pendentes.

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+[node name="SandboxMode" type="Button"]
+custom_minimum_size = Vector2(0,82)
+autowrap_mode = 3
+alignment = 0
+toggle_mode = true

@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 
 var router
@@ -11,82 +12,59 @@ const SYNERGY_PRESETS := "res://data/labs/tag_synergy_scenarios.json"
 var scenario_presets: Array = []
 var scenario_picker: OptionButton
 
+var _bound := false
+func _ready() -> void:
+	_bind_nodes()
+	if Engine.is_editor_hint():
+		mount(ContextType.new()); theme = visual_context.theme
+func _bind_nodes() -> void:
+	editor = get_node("Columns/ScenarioPanel/Scenario/Editor")
+	launch_button = get_node("Columns/ScenarioPanel/Scenario/LaunchControls/LaunchButton")
+	scenario_picker = get_node("Columns/ScenarioPanel/Scenario/ScenarioPicker")
+	seed_input = get_node("Columns/ScenarioPanel/Scenario/LaunchControls/SeedInput")
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	mount(owner.visual_context)
 	presentation = data
-	add_theme_constant_override("separation", 16)
-	var header := HBoxContainer.new()
-	var titles := VBoxContainer.new()
-	titles.add_child(AppTheme.title(I18n.text("RULES LAB"), 34))
-	titles.add_child(AppTheme.muted(I18n.text("Keep your cards and scenario, change the game mode and explore a different play style."), 15, 360))
-	header.add_child(titles)
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(push)
-	header.add_child(_button(I18n.text("MENU"), router.back_to_menu, 120))
-	add_child(header)
-	var columns := HBoxContainer.new()
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	columns.add_theme_constant_override("separation", 18)
-	add_child(columns)
-	var modes := VBoxContainer.new()
-	modes.custom_minimum_size = Vector2(390, 0)
-	modes.add_theme_constant_override("separation", 10)
-	modes.add_child(AppTheme.title(I18n.text("1. Choose the rules"), 22, AppTheme.GOLD))
+	_bind_nodes(); theme = visual_context.theme
+	get_node("Header/Menu").text = I18n.text("MENU")
+	get_node("Header/Titles/Title").text = I18n.text("RULES LAB")
+	get_node("Header/Titles/Description").text = I18n.text("Keep your cards and scenario, change the game mode and explore a different play style.")
+	get_node("Columns/ScenarioPanel/Scenario/LaunchControls/SeedLabel").text = I18n.text("Seed")
+	get_node("Columns/ScenarioPanel/Scenario/LaunchControls/LaunchButton").text = I18n.text("START SCENARIO")
+	get_node("Columns/ScenarioPanel/Scenario/Heading").text = I18n.text("2. Edit the JSON scenario")
+	get_node("Columns/ModesPanel/Modes/Heading").text = I18n.text("1. Choose the rules")
+	if not _bound:
+		_bound = true
+		get_node("Header/Menu").pressed.connect(func(): GameAudio.ui(); router.back_to_menu())
+		scenario_picker.item_selected.connect(_select_scenario)
+		launch_button.pressed.connect(func(): GameAudio.ui(); _launch())
+	var modes = get_node("Columns/ModesPanel/Modes")
 	var available_modes: Array = presentation.get("sandbox_modes", []).duplicate(true)
 	if GameSession.selected_setting_id == "ascendant":
 		available_modes.append({"id": "w1_synergy_sandbox", "name": I18n.text("World-one tag synergies"), "description": I18n.text("Ascendant rules with the expansion test catalog.")})
+	var live: Array[String] = []
 	for mode in available_modes:
-		var choice := Button.new()
-		choice.custom_minimum_size = Vector2(0, 82)
+		var id := str(mode.id); live.append(id)
+		var choice: Button = mode_buttons.get(id)
+		if choice == null:
+			choice = preload("res://scenes/ui/components/sandbox_mode.tscn").instantiate()
+			modes.add_child(choice); mode_buttons[id] = choice
+			choice.pressed.connect(func(): _select_mode(id))
 		choice.text = "%s\n%s" % [mode.name, mode.description]
-		choice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		choice.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		choice.toggle_mode = true
-		choice.button_pressed = str(mode.id) == selected_mode
-		choice.pressed.connect(func(): _select_mode(str(mode.id)))
-		mode_buttons[str(mode.id)] = choice
-		modes.add_child(choice)
-	columns.add_child(AppTheme.panel(modes))
-	var scenario := VBoxContainer.new()
-	scenario.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scenario.add_theme_constant_override("separation", 10)
-	scenario.add_child(AppTheme.title(I18n.text("2. Edit the JSON scenario"), 22, AppTheme.TEAL))
+		choice.button_pressed = id == selected_mode
+	for id in mode_buttons.keys():
+		if id not in live:
+			var removed: Button = mode_buttons[id]; modes.remove_child(removed); removed.queue_free(); mode_buttons.erase(id)
+	scenario_presets.clear(); scenario_picker.clear(); scenario_picker.hide()
 	if GameSession.selected_setting_id == "ascendant":
 		var catalog = JSON.parse_string(FileAccess.get_file_as_string(SYNERGY_PRESETS))
 		if catalog is Dictionary and catalog.get("presets") is Array:
 			scenario_presets = catalog.presets.duplicate(true)
-			scenario_picker = OptionButton.new()
-			scenario_picker.add_item(I18n.text("Custom scenario"))
-			for preset in scenario_presets:
-				scenario_picker.add_item(I18n.text(str(preset.name)))
-			scenario_picker.item_selected.connect(_select_scenario)
-			scenario.add_child(scenario_picker)
-	editor = TextEdit.new()
-	editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			scenario_picker.show(); scenario_picker.add_item(I18n.text("Custom scenario"))
+			for preset in scenario_presets: scenario_picker.add_item(I18n.text(str(preset.name)))
 	editor.text = JSON.stringify(presentation.get("default_scenario", {}), "  ")
-	editor.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	scenario.add_child(editor)
-	var launch_row := HBoxContainer.new()
-	launch_row.add_child(AppTheme.title(I18n.text("Seed"), 15))
-	seed_input = SpinBox.new()
-	seed_input.min_value = 1
-	seed_input.max_value = 99999999
-	seed_input.value = 424242
-	seed_input.custom_minimum_size.x = 170
-	launch_row.add_child(seed_input)
-	var stretch := Control.new()
-	stretch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	launch_row.add_child(stretch)
-	launch_button = _button(I18n.text("START SCENARIO"), _launch, 210)
-	if visual_context.profile.printed_surfaces: launch_button.theme_type_variation = "PrimaryAction"
-	launch_row.add_child(launch_button)
-	scenario.add_child(launch_row)
-	var scenario_panel := AppTheme.panel(scenario)
-	scenario_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	columns.add_child(scenario_panel)
+	launch_button.theme_type_variation = "PrimaryAction" if visual_context.profile.printed_surfaces else "SecondaryAction"
 
 func _select_mode(mode_id: String) -> void:
 	selected_mode = mode_id
@@ -114,8 +92,3 @@ func _launch() -> void:
 		router.open_game()
 	else:
 		launch_button.disabled = false
-
-func _button(text: String, action: Callable, width := 0) -> Button:
-	var value := AppTheme.button(text, width)
-	value.pressed.connect(func(): GameAudio.ui(); action.call())
-	return value

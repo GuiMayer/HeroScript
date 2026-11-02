@@ -1,0 +1,65 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/codex_screen.gd" id="1_03ym5"]
+
+[node name="CodexScreen" type="VBoxContainer" unique_id=601194743]
+theme_override_constants/separation = 16
+script = ExtResource("1_03ym5")
+
+[node name="Header" type="HBoxContainer" parent="." unique_id=1402725377]
+layout_mode = 2
+
+[node name="Titles" type="VBoxContainer" parent="Header" unique_id=48982771]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Header/Titles" unique_id=287218037]
+layout_mode = 2
+theme_type_variation = &"ScreenTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 34
+text = "ENGINE CODEX"
+metadata/font_role = "screen_title"
+metadata/text_role = "text.primary"
+
+[node name="Description" type="Label" parent="Header/Titles" unique_id=773865682]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 15
+text = "Browse the published content used by the game."
+autowrap_mode = 3
+metadata/font_role = "caption"
+
+[node name="Spacer" type="Control" parent="Header" unique_id=1546070225]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Menu" type="Button" parent="Header" unique_id=1303065078]
+custom_minimum_size = Vector2(120, 42)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "MENU"
+
+[node name="TabsScroll" type="ScrollContainer" parent="." unique_id=1011300356]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+vertical_scroll_mode = 0
+
+[node name="Tabs" type="HBoxContainer" parent="TabsScroll" unique_id=828140455]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Columns" type="HSplitContainer" parent="." unique_id=2012974183]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="ItemList" parent="Columns" unique_id=1499109050]
+custom_minimum_size = Vector2(310, 0)
+layout_mode = 2
+
+[node name="Detail" type="TextEdit" parent="Columns" unique_id=1291983211]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+wrap_mode = 1

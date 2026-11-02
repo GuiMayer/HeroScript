@@ -2,6 +2,8 @@ extends RefCounted
 ## One production scene per route. Add entries only when adopting that scene.
 ## Routing, sessions and gameplay remain with the existing application adapters.
 const ROUTES := {
+	"codex": preload("res://scenes/ui/screens/codex.tscn"),
+	"sandbox": preload("res://scenes/ui/screens/sandbox.tscn"),
 	"run_replay": preload("res://scenes/ui/screens/run_replay.tscn"),
 	"timeline": preload("res://scenes/ui/screens/timeline.tscn"),
 	"run_history": preload("res://scenes/ui/screens/run_history.tscn"),

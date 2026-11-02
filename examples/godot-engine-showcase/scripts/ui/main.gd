@@ -372,14 +372,14 @@ func show_run_replay(run_id: String, from_history := false) -> void:
 func show_sandbox() -> void:
 	current_screen = "sandbox"
 	_clear_host()
-	var screen = SandboxScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("sandbox")
 	screen.setup(self, presentation)
 	host.add_child(screen)
 
 func show_codex() -> void:
 	current_screen = "codex"
 	_clear_host()
-	var screen = CodexScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("codex")
 	screen.setup(self)
 	host.add_child(screen)
 
