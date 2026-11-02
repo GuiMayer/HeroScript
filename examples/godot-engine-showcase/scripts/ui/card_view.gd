@@ -42,7 +42,11 @@ func configure(data: Dictionary) -> void:
 	var style_key: String = visual_style.presentation_key() if visual_style and visual_style.has_method("presentation_key") else ""
 	var ctx_key: String = visual_context.presentation_key() if visual_context and visual_context.has_method("presentation_key") else ""
 	var presentation_key: String = JSON.stringify(face_data) + style_key + ctx_key
-	if presentation_key == _configuration_key: return
+	if presentation_key == _configuration_key:
+		# Equivalent visual values may arrive through a new context instance.
+		# Keep the retained artwork subscribed to its current owner even on a cache hit.
+		get_node("%CardArtwork").rebind_context(visual_context)
+		return
 	_configuration_key = presentation_key
 	configuration_count += 1
 	if has_meta("visual_preferences_revision"): remove_meta("visual_preferences_revision")

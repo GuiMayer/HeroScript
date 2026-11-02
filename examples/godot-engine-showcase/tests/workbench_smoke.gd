@@ -24,8 +24,12 @@ func _run() -> void:
     check(not card.animate_entry and card.hand_managed, "Workbench never starts card entry animations")
     var title = card.get_node("%CardName")
     var target = hero.target_button
+    var previous_context = card.visual_context
+    var configurations: int = card.configuration_count
     instance._populate_workbench()
     check(card.get_node("%CardName") == title and hero.target_button == target, "Refreshing preview preserves authored controls")
+    check(card.get_node("%CardArtwork").visual_context == card.visual_context and not previous_context.changed.has_connections(), "Equivalent preview refresh rebinds artwork without stale subscriptions")
+    check(card.configuration_count == configurations, "Equivalent context replacement preserves the card rendering cache")
     check(card.visual_context == hero.visual_context and card.visual_context.reduced_motion, "Components share an isolated reduced-motion context")
     instance.free()
     quit(1 if failures else 0)
