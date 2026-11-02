@@ -12,4 +12,10 @@ Versionadas dependências visuais já presentes e necessárias à apresentação
 
 Captura aprovada: 20 imagens e zero falhas. Métricas versionadas em docs/architecture/baselines/godot-scene-centralization/metrics.before.json.
 
-Etapas 1–20: pendentes.
+Baseline de componentes também validada no export limpo do commit: bancada 12, nós editáveis 14, apresentação 86 e estilo canônico 8 aprovados. Incluídas as traduções pré-existentes requeridas pelos presenters versionados.
+
+## Etapa 1 — Contrato, registro e catálogo
+
+Contrato em docs/architecture/GODOT_SCENE_OWNERSHIP_CONTRACT.md. Registro inicial adota a rota loadout_lab existente; main continua sendo o router. Novo ScreenCatalogWorkbench instancia componentes reais e o mesmo laboratório offline, sem declarar sua estrutura interna já migrada. Testes: registro/preview 7, previews 15, contexto 14 e shell do loadout 9 aprovados. Preferências e snapshot da run preservados; zero HTTP no preview.
+
+Etapas 2–20: pendentes.

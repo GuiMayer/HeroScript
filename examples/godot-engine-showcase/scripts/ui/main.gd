@@ -337,7 +337,7 @@ func show_timeline() -> void:
 func show_loadout_lab() -> void:
 	current_screen = "loadout_lab"
 	_clear_host()
-	var screen = preload("res://scenes/unified_loadout_lab.tscn").instantiate()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("loadout_lab")
 	screen.back_requested.connect(_show_main_menu)
 	host.add_child(screen)
 
