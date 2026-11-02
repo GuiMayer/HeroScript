@@ -5,7 +5,6 @@ const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
 const ActivityScreen = preload("res://scripts/ui/activity_screen.gd")
 const DialogueScreen = preload("res://scripts/ui/dialogue_screen.gd")
 const MapScreen = preload("res://scripts/ui/map_screen.gd")
-const CombatScreen = preload("res://scripts/ui/combat_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
 const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
@@ -320,7 +319,7 @@ func show_combat() -> void:
 			return
 	current_screen = "combat"
 	_clear_host()
-	var screen = CombatScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("combat")
 	screen.setup(self, presentation)
 	host.add_child(screen)
 

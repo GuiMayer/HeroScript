@@ -1,0 +1,24 @@
+[gd_scene format=3]
+[sub_resource type="StyleBoxFlat" id="Panel"]
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+bg_color = Color(1,1,1,1)
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_left = 10
+corner_radius_bottom_right = 10
+[node name="CandidatePanel" type="PanelContainer"]
+visible = false
+theme_override_styles/panel = SubResource("Panel")
+[node name="CandidateChoicesSlot" type="ScrollContainer" parent="."]
+layout_mode = 2
+horizontal_scroll_mode = 0
+[node name="Choices" type="VBoxContainer" parent="CandidateChoicesSlot"]
+layout_mode = 2
+size_flags_horizontal = 3

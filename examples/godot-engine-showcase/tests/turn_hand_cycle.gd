@@ -8,7 +8,7 @@ func settle() -> void:
 	for _i in 20: await process_frame
 func run_checks() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").new()
-	var hand = preload("res://scripts/ui/card_hand_view.gd").new(context)
+	var hand = preload("res://scripts/ui/card_hand_view.gd").create(context)
 	hand.size = Vector2(1100, 600); root.add_child(hand)
 	var old := {"cardInstanceId": "old", "name": "Outgoing", "summary": "Base effect"}
 	var keep := {"cardInstanceId": "keep", "name": "Retained", "summary": "Base effect"}

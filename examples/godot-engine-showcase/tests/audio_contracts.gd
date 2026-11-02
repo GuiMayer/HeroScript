@@ -47,7 +47,7 @@ func _run() -> void:
 	var zone := {"zoneId": "hand", "ownerId": "hero", "scopeId": "combat", "contentsVisible": true, "orderVisible": true, "count": 2, "cards": [{"cardInstanceId": "a", "definitionId": "basic_attack"}, {"cardInstanceId": "b", "definitionId": "defend"}]}
 	var card_presenter = load("res://scripts/presentation/combat_presenter.gd").new({"runId": "r", "sequence": 1}, {}, [], context.translator, {}, {"zones": [zone]})
 	var model: Dictionary = load("res://scripts/presentation/card_collection_presenter.gd").build(zone, card_presenter, context.translator)
-	var hand = load("res://scripts/ui/card_hand_view.gd").new(context)
+	var hand = load("res://scripts/ui/card_hand_view.gd").create(context)
 	root.add_child(hand); hand.size = Vector2(1000, 500); hand.sync_models(model.cards, "hover-test")
 	for i in 8: await process_frame
 	var hovered: Array = []

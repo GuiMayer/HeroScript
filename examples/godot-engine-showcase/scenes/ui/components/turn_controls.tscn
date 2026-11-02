@@ -1,0 +1,430 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/components/turn_controls_view.gd" id="1_laa7j"]
+[ext_resource type="Texture2D" path="res://assets/ui-icons/advance.svg" id="2_ugs4n"]
+[ext_resource type="Script" path="res://scripts/ui/components/combat_keyline.gd" id="3_d8cva"]
+[ext_resource type="Texture2D" path="res://assets/ui-icons/cancel.svg" id="4_dmcc5"]
+[ext_resource type="Texture2D" path="res://assets/ui-icons/skip.svg" id="5_sg1js"]
+[ext_resource type="Texture2D" path="res://assets/ui-icons/arrow.svg" id="6_kivos"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3c84j"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0bad2"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4s02n"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9254902, 0.93333334, 0.9411765, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.hover"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qnj4j"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9529412, 0.95686275, 0.9607843, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.disabled"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hdcb0"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l3ytd"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0g30i"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0uwav"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9254902, 0.93333334, 0.9411765, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.hover"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_20xgj"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9529412, 0.95686275, 0.9607843, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.disabled"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8imt4"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aakju"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uro2n"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_idbq6"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9254902, 0.93333334, 0.9411765, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.hover"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b1u4l"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9529412, 0.95686275, 0.9607843, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.disabled"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_n8eqy"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rkp38"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qu83y"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_drnr1"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9254902, 0.93333334, 0.9411765, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.hover"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bt6s"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9529412, 0.95686275, 0.9607843, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.disabled"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7woka"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = ""
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oemfj"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "accent.primary"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jmtop"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "accent.primary"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_noxpq"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.59607846, 0.19215687, 0.11372549, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "accent.warm"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rsp1v"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9529412, 0.95686275, 0.9607843, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "surface.disabled"
+metadata/border_role = ""
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jhxu2"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+border_color = Color(1, 1, 1, 0)
+metadata/background_role = "accent.primary"
+metadata/border_role = ""
+
+[node name="TurnControls" type="HBoxContainer"]
+theme_override_constants/separation = 8
+script = ExtResource("1_laa7j")
+
+[node name="ContextActionSlot" type="CenterContainer" parent="."]
+custom_minimum_size = Vector2(48, 44)
+layout_mode = 2
+
+[node name="NextAnimation" type="Button" parent="ContextActionSlot"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+tooltip_text = "NEXT ANIMATION  [Space]"
+accessibility_name = "NEXT ANIMATION  [Space]"
+theme_type_variation = &"SecondaryAction"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_normal_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_disabled_color = Color(0.3764706, 0.39215687, 0.42352942, 1)
+theme_override_constants/icon_max_width = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_3c84j")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_0bad2")
+theme_override_styles/hover = SubResource("StyleBoxFlat_4s02n")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_qnj4j")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hdcb0")
+icon = ExtResource("2_ugs4n")
+clip_text = true
+expand_icon = true
+
+[node name="CircuitKeyline" type="Control" parent="ContextActionSlot/NextAnimation"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3_d8cva")
+
+[node name="SelectionActions" type="HBoxContainer" parent="ContextActionSlot"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CancelSelection" type="Button" parent="ContextActionSlot/SelectionActions"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+tooltip_text = "CANCEL SELECTION"
+accessibility_name = "CANCEL SELECTION"
+theme_type_variation = &"SecondaryAction"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_normal_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_disabled_color = Color(0.3764706, 0.39215687, 0.42352942, 1)
+theme_override_constants/icon_max_width = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_l3ytd")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_0g30i")
+theme_override_styles/hover = SubResource("StyleBoxFlat_0uwav")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_20xgj")
+theme_override_styles/focus = SubResource("StyleBoxFlat_8imt4")
+icon = ExtResource("4_dmcc5")
+clip_text = true
+expand_icon = true
+metadata/selection_only = true
+
+[node name="CircuitKeyline" type="Control" parent="ContextActionSlot/SelectionActions/CancelSelection"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3_d8cva")
+
+[node name="SkipPresentationButton" type="Button" parent="."]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+tooltip_text = "Skip presentation"
+accessibility_name = "Skip presentation"
+theme_type_variation = &"SecondaryAction"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_normal_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_disabled_color = Color(0.3764706, 0.39215687, 0.42352942, 1)
+theme_override_constants/icon_max_width = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_aakju")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_uro2n")
+theme_override_styles/hover = SubResource("StyleBoxFlat_idbq6")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_b1u4l")
+theme_override_styles/focus = SubResource("StyleBoxFlat_n8eqy")
+icon = ExtResource("5_sg1js")
+expand_icon = true
+
+[node name="CircuitKeyline" type="Control" parent="SkipPresentationButton"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3_d8cva")
+
+[node name="SystemActionSlot" type="CenterContainer" parent="."]
+custom_minimum_size = Vector2(48, 44)
+layout_mode = 2
+
+[node name="Pass" type="Button" parent="SystemActionSlot"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+accessibility_name = "PASS"
+theme_type_variation = &"SecondaryAction"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/font_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_normal_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_focus_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_pressed_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_hover_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_colors/icon_disabled_color = Color(0.3764706, 0.39215687, 0.42352942, 1)
+theme_override_constants/icon_max_width = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_rkp38")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_qu83y")
+theme_override_styles/hover = SubResource("StyleBoxFlat_drnr1")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_4bt6s")
+theme_override_styles/focus = SubResource("StyleBoxFlat_7woka")
+icon = ExtResource("6_kivos")
+clip_text = true
+expand_icon = true
+
+[node name="CircuitKeyline" type="Control" parent="SystemActionSlot/Pass"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3_d8cva")
+
+[node name="EndTurnButton" type="Button" parent="."]
+custom_minimum_size = Vector2(195, 62)
+layout_mode = 2
+tooltip_text = "END TURN  [E]"
+accessibility_name = "END TURN  [E]"
+theme_type_variation = &"PrimaryAction"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_disabled_color = Color(0.3764706, 0.39215687, 0.42352942, 1)
+theme_override_constants/icon_max_width = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_oemfj")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jmtop")
+theme_override_styles/hover = SubResource("StyleBoxFlat_noxpq")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_rsp1v")
+theme_override_styles/focus = SubResource("StyleBoxFlat_jhxu2")
+text = "END TURN  [E]"
+icon = ExtResource("6_kivos")
+icon_alignment = 2
+expand_icon = true
+metadata/requires_end = true
+
+[node name="CircuitKeyline" type="Control" parent="EndTurnButton"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3_d8cva")

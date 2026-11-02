@@ -14,7 +14,7 @@ func _run() -> void:
 	check(hand.move_visual_card(str(ids[0]), 2) and hand.order == [ids[1], ids[2], ids[0]], "visual insertion changes displayed identities only")
 	hand.sync_models(models, "scope:one")
 	check(hand.order == [ids[1], ids[2], ids[0]] and JSON.stringify(models) == original, "refresh preserves local order and immutable models")
-	var replacement = preload("res://scripts/ui/card_hand_view.gd").new(lab.visual_context); root.add_child(replacement)
+	var replacement = preload("res://scripts/ui/card_hand_view.gd").create(lab.visual_context); root.add_child(replacement)
 	replacement.sync_models(models, "scope:one")
 	check(replacement.order == hand.order, "remount of the same collection restores UI-session order")
 	replacement.sync_models(models, "scope:other-branch")

@@ -155,7 +155,7 @@ func _build() -> void:
 	status = AppTheme.caption("", 13, 280)
 	status.name = "LabStatus"
 	column.add_child(status)
-	hand = HandView.new(visual_context)
+	hand = HandView.create(visual_context)
 	hand.card_activated.connect(select_card)
 	hand.selection_requested.connect(select_card)
 	hand.inspection_requested.connect(func(id): select_card(id); inspect_selected())

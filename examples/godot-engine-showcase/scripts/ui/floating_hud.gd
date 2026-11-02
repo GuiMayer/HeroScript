@@ -8,7 +8,9 @@ func replace_slot(slot: String, node: Control) -> void:
 	release_slot(slot)
 	_slots[slot] = node
 	if node.get_parent() == null: host.add_child(node)
-	elif node.get_parent() != host: node.reparent(host, false)
+	elif node.get_parent() != host:
+		node.owner = null
+		node.reparent(host, false)
 
 func take_slot(slot: String) -> Control:
 	var node: Control = _slots.get(slot)

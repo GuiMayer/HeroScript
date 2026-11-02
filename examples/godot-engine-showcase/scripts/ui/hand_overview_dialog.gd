@@ -13,7 +13,7 @@ func setup(models: Array, scope: String, selected: String) -> void:
 	theme.set_color("title_color", "Window", visual_context.styles.INK)
 	theme.set_constant("title_height", "Window", 30)
 	min_size = Vector2i(850, 560)
-	hand = load("res://scripts/ui/card_hand_view.gd").new(visual_context)
+	hand = load("res://scripts/ui/card_hand_view.gd").create(visual_context)
 	hand.mode_override = "reading"
 	hand.drag_enabled = false
 	add_child(hand)

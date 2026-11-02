@@ -72,7 +72,7 @@ func _run() -> void:
 	malformed.set_value("gamepad", "end_turn", JOY_BUTTON_A)
 	malformed.set_value("gamepad", "inspect_card", JOY_BUTTON_PADDLE1)
 	malformed.save(prefs.SAVE_PATH); prefs.load_settings()
-	var startup_hand = load("res://scripts/ui/card_hand_view.gd").new(
+	var startup_hand = load("res://scripts/ui/card_hand_view.gd").create(
 		load("res://scripts/ui/visual_context.gd").from_nodes(prefs, root.get_node("I18n")))
 	check(startup_hand.drag_enabled, "legacy saved drag=false cannot disable a newly constructed hand")
 	startup_hand.free()

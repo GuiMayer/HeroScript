@@ -34,7 +34,7 @@ func _run() -> void:
 	shell.queue_free(); await settle()
 	var context = load("res://scripts/ui/visual_context.gd").new(null, {"reduced_motion": false})
 	var orphan_before: int = int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
-	var hand = load("res://scripts/ui/card_hand_view.gd").new(context)
+	var hand = load("res://scripts/ui/card_hand_view.gd").create(context)
 	root.add_child(hand)
 	hand.sync_models([{ "cardInstanceId": "a", "name": "Test", "summary": "Test", "costs": []}], "lifecycle")
 	await settle()

@@ -1,0 +1,56 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/combat_view.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_header.tscn" id="Header"]
+[ext_resource type="PackedScene" path="res://scenes/ui/combat_composition.tscn" id="Composition"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_zone_controls.tscn" id="Piles"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/action_preview.tscn" id="Preview"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_candidates.tscn" id="Candidates"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_button.tscn" id="Button"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat/combat_attributes_drawer.tscn" id="Attributes"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_hand.tscn" id="Hand"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/turn_controls.tscn" id="Turn"]
+[node name="CombatView" type="VBoxContainer"]
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+script = ExtResource("Script")
+[node name="CombatHeader" parent="." instance=ExtResource("Header")]
+layout_mode = 2
+[node name="CombatBody" parent="." instance=ExtResource("Composition")]
+layout_mode = 2
+[node name="CombatBottomHUD" type="VBoxContainer" parent="CombatBody/CombatGameplay"]
+layout_mode = 0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 4
+[node name="HandSection" type="VBoxContainer" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
+layout_mode = 2
+theme_override_constants/separation = 0
+[node name="Hint" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(260,0)
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 13
+clip_text = true
+text_overrun_behavior = 3
+[node name="CardHandView" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection" instance=ExtResource("Hand")]
+layout_mode = 2
+[node name="TurnControls" parent="CombatBody/CombatGameplay/CombatBottomHUD" instance=ExtResource("Turn")]
+layout_mode = 2
+
+[node name="OverlayDefinitions" type="Control" parent="."]
+visible = false
+layout_mode = 2
+[node name="PileControls" parent="OverlayDefinitions" instance=ExtResource("Piles")]
+[node name="RightPileControls" parent="OverlayDefinitions" instance=ExtResource("Piles")]
+[node name="ActionPreviewView" parent="OverlayDefinitions" instance=ExtResource("Preview")]
+[node name="CandidatePanel" parent="OverlayDefinitions" instance=ExtResource("Candidates")]
+[node name="Reconnect" parent="OverlayDefinitions" instance=ExtResource("Button")]
+custom_minimum_size = Vector2(130,44)
+text = "RECONNECT"
+[node name="CombatAttributesDrawer" parent="OverlayDefinitions" instance=ExtResource("Attributes")]
+
+[editable path="CombatBody"]

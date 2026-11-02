@@ -52,11 +52,10 @@ func setup(owner, data: Dictionary) -> void:
 	presentation_driver = preload("res://scripts/ui/controllers/presentation_director.gd").new(Playback, Preferences, func(): return router.get_tree().paused)
 	presentation_driver.changed.connect(_update_controls)
 	add_child(presentation_driver)
-	view = preload("res://scripts/ui/combat_view.gd").new()
+	view = get_node("CombatView")
 	view.scenery = router.shell.run_scenery.acquire_combat()
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	view.intent_requested.connect(_on_intent)
-	add_child(view)
 	Playback.frame_presented.connect(_on_frame)
 	Playback.executor = _execute_beat
 	Playback.visual_resolver = _can_animate

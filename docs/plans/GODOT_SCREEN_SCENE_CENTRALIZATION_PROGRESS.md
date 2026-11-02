@@ -66,4 +66,10 @@ Baralho, resumos, relíquias, placeholder de companions, inventário de modifica
 
 Preservados workspaces, gateways, transações e guards de contexto. Versionada a dependência de apresentação de modificadores que já existia no workspace, com suas regressões, para que descrições e comparação atual também funcionem no checkout do commit. Testes aprovados: módulos editáveis 8, shell 9, layout 48, autosave 9, recuperação 9, modificadores 33, compartimentos 20, editorial 187, input 6, fluxo da run 22 e registro 7. Comparação de baralho, resumo e inventário de modificadores em duas escalas confirmou geometria equivalente (loadout-modules.geometry.json).
 
-Etapas 11–20: pendentes.
+## Etapa 11 — Shell e controles do combate
+
+CombatScreen e CombatView compõem cabeçalho, mão, dock de turno, pilhas, preview, alternativas e recuperação em cenas. Os controles atualizam dados sem remontar a árvore; o dock conserva identidade ao mudar a opção de passar. HandView mantém os algoritmos e executores atuais, com slots e estado vazio autorados. O desenho de keylines permanece procedural num script de node próprio. Composições alternativas continuam movendo os mesmos componentes e preservando estado.
+
+Testes aprovados: shell editável 9, substituição de composição 13, reconciliação 4, contexto 14, pause 24, arquitetura 28, seleção 19, laboratório 118, colaboração 12, ciclo de turno 15, compra 106, contadores 24, estabilidade 34, UX 38, reorganização flow 6 e drop 5. Quatro expectativas antigas de UX já falhavam na baseline por confundir drop para jogar com reorganização; o cenário agora declara reorder desativado e os testes próprios cobrem reorder ativo. Comparação em duas resoluções e duas escalas confirmou geometria equivalente do shell/mão/dock, sem warnings de owner (combat-shell.geometry.json).
+
+Etapas 12–20: pendentes.

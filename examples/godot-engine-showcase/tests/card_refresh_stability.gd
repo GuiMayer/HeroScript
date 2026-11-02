@@ -46,7 +46,7 @@ func settle() -> void:
 	for _frame in 6: await process_frame
 func _run() -> void:
 	var context = load("res://scripts/ui/visual_context.gd").new()
-	var hand = load("res://scripts/ui/card_hand_view.gd").new(context)
+	var hand = load("res://scripts/ui/card_hand_view.gd").create(context)
 	hand.size = Vector2(1000, 500); root.add_child(hand)
 	var fixture := Fixture.new()
 	var session = Session.new(); root.add_child(session); session.configure(fixture)

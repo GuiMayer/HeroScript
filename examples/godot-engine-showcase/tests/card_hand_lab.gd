@@ -24,10 +24,10 @@ func _run() -> void:
 	await settle()
 	check(lab.hand.get_script() == hand_script, "laboratory uses the shared combat hand")
 	check(lab.catalog.cards.size() >= 16 and lab.catalog.presets.size() == 4, "varied familiar, volatile, scaling and custom-content fixtures")
-	var screen = load("res://scripts/ui/combat_view.gd").new()
+	var screen = load("res://scripts/ui/combat_view.gd").create()
 	screen.visual_context = lab.visual_context
-	screen.gameplay_column = VBoxContainer.new()
-	screen.add_child(screen.gameplay_column)
+	screen.gameplay_column = screen.get_node("CombatBody/CombatGameplay")
+	screen._ensure_bottom_hud()
 	var snapshot := {"zones": [{"zoneId": "anything", "allowsCardPlay": true, "contentsVisible": true, "cards": [{"cardInstanceId": "sample", "definitionId": "basic_attack"}]}]}
 	screen.zone_presenter = preload("res://scripts/presentation/card_zone_presenter.gd").new(snapshot, i18n)
 	screen.presenter = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [], i18n, {}, snapshot)

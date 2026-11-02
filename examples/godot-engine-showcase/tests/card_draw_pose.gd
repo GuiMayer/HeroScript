@@ -24,7 +24,7 @@ func run() -> void:
 		for counts in [Vector2i(0, 1), Vector2i(0, 2), Vector2i(2, 5), Vector2i(5, 10)]:
 			var context = preload("res://scripts/ui/visual_context.gd").new(null, {"reduced_motion": true}, preload("res://data/themes/ivory_run.tres"))
 			var holder := Control.new(); holder.position = Vector2(27, 15); holder.scale = Vector2.ONE * .85; root.add_child(holder)
-			var hand = preload("res://scripts/ui/card_hand_view.gd").new(context)
+			var hand = preload("res://scripts/ui/card_hand_view.gd").create(context)
 			hand.size = Vector2(1400, 520); hand.mode_override = mode; holder.add_child(hand)
 			var overlay := Control.new(); overlay.position = Vector2(55, 18); overlay.scale = Vector2.ONE * .9; overlay.rotation = .04; root.add_child(overlay)
 			var initial: Array = []; var final: Array = []; var ids: Array = []

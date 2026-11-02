@@ -1,3 +1,5 @@
+@tool
+class_name CardHandView
 extends VBoxContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
@@ -5,6 +7,8 @@ var visual_context: ContextType
 signal card_activated(instance_id: String)
 signal card_previewed(instance_id: String)
 signal card_hovered(instance_id: String)
+## Physical card entry only; focus-to-pointer resumption is not another entry.
+signal card_hover_entered(instance_id: String)
 signal inspection_requested(instance_id: String)
 signal selection_requested(instance_id: String)
 signal drop_requested(instance_id: String, global_point: Vector2)
@@ -18,6 +22,7 @@ const Retarget = preload("res://scripts/ui/hand_retarget_motion.gd")
 var interaction = preload("res://scripts/ui/hand_interaction.gd").new()
 var read_only := false
 var reading_modal := false
+var _reading_windows := {}
 var mode_override := ""
 ## Component policy for inspection-only collections, never a player preference.
 var drag_enabled := true
@@ -45,12 +50,12 @@ var _aligning_arrivals := false
 var _arrival_transition_limit := INF
 var _layout: Dictionary = {}
 var relayout_count := 0
-var scroll := ScrollContainer.new()
-var surface := Control.new()
-var hit_surface = preload("res://scripts/ui/hand_hit_surface.gd").new()
+var scroll: ScrollContainer
+var surface: Control
+var hit_surface
 var empty: Control
 var counter: Label
-var toolbar := HBoxContainer.new()
+var toolbar: HBoxContainer
 var previous: Button
 var next: Button
 var _ghost: CardView
@@ -73,65 +78,45 @@ var _hover_point := Vector2.INF
 var overview_enabled := true
 var toolbar_external := false
 
+var _nodes_bound := false
+static func create(context = null) -> CardHandView:
+	var hand = (load("res://scenes/ui/components/card_hand.tscn") as PackedScene).instantiate()
+	hand.mount(context if context != null else ContextType.new())
+	return hand
 func _init(context = null) -> void:
-	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
-	theme = visual_context.theme
-	name = "CardHandView"
-	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_theme_constant_override("separation", 2)
-	var tools := toolbar
-	tools.custom_minimum_size.y = 28
-	counter = visual_context.styles.caption("", 12, 56)
-	counter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tools.add_child(counter)
-	previous = _tool("‹", func(): page(-1))
-	next = _tool("›", func(): page(1))
-	tools.add_child(previous)
-	tools.add_child(next)
-	var inspect := _tool(visual_context.translator.text("Inspect card"), func(): inspection_requested.emit(active_card_id()))
-	inspect.name = "HandInspectButton"
-	tools.add_child(inspect)
-	var overview := _tool(visual_context.translator.text("Hand overview"), show_overview)
-	overview.name = "HandOverviewButton"
-	overview.set_meta("initial_focus", true)
-	tools.add_child(overview)
-	add_child(tools)
-	scroll.name = "HandScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	surface.name = "HandSlots"
-	surface.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	scroll.add_child(surface)
-	add_child(scroll)
-	hit_surface.name = "HandHitSurface"
-	hit_surface.hand = self
-	hit_surface.tooltip_text = " "
+	visual_context = context if context != null else ContextType.new()
+func _bind_nodes() -> void:
+	if _nodes_bound: return
+	_nodes_bound = true
+	toolbar = get_node("Toolbar"); counter = toolbar.get_node("Counter")
+	previous = toolbar.get_node("Previous"); next = toolbar.get_node("Next")
+	scroll = get_node("HandScroll"); surface = scroll.get_node("HandSlots")
+	hit_surface = surface.get_node("HandHitSurface"); hit_surface.hand = self
+	previous.pressed.connect(func(): page(-1)); next.pressed.connect(func(): page(1))
+	toolbar.get_node("HandInspectButton").pressed.connect(func(): inspection_requested.emit(active_card_id()))
+	toolbar.get_node("HandOverviewButton").pressed.connect(show_overview)
 	hit_surface.mouse_exited.connect(func(): interaction.hovered = ""; _hover_point = Vector2.INF; hit_surface.follow_card(""); _apply_emphasis())
-	surface.add_child(hit_surface)
-	hit_surface.set_as_top_level(true)
-
+func mount(context) -> void:
+	if visual_context != context and visual_context.changed.is_connected(_preferences_changed): visual_context.changed.disconnect(_preferences_changed)
+	visual_context = context; theme = context.theme; _bind_nodes()
+	toolbar.get_node("HandInspectButton").text = context.translator.text("Inspect card")
+	var overview = toolbar.get_node_or_null("HandOverviewButton")
+	if overview != null: overview.text = context.translator.text("Hand overview")
+	for button in toolbar.get_children():
+		if not button is Button: continue
+		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+			var box: StyleBoxFlat = button.get_theme_stylebox(state).duplicate()
+			box.bg_color = context.styles.PANEL_LIGHT
+			box.border_color = context.styles.GOLD if state in ["hover", "focus"] else context.styles.MUTED.darkened(.4)
+			button.add_theme_stylebox_override(state, box)
+	if is_inside_tree() and not context.changed.is_connected(_preferences_changed): context.changed.connect(_preferences_changed)
 func _ready() -> void:
+	mount(visual_context)
 	scroll.resized.connect(request_layout)
 	scroll.get_h_scroll_bar().value_changed.connect(func(_value): _update_counter())
 	scroll.get_h_scroll_bar().visibility_changed.connect(position_hit_surface)
 	if not visual_context.changed.is_connected(_preferences_changed): visual_context.changed.connect(_preferences_changed)
-	set_notify_transform(true)
-	request_layout()
-
-func _tool(label: String, action: Callable) -> Button:
-	var button := visual_context.styles.button(label)
-	button.custom_minimum_size = Vector2(30, 28)
-	button.add_theme_font_size_override("font_size", 12)
-	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
-		var border := visual_context.styles.GOLD if state in ["hover", "focus"] else visual_context.styles.MUTED.darkened(.4)
-		var box := visual_context.styles.box(visual_context.styles.PANEL_LIGHT, 6, border, 2 if state == "focus" else 1)
-		box.content_margin_top = 4; box.content_margin_bottom = 4
-		button.add_theme_stylebox_override(state, box)
-	button.pressed.connect(action)
-	return button
+	set_notify_transform(true); request_layout()
 
 func _preferences_changed() -> void:
 	visual_context.capture_motion()
@@ -379,7 +364,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 			card.toggle_mode = true
 			card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			card.configure(model)
-			var slot := Control.new()
+			var slot: Control = preload("res://scenes/ui/components/hand_card_slot.tscn").instantiate()
 			slot.name = "Slot_" + id.validate_node_name()
 			slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			slot.add_child(card)
@@ -697,11 +682,14 @@ func pointer_input(event: InputEvent) -> void:
 		var point: Vector2 = hit_surface.get_global_transform() * event.position
 		var id := pick_global(point)
 		_hover_point = point
-		if id != interaction.hovered or pointer_resumed:
+		var entered: bool = id != interaction.hovered
+		if entered or pointer_resumed:
 			interaction.hovered = id
 			hit_surface.follow_card(id)
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
-			if not id.is_empty() and not reading_modal and not interaction.dragging: card_hovered.emit(id)
+			if not id.is_empty() and not reading_modal and not interaction.dragging:
+				card_hovered.emit(id)
+				if entered: card_hover_entered.emit(id)
 		_apply_emphasis()
 		if drag_enabled and not read_only and not interaction.pressed.is_empty():
 			if event.global_position.distance_to(interaction.press_position) >= visual_style.drag_threshold:
@@ -862,9 +850,23 @@ func show_overview() -> void:
 	track_reading_modal(dialog)
 	dialog.popup_centered()
 func track_reading_modal(dialog: Window) -> void:
+	var id := dialog.get_instance_id()
+	if _reading_windows.has(id): return
+	var reference: WeakRef = weakref(dialog)
+	_reading_windows[id] = reference
 	reading_modal = true
 	cancel_gesture()
-	dialog.tree_exiting.connect(func(): reading_modal = false; _apply_emphasis())
+	dialog.visibility_changed.connect(func():
+		var window = reference.get_ref()
+		if window != null and window.visible: _reading_windows[id] = reference
+		else: _reading_windows.erase(id)
+		_refresh_reading_modals())
+	dialog.tree_exiting.connect(func(): _reading_windows.erase(id); _refresh_reading_modals(), CONNECT_ONE_SHOT)
+func _refresh_reading_modals() -> void:
+	for id in _reading_windows.keys():
+		if _reading_windows[id].get_ref() == null: _reading_windows.erase(id)
+	reading_modal = not _reading_windows.is_empty()
+	_apply_emphasis()
 func wire_focus() -> void:
 	for i in order.size():
 		var card: Control = _cards[order[i]]
@@ -880,16 +882,8 @@ func wire_focus() -> void:
 			if is_instance_valid(tool): tool.set(direction, tool.get_path_to(destination))
 static func empty_state(message: String, context: ContextType = null) -> Control:
 	if context == null: context = ContextType.new()
-	var state := CenterContainer.new()
-	state.name = "EmptyHandState"
-	state.custom_minimum_size = Vector2(320, 180)
-	state.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := context.styles.muted(message, 15, 280)
-	label.name = "EmptyHandMessage"
-	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	state.add_child(label)
+	var state: Control = preload("res://scenes/ui/components/empty_hand.tscn").instantiate()
+	state.theme = context.theme; state.get_node("EmptyHandMessage").text = message
 	return state
 
 func dispose() -> void:

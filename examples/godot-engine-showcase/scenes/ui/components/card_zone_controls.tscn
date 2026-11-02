@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/components/card_zone_controls_view.gd" id="1_hvcqh"]
+
+[node name="PileControls" type="ScrollContainer"]
+custom_minimum_size = Vector2(140, 64)
+size_flags_horizontal = 3
+vertical_scroll_mode = 0
+script = ExtResource("1_hvcqh")
+
+[node name="Zones" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8

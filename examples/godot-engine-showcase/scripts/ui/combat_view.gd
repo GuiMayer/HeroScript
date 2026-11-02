@@ -65,6 +65,9 @@ var character_sidebar_expanded := false
 var pile_controls
 var right_pile_controls
 
+var _footer_bound := false
+static func create():
+	return (load("res://scenes/ui/components/combat_view.tscn") as PackedScene).instantiate()
 func _ready() -> void:
 	visibility_changed.connect(func():
 		if is_instance_valid(floating_hud): floating_hud.visible = is_visible_in_tree())
@@ -85,12 +88,7 @@ func _refresh_structure() -> void:
 
 func _ensure_bottom_hud() -> void:
 	if is_instance_valid(bottom_hud): return
-	bottom_hud = VBoxContainer.new()
-	bottom_hud.name = "CombatBottomHUD"
-	bottom_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom_hud.add_theme_constant_override("separation", 4)
-	gameplay_column.add_child(bottom_hud)
-	bottom_hud.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom_hud = gameplay_column.get_node("CombatBottomHUD")
 	bottom_hud.minimum_size_changed.connect(_queue_gameplay_layout)
 
 
@@ -143,12 +141,11 @@ func _layout_gameplay() -> void:
 
 func _build_header() -> void:
 	if not is_instance_valid(header_view):
-		header_view = preload("res://scripts/ui/components/combat_header_view.gd").new()
+		header_view = get_node("CombatHeader")
 		header_view.name = "CombatHeader"
 		header_view.timeline_requested.connect(func(): intent_requested.emit("timeline", []))
 		header_view.tools_requested.connect(_open_zone_tools)
 		header_view.pause_requested.connect(func(): intent_requested.emit("pause", []))
-		add_child(header_view)
 		move_child(header_view, 0)
 		action_buttons.append(header_view.tool_button) if is_instance_valid(header_view.tool_button) else null
 	var row = header_view
@@ -182,16 +179,16 @@ func _build_battlefield() -> void:
 
 func _build_hand() -> void:
 	if not is_instance_valid(hand_section):
-		hand_section = VBoxContainer.new(); hand_section.name = "HandSection"
-		hand_section.add_theme_constant_override("separation", 0)
-		hint_label = visual_context.styles.caption("", 13, 260); hint_label.hide(); hand_section.add_child(hint_label)
+		hand_section = bottom_hud.get_node("HandSection")
+		hint_label = hand_section.get_node("Hint")
 	if not is_instance_valid(hand):
-		hand = HandView.new(visual_context)
+		hand = hand_section.get_node("CardHandView"); hand.mount(visual_context)
 		hand.disable_overview(); hand.toolbar_external = true
 		hand.counter.hide(); hand.toolbar.custom_minimum_size = Vector2(144, 44)
 		hand.card_activated.connect(_choose_card)
 		hand.card_previewed.connect(_show_preview)
 		hand.card_hovered.connect(func(id): intent_requested.emit("card_hover", [id]))
+		hand.card_hover_entered.connect(func(id): intent_requested.emit("card_hover_entered", [id]))
 		hand.inspection_requested.connect(_inspect_instance)
 		hand.selection_requested.connect(func(id):
 			if _locked() or id not in card_buttons: return
@@ -201,16 +198,13 @@ func _build_hand() -> void:
 		hand.drag_ended.connect(_restore_drag_targets)
 		hand.reorder_drop_filter = _hand_drop_allowed
 		hand.visual_order_changed.connect(func(_ids): intent_requested.emit("_cancel_selection", []))
-		hand_section.add_child(hand)
 	if not is_instance_valid(pile_controls):
-		pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
+		pile_controls = get_node("OverlayDefinitions/PileControls")
 		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
-		add_child(pile_controls)
 	if not is_instance_valid(right_pile_controls):
-		right_pile_controls = preload("res://scripts/ui/components/card_zone_controls_view.gd").new()
+		right_pile_controls = get_node("OverlayDefinitions/RightPileControls")
 		right_pile_controls.name = "RightPileControls"
 		right_pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
-		add_child(right_pile_controls)
 	var zones: Array = zone_presenter.auxiliary_zones()
 	var right: Array = zones.filter(func(zone): return str(zone.get("presentation", {}).get("dock", "right" if str(zone.get("zoneId", "")) in ["discard", "exile"] else "left")) == "right")
 	pile_controls.apply_model(zones.filter(func(zone): return zone not in right), visual_context)
@@ -237,68 +231,49 @@ func _empty_hand_state() -> Control:
 func _build_footer() -> void:
 	_ensure_floating_hud()
 	var key: Array = [_system_candidate(["PASS", "PASS_PRIORITY"]), visual_context.translator.locale, visual_context.action_label("end_turn"), visual_context.action_label("confirm_action")]
-	if is_instance_valid(turn_view) and key == _turn_key: return
+	if _footer_bound and key == _turn_key: return
 	_turn_key = key.duplicate(true)
-	if is_instance_valid(turn_view):
-		if hand.toolbar.get_parent() == turn_view: hand.toolbar.reparent(hand, false)
-		if is_instance_valid(pile_controls) and pile_controls.get_parent() == turn_view: pile_controls.reparent(self, false)
-		if is_instance_valid(right_pile_controls) and right_pile_controls.get_parent() == turn_view: right_pile_controls.reparent(self, false)
-		for button in turn_view.buttons: action_buttons.erase(button)
-		if is_instance_valid(_feedback_column) and _feedback_column.get_parent() != turn_view:
-			floating_hud.release_slot("preview")
-		bottom_hud.remove_child(turn_view); turn_view.queue_free()
-	var row = preload("res://scripts/ui/components/turn_controls_view.gd").new()
-	turn_view = row
-	row.visual_context = visual_context
-	var feedback = preload("res://scripts/ui/components/action_preview_view.gd").new()
-	_feedback_column = feedback
-	feedback.visual_context = visual_context
-	feedback.mount(visual_context.translator.text("Select a card, then choose a highlighted target."))
-	row.add_child(feedback)
-	detail_label = feedback.detail_label; selection_label = feedback.selection_label; queue_label = feedback.queue_label
-	row.next_requested.connect(_next_frame)
-	row.skip_requested.connect(func(): intent_requested.emit("skip_presentation", []))
-	row.cancel_requested.connect(_cancel_selection)
-	row.end_requested.connect(_end_turn)
-	row.system_requested.connect(_execute_system)
-	row.mount(visual_context.translator, {"confirm_action": visual_context.action_label("confirm_action"), "end_turn": visual_context.action_label("end_turn")},
-		_system_candidate(["PASS", "PASS_PRIORITY"]))
-	pile_controls.reparent(row, false); row.move_child(pile_controls, 0)
-	hand.toolbar.reparent(row, false); row.move_child(hand.toolbar, 1)
-	right_pile_controls.reparent(row, false); row.move_child(right_pile_controls, row.get_child_count() - 2)
-	hand.toolbar_external = true; hand._update_counter()
-	next_frame_button = row.next_frame_button; selection_actions = row.selection_actions
-	reconnect_button = _button(visual_context.translator.text("RECONNECT"), _reconnect, 130)
-	preload("res://scripts/ui/combat_chrome.gd").apply(reconnect_button, "tools", reconnect_button.text, visual_context)
-	floating_hud.replace_slot("reconnect", reconnect_button)
-	reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	reconnect_button.offset_right = 150
-	reconnect_button.offset_bottom = 44
-	action_buttons.append_array(row.buttons)
-	choices = VBoxContainer.new()
-	candidate_panel = PanelContainer.new()
-	candidate_panel.name = "CandidatePanel"
-	candidate_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	candidate_panel.add_theme_stylebox_override("panel", visual_context.styles.box(visual_context.styles.PANEL, 10, visual_context.styles.GOLD, 1))
-	floating_hud.replace_slot("candidates", candidate_panel)
-	candidate_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	candidate_panel.offset_right = 600
-	candidate_panel.hide()
-	var alternatives := ScrollContainer.new()
-	alternatives.name = "CandidateChoicesSlot"
-	alternatives.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	alternatives.add_child(choices)
-	candidate_panel.add_child(alternatives)
-	bottom_hud.add_child(row)
-	_apply_preview_composition()
+	if not _footer_bound:
+		turn_view = bottom_hud.get_node("TurnControls")
+		_feedback_column = get_node("OverlayDefinitions/ActionPreviewView")
+		_feedback_column.visual_context = visual_context
+		_feedback_column.mount(visual_context.translator.text("Select a card, then choose a highlighted target."))
+		_feedback_column.owner = null; _feedback_column.reparent(turn_view, false)
+		turn_view.move_child(_feedback_column, 0)
+		detail_label = _feedback_column.detail_label; selection_label = _feedback_column.selection_label; queue_label = _feedback_column.queue_label
+		turn_view.next_requested.connect(_next_frame)
+		turn_view.skip_requested.connect(func(): intent_requested.emit("skip_presentation", []))
+		turn_view.cancel_requested.connect(_cancel_selection); turn_view.end_requested.connect(_end_turn)
+		turn_view.system_requested.connect(_execute_system)
+		pile_controls.owner = null; pile_controls.reparent(turn_view, false); turn_view.move_child(pile_controls, 0)
+		hand.toolbar.owner = null; hand.toolbar.reparent(turn_view, false); turn_view.move_child(hand.toolbar, 1)
+		right_pile_controls.owner = null; right_pile_controls.reparent(turn_view, false); turn_view.move_child(right_pile_controls, turn_view.get_child_count() - 2)
+		hand.toolbar_external = true; hand._update_counter()
+		reconnect_button = get_node("OverlayDefinitions/Reconnect")
+		reconnect_button.pressed.connect(_reconnect)
+		preload("res://scripts/ui/combat_chrome.gd").apply(reconnect_button, "tools", visual_context.translator.text("RECONNECT"), visual_context)
+		floating_hud.replace_slot("reconnect", reconnect_button)
+		reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT); reconnect_button.offset_right = 150; reconnect_button.offset_bottom = 44
+		candidate_panel = get_node("OverlayDefinitions/CandidatePanel")
+		var surface: StyleBoxFlat = candidate_panel.get_theme_stylebox("panel").duplicate()
+		surface.bg_color = visual_context.styles.PANEL; surface.border_color = visual_context.styles.GOLD
+		candidate_panel.add_theme_stylebox_override("panel", surface)
+		choices = candidate_panel.get_node("CandidateChoicesSlot/Choices")
+		floating_hud.replace_slot("candidates", candidate_panel)
+		candidate_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT); candidate_panel.offset_right = 600
+		_footer_bound = true
+	for button in turn_view.buttons: action_buttons.erase(button)
+	turn_view.visual_context = visual_context
+	turn_view.mount(visual_context.translator, {"confirm_action": visual_context.action_label("confirm_action"), "end_turn": visual_context.action_label("end_turn")}, _system_candidate(["PASS", "PASS_PRIORITY"]))
+	next_frame_button = turn_view.next_frame_button; selection_actions = turn_view.selection_actions
+	action_buttons.append_array(turn_view.buttons); _apply_preview_composition()
 
 
 func _build_character_sidebar() -> Control:
 	_ensure_floating_hud()
 	var view = character_sidebar
 	if not is_instance_valid(view):
-		view = preload("res://scripts/ui/components/combat_attributes_drawer.gd").create()
+		view = get_node("OverlayDefinitions/CombatAttributesDrawer")
 		view.mount(visual_context)
 		view.open_changed.connect(func(value): character_sidebar_expanded = value)
 		floating_hud.replace_slot("sidebar", view)
@@ -383,7 +358,8 @@ func _intent_for(actor_id: String) -> String:
 
 
 func _button(text: String, action: Callable, width := 0) -> Button:
-	var value := visual_context.styles.button(text, width)
+	var value: Button = preload("res://scenes/ui/components/combat_button.tscn").instantiate()
+	value.text = text; value.custom_minimum_size.x = width
 	value.custom_minimum_size.y = 44
 	value.pressed.connect(action)
 	return value
@@ -547,7 +523,7 @@ func _try_apply_composition() -> void:
 	move_child(body, index)
 	battlefield_view.reparent(replacement, false)
 	battlefield_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bottom_hud.reparent(replacement, false)
+	bottom_hud.owner = null; bottom_hud.reparent(replacement, false)
 	bottom_hud.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	gameplay_column.resized.connect(_queue_gameplay_layout)
 	previous.queue_free()
@@ -648,21 +624,21 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 		return
 	feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(visual_context)
 	add_child(feedback)
-	add_theme_constant_override("separation", 8)
 	_build_header()
-	var body: HBoxContainer = composition_scene.instantiate()
+	var body: HBoxContainer = get_node("CombatBody")
 	gameplay_column = body.get_node("CombatGameplay")
 	gameplay_column.resized.connect(_queue_gameplay_layout)
 	_ensure_bottom_hud()
 	_build_battlefield()
 	_build_hand()
 	_build_footer()
-	add_child(body)
 	_ensure_floating_hud()
 	_build_character_sidebar()
 	visual_context.styles.apply_view_preferences(self)
 	_update_controls()
 	_queue_gameplay_layout()
+	if body.scene_file_path != composition_scene.resource_path:
+		replace_composition.call_deferred(composition_scene, layout_profile)
 
 func apply_interaction(state) -> void:
 	_interaction = state.duplicate(true)

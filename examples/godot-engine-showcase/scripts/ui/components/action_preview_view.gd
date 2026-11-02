@@ -1,27 +1,19 @@
+@tool
+class_name ActionPreviewView
 extends VBoxContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType = ContextType.new()
 var detail_label: RichTextLabel
 var selection_label: Label
 var queue_label: Label
+static func create() -> ActionPreviewView:
+	return (load("res://scenes/ui/components/action_preview.tscn") as PackedScene).instantiate()
+func _ready() -> void:
+	if detail_label == null: mount(visual_context.translator.text("Select a card, then choose a highlighted target."))
 func mount(hint: String) -> void:
-	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_theme_constant_override("separation", 0)
-	detail_label = RichTextLabel.new()
-	detail_label.name = "ActionPreview"
-	detail_label.custom_minimum_size = Vector2(200, 42)
-	detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_label.add_theme_font_size_override("normal_font_size", 14)
+	theme = visual_context.theme
+	detail_label = get_node("Content/ActionPreview"); selection_label = get_node("Selection"); queue_label = get_node("Queue")
 	detail_label.text = hint
-	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
-	var icon := TextureRect.new(); icon.texture = preload("res://scripts/ui/combat_chrome.gd").texture("arrow")
-	icon.custom_minimum_size = Vector2(24, 24); icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; icon.modulate = visual_context.styles.INK
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(icon); row.add_child(detail_label); add_child(row)
-	selection_label = visual_context.styles.caption("", 13, 80)
-	add_child(selection_label)
-	selection_label.hide()
-	queue_label = visual_context.styles.caption("", 13, 80)
+	get_node("Content/Arrow").texture = preload("res://scripts/ui/combat_chrome.gd").texture("arrow")
+	get_node("Content/Arrow").modulate = visual_context.styles.INK
 	queue_label.add_theme_color_override("font_color", visual_context.styles.TEAL)
-	queue_label.custom_minimum_size.y = 18
-	add_child(queue_label)
