@@ -366,7 +366,7 @@ func remove_selected() -> void:
 func inspect_selected() -> void:
 	var data := selected_model()
 	if data.is_empty(): return
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 	dialog.setup(str(data.name), str(data.summary), data, data)
 	add_child(dialog)
 	hand.track_reading_modal(dialog)

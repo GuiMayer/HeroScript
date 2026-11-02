@@ -154,7 +154,7 @@ func _run() -> void:
 	check(not tooltip.find_child("DetailedEffects", true, false).get_v_scroll_bar().visible, "hover summary never displays a rich-text scrollbar")
 	check(card._make_custom_tooltip("") == null, "an empty tooltip does not create a popup")
 	tooltip.free()
-	var dialog = load("res://scripts/ui/inspection_dialog.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
+	var dialog = load("res://scripts/ui/inspection_dialog.gd").create(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	dialog.setup("Inspection", "fallback", inspection(9, 6), model, style)
 	root.add_child(dialog)
 	check(dialog.find_child("CardDetails", true, false).get_theme_stylebox("panel").border_color == style.rarity_color("rare"), "keyboard/controller inspection uses the same rarity panel")

@@ -479,7 +479,7 @@ func _inspect_card() -> void:
 
 func _inspect_instance(id: String) -> void:
 	if id not in card_buttons: return
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 	dialog.setup(visual_context.translator.text("Card inspection"), presenter.inspection_text(id), presenter.inspection_data(id), presenter.card_view_model(id), card_buttons[id].visual_style)
 	dialog.tree_exiting.connect(func(): if id in card_buttons: card_buttons[id].grab_focus())
 	add_child(dialog)

@@ -70,7 +70,7 @@ func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> vo
 	if not transformation and str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
 		_execute(choice)
 		return
-	var dialog := ConfirmationDialog.new()
+	var dialog := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog)
 	dialog.theme = visual_context.theme
 	dialog.title = I18n.text("Confirm choice")
 	dialog.dialog_text = label + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")

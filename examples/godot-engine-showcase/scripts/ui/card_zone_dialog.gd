@@ -17,7 +17,7 @@ func setup(model: Dictionary) -> void:
 		else: preload("res://scripts/ui/panel_motion.gd").cancel(collection))
 func show_detail(id: String, card_model: Dictionary, inspection: Dictionary = {}, status := "") -> void:
 	if is_instance_valid(detail): detail.queue_free()
-	detail = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	detail = preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 	detail.setup(str(card_model.name), status if not status.is_empty() else str(card_model.summary), inspection, card_model)
 	detail.set_meta("card_instance_id", id); add_child(detail); detail.exclusive = true; detail.popup_centered_clamped(Vector2i(720, 560), .9)
 	var opened: Window = detail

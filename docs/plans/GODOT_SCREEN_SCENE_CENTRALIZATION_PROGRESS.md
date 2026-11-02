@@ -18,4 +18,8 @@ Baseline de componentes também validada no export limpo do commit: bancada 12, 
 
 Contrato em docs/architecture/GODOT_SCENE_OWNERSHIP_CONTRACT.md. Registro inicial adota a rota loadout_lab existente; main continua sendo o router. Novo ScreenCatalogWorkbench instancia componentes reais e o mesmo laboratório offline, sem declarar sua estrutura interna já migrada. Testes: registro/preview 7, previews 15, contexto 14 e shell do loadout 9 aprovados. Preferências e snapshot da run preservados; zero HTTP no preview.
 
-Etapas 2–20: pendentes.
+## Etapa 2 — Overlays compartilhados
+
+InspectionDialog agora tem árvore estática editável e binding idempotente. ConfirmationDialog mantém o contrato nativo numa cena compartilhada; histórico de conversa herda o mesmo shell de inspeção; toast também é uma cena. Consumidores de runtime e testes adotam as fábricas/cenas. Mantidos painel animado, foco/modalidade e metadados da inspeção. Testes: overlays 9, apresentação 86, pause/layers 24, contexto 14, menus 90 e shell do loadout 9 aprovados.
+
+Etapas 3–20: pendentes.

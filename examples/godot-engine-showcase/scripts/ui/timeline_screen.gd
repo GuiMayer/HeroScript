@@ -274,14 +274,14 @@ func _simulate() -> void:
 	if not _valid(): return
 	working = false
 	if response.ok:
-		var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+		var dialog := preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 		dialog.setup(I18n.text("Simulation"), I18n.text("Simulation completed without changing the run."), response.data)
 		add_child(dialog)
 		dialog.popup_centered()
 	else: router.show_error(I18n.error(response))
 
 func _inspect_raw() -> void:
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 	dialog.setup(I18n.text("Commands"), details.text, selected_entry)
 	add_child(dialog)
 	dialog.popup_centered()

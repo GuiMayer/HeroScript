@@ -31,7 +31,7 @@ func mount(context) -> void:
 	var notices := CanvasLayer.new()
 	notices.layer = Layers.NOTIFICATION
 	add_child(notices)
-	toast = Label.new()
+	toast = preload("res://scenes/ui/overlays/toast.tscn").instantiate()
 	toast.visible = false
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -122,7 +122,8 @@ func _open_conversation_history(entries: Array) -> void:
 	for entry in entries:
 		var speaker := str(entry.get("speaker", ""))
 		lines.append((speaker + ": " if not speaker.is_empty() else "") + str(entry.get("text", "")))
-	var dialog = preload("res://scripts/ui/inspection_dialog.gd").new(pause_context)
+	var dialog = preload("res://scenes/ui/overlays/conversation_history.tscn").instantiate()
+	dialog.visual_context = pause_context
 	_history_dialog = dialog
 	dialog.name = "ConversationHistoryDialog"
 	dialog.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -137,7 +138,7 @@ func _open_conversation_history(entries: Array) -> void:
 	dialog.popup_centered()
 func confirm_abandon(choice: Dictionary) -> void:
 	if not is_instance_valid(pause_layer): return
-	var dialog := ConfirmationDialog.new()
+	var dialog := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog)
 	dialog.theme = pause_layer.theme
 	dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	dialog.title = visual_context.translator.text("Confirm choice")

@@ -16,7 +16,7 @@ var _scope_picker := OptionButton.new()
 var _connection_note := Label.new()
 var _preview_button: Button
 var _confirm_button: Button
-var _discard_dialog := ConfirmationDialog.new()
+var _discard_dialog := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog)
 
 func _ready() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -29,7 +29,7 @@ func _inspect(id: String) -> void:
 	if hand.reading_modal: return
 	var card = hand.card_for(id)
 	if not is_instance_valid(card): return
-	var detail = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	var detail = preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 	detail.setup(visual_context.translator.text("Card inspection"), str(card.model.get("summary", "")), {}, card.model, card.visual_style)
 	add_child(detail)
 	hand.track_reading_modal(detail)

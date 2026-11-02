@@ -38,13 +38,13 @@ func _ready() -> void:
 	inscriptions_view.clear_requested.connect(func(): _clear_dialog.popup_centered())
 	inscriptions_view.search_requested.connect(func(value):
 		if controller.inscriptions != null: controller.inscriptions.search = value; _render())
-	_clear_dialog = ConfirmationDialog.new(); _clear_dialog.dialog_text = I18n.text("Unequip all inscriptions? Changes are saved automatically.")
+	_clear_dialog = (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); _clear_dialog.dialog_text = I18n.text("Unequip all inscriptions? Changes are saved automatically.")
 	_clear_dialog.confirmed.connect(func(): controller.edit_inscription("clear")); add_child(_clear_dialog)
 	deck_view = preload("res://scripts/ui/loadout/deck_module_view.gd").new(); deck_view.mount(context); shell.install("deck", deck_view)
 	deck_view.move_requested.connect(controller.move_card)
 	deck_view.modifier_requested.connect(controller.apply_modifier)
 	deck_view.clear_requested.connect(func():
-		var confirm := ConfirmationDialog.new(); confirm.dialog_text = I18n.text("Clear all compartment allocations? Changes are saved automatically.")
+		var confirm := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); confirm.dialog_text = I18n.text("Clear all compartment allocations? Changes are saved automatically.")
 		confirm.confirmed.connect(func(): controller.move_card("", "", true); confirm.queue_free())
 		confirm.canceled.connect(confirm.queue_free); add_child(confirm); confirm.popup_centered())
 	overview_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); overview_view.mount(context)

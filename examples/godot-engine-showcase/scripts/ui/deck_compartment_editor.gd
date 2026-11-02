@@ -47,7 +47,7 @@ func _ready() -> void:
 	_status = Label.new(); _status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _page.add_child(_status)
 	var scroll := ScrollContainer.new(); scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; _page.add_child(scroll)
 	_body = HBoxContainer.new(); _body.add_theme_constant_override("separation", 18); scroll.add_child(_body)
-	_discard = ConfirmationDialog.new(); _discard.dialog_text = _text("Discard unconfirmed compartment changes?")
+	_discard = (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); _discard.dialog_text = _text("Discard unconfirmed compartment changes?")
 	_discard.confirmed.connect(func(): back_requested.emit()); add_child(_discard)
 	if service != null: read_state.call_deferred()
 

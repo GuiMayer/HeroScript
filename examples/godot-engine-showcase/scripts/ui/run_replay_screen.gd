@@ -129,7 +129,7 @@ func _inspect() -> void:
 		if not response.get("cancelled", false): router.show_error(I18n.error(response))
 		return
 	if is_instance_valid(_inspection_dialog): _inspection_dialog.queue_free()
-	_inspection_dialog = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	_inspection_dialog = preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)
 	add_child(_inspection_dialog)
 	_inspection_dialog.setup(I18n.text("Show engine details"), JSON.stringify(response.data, "  "))
 	_inspection_dialog.popup_centered_clamped(Vector2i(1000, 650), .9)

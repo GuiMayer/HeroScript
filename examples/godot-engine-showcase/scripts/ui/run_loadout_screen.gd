@@ -13,7 +13,7 @@ var _status := Label.new()
 var _preview_button: Button
 var _confirm_button: Button
 var _retry_button: Button
-var _discard := ConfirmationDialog.new()
+var _discard := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog)
 
 func _context() -> Array:
 	var run: Dictionary = session.run
