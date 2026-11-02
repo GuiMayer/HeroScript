@@ -1,0 +1,31 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/journey_view.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/activity_header.tscn" id="Header"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/activity_summary.tscn" id="Summary"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/activity_ending.tscn" id="Ending"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/activity_options.tscn" id="Options"]
+[node name="JourneyView" type="VBoxContainer"]
+theme_override_constants/separation = 16
+script = ExtResource("Script")
+[node name="ActivityHeader" parent="." instance=ExtResource("Header")]
+layout_mode = 2
+[node name="ActivityColumns" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 22
+[node name="ActivityWorkspace" type="VBoxContainer" parent="ActivityColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+[node name="ActivitySummary" parent="ActivityColumns/ActivityWorkspace" instance=ExtResource("Summary")]
+layout_mode = 2
+[node name="ActionScroll" type="ScrollContainer" parent="ActivityColumns/ActivityWorkspace"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+size_flags_vertical = 3
+[node name="ActionPanel" parent="ActivityColumns/ActivityWorkspace/ActionScroll" instance=ExtResource("Options")]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="ActivityEnding" parent="." instance=ExtResource("Ending")]
+visible = false
+layout_mode = 2

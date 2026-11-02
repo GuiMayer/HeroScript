@@ -36,7 +36,7 @@ func check(ok: bool, label: String) -> void:
 	print("[PASS] " if ok else "[FAIL] ", label)
 	if not ok: failures += 1
 func screen_for(session, owner):
-	var screen = load("res://scripts/ui/activity_screen.gd").new()
+	var screen = load("res://scenes/ui/screens/activity_screen.tscn").instantiate()
 	screen.controller = load("res://scripts/ui/controllers/activity_controller.gd").new(session)
 	screen.router = owner; root.add_child(screen); return screen
 func _run() -> void:
@@ -92,7 +92,7 @@ func _run() -> void:
 	var reward := RewardSession.new(); owner = Owner.new()
 	var pick := {"type":"PICK_CARD_REWARD","payload":{"cardIds":["chosen"]}}
 	reward.choices = [pick]; screen = screen_for(reward,owner)
-	screen.view = load("res://scripts/ui/journey_view.gd").new(); screen.add_child(screen.view)
+	screen.view = load("res://scripts/ui/journey_view.gd").create(); screen.add_child(screen.view)
 	screen.controller.bind(reward.run,reward.choices)
 	await screen._execute(pick)
 	check(reward.calls.map(func(c): return c.type) == ["PICK_CARD_REWARD","RESOLVE_NODE"] and owner.returns == 1, "reward-to-map transition completes the node before displaying the map")

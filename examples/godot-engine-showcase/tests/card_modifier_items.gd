@@ -48,7 +48,7 @@ func _run() -> void:
 	for language in ["en", "pt_BR"]:
 		i18n.set_locale(language)
 		var old_presenter = load("res://scripts/presentation/activity_presenter.gd").new({}, old_choices, {}, i18n, [], {"catalog": catalog})
-		var offers = load("res://scripts/ui/components/activity_options_view.gd").new()
+		var offers = load("res://scripts/ui/components/activity_options_view.gd").create()
 		root.add_child(offers)
 		offers.apply_projection({}, old_choices, old_presenter, load("res://scripts/ui/visual_context.gd").new(i18n))
 		for index in old_choices.size():

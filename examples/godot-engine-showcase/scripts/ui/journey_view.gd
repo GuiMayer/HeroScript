@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 ## Passive journey composition. Region updates never execute workflows.
 signal intent_requested(action: String, arguments: Array)
@@ -19,6 +20,7 @@ var _summary: Control
 var _ending: Control
 var _lifecycle := ""
 var _region_keys: Dictionary = {}
+@export var initial_ending_header_gap := 4
 func set_compartments_available(value: bool) -> void:
 	var button := find_child("DeckCompartmentsButton", true, false)
 	if button is Button: button.visible = value
@@ -39,76 +41,63 @@ func _restore_scroll(ticket: int, route_value: int, action_value: int, route_hor
 	if actions is ScrollContainer: actions.set_deferred("scroll_vertical", action_value)
 
 
-func _build_header() -> Control:
-	var header := VBoxContainer.new()
-	header.name = "ActivityHeader"
-	header.add_theme_constant_override("separation", 8)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	var title_box := VBoxContainer.new()
-	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var metadata: Dictionary = _run_snapshot.get("metadata", {})
-	var run_title := visual_context.translator.content_name(str(_run_snapshot.get("runDefinitionId", "")), str(metadata.get("displayName", visual_context.translator.text("THE EMBER PATH"))))
-	var heading := visual_context.styles.title(run_title, 30)
-	heading.name = "RunTitle"
-	heading.tooltip_text = "Seed: %s · Sequence: %s" % [_run_snapshot.get("seed", 0), _run_snapshot.get("sequence", 0)]
-	title_box.add_child(heading)
-	title_box.add_child(visual_context.styles.muted(visual_context.translator.text("Build your deck. Choose your path."), 14, 240))
-	row.add_child(title_box)
-	row.add_child(_button(visual_context.translator.text("VERIFY REPLAY"), _verify, 185))
-	row.add_child(_button(visual_context.translator.text("MAP"), _map, 100))
-	row.add_child(_button(visual_context.translator.text("LOADOUT"), func(): intent_requested.emit("loadout", []), 140))
-	row.add_child(_button(visual_context.translator.text("PAUSE"), _pause, 100))
-	header.add_child(row)
-	var badges := HFlowContainer.new()
-	badges.alignment = FlowContainer.ALIGNMENT_END
-	badges.add_theme_constant_override("h_separation", 16)
-	badges.add_theme_constant_override("v_separation", 6)
-	var character: Dictionary = _run_snapshot.get("characterResources", {})
-	for resource_id in character.get("resources", {}):
-		var pool: Dictionary = character.resources[resource_id]
-		var resource_badge := Label.new()
-		resource_badge.text = "%s/%s %s" % [visual_context.translator.number(float(pool.get("current", 0))), visual_context.translator.number(float(pool.get("maximum", 0))), visual_context.translator.content_name(str(resource_id))]
-		resource_badge.tooltip_text = visual_context.translator.text("Character resources") + " · " + str(character.get("ownerId", ""))
-		resource_badge.add_theme_color_override("font_color", visual_context.styles.TEAL)
-		badges.add_child(resource_badge)
-	for resource_id in _run_snapshot.get("resources", {}):
-		var resource = _run_snapshot.get("resources", {}).get(resource_id, {})
-		var badge := Label.new()
-		badge.text = "%s %s" % [visual_context.translator.number(float(resource.get("current", 0))), visual_context.translator.content_name(resource_id)]
-		badge.add_theme_color_override("font_color", visual_context.styles.GOLD)
-		badge.add_theme_font_size_override("font_size", 15)
-		badges.add_child(badge)
-	if not _run_snapshot.get("relics", []).is_empty():
-		var relic_badge := Label.new()
-		relic_badge.text = "⬢  %s" % _run_snapshot.get("relics", []).size()
-		relic_badge.add_theme_color_override("font_color", visual_context.styles.EMBER)
-		badges.add_child(relic_badge)
-	if not _run_snapshot.get("modifiers", []).is_empty():
-		var modifier_badge := Label.new()
-		modifier_badge.text = "△  %s" % _run_snapshot.get("modifiers", []).size()
-		modifier_badge.add_theme_color_override("font_color", visual_context.styles.TEAL)
-		badges.add_child(modifier_badge)
-	if badges.get_child_count() > 0: header.add_child(badges)
-	else: badges.free()
-	return header
-
-
-func _activity_summary(node: Dictionary) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 20)
-	var kind := str(node.get("activity", {}).get("type", "Unknown"))
-	var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
-	art.setup("activities", kind)
-	art.custom_minimum_size = Vector2(140, 150)
-	row.add_child(art)
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_theme_constant_override("separation", 12)
-	content.add_child(visual_context.styles.muted(visual_context.translator.content_name(kind).to_upper(), 13))
-	var title := visual_context.styles.wrap(visual_context.styles.title(presenter.node_name(str(node.get("nodeId", ""))), 30, visual_context.styles.GOLD), 180)
-	content.add_child(title)
+var _bound := false
+var _badges := {}
+static func create():
+	return (load("res://scenes/ui/components/journey_view.tscn") as PackedScene).instantiate()
+func _ready() -> void:
+	if visual_context == null:
+		mount(ContextType.new()); theme = visual_context.theme
+	_bind_nodes()
+func _bind_nodes() -> void:
+	if _bound: return
+	_header = get_node("ActivityHeader"); _columns = get_node("ActivityColumns")
+	_workspace = _columns.get_node("ActivityWorkspace"); _summary = _workspace.get_node("ActivitySummary")
+	action_panel = _workspace.get_node("ActionScroll/ActionPanel"); _ending = get_node("ActivityEnding")
+	action_panel.intent_requested.connect(func(action,arguments): intent_requested.emit(action,arguments))
+	_header.get_node("Row/Verify").pressed.connect(_verify); _header.get_node("Row/Map").pressed.connect(_map)
+	_header.get_node("Row/Loadout").pressed.connect(func(): intent_requested.emit("loadout",[]))
+	_header.get_node("Row/Pause").pressed.connect(_pause)
+	_ending.get_node("Panel/Content/EndingReplayButton").pressed.connect(func(): _replay(str(_run_snapshot.get("runId",""))))
+	_ending.get_node("Panel/Content/Verify").pressed.connect(_verify)
+	_ending.get_node("Panel/Content/NewJourney").pressed.connect(_new_journey)
+	_ending.get_node("Panel/Content/MainMenu").pressed.connect(_main_menu); _bound = true
+func _update_header() -> void:
+	var metadata: Dictionary = _run_snapshot.get("metadata",{})
+	_header.get_node("Row/Titles/RunTitle").text = visual_context.translator.content_name(str(_run_snapshot.get("runDefinitionId","")),str(metadata.get("displayName",visual_context.translator.text("THE EMBER PATH"))))
+	_header.get_node("Row/Titles/Subtitle").text = visual_context.translator.text("Build your deck. Choose your path.")
+	for entry in [["Verify","VERIFY REPLAY"],["Map","MAP"],["Loadout","LOADOUT"],["Pause","PAUSE"]]: _header.get_node("Row/"+entry[0]).text = visual_context.translator.text(entry[1])
+	var live: Array = []; var index := 0
+	var character: Dictionary = _run_snapshot.get("characterResources",{})
+	for id in character.get("resources",{}):
+		var pool: Dictionary = character.resources[id]
+		var text := "%s/%s %s" % [visual_context.translator.number(float(pool.get("current",0))),visual_context.translator.number(float(pool.get("maximum",0))),visual_context.translator.content_name(str(id))]
+		_badge("character_"+str(id),text,visual_context.styles.TEAL,index,live,visual_context.translator.text("Character resources")+" · "+str(character.get("ownerId",""))); index += 1
+	for id in _run_snapshot.get("resources",{}):
+		var pool: Dictionary = _run_snapshot.resources[id]
+		_badge("run_"+str(id),"%s %s" % [visual_context.translator.number(float(pool.get("current",0))),visual_context.translator.content_name(str(id))],visual_context.styles.GOLD,index,live,"",15); index += 1
+	for entry in [["relics","⬢",visual_context.styles.EMBER],["modifiers","△",visual_context.styles.TEAL]]:
+		if not _run_snapshot.get(entry[0],[]).is_empty():
+			_badge(entry[0],"%s  %s" % [entry[1],_run_snapshot[entry[0]].size()],entry[2],index,live); index += 1
+	for id in _badges.keys():
+		if id not in live:
+			var old = _badges[id]; old.get_parent().remove_child(old); old.queue_free(); _badges.erase(id)
+	_header.get_node("Badges").visible = not live.is_empty()
+func _badge(id: String,text: String,color: Color,index: int,live: Array,hint := "",font_size := 0) -> void:
+	var label = _badges.get(id)
+	if not is_instance_valid(label):
+		label = preload("res://scenes/ui/components/activity_badge.tscn").instantiate()
+		label.name = "Badge_"+id.validate_node_name(); _header.get_node("Badges").add_child(label); _badges[id] = label
+	label.text = text; label.tooltip_text = hint; label.add_theme_color_override("font_color",color)
+	if font_size > 0: label.add_theme_font_size_override("font_size",font_size)
+	_header.get_node("Badges").move_child(label,index); live.append(id)
+func _update_summary(node: Dictionary) -> void:
+	var kind := str(node.get("activity",{}).get("type","Unknown"))
+	var art = _summary.get_node("Row/Art"); art.rebind_context(visual_context); art.setup("activities",kind)
+	var content = _summary.get_node("Row/Content")
+	content.get_node("Kind").text = visual_context.translator.content_name(kind).to_upper()
+	content.get_node("Title").text = presenter.node_name(str(node.get("nodeId","")))
+	content.get_node("Title").add_theme_color_override("font_color",visual_context.styles.GOLD)
 	var description: String = {
 		"Encounter": visual_context.translator.text("Study the enemy's intent. Balance offense and defense."),
 		"RelicReward": visual_context.translator.text("Claim a relic. Its effects will influence your upcoming battles."),
@@ -117,31 +106,15 @@ func _activity_summary(node: Dictionary) -> Control:
 		"Preparation": visual_context.translator.text("Rest or prepare for your next battle."),
 		"CardUpgrade": visual_context.translator.text("Upgrade a card to improve its base components.")
 	}.get(kind, visual_context.translator.text("Choose your next action."))
-	content.add_child(visual_context.styles.muted(presenter.node_description(node, description), 16, 180))
-	var zone_view = preload("res://scripts/presentation/card_zone_presenter.gd").new(_zone_snapshot, visual_context.translator)
-	content.add_child(visual_context.styles.muted(visual_context.translator.text("Deck · %s cards") % zone_view.total_cards(), 14))
-	row.add_child(content)
-	return visual_context.styles.panel(row)
-
-
-func _build_ending(lifecycle: String) -> Control:
-	var center := CenterContainer.new()
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var content := VBoxContainer.new()
-	content.custom_minimum_size.x = 560
-	var won := lifecycle.to_lower() == "completed"
-	content.add_child(visual_context.styles.title(visual_context.translator.text("ARCHIVE COMPLETE") if won else visual_context.translator.text("THE FLAME HAS FADED"), 40,
-		visual_context.styles.GOLD if won else visual_context.styles.BLOOD))
-	content.add_child(visual_context.styles.muted(visual_context.translator.text("Your journey has been preserved. Watch its immutable recording, verify its integrity or start a new ascent.")))
-	var replay_button := _button(visual_context.translator.text("WATCH REPLAY"), _replay.bind(str(_run_snapshot.get("runId", ""))), 420)
-	replay_button.name = "EndingReplayButton"
-	content.add_child(replay_button)
-	content.add_child(_button(visual_context.translator.text("VERIFY INTEGRITY"), _verify, 420))
-	content.add_child(_button(visual_context.translator.text("NEW JOURNEY"), _new_journey, 420))
-	content.add_child(_button(visual_context.translator.text("MAIN MENU"), _main_menu, 420))
-	center.add_child(visual_context.styles.panel(content))
-	return center
-
+	content.get_node("Description").text = presenter.node_description(node,description)
+	var zones = preload("res://scripts/presentation/card_zone_presenter.gd").new(_zone_snapshot,visual_context.translator)
+	content.get_node("DeckCount").text = visual_context.translator.text("Deck · %s cards") % zones.total_cards()
+func _update_ending(lifecycle: String) -> void:
+	var content = _ending.get_node("Panel/Content"); var won := lifecycle == "completed"
+	content.get_node("Title").text = visual_context.translator.text("ARCHIVE COMPLETE" if won else "THE FLAME HAS FADED")
+	content.get_node("Title").add_theme_color_override("font_color",visual_context.styles.GOLD if won else visual_context.styles.BLOOD)
+	content.get_node("Description").text = visual_context.translator.text("Your journey has been preserved. Watch its immutable recording, verify its integrity or start a new ascent.")
+	for entry in [["EndingReplayButton","WATCH REPLAY"],["Verify","VERIFY INTEGRITY"],["NewJourney","NEW JOURNEY"],["MainMenu","MAIN MENU"]]: content.get_node(entry[0]).text = visual_context.translator.text(entry[1])
 
 func _current_node() -> Dictionary:
 	return presenter.current_node()
@@ -155,15 +128,8 @@ func _node_name(id: String) -> String:
 	return str(presentation.get("nodes", {}).get(id, {}).get("name", id.replace("_", " ").capitalize()))
 
 
-func _button(text: String, action: Callable, width := 0) -> Button:
-	var value := visual_context.styles.button(text, width)
-	value.name = "ActivityAction_" + str(action.get_method()).validate_node_name()
-	value.pressed.connect(action)
-	return value
-
-
-
 func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: Dictionary, projection, context) -> void:
+	var first_projection := _region_keys.is_empty()
 	mount(context)
 	theme = context.theme
 	_run_snapshot = run.duplicate(true)
@@ -177,66 +143,23 @@ func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: 
 	var display_run := _run_snapshot.duplicate(true)
 	display_run.erase("sequence")
 	var header_key: Array = [display_run, visual_key]
+	_bind_nodes()
 	if _region_keys.get("header") != header_key:
-		var desired := _build_header()
-		if is_instance_valid(_header):
-			preload("res://scripts/ui/view_reconciler.gd").patch_contents(_header, desired); desired.free()
-		else:
-			_header = desired; add_child(_header)
-		_region_keys.header = header_key.duplicate(true)
-	var title := _header.find_child("RunTitle", true, false)
-	if title: title.tooltip_text = "Seed: %s · Sequence: %s" % [run.get("seed", 0), run.get("sequence", 0)]
-	var lifecycle := str(run.get("lifecycle", "Active")).to_lower()
-	if _lifecycle != lifecycle:
-		for node in [_columns, _ending]:
-			if is_instance_valid(node): remove_child(node); node.queue_free()
-		_columns = null; _ending = null; _summary = null
-		_region_keys.erase("actions"); _region_keys.erase("summary")
-		_lifecycle = lifecycle
+		_update_header(); _region_keys.header = header_key.duplicate(true)
+	_header.get_node("Row/Titles/RunTitle").tooltip_text = "Seed: %s · Sequence: %s" % [run.get("seed",0),run.get("sequence",0)]
+	var lifecycle := str(run.get("lifecycle","Active")).to_lower()
+	if first_projection and lifecycle != "active": add_theme_constant_override("separation",initial_ending_header_gap)
+	_columns.visible = lifecycle == "active"; _ending.visible = lifecycle != "active"
 	if lifecycle != "active":
-		var ending_key: Array = [lifecycle, visual_key, run.get("runId", "")]
-		if _region_keys.get("ending") != ending_key:
-			var ending := _build_ending(lifecycle)
-			if is_instance_valid(_ending):
-				preload("res://scripts/ui/view_reconciler.gd").patch_contents(_ending, ending); ending.free()
-			else: _ending = ending; add_child(_ending)
-			_region_keys.ending = ending_key.duplicate(true)
-		visual_context.styles.apply_view_preferences(self)
-		return
-	if not is_instance_valid(_columns):
-		_build_structure()
-	var summary_key: Array = [_current_node(), _zone_snapshot, visual_key]
-	if _region_keys.get("summary") != summary_key:
-		var dialogue := str(_current_node().get("activity", {}).get("type", "")) == "Dialogue"
-		if dialogue:
-			if is_instance_valid(_summary): _workspace.remove_child(_summary); _summary.queue_free(); _summary = null
-		else:
-			var summary := _activity_summary(_current_node())
-			if is_instance_valid(_summary):
-				preload("res://scripts/ui/view_reconciler.gd").patch_contents(_summary, summary); summary.free()
-			else:
-				_summary = summary; _workspace.add_child(summary); _workspace.move_child(summary, 0)
-		_region_keys.summary = summary_key.duplicate(true)
-	action_panel.apply_projection(_run_snapshot, choices, presenter, visual_context)
+		_update_ending(lifecycle); visual_context.styles.apply_view_preferences(self); return
+	var summary_key: Array = [_current_node(),_zone_snapshot,visual_key]
+	_summary.visible = str(_current_node().get("activity",{}).get("type","")) != "Dialogue"
+	if _summary.visible and _region_keys.get("summary") != summary_key:
+		_update_summary(_current_node()); _region_keys.summary = summary_key.duplicate(true)
+	action_panel.animate_card_entry = animate_card_entry
+	action_panel.apply_projection(_run_snapshot,choices,presenter,visual_context)
 	visual_context.styles.apply_view_preferences(self)
-	_restore_scroll.call_deferred(render_epoch, 0, action_scroll)
-
-func _build_structure() -> void:
-	add_theme_constant_override("separation", 16)
-	_columns = HBoxContainer.new(); _columns.name = "ActivityColumns"
-	_columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_columns.add_theme_constant_override("separation", 22)
-	add_child(_columns)
-	_workspace = VBoxContainer.new(); _workspace.name = "ActivityWorkspace"
-	_workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_workspace.add_theme_constant_override("separation", 14)
-	var scroll := ScrollContainer.new(); scroll.name = "ActionScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	action_panel = OptionsView.new(); action_panel.name = "ActionPanel"
-	action_panel.intent_requested.connect(func(action, arguments): intent_requested.emit(action, arguments))
-	action_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(action_panel); _workspace.add_child(scroll); _columns.add_child(_workspace)
+	_restore_scroll.call_deferred(render_epoch,0,action_scroll)
 
 func set_choices_disabled(disabled: bool) -> void:
 	for button in choice_buttons:

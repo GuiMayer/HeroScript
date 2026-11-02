@@ -2,7 +2,6 @@ extends Control
 
 const SandboxScreen = preload("res://scripts/ui/sandbox_screen.gd")
 const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
-const ActivityScreen = preload("res://scripts/ui/activity_screen.gd")
 const DialogueScreen = preload("res://scripts/ui/dialogue_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
@@ -300,7 +299,7 @@ func show_activity(inspect_map := false) -> void:
 			return
 	current_screen = "activity"
 	_clear_host()
-	var screen = ActivityScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("activity")
 	screen.setup(self, presentation)
 	host.add_child(screen)
 

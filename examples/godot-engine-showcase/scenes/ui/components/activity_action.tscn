@@ -1,0 +1,7 @@
+[gd_scene format=3]
+[node name="ActivityAction" type="Button"]
+custom_minimum_size = Vector2(0,48)
+theme_type_variation = &"SecondaryAction"
+theme_override_font_sizes/font_size = 14
+alignment = 0
+metadata/activity_choice = true

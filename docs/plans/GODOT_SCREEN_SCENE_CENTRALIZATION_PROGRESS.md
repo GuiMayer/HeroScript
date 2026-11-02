@@ -84,4 +84,10 @@ MapScreen, MapView, RouteView, nós e inspector flutuante possuem cenas própria
 
 Testes aprovados: edição 8, grafo 10, geometria 12, seleção 26, topologia 30, conclusão 30, câmera 51, primeira saída de combate 8 e conclusão de atividade 12. O teste da câmera já apresentava falhas na baseline por avançar manualmente um tween após aguardar tempo real; agora pausa na criação antes do avanço controlado, sem mudar a duração em produção. Teste REST protegido para exigir API isolada; execução real permanece para a certificação final. Comparação em duas resoluções e duas escalas confirmou geometria equivalente de mapa, nós, captions e inspector (map.geometry.json).
 
-Etapas 14–20: pendentes.
+## Etapa 14 — Atividades, ofertas, loja e forge
+
+ActivityScreen e JourneyView compõem header, resumo, encerramento e host de opções autorados. Ofertas de carta, ações secundárias e ofertas genéricas usam templates reconciliados por referência opaca; CardView permanece canônico. Confirmação de transformação possui Before/After editáveis com as mesmas cartas; inventário de modificadores usa overlay próprio. Controllers, validação, autoavanço e comandos permanecem nos mesmos serviços.
+
+Testes aprovados: cenas editáveis 7, reconciliação 21, ingresso 11, conclusão de atividade 12, modificadores 33 e menus 90. Testes com engine real continuam reservados para API/store isolados na certificação final. Comparação de encontro, recompensa e encerramento em duas resoluções e duas escalas confirmou geometria equivalente (activity.geometry.json). A separação inicial menor do encerramento é exposta como propriedade visual, preservando a apresentação anterior.
+
+Etapas 15–20: pendentes.
