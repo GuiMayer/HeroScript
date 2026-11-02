@@ -72,7 +72,7 @@ func _ready() -> void:
 	_confirm_button.pressed.connect(_confirm); actions.add_child(_confirm_button)
 	_discard_dialog.dialog_text = I18n.text("Discard unconfirmed loadout changes?")
 	add_child(_discard_dialog)
-	view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
+	view = preload("res://scripts/ui/loadout/loadout_view.gd").create()
 	view.mount(visual_context)
 	page.add_child(view)
 	view.item_requested.connect(func(id): _edit("select_item", [id]))

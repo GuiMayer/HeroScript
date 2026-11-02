@@ -1,3 +1,5 @@
+@tool
+class_name InscriptionLoadoutView
 extends VBoxContainer
 ## Passive reusable view. Emits intents; never equips, validates rules or calculates attributes.
 signal item_requested(id: String)
@@ -13,8 +15,8 @@ signal preset_requested(index: int)
 signal search_requested(value: String)
 signal back_requested
 var visual_context
-var editorial_layout := false
-var shared_attributes := false
+@export var editorial_layout := false
+@export var shared_attributes := false
 var _filter := "All"
 var _filter_buttons := {}
 var _separators: Array[Control] = []
@@ -22,14 +24,14 @@ var _model: Dictionary = {}
 var _inventory := {}
 var _positions := {}
 var _choices_built := false
-var columns := BoxContainer.new()
-var inventory_grid := GridContainer.new()
-var inventory_scroll := ScrollContainer.new()
-var slot_grid := GridContainer.new()
-var preset_picker := OptionButton.new()
-var search_field := LineEdit.new()
+var columns: BoxContainer
+var inventory_grid: GridContainer
+var inventory_scroll: ScrollContainer
+var slot_grid: GridContainer
+var preset_picker: OptionButton
+var search_field: LineEdit
 var capacity_label: Label
-var capacity_meter := ProgressBar.new()
+var capacity_meter: ProgressBar
 var warning: Label
 var details: RichTextLabel
 var attributes_view
@@ -38,234 +40,89 @@ var remove_button: Button
 var _inventory_panel: PanelContainer
 var _identity: Array = []
 var _authority_note: Label
+var _authored_font_sizes := {}
+
+static func create(editorial := false) -> InscriptionLoadoutView:
+	var path := "res://scenes/ui/components/loadout/inscriptions_" + ("editorial" if editorial else "workbench") + ".tscn"
+	return (load(path) as PackedScene).instantiate()
+
+func _ready() -> void:
+	if visual_context == null:
+		mount(preload("res://scripts/ui/visual_context.gd").new(null, {}, preload("res://data/themes/ivory_theme.tres")))
 
 func mount(context) -> void:
-	visual_context = context
-	name = "LoadoutView"
-	theme = context.theme
-	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_theme_constant_override("separation", 14)
-	_build()
-	resized.connect(_responsive)
+	var first_mount := visual_context == null
+	visual_context = context; theme = context.theme
+	columns = find_child("LoadoutColumns", true, false)
+	inventory_grid = find_child("InscriptionInventory", true, false)
+	inventory_scroll = find_child("InscriptionInventoryScroll", true, false)
+	slot_grid = find_child("InscriptionSlots", true, false)
+	preset_picker = find_child("LoadoutPresetPicker", true, false)
+	search_field = find_child("InscriptionSearch", true, false)
+	capacity_label = find_child("LoadoutCapacity", true, false)
+	capacity_meter = find_child("LoadoutBudgetMeter", true, false)
+	warning = find_child("LoadoutDraftWarning", true, false)
+	details = find_child("InscriptionDetails", true, false)
+	equip_button = find_child("LoadoutEquipButton", true, false)
+	remove_button = find_child("LoadoutRemoveButton", true, false)
+	_inventory_panel = find_child("InventoryPanel", true, false)
+	_authority_note = find_child("AuthorityNote", true, false)
+	_separators.assign(columns.find_children("*", "VSeparator", false, false))
+	var character_panel = find_child("CharacterPanel", true, false)
+	if shared_attributes:
+		if character_panel != null:
+			character_panel.hide()
+			if not Engine.is_editor_hint():
+				character_panel.get_parent().remove_child(character_panel); character_panel.free()
+			if not _separators.is_empty():
+				var rule = _separators.pop_back(); rule.hide()
+				if not Engine.is_editor_hint():
+					rule.get_parent().remove_child(rule); rule.free()
+		attributes_view = null
+	else:
+		attributes_view = find_child("LoadoutCharacterAttributes", true, false)
+		if attributes_view != null: attributes_view.mount(context)
+	_translate(self)
+	search_field.placeholder_text = context.translator.text("Search inscriptions")
+	if first_mount:
+		for style_name in ["background", "fill"]: capacity_meter.add_theme_stylebox_override(style_name, capacity_meter.get_theme_stylebox(style_name).duplicate())
+		preset_picker.item_selected.connect(preset_requested.emit)
+		search_field.text_changed.connect(search_requested.emit)
+		equip_button.pressed.connect(equip_requested.emit)
+		remove_button.pressed.connect(remove_requested.emit)
+		find_child("LoadoutClearButton", true, false).pressed.connect(clear_requested.emit)
+		find_child("LoadoutRestoreButton", true, false).pressed.connect(restore_requested.emit)
+		var back = find_child("LoadoutBackButton", true, false)
+		if back != null: back.pressed.connect(back_requested.emit)
+		for key in ["All", "Offense", "Defense", "Utility"]:
+			var filter = find_child("LoadoutFilter" + key, true, false)
+			if filter == null: continue
+			filter.pressed.connect(func(): _filter = key; present(_model))
+			_filter_buttons[key] = filter
+	if not resized.is_connected(_responsive): resized.connect(_responsive)
 	_responsive.call_deferred()
 
-func _text(key: String, font_size := 16, role := "text.primary") -> Label:
-	var label := Label.new()
-	label.text = visual_context.translator.text(key)
-	label.add_theme_font_size_override("font_size", roundi(font_size * visual_context.text_scale))
-	label.add_theme_color_override("font_color", visual_context.styles.color(role))
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label
-func _button(key: String, node_name: String, callback: Callable) -> Button:
-	var button: Button = visual_context.styles.button(visual_context.translator.text(key))
-	button.name = node_name
-	button.pressed.connect(callback)
-	return button
-func _panel(title: String, content: Control, width: float) -> PanelContainer:
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
-	if not title.is_empty():
-		var heading: Label = visual_context.styles.title(visual_context.translator.text(title), 24) if editorial_layout else _text(title, 18)
-		visual_context.styles.wrap(heading, 0)
-		column.add_child(heading)
-		column.add_child(HSeparator.new())
-	column.add_child(content)
-	var panel: PanelContainer = visual_context.styles.panel(column)
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size.x = width
-	if editorial_layout: panel.add_theme_stylebox_override("panel", visual_context.styles.box(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
-	return panel
-func _rich(node_name: String) -> RichTextLabel:
-	var label := RichTextLabel.new()
-	label.name = node_name
-	label.fit_content = true
-	label.scroll_active = false
-	label.selection_enabled = true
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.custom_minimum_size.y = 80
-	return label
-func _build() -> void:
-	if editorial_layout: _build_editorial(); return
-	var header := HBoxContainer.new()
-	header.name = "LoadoutHeader"
-	var heading := _text("INSCRIPTION WORKBENCH", 27)
-	heading.theme_type_variation = "SectionTitle"
-	header.add_child(heading)
-	header.add_child(_button("BACK", "LoadoutBackButton", back_requested.emit))
-	add_child(header)
-	_authority_note = _text("Visual prototype only. No items, attributes or runs are changed.", 14, "accent.warm")
-	add_child(_authority_note)
-	var tools := HBoxContainer.new()
-	var layout_label := _text("Example layout", 14); layout_label.name = "LoadoutLayoutLabel"; tools.add_child(layout_label)
-	preset_picker.name = "LoadoutPresetPicker"
-	preset_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	preset_picker.item_selected.connect(preset_requested.emit)
-	tools.add_child(preset_picker)
-	tools.add_child(_button("Restore example", "LoadoutRestoreButton", restore_requested.emit))
-	tools.add_child(_button("Clear draft", "LoadoutClearButton", clear_requested.emit))
-	add_child(tools)
-	columns.add_theme_constant_override("separation", 16)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(columns)
-	var inventory := VBoxContainer.new()
-	inventory.add_theme_constant_override("separation", 10)
-	search_field.name = "InscriptionSearch"
-	search_field.placeholder_text = visual_context.translator.text("Search inscriptions")
-	search_field.text_changed.connect(search_requested.emit)
-	inventory.add_child(search_field)
-	inventory_grid.name = "InscriptionInventory"
-	inventory_grid.add_theme_constant_override("h_separation", 8)
-	inventory_grid.add_theme_constant_override("v_separation", 8)
-	inventory_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inventory_scroll.name = "InscriptionInventoryScroll"
-	inventory_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	inventory_scroll.follow_focus = true
-	inventory_scroll.add_child(inventory_grid)
-	inventory.add_child(inventory_scroll)
-	_inventory_panel = _panel("INSCRIPTIONS", inventory, 240)
-	columns.add_child(_inventory_panel)
-	var board := VBoxContainer.new()
-	board.add_theme_constant_override("separation", 12)
-	capacity_label = _text("", 20)
-	capacity_label.name = "LoadoutCapacity"
-	board.add_child(capacity_label)
-	capacity_meter.name = "LoadoutBudgetMeter"
-	capacity_meter.show_percentage = false
-	capacity_meter.custom_minimum_size.y = 8
-	capacity_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	capacity_meter.add_theme_stylebox_override("background", visual_context.styles.box(empty_slot_color, 0, empty_slot_border, 0))
-	capacity_meter.add_theme_stylebox_override("fill", visual_context.styles.box(visual_context.styles.color("accent.positive"), 0, Color.TRANSPARENT, 0))
-	board.add_child(capacity_meter)
-	var trace = preload("res://scripts/ui/components/circuit_trace.gd").new()
-	trace.custom_minimum_size.y = 24
-	trace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	board.add_child(trace)
-	slot_grid.name = "InscriptionSlots"
-	slot_grid.columns = 2
-	slot_grid.add_theme_constant_override("h_separation", 10)
-	slot_grid.add_theme_constant_override("v_separation", 10)
-	board.add_child(slot_grid)
-	warning = _text("", 14, "accent.warm")
-	warning.name = "LoadoutDraftWarning"
-	board.add_child(warning)
-	var buttons := HBoxContainer.new()
-	equip_button = _button("Stage equip", "LoadoutEquipButton", equip_requested.emit)
-	equip_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buttons.add_child(equip_button)
-	remove_button = _button("Remove", "LoadoutRemoveButton", remove_requested.emit)
-	buttons.add_child(remove_button)
-	board.add_child(buttons)
-	var interaction_hint := _text("Drag an inscription into a position. Drag between occupied positions to swap. Or select an item and a position, then stage equip.", 14)
-	interaction_hint.name = "LoadoutInteractionHint"; board.add_child(interaction_hint)
-	board.add_child(HSeparator.new())
-	board.add_child(_text("INSCRIPTION DETAILS", 16))
-	details = _rich("InscriptionDetails")
-	board.add_child(details)
-	var board_panel := _panel("LOCAL LOADOUT DRAFT", board, 340)
-	board_panel.get_child(0).get_child(0).name = "LoadoutBoardTitle"
-	board_panel.size_flags_stretch_ratio = 1.3
-	columns.add_child(board_panel)
-	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").create()
-	attributes_view.mount(visual_context)
-	columns.add_child(_panel("CHARACTER ATTRIBUTES", attributes_view, 300))
-
-func _build_editorial() -> void:
-	# Reuse the same intents, tiles, draft projection and attributes component.
-	var hidden_tools := VBoxContainer.new(); hidden_tools.name = "LoadoutHeader"; hidden_tools.hide(); add_child(hidden_tools)
-	_authority_note = _text("", 13); hidden_tools.add_child(_authority_note)
-	var layout_label := _text("", 12); layout_label.name = "LoadoutLayoutLabel"; hidden_tools.add_child(layout_label)
-	hidden_tools.add_child(preset_picker)
-	hidden_tools.add_child(_button("Restore example", "LoadoutRestoreButton", restore_requested.emit))
-	columns.add_theme_constant_override("separation", 18)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL; add_child(columns)
-	var inventory := VBoxContainer.new(); inventory.add_theme_constant_override("separation", 14)
-	search_field.name = "InscriptionSearch"; search_field.placeholder_text = visual_context.translator.text("Search inscriptions")
-	search_field.custom_minimum_size.y = 40; search_field.text_changed.connect(search_requested.emit); inventory.add_child(search_field)
-	var filters := HBoxContainer.new(); filters.add_theme_constant_override("separation", 6); inventory.add_child(filters)
-	for key in ["All", "Offense", "Defense", "Utility"]:
-		var button := _button(key, "LoadoutFilter" + key, func(): _filter = key; present(_model))
-		button.toggle_mode = true; button.custom_minimum_size = Vector2(0, 34); button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.add_theme_stylebox_override("pressed", visual_context.styles.box(visual_context.styles.color("accent.primary"), 0, visual_context.styles.color("accent.primary"), 1))
-		button.add_theme_color_override("font_pressed_color", Color.WHITE)
-		button.add_theme_color_override("font_hover_pressed_color", Color.WHITE)
-		filters.add_child(button); _filter_buttons[key] = button
-	inventory_grid.name = "InscriptionInventory"; inventory_grid.columns = 3
-	inventory_grid.add_theme_constant_override("h_separation", 10); inventory_grid.add_theme_constant_override("v_separation", 10)
-	inventory_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inventory_scroll.name = "InscriptionInventoryScroll"; inventory_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	inventory_scroll.follow_focus = true; inventory_scroll.add_child(inventory_grid); inventory.add_child(inventory_scroll)
-	_inventory_panel = _panel("INVENTORY", inventory, 280); _inventory_panel.size_flags_stretch_ratio = 0.34; columns.add_child(_inventory_panel)
-	_editorial_separator()
-	var board := VBoxContainer.new(); board.add_theme_constant_override("separation", 14)
-	var heading := HBoxContainer.new(); board.add_child(heading)
-	var title: Label = visual_context.styles.title(visual_context.translator.text("EQUIPPED INSCRIPTIONS"), 24)
-	title.name = "LoadoutBoardTitle"; visual_context.styles.wrap(title, 0); heading.add_child(title)
-	var clear := _button("Clear draft", "LoadoutClearButton", clear_requested.emit); clear.custom_minimum_size = Vector2(100, 36); heading.add_child(clear)
-	capacity_label = _text("", 26); capacity_label.name = "LoadoutCapacity"; board.add_child(capacity_label)
-	capacity_meter.name = "LoadoutBudgetMeter"; capacity_meter.custom_minimum_size.y = 8; capacity_meter.show_percentage = false
-	capacity_meter.add_theme_stylebox_override("background", visual_context.styles.box(empty_slot_color, 0, Color.TRANSPARENT, 0))
-	capacity_meter.add_theme_stylebox_override("fill", visual_context.styles.box(visual_context.styles.color("accent.primary"), 0, Color.TRANSPARENT, 0)); board.add_child(capacity_meter)
-	for style_name in ["background", "fill"]:
-		var meter_style: StyleBoxFlat = capacity_meter.get_theme_stylebox(style_name)
-		meter_style.content_margin_top = 0; meter_style.content_margin_bottom = 0
-	slot_grid.name = "InscriptionSlots"; slot_grid.columns = 3
-	slot_grid.add_theme_constant_override("h_separation", 12); slot_grid.add_theme_constant_override("v_separation", 12); board.add_child(slot_grid)
-	board.add_child(HSeparator.new())
-	details = _rich("InscriptionDetails"); details.custom_minimum_size.y = 90; board.add_child(details)
-	var actions := HBoxContainer.new(); board.add_child(actions)
-	equip_button = _button("Equip", "LoadoutEquipButton", equip_requested.emit); actions.add_child(equip_button)
-	remove_button = _button("Remove", "LoadoutRemoveButton", remove_requested.emit); actions.add_child(remove_button)
-	warning = _text("", 13, "accent.warm"); warning.name = "LoadoutDraftWarning"; board.add_child(warning)
-	var hint := _text("Drag inscriptions to equip or swap. Changes are saved automatically.", 13, "text.secondary"); hint.name = "LoadoutInteractionHint"; board.add_child(hint)
-	var board_panel := _panel("", board, 330); board_panel.size_flags_stretch_ratio = 0.40; columns.add_child(board_panel)
-	if shared_attributes: return
-	_editorial_separator()
-	attributes_view = preload("res://scripts/ui/loadout/character_attributes_view.gd").create(); attributes_view.editorial_layout = true
-	attributes_view.mount(visual_context)
-	var character_panel := _panel("CHARACTER", attributes_view, 260); character_panel.size_flags_stretch_ratio = 0.26; columns.add_child(character_panel)
-
-func _editorial_separator() -> void:
-	var rule := VSeparator.new(); columns.add_child(rule); _separators.append(rule)
+func _translate(node: Node) -> void:
+	if node.has_meta("source_text"):
+		node.text = visual_context.translator.text(str(node.get_meta("source_text")))
+	if node is Label and not node.has_meta("font_role") and node.has_theme_font_size_override("font_size"):
+		var id := node.get_instance_id()
+		if not _authored_font_sizes.has(id): _authored_font_sizes[id] = node.get_theme_font_size("font_size")
+		node.add_theme_font_size_override("font_size", roundi(_authored_font_sizes[id] * visual_context.text_scale))
+	for child in node.get_children():
+		if child.scene_file_path.is_empty(): _translate(child)
 
 func _tile(node_name: String, minimum_height: float, callback: Callable) -> Button:
-	var button := preload("res://scripts/ui/loadout/inscription_tile.gd").new()
+	var button = preload("res://scripts/ui/loadout/inscription_tile.gd").create(editorial_layout)
 	button.drag_scope = get_instance_id()
 	button.inscription_dropped.connect(drop_requested.emit)
 	button.name = node_name
 	button.custom_minimum_size = Vector2(90 if editorial_layout else 130, 168 * visual_context.text_scale if editorial_layout else minimum_height)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(callback)
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 10)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var content := VBoxContainer.new()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_theme_constant_override("separation", 5)
-	if editorial_layout:
-		content.alignment = BoxContainer.ALIGNMENT_CENTER
-		var icon := TextureRect.new(); icon.name = "InscriptionSigil"; icon.custom_minimum_size.y = 54
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE; content.add_child(icon)
-	var title := _text("", 14 if editorial_layout else 16)
-	title.name = "TileTitle"
-	if editorial_layout:
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.max_lines_visible = 2; title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	content.add_child(title)
-	var subtitle := _text("", 13, "text.secondary")
-	subtitle.name = "TileSubtitle"
-	if editorial_layout: subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(subtitle)
-	margin.add_child(content)
-	button.add_child(margin)
-	if editorial_layout:
-		var cost := _text("", 13); cost.name = "InscriptionCost"
-		cost.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT); cost.position = Vector2(-38, 8); cost.size = Vector2(28, 24)
-		cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; button.add_child(cost)
+	for entry in [["TileTitle", "text.primary"], ["TileSubtitle", "text.secondary"], ["InscriptionCost", "text.primary"]]:
+		var label = button.find_child(entry[0], true, false)
+		if label != null: label.add_theme_color_override("font_color", visual_context.styles.color(entry[1]))
+	visual_context.styles.apply_view_preferences(button)
 	return button
 func _tile_text(button: Button, title: String, subtitle: String, active: bool, empty := false) -> void:
 	button.find_child("TileTitle", true, false).text = title
@@ -403,6 +260,7 @@ func _bonus_lines(item: Dictionary, stats: Dictionary) -> Array[String]:
 		rows.append(preload("res://scripts/ui/loadout/loadout_stat_text.gd").bonus(stat, bonus.amount, visual_context.translator) + " " + visual_context.translator.text(stat.label))
 	return rows
 func _responsive() -> void:
+	if visual_context == null or columns == null: return
 	if editorial_layout:
 		columns.vertical = size.x < 980 * minf(visual_context.text_scale, 1.15)
 		for rule in _separators: rule.visible = not columns.vertical

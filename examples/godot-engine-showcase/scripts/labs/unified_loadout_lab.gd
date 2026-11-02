@@ -12,7 +12,7 @@ func _ready() -> void:
 	shell.tab_requested.connect(shell.select)
 	var fixture = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/inscription_loadout_lab.json"))
 	if not fixture is Dictionary or not draft.configure(fixture).is_empty(): return
-	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
+	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").create(true)
 	inscriptions_view.editorial_layout = true; inscriptions_view.shared_attributes = true; inscriptions_view.mount(context)
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	inscriptions_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(inscriptions_view); shell.install("inscriptions", scroll)

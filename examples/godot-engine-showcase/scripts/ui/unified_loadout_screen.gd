@@ -23,7 +23,7 @@ func _ready() -> void:
 	shell.heading.text = I18n.content_name(str(session.run.get("playerEntityId", ""))) + " · " + I18n.content_name(setting_id, setting_id.capitalize())
 	shell.tab_requested.connect(_select_tab); shell.back_requested.connect(_back); shell.recovery_requested.connect(controller.recover)
 	shell.attribute_sources_requested.connect(_attribute_sources)
-	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").new()
+	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").create(true)
 	inscriptions_view.editorial_layout = true; inscriptions_view.shared_attributes = true; inscriptions_view.mount(context)
 	var scroll: ScrollContainer = shell.content.get_node("InscriptionsScroll")
 	var inscription_body: VBoxContainer = scroll.get_node("InscriptionBody")

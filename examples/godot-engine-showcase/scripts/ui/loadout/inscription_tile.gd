@@ -1,3 +1,4 @@
+class_name InscriptionTile
 extends Button
 ## Native drag/drop presentation only. Payloads belong to one live view revision.
 signal inscription_dropped(item_id: String, slot_id: String, source_slot: String)
@@ -8,6 +9,10 @@ var drag_scope: int
 var revision := ""
 var known_items: Array = []
 var drop_color := Color("286853")
+
+static func create(editorial := true) -> InscriptionTile:
+	var path := "res://scenes/ui/components/loadout/inscription_tile_" + ("editorial" if editorial else "compact") + ".tscn"
+	return (load(path) as PackedScene).instantiate()
 
 func _ready() -> void:
 	set_process(false)
@@ -20,23 +25,13 @@ func drag_payload() -> Variant:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	var data = drag_payload()
 	if data == null: return null
-	var cursor_anchor := Control.new()
-	cursor_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var preview := PanelContainer.new()
+	var cursor_anchor: Control = preload("res://scenes/ui/components/loadout/inscription_drag_preview.tscn").instantiate()
+	var preview: PanelContainer = cursor_anchor.get_node("Surface")
 	preview.theme = get_theme()
 	preview.add_theme_stylebox_override("panel", get_theme_stylebox("normal"))
-	preview.position = Vector2(16, 16)
-	preview.size = Vector2(230, 95)
-	preview.modulate.a = 0.92
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := Label.new()
+	var label: Label = preview.get_node("Description")
 	label.text = tooltip_text
 	label.add_theme_color_override("font_color", find_child("TileTitle", true, false).get_theme_color("font_color"))
-	label.add_theme_font_size_override("font_size", 16)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview.add_child(label)
-	cursor_anchor.add_child(preview)
 	set_drag_preview(cursor_anchor)
 	return data
 

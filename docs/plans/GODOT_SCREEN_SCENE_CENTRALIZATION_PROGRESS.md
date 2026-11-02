@@ -54,4 +54,10 @@ LoadoutPage possui header, hosts, feedback, recuperação e atributos autorados.
 
 Testes aprovados: shell editável 6, navegação 9, layout 48, autosave 9, recuperação 9, fluxo de run 22, input nativo 6 e layout editorial 187. Comparação da shell em três resoluções e duas escalas confirmou geometria equivalente (loadout-shell.geometry.json).
 
-Etapas 9–20: pendentes.
+## Etapa 9 — Inscrições, slots e inventário
+
+Layouts editorial e de bancada usam cenas autoradas do mesmo componente passivo. Inventário e slots instanciam tiles compartilhados; preview de drag possui cena própria. Preservados filtros, contraste vazio/equipado, payloads com escopo/revisão, comparação de atributos e autosave. O módulo da run remove a coluna local de atributos; o editor mantém nodes autorados intactos.
+
+Testes aprovados: edição 7, input nativo 6, layout editorial 187 e laboratório 146. Contratos de shell 9, autosave 9 e fluxo da run 22 também passaram na migração. Comparação com a implementação anterior confirmou geometria equivalente nas duas apresentações, em escalas 1.0 e 1.6 (inscriptions.geometry.json).
+
+Etapas 10–20: pendentes.
