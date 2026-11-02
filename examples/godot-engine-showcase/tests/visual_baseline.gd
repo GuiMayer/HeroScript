@@ -15,13 +15,24 @@ class FixtureGateway extends RefCounted:
 	func inspect_hand(_combat: String, _actor: String, _targets: Array) -> Dictionary:
 		calls.append("inspect_hand")
 		return {"ok": true, "data": {"cards": []}}
-	func run_timeline(_run: String, _cursor: int, _limit: int) -> Dictionary:
+	func run_timeline(_run: String, _cursor: int, _limit: int, _through := 0) -> Dictionary:
 		calls.append("run_timeline")
 		return {"ok": true, "data": {"items": [{"sequence": 1, "commandType": "START_ENCOUNTER", "step": 1,
-			"stateHash": "synthetic-baseline-not-an-engine-hash", "frames": []}], "nextCursor": 0}}
+			"stateHash": "synthetic-baseline-not-an-engine-hash", "frames": []}], "nextCursor": 1, "throughSequence": 1, "hasMore": false}}
 	func run_commit(_run: String, _sequence: int) -> Dictionary:
 		calls.append("run_commit")
 		return {"ok": true, "data": {"stateAfter": run.duplicate(true)}}
+	func replay_context() -> Array: return ["visual-fixture", 1]
+	func _ticket(response: Dictionary):
+		var ticket = load("res://scripts/engine/read_ticket.gd").new()
+		ticket.finish(response); return ticket
+	func begin_run_timeline(id: String, cursor: int, limit: int, through: int):
+		return _ticket(run_timeline(id, cursor, limit, through))
+	func begin_run_presentation(id: String, sequence: int):
+		calls.append("run_presentation")
+		return _ticket({"ok": true, "data": {"runId": id, "sequence": sequence,
+			"stateHash": "synthetic-baseline-not-an-engine-hash", "stateSummary": run.duplicate(true)}})
+	func begin_run_commit(id: String, sequence: int): return _ticket(run_commit(id, sequence))
 	func connect_engine() -> Dictionary:
 		calls.append("connect_engine")
 		return {"ok": false, "error": "Offline visual baseline", "status": 503}
@@ -159,7 +170,7 @@ func _run() -> void:
 		await capture("replay")
 		check(router.host.get_child(0).entries.size() == 1, "replay renders synthetic recording")
 	check(root.get_node("GameServices").diagnostics().is_empty(), "no real HTTP requests")
-	check(gateway.calls.all(func(call): return call in ["inspect_hand", "run_timeline", "run_commit"]), "only passive fixture reads")
+	check(gateway.calls.all(func(call): return call in ["inspect_hand", "run_timeline", "run_commit", "run_presentation"]), "only passive fixture reads")
 	check((FileAccess.get_file_as_string(prefs.SAVE_PATH) if FileAccess.file_exists(prefs.SAVE_PATH) else "") == saved_before, "preferences untouched")
 	var report := {"fixture": true, "engine_version": Engine.get_version_info().string, "display_driver": DisplayServer.get_name(),
 		"locale": "en", "text_scale": 1.0, "reduced_motion": true, "captured_at_utc": Time.get_datetime_string_from_system(true),

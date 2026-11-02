@@ -1,112 +1,116 @@
 {
   "w1_power_surge": {
-    "en": "Power Surge",
-    "pt_BR": "Surto de energia"
+	"en": "Power Surge",
+	"pt_BR": "Surto de energia"
   },
   "w1_blood_fuel": {
-    "en": "Blood Fuel",
-    "pt_BR": "Combustível vital"
+	"en": "Blood Fuel",
+	"pt_BR": "Combustível vital"
   },
   "w1_charge_cell": {
-    "en": "Charge Cell",
-    "pt_BR": "Célula de carga"
+	"en": "Charge Cell",
+	"pt_BR": "Célula de carga"
   },
   "w1_release_charge": {
-    "en": "Release Charge",
-    "pt_BR": "Liberar carga"
+	"en": "Release Charge",
+	"pt_BR": "Liberar carga"
   },
   "w1_guarded_strike": {
-    "en": "Guarded Strike",
-    "pt_BR": "Golpe protegido"
+	"en": "Guarded Strike",
+	"pt_BR": "Golpe protegido"
   },
   "w1_guard_wave": {
-    "en": "Guard Wave",
-    "pt_BR": "Onda de guarda"
+	"en": "Guard Wave",
+	"pt_BR": "Onda de guarda"
   },
   "w1_desperate_guard": {
-    "en": "Desperate Guard",
-    "pt_BR": "Guarda desesperada"
+	"en": "Desperate Guard",
+	"pt_BR": "Guarda desesperada"
   },
   "w1_shelter": {
-    "en": "Shelter",
-    "pt_BR": "Abrigo"
+	"en": "Shelter",
+	"pt_BR": "Abrigo"
   },
   "w1_cinder_brand": {
-    "en": "Cinder Brand",
-    "pt_BR": "Marca de brasa"
+	"en": "Cinder Brand",
+	"pt_BR": "Marca de brasa"
   },
   "w1_volatile_rot": {
-    "en": "Volatile Rot",
-    "pt_BR": "Podridão volátil"
+	"en": "Volatile Rot",
+	"pt_BR": "Podridão volátil"
   },
   "w1_caustic_guard": {
-    "en": "Caustic Guard",
-    "pt_BR": "Guarda cáustica"
+	"en": "Caustic Guard",
+	"pt_BR": "Guarda cáustica"
   },
   "w1_lingering_aegis": {
-    "en": "Lingering aegis",
-    "pt_BR": "Égide persistente"
+	"en": "Lingering aegis",
+	"pt_BR": "Égide persistente"
   },
   "w1_vital_surge": {
-    "en": "Vital Surge",
-    "pt_BR": "Surto vital"
+	"en": "Vital Surge",
+	"pt_BR": "Surto vital"
   },
   "w1_mending_echo": {
-    "en": "Mending Echo",
-    "pt_BR": "Eco restaurador"
+	"en": "Mending Echo",
+	"pt_BR": "Eco restaurador"
   },
   "w1_release_mending": {
-    "en": "Release Mending",
-    "pt_BR": "Liberar restauração"
+	"en": "Release Mending",
+	"pt_BR": "Liberar restauração"
   },
   "w1_delayed_recovery": {
-    "en": "Delayed Recovery",
-    "pt_BR": "Recuperação adiada"
+	"en": "Delayed Recovery",
+	"pt_BR": "Recuperação adiada"
   },
   "w1_seek_attack": {
-    "en": "Seek Attack",
-    "pt_BR": "Buscar ataque"
+	"en": "Seek Attack",
+	"pt_BR": "Buscar ataque"
   },
   "w1_gather_defense": {
-    "en": "Gather Defense",
-    "pt_BR": "Reunir defesas"
+	"en": "Gather Defense",
+	"pt_BR": "Reunir defesas"
   },
   "w1_recover_trace": {
-    "en": "Recover Trace",
-    "pt_BR": "Recuperar vestígio"
+	"en": "Recover Trace",
+	"pt_BR": "Recuperar vestígio"
   },
   "w1_prepare_guard": {
-    "en": "Prepare Guard",
-    "pt_BR": "Preparar guarda"
+	"en": "Prepare Guard",
+	"pt_BR": "Preparar guarda"
   },
   "w1_needle_storm": {
-    "en": "Needle Storm",
-    "pt_BR": "Tempestade de agulhas"
+	"en": "Needle Storm",
+	"pt_BR": "Tempestade de agulhas"
   },
   "w1_heavy_impact": {
-    "en": "Heavy Impact",
-    "pt_BR": "Impacto pesado"
+	"en": "Heavy Impact",
+	"pt_BR": "Impacto pesado"
   },
   "w1_break_guard": {
-    "en": "Break Guard",
-    "pt_BR": "Quebrar guarda"
+	"en": "Break Guard",
+	"pt_BR": "Quebrar guarda"
   },
   "w1_relay_strike": {
-    "en": "Relay Strike",
-    "pt_BR": "Golpe retransmissor"
+	"en": "Relay Strike",
+	"pt_BR": "Golpe retransmissor"
   },
   "w1_energy_reserve": {
-    "en": "Energy reserve",
-    "pt_BR": "Reserva de Energia"
+	"en": "Energy reserve",
+	"pt_BR": "Reserva de Energia"
   },
   "w1_cinder": {
-    "en": "Cinder",
-    "pt_BR": "Brasa"
+	"en": "Cinder",
+	"pt_BR": "Brasa"
   },
   "w1_rot": {
-    "en": "Volatile rot",
-    "pt_BR": "Podridão volátil"
+	"en": "Volatile rot",
+	"pt_BR": "Podridão volátil"
   },
+  "w1_focus.description": { "en": "Gain 80 percentage points of critical chance for this combat. Does not stack.", "pt_BR": "Ganha 80 pontos percentuais de chance crítica neste combate. Não acumula." },
+  "w1_reserve.description": { "en": "Stores defense potency until you release it with Release Guard. It does not grant Block each turn.", "pt_BR": "Armazena potência defensiva até ser liberada com Liberar guarda. Não concede Bloqueio a cada turno." },
+  "w1_release_guard.description": { "en": "Consumes your stored Guard reserve and converts its accumulated potency into Block in one proc. Does nothing without a reserve.", "pt_BR": "Consome sua reserva de guarda e converte a potência acumulada em Bloqueio em um único proc. Sem reserva, não produz efeito." },
+  "w1_release_dot.description": { "en": "Consumes eligible Scorch and Corrosion stacks and releases their accumulated potency as damage in one proc.", "pt_BR": "Consome os acúmulos elegíveis de Queimadura e Corrosão e libera a potência acumulada como dano em um único proc." },
   "Amount": { "en": "Amount", "pt_BR": "Quantidade" },
   "StatusStacks": { "en": "Status stacks", "pt_BR": "Acúmulos de status" },
   "ModifierStacks": { "en": "Modifier stacks", "pt_BR": "Acúmulos do modificador" },
@@ -122,6 +126,17 @@
   "w1_ward_item": { "en": "Ward link", "pt_BR": "Elo de defesa" },
   "w1_condense_item": { "en": "Condensation seal", "pt_BR": "Selo de condensação" },
   "w1_no_critical_item": { "en": "Stable matrix", "pt_BR": "Matriz estável" },
+  "w1_efficiency_item.description": { "en": "Reduces this card's Energy cost by 1.", "pt_BR": "Reduz o custo de Energia desta carta em 1." },
+  "w1_calibration_item.description": { "en": "Adds 40 percentage points of critical chance to this card's damage effects.", "pt_BR": "Adiciona 40 pontos percentuais de chance crítica aos efeitos de dano desta carta." },
+  "w1_amplify_item.description": { "en": "Multiplies this card's damage by 1.2 (20% more damage).", "pt_BR": "Multiplica o dano desta carta por 1,2 (20% mais dano)." },
+  "w1_recall_item.description": { "en": "Adds: draw 1 card after the card's other effects.", "pt_BR": "Adiciona: compre 1 carta após os demais efeitos da carta." },
+  "w1_ward_item.description": { "en": "Adds: gain 4 base Block after the card's other effects.", "pt_BR": "Adiciona: ganhe 4 de Bloqueio base após os demais efeitos da carta." },
+  "w1_condense_item.description": { "en": "Replaces the main effect: consume the target's eligible residual stacks and release their accumulated potency in one proc.", "pt_BR": "Substitui o efeito principal: consome os acúmulos residuais elegíveis do alvo e libera a potência acumulada em um único proc." },
+  "w1_fire_item.description": { "en": "Adds the Fire tag and applies 1 Scorch stack with base potency 2 for 2 activations.", "pt_BR": "Adiciona a tag Fogo e aplica 1 acúmulo de Queimadura com potência base 2 por 2 ativações." },
+  "w1_poison_item.description": { "en": "Adds the Poison tag and applies 1 Corrosion stack with base potency 2 for 2 activations.", "pt_BR": "Adiciona a tag Veneno e aplica 1 acúmulo de Corrosão com potência base 2 por 2 ativações." },
+  "w1_split_item.description": { "en": "Repeats the main effect 3 times and adds the Multihit tag. The shared amount is split across hits.", "pt_BR": "Repete o efeito principal 3 vezes e adiciona a tag Múltiplos acertos. O valor compartilhado é dividido entre os acertos." },
+  "w1_cascade_item.description": { "en": "Carries excess damage to the enemy with the lowest Health, for up to 3 jumps. Additional effects do not jump.", "pt_BR": "Transfere o dano excedente ao inimigo com menos Vida, por até 3 saltos. Efeitos adicionais não saltam." },
+  "w1_no_critical_item.description": { "en": "Prevents damage effects from rolling critical tiers.", "pt_BR": "Impede que os efeitos de dano desta carta causem críticos." },
   "core_strike": {
 	"en": "Volatile Strike",
 	"pt_BR": "Golpe volátil"
@@ -559,8 +574,8 @@
 	"en": "Support Link"
   },
   "w1_strike": {
-    "en": "Matrix Strike",
-    "pt_BR": "Golpe da matriz"
+	"en": "Matrix Strike",
+	"pt_BR": "Golpe da matriz"
   },
   "w1_last_guard": {"en": "Last Guard", "pt_BR": "Última guarda"},
   "w1_second_wind": {"en": "Second Wind", "pt_BR": "Novo fôlego"},

@@ -116,7 +116,8 @@ func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary
 	for pair in [["statusDuration", "StatusDuration"], ["modifierDuration", "ModifierDuration"]]:
 		if effect.get(pair[0]) != null or effect.get("parameters", []).any(func(item): return enum_name(item.get("parameter"), PARAMETER_TYPES) == pair[1]):
 			var duration := _numeric(effect, component_id, pair[1], original, inspection, depth == 0)
-			rows.append({"segments": [{"text": _i18n.text("Duration") + ": "}, duration]})
+			var definition: Dictionary = effect.get("metadata", {}) if effect.get("metadata") is Dictionary else {}
+			rows.append(_plain(preload("res://scripts/presentation/effect_duration_presenter.gd").describe(duration.get("value"), _i18n, definition)))
 	for child in effect.get("chainedEffects", []) if effect.get("chainedEffects") is Array else []:
 		var timing := enum_name(child.get("childTiming", "AfterParentImpact"), ["AfterParentImpact", "BeforeParentImpact"])
 		rows.append(_plain(_i18n.text("Before impact:" if timing == "BeforeParentImpact" else "After impact:")))

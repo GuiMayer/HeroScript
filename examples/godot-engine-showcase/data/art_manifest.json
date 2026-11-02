@@ -73,7 +73,30 @@
       "spire_wisp": "actor_wisp",
       "enemy_goblin": "actor_wisp",
       "spire_sentinel": "actor_sentinel",
-      "enemy_orc_warrior": "actor_sentinel"
+      "enemy_orc_warrior": "actor_sentinel",
+      "ascendant_operator": "actor_adept",
+      "w1_operator": "actor_adept",
+      "core_adept": "actor_adept",
+      "ascendant_drone": "actor_wisp",
+      "w1_scout": "actor_wisp",
+      "w1_charger": "actor_wisp",
+      "core_spark": "actor_wisp",
+      "ascendant_prime": "actor_sentinel",
+      "w1_sentinel": "actor_sentinel",
+      "w1_bulwark_elite": "actor_sentinel",
+      "w1_prime": "actor_sentinel",
+      "spire_bulwark": "actor_sentinel",
+      "core_prime": "actor_sentinel",
+      "w1_spitter": "actor_channeler",
+      "w1_binder": "actor_channeler",
+      "w1_artillery": "actor_channeler",
+      "w1_corrosion_elite": "actor_channeler",
+      "w1_prism_elite": "actor_channeler",
+      "spire_hexer": "actor_channeler",
+      "core_echo": "actor_channeler",
+      "w1_mite": "actor_swarm",
+      "w1_swarm": "actor_swarm",
+      "spire_venomling": "actor_swarm"
     },
     "activities": {
       "Encounter": "activity_encounter",
@@ -172,24 +195,39 @@
       "placeholder": true
     },
     "actor_unknown": {
-      "path": "res://assets/placeholders/wisp.svg",
+      "path": "res://assets/tactical-pieces/enemy-striker.svg",
       "fit": "contain",
-      "placeholder": true
+      "placeholder": false
     },
     "actor_adept": {
-      "path": "res://assets/placeholders/adept.svg",
+      "path": "res://assets/tactical-pieces/hero-wanderer.svg",
       "fit": "contain",
-      "placeholder": true
+      "placeholder": false,
+      "variants": [
+        "res://assets/tactical-pieces/hero-wanderer.svg",
+        "res://assets/tactical-pieces/hero-regent.svg",
+        "res://assets/tactical-pieces/hero-shard.svg"
+      ]
     },
     "actor_wisp": {
-      "path": "res://assets/placeholders/wisp.svg",
+      "path": "res://assets/tactical-pieces/enemy-striker.svg",
       "fit": "contain",
-      "placeholder": true
+      "placeholder": false
     },
     "actor_sentinel": {
-      "path": "res://assets/placeholders/sentinel.svg",
+      "path": "res://assets/tactical-pieces/enemy-bulwark.svg",
       "fit": "contain",
-      "placeholder": true
+      "placeholder": false
+    },
+    "actor_channeler": {
+      "path": "res://assets/tactical-pieces/enemy-channeler.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_swarm": {
+      "path": "res://assets/tactical-pieces/enemy-swarm.svg",
+      "fit": "contain",
+      "placeholder": false
     },
     "activity_unknown": {
       "path": "res://assets/placeholders/archive.svg",

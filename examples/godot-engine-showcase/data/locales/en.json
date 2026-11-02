@@ -832,4 +832,6 @@
   "No relics acquired.": "No relics acquired.",
   "Equipment information unavailable. Retry the read.": "Equipment information unavailable. Retry the read.",
   "Invalid loadout information.": "Invalid loadout information."
+,
+  "Character attributes": "Character attributes"
 }

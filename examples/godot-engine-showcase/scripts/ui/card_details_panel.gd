@@ -37,10 +37,18 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		scroll.follow_focus = true
 		add_child(scroll)
 		scroll.add_child(body)
+	var glossary: Array = preload("res://scripts/presentation/card_glossary_presenter.gd").new(visual_context.translator).describe(model)
+	for term in glossary:
+		var entry := VBoxContainer.new()
+		entry.name = "RuleExplanation_" + str(term.name).validate_node_name()
+		entry.add_child(visual_context.styles.title(str(term.name), 16))
+		entry.add_child(visual_context.styles.caption(str(term.description), 14, 260))
+		body.add_child(entry)
 	if model.get("presentationFacts") is Dictionary:
-		body.add_child(visual_context.styles.title(visual_context.translator.text("Calculation"), 20))
 		var descriptions: Array[String] = preload("res://scripts/presentation/card_calculation_presenter.gd").new(visual_context.translator).describe(model.presentationFacts, mode == DisplayMode.TOOLTIP)
+		if not descriptions.is_empty(): body.add_child(visual_context.styles.title(visual_context.translator.text("Scaling"), 17))
 		for line in descriptions: body.add_child(visual_context.styles.caption(line, 14, 260))
+		if body.get_child_count() == 0: body.add_child(visual_context.styles.caption(visual_context.translator.text("No additional effects or scaling."), 14, 260))
 		if mode == DisplayMode.INSPECTION:
 			var changes: Array[String] = []
 			var seen: Array[String] = []
@@ -53,8 +61,8 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 			for requirement in model.get("requirements", []): body.add_child(visual_context.styles.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
 			for behavior in model.get("behaviors", []): body.add_child(visual_context.styles.caption(str(behavior), 13, 260))
 		else:
-			body.add_child(visual_context.styles.caption(visual_context.translator.text("Open card inspection for full details."), 12, 260))
 			_disable_tooltip_input(self)
+		_wrap_detail_labels(body)
 		visual_context.styles.apply_view_preferences(self)
 		return
 	body.add_child(visual_context.styles.title(str(model.get("name", "")), 22))
@@ -102,6 +110,14 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	for child in body.get_children():
 		if child is Label: visual_context.styles.wrap(child, 260)
 	visual_context.styles.apply_view_preferences(self)
+
+func _wrap_detail_labels(node: Node) -> void:
+	# Captions default to one clipped line. Rule names/descriptions can be nested
+	# and translated, so every label must wrap and contribute its full height.
+	if node is Label:
+		visual_context.styles.wrap(node, 260)
+		node.max_lines_visible = -1
+	for child in node.get_children(): _wrap_detail_labels(child)
 
 func _build_tooltip_summary(body: VBoxContainer, rules: RichTextLabel, model: Dictionary) -> void:
 	# Logs, contribution sources, comparisons and technical data belong only to

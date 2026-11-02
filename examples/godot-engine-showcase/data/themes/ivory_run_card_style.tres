@@ -2,9 +2,11 @@
 [ext_resource type="Script" path="res://scripts/ui/card_visual_style.gd" id="1"]
 [resource]
 script = ExtResource("1")
+keyline_style = "registration"
 face_radius = 2
 card_size = Vector2(248, 360)
 art_height = 64.0
 rules_font_size = 16
 effect_surface = Color(0.12549, 0.129412, 0.141176, 1)
 effect_ink = Color(1, 1, 1, 1)
+cost_symbol_fill_color = Color(0.12549, 0.129412, 0.141176, 1)
