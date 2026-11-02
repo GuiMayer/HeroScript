@@ -72,4 +72,10 @@ CombatScreen e CombatView compõem cabeçalho, mão, dock de turno, pilhas, prev
 
 Testes aprovados: shell editável 9, substituição de composição 13, reconciliação 4, contexto 14, pause 24, arquitetura 28, seleção 19, laboratório 118, colaboração 12, ciclo de turno 15, compra 106, contadores 24, estabilidade 34, UX 38, reorganização flow 6 e drop 5. Quatro expectativas antigas de UX já falhavam na baseline por confundir drop para jogar com reorganização; o cenário agora declara reorder desativado e os testes próprios cobrem reorder ativo. Comparação em duas resoluções e duas escalas confirmou geometria equivalente do shell/mão/dock, sem warnings de owner (combat-shell.geometry.json).
 
-Etapas 12–20: pendentes.
+## Etapa 12 — Battlefield, cenário e hosts de efeitos
+
+Battlefield, grupos variáveis, cenário, slots de arte, HUD flutuante e feedback possuem cenas próprias. CombatView vincula os hosts autorados; atores continuam instâncias do ActorPanel existente, preservadas por identidade. Posicionamento por anchors, executores, cancelamento, pause, durações e desenho procedural continuam nos mesmos comportamentos. Labels decorativos instanciam template somente quando há duração válida.
+
+Testes aprovados: hosts editáveis 8, arquitetura 28, shell 9, composição 13, contratos de animação 8, limites 4, responsividade 2, cues 6, peças táticas 126, interrupções de reorder 15, compra 106 e pause 24. A regressão confirma duração zero sem node decorativo nem tail. Comparação do shell, mão, dock e anchors de atores em duas resoluções e duas escalas confirmou geometria equivalente (battlefield.geometry.json).
+
+Etapas 13–20: pendentes.

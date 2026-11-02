@@ -1,8 +1,9 @@
+class_name CombatFeedback
 extends Node
 ## Consumes frames from the existing cursor. Never owns a second playback queue.
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
-var effects := Control.new()
+var effects: Control
 var _active_lanes: Dictionary = {}
 var _tails: Array = []
 var _tail_cleanup: Dictionary = {}
@@ -14,10 +15,14 @@ func track_cosmetic(tween: Tween, cleanup: Callable = Callable()) -> void:
 	_tails.append(tween)
 	if cleanup.is_valid(): _tail_cleanup[tween] = cleanup
 	tween.finished.connect(func(): _tails.erase(tween); _tail_cleanup.erase(tween), CONNECT_ONE_SHOT)
-func _init(context) -> void:
-	visual_context = context
-	effects.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(effects)
+static func create(context) -> CombatFeedback:
+	var feedback = (load("res://scenes/ui/components/combat_feedback.tscn") as PackedScene).instantiate()
+	feedback.mount(context); return feedback
+func _init(context = null) -> void:
+	visual_context = context if context != null else ContextType.new()
+func _ready() -> void: effects = get_node("Effects")
+func mount(context) -> void:
+	visual_context = context; effects = get_node("Effects")
 func present(frame: Dictionary, index: int, total: int, presenter, portraits: Dictionary, blocking: Array = []) -> String:
 	if visual_context.motion == null: visual_context.capture_motion()
 	var i18n = visual_context.translator
@@ -73,7 +78,7 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 	lane = 0
 	while lane in _active_lanes[target]: lane += 1
 	_active_lanes[target].append(lane)
-	var label := Label.new()
+	var label: Label = preload("res://scenes/ui/components/floating_effect_label.tscn").instantiate()
 	label.tree_exiting.connect(func():
 		if _active_lanes.has(target): _active_lanes[target].erase(lane), CONNECT_ONE_SHOT)
 	label.text = "%s%s %s" % ["+" if delta > 0 else "", visual_context.translator.number(delta), visual_context.translator.content_name(str(application.get("resourceId", "")))] if previous != null else visual_context.translator.content_name(str(application.get("statusId", application.get("modifierId", ""))))
@@ -83,12 +88,9 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 		if cue.has("label"): label.text = visual_context.translator.text(str(cue.label)) + " " + label.text
 	var field := str(application.get("resourceField", "Current"))
 	if field not in ["Current", "0", "0.0"]: label.text += " " + visual_context.translator.text(field)
-	label.add_theme_font_size_override("font_size", 22)
 	label.add_theme_color_override("font_color", visual_context.styles.MUTED if kind == "payment" else (visual_context.styles.TEAL if delta > 0 else visual_context.styles.GOLD))
 	var cue_color := str(visual_context.motion.cue(kind).get("color", ""))
 	if not cue_color.is_empty(): label.add_theme_color_override("font_color", Color.from_string(cue_color, visual_context.styles.INK))
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.process_mode = Node.PROCESS_MODE_PAUSABLE
 	effects.add_child(label)
 	label.global_position = portrait.global_position + Vector2(20 + (lane % 3) * 12, 45 + lane * 27)
 	var tween := label.create_tween().set_parallel()

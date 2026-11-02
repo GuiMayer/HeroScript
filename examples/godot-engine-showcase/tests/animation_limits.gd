@@ -9,7 +9,7 @@ func check(ok: bool, label: String) -> void:
 func _run() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").new()
 	context.capture_motion()
-	var feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(context); root.add_child(feedback)
+	var feedback = preload("res://scripts/ui/components/combat_feedback.gd").create(context); root.add_child(feedback)
 	var portrait := Portrait.new(); root.add_child(portrait)
 	var presenter = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [], context.translator)
 	var applications: Array = []

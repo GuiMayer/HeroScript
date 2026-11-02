@@ -1,0 +1,5 @@
+[gd_scene format=3]
+[node name="BattlefieldTeam" type="HBoxContainer"]
+size_flags_vertical = 3
+alignment = 1
+theme_override_constants/separation = 18

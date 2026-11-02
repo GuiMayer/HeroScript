@@ -5,7 +5,7 @@ var background: EmberBackground
 var _combat_scenery: Control
 func acquire_combat() -> Control:
 	if is_instance_valid(_combat_scenery): release_combat(_combat_scenery)
-	_combat_scenery = preload("res://scripts/ui/components/combat_scenery_view.gd").new()
+	_combat_scenery = preload("res://scripts/ui/components/combat_scenery_view.gd").create()
 	_combat_scenery.name = "CombatScenery"
 	add_child(_combat_scenery)
 	return _combat_scenery

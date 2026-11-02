@@ -1,0 +1,6 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/combat_feedback.gd" id="Script"]
+[node name="CombatFeedback" type="Node"]
+script = ExtResource("Script")
+[node name="Effects" type="Control" parent="."]
+mouse_filter = 2

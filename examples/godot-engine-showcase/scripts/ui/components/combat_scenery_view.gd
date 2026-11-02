@@ -1,3 +1,4 @@
+class_name CombatSceneryView
 extends Control
 ## Artwork only. Actor positions follow UI anchors without owning targets or rules.
 const ContextType = preload("res://scripts/ui/visual_context.gd")
@@ -6,16 +7,14 @@ var portraits: Dictionary = {}
 var _anchors: Dictionary = {}
 var _backdrop
 var _stage: Control
+static func create() -> CombatSceneryView:
+	return (load("res://scenes/ui/components/combat_scenery.tscn") as PackedScene).instantiate()
 func bind_stage(stage: Control) -> void:
 	_stage = stage
 
 func apply_model(actors: Array, background_id: String, context: ContextType) -> void:
 	visual_context = context
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if not is_instance_valid(_backdrop):
-		_backdrop = preload("res://scripts/ui/art_slot.gd").new(context)
-		add_child(_backdrop)
-		_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_backdrop = get_node("Backdrop")
 	_backdrop.rebind_context(context)
 	_backdrop.setup("backgrounds", background_id)
 	var live: Array = []
@@ -24,7 +23,8 @@ func apply_model(actors: Array, background_id: String, context: ContextType) -> 
 		var id := str(actor.get("instanceId", ""))
 		live.append(id)
 		if not portraits.has(id):
-			portraits[id] = preload("res://scripts/ui/art_slot.gd").new(context)
+			portraits[id] = preload("res://scenes/ui/components/scenery_art_slot.tscn").instantiate()
+			portraits[id].visual_context = context
 			portraits[id].name = "ActorArtwork_" + id.validate_node_name()
 			add_child(portraits[id])
 		portraits[id].rebind_context(context)

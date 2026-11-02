@@ -35,7 +35,7 @@ func _run() -> void:
 	cursor.load_receipt({"state": {"resolution": {"frames": [{"applications": []}]}}}); cursor.advance()
 	check(not cursor.has_blocking_work(), "facts without an executor create no artificial wait")
 	var context = preload("res://scripts/ui/visual_context.gd").new()
-	var feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(context); root.add_child(feedback)
+	var feedback = preload("res://scripts/ui/components/combat_feedback.gd").create(context); root.add_child(feedback)
 	var portrait := Portrait.new(); root.add_child(portrait)
 	var presenter = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [], context.translator)
 	feedback.present({"applications": [{"effectType": "MODIFY_RESOURCE", "targetEntityId": "hero", "resourceId": "arbitrary_resource", "previousValue": 3, "currentValue": 2,

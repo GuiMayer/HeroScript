@@ -1,9 +1,16 @@
+class_name FloatingCombatHUD
 extends CanvasLayer
 ## Non-modal reading/context overlays. Independent of battlefield layout and card z.
-var host := Control.new()
+var host: Control
 var _slots: Dictionary = {}
 
+static func create() -> FloatingCombatHUD:
+	var view = (load("res://scenes/ui/components/floating_hud.tscn") as PackedScene).instantiate()
+	view.host = view.get_node("FloatingHUDHost"); return view
+func _bind_nodes() -> void:
+	host = get_node("FloatingHUDHost")
 func replace_slot(slot: String, node: Control) -> void:
+	_bind_nodes()
 	if _slots.get(slot) == node: return
 	release_slot(slot)
 	_slots[slot] = node
@@ -24,14 +31,12 @@ func release_slot(slot: String) -> void:
 		if node.get_parent() == host: host.remove_child(node)
 		node.queue_free()
 
-func _init() -> void:
-	name = "FloatingCombatHUD"
+func _ready() -> void:
+	_bind_nodes()
 	layer = preload("res://scripts/ui/shell/overlay_layers.gd").FLOATING
-	host.name = "FloatingHUDHost"
-	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(host)
 
 func fit_to(rect: Rect2, view_theme: Theme) -> void:
+	_bind_nodes()
 	host.theme = view_theme
 	host.position = rect.position
 	host.size = rect.size

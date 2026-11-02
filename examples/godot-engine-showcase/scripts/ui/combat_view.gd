@@ -94,8 +94,7 @@ func _ensure_bottom_hud() -> void:
 
 func _ensure_floating_hud() -> void:
 	if is_instance_valid(floating_hud): return
-	floating_hud = preload("res://scripts/ui/floating_hud.gd").new()
-	add_child(floating_hud)
+	floating_hud = get_node("FloatingCombatHUD")
 	floating_hud.visible = is_visible_in_tree()
 
 
@@ -156,12 +155,11 @@ func _build_header() -> void:
 
 func _build_battlefield() -> void:
 	if not is_instance_valid(battlefield_view):
-		battlefield_view = preload("res://scripts/ui/components/battlefield_view.gd").new()
+		battlefield_view = gameplay_column.get_node("Battlefield")
 		battlefield_view.target_selected.connect(_select_target)
 		battlefield_view.target_previewed.connect(_show_target_preview)
 		battlefield_view.preview_left.connect(func(): if not selected_card.is_empty(): _show_preview(selected_card))
 		battlefield_view.layout_requested.connect(_queue_gameplay_layout)
-		gameplay_column.add_child(battlefield_view)
 		battlefield_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		gameplay_column.move_child(battlefield_view, 0)
 	var stage = battlefield_view
@@ -622,8 +620,7 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 		hand.cancel_gesture()
 		_refresh_structure()
 		return
-	feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(visual_context)
-	add_child(feedback)
+	feedback = get_node("CombatFeedback"); feedback.mount(visual_context)
 	_build_header()
 	var body: HBoxContainer = get_node("CombatBody")
 	gameplay_column = body.get_node("CombatGameplay")

@@ -1,3 +1,5 @@
+@tool
+class_name BattlefieldView
 extends Control
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType = ContextType.new()
@@ -12,45 +14,17 @@ var allies: HBoxContainer
 var opponents: HBoxContainer
 var _field: HBoxContainer
 var _teams: Dictionary = {}
+static func create() -> BattlefieldView:
+	return (load("res://scenes/ui/components/battlefield.tscn") as PackedScene).instantiate()
+func _bind_nodes() -> void:
+	actor_scroll = get_node("BattlefieldActors"); _field = actor_scroll.get_node("Field")
+	allies = _field.get_node("Allies"); opponents = _field.get_node("Opponents")
+func _ready() -> void:
+	_bind_nodes(); theme = visual_context.theme
 func apply_model(actors: Array, presentation: Dictionary) -> void:
-	theme = visual_context.theme
-	if is_instance_valid(actor_scroll):
-		_sync_actors(actors, presentation)
-		return
-	var stage := self
-	stage.name = "Battlefield"
-	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.clip_contents = true
-	var scroller := ScrollContainer.new()
-	scroller.name = "BattlefieldActors"
-	actor_scroll = scroller
-	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	var field := HBoxContainer.new()
-	_field = field
-	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	field.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	field.alignment = BoxContainer.ALIGNMENT_CENTER
-	field.add_theme_constant_override("separation", 22)
-	allies = HBoxContainer.new()
-	opponents = HBoxContainer.new()
-	allies.alignment = BoxContainer.ALIGNMENT_CENTER
-	opponents.alignment = BoxContainer.ALIGNMENT_CENTER
-	for side in [allies, opponents]:
-		side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		side.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		side.add_theme_constant_override("separation", 18)
-	field.add_child(allies)
-	var divider := CenterContainer.new()
-	divider.custom_minimum_size.x = 88
-	divider.add_child(visual_context.styles.title("◇", 26, visual_context.styles.GOLD))
-	field.add_child(divider)
-	field.add_child(opponents)
+	_bind_nodes(); theme = visual_context.theme
+	_field.get_node("Divider/Glyph").add_theme_color_override("font_color", visual_context.styles.GOLD)
 	_sync_actors(actors, presentation)
-	scroller.add_child(field)
-	stage.add_child(scroller)
-	scroller.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation: Dictionary) -> Control:
 	var panel := preload("res://scripts/ui/actor_panel.gd").create(visual_context)
@@ -82,10 +56,7 @@ func _sync_actors(actors: Array, presentation: Dictionary) -> void:
 			if relation == "Ally" and allies not in existing: group = allies
 			elif relation == "Enemy" and opponents not in existing: group = opponents
 			else:
-				group = HBoxContainer.new()
-				group.alignment = BoxContainer.ALIGNMENT_CENTER
-				group.size_flags_vertical = Control.SIZE_EXPAND_FILL
-				group.add_theme_constant_override("separation", 18)
+				group = preload("res://scenes/ui/components/battlefield_team.tscn").instantiate()
 				_field.add_child(group)
 			_teams[team_key] = group
 		var parent: HBoxContainer = _teams[team_key]

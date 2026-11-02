@@ -1,0 +1,33 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/battlefield_view.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield_team.tscn" id="Team"]
+[node name="Battlefield" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+clip_contents = true
+script = ExtResource("Script")
+[node name="BattlefieldActors" type="ScrollContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+[node name="Field" type="HBoxContainer" parent="BattlefieldActors"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+theme_override_constants/separation = 22
+[node name="Allies" parent="BattlefieldActors/Field" instance=ExtResource("Team")]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Divider" type="CenterContainer" parent="BattlefieldActors/Field"]
+layout_mode = 2
+custom_minimum_size = Vector2(88,0)
+[node name="Glyph" type="Label" parent="BattlefieldActors/Field/Divider"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+theme_override_font_sizes/font_size = 26
+text = "◇"
+metadata/font_role = "section_title"
+[node name="Opponents" parent="BattlefieldActors/Field" instance=ExtResource("Team")]
+layout_mode = 2
+size_flags_horizontal = 3

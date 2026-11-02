@@ -9,14 +9,19 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat/combat_attributes_drawer.tscn" id="Attributes"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/card_hand.tscn" id="Hand"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/turn_controls.tscn" id="Turn"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield.tscn" id="Field"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/floating_hud.tscn" id="Floating"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_feedback.tscn" id="Feedback"]
 [node name="CombatView" type="VBoxContainer"]
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 script = ExtResource("Script")
+[node name="CombatFeedback" parent="." instance=ExtResource("Feedback")]
 [node name="CombatHeader" parent="." instance=ExtResource("Header")]
 layout_mode = 2
 [node name="CombatBody" parent="." instance=ExtResource("Composition")]
 layout_mode = 2
+[node name="Battlefield" parent="CombatBody/CombatGameplay" instance=ExtResource("Field")]
 [node name="CombatBottomHUD" type="VBoxContainer" parent="CombatBody/CombatGameplay"]
 layout_mode = 0
 anchor_top = 1.0
@@ -41,6 +46,7 @@ layout_mode = 2
 [node name="TurnControls" parent="CombatBody/CombatGameplay/CombatBottomHUD" instance=ExtResource("Turn")]
 layout_mode = 2
 
+[node name="FloatingCombatHUD" parent="." instance=ExtResource("Floating")]
 [node name="OverlayDefinitions" type="Control" parent="."]
 visible = false
 layout_mode = 2
