@@ -344,7 +344,7 @@ func show_run_loadout(initial_tab := "overview", deck_tab := "cards") -> void:
 	if GameSession.busy or GameSession.has_pending_command: return
 	current_screen = "run_loadout"
 	_clear_host()
-	var screen = preload("res://scenes/ui/screens/unified_loadout.tscn").instantiate()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("run_loadout")
 	screen.initial_tab = initial_tab
 	screen.initial_deck_tab = deck_tab
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

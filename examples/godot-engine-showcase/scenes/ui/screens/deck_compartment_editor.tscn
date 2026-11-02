@@ -1,0 +1,99 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/deck_compartment_editor.gd" id="3_xb6tr"]
+[ext_resource type="PackedScene" path="res://scenes/ui/overlays/confirmation_dialog.tscn" id="4_s5xvp"]
+
+[node name="DeckCompartmentEditor" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("3_xb6tr")
+
+[node name="ColorRect0" type="ColorRect" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="MarginContainer1" type="MarginContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Page" type="VBoxContainer" parent="MarginContainer1"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer1/Page"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer1/Page/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ScreenTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 28
+text = "DECK COMPARTMENTS"
+metadata/font_role = "screen_title"
+metadata/text_role = "text.primary"
+metadata/source_text = "DECK COMPARTMENTS"
+
+[node name="Back" type="Button" parent="MarginContainer1/Page/Header"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "BACK"
+metadata/source_text = "BACK"
+
+[node name="Actions" type="HBoxContainer" parent="MarginContainer1/Page"]
+layout_mode = 2
+
+[node name="Destination" type="OptionButton" parent="MarginContainer1/Page/Actions"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="Move" type="Button" parent="MarginContainer1/Page/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "MOVE SELECTED"
+metadata/source_text = "MOVE SELECTED"
+
+[node name="Clear" type="Button" parent="MarginContainer1/Page/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "CLEAR DRAFT"
+metadata/source_text = "CLEAR DRAFT"
+
+[node name="Restore" type="Button" parent="MarginContainer1/Page/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "RESTORE"
+metadata/source_text = "RESTORE"
+
+[node name="Apply" type="Button" parent="MarginContainer1/Page/Actions"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "APPLY"
+metadata/source_text = "APPLY"
+
+[node name="Status" type="Label" parent="MarginContainer1/Page"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ScrollContainer3" type="ScrollContainer" parent="MarginContainer1/Page"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Compartments" type="HBoxContainer" parent="MarginContainer1/Page/ScrollContainer3"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Discard" type="ConfirmationDialog" parent="." instance=ExtResource("4_s5xvp")]
+dialog_text = "Discard unconfirmed compartment changes?"

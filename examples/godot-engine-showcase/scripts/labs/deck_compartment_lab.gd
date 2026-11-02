@@ -25,7 +25,7 @@ func _start() -> void:
 	if not is_inside_tree(): return
 	if not created.get("ok", false): _status.text = str(created.get("error", created)); return
 	var id := str(created.data.get("runId", ""))
-	var editor = preload("res://scripts/ui/deck_compartment_editor.gd").new()
+	var editor = preload("res://scripts/ui/deck_compartment_editor.gd").create()
 	editor.service = preload("res://scripts/engine/deck_compartment_gateway.gd").new(_transport, _gateway, id)
 	editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	editor.back_requested.connect(func(): get_tree().change_scene_to_file("res://main.tscn"))

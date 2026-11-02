@@ -23,13 +23,13 @@ func _ready() -> void:
 	shell.heading.text = I18n.content_name(str(session.run.get("playerEntityId", ""))) + " · " + I18n.content_name(setting_id, setting_id.capitalize())
 	shell.tab_requested.connect(_select_tab); shell.back_requested.connect(_back); shell.recovery_requested.connect(controller.recover)
 	shell.attribute_sources_requested.connect(_attribute_sources)
-	inscriptions_view = preload("res://scripts/ui/loadout/loadout_view.gd").create(true)
+	inscriptions_view = shell.content.get_node("InscriptionsScroll/InscriptionBody/Inscriptions")
 	inscriptions_view.editorial_layout = true; inscriptions_view.shared_attributes = true; inscriptions_view.mount(context)
 	var scroll: ScrollContainer = shell.content.get_node("InscriptionsScroll")
 	var inscription_body: VBoxContainer = scroll.get_node("InscriptionBody")
 	_inscriptions_empty = inscription_body.get_node("InscriptionsUnavailable")
 	_inscriptions_empty.text = I18n.text("Inscriptions are not available for this character or setting.")
-	inscriptions_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL; inscription_body.add_child(inscriptions_view)
+	inscriptions_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shell.install("inscriptions", scroll)
 	inscriptions_view.item_requested.connect(_select_item)
 	inscriptions_view.slot_requested.connect(_select_slot)
@@ -41,17 +41,17 @@ func _ready() -> void:
 		if controller.inscriptions != null: controller.inscriptions.search = value; _render())
 	_clear_dialog = get_node("ClearEquipment"); _clear_dialog.dialog_text = I18n.text("Unequip all inscriptions? Changes are saved automatically.")
 	_clear_dialog.confirmed.connect(func(): controller.edit_inscription("clear"))
-	deck_view = preload("res://scripts/ui/loadout/deck_module_view.gd").new(); deck_view.mount(context); shell.install("deck", deck_view)
+	deck_view = shell.content.get_node("Deck"); deck_view.mount(context); shell.install("deck", deck_view)
 	deck_view.move_requested.connect(controller.move_card)
 	deck_view.modifier_requested.connect(controller.apply_modifier)
 	deck_view.clear_requested.connect(func():
 		var confirm := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); confirm.dialog_text = I18n.text("Clear all compartment allocations? Changes are saved automatically.")
 		confirm.confirmed.connect(func(): controller.move_card("", "", true); confirm.queue_free())
 		confirm.canceled.connect(confirm.queue_free); add_child(confirm); confirm.popup_centered())
-	overview_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); overview_view.mount(context)
+	overview_view = shell.content.get_node("Overview"); overview_view.mount(context)
 	overview_view.module_requested.connect(_select_tab); shell.install("overview", overview_view)
-	relics_view = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); relics_view.relics_only = true; relics_view.mount(context); shell.install("relics", relics_view)
-	var planned = preload("res://scripts/ui/loadout/planned_companions_view.gd").new(); planned.mount(context); shell.install("companions", planned)
+	relics_view = shell.content.get_node("Relics"); relics_view.relics_only = true; relics_view.mount(context); shell.install("relics", relics_view)
+	var planned = shell.content.get_node("Companions"); planned.mount(context); shell.install("companions", planned)
 	controller.changed.connect(_render)
 	_select_tab(initial_tab); _render(); controller.refresh()
 func _select_tab(id: String) -> void:
@@ -112,14 +112,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause_game") or event.is_action_pressed("ui_cancel"):
 		_back(); get_viewport().set_input_as_handled()
 func _attribute_sources() -> void:
-	var dialog := AcceptDialog.new(); dialog.title = I18n.text("Attribute sources"); dialog.size = Vector2i(540, 560)
-	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var list := VBoxContainer.new(); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll.add_child(list); dialog.add_child(scroll)
+	var dialog = preload("res://scenes/ui/overlays/attribute_sources.tscn").instantiate()
+	dialog.title = I18n.text("Attribute sources"); dialog.theme = shell.visual_context.theme
+	var list = dialog.get_node("Scroll/Body")
 	for stat in controller.attributes.get("attributes", []):
-		list.add_child(shell.visual_context.styles.title(I18n.text(str(stat.displayName)), 19))
-		list.add_child(shell.visual_context.styles.muted(I18n.text("Base: %s → Current: %s") % [I18n.number(stat.baseValue), I18n.number(stat.effectiveValue)]))
+		var group = preload("res://scenes/ui/components/loadout/attribute_source_group.tscn").instantiate()
+		group.get_node("Title").text = I18n.text(str(stat.displayName))
+		group.get_node("Title").add_theme_color_override("font_color", shell.visual_context.styles.INK)
+		group.get_node("Values").text = I18n.text("Base: %s → Current: %s") % [I18n.number(stat.baseValue), I18n.number(stat.effectiveValue)]
 		for trace in stat.get("contributions", []):
-			list.add_child(shell.visual_context.styles.muted(I18n.text(str(trace.get("sourceKind", "Source"))) + " · " + I18n.text("Input: %s → Output: %s") % [I18n.number(trace.get("input", 0)), I18n.number(trace.get("output", 0))] + (" · " + I18n.text("Not applied") if not trace.get("applied", true) else ""), 14, 450))
+			var line = preload("res://scenes/ui/components/loadout/attribute_source_trace.tscn").instantiate()
+			line.text = I18n.text(str(trace.get("sourceKind", "Source"))) + " · " + I18n.text("Input: %s → Output: %s") % [I18n.number(trace.get("input", 0)), I18n.number(trace.get("output", 0))] + (" · " + I18n.text("Not applied") if not trace.get("applied", true) else "")
+			group.get_node("Contributions").add_child(line)
+		group.get_node("Contributions").visible = group.get_node("Contributions").get_child_count() > 0
+		list.add_child(group)
 	add_child(dialog); dialog.confirmed.connect(dialog.queue_free); dialog.canceled.connect(dialog.queue_free); dialog.popup_centered()
 func _exit_tree() -> void:
 	if controller != null: controller.dispose()

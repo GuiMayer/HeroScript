@@ -9,6 +9,7 @@ var _appearance: Dictionary
 var _i18n
 var _card_facts: Array = []
 var _item_catalog: Dictionary = {}
+var _owned_items: Dictionary = {}
 
 func _init(run: Dictionary, choices: Array, appearance: Dictionary, translator, card_facts: Array = [], item_snapshot: Dictionary = {}) -> void:
 	_run = run.duplicate(true)
@@ -17,6 +18,10 @@ func _init(run: Dictionary, choices: Array, appearance: Dictionary, translator, 
 	_i18n = translator
 	_card_facts = card_facts.duplicate(true)
 	for item in item_snapshot.get("catalog", []): _item_catalog[str(item.get("itemDefinitionId", ""))] = item.duplicate(true)
+	for item in item_snapshot.get("items", []):
+		var definition: Dictionary = item.get("definition", {})
+		_owned_items[str(item.get("instance", {}).get("itemInstanceId", ""))] = str(definition.get("itemDefinitionId", ""))
+		_item_catalog[str(definition.get("itemDefinitionId", ""))] = definition.duplicate(true)
 
 func current_node() -> Dictionary:
 	for node in _run.get("map", {}).get("nodes", []):
@@ -73,6 +78,7 @@ func offer(choice: Dictionary) -> Dictionary:
 	var type := str(choice.get("type", ""))
 	var subject := str(choice.get("subjectId", ""))
 	var definition := subject
+	if type == "APPLY_CARD_MODIFIER_ITEM": definition = str(_owned_items.get(str(choice.get("payload", {}).get("itemInstanceId", "")), subject))
 	var costs: Array = []
 	var has_cost := false
 	if choice.has("costs"):
@@ -120,15 +126,18 @@ func offer(choice: Dictionary) -> Dictionary:
 		var item_presentation: Dictionary = _item_catalog[definition].get("presentation", {})
 		model["name"] = _i18n.content_name(definition, str(item_presentation.get("name", definition)))
 		model["category"] = "modifier_items"
-		model["summary"] = _i18n.text(str(item_presentation.get("description", "Select an item, then a card.")))
+		model["summary"] = modifier_description(_item_catalog[definition], _i18n)
 		model["artId"] = str(item_presentation.get("artId", definition))
 	for facts in _card_facts:
-		if str(choice.get("subjectType", "")) == "inscription": break
+		if str(choice.get("subjectType", "")) == "inscription" or type == "APPLY_CARD_MODIFIER_ITEM": break
 		var identity: Dictionary = facts.get("identity", {})
-		if str(identity.get("kind", "")) != "Offer" or str(identity.get("definitionId", "")) != definition: continue
 		var payload: Dictionary = choice.get("payload", {})
-		var scope := str(payload.get("shopInstanceId", payload.get("selectionInstanceId", "")))
-		if scope.is_empty() or scope not in str(identity.get("offerId", "")): continue
+		if payload.has("cardInstanceId"):
+			if str(identity.get("cardInstanceId", "")) != str(payload.cardInstanceId): continue
+		else:
+			if str(identity.get("kind", "")) != "Offer" or str(identity.get("definitionId", "")) != definition: continue
+			var scope := str(payload.get("shopInstanceId", payload.get("selectionInstanceId", "")))
+			if scope.is_empty() or scope not in str(identity.get("offerId", "")): continue
 		var price_text: String = model.cost
 		model.merge(preload("res://scripts/presentation/card_facts_presenter.gd").new(_i18n, _appearance).project(facts), true)
 		model["acquisitionPrice"] = price_text
@@ -137,6 +146,25 @@ func offer(choice: Dictionary) -> Dictionary:
 		model["name"] = _i18n.text(str(choice.presentation.get("name", definition)))
 		model["summary"] = _i18n.text(str(choice.presentation.get("description", "")))
 	return model
+
+static func modifier_description(definition: Dictionary, translator) -> String:
+	# Descriptive copy is localized independently of the run's immutable rule revision,
+	# exactly like content names. Never infer or apply a transformation in the client.
+	var authored := str(definition.get("presentation", {}).get("description", "")).strip_edges()
+	if authored.is_empty(): authored = "Effect description unavailable. Inspect a compatible card before applying."
+	return translator.content_name(str(definition.get("itemDefinitionId", "")) + ".description", translator.text(authored))
+
+func presentation_key() -> Array:
+	return [_card_facts, _item_catalog, _owned_items]
+
+func transformation_models(assessment: Dictionary) -> Array:
+	var models: Array = []
+	for side in ["before", "after"]:
+		# Upgrades publish explicit facts; modifier items already use facts as before/after.
+		var facts = assessment.get(side + "Presentation", assessment.get(side))
+		if not facts is Dictionary or not facts.has("identity") or not facts.has("effects"): return []
+		models.append(preload("res://scripts/presentation/card_facts_presenter.gd").new(_i18n, _appearance).project(facts))
+	return models
 
 func transformation_text(assessment: Dictionary) -> String:
 	var lines: Array[String] = []

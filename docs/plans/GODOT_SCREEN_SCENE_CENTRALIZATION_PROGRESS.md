@@ -60,4 +60,10 @@ Layouts editorial e de bancada usam cenas autoradas do mesmo componente passivo.
 
 Testes aprovados: edição 7, input nativo 6, layout editorial 187 e laboratório 146. Contratos de shell 9, autosave 9 e fluxo da run 22 também passaram na migração. Comparação com a implementação anterior confirmou geometria equivalente nas duas apresentações, em escalas 1.0 e 1.6 (inscriptions.geometry.json).
 
-Etapas 10–20: pendentes.
+## Etapa 10 — Baralho, compartimentos e demais módulos
+
+Baralho, resumos, relíquias, placeholder de companions, inventário de modificadores e editor de compartimentos possuem cenas completas. Cartas conservam CardView/cache; ferramentas fixas e navegação não são remontadas. Itens e colunas variáveis usam templates. O inventário reconcilia itens por identidade; critérios de compatibilidade continuam publicados pela engine. Inspeções e fontes de atributos usam overlays/componentes autorados. A cena unificada da run já compõe seus módulos diretamente e usa o registro de rotas.
+
+Preservados workspaces, gateways, transações e guards de contexto. Versionada a dependência de apresentação de modificadores que já existia no workspace, com suas regressões, para que descrições e comparação atual também funcionem no checkout do commit. Testes aprovados: módulos editáveis 8, shell 9, layout 48, autosave 9, recuperação 9, modificadores 33, compartimentos 20, editorial 187, input 6, fluxo da run 22 e registro 7. Comparação de baralho, resumo e inventário de modificadores em duas escalas confirmou geometria equivalente (loadout-modules.geometry.json).
+
+Etapas 11–20: pendentes.

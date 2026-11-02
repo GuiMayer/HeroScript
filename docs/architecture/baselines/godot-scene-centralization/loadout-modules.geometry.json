@@ -1,0 +1,174 @@
+[
+  {
+    "after": {
+      "All resources": "[P: (1252.0, 52.0), S: (148.0, 49.0)]",
+      "All tags": "[P: (981.0, 52.0), S: (108.0, 49.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (62.0, 48.0)]",
+      "Compartments": "[P: (66.0, 0.0), S: (129.0, 48.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 105.0), S: (1400.0, 22.0)]",
+      "Name": "[P: (1093.0, 52.0), S: (155.0, 49.0)]",
+      "card": "[P: (0.0, 131.0), S: (248.0, 404.0)]"
+    },
+    "before": {
+      "All resources": "[P: (1252.0, 52.0), S: (148.0, 49.0)]",
+      "All tags": "[P: (981.0, 52.0), S: (108.0, 49.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (62.0, 48.0)]",
+      "Compartments": "[P: (66.0, 0.0), S: (129.0, 48.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 105.0), S: (1400.0, 22.0)]",
+      "Name": "[P: (1093.0, 52.0), S: (155.0, 49.0)]",
+      "card": "[P: (0.0, 131.0), S: (248.0, 404.0)]"
+    },
+    "label": "deck/cards/1.0"
+  },
+  {
+    "after": {
+      "All resources": "[P: (1252.0, 52.0), S: (148.0, 49.0)]",
+      "All tags": "[P: (981.0, 52.0), S: (108.0, 49.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (62.0, 48.0)]",
+      "Clear distribution": "[P: (147.0, 105.0), S: (146.0, 48.0)]",
+      "Compartments": "[P: (66.0, 0.0), S: (129.0, 48.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 183.0), S: (1400.0, 22.0)]",
+      "Drag a card to a compartment, or select a card and a destination. Changes save automatically.0": "[P: (0.0, 157.0), S: (1400.0, 22.0)]",
+      "Inspect card": "[P: (297.0, 105.0), S: (109.0, 48.0)]",
+      "Name": "[P: (1093.0, 52.0), S: (155.0, 49.0)]",
+      "Neutral": "[P: (0.0, 105.0), S: (74.0, 48.0)]",
+      "Neutral0": "[P: (0.0, 617.0), S: (248.0, 20.0)]",
+      "Utility": "[P: (78.0, 105.0), S: (65.0, 48.0)]",
+      "card": "[P: (0.0, 209.0), S: (248.0, 404.0)]"
+    },
+    "before": {
+      "All resources": "[P: (1252.0, 52.0), S: (148.0, 49.0)]",
+      "All tags": "[P: (981.0, 52.0), S: (108.0, 49.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (62.0, 48.0)]",
+      "Clear distribution": "[P: (147.0, 105.0), S: (146.0, 48.0)]",
+      "Compartments": "[P: (66.0, 0.0), S: (129.0, 48.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 183.0), S: (1400.0, 22.0)]",
+      "Drag a card to a compartment, or select a card and a destination. Changes save automatically.0": "[P: (0.0, 157.0), S: (1400.0, 22.0)]",
+      "Inspect card": "[P: (297.0, 105.0), S: (109.0, 48.0)]",
+      "Name": "[P: (1093.0, 52.0), S: (155.0, 49.0)]",
+      "Neutral": "[P: (0.0, 105.0), S: (74.0, 48.0)]",
+      "Neutral0": "[P: (0.0, 617.0), S: (248.0, 20.0)]",
+      "Utility": "[P: (78.0, 105.0), S: (65.0, 48.0)]",
+      "card": "[P: (0.0, 209.0), S: (248.0, 404.0)]"
+    },
+    "label": "deck/compartments/1.0"
+  },
+  {
+    "after": {
+      "Deck · 2": "[P: (0.0, 66.0), S: (1400.0, 48.0)]",
+      "Equipment, cards and relics keep their own rules and inventories.0": "[P: (0.0, 198.0), S: (1400.0, 22.0)]",
+      "Inscriptions · 1": "[P: (0.0, 0.0), S: (1400.0, 48.0)]",
+      "Relics · 0": "[P: (0.0, 132.0), S: (1400.0, 48.0)]"
+    },
+    "before": {
+      "Deck · 2": "[P: (0.0, 66.0), S: (1400.0, 48.0)]",
+      "Equipment, cards and relics keep their own rules and inventories.0": "[P: (0.0, 198.0), S: (1400.0, 22.0)]",
+      "Inscriptions · 1": "[P: (0.0, 0.0), S: (1400.0, 48.0)]",
+      "Relics · 0": "[P: (0.0, 132.0), S: (1400.0, 48.0)]"
+    },
+    "label": "summary/1.0"
+  },
+  {
+    "after": {
+      "Effect description unavailable. Inspect a compatible card before applying.0": "[P: (234.0, 32.0), S: (1166.0, 21.0)]",
+      "Fire imprint": "[P: (0.0, 100.0), S: (220.0, 48.0)]",
+      "Fire imprint0": "[P: (234.0, 0.0), S: (1166.0, 28.0)]",
+      "Modifier items0": "[P: (0.0, 0.0), S: (220.0, 28.0)]",
+      "card": "[P: (234.0, 57.0), S: (248.0, 404.0)]"
+    },
+    "before": {
+      "Effect description unavailable. Inspect a compatible card before applying.0": "[P: (234.0, 32.0), S: (1166.0, 21.0)]",
+      "Fire imprint": "[P: (0.0, 100.0), S: (220.0, 48.0)]",
+      "Fire imprint0": "[P: (234.0, 0.0), S: (1166.0, 28.0)]",
+      "Modifier items0": "[P: (0.0, 0.0), S: (220.0, 28.0)]",
+      "card": "[P: (234.0, 57.0), S: (248.0, 404.0)]"
+    },
+    "label": "modifiers/1.0"
+  },
+  {
+    "after": {
+      "All resources": "[P: (1199.0, 55.0), S: (201.0, 63.0)]",
+      "All tags": "[P: (840.0, 55.0), S: (138.0, 63.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (85.0, 51.0)]",
+      "Compartments": "[P: (89.0, 0.0), S: (192.0, 51.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 122.0), S: (1400.0, 22.0)]",
+      "Name": "[P: (982.0, 55.0), S: (213.0, 63.0)]",
+      "card": "[P: (0.0, 148.0), S: (248.0, 476.0)]"
+    },
+    "before": {
+      "All resources": "[P: (1199.0, 55.0), S: (201.0, 63.0)]",
+      "All tags": "[P: (840.0, 55.0), S: (138.0, 63.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (85.0, 51.0)]",
+      "Compartments": "[P: (89.0, 0.0), S: (192.0, 51.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 122.0), S: (1400.0, 22.0)]",
+      "Name": "[P: (982.0, 55.0), S: (213.0, 63.0)]",
+      "card": "[P: (0.0, 148.0), S: (248.0, 476.0)]"
+    },
+    "label": "deck/cards/1.6"
+  },
+  {
+    "after": {
+      "All resources": "[P: (1199.0, 55.0), S: (201.0, 63.0)]",
+      "All tags": "[P: (840.0, 55.0), S: (138.0, 63.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (85.0, 51.0)]",
+      "Clear distribution": "[P: (203.0, 122.0), S: (219.0, 51.0)]",
+      "Compartments": "[P: (89.0, 0.0), S: (192.0, 51.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 203.0), S: (1400.0, 22.0)]",
+      "Drag a card to a compartment, or select a card and a destination. Changes save automatically.0": "[P: (0.0, 177.0), S: (1400.0, 22.0)]",
+      "Inspect card": "[P: (426.0, 122.0), S: (160.0, 51.0)]",
+      "Name": "[P: (982.0, 55.0), S: (213.0, 63.0)]",
+      "Neutral": "[P: (0.0, 122.0), S: (105.0, 51.0)]",
+      "Neutral0": "[P: (0.0, 709.0), S: (248.0, 20.0)]",
+      "Utility": "[P: (109.0, 122.0), S: (90.0, 51.0)]",
+      "card": "[P: (0.0, 229.0), S: (248.0, 476.0)]"
+    },
+    "before": {
+      "All resources": "[P: (1199.0, 55.0), S: (201.0, 63.0)]",
+      "All tags": "[P: (840.0, 55.0), S: (138.0, 63.0)]",
+      "Cards": "[P: (0.0, 0.0), S: (85.0, 51.0)]",
+      "Clear distribution": "[P: (203.0, 122.0), S: (219.0, 51.0)]",
+      "Compartments": "[P: (89.0, 0.0), S: (192.0, 51.0)]",
+      "Current deck: 1 cards0": "[P: (0.0, 203.0), S: (1400.0, 22.0)]",
+      "Drag a card to a compartment, or select a card and a destination. Changes save automatically.0": "[P: (0.0, 177.0), S: (1400.0, 22.0)]",
+      "Inspect card": "[P: (426.0, 122.0), S: (160.0, 51.0)]",
+      "Name": "[P: (982.0, 55.0), S: (213.0, 63.0)]",
+      "Neutral": "[P: (0.0, 122.0), S: (105.0, 51.0)]",
+      "Neutral0": "[P: (0.0, 709.0), S: (248.0, 20.0)]",
+      "Utility": "[P: (109.0, 122.0), S: (90.0, 51.0)]",
+      "card": "[P: (0.0, 229.0), S: (248.0, 476.0)]"
+    },
+    "label": "deck/compartments/1.6"
+  },
+  {
+    "after": {
+      "Deck · 2": "[P: (0.0, 69.0), S: (1400.0, 51.0)]",
+      "Equipment, cards and relics keep their own rules and inventories.0": "[P: (0.0, 207.0), S: (1400.0, 22.0)]",
+      "Inscriptions · 1": "[P: (0.0, 0.0), S: (1400.0, 51.0)]",
+      "Relics · 0": "[P: (0.0, 138.0), S: (1400.0, 51.0)]"
+    },
+    "before": {
+      "Deck · 2": "[P: (0.0, 69.0), S: (1400.0, 51.0)]",
+      "Equipment, cards and relics keep their own rules and inventories.0": "[P: (0.0, 207.0), S: (1400.0, 22.0)]",
+      "Inscriptions · 1": "[P: (0.0, 0.0), S: (1400.0, 51.0)]",
+      "Relics · 0": "[P: (0.0, 138.0), S: (1400.0, 51.0)]"
+    },
+    "label": "summary/1.6"
+  },
+  {
+    "after": {
+      "Effect description unavailable. Inspect a compatible card before applying.0": "[P: (234.0, 32.0), S: (1166.0, 21.0)]",
+      "Fire imprint": "[P: (0.0, 100.0), S: (220.0, 51.0)]",
+      "Fire imprint0": "[P: (234.0, 0.0), S: (1166.0, 28.0)]",
+      "Modifier items0": "[P: (0.0, 0.0), S: (220.0, 28.0)]",
+      "card": "[P: (234.0, 57.0), S: (248.0, 476.0)]"
+    },
+    "before": {
+      "Effect description unavailable. Inspect a compatible card before applying.0": "[P: (234.0, 32.0), S: (1166.0, 21.0)]",
+      "Fire imprint": "[P: (0.0, 100.0), S: (220.0, 51.0)]",
+      "Fire imprint0": "[P: (234.0, 0.0), S: (1166.0, 28.0)]",
+      "Modifier items0": "[P: (0.0, 0.0), S: (220.0, 28.0)]",
+      "card": "[P: (234.0, 57.0), S: (248.0, 476.0)]"
+    },
+    "label": "modifiers/1.6"
+  }
+]

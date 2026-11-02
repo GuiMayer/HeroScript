@@ -1,0 +1,5 @@
+[gd_scene format=3]
+[node name="DeckDestination" type="Button"]
+custom_minimum_size = Vector2(0,48)
+theme_type_variation = &"SecondaryAction"
+metadata/destination = true

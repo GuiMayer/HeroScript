@@ -33,9 +33,9 @@ func _ready() -> void:
 		var card = preload("res://scripts/ui/card_view.gd").create(context); card.animate_entry = false; card.configure(model); cards.add_child(card)
 	shell.install("deck", deck_scroll)
 	for id in ["overview", "relics"]:
-		var summary = preload("res://scripts/ui/loadout/loadout_summary_view.gd").new(); summary.mount(context); summary.relics_only = id == "relics"
+		var summary = preload("res://scripts/ui/loadout/loadout_summary_view.gd").create(); summary.mount(context); summary.relics_only = id == "relics"
 		summary.module_requested.connect(shell.select); summary.present({"equipped": 3, "cards": 5, "relics": []}); shell.install(id, summary)
-	var planned = preload("res://scripts/ui/loadout/planned_companions_view.gd").new(); planned.mount(context); shell.install("companions", planned)
+	var planned = preload("res://scripts/ui/loadout/planned_companions_view.gd").create(); planned.mount(context); shell.install("companions", planned)
 	_refresh()
 	shell.set_feedback("Visual laboratory — no run changes"); shell.select("overview")
 func _refresh() -> void:

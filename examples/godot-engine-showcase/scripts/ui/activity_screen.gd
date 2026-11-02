@@ -109,7 +109,7 @@ func _open_items() -> void:
 	var dialog := AcceptDialog.new()
 	dialog.title = I18n.text("Modifier items")
 	dialog.theme = visual_context.theme
-	var collection := preload("res://scripts/ui/components/card_modifier_inventory_view.gd").new()
+	var collection := preload("res://scripts/ui/components/card_modifier_inventory_view.gd").create()
 	collection.custom_minimum_size = Vector2(950, 570)
 	collection.configure(GameSession.modifier_items, GameSession.activity_choices(), GameSession.card_presentations, presentation, visual_context)
 	collection.choice_requested.connect(func(reference): dialog.hide(); _confirm_ref(reference))

@@ -2,6 +2,7 @@ extends RefCounted
 ## One production scene per route. Add entries only when adopting that scene.
 ## Routing, sessions and gameplay remain with the existing application adapters.
 const ROUTES := {
+	"run_loadout": preload("res://scenes/ui/screens/unified_loadout.tscn"),
 	"settings": preload("res://scenes/ui/screens/settings.tscn"),
 	"menu": preload("res://scenes/ui/screens/main_menu.tscn"),
 	"loadout_lab": preload("res://scenes/unified_loadout_lab.tscn"),

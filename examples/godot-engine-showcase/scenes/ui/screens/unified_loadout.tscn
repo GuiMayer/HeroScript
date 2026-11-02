@@ -2,6 +2,11 @@
 [ext_resource type="Script" path="res://scripts/ui/unified_loadout_screen.gd" id="Script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_page.tscn" id="Page"]
 [ext_resource type="PackedScene" path="res://scenes/ui/overlays/confirmation_dialog.tscn" id="Confirm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/inscriptions_editorial.tscn" id="Inscriptions"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_summary.tscn" id="Overview"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_summary.tscn" id="Relics"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/deck_module.tscn" id="Deck"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/planned_companions.tscn" id="Companions"]
 [node name="UnifiedLoadout" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -31,3 +36,15 @@ autowrap_mode = 3
 text = "Inscriptions are not available for this character or setting."
 
 [node name="ClearEquipment" parent="." instance=ExtResource("Confirm")]
+
+[node name="Inscriptions" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsScroll/InscriptionBody" instance=ExtResource("Inscriptions")]
+shared_attributes = true
+
+[node name="Overview" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost" instance=ExtResource("Overview")]
+
+[node name="Relics" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost" instance=ExtResource("Relics")]
+relics_only = true
+
+[node name="Deck" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost" instance=ExtResource("Deck")]
+
+[node name="Companions" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost" instance=ExtResource("Companions")]

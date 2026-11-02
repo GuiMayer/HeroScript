@@ -1,3 +1,5 @@
+@tool
+class_name DeckCompartmentEditor
 extends Control
 ## Reusable build editor. Uses the combat CardView and passive facts presenter; no game rules.
 signal back_requested
@@ -16,8 +18,12 @@ var _target: OptionButton
 var _discard: ConfirmationDialog
 var _alive := true
 
+static func create() -> DeckCompartmentEditor:
+	return (load("res://scenes/ui/screens/deck_compartment_editor.tscn") as PackedScene).instantiate()
 func _ready() -> void:
-	if visual_context == null: visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(preload("res://data/themes/ivory_theme.tres"))
+	if visual_context == null:
+		if Engine.is_editor_hint(): visual_context = preload("res://scripts/ui/visual_context.gd").new(null, {}, preload("res://data/themes/ivory_theme.tres"))
+		else: visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(preload("res://data/themes/ivory_theme.tres"))
 	theme = visual_context.theme
 	if appearance.is_empty():
 		for path in ["res://data/presentation.json", "res://data/volatile_core_presentation.json", "res://data/world_one_presentation.json"]:
@@ -26,34 +32,27 @@ func _ready() -> void:
 			for category in overlay:
 				if not appearance.has(category): appearance[category] = {}
 				if overlay[category] is Dictionary: appearance[category].merge(overlay[category], true)
-	var background := ColorRect.new(); background.color = visual_context.styles.NIGHT
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); background.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(background)
-	var margin := MarginContainer.new(); margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 24)
-	add_child(margin)
-	_page = VBoxContainer.new(); _page.add_theme_constant_override("separation", 12); margin.add_child(_page)
-	var header := HBoxContainer.new(); _page.add_child(header)
-	var title: Label = visual_context.styles.title(_text("DECK COMPARTMENTS"), 28); title.size_flags_horizontal = Control.SIZE_EXPAND_FILL; header.add_child(title)
-	header.add_child(_button("BACK", _back))
-	var actions := HBoxContainer.new(); _page.add_child(actions)
-	_target = OptionButton.new(); _target.custom_minimum_size.x = 180; actions.add_child(_target)
-	actions.add_child(_button("MOVE SELECTED", func():
-		if _target.selected >= 0: _stage(selected_id, str(_target.get_item_metadata(_target.selected)))))
-	actions.add_child(_button("CLEAR DRAFT", func():
-		if not busy and not uncertain: workspace.clear(); _render(); _request_preview()))
-	actions.add_child(_button("RESTORE", func():
-		if not busy and not uncertain: workspace.load_snapshot(workspace.source); _render()))
-	_apply = _button("APPLY", _commit); actions.add_child(_apply)
-	_status = Label.new(); _status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _page.add_child(_status)
-	var scroll := ScrollContainer.new(); scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; _page.add_child(scroll)
-	_body = HBoxContainer.new(); _body.add_theme_constant_override("separation", 18); scroll.add_child(_body)
-	_discard = (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); _discard.dialog_text = _text("Discard unconfirmed compartment changes?")
-	_discard.confirmed.connect(func(): back_requested.emit()); add_child(_discard)
+	find_child("ColorRect0", true, false).color = visual_context.styles.NIGHT
+	_page = find_child("Page", true, false); _body = find_child("Compartments", true, false)
+	_status = find_child("Status", true, false); _apply = find_child("Apply", true, false)
+	_target = find_child("Destination", true, false); _discard = get_node("Discard")
+	_translate(self)
+	_page.get_node("Header/Back").pressed.connect(_back)
+	_page.get_node("Actions/Move").pressed.connect(func():
+		if _target.selected >= 0: _stage(selected_id, str(_target.get_item_metadata(_target.selected))))
+	_page.get_node("Actions/Clear").pressed.connect(func():
+		if not busy and not uncertain: workspace.clear(); _render(); _request_preview())
+	_page.get_node("Actions/Restore").pressed.connect(func():
+		if not busy and not uncertain: workspace.load_snapshot(workspace.source); _render())
+	_apply.pressed.connect(_commit)
+	_discard.dialog_text = _text("Discard unconfirmed compartment changes?")
+	_discard.confirmed.connect(func(): back_requested.emit())
 	if service != null: read_state.call_deferred()
 
 func _text(key: String) -> String: return visual_context.translator.text(key)
-func _button(key: String, action: Callable) -> Button:
-	var button: Button = visual_context.styles.button(_text(key)); button.pressed.connect(action); return button
+func _translate(node: Node) -> void:
+	if node.has_meta("source_text"): node.text = _text(str(node.get_meta("source_text")))
+	for child in node.get_children(): _translate(child)
 func _back() -> void:
 	if busy or uncertain: return
 	if workspace.dirty(): _discard.popup_centered()
@@ -129,10 +128,11 @@ func _render() -> void:
 	if not source.get("canChange", false): _status.text = _text(str(source.get("unavailableReason", "Read only")))
 
 func _column(title: String, description: String, id: String) -> VBoxContainer:
-	var panel := PanelContainer.new(); panel.custom_minimum_size.x = 260; _body.add_child(panel)
-	var column := VBoxContainer.new(); column.add_theme_constant_override("separation", 8); panel.add_child(column)
-	column.add_child(visual_context.styles.title(title, 18))
-	var details := Label.new(); details.text = description; details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; details.custom_minimum_size.x = 250; column.add_child(details)
+	var panel = preload("res://scenes/ui/components/loadout/compartment_column.tscn").instantiate(); _body.add_child(panel)
+	var column: VBoxContainer = panel.get_node("Body")
+	column.get_node("Title").text = title
+	column.get_node("Title").add_theme_color_override("font_color", visual_context.styles.INK)
+	column.get_node("Description").text = description
 	panel.set_drag_forwarding(Callable(), func(_at, data):
 		return not busy and not uncertain and data is Dictionary and data.get("kind") == "deck_compartment_card" and data.get("runId") == workspace.source.get("runId"),
 		func(_at, data): _stage(str(data.cardInstanceId), id))

@@ -33,7 +33,7 @@ func _run() -> void:
 	check(workspace.allocations().is_empty(), "clear uses an explicit empty final distribution")
 	check(load("res://scripts/engine/deck_compartment_gateway.gd") != null, "REST adapter parses")
 	check(load("res://scenes/deck_compartment_lab.tscn") != null, "isolated lab scene parses")
-	var editor = load("res://scripts/ui/deck_compartment_editor.gd").new()
+	var editor = load("res://scripts/ui/deck_compartment_editor.gd").create()
 	editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(editor); await process_frame
 	editor.workspace.load_snapshot(source); editor._render(); await process_frame
