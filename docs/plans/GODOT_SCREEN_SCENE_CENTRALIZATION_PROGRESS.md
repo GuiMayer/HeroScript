@@ -44,4 +44,8 @@ Testes: shell editável 10, pause/layers 24, menus 90, leitura/retomada de diál
 
 Menu principal centralizado em cena editável, registrada no router e no catálogo offline. Atualizações reutilizam os controles, preservando a invalidação de consultas assíncronas de continuar. Paper e shell também são instâncias autoradas. Testes: menu editável 8, layout 41, menus 90, progressão por setting 30, registro 7 e pause 24 aprovados. Comparação com a baseline em três larguras e duas escalas confirmou geometria equivalente; relatório menu.geometry.json.
 
-Etapas 7–20: pendentes.
+## Etapa 7 — Configurações e remapeamento
+
+Shell e seis páginas de configuração possuem nodes estáticos editáveis. Scripts apenas traduzem e ligam os controles ao schema/controller existentes. Abas alternam visibilidade sem recriar sliders nem callbacks. Preview aplica tema sem iniciar sessão nem persistir opções. Testes: cenas editáveis 7, contratos 8, interação 86, recuperação 69 e menus 90 aprovados. Comparação das seis abas em duas resoluções e duas escalas confirmou geometria equivalente (settings.geometry.json).
+
+Etapas 8–20: pendentes.

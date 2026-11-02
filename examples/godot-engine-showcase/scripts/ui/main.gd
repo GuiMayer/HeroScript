@@ -1,6 +1,5 @@
 extends Control
 
-const SettingsScreen = preload("res://scripts/ui/settings_screen.gd")
 const SandboxScreen = preload("res://scripts/ui/sandbox_screen.gd")
 const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
 const ActivityScreen = preload("res://scripts/ui/activity_screen.gd")
@@ -391,7 +390,7 @@ func show_settings(return_to_gameplay := false) -> void:
 	settings_return_to_gameplay = return_to_gameplay
 	current_screen = "settings"
 	_clear_host()
-	var screen = SettingsScreen.new()
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("settings")
 	screen.setup(self, open_game if return_to_gameplay else _show_main_menu)
 	host.add_child(screen)
 

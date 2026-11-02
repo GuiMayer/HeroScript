@@ -1,0 +1,2294 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/settings_screen.gd" id="1_ghr4u"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jyecc"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.9607843, 0.9647059, 0.96862745, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.raised"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sbqmj"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "text.inverse"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x6k18"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c5u2p"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pbh10"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cyhtv"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_og3eu"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nd0tk"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_q6wrv"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x1u7a"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3ga5y"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nne72"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_brmsb"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iffnb"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jpbjg"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8tclt"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yr665"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sh2o8"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pswfl"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6ys5x"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tvj8g"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1swas"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8pa61"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_26xdv"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b6pe5"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2h5yi"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rix7n"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_feynb"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_80b2j"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_730ri"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fj0wr"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wdq1m"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dxx2s"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ls7rt"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2qocs"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_umnrc"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xolqp"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1qh4j"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fgd27"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_otmsy"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nqy2k"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g8bpp"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_obaj0"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ywomp"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a4xps"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nhd3x"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xkmeb"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dmq85"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.972549, 0.9764706, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+metadata/background_role = "surface.route_locked"
+metadata/border_role = "stroke.disabled"
+
+[node name="SettingsScreen" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+script = ExtResource("1_ghr4u")
+
+[node name="Header" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+
+[node name="Titles" type="VBoxContainer" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="Title" type="Label" parent="Header/Titles"]
+layout_mode = 2
+theme_type_variation = &"ScreenTitle"
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 32
+text = "SETTINGS"
+metadata/text_role = "text.primary"
+metadata/source_text = "SETTINGS"
+
+[node name="Description" type="Label" parent="Header/Titles"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 13
+text = "Changes are applied and saved automatically."
+autowrap_mode = 3
+metadata/source_text = "Changes are applied and saved automatically."
+
+[node name="Back" type="Button" parent="Header"]
+custom_minimum_size = Vector2(130, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "BACK"
+
+[node name="SettingsBody" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="SettingsCategories" type="PanelContainer" parent="SettingsBody"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_jyecc")
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsCategories"]
+custom_minimum_size = Vector2(238, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 7
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "CATEGORIES"
+metadata/text_role = "accent.primary"
+metadata/source_text = "CATEGORIES"
+
+[node name="SettingsCategory_General" type="Button" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+toggle_mode = true
+text = "GENERAL"
+alignment = 0
+metadata/category_id = "general"
+metadata/initial_focus = true
+
+[node name="SettingsCategory_Audio" type="Button" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+toggle_mode = true
+text = "AUDIO"
+alignment = 0
+metadata/category_id = "audio"
+
+[node name="SettingsCategory_Display" type="Button" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+toggle_mode = true
+text = "DISPLAY"
+alignment = 0
+metadata/category_id = "display"
+
+[node name="SettingsCategory_Accessibility" type="Button" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+toggle_mode = true
+text = "ACCESSIBILITY"
+alignment = 0
+metadata/category_id = "accessibility"
+
+[node name="SettingsCategory_Controls" type="Button" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+toggle_mode = true
+text = "CONTROLS"
+alignment = 0
+metadata/category_id = "controls"
+
+[node name="SettingsCategory_Connection" type="Button" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+toggle_mode = true
+button_pressed = true
+text = "CONNECTION"
+alignment = 0
+metadata/category_id = "connection"
+
+[node name="Control7" type="Control" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label8" type="Label" parent="SettingsBody/SettingsCategories/VBoxContainer0"]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Your preferences are saved locally and do not affect game rules."
+autowrap_mode = 3
+metadata/source_text = "Your preferences are saved locally and do not affect game rules."
+
+[node name="SettingsPage" type="PanelContainer" parent="SettingsBody"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_sbqmj")
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SettingsPageTitle" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 27
+text = "CONNECTION"
+metadata/text_role = "accent.primary"
+metadata/source_text = "CONNECTION"
+
+[node name="SettingsPageDescription" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0"]
+custom_minimum_size = Vector2(580, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 14
+text = "HeroScript service connection."
+autowrap_mode = 3
+metadata/source_text = "HeroScript service connection."
+
+[node name="HSeparator2" type="HSeparator" parent="SettingsBody/SettingsPage/VBoxContainer0"]
+layout_mode = 2
+
+[node name="SettingsPageScroll" type="ScrollContainer" parent="SettingsBody/SettingsPage/VBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SettingsPageContent" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll"]
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="GeneralPage" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "PRESENTATION"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "PRESENTATION"
+
+[node name="LanguageSelectorRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_x6k18")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/LanguageSelectorRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/LanguageSelectorRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/LanguageSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Interface language"
+metadata/text_role = "text.primary"
+metadata/source_text = "Interface language"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/LanguageSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Choose the language used by interface and content."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Choose the language used by interface and content."
+autowrap_mode = 3
+metadata/source_text = "Choose the language used by interface and content."
+
+[node name="LanguageSelector" type="OptionButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/LanguageSelectorRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Choose the language used by interface and content."
+selected = 0
+item_count = 2
+popup/item_0/text = "English"
+popup/item_0/id = 0
+popup/item_1/text = "Português (Brasil)"
+popup/item_1/id = 1
+
+[node name="AnimationSpeedSliderRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pbh10")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Animation playback speed"
+metadata/text_role = "text.primary"
+metadata/source_text = "Animation playback speed"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Controls presentation speed only; simulation results never change."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Controls presentation speed only; simulation results never change."
+autowrap_mode = 3
+metadata/source_text = "Controls presentation speed only; simulation results never change."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow/HBoxContainer0"]
+custom_minimum_size = Vector2(330, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Controls presentation speed only; simulation results never change."
+theme_override_constants/separation = 12
+
+[node name="AnimationSpeedSlider" type="HSlider" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow/HBoxContainer0/HBoxContainer1"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.25
+max_value = 2.0
+step = 0.05
+value = 1.0
+
+[node name="AnimationSpeedSliderValue" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationSpeedSliderRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+text = "1×"
+horizontal_alignment = 2
+metadata/source_text = "1×"
+
+[node name="AutomaticAnimationsToggleRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_og3eu")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AutomaticAnimationsToggleRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AutomaticAnimationsToggleRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AutomaticAnimationsToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Automatic animation playback"
+metadata/text_role = "text.primary"
+metadata/source_text = "Automatic animation playback"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AutomaticAnimationsToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Advance the action queue automatically after the engine resolves a command."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Advance the action queue automatically after the engine resolves a command."
+autowrap_mode = 3
+metadata/source_text = "Advance the action queue automatically after the engine resolves a command."
+
+[node name="AutomaticAnimationsToggle" type="CheckButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AutomaticAnimationsToggleRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Advance the action queue automatically after the engine resolves a command."
+button_pressed = true
+text = "ON"
+alignment = 2
+
+[node name="Label4" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "CARD HAND"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "CARD HAND"
+
+[node name="HandLayoutSelectorRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_q6wrv")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandLayoutSelectorRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandLayoutSelectorRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandLayoutSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Hand layout"
+metadata/text_role = "text.primary"
+metadata/source_text = "Hand layout"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandLayoutSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Keep card text size; choose overlap or horizontal reading."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Keep card text size; choose overlap or horizontal reading."
+autowrap_mode = 3
+metadata/source_text = "Keep card text size; choose overlap or horizontal reading."
+
+[node name="HandLayoutSelector" type="OptionButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandLayoutSelectorRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Keep card text size; choose overlap or horizontal reading."
+selected = 0
+item_count = 2
+popup/item_0/text = "Adaptive fan"
+popup/item_0/id = 0
+popup/item_1/text = "Reading — no overlap"
+popup/item_1/id = 1
+
+[node name="HandEmphasisSliderRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_3ga5y")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Card highlight lift"
+metadata/text_role = "text.primary"
+metadata/source_text = "Card highlight lift"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Highlight intensity does not change card values or text size."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Highlight intensity does not change card values or text size."
+autowrap_mode = 3
+metadata/source_text = "Highlight intensity does not change card values or text size."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow/HBoxContainer0"]
+custom_minimum_size = Vector2(330, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Highlight intensity does not change card values or text size."
+theme_override_constants/separation = 12
+
+[node name="HandEmphasisSlider" type="HSlider" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow/HBoxContainer0/HBoxContainer1"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.1
+value = 1.0
+
+[node name="HandEmphasisSliderValue" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/HandEmphasisSliderRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+text = "100%"
+horizontal_alignment = 2
+metadata/source_text = "100%"
+
+[node name="AnimationPresetSelectorRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_brmsb")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationPresetSelectorRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationPresetSelectorRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationPresetSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Animation preset"
+metadata/text_role = "text.primary"
+metadata/source_text = "Animation preset"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationPresetSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Presentation only; manual stepping remains available."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Presentation only; manual stepping remains available."
+autowrap_mode = 3
+metadata/source_text = "Presentation only; manual stepping remains available."
+
+[node name="AnimationPresetSelector" type="OptionButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/GeneralPage/AnimationPresetSelectorRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Presentation only; manual stepping remains available."
+selected = 0
+item_count = 3
+popup/item_0/text = "Normal"
+popup/item_0/id = 0
+popup/item_1/text = "Fast"
+popup/item_1/id = 1
+popup/item_2/text = "Instant"
+popup/item_2/id = 2
+
+[node name="AudioPage" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "VOLUME"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "VOLUME"
+
+[node name="MasterVolumeSliderRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_jpbjg")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Master volume"
+metadata/text_role = "text.primary"
+metadata/source_text = "Master volume"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Overall output level."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Overall output level."
+autowrap_mode = 3
+metadata/source_text = "Overall output level."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow/HBoxContainer0"]
+custom_minimum_size = Vector2(330, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Overall output level."
+theme_override_constants/separation = 12
+
+[node name="MasterVolumeSlider" type="HSlider" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow/HBoxContainer0/HBoxContainer1"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="MasterVolumeSliderValue" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MasterVolumeSliderRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+text = "80%"
+horizontal_alignment = 2
+metadata/source_text = "80%"
+
+[node name="MusicVolumeSliderRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_yr665")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Music"
+metadata/text_role = "text.primary"
+metadata/source_text = "Music"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Background music level."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Background music level."
+autowrap_mode = 3
+metadata/source_text = "Background music level."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow/HBoxContainer0"]
+custom_minimum_size = Vector2(330, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Background music level."
+theme_override_constants/separation = 12
+
+[node name="MusicVolumeSlider" type="HSlider" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow/HBoxContainer0/HBoxContainer1"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.42
+
+[node name="MusicVolumeSliderValue" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/MusicVolumeSliderRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+text = "42%"
+horizontal_alignment = 2
+metadata/source_text = "42%"
+
+[node name="SfxVolumeSliderRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pswfl")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Sound effects"
+metadata/text_role = "text.primary"
+metadata/source_text = "Sound effects"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Cards, hits and interface feedback."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Cards, hits and interface feedback."
+autowrap_mode = 3
+metadata/source_text = "Cards, hits and interface feedback."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow/HBoxContainer0"]
+custom_minimum_size = Vector2(330, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Cards, hits and interface feedback."
+theme_override_constants/separation = 12
+
+[node name="SfxVolumeSlider" type="HSlider" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow/HBoxContainer0/HBoxContainer1"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.75
+
+[node name="SfxVolumeSliderValue" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AudioPage/SfxVolumeSliderRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+text = "75%"
+horizontal_alignment = 2
+metadata/source_text = "75%"
+
+[node name="DisplayPage" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "WINDOW"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "WINDOW"
+
+[node name="FullscreenToggleRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tvj8g")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/FullscreenToggleRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/FullscreenToggleRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/FullscreenToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Fullscreen"
+metadata/text_role = "text.primary"
+metadata/source_text = "Fullscreen"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/FullscreenToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Use the current monitor's full display area."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Use the current monitor's full display area."
+autowrap_mode = 3
+metadata/source_text = "Use the current monitor's full display area."
+
+[node name="FullscreenToggle" type="CheckButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/FullscreenToggleRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Use the current monitor's full display area."
+text = "OFF"
+alignment = 2
+
+[node name="ResolutionSelectorRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8pa61")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/ResolutionSelectorRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/ResolutionSelectorRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/ResolutionSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Window resolution"
+metadata/text_role = "text.primary"
+metadata/source_text = "Window resolution"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/ResolutionSelectorRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Used in windowed mode. Ultrawide resolutions are supported."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Used in windowed mode. Ultrawide resolutions are supported."
+autowrap_mode = 3
+metadata/source_text = "Used in windowed mode. Ultrawide resolutions are supported."
+
+[node name="ResolutionSelector" type="OptionButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/DisplayPage/ResolutionSelectorRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Used in windowed mode. Ultrawide resolutions are supported."
+selected = 1
+item_count = 11
+popup/item_0/text = "1280 × 720"
+popup/item_0/id = 0
+popup/item_1/text = "1280 × 800"
+popup/item_1/id = 1
+popup/item_2/text = "1366 × 768"
+popup/item_2/id = 2
+popup/item_3/text = "1440 × 900"
+popup/item_3/id = 3
+popup/item_4/text = "1600 × 900"
+popup/item_4/id = 4
+popup/item_5/text = "1920 × 1080"
+popup/item_5/id = 5
+popup/item_6/text = "1920 × 1200"
+popup/item_6/id = 6
+popup/item_7/text = "2560 × 1080"
+popup/item_7/id = 7
+popup/item_8/text = "2560 × 1440"
+popup/item_8/id = 8
+popup/item_9/text = "3440 × 1440"
+popup/item_9/id = 9
+popup/item_10/text = "3840 × 2160"
+popup/item_10/id = 10
+
+[node name="AccessibilityPage" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "READABILITY AND MOTION"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "READABILITY AND MOTION"
+
+[node name="TextScaleSliderRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_b6pe5")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Text size"
+metadata/text_role = "text.primary"
+metadata/source_text = "Text size"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Adjusts menu and gameplay text from 90% to 120%."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Adjusts menu and gameplay text from 90% to 120%."
+autowrap_mode = 3
+metadata/source_text = "Adjusts menu and gameplay text from 90% to 120%."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow/HBoxContainer0"]
+custom_minimum_size = Vector2(330, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Adjusts menu and gameplay text from 90% to 120%."
+theme_override_constants/separation = 12
+
+[node name="TextScaleSlider" type="HSlider" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow/HBoxContainer0/HBoxContainer1"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.9
+max_value = 1.2
+step = 0.05
+value = 1.0
+
+[node name="TextScaleSliderValue" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/TextScaleSliderRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+text = "100%"
+horizontal_alignment = 2
+metadata/source_text = "100%"
+
+[node name="HighContrastToggleRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_rix7n")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/HighContrastToggleRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/HighContrastToggleRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/HighContrastToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "High contrast"
+metadata/text_role = "text.primary"
+metadata/source_text = "High contrast"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/HighContrastToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Uses darker surfaces and stronger outlines throughout the interface."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Uses darker surfaces and stronger outlines throughout the interface."
+autowrap_mode = 3
+metadata/source_text = "Uses darker surfaces and stronger outlines throughout the interface."
+
+[node name="HighContrastToggle" type="CheckButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/HighContrastToggleRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Uses darker surfaces and stronger outlines throughout the interface."
+text = "OFF"
+alignment = 2
+
+[node name="ReducedMotionToggleRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_80b2j")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/ReducedMotionToggleRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/ReducedMotionToggleRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/ReducedMotionToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Reduced motion"
+metadata/text_role = "text.primary"
+metadata/source_text = "Reduced motion"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/ReducedMotionToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Disables decorative motion and shortens transitions."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Disables decorative motion and shortens transitions."
+autowrap_mode = 3
+metadata/source_text = "Disables decorative motion and shortens transitions."
+
+[node name="ReducedMotionToggle" type="CheckButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/ReducedMotionToggleRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Disables decorative motion and shortens transitions."
+text = "OFF"
+alignment = 2
+
+[node name="RevealTextGraduallyToggleRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_fj0wr")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/RevealTextGraduallyToggleRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/RevealTextGraduallyToggleRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/RevealTextGraduallyToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Reveal text gradually"
+metadata/text_role = "text.primary"
+metadata/source_text = "Reveal text gradually"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/RevealTextGraduallyToggleRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Reveals dialogue text progressively. Turn off to show each page immediately."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Reveals dialogue text progressively. Turn off to show each page immediately."
+autowrap_mode = 3
+metadata/source_text = "Reveals dialogue text progressively. Turn off to show each page immediately."
+
+[node name="RevealTextGraduallyToggle" type="CheckButton" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/AccessibilityPage/RevealTextGraduallyToggleRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Reveals dialogue text progressively. Turn off to show each page immediately."
+text = "OFF"
+alignment = 2
+
+[node name="ControlsPage" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "GAMEPLAY ACTIONS"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "GAMEPLAY ACTIONS"
+
+[node name="Binding_pause_gameRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dxx2s")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_pause_gameRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_pause_gameRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_pause_gameRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Pause"
+metadata/text_role = "text.primary"
+metadata/source_text = "Pause"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_pause_gameRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Select a binding to replace it. Press Escape to cancel."
+autowrap_mode = 3
+metadata/source_text = "Select a binding to replace it. Press Escape to cancel."
+
+[node name="Binding_pause_game" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_pause_gameRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"SecondaryAction"
+text = "Escape   /   Pad 6"
+
+[node name="Binding_end_turnRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2qocs")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_end_turnRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_end_turnRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_end_turnRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "End turn"
+metadata/text_role = "text.primary"
+metadata/source_text = "End turn"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_end_turnRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Select a binding to replace it. Press Escape to cancel."
+autowrap_mode = 3
+metadata/source_text = "Select a binding to replace it. Press Escape to cancel."
+
+[node name="Binding_end_turn" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_end_turnRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"SecondaryAction"
+text = "E   /   Pad 3"
+
+[node name="Binding_open_timelineRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_xolqp")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_timelineRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_timelineRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_timelineRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Open timeline"
+metadata/text_role = "text.primary"
+metadata/source_text = "Open timeline"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_timelineRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Select a binding to replace it. Press Escape to cancel."
+autowrap_mode = 3
+metadata/source_text = "Select a binding to replace it. Press Escape to cancel."
+
+[node name="Binding_open_timeline" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_timelineRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"SecondaryAction"
+text = "T   /   Pad 4"
+
+[node name="Binding_confirm_actionRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_fgd27")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_confirm_actionRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_confirm_actionRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_confirm_actionRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Next animation"
+metadata/text_role = "text.primary"
+metadata/source_text = "Next animation"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_confirm_actionRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Select a binding to replace it. Press Escape to cancel."
+autowrap_mode = 3
+metadata/source_text = "Select a binding to replace it. Press Escape to cancel."
+
+[node name="Binding_confirm_action" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_confirm_actionRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"SecondaryAction"
+text = "F   /   Pad 10"
+
+[node name="Binding_inspect_cardRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nqy2k")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_inspect_cardRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_inspect_cardRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_inspect_cardRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Inspect card"
+metadata/text_role = "text.primary"
+metadata/source_text = "Inspect card"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_inspect_cardRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Select a binding to replace it. Press Escape to cancel."
+autowrap_mode = 3
+metadata/source_text = "Select a binding to replace it. Press Escape to cancel."
+
+[node name="Binding_inspect_card" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_inspect_cardRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"SecondaryAction"
+text = "V   /   Pad 2"
+
+[node name="Binding_open_characterRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_obaj0")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_characterRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_characterRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_characterRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Character attributes"
+metadata/text_role = "text.primary"
+metadata/source_text = "Character attributes"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_characterRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Select a binding to replace it. Press Escape to cancel."
+autowrap_mode = 3
+metadata/source_text = "Select a binding to replace it. Press Escape to cancel."
+
+[node name="Binding_open_character" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/Binding_open_characterRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Select a binding to replace it. Press Escape to cancel."
+theme_type_variation = &"SecondaryAction"
+text = "I   /   Pad 7"
+
+[node name="ResetControlsButtonRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_a4xps")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/ResetControlsButtonRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/ResetControlsButtonRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/ResetControlsButtonRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "Restore default bindings"
+metadata/text_role = "text.primary"
+metadata/source_text = "Restore default bindings"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/ResetControlsButtonRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Returns keyboard and gamepad actions to their original mapping."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Returns keyboard and gamepad actions to their original mapping."
+autowrap_mode = 3
+metadata/source_text = "Returns keyboard and gamepad actions to their original mapping."
+
+[node name="ResetControlsButton" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ControlsPage/ResetControlsButtonRow/HBoxContainer0"]
+custom_minimum_size = Vector2(300, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Returns keyboard and gamepad actions to their original mapping."
+theme_type_variation = &"SecondaryAction"
+text = "RESET CONTROLS"
+
+[node name="ConnectionPage" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
+theme_override_font_sizes/font_size = 12
+text = "ENGINE SERVICE"
+vertical_alignment = 2
+metadata/text_role = "accent.primary"
+metadata/source_text = "ENGINE SERVICE"
+
+[node name="ApiAddressInputRow" type="PanelContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_xkmeb")
+
+[node name="HBoxContainer0" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="VBoxContainer0" type="VBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow/HBoxContainer0"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Label0" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1254902, 0.12941177, 0.14117648, 1)
+theme_override_font_sizes/font_size = 16
+text = "HeroScript address"
+metadata/text_role = "text.primary"
+metadata/source_text = "HeroScript address"
+
+[node name="Label1" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow/HBoxContainer0/VBoxContainer0"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Used only by the Godot client to communicate with HeroScript."
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Used only by the Godot client to communicate with HeroScript."
+autowrap_mode = 3
+metadata/source_text = "Used only by the Godot client to communicate with HeroScript."
+
+[node name="HBoxContainer1" type="HBoxContainer" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow/HBoxContainer0"]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+tooltip_text = "Used only by the Godot client to communicate with HeroScript."
+theme_override_constants/separation = 8
+
+[node name="ApiAddressInput" type="LineEdit" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "http://127.0.0.1:5271"
+placeholder_text = "http://127.0.0.1:5271"
+
+[node name="ApplyConnectionButton" type="Button" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage/ApiAddressInputRow/HBoxContainer0/HBoxContainer1"]
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "APPLY"
+
+[node name="Label2" type="Label" parent="SettingsBody/SettingsPage/VBoxContainer0/SettingsPageScroll/SettingsPageContent/ConnectionPage"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Caption"
+theme_override_colors/font_color = Color(0.15686275, 0.40784314, 0.3254902, 1)
+theme_override_font_sizes/font_size = 12
+text = "Connection changes are validated before being saved."
+autowrap_mode = 3
+metadata/source_text = "Connection changes are validated before being saved."
+
+[node name="Footer" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="SavedStatus" type="Label" parent="Footer"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_colors/font_color = Color(0.15686275, 0.40784314, 0.3254902, 1)
+theme_override_font_sizes/font_size = 12
+text = "●  SAVED AUTOMATICALLY"
+clip_text = true
+text_overrun_behavior = 3
+metadata/source_text = "●  SAVED AUTOMATICALLY"
+
+[node name="Spacer" type="Control" parent="Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NavigationHint" type="Label" parent="Footer"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 12
+text = "Arrows / D-pad: navigate. Enter / A: confirm. Escape / B: close."
+clip_text = true
+text_overrun_behavior = 3
+metadata/source_text = "Arrows / D-pad: navigate. Enter / A: confirm. Escape / B: close."
