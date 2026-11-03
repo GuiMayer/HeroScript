@@ -35,7 +35,7 @@ conteúdo ficam em `data/configs/volatile-core`; a Godot somente apresenta os
 resultados da API. Consulte o [guia do core](docs/guides/volatile-core-godot.md)
 e os [contratos de conteúdo](docs/content/volatile-core-setting.md).
 
-Engine version **28**: snapshots antigos não são convertidos silenciosamente.
+Engine version **34**: snapshots antigos não são convertidos silenciosamente.
 Guarde o conteúdo/revisão e a versão executável compatível para reproduzi-los.
 
 Os [fundamentos do mundo 1](docs/api/world-one-foundations.md) incluem recursos
