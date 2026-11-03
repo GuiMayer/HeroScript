@@ -32,6 +32,12 @@ func _text(key: String) -> String: return label_for(context.translator.locale,ke
 var _bound := false
 static func create(): return load("res://scenes/ui/overlays/art_effect_lab.tscn").instantiate()
 func setup(visual_context, card_model: Dictionary = {}) -> void:
+	if not has_node("Content/ActorStage"):
+		var templ = load("res://scenes/ui/overlays/art_effect_lab.tscn").instantiate()
+		for child in templ.get_children():
+			templ.remove_child(child)
+			add_child(child)
+		templ.free()
 	context = visual_context
 	name = "ArtEffectLab"; title = _text("Art effects lab"); ok_button_text = _text("Close"); unresizable = false
 	theme = context.theme

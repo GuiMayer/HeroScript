@@ -7,7 +7,7 @@ func check(value: bool, label: String) -> void:
 	if not value: failures += 1
 func idle(screen) -> void:
 	var deadline := Time.get_ticks_msec() + 25000
-	while (screen.controller.busy or screen.controller._reading or screen.controller._deck_reading or screen.controller.inscriptions == null and not screen.controller.info_ready) and Time.get_ticks_msec() < deadline:
+	while (screen.controller.busy or screen.controller._reading or screen.controller._deck_reading or screen.controller._support_reading or screen.controller.inscriptions == null and not screen.controller.info_ready) and Time.get_ticks_msec() < deadline:
 		await process_frame
 	for _frame in 6: await process_frame
 func _run() -> void:

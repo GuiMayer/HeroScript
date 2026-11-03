@@ -698,6 +698,7 @@ func finish_drag(id: String, point: Vector2) -> void:
 	_return_ghost()
 func _drag_visual(point: Vector2) -> void:
 	if not is_instance_valid(_ghost):
+		if not _cards.has(interaction.pressed): return
 		_ghost_id = interaction.pressed
 		_drag_pose = preload("res://scripts/ui/card_motion_pose.gd").read(_cards[_ghost_id])
 		_grip_offset = _drag_pose.center - interaction.press_position
