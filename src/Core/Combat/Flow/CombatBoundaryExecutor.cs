@@ -525,8 +525,8 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (resolvedOrder.IsFailure)
             return Result<CombatInitializationResult>.Failure(resolvedOrder.Error);
         combat = resolvedOrder.Value.State;
-        var order = resolvedOrder.Value.Order;
-        if (order.Count == 0)
+        var order = resolvedOrder.Value.Order.Where(id => ActorActivationCadenceReducer.Eligible(combat, id)).ToArray();
+        if (order.Length == 0)
             return Result<CombatInitializationResult>.Failure("No alive actors are available for combat activation");
 
         var sequenceValidation = ActivationSequencePolicy.Validate(policies.ActivationSequence);
@@ -548,7 +548,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
             Round = 1,
             ActivationIndex = order.ToList().IndexOf(actorId),
             Circular = circular ? new CircularSequenceState { Direction = policies.ActivationSequence.Circular!.InitialDirection,
-                RoundLength = policies.ActivationSequence.Circular.ActivationsPerRound ?? order.Count } : null,
+                RoundLength = policies.ActivationSequence.Circular.ActivationsPerRound ?? order.Length } : null,
             ActivationNumber = 1,
             ActionsTaken = 0,
             ActivationOrder = order,
@@ -598,6 +598,8 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
         run = endedDeck.Value.Responses?.Run ?? run;
         var afterCards = endedDeck.Value.Responses?.State ?? exited.Value.Combat;
         activation = afterCards.ActivationState ?? activation;
+        if (string.IsNullOrWhiteSpace(activation.ActiveActorId))
+            return Result<CombatResolutionStep>.Failure("Card boundary invalidated the activation actor");
         var completed = activation.CompletedActorIds
             .Append(activation.ActiveActorId)
             .Distinct(StringComparer.Ordinal)
@@ -610,6 +612,7 @@ public sealed partial class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 WaitingForInput = false
             }
         };
+        endedCombat = ActorActivationCadenceReducer.Complete(endedCombat, activation.ActiveActorId);
         var endStep = new CombatResolutionStep
         {
             TransitionType = "combat.activation.ended",

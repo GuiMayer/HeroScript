@@ -25,7 +25,7 @@ public static class ActivationSequenceReducer
         if (policy.Strategy == ActivationSequenceStrategy.Circular)
             return policy.Circular!.RoundPolicy == SequenceRoundStrategy.ActivationCount &&
                 activation.Circular!.CompletedActivations + 1 >= activation.Circular.RoundLength;
-        return activation.ActivationOrder.Where(id => combat.GetActor(id)?.IsAlive == true)
+        return (ActorActivationCadenceReducer.HasCadence(combat) ? combat.TurnOrderState.Order : activation.ActivationOrder).Where(id => ActorActivationCadenceReducer.Eligible(combat, id))
             .All(id => activation.CompletedActorIds.Contains(id, StringComparer.Ordinal));
     }
 
@@ -36,7 +36,7 @@ public static class ActivationSequenceReducer
         var activation = combat.ActivationState;
         if (activation == null) return Result<ActivationSuccessor>.Failure("Activation is not initialized");
         var seats = combat.TurnOrderState.Order;
-        var eligible = seats.Where(id => combat.GetActor(id)?.IsAlive == true).ToImmutableArray();
+        var eligible = seats.Where(id => ActorActivationCadenceReducer.Eligible(combat, id)).ToImmutableArray();
         if (eligible.IsEmpty) return Result<ActivationSuccessor>.Failure("No eligible participants remain");
         if (policy.Strategy == ActivationSequenceStrategy.PerRound)
         {
@@ -59,7 +59,7 @@ public static class ActivationSequenceReducer
         while (remaining > 0)
         {
             cursor = (cursor + direction + seats.Count) % seats.Count;
-            if (combat.GetActor(seats[cursor])?.IsAlive == true) remaining--;
+            if (ActorActivationCadenceReducer.Eligible(combat, seats[cursor])) remaining--;
         }
         var round = StartsNewRound(combat, policy);
         return Result<ActivationSuccessor>.Success(new(seats[cursor], cursor,

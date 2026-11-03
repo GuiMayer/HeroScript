@@ -86,6 +86,8 @@ public record EntityState
 /// <summary>Immutable runtime actor; side relationships and binding define its role.</summary>
 public sealed record CombatActorState : EntityState
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CountsForOutcome { get; init; }
     public string SideId { get; init; } = string.Empty;
     public ControllerBinding ControllerBinding { get; init; } = new();
 

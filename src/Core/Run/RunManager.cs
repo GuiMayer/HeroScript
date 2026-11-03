@@ -233,7 +233,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (pinned.IsFailure) return Result<RunState>.Failure(pinned.Error);
             creationRuntime = pinned.Value;
         }
-        if (resolvedMode.Definition.DeckCompositionPolicyId != null && creationRuntime == null)
+        if ((resolvedMode.Definition.DeckCompositionPolicyId != null || resolvedMode.Definition.SupportLoadoutPolicyId != null) && creationRuntime == null)
             return Result<RunState>.Failure("Deck composition requires a pinned content runtime");
         var deferStartup = resolvedMode.Definition.DeckCompositionPolicyId != null ||
             creationRuntime?.ContainsGameplayResponses == true ||
@@ -309,6 +309,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 var composition = DeckLoadouts.DeckLoadoutPlanner.Initialize(state, runtime.Value, state.PlayerEntityId, compositionPolicy);
                 if (composition.IsFailure) return Result<RunState>.Failure(composition.Error);
                 state = composition.Value;
+            }
+            if (state.ResolvedMode?.Definition.SupportLoadoutPolicyId != null)
+            {
+                var supports = Supports.SupportLoadoutPlanner.Initialize(state, runtime.Value);
+                if (supports.IsFailure) return Result<RunState>.Failure(supports.Error);
+                state = supports.Value;
             }
             var cards = RunContentCompatibilityValidator.ValidateForActivation(state, runtime.Value);
             if (cards.IsFailure) return Result<RunState>.Failure(cards.Error);
@@ -541,6 +547,21 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var commands = _progression.GetAvailableCommands(run.Value);
         if (commands.IsFailure)
             return commands;
+        if (_contentRuntimes != null && snapshot.ResolvedMode?.Definition.SupportLoadoutPolicyId != null)
+        {
+            var runtime = _contentRuntimes.Resolve(snapshot.Determinism.ContentRevision, snapshot.ConfigName);
+            if (runtime.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(runtime.Error);
+            var policy = Supports.SupportLoadoutPlanner.Policy(snapshot, runtime.Value);
+            if (policy.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(policy.Error);
+            if (Supports.SupportLoadoutPlanner.CanChange(snapshot, policy.Value).IsSuccess)
+                commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Concat([new RunAvailableCommand
+                {
+                    Type = RunCommandTypes.EquipSupport, CurrentNodeId = snapshot.CurrentNodeId ?? string.Empty,
+                    ExpectedSequence = snapshot.Sequence, ExpectedStep = snapshot.Determinism.Step,
+                    PayloadSchema = JsonSerializer.SerializeToElement(new { actorId = "string", supportId = "string?", routineId = "string?" }),
+                    ValidPayload = JsonSerializer.SerializeToElement(new { actorId = snapshot.PlayerEntityId })
+                }]).ToArray());
+        }
         if (_contentRuntimes != null && snapshot.ResolvedMode?.Definition.DeckCompositionPolicyId is { } compositionPolicyId)
         {
             var runtime = _contentRuntimes.Resolve(snapshot.Determinism.ContentRevision, snapshot.ConfigName);
@@ -830,6 +851,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
             RunCommandTypes.ApplyLoadout => ExecuteApplyLoadout(runId, payload),
             RunCommandTypes.ApplyDeckCompartments => ExecuteApplyDeckCompartments(runId, payload),
+            RunCommandTypes.EquipSupport => ExecuteEquipSupport(runId, payload),
             RunCommandTypes.EditDeckLoadout => ExecuteEditDeckLoadout(runId, payload),
             RunCommandTypes.OpenInscriptionOffer => ExecuteInscriptionOffer(runId, payload, false),
             RunCommandTypes.ChooseInscriptionOffer => ExecuteInscriptionOffer(runId, payload, true),
@@ -1134,6 +1156,16 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var request = DeserializePayload<Loadouts.ApplyLoadoutCommand>(payload);
         var planned = new Loadouts.LoadoutChangePlanner(_contentRuntimes).Plan(_runs[runId], request.ActorId, request.Assignments);
         return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyLoadout, payload));
+    }
+
+    private Result ExecuteEquipSupport(Guid runId, JsonElement payload)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var run = _runs[runId];
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var plan = Supports.SupportLoadoutPlanner.Plan(run, runtime.Value, DeserializePayload<Supports.EquipSupportCommand>(payload));
+        return plan.IsFailure ? Result.Failure(plan.Error) : ToResult(Persist(plan.Value, RunCommandTypes.EquipSupport, payload));
     }
 
     private Result ExecuteEditDeckLoadout(Guid runId, JsonElement payload)
@@ -1617,10 +1649,23 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 if (capture.IsFailure) return Result<RunState>.Failure(capture.Error);
                 capturedComposition = capture.Value;
             }
+            Supports.CapturedSupportLoadout? capturedSupport = null;
+            if (state.ResolvedMode?.Definition.SupportLoadoutPolicyId != null)
+            {
+                if (_contentRuntimes == null) return Result<RunState>.Failure("Support equipment requires a pinned runtime");
+                var runtime = _contentRuntimes.Resolve(state.Determinism.ContentRevision, state.ConfigName);
+                if (runtime.IsFailure) return Result<RunState>.Failure(runtime.Error);
+                var capture = Supports.SupportLoadoutPlanner.Capture(state, runtime.Value);
+                if (capture.IsFailure) return Result<RunState>.Failure(capture.Error);
+                capturedSupport = capture.Value;
+                var validSupport = Supports.SupportLoadoutPlanner.ValidateEncounter(state, runtime.Value, combatState);
+                if (validSupport.IsFailure) return Result<RunState>.Failure(validSupport.Error);
+            }
             var encounter = new RunEncounterState
             {
                 NodeId = currentNode.NodeId,
                 DeckComposition = capturedComposition,
+                SupportComposition = capturedSupport,
                 Combat = combatState
             };
             if (initializedRun != null && (initializedRun.RunId != state.RunId ||

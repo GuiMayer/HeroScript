@@ -42,6 +42,8 @@ public sealed record RunState : ICanonicalHashMemoizable
     public DeckState Deck { get; init; } = new();
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public DeckLoadouts.DeckLoadoutState? DeckLoadout { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Supports.SupportLoadoutState? SupportLoadout { get; init; }
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];

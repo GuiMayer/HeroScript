@@ -53,7 +53,7 @@ public sealed class DecisionPolicyRegistry : IDecisionPolicyRegistry
                 $"AI actor '{request.ActorId}' requires a decision policy id");
         return !_policies.TryGetValue(binding.PolicyId, out var policy)
             ? Result<DecisionPolicyResult>.Failure($"Unknown decision policy: {binding.PolicyId}")
-            : policy.Decide(request);
+            : policy.Decide(binding.DecisionIds is { } actorDecisions ? request with { DecisionIds = actorDecisions } : request);
     }
 }
 

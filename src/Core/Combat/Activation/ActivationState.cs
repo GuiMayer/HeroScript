@@ -12,6 +12,8 @@ public sealed record ActivationState
     private ImmutableList<string> _completedActorIds = [];
     private ImmutableList<CombatIntent> _intents = [];
 
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ActorActivationCadenceProgress? CadenceProgress { get; init; }
     public string? ActiveActorId { get; init; }
     public int Round { get; init; } = 1;
     public int ActivationIndex { get; init; }

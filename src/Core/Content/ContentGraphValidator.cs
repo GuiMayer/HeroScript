@@ -203,6 +203,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     if (valid.IsFailure) errors.Add($"modes/{id}: {valid.Error}");
                 }
             }
+            if (mode.Value.SupportLoadoutPolicyId is { } supportPolicyId)
+                Require(runtime, errors, "modes", id, supportPolicyId, "support-loadout-policies");
             if (mode.Value.DeckCompositionPolicyId is { } compositionPolicyId)
                 Require(runtime, errors, "modes", id, compositionPolicyId, "deck-composition-policies");
             if (mode.Value.DeckCompartmentPolicyId is { } compartmentPolicyId)

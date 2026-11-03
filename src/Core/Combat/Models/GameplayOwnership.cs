@@ -18,6 +18,10 @@ public sealed record ControllerBinding
 {
     public ControllerKind Kind { get; init; } = ControllerKind.None;
     public string? PolicyId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<string>? DecisionIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Combat.Activation.ActorActivationCadence? Cadence { get; init; }
 }
 
 /// <summary>Serializable authored binding; materialization creates runtime state from it.</summary>
@@ -25,8 +29,12 @@ public sealed record ControllerBindingDefinition
 {
     public ControllerKind Kind { get; init; } = ControllerKind.None;
     public string? PolicyId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<string>? DecisionIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Combat.Activation.ActorActivationCadence? Cadence { get; init; }
 
-    public ControllerBinding Materialize() => new() { Kind = Kind, PolicyId = PolicyId };
+    public ControllerBinding Materialize() => new() { Kind = Kind, PolicyId = PolicyId, DecisionIds = DecisionIds, Cadence = Cadence };
 }
 
 public static class ControllerBindingDefinitionValidator
@@ -49,6 +57,11 @@ public static class ControllerBindingValidator
             return Result.Failure("AI controller requires policyId");
         if (binding.Kind != ControllerKind.AI && !string.IsNullOrWhiteSpace(binding.PolicyId))
             return Result.Failure("Only an AI controller can declare policyId");
+        if (binding.DecisionIds is { } ids && (binding.Kind != ControllerKind.AI || ids.IsDefaultOrEmpty || ids.Length > 64 ||
+            ids.Any(string.IsNullOrWhiteSpace) || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length))
+            return Result.Failure("Actor decisions require unique nonempty AI decision identities");
+        if (binding.Cadence is { } cadence && (string.IsNullOrWhiteSpace(cadence.AnchorActorId) || cadence.Every is < 1 or > 10000))
+            return Result.Failure("Activation cadence requires an anchor and bounded positive interval");
         return Result.Success();
     }
 }

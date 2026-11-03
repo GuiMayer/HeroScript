@@ -106,6 +106,18 @@ A Godot encaminha derrotas retryable e preparação pendente para a cena de ativ
 
 Validação: **36 testes Core**, **9 testes API** e **71 verificações Godot** (tentativa 12, reconciliação de atividades 21, loadout 22, composição 12, navegação 4), todos aprovados. Ausência/null do resumo mantém a navegação anterior; tentativa ativa/encerrada e nó resolvido não reutilizam resumo antigo. Evidências: `.runtime/tactical-mvp/results/stage08-*.trx` e `stage08-godot.log`. Nenhum save real foi utilizado.
 
+## Etapa 9 — Suporte configurável na engine
+
+Estado: implementada e validada no Core em 2026-11-03. Catálogo REST, editor e prova no setting jogável pertencem às etapas seguintes.
+
+Modo pode habilitar supportLoadoutPolicyId. Inventário Actor/Run, propriedade e equipamento por ator são associações imutáveis separadas de cartas, inscrições e relíquias. EQUIP_SUPPORT usa o dispatcher/recibos existentes; seleção/rotina, revisão, ator atual e janela são validados. Criação injeta participante normal com entidade, lado do dono, gambits autorizados e captura de equipamento no encontro. Participantes/zonas/ações/efeitos usam as autoridades existentes.
+
+Cadência é uma restrição genérica opcional do controller, não um timer de companion: conta ativações concluídas do ator âncora, participa da seleção canônica PerRound/Circular e reconhece o contador após atuar. Contadores opcionais persistem nos frames/snapshots do combate; nova tentativa inicia novo combate. Sem âncora elegível, não há ativação dependente. Decisions por ator substituem apenas os candidatos de sua política existente; intents e driver automático consomem a mesma seleção.
+
+Participação no resultado é uma opção explícita do participante. Um suporte excluído não mantém a partida aberta quando o dono perde, sem se tornar imune ou receber um executor próprio. Propriedades ausentes continuam omitidas em settings anteriores. Hot reload do equipamento exige RebindCompatible explícito, compatibilidade e ausência de encontro pendente; snapshots históricos não são reescritos.
+
+Validação: **83 testes focados** aprovados, mais a suíte ampliada de **276 testes de regressão** de combate, composições, progressão e jornadas, zero falhas/skips. Incluem sequência real de fases/ativações (3ª e 6ª ativações do dono), três repetições, restauração de counters, dono derrotado com suporte vivo, âncoras inválidas, duas rotinas, dois escopos, isolamento de ator/revisão, comando duplicado/restart e dez replays semânticos do equipamento. Evidências: `.runtime/tactical-mvp/results/stage09*.trx`. Documentação: [suportes e cadência](../guides/support-loadouts.md).
+
 ## Próxima etapa
 
-Etapa 9: suporte/companion configurável na engine. Etapas 9–17 permanecem pendentes.
+Etapa 10: catálogo REST e Godot para companion. Etapas 10–17 permanecem pendentes.

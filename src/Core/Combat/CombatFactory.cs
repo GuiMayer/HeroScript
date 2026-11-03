@@ -43,7 +43,7 @@ public sealed class CombatFactory : ICombatFactory
                 options.ConfigName);
             if (actor.IsFailure)
                 return Result<CombatState>.Failure(actor.Error);
-            actors.Add(actor.Value);
+            actors.Add(actor.Value with { CountsForOutcome = participant.CountsForOutcome });
         }
         return Create(actors, options);
     }
@@ -86,7 +86,8 @@ public sealed class CombatFactory : ICombatFactory
             if (binding.IsFailure)
                 return Result.Failure($"Combat participant '{participant.InstanceId}': {binding.Error}");
         }
-        return ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
+        var cadence = Core.Combat.Activation.ActorActivationCadenceReducer.Validate(participants.Select(item => (item.InstanceId, item.ControllerBinding)));
+        return cadence.IsFailure ? cadence : ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
     }
 
     private static Result ValidateActors(IReadOnlyList<CombatActorState>? participants, CombatStartOptions options)
@@ -105,7 +106,8 @@ public sealed class CombatFactory : ICombatFactory
             if (binding.IsFailure)
                 return Result.Failure($"Combat participant '{participant.InstanceId}': {binding.Error}");
         }
-        return ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
+        var cadence = Core.Combat.Activation.ActorActivationCadenceReducer.Validate(participants.Select(item => (item.InstanceId, item.ControllerBinding)));
+        return cadence.IsFailure ? cadence : ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
     }
 
     private static Result ValidateCommon(IEnumerable<string> instanceIds, IEnumerable<string> sideIds, CombatStartOptions? options)

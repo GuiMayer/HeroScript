@@ -42,7 +42,7 @@ public sealed class CombatOutcomeResolver(IRuntimeFormulaEvaluator? formulas = n
             !ShouldEvaluate(combat, policy, evaluationPoint, actionResolved)) return Result<CombatState>.Success(combat);
         if (formulas == null) return Result<CombatState>.Failure("Participant victory requires shared formula services");
         var winners = new List<CombatActorState>();
-        foreach (var actor in combat.GetAllActors().Where(actor => actor.IsAlive).OrderBy(actor => actor.InstanceId, StringComparer.Ordinal))
+        foreach (var actor in combat.GetAllActors().Where(actor => actor.IsAlive && actor.CountsForOutcome != false).OrderBy(actor => actor.InstanceId, StringComparer.Ordinal))
         {
             var inputs = GameplayQueries.Evaluate(victory.Inputs, run, combat, actor.InstanceId);
             if (inputs.IsFailure) return Result<CombatState>.Failure(inputs.Error);
@@ -78,7 +78,7 @@ public sealed class CombatOutcomeResolver(IRuntimeFormulaEvaluator? formulas = n
         if (!ShouldEvaluate(combat, policy, evaluationPoint, actionResolved))
             return combat;
 
-        var participants = combat.GetAllActors().ToArray();
+        var participants = combat.GetAllActors().Where(actor => actor.CountsForOutcome != false).ToArray();
         var playerAnchors = participants
             .Where(actor => combat.ControllerOf(actor) == ControllerKind.Player)
             .ToArray();

@@ -16,6 +16,8 @@ public sealed record CombatParticipantReference(
     string SideId,
     Models.ControllerBinding ControllerBinding)
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CountsForOutcome { get; init; }
     public CombatParticipantIdentityBinding IdentityBinding { get; init; }
 }
 

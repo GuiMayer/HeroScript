@@ -17,6 +17,7 @@ namespace Core.Combat;
 public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
 {
     private readonly ICombatFactory _combatFactory;
+    private readonly Core.Content.IContentRuntimeResolver? _contentRuntimes;
     private readonly IRunEncounterRuntime _runManager;
     private readonly IOperationalEventBus? _eventBus;
     private readonly ICombatFlowPlanner _flowPlanner;
@@ -31,9 +32,10 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
         ICombatFlowPlanner flowPlanner,
         ICombatCommandHandler commands,
         IAutomaticFlowDriver automaticFlow,
-        IOperationalEventBus? eventBus = null, Core.Effects.IGameplayOccurrenceExecutor? occurrences = null)
+        IOperationalEventBus? eventBus = null, Core.Effects.IGameplayOccurrenceExecutor? occurrences = null, Core.Content.IContentRuntimeResolver? contentRuntimes = null)
     {
         _combatFactory = combatFactory;
+        _contentRuntimes = contentRuntimes;
         _runManager = runManager;
         _eventBus = eventBus;
         _occurrences = occurrences;
@@ -97,9 +99,19 @@ public sealed partial class CombatRunCoordinator : ICombatRunCoordinator
                 }
                 resourceValues = remapped;
             }
+            var encounterParticipants = boundParticipants.Value;
+            if (run.ResolvedMode.Definition.SupportLoadoutPolicyId != null)
+            {
+                if (_contentRuntimes == null) return Result<CombatRunEncounterResult>.Failure("Support equipment requires a pinned runtime");
+                var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+                if (runtime.IsFailure) return Result<CombatRunEncounterResult>.Failure(runtime.Error);
+                var equipped = Run.Supports.SupportLoadoutPlanner.Participants(run, runtime.Value, encounterParticipants);
+                if (equipped.IsFailure) return Result<CombatRunEncounterResult>.Failure(equipped.Error);
+                encounterParticipants = equipped.Value;
+            }
             var seed = run.Determinism.DrawUInt64();
             var combatResult = _combatFactory.Create(
-                boundParticipants.Value,
+                encounterParticipants,
                 new CombatStartOptions(
                     seed.Value,
                     run.Determinism.ContentRevision,

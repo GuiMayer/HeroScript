@@ -17,6 +17,28 @@ public static class RunContentCompatibilityValidator
         using var timing = Core.Diagnostics.OperationalTiming.Measure("content_compatibility");
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
+        if (run.ResolvedMode?.Definition.SupportLoadoutPolicyId != null || run.SupportLoadout != null)
+        {
+            var candidate = run with { Determinism = run.Determinism.WithContentRevision(runtime.Manifest.Revision) };
+            var changing = run.Determinism.ContentRevision != runtime.Manifest.Revision;
+            if (changing)
+            {
+                if (run.ActiveEncounterId != null) return Result.Failure("Cannot replace a captured support during an encounter");
+                var mode = runtime.GetDefinition<GameModeDefinition>("modes", run.ResolvedMode!.Definition.ModeId);
+                if (mode.IsFailure || mode.Value.SupportLoadoutPolicyId != run.SupportLoadout?.PolicyId)
+                    return Result.Failure("Target mode changes the existing support policy");
+                var policy = Supports.SupportLoadoutPlanner.Policy(candidate, runtime);
+                if (policy.IsFailure) return Result.Failure(policy.Error);
+                if (policy.Value.RevisionMigration != Loadouts.LoadoutRevisionMigration.RebindCompatible)
+                    return Result.Failure("Support policy rejects revision changes");
+            }
+            var support = Supports.SupportLoadoutPlanner.Capture(candidate, runtime);
+            if (support.IsFailure) return Result.Failure(support.Error);
+        }
+        if (run.SupportLoadout == null && run.ResolvedMode?.Definition.ModeId is { } supportMode &&
+            runtime.GetDefinition<GameModeDefinition>("modes", supportMode) is { IsSuccess: true } targetSupportMode &&
+            targetSupportMode.Value.SupportLoadoutPolicyId != null)
+            return Result.Failure("Enabling support equipment on an existing run requires a new campaign");
         if (run.DeckLoadout == null && run.ResolvedMode?.Definition.ModeId is { } existingMode &&
             runtime.GetDefinition<GameModeDefinition>("modes", existingMode) is { IsSuccess: true } targetMode &&
             targetMode.Value.DeckCompositionPolicyId != null)

@@ -283,6 +283,7 @@ public static class GameplayCommandDescriptors
         Run<ApplyCardModifierItemCommand>(RunCommandTypes.ApplyCardModifierItem),
         Run<Loadouts.ApplyLoadoutCommand>(RunCommandTypes.ApplyLoadout),
         Run<DeckCompartments.ApplyDeckCompartmentsCommand>(RunCommandTypes.ApplyDeckCompartments),
+        Run<Supports.EquipSupportCommand>(RunCommandTypes.EquipSupport),
         Run<DeckLoadouts.DeckLoadoutEdit>(RunCommandTypes.EditDeckLoadout),
         Run<Loadouts.OpenInscriptionOfferCommand>(RunCommandTypes.OpenInscriptionOffer),
         Run<Loadouts.ChooseInscriptionOfferCommand>(RunCommandTypes.ChooseInscriptionOffer),

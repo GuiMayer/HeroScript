@@ -183,12 +183,12 @@ public sealed partial class ActorResourceJourneyTests
         Assert.Equal(37, Current(run));
     }
 
-    private static async Task Durable(RunState parent, Func<RunState, GameplayCommandEnvelope> command, Action<RunState> validate)
+    private static async Task Durable(RunState parent, Func<RunState, GameplayCommandEnvelope> command, Action<RunState> validate, ContentRuntime? content = null)
     {
         var directory = Path.Combine(Path.GetTempPath(), "heroscript-actor-resources-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var fixture = Fixture();
+            var fixture = Fixture(content);
             var branchCommand = new RunBranchStartCommand(parent.RunId, parent.Sequence, "resources", CanonicalJson.ComputeHash(parent), parent.ActiveEncounterId);
             var branch = RunBranchTransitions.Create(parent, branchCommand).Value;
             var envelope = command(branch);
@@ -254,9 +254,9 @@ public sealed partial class ActorResourceJourneyTests
     private static GameplayCommandEnvelope Envelope(RunState run, string type, object payload) => new(new(DeterministicId.Create(123, 4, type), type, run.Sequence,
         type == RunCommandTypes.ResolveCombat ? run.GetActiveEncounter()!.Combat.Determinism.Step : run.Determinism.Step), JsonSerializer.SerializeToElement(payload));
 
-    private static (RunActivityEffectExecutor Activities, GameplayRuntimeFactory Factory) Fixture()
+    private static (RunActivityEffectExecutor Activities, GameplayRuntimeFactory Factory) Fixture(ContentRuntime? suppliedContent = null)
     {
-        var content = ActorResourceLifecycleTests.Runtime();
+        var content = suppliedContent ?? ActorResourceLifecycleTests.Runtime();
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(service => service.Resolve("resources", "test")).Returns(Result<ContentRuntime>.Success(content));
         var formulas = new RuntimeFormulaEvaluator(Mock.Of<IMathEngine>(), new ExpressionEvaluator(NullLogger.Instance), NullLogger.Instance);
