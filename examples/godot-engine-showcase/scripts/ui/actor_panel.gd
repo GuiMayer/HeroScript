@@ -31,6 +31,11 @@ var _authored_content_gap: int
 @export var compact_content_width := 264.0
 @export var compact_target_size := Vector2(76, 112)
 @export var battlefield_target_size := Vector2(180, 100)
+var _authored_intent_height := 36.0
+@export var battlefield_intent_height := 28.0
+@export var battlefield_margin_vertical := 4.0
+@export var compact_margin_vertical := 6.0
+@export var battlefield_content_gap := 2
 @export var preview_hostile := true
 @export var preview_intent := "Attack 12"
 @export var preview_compact := false
@@ -64,6 +69,7 @@ func _bind_nodes() -> void:
 		_authored_target_size = target_button.custom_minimum_size
 		_authored_root_gap = _root_content.get_theme_constant("separation")
 		_authored_content_gap = _content.get_theme_constant("separation")
+		_authored_intent_height = _intent.custom_minimum_size.y if _intent.custom_minimum_size.y > 0 else 36.0
 		_authored_surface = get_theme_stylebox("panel").duplicate()
 		_surface = _authored_surface.duplicate()
 		add_theme_stylebox_override("panel", _surface)
@@ -109,17 +115,17 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		if compact: _root_content.move_child(target_button, 0)
 		else: _content.move_child(target_button, _content.get_child_count() - 1)
 		if compact: _content.custom_minimum_size.x = compact_content_width
-		_intent.custom_minimum_size.y = 28 if battlefield else 36
+		_intent.custom_minimum_size.y = battlefield_intent_height if battlefield else _authored_intent_height
 		_intent.max_lines_visible = 2 if compact or battlefield else 3
 		if compact: target_button.custom_minimum_size = compact_target_size
 		elif battlefield: target_button.custom_minimum_size = battlefield_target_size
 		target_button.size_flags_vertical = Control.SIZE_EXPAND_FILL if battlefield else Control.SIZE_FILL
 		if battlefield:
-			_surface.content_margin_top = 4; _surface.content_margin_bottom = 4
+			_surface.content_margin_top = battlefield_margin_vertical; _surface.content_margin_bottom = battlefield_margin_vertical
 			_root_content.add_theme_constant_override("separation", 0)
-			_content.add_theme_constant_override("separation", 2)
+			_content.add_theme_constant_override("separation", battlefield_content_gap)
 		elif compact:
-			_surface.content_margin_top = 6; _surface.content_margin_bottom = 6
+			_surface.content_margin_top = compact_margin_vertical; _surface.content_margin_bottom = compact_margin_vertical
 	_surface.bg_color = Color.TRANSPARENT if battlefield else visual_context.styles.color("surface.actor")
 	var name_text: String = visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", "")))
 	_title.text = name_text

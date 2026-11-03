@@ -121,15 +121,16 @@ func _layout_inspector() -> void:
 	if not is_instance_valid(_inspector_panel): return
 	_inspector_panel.visible = _inspector_open
 	_inspector_toggle.text = "›" if _inspector_open else "‹"
-	var width := minf(320, maxf(280, _body.size.x * .26))
-	if _body.size.x < 1000:
-		_inspector_panel.position = Vector2(8, maxf(0, _body.size.y - 210))
-		_inspector_panel.size = Vector2(maxf(0, _body.size.x - 64), 202)
+	var profile = route.layout_profile if is_instance_valid(route) and route.layout_profile != null else preload("res://scripts/ui/styles/map_layout_profile.gd").new()
+	var width := minf(profile.inspector_max_width, maxf(profile.inspector_min_width, _body.size.x * profile.inspector_width_ratio))
+	if _body.size.x < profile.inspector_compact_breakpoint:
+		_inspector_panel.position = Vector2(profile.inspector_margin, maxf(0, _body.size.y - profile.inspector_compact_bottom_offset))
+		_inspector_panel.size = Vector2(maxf(0, _body.size.x - profile.inspector_toggle_size.x - profile.inspector_margin * 2.5), profile.inspector_compact_height)
 	else:
-		_inspector_panel.position = Vector2(maxf(0, _body.size.x - width - 52), 8)
-		_inspector_panel.size = Vector2(width, clampf(_body.size.y - 16, 120, 420))
-	_inspector_toggle.position = Vector2(maxf(0, _body.size.x - 44), 8)
-	_inspector_toggle.size = Vector2(44,44)
+		_inspector_panel.position = Vector2(maxf(0, _body.size.x - width - profile.inspector_toggle_size.x - profile.inspector_margin), profile.inspector_margin)
+		_inspector_panel.size = Vector2(width, clampf(_body.size.y - profile.inspector_margin * 2, profile.inspector_side_min_height, profile.inspector_side_max_height))
+	_inspector_toggle.position = Vector2(maxf(0, _body.size.x - profile.inspector_toggle_size.x), profile.inspector_margin)
+	_inspector_toggle.size = profile.inspector_toggle_size
 	_update_extent()
 
 func _usable_size() -> Vector2: return _scroll.size

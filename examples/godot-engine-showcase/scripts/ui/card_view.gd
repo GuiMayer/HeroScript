@@ -92,8 +92,8 @@ func configure(data: Dictionary) -> void:
 	var requirements = get_node("%Requirements")
 	_clear_items(requirements)
 	for requirement in data.get("requirements", []):
-		var line = _inline(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 11)
-		line.custom_minimum_size.x = 160; line.clip_text = true; line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		var line = _inline(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), visual_style.inline_font_size)
+		line.custom_minimum_size.x = visual_style.requirement_min_width; line.clip_text = true; line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		line.add_theme_color_override("font_color", visual_context.styles.BLOOD if requirement.get("passed") == false else visual_context.styles.INK)
 		requirements.add_child(line)
 	requirements.visible = requirements.get_child_count() > 0
@@ -145,18 +145,18 @@ func _cost_zone(data: Dictionary) -> Control:
 	var options: Array = data.get("costOptions", [])
 	if options.size() > 1:
 		for index in options.size():
-			if index > 0: zone.add_child(_inline(visual_context.translator.text("OR"), 11))
+			if index > 0: zone.add_child(_inline(visual_context.translator.text("OR"), visual_style.inline_font_size))
 			for j in options[index].size():
-				if j > 0: zone.add_child(_inline("+", 11))
+				if j > 0: zone.add_child(_inline("+", visual_style.inline_font_size))
 				zone.add_child(_cost_chip(options[index][j]))
-			if options[index].is_empty(): zone.add_child(_inline("0", 12))
+			if options[index].is_empty(): zone.add_child(_inline("0", visual_style.zero_cost_font_size))
 		return line
 	var costs: Array = data.get("costs", []) if data.get("costs") is Array else []
 	for index in costs.size():
-		if index > 0: zone.add_child(_inline("+", 11))
+		if index > 0: zone.add_child(_inline("+", visual_style.inline_font_size))
 		zone.add_child(_cost_chip(costs[index]))
 	if not bool(data.get("costsKnown", true)):
-		zone.add_child(_inline(str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 11))
+		zone.add_child(_inline(str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), visual_style.inline_font_size))
 		return line
 	if costs.is_empty():
 		var fallback := str(data.get("cost", ""))
@@ -192,7 +192,7 @@ func _change_badges(items) -> Control:
 		label.text = "%s %s" % [item.get("symbol", "~"), item.get("label", "")]
 		label.add_theme_color_override("font_color", color.lightened(.25))
 		badge.tooltip_text = ", ".join(item.get("sources", [])); row.add_child(badge)
-	if items.size() > visual_style.visible_change_badges: row.add_child(_inline("+%s" % (items.size() - visual_style.visible_change_badges), 10))
+	if items.size() > visual_style.visible_change_badges: row.add_child(_inline("+%s" % (items.size() - visual_style.visible_change_badges), visual_style.change_badge_font_size))
 	return row
 
 func _make_custom_tooltip(for_text: String) -> Object:

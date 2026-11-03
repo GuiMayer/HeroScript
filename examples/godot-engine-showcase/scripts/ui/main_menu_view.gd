@@ -4,6 +4,7 @@ extends Control
 ## The scene owns chrome; the router owns actions, settings scope and resume.
 signal action_requested(action: String)
 signal setting_requested(index: int)
+@export var use_profile_metrics := true
 @export var visual_style: Resource = preload("res://data/themes/ivory_menu_style.tres")
 @export var preview_model: Dictionary = {"settingName":"Ember Archive","description":"Cards, enemies, resources, map and flow live in JSON.","settings":[],"selectedSettingId":"","available":false,"pending":false,"connecting":false}
 var visual_context
@@ -40,7 +41,8 @@ func apply_model(data: Dictionary) -> void:
 	for control in find_children("*","Control",true,false):
 		if control.has_meta("translation_key"): control.text = i18n.text(str(control.get_meta("translation_key")))
 		if control is Button and control.has_meta("action"):
-			control.custom_minimum_size.y = visual_style.link_height if control.get_meta("menu_link",false) else visual_style.action_height
+			if use_profile_metrics and visual_style != null:
+				control.custom_minimum_size.y = visual_style.link_height if control.get_meta("menu_link",false) else visual_style.action_height
 			control.tooltip_text = control.text
 	var status = get_node("%EngineStatus")
 	status.text = i18n.text("●  CONNECTING" if model.get("connecting",false) else ("●  ENGINE ONLINE" if model.available else "●  ENGINE OFFLINE"))
@@ -48,9 +50,10 @@ func apply_model(data: Dictionary) -> void:
 	status.set_meta("text_role","accent.positive" if model.available else "accent.primary")
 	var title = get_node("%SettingTitle")
 	title.text = str(model.settingName).to_upper(); title.tooltip_text = str(model.settingName)
-	title.add_theme_font_size_override("font_size",visual_style.title_size)
-	if title.has_meta("base_font_size"): title.remove_meta("base_font_size")
-	if title.has_meta("visual_preferences_revision"): title.remove_meta("visual_preferences_revision")
+	if use_profile_metrics and visual_style != null:
+		title.add_theme_font_size_override("font_size",visual_style.title_size)
+		if title.has_meta("base_font_size"): title.remove_meta("base_font_size")
+		if title.has_meta("visual_preferences_revision"): title.remove_meta("visual_preferences_revision")
 	get_node("%SettingDescription").text = str(model.description)
 	var key := JSON.stringify(model.settings.map(func(item): return item.get("settingId","")))
 	if key != _settings_key:
@@ -74,12 +77,12 @@ func apply_model(data: Dictionary) -> void:
 	_layout.call_deferred()
 
 func _layout() -> void:
-	if not is_instance_valid(_scroll): return
-	var width := maxf(240, _scroll.size.x - 16)
+	if not is_instance_valid(_scroll) or not use_profile_metrics or visual_style == null: return
+	var width := maxf(visual_style.minimum_scroll_width, _scroll.size.x - visual_style.scroll_padding)
 	var compact: bool = width < visual_style.compact_width
 	_body.vertical = compact
 	_body.custom_minimum_size.x = minf(width, visual_style.content_width)
-	_body.add_theme_constant_override("separation", 28 if compact else visual_style.column_gap)
+	_body.add_theme_constant_override("separation", visual_style.compact_gap if compact else visual_style.column_gap)
 	_hero.custom_minimum_size.x = minf(visual_style.hero_min_width, width) if compact else visual_style.hero_min_width
 	_navigation.custom_minimum_size.x = minf(visual_style.navigation_width, width)
 

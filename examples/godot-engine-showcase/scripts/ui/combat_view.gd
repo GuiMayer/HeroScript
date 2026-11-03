@@ -118,16 +118,16 @@ func _layout_gameplay() -> void:
 		if is_instance_valid(character_sidebar):
 			character_sidebar.fit_bounds(gameplay_column.get_global_rect(), layout_profile.sidebar_width, layout_profile.sidebar_height)
 		if is_instance_valid(candidate_panel):
-			var dock_height: float = hand.toolbar.get_combined_minimum_size().y + bottom_hud.get_node("TurnControls").get_combined_minimum_size().y + 10
+			var dock_height: float = hand.toolbar.get_combined_minimum_size().y + bottom_hud.get_node("TurnControls").get_combined_minimum_size().y + layout_profile.floating_dock_gap
 			candidate_panel.offset_bottom = -dock_height
 			candidate_panel.offset_top = -dock_height - layout_profile.candidate_height
 			candidate_panel.offset_right = layout_profile.candidate_width
 	if is_instance_valid(_feedback_column) and layout_profile.preview_placement == "floating_left":
 		_feedback_column.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-		var dock_height: float = hand.toolbar.get_combined_minimum_size().y + turn_view.get_combined_minimum_size().y + 10
+		var dock_height: float = hand.toolbar.get_combined_minimum_size().y + turn_view.get_combined_minimum_size().y + layout_profile.floating_dock_gap
 		_feedback_column.offset_right = layout_profile.preview_width
 		_feedback_column.offset_bottom = -dock_height
-		_feedback_column.offset_top = -dock_height - 110
+		_feedback_column.offset_top = -dock_height - layout_profile.floating_preview_height
 	# The scenery extends behind the floating hand, but actor information stays
 	# above even the raised cards. No rules or card count limits affect this layout.
 	if is_instance_valid(battlefield_actors):
@@ -188,7 +188,7 @@ func _build_hand() -> void:
 	if not is_instance_valid(hand):
 		hand = hand_section.get_node("CardHandView"); hand.mount(visual_context)
 		hand.disable_overview(); hand.toolbar_external = true
-		hand.counter.hide(); hand.toolbar.custom_minimum_size = Vector2(144, 44)
+		hand.counter.hide(); hand.toolbar.custom_minimum_size = layout_profile.toolbar_min_size
 		hand.card_activated.connect(_choose_card)
 		hand.card_previewed.connect(_show_preview)
 		hand.card_hovered.connect(func(id): intent_requested.emit("card_hover", [id]))
@@ -257,14 +257,14 @@ func _build_footer() -> void:
 		reconnect_button.pressed.connect(_reconnect)
 		preload("res://scripts/ui/combat_chrome.gd").apply(reconnect_button, "tools", visual_context.translator.text("RECONNECT"), visual_context)
 		floating_hud.replace_slot("reconnect", reconnect_button)
-		reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT); reconnect_button.offset_right = 150; reconnect_button.offset_bottom = 44
+		reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT); reconnect_button.offset_right = layout_profile.reconnect_button_size.x; reconnect_button.offset_bottom = layout_profile.reconnect_button_size.y
 		candidate_panel = get_node("OverlayDefinitions/CandidatePanel")
 		var surface: StyleBoxFlat = candidate_panel.get_theme_stylebox("panel").duplicate()
 		surface.bg_color = visual_context.styles.PANEL; surface.border_color = visual_context.styles.GOLD
 		candidate_panel.add_theme_stylebox_override("panel", surface)
 		choices = candidate_panel.get_node("CandidateChoicesSlot/Choices")
 		floating_hud.replace_slot("candidates", candidate_panel)
-		candidate_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT); candidate_panel.offset_right = 600
+		candidate_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT); candidate_panel.offset_right = layout_profile.candidate_width
 		_footer_bound = true
 	for button in turn_view.buttons: action_buttons.erase(button)
 	turn_view.visual_context = visual_context
@@ -364,7 +364,7 @@ func _intent_for(actor_id: String) -> String:
 func _button(text: String, action: Callable, width := 0) -> Button:
 	var value: Button = preload("res://scenes/ui/components/combat_button.tscn").instantiate()
 	value.text = text; value.custom_minimum_size.x = width
-	value.custom_minimum_size.y = 44
+	value.custom_minimum_size.y = layout_profile.choice_button_height
 	value.pressed.connect(action)
 	return value
 

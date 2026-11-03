@@ -21,6 +21,10 @@ extends Resource
 @export var title_font_size := 17
 @export var title_min_font_size := 12
 @export var title_min_two_line_font_size := 8
+@export var requirement_min_width := 160.0
+@export var inline_font_size := 11
+@export var zero_cost_font_size := 12
+@export var change_badge_font_size := 10
 @export_group("Printed face")
 @export_enum("frame", "registration") var keyline_style := "registration"
 @export var face_radius := 2
