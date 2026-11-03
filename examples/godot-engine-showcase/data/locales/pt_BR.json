@@ -1,4 +1,10 @@
 {
+  "STORE  •  %s": "GUARDAR  •  %s",
+  "DECOMPILE  •  %s → %s": "DECOMPILAR  •  %s → %s",
+  "Destination: %s": "Destino: %s",
+  "Reserve": "Reserva",
+  "No materials": "Sem materiais",
+  "parts": "Peças",
   "Companions": "Companheiros",
   "COMPANION": "COMPANHEIRO",
   "Equipped companion": "Companheiro equipado",

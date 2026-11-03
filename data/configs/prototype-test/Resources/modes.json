@@ -33,7 +33,7 @@
       "resource_delta": "signed_resource_delta"
     },
     "cardPoolIds": [
-      "w1_rewards"
+      "prototype_rewards"
     ],
     "enemyPoolIds": [],
     "replayPolicyId": "standard_replay",
@@ -87,7 +87,7 @@
       "resource_delta": "signed_resource_delta"
     },
     "cardPoolIds": [
-      "w1_rewards"
+      "prototype_rewards"
     ],
     "enemyPoolIds": [],
     "replayPolicyId": "sandbox_replay",

@@ -48,6 +48,8 @@ public sealed record RerollRulesDefinition
 
 public sealed record DecomposeRulesDefinition
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CompletesSelection { get; init; }
     public bool Enabled { get; init; } = true;
 }
 

@@ -120,6 +120,12 @@
           ]
         }
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_guard": {
@@ -218,6 +224,12 @@
             "thermal"
           ]
         }
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
       }
     ]
   },
@@ -370,6 +382,12 @@
           ]
         }
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_condense": {
@@ -460,6 +478,12 @@
             "thermal"
           ]
         }
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
       }
     ]
   },
@@ -558,6 +582,12 @@
           ]
         }
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_coolant": {
@@ -647,6 +677,12 @@
             "thermal"
           ]
         }
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
       }
     ]
   },
@@ -757,6 +793,12 @@
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_void_guard": {
@@ -842,6 +884,12 @@
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_void_condense": {
@@ -918,6 +966,12 @@
         "componentId": "disposition",
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
       }
     ]
   },
@@ -1028,6 +1082,12 @@
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_necro_guard": {
@@ -1113,6 +1173,12 @@
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "prototype_necro_condense": {
@@ -1189,6 +1255,12 @@
         "componentId": "disposition",
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
       }
     ]
   }

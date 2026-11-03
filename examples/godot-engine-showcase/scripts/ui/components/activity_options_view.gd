@@ -77,8 +77,9 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 			button.visual_context = context; button.configure(model)
 			entry.get_node("Variant").visible = choice.has("variantId")
 			entry.get_node("Variant").text = context.translator.content_name(str(choice.get("variantId","")))
-			entry.get_node("AcquisitionPrice").visible = not price.is_empty()
-			entry.get_node("AcquisitionPrice").text = context.translator.text("Acquisition price: %s") % price
+			var destination := str(model.get("rewardDestination", ""))
+			entry.get_node("AcquisitionPrice").visible = not price.is_empty() or not destination.is_empty()
+			entry.get_node("AcquisitionPrice").text = (context.translator.text("Destination: %s") % context.translator.text(destination)) if not destination.is_empty() else (context.translator.text("Acquisition price: %s") % price)
 		else:
 			var content = entry.get_node("Content"); var art = content.get_node("Art")
 			art.rebind_context(context); art.setup("modifier_items" if str(model.get("category","")) == "modifier_items" else "activities",str(model.get("artId",_current_node().get("activity",{}).get("type",""))))

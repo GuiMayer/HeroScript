@@ -142,6 +142,16 @@ Validação: **8 testes API/integração aprovados**, incluindo publicação, m�
 
 O pacote ainda contém apenas o encontro de prova; recompensas, preparo ampliado e capítulo são as etapas seguintes. Nenhum capítulo completo foi declarado pronto.
 
+## Etapa 12 — Recompensa exclusiva e reserva
+
+Estado: concluída em 2026-11-03.
+
+A opção JSON `decompose.completesSelection` encerra a oferta junto com o pagamento. Ausente, mantém o comportamento anterior. Guardar usa o grant canônico para coleção/reserva; decompilar concede três Parts, sem conceder carta. Ofertas mantêm identidade e rejeitam definições duplicadas antes do consumo de RNG. A interface apresenta destino e pagamento publicados, com textos EN/PT, sem calcular regras.
+
+O setting de prova reward-lab atravessa vitória, recompensa, preparação obrigatória e novo encontro. A composição ativa não muda por aquisição; reserva não é comprada. O pacote principal habilita a mesma configuração. Documentação: [decisões de recompensa](../api/reward-decisions.md).
+
+Validação: **61 testes Core**, **2 jornadas API** (guardar e decompilar) e **39 verificações Godot**, todos aprovados. As jornadas reiniciam o host com o armazenamento persistido, verificam replay semântico/hash, repetem o comando idempotente e rejeitam a alternativa após a escolha. Incluem falha de pagamento sem publicação parcial e compatibilidade da opção ausente. Evidências: `.runtime/tactical-mvp/results/stage12-*.trx` e `stage12-godot.log`.
+
 ## Próxima etapa
 
-Etapa 12: recompensa exclusiva guardar/decompilar e destino da reserva. Etapas 12–17 permanecem pendentes.
+Etapa 13: inscrições, mutações e preparação da build. Etapas 13–17 permanecem pendentes.

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.reward-lab",
+  "version": "1.1.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.prototype-test",
+      "versionRange": "1.1.0"
+    }
+  ],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "entities",
+      "sourcePath": "Resources/entities.json",
+      "artifactPath": "entities/reward-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "modes",
+      "sourcePath": "Resources/modes.json",
+      "artifactPath": "modes/reward-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "runs",
+      "sourcePath": "Resources/runs.json",
+      "artifactPath": "runs/reward-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "deck-composition-policies",
+      "sourcePath": "Resources/deck-composition-policies.json",
+      "artifactPath": "deck-composition-policies/reward-lab.json"
+    }
+  ]
+}

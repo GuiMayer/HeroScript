@@ -153,6 +153,27 @@
       "kind": "runs",
       "sourcePath": "Resources/runs.json",
       "artifactPath": "runs/prototype-test.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-pools",
+      "sourcePath": "Resources/card-pools.json",
+      "artifactPath": "card-pools/prototype-test.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-selections",
+      "sourcePath": "Resources/card-selections.json",
+      "artifactPath": "card-selections/prototype-test.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "preparations",
+      "sourcePath": "Resources/preparations.json",
+      "artifactPath": "preparations/prototype-test.json"
     }
   ]
 }

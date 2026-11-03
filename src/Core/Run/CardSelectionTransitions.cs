@@ -191,6 +191,7 @@ public static class CardSelectionTransitions
         var updated = selection with
         {
             Options = options,
+            Completed = selection.Decompose.CompletesSelection == true,
             DecomposedCardIds = selection.DecomposedCardIds.Append(updatedOption.CardId).ToImmutableList()
         };
         var rewarded = RunResourceTransitions.Reward(

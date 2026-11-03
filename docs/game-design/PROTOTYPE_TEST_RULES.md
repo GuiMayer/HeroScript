@@ -1,12 +1,13 @@
 # Tactical campaign: executable initial rules
 
 Setting: `prototype-test`. Package: `heroscript.prototype-test`, version 1.1.0.
-This is the first combat proof; the reward loop and three-encounter chapter are
-subsequent implementation stages. Existing settings are unchanged.
+This rule set now includes exclusive card rewards and required build preparation.
+The complete three-encounter chapter is a subsequent content stage. Existing
+settings are unchanged.
 
 ## Build and circulation
 
-The character owns 27 card instances. Fifteen hero cards and five cards of the
+The character starts with 27 card instances. Fifteen hero cards and five cards of the
 selected module form the active composition; seven remain outside circulation.
 Repeated definitions are separate instances. The default module is Void;
 Necromantic is the alternative. Changes outside a pending encounter use the
@@ -19,8 +20,10 @@ cards remain in hand; the graph retains its explicit ethereal exception. An
 insufficient draw recycles discard once, then takes the available remainder.
 Overflow leaves cards in their source instead of losing them.
 
-The gameplay grant destination is `owned`, ready for the later reserve reward
-flow. There is no free player-invokable draw action in the normal mode. Played
+The gameplay grant destination is `owned`. A reward offers storage in reserve
+OR decompilation into three Parts; either choice closes the opportunity. New
+instances do not enter the active composition automatically. Required preparation
+follows before the next encounter. There is no free player-invokable draw action in the normal mode. Played
 cards move to discard; selected Necromantic fuel moves to `banish`. Encounter
 closure returns hand, discard, banish and remaining draw to collection, retaining
 the same instances and permanent mutations.

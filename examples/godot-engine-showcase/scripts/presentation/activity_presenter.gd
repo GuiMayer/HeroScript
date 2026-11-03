@@ -37,6 +37,8 @@ func choice_label(choice: Dictionary, model: Dictionary = {}) -> String:
 		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
 		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
 		"REMOVE_CARD_TRANSFORMATION": "REMOVE  •  %s", "REPLACE_CARD_TRANSFORMATION": "REPLACE  •  %s"}
+	if type == "PICK_CARD_REWARD" and not str(model.get("rewardDestination", "")).is_empty(): return _i18n.text("STORE  •  %s") % str(model.get("name", ""))
+	if type == "DECOMPOSE_CARD_REWARD" and bool(model.get("terminalReward", false)): return _i18n.text("DECOMPILE  •  %s → %s") % [str(model.get("name", "")), str(model.get("rewardText", ""))]
 	if templates.has(type): return _i18n.text(templates[type]) % str(model.get("name", node_name(str(choice.get("subjectId", "")))))
 	if type == "ACQUIRE_CARD_MODIFIER_ITEM": return _i18n.text("ACQUIRE MODIFIER") + " · " + str(model.get("name", ""))
 	if type == "APPLY_CARD_MODIFIER_ITEM": return _i18n.text("APPLY MODIFIER")
@@ -146,6 +148,18 @@ func offer(choice: Dictionary) -> Dictionary:
 	if str(choice.get("subjectType", "")) == "inscription" and choice.get("presentation") is Dictionary:
 		model["name"] = _i18n.text(str(choice.presentation.get("name", definition)))
 		model["summary"] = _i18n.text(str(choice.presentation.get("description", "")))
+	if type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD"]:
+		for selection in _run.get("cardSelections", []):
+			if str(selection.get("selectionInstanceId", "")) != str(choice.get("payload", {}).get("selectionInstanceId", "")): continue
+			if not bool(selection.get("decompose", {}).get("completesSelection", false)): break
+			model["terminalReward"] = true
+			model["rewardDestination"] = str(current_node().get("metadata", {}).get("rewardDestination", ""))
+			var rewards: Array[String] = []
+			for option in selection.get("options", []):
+				if str(option.get("cardId", "")) != definition: continue
+				for amount in option.get("decomposeRewards", []): rewards.append("%s %s" % [_i18n.number(float(amount.get("amount", 0))), _i18n.content_name(str(amount.get("resourceId", "")))])
+			model["rewardText"] = " + ".join(rewards) if not rewards.is_empty() else _i18n.text("No materials")
+			break
 	return model
 
 static func modifier_description(definition: Dictionary, translator) -> String:

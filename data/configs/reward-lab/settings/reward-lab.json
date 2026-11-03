@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "reward-lab",
+  "displayName": "Reward Workshop",
+  "description": "Small deterministic victory, exclusive reward, reserve and preparation proof.",
+  "launch": {
+    "runDefinitionId": "reward_lab_run",
+    "playerEntityId": "player",
+    "modeId": "reward_lab"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.reward-lab",
+      "versionRange": "1.1.0"
+    }
+  ]
+}

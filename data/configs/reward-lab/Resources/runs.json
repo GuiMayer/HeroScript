@@ -1,0 +1,119 @@
+{
+  "reward_lab_run": {
+    "runId": "reward_lab_run",
+    "playerDefinitionId": "prototype_hero",
+    "startingResources": {
+      "gold": 0,
+      "parts": 0
+    },
+    "initialPlayableCardCount": 0,
+    "initialCardZoneId": "owned",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "prototype_strike"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "thermal_trial",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "prototype_hero",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "reward_lab_target",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "trial_reward"
+        ],
+        "metadata": {
+          "displayName": "Thermal trial",
+          "description": "Retain cards, manage Heat and prepare a combined release."
+        }
+      },
+      {
+        "nodeId": "trial_reward",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "prototype_reward"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "trial_preparation"
+        ],
+        "metadata": {
+          "displayName": "Recovered patterns",
+          "description": "Store one new pattern in reserve, or decompile it into crafting material.",
+          "rewardDestination": "Reserve"
+        }
+      },
+      {
+        "nodeId": "trial_preparation",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "prototype_rebuild"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "thermal_trial_2"
+        ],
+        "metadata": {
+          "displayName": "Build preparation",
+          "description": "Inspect your reserve, change module or support routine, then confirm readiness."
+        }
+      },
+      {
+        "nodeId": "thermal_trial_2",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "prototype_hero",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "reward_lab_target",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Second thermal trial",
+          "description": "Test the revised build in another encounter."
+        }
+      }
+    ]
+  }
+}

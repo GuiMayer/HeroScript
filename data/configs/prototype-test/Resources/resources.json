@@ -20,5 +20,20 @@
       "thermal",
       "character"
     ]
+  },
+  "parts": {
+    "resourceId": "parts",
+    "displayName": "Parts",
+    "shortName": "PT",
+    "category": "SPECIAL",
+    "defaultMin": 0,
+    "defaultMax": 1000000,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": true,
+    "tags": [
+      "run",
+      "crafting"
+    ]
   }
 }
