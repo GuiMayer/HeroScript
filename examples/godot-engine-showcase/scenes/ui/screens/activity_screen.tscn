@@ -1,8 +1,0 @@
-[gd_scene format=3]
-[ext_resource type="Script" path="res://scripts/ui/activity_screen.gd" id="Script"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/journey_view.tscn" id="View"]
-[node name="ActivityScreen" type="VBoxContainer"]
-script = ExtResource("Script")
-[node name="JourneyView" parent="." instance=ExtResource("View")]
-layout_mode = 2
-size_flags_vertical = 3

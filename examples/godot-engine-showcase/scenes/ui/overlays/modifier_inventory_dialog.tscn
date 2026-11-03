@@ -1,6 +1,0 @@
-[gd_scene format=3]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/card_modifier_inventory.tscn" id="Inventory"]
-[node name="ModifierInventoryDialog" type="AcceptDialog"]
-title = "Modifier items"
-[node name="Inventory" parent="." instance=ExtResource("Inventory")]
-custom_minimum_size = Vector2(950,570)

@@ -1,8 +1,0 @@
-{
-  "standard_timeline": {
-    "timelinePolicyId": "standard_timeline",
-    "enabled": true,
-    "groupByTurn": false,
-    "maxItemsPerPage": 200
-  }
-}

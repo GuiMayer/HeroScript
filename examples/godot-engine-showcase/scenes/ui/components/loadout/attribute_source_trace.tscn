@@ -1,7 +1,0 @@
-[gd_scene format=3]
-[node name="AttributeSourceTrace" type="Label"]
-custom_minimum_size = Vector2(450,0)
-size_flags_horizontal = 3
-theme_type_variation = &"Caption"
-theme_override_font_sizes/font_size = 14
-autowrap_mode = 3

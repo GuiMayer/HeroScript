@@ -1,5 +1,0 @@
-[gd_scene format=3]
-[ext_resource type="PackedScene" path="res://scenes/ui/screens/deck_compartment_editor.tscn" id="Editor"]
-[ext_resource type="Script" path="res://scripts/ui/run_deck_compartments.gd" id="Adapter"]
-[node name="RunDeckCompartmentEditor" instance=ExtResource("Editor")]
-script = ExtResource("Adapter")

@@ -1,8 +1,0 @@
-{
-  "clash_opponents": {
-    "enemyPoolId": "clash_opponents",
-    "entityDefinitionIds": [
-      "clash_bot"
-    ]
-  }
-}

@@ -1,7 +1,0 @@
-{
-  "development_versioned": {
-    "contentBindingPolicyId": "development_versioned",
-    "activeRuns": "versioned",
-    "activationBoundary": "outsideCombat"
-  }
-}

@@ -1,4 +1,0 @@
-[gd_scene format=3]
-[ext_resource type="PackedScene" path="res://scenes/ui/screens/unified_loadout.tscn" id="1"]
-[node name="RunLoadout" instance=ExtResource("1")]
-initial_tab = "inscriptions"

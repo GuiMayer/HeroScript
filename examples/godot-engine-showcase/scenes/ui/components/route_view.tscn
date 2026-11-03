@@ -1,8 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="Script" path="res://scripts/ui/route_view.gd" id="1_cpnni"]
-
-[node name="RouteView" type="Control"]
-anchors_preset = 0
-mouse_filter = 1
-script = ExtResource("1_cpnni")

@@ -1,7 +1,0 @@
-[gd_scene format=3]
-
-[node name="Text" type="Label"]
-mouse_filter = 2
-autowrap_mode = 0
-theme_override_font_sizes/font_size = 11
-metadata/font_role = "caption"

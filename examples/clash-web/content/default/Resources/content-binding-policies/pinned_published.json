@@ -1,7 +1,0 @@
-{
-  "pinned_published": {
-    "contentBindingPolicyId": "pinned_published",
-    "activeRuns": "pinned",
-    "activationBoundary": "outsideCombat"
-  }
-}

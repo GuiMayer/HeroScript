@@ -1,8 +1,0 @@
-[gd_scene format=3]
-[ext_resource type="Script" path="res://scripts/ui/dialogue_screen.gd" id="Script"]
-[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_scene.tscn" id="View"]
-[node name="DialogueScreen" type="VBoxContainer"]
-script = ExtResource("Script")
-[node name="DialogueScene" parent="." instance=ExtResource("View")]
-layout_mode = 2
-size_flags_vertical = 3

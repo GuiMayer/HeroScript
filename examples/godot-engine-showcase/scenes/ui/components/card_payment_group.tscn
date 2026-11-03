@@ -1,7 +1,0 @@
-[gd_scene format=3]
-[node name="PaymentGroup" type="VBoxContainer"]
-[node name="Title" type="Label" parent="."]
-layout_mode = 2
-autowrap_mode = 2
-[node name="Cards" type="HFlowContainer" parent="."]
-layout_mode = 2

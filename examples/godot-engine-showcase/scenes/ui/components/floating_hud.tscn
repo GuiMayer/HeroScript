@@ -1,7 +1,0 @@
-[gd_scene format=3]
-[ext_resource type="Script" path="res://scripts/ui/floating_hud.gd" id="Script"]
-[node name="FloatingCombatHUD" type="CanvasLayer"]
-layer = 5
-script = ExtResource("Script")
-[node name="FloatingHUDHost" type="Control" parent="."]
-mouse_filter = 2
