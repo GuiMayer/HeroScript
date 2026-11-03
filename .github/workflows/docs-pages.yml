@@ -62,7 +62,7 @@ jobs:
         env:
           DOCS_REPOSITORY: ${{ github.workspace }}/source
           DOCS_SOURCE_SHA: ${{ steps.source.outputs.sha }}
-      - run: npm run build && npm run validate
+      - run: npm run build && npm run validate && npm run smoke
         working-directory: portal/site
       - name: Build provenance
         run: node -e "const r=require('./generated/import-report.json');console.log('Source',r.sourceSha,'Site',r.siteSha,'Articles',r.documents.length)"

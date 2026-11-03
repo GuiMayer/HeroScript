@@ -13,7 +13,8 @@
     "prepare:docs": "node scripts/import-docs.mjs && node scripts/generate-reference.mjs",
     "test": "node --test scripts/*.test.mjs",
     "clear": "docusaurus clear",
-    "validate": "node scripts/validate-docs.mjs"
+    "validate": "node scripts/validate-docs.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",

@@ -31,3 +31,7 @@ Prefixos de rotas normalizados, links internos por arquivo/âncora e downloads c
 ## 9 — CI e sincronização
 
 Main contém somente dispatcher e registro de workflow. Cada push em main despacha a branch dedicada com SHA explícito; builds de PR não publicam. Política de fonte, cache e guards evitam refs arbitrários ou deploy supersedido.
+
+## 10 — Publicação
+
+Pipeline de artifact Pages com permissões por job, environment dedicado, controle de concorrência, freshness guard e rollback explícito. Smoke HTTP verifica páginas profundas e contratos sob /HeroScript/. Ativação e URL real serão registradas após a execução do Actions.
