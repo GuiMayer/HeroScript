@@ -11,6 +11,21 @@ Unity, web ou outro — cuida somente de input, interface, áudio e animações.
 > jogável em Godot. O projeto prova o loop completo e a arquitetura, mas ainda
 > não representa um jogo final com conteúdo, balanceamento e arte de produção.
 
+## Campanha tática em validação
+
+O setting opt-in **Tactical campaign MVP** (`prototype-test`) abre um capítulo de
+três encontros, com chefe, Calor, mão retida, módulos Void/Necro, suporte, inscrições,
+reserva, mutações de cartas e escolha guardar/decompilar. Perder mantém a campanha
+e permite ajustar a build para tentar novamente. As regras e o conteúdo estão em
+JSON; a Godot continua responsável pela apresentação e pelo input.
+
+O capítulo passou por execução completa, reinício, replay e comparação de comandos
+em armazenamentos independentes. **A certificação ainda tem pendências:** p95 de
+encerrar turno acima de 100 ms, uma regressão circular estendida que excedeu o prazo
+e playtest externo. Veja [regras publicadas](docs/game-design/PROTOTYPE_TEST_RULES.md),
+[relatório e limitações](docs/validation/TACTICAL_CAMPAIGN_MVP.md) e
+[execução do plano](docs/plans/TACTICAL_CAMPAIGN_MVP_IMPLEMENTATION_PROGRESS.md).
+
 ## Comece pela demo jogável
 
 O setting **Volatile Crucible** demonstra o novo core: cartas de identidade

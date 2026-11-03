@@ -192,6 +192,31 @@ Resultado observado após otimização: PLAY_CARD p95 **83,54 ms**, END_TURN **4
 
 Validação: **1.232 testes Core** aprovados; suíte focada de descoberta/suporte **67** aprovada. **21 casos API não estendidos** passaram sem falhas, mas a sessão ampliada foi abortada no limite global de cinco minutos durante o caso estendido circular-table; esse caso não está certificado. Exportação limpa da árvore preparada para commit: API Release sem warnings/erros, capítulo completo com restart/replay/comparação independente aprovado e **114 verificações Godot** aprovadas após importação nova em caminho curto. Corrigidos um acesso nulo na disposição de cartas, caminho fixo de fixture e filtro de cópia de QA. Evidências: `.runtime/tactical-mvp/results/stage16-*.trx` e logs correspondentes.
 
-## Próxima etapa
+## Etapa 17 — Documentação e certificação final com exceções
 
-Etapa 17: documentação/certificação final com exceções explícitas. O gate de latência de turno, a regressão circular estendida e o playtest externo permanecem abertos; o MVP não será declarado integralmente certificado.
+Estado: documentação e certificação técnica executadas em 2026-11-03. **MVP integralmente aprovado: não**, pelos gates abertos abaixo.
+
+README da engine/showcase, GDD, checklist do plano, regras executáveis, guias REST/autoria/UI e relatório de validação descrevem o capítulo implementado e seus limites. Schema de composição/suporte atualizado para cadência, participação no resultado, escopo/inventário inicial, migração e apresentação. Quatro testes Python/jsonschema aprovados contra os exemplos publicados, pagamentos e casos inválidos; publicação continua autoridade semântica.
+
+A prova Godot com a API da cópia limpa encontrou um bloqueio real de ingresso: setup acontecia antes de a cena entrar na árvore e descartava o início da apresentação. Incorporado somente o trecho necessário de retomada deferida/em ready, preservando as demais alterações pendentes. Repetição em stores novos passou **55 verificações Godot/API reais**: lançamento normal/diálogo/combate (21), pagamento escolhido (17), suporte/rotina/cadência (17). Somam-se às 114 verificações offline da importação limpa e à jornada Release limpa com 169 hashes sucessores iguais entre hosts independentes. Servidores e saves de QA próprios; servidores encerrados após os testes.
+
+Preparado [roteiro de playtest externo](../validation/TACTICAL_CAMPAIGN_MVP_PLAYTEST.md), explicitamente não realizado. Não foram inventadas observações de jogador, aprovação de diversão ou equilíbrio. O teste fonte/importação limpa não equivale a distribuição standalone com servidor/instalador empacotados.
+
+## Commits desta continuação
+
+| Etapa | Commit |
+| --- | --- |
+| 12 — Recompensa exclusiva | d4716c20 |
+| 13 — Inscrições e patterns | fab425ea |
+| 14 — Capítulo | 1df8a677 |
+| 15 — Laboratório compartilhado | 0f400e00 |
+| 16 — Certificação/descoberta de IA | 4b911c5f |
+| 17 — Documentação, schema e ingresso limpo | Consultar o commit deste registro |
+
+## Gates ainda abertos
+
+- Reduzir/certificar END_TURN frequente abaixo de 100 ms no p95; observado 470,11 ms. PLAY_CARD e sessão estão abaixo da meta no p95 medido, sem garantia universal.
+- Executar a regressão circular estendida em job próprio com prazo apropriado; a sessão ampliada foi abortada, embora os 21 casos não estendidos tenham passado.
+- Realizar playtest externo e registrar compreensão, derrotas, ajustes, duração e problemas de equilíbrio/softlock.
+
+O capítulo e os sistemas foram entregues; os gates acima impedem declarar o MVP plenamente certificado. Não houve push nesta continuação.

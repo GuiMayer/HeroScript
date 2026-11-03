@@ -427,21 +427,27 @@ Os testes não devem tocar os saves do jogador nem iniciar a campanha escolhida 
 
 ## 9. Critérios finais de conclusão
 
-- [ ] O MVP é selecionável como setting separado e continua funcionando após reinício.
-- [ ] A engine rejeita composição inválida e a UI mostra o motivo publicado.
-- [ ] Apenas cartas ativas entram no combate; reserva e módulo preservam propriedade e melhorias.
-- [ ] O jogador escolhe pagamentos com cartas e nenhuma recusa/cancelamento local consome estado.
-- [ ] Os dois módulos modificam decisões de gameplay de forma observável.
-- [ ] Calor, statuses e condensação têm regras explícitas, previews coerentes e traces reproduzíveis.
-- [ ] O companion possui uma escolha de comportamento persistida e atua sem timer de gameplay no cliente.
-- [ ] Uma derrota permite ajustar e repetir o encontro, sem apagar campanha ou tentativa anterior.
-- [ ] Guardar/decompilar é uma decisão exclusiva e idempotente; o deck não cresce automaticamente.
-- [ ] Inscrição do personagem, modificador da carta, relíquia e compartimento continuam sistemas distintos.
-- [ ] Três encontros, diálogos, preparação e encerramento podem ser jogados sem ferramentas de desenvolvimento.
+- [x] O MVP é selecionável como setting separado e continua funcionando após reinício.
+- [x] A engine rejeita composição inválida e a UI mostra o motivo publicado.
+- [x] Apenas cartas ativas entram no combate; reserva e módulo preservam propriedade e melhorias.
+- [x] O jogador escolhe pagamentos com cartas e nenhuma recusa/cancelamento local consome estado.
+- [x] Os dois módulos modificam decisões de gameplay de forma observável.
+- [x] Calor, statuses e condensação têm regras explícitas, previews coerentes e traces reproduzíveis.
+- [x] O companion possui uma escolha de comportamento persistida e atua sem timer de gameplay no cliente.
+- [x] Uma derrota permite ajustar e repetir o encontro, sem apagar campanha ou tentativa anterior.
+- [x] Guardar/decompilar é uma decisão exclusiva e idempotente; o deck não cresce automaticamente.
+- [x] Inscrição do personagem, modificador da carta, relíquia e compartimento continuam sistemas distintos.
+- [x] Três encontros, diálogos, preparação e encerramento podem ser jogados sem ferramentas de desenvolvimento.
 - [ ] Saves, snapshots, RNG, journal e replays passam nos gates técnicos e regressões dos settings atuais.
-- [ ] Novas telas usam cenas editáveis e os mesmos componentes/executores do combate/laboratórios.
-- [ ] Resultados de desempenho e limitações são documentados sem usar métricas sintéticas como latência REST.
+- [x] Novas telas usam cenas editáveis e os mesmos componentes/executores do combate/laboratórios.
+- [x] Resultados de desempenho e limitações são documentados sem usar métricas sintéticas como latência REST.
 - [ ] Playtest confirma compreensão do ciclo derrota → ajuste → nova tentativa; problemas de equilíbrio restantes estão registrados.
+
+Certificação em 2026-11-03: [relatório e exceções](../validation/TACTICAL_CAMPAIGN_MVP.md).
+O capítulo e os mecanismos acima foram implementados; os itens marcados não
+representam aprovação externa de diversão/balanceamento. O gate de latência da
+etapa 16 ainda não passou para END_TURN (p95 observado 470,11 ms). Uma regressão
+circular estendida excedeu o prazo; o playtest externo permanece pendente.
 
 ## 10. Registro de execução futuro
 

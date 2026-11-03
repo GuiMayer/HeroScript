@@ -63,7 +63,15 @@ func setup(owner, data: Dictionary) -> void:
 	GameSession.presentation_ready.connect(_on_presentation_ready)
 	GameSession.receipt_received.connect(_on_receipt_received)
 	_render(data)
-	if Playback.envelope != null and not Playback.dispatch_ready: _on_presentation_ready(Playback.envelope)
+	_resume_presentation.call_deferred()
+
+func _ready() -> void:
+	_resume_presentation()
+func _resume_presentation() -> void:
+	# setup() normally runs before host.add_child(). Presentation requires live
+	# anchors and must not be discarded just because the view has not entered yet.
+	if is_inside_tree() and is_instance_valid(view) and Playback.envelope != null and not Playback.dispatch_ready:
+		_on_presentation_ready(Playback.envelope)
 
 func refresh_state(data: Dictionary) -> void: _render(data)
 func _render(data: Dictionary) -> void:

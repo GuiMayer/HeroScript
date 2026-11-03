@@ -4,6 +4,14 @@ Data: 2026-11-02. Escopo: setting opt-in `prototype-test`.
 
 Fonte: direcionamento de 2026-10-30 e plano `docs/plans/TACTICAL_CAMPAIGN_MVP_IMPLEMENTATION_PLAN.md`. Os GDDs anteriores continuam referências históricas; não são requisitos cumulativos deste MVP.
 
+## Estado em 2026-11-03
+
+Capítulo implementado e validado tecnicamente em fonte limpa, com três encontros,
+preparação, diálogos, recompensa exclusiva, build persistente e retry. Não está
+integralmente certificado: encerramento de turno ainda supera o alvo de 100 ms de
+p95 e falta playtest externo de compreensão/balanceamento. Os critérios de produto
+abaixo continuam critérios de aceite, não resultados automaticamente comprovados.
+
 ## Hipótese a validar
 
 O jogador entende a derrota, altera sua composição/atributos/rotina de suporte e percebe uma diferença na próxima tentativa. A campanha não é descartada ao perder. Código compartilhado da engine não reconhece nomes ou números específicos deste jogo.
@@ -14,7 +22,7 @@ Um herói de Calor; um companion de suporte; duas rotinas selecionáveis; dois m
 
 ## Preset inicial de playtest
 
-São escolhas de conteúdo reversíveis, não novos defaults globais da engine. Seus IDs, números e referências serão publicados em JSON quando os executores correspondentes estiverem prontos.
+São escolhas de conteúdo reversíveis, não novos defaults globais da engine. Seus IDs, números e referências estão publicados em JSON. Veja as [regras executáveis](PROTOTYPE_TEST_RULES.md) para o preset implementado e o [relatório de validação](../validation/TACTICAL_CAMPAIGN_MVP.md) para evidências e gates ainda abertos.
 
 | Regra | Preset |
 | --- | --- |

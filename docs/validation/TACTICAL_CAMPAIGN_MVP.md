@@ -86,6 +86,15 @@ The offline matrix exercises shared scenes in EN/PT-BR, 1280×720, 1920×1080 an
 uncertain receipt recovery. Motion tests cover pause, skip, cancellation and
 reduced motion without artificial waits. See [UI checks](../guides/tactical-mvp-ui-validation.md).
 
+The final clean Godot/API run initially exposed an ingress bug: setup ran before
+the combat scene entered the tree, so its pending opening presentation was never
+dispatched and input stayed locked. The scene now resumes that presentation only
+when mounted, using deferred/ready entry. Only that necessary pending fix was
+incorporated. Repeating against a new clean API store passed **55 checks**: chapter
+entry 21, chosen payment 17, support 17. Both transport and presentation use the
+same production components. Four Python/jsonschema tests additionally validate the
+updated authoring schema against published definitions/payments and invalid cases.
+
 ## Evidence and reproduction
 
 Local evidence lives under `.runtime/tactical-mvp/results/` and corresponding logs;
@@ -139,7 +148,7 @@ must not be reported as a completely passing test run.
 ## Unfulfilled release gates
 
 - END_TURN p95 below 100 ms over a progressed chapter, with representative samples.
-- External playtest: understanding defeat → preparation → retry, payment, Heat,
+- External [playtest](TACTICAL_CAMPAIGN_MVP_PLAYTEST.md), not yet performed: understanding defeat → preparation → retry, payment, Heat,
   retained hand, support and store/decompile; record time, defeats and softlocks.
 - The extended circular-table full-history regression timed out and needs its own
   extended test job; only its short deterministic journey is certified here.

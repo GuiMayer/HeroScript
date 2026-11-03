@@ -2,6 +2,30 @@
 
 Demo jogável em Godot 4 que usa a HeroScript como máquina de regras por meio exclusivo da API REST. A interface é inspirada no gênero de *deckbuilder roguelike*, sem reutilizar arte, texto ou código de outro jogo. O mesmo cliente executa settings completos diferentes sem embutir suas regras.
 
+## Campanha tática do MVP
+
+No menu principal, selecione **Tactical campaign MVP** e inicie uma nova campanha.
+O lançamento normal usa `prototype-test` / `prototype_chapter`, com as capacidades
+de gameplay normal. O setting tem progressão própria; não reutiliza o save do
+Ascendant. Continue retoma a campanha salva desse setting.
+
+São três encontros (o último é o chefe), diálogos curtos, duas decisões exclusivas
+de recompensa, preparo e workshops opcionais. Abra Loadout fora do combate para
+alterar inscrições do personagem, composição 15+5, reserva, módulo e rotina do
+suporte. A derrota mantém o nó pendente e permite preparar outra tentativa; itens,
+modificações, materiais e recompensas anteriores permanecem. Calor substitui a
+energia universal neste preset; Void paga cartas da mão e Necro paga do descarte.
+
+O cenário curto `prototype_trial` e os settings Payment/Support/Reward Workshop
+continuam provas isoladas de regressão. O laboratório unificado usa os mesmos
+componentes da campanha, com uma captura somente leitura para inspeção visual.
+
+Consulte as [regras executáveis](../../docs/game-design/PROTOTYPE_TEST_RULES.md),
+[o roteiro de validação](../../docs/guides/tactical-mvp-ui-validation.md) e
+[o relatório](../../docs/validation/TACTICAL_CAMPAIGN_MVP.md). O capítulo está
+implementado, mas o gate de latência dos turnos e o playtest externo continuam
+abertos; não está declarado um jogo final balanceado ou um export standalone pronto.
+
 ## Executar
 
 No PowerShell, a partir deste diretório:
