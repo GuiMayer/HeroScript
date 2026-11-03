@@ -1,0 +1,609 @@
+{
+  "schemaVersion": 1,
+  "canonicalBranch": "main",
+  "siteBranch": "codex/docs-site",
+  "policy": "Only committed, explicitly selected sources are published. Candidate does not mean approved.",
+  "entries": [
+    {
+      "source": "docs/api/authentication.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/card-payments.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/changelog.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/combat-sandbox.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/content-and-platform.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/contracts.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/deck-compartments.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/deck-loadouts.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/events.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/getting-started.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/governance.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/inscription-loadouts.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/interactive-session.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/README.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/reward-decisions.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/runs-and-combat.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/support-loadouts.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/api/world-one-foundations.md",
+      "audience": "api",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/actor-resource-lifecycle.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/ASCENDANT_WORLD_ONE.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/calculated-random-inputs.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/card-presentation-and-modifier-items.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/circular-table-flow.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/gameplay-event-hierarchies.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/gameplay-occurrences.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/gameplay-responses.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/hero-attribute-scaling.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/hot-reload-and-tool-profiles.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/inscription-acquisition.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/inscription-migrations.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/inscriptions.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/multi-tier-critical-inputs.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/packages-and-settings.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/profile-progress-policies.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/relic-reactions.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/resource-restrictions.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/run-eligibility.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/TAG_SYNERGY_EXPANSION.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/content/volatile-core-setting.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/calculations/calculation-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/calculations/quantity-distribution.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/cards/composition-grammar.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/cards/permanent-transformations.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/combat/alternative-costs.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/combat/combat-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/combat/reaction-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/combat/turn-phase-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/config/config-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/config/delta-reference.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/damage/damage-examples.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/damage/damage-pipeline.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/dialogue-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/effects/accumulated-stacks.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/effects/causal-continuation.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/effects/condensation-recipes.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/effects/effect-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/effects/sequence-budgets.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/entities/persistent-attributes.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/events/eventbus-implementation.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/events/eventbus-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/math/effect-calculation-profiles.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/math/expression-modes.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/math/math-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/modifiers/modifier-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/relics/relic-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/resources/resource-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/systems/status/status-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/API_NUMERIC_WIRE_CONTRACT.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/CARD_INPUT_LIFECYCLE_AUDIT.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": false
+    },
+    {
+      "source": "docs/architecture/cross-cutting-systems.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0001-command-and-gameplay-authority.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0002-authoritative-run-commits.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0003-published-content-boundary.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0004-immutable-actor-model.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0005-executable-combat-flow.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0006-operational-telemetry.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0007-migration-baseline.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/0008-purpose-free-card-zones.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/decisions/README.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/deterministic-runs.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/GAMEPLAY_EVENTS_CERTIFICATION_REPORT.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/GAMEPLAY_OCCURRENCE_PRODUCER_INVENTORY.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/GODOT_EDITABLE_UI_SCENES_AUDIT.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/GODOT_SCENE_OWNERSHIP_CONTRACT.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/overview.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/REST_POST_100MS_CERTIFICATION_REPORT.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/SCREEN_LIFECYCLE_AUDIT.md",
+      "audience": "developers",
+      "classification": "review",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/service-patterns.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/timeline-system.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/architecture/unified-runtime-verification.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/card-zone-payments.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/deck-compartments-godot.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/deck-composition.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/encounter-attempts.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/godot-ui-scene-editing.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/support-loadouts.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/tactical-mvp-ui-validation.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/unified-loadout-godot.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    },
+    {
+      "source": "docs/guides/volatile-core-godot.md",
+      "audience": "developers",
+      "classification": "candidate",
+      "tracked": true
+    }
+  ],
+  "excludedByDefault": [
+    "docs/plans/**",
+    "docs/game-design/**",
+    "docs/design/**",
+    "docs/research/**",
+    "docs/roadmap/**"
+  ]
+}
