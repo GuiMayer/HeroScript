@@ -1,6 +1,6 @@
 # Pagamentos com cartas
 
-Implementação de engine da etapa 5 do MVP. O seletor da Godot e o transporte das escolhas pelo comando público pertencem à etapa 6; definições novas não são habilitadas implicitamente em settings existentes.
+Implementação de engine da etapa 5 e integração REST/Godot da etapa 6 do MVP. O [contrato de seleção e os exemplos públicos](../api/card-payments.md) usam o mesmo componente de cartas e o executor do combate; definições novas não são habilitadas implicitamente em settings existentes.
 
 ## Definição
 

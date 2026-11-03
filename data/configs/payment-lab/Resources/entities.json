@@ -1,0 +1,42 @@
+{
+  "payment_target": {
+    "definitionId": "payment_target",
+    "displayName": "Payment target",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 999,
+            "max": 999
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "mana": {
+            "current": 4,
+            "max": 4
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 2,
+          "dexterity": 2,
+          "intelligence": 2
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "enemy_basic_attack"
+        ]
+      }
+    ]
+  }
+}

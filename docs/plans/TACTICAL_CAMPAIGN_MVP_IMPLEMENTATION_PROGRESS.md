@@ -72,6 +72,20 @@ Testes: **168 aprovados, zero falhas/skips**, cobrindo pagamento de duas origens
 
 Autoria e limites: [pagamentos com cartas](../guides/card-zone-payments.md). A UI/transporte das escolhas e os exemplos jogáveis são a etapa seguinte; nenhum setting existente recebeu custos novos.
 
+## Etapa 6 — Seleção de pagamentos e prova integrada
+
+Estado: concluída em 2026-11-03.
+
+O comando público/gateway transporta seleções por componente; a inspeção e seus caches incluem essas entradas. POST payment-preview avalia uma única revisão, publica requisitos/rostos visíveis e resultados calculados, sem expor os planos internos ou a ordem das pilhas. Dados fora da visão corrente são filtrados. O contrato de comando retornado é o mesmo DTO público aceito pelo gateway; campos internos de execução não entram no payload. OpenAPI e documentação atualizados de forma aditiva.
+
+A sessão compacta permanece sem inspeção completa de toda a mão: a apresentação composta publica o indicador opcional `hasCardPayments`, e o cliente abre o seletor sob demanda. A cena editável reutiliza CardView, mantém escolhas locais, invalida previews ao editar, ignora respostas antigas e fecha quando muda o contexto. Confirmação usa o dispatcher/recibo existentes; cancelamento não envia gameplay. Resultados exatos/amostrados são distinguidos, sem cálculo de regra na interface. O trânsito/exílio usa o executor atual.
+
+Criado o setting independente **Payment Workshop** (`payment-lab`), com duas cartas de prova (mão → descarte e descarte → exílio), pacote/fluxos JSON e alvo durável para teste. Nenhum setting anterior foi habilitado ou teve custos alterados.
+
+Validação: **71 testes Core**, **2 testes API** e **71 verificações Godot offline**, todos aprovados. Mais **17 verificações na Godot com Kestrel/API real**, porta e stores próprios: abrir combate, receber preview, escolher alvo/pagamento, confirmar uma vez, animar/liberar input e mover a mesma instância entre as três zonas. O teste repetiu POSTs e preservou hashes em previews. No encerramento do host de QA, aguarda-se a liberação do decoder de áudio; não há espera nova no gameplay. Evidências: `.runtime/tactical-mvp/results/stage06-*.trx`, `stage06-godot.log` e `stage06-online.log`. O servidor de QA foi encerrado; saves e API do jogador não foram usados.
+
+Contratos: [API de pagamentos](../api/card-payments.md) e [autoria](../guides/card-zone-payments.md).
+
 ## Próxima etapa
 
-Etapa 6: avaliação pública e seletor de pagamentos na Godot. Etapas 6–17 permanecem pendentes. O plano possui 18 etapas numeradas de 0 a 17; não contém uma etapa 18 adicional.
+Etapa 7: política de tentativa e retry persistente. Etapas 7–17 permanecem pendentes.

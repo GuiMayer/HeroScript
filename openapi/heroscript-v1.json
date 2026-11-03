@@ -1,6 +1,6 @@
 {
   "openapi": "3.0.4",
-  "x-heroscript-command-payloads": {"EDIT_DECK_LOADOUT":"#/components/schemas/DeckLoadoutEdit","APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
+  "x-heroscript-command-payloads": {"PLAY_CARD":"#/components/schemas/CombatGameplayCommand","EDIT_DECK_LOADOUT":"#/components/schemas/DeckLoadoutEdit","APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
   "info": {
     "title": "HeroScript API",
     "version": "v1",
@@ -17,6 +17,85 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/combats/{combatId}/cards/payment-preview": {
+      "post": {
+        "tags": [
+          "CardPayment"
+        ],
+        "parameters": [
+          {
+            "name": "combatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardPaymentPreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardPaymentPreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardPaymentPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardPaymentPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardPaymentPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardPaymentPreview"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{runId}/deck-loadout": {
       "get": {
         "tags": [
@@ -1062,6 +1141,1026 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "AccumulatedStackReference": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "$ref": "#/components/schemas/EffectStackStore"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/GameplayOwner"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "stacks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceEntityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stateFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "payloadLots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StackPayloadLot"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActionType": {
+        "enum": [
+          "BASIC_ATTACK",
+          "POWER",
+          "PASS",
+          "END_TURN",
+          "TRANSITION_PHASE",
+          "PASS_PRIORITY",
+          "DECLARE_ATTACKER",
+          "DECLARE_BLOCKER",
+          "PLAY_INSTANT",
+          "ACTIVATE_ABILITY",
+          "PLAY_CARD"
+        ],
+        "type": "string"
+      },
+      "AttributeMutationOutcome": {
+        "type": "object",
+        "properties": {
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "valueId": {
+            "type": "string",
+            "nullable": true
+          },
+          "operation": {
+            "$ref": "#/components/schemas/AttributeOperation"
+          },
+          "lifetime": {
+            "$ref": "#/components/schemas/AttributeLifetime"
+          },
+          "previousValue": {
+            "type": "number",
+            "format": "float"
+          },
+          "currentValue": {
+            "type": "number",
+            "format": "float"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CalculationQuantity": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "format": "float"
+          },
+          "unitId": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "calculationFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "incorporatedStages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalculationStageReceipt"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CalculationStageReceipt": {
+        "type": "object",
+        "properties": {
+          "pipelineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "pipelineFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "stageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/CalculationStageScope"
+          },
+          "contextId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CalculationStageScope": {
+        "enum": [
+          "Shared",
+          "Actor",
+          "Target"
+        ],
+        "type": "string"
+      },
+      "CardConditionTrace": {
+        "type": "object",
+        "properties": {
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "expression": {
+            "type": "string",
+            "nullable": true
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardInspectionVersion": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "combatId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "combatStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "configName": {
+            "type": "string",
+            "nullable": true
+          },
+          "modeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "engineVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardPaymentOrder": {
+        "enum": [
+          "SourceOrder",
+          "ChosenOrder"
+        ],
+        "type": "string"
+      },
+      "CardPaymentPreview": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/CardInspectionVersion"
+          },
+          "command": {
+            "$ref": "#/components/schemas/CombatGameplayCommand"
+          },
+          "isLegal": {
+            "type": "boolean"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/CardPlayEvaluation"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardPresentationFacts"
+            }
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffectApplicationRecord"
+            }
+          },
+          "outcomeUncertain": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardPaymentPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "expectedSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "command": {
+            "$ref": "#/components/schemas/CombatGameplayCommand"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardPaymentRequirement": {
+        "type": "object",
+        "properties": {
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "costOptionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceZoneId": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetZoneId": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allowResolvingCard": {
+            "type": "boolean"
+          },
+          "order": {
+            "$ref": "#/components/schemas/CardPaymentOrder"
+          },
+          "eligibleCardIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "unavailableReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardPaymentSelection": {
+        "type": "object",
+        "properties": {
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardInstanceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardPlayEvaluation": {
+        "type": "object",
+        "properties": {
+          "cardInstanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isLegal": {
+            "type": "boolean"
+          },
+          "paymentRequirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardPaymentRequirement"
+            },
+            "nullable": true
+          },
+          "zonePayments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedCardZonePayment"
+            },
+            "nullable": true
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardConditionTrace"
+            },
+            "nullable": true
+          },
+          "costs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedCardCost"
+            },
+            "nullable": true
+          },
+          "affordableCostOptionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "legalTargetIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "resolvedTargetIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "cardZoneResolutionFlowId": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardZoneOperation": {
+        "enum": [
+          "Unspecified",
+          "Create",
+          "Move",
+          "Destroy",
+          "Shuffle",
+          "Reorder",
+          "ExecuteFlow",
+          "ForEachParticipant"
+        ],
+        "type": "string"
+      },
+      "CombatActionCommand": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actionType": {
+            "$ref": "#/components/schemas/ActionType"
+          },
+          "powerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "costOptionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentSelections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardPaymentSelection"
+            },
+            "nullable": true
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cardInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "targetIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "ignoreConfiguredCosts": {
+            "type": "boolean"
+          },
+          "deferTurnLifecycle": {
+            "type": "boolean"
+          },
+          "runModifiers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "float"
+            },
+            "nullable": true
+          },
+          "expectedStep": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CombatGameplayCommand": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actionType": {
+            "$ref": "#/components/schemas/ActionType"
+          },
+          "powerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "costOptionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "paymentSelections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardPaymentSelection"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CondensationEvaluationTiming": {
+        "enum": [
+          "BeforeConsumption",
+          "AfterConsumption"
+        ],
+        "type": "string"
+      },
+      "CondensationOutcome": {
+        "type": "object",
+        "properties": {
+          "selection": {
+            "$ref": "#/components/schemas/StackConsumptionPlan"
+          },
+          "evaluationTiming": {
+            "$ref": "#/components/schemas/CondensationEvaluationTiming"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CalculationQuantity"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EffectExecutionIdentity": {
+        "type": "object",
+        "properties": {
+          "executionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "procId": {
+            "type": "string",
+            "nullable": true
+          },
+          "impactId": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentProcId": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentImpactId": {
+            "type": "string",
+            "nullable": true
+          },
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "outputId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EffectProvenance": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/EffectProvenanceKind"
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EffectProvenanceKind": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EffectResourceOutcome": {
+        "type": "object",
+        "properties": {
+          "requestedValue": {
+            "type": "number",
+            "format": "float"
+          },
+          "previousValue": {
+            "type": "number",
+            "format": "float"
+          },
+          "currentValue": {
+            "type": "number",
+            "format": "float"
+          },
+          "requestedChange": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          },
+          "appliedChange": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          },
+          "limitedChange": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          },
+          "ownerDefeatedBefore": {
+            "type": "boolean"
+          },
+          "ownerDefeatedAfter": {
+            "type": "boolean"
+          },
+          "causedDefeat": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "thresholdFacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceThresholdFact"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "EffectStackChange": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "$ref": "#/components/schemas/EffectStackStore"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/GameplayOwner"
+          },
+          "previousStacks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentStacks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/EffectStackChangeReason"
+          },
+          "removed": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EffectStackChangeReason": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EffectStackStore": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "GameplayCausalAnchor": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "nullable": true
+          },
+          "rootEventId": {
+            "type": "string",
+            "nullable": true
+          },
+          "settingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "runId": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceActorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "attributedActorId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResolvedCardZonePayment": {
+        "type": "object",
+        "properties": {
+          "componentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "flowId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardInstanceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "includesResolvingCard": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourceMutationOperation": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ResourceThresholdComparison": {
+        "enum": [
+          "Unspecified",
+          "LessThan",
+          "LessThanOrEqual",
+          "Equal",
+          "NotEqual",
+          "GreaterThanOrEqual",
+          "GreaterThan"
+        ],
+        "type": "string"
+      },
+      "ResourceThresholdConsequence": {
+        "enum": [
+          "Unspecified",
+          "None",
+          "DefeatOwner"
+        ],
+        "type": "string"
+      },
+      "ResourceThresholdFact": {
+        "type": "object",
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "policyId": {
+            "type": "string",
+            "nullable": true
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/ResourceThresholdComparison"
+          },
+          "thresholdSource": {
+            "$ref": "#/components/schemas/ResourceThresholdSource"
+          },
+          "consequence": {
+            "$ref": "#/components/schemas/ResourceThresholdConsequence"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "float"
+          },
+          "threshold": {
+            "type": "number",
+            "format": "float"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourceThresholdSource": {
+        "enum": [
+          "Unspecified",
+          "Minimum",
+          "Maximum",
+          "Constant"
+        ],
+        "type": "string"
+      },
+      "StackConsumptionPlan": {
+        "type": "object",
+        "properties": {
+          "recipeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccumulatedStackReference"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "StackMissingSourcePolicy": {
+        "enum": [
+          "Fail",
+          "SkipContribution",
+          "UseOwner"
+        ],
+        "type": "string"
+      },
+      "StackParameterEvaluation": {
+        "enum": [
+          "Snapshot",
+          "Dynamic"
+        ],
+        "type": "string"
+      },
+      "StackPayloadLot": {
+        "type": "object",
+        "properties": {
+          "originCause": {
+            "$ref": "#/components/schemas/GameplayCausalAnchor"
+          },
+          "lotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "stacks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceEntityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerEntityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "origin": {
+            "$ref": "#/components/schemas/EffectProvenance"
+          },
+          "cardInstanceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cardDefinitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardInfluences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardInfluenceComponentDefinition"
+            }
+          },
+          "variables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "float"
+            },
+            "nullable": true
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StackPayloadParameterState"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StackPayloadParameterDefinition": {
+        "type": "object",
+        "properties": {
+          "parameterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/StackParameterEvaluation"
+          },
+          "missingSource": {
+            "$ref": "#/components/schemas/StackMissingSourcePolicy"
+          },
+          "numeric": {
+            "$ref": "#/components/schemas/EffectNumericParameterDefinition"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StackPayloadParameterState": {
+        "type": "object",
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/StackPayloadParameterDefinition"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/CalculationQuantity"
+          },
+          "tags": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
     "ActionCosts": {
       "type": "object",
       "properties": {
@@ -3567,6 +4666,10 @@
       "CardPresentationFacts": {
         "type": "object", "required": ["identity", "version", "faceValueMode", "costs", "effects", "explanations", "impacts", "fingerprint"],
         "properties": {
+          "hasCardPayments": {
+            "type": "boolean",
+            "nullable": true
+          },
           "identity": {"type": "object", "properties": {"kind": {"type": "string", "enum": ["Definition", "Offer", "Instance", "Transformation"]}, "definitionId": {"type": "string"}, "cardInstanceId": {"type": "string", "format": "uuid", "nullable": true}, "offerId": {"type": "string", "nullable": true}}},
           "version": {"type": "object", "description": "Pinned content, composition and run/combat coordinates.", "additionalProperties": true},
           "faceValueMode": {"type": "string", "enum": ["ComposedBase", "Source"]}, "rarity": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}},

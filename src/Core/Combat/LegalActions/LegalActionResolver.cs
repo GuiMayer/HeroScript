@@ -298,6 +298,8 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
     {
         if (run.ResolvedMode == null)
             return Result<LegalActionEvaluation>.Failure("Run has no resolved game mode");
+        if (command.PaymentSelections.HasValue && command.ActionType != ActionType.PLAY_CARD)
+            return Illegal("Card payment selections require a card action");
 
         var flow = ValidateActivation(combat, command, origin);
         if (flow.IsFailure)
@@ -443,6 +445,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ActorId = command.ActorId,
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
+            PaymentSelections = command.PaymentSelections,
             ContentRevision = run.Determinism.ContentRevision,
             IgnoreConfiguredCosts = IgnoreCosts(run, command)
         });
@@ -470,6 +473,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ActorId = command.ActorId,
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
+            PaymentSelections = command.PaymentSelections,
             IgnoreConfiguredCosts = IgnoreCosts(run, command)
         }, observeResolution);
         if (executed.IsFailure)

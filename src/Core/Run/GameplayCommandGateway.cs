@@ -234,6 +234,9 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         RunState run,
         CombatState combat)
     {
+        if (request.PaymentSelections.HasValue && type != GameplayCommandTypes.PlayCard)
+            return Result<CombatActionCommand>.Failure("Card payment selections require PLAY_CARD");
+
         if (type == GameplayCommandTypes.EndTurn)
         {
             return Result<CombatActionCommand>.Success(new CombatActionCommand
@@ -255,6 +258,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
                 CardInstanceId = request.CardInstanceId,
                 TargetIds = request.TargetIds ?? [],
                 CostOptionId = request.CostOptionId,
+                PaymentSelections = request.PaymentSelections,
                 RunId = run.RunId
             });
         }

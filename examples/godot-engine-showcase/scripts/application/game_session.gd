@@ -697,6 +697,23 @@ func activity_choices() -> Array:
 func submit_activity(choice: Dictionary) -> bool:
 	return await execute_run_command(str(choice.get("type", "")), choice.get("payload", {}))
 
+func payment_context_matches(version: Dictionary) -> bool:
+	return synchronized and not _run.is_empty() and not _combat.is_empty() and str(version.get("runId", "")) == str(_run.get("runId", "")) and str(version.get("combatId", "")) == str(_combat.get("combatId", "")) and int(version.get("runSequence", -1)) == int(_run.get("sequence", 0)) and int(version.get("combatStep", -1)) == int(_combat.get("step", 0)) and str(version.get("contentRevision", "")) == content_revision and version.get("_clientContext", replay_context()) == replay_context()
+
+func preview_card_payment(command: Dictionary) -> Dictionary:
+	if busy or has_pending_command or not synchronized: return {"ok": false, "error": "Recover pending commands first."}
+	var ticket := _generation; var context := replay_context()
+	var response: Dictionary = await _gateway.preview_card_payment(str(_combat.get("combatId", "")), int(_run.get("sequence", 0)), int(_combat.get("step", 0)), command)
+	if ticket != _generation or context != replay_context(): return {"ok": false, "status": 409, "error": "Session changed while selecting payment."}
+	if response.get("ok", false):
+		if not response.get("data") is Dictionary or not response.data.get("version") is Dictionary or not payment_context_matches(response.data.version): return {"ok": false, "status": 409, "error": "Payment version changed."}
+		response.data.version["_clientContext"] = context
+	return response
+
+func submit_payment_preview(preview: Dictionary) -> bool:
+	if not preview.get("isLegal", false) or not payment_context_matches(preview.get("version", {})) or not preview.get("command") is Dictionary: return false
+	return await execute_combat_command("PLAY_CARD", _gateway.candidate_payload(preview.command), "Play card")
+
 func inspect_hand(target_ids := []) -> Dictionary:
 	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id(), target_ids)
 func inspect_card(instance_id: String) -> Dictionary:

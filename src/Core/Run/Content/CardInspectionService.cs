@@ -29,6 +29,8 @@ public sealed record CardInspectionRequest
         init => _selectedTargetIds = value?.ToImmutableArray() ?? [];
     }
     public string? CostOptionId { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardPaymentSelection>? PaymentSelections { get; init; }
     public InspectionDetailLevel MaximumDetail { get; init; } = InspectionDetailLevel.Full;
 }
 
@@ -287,7 +289,8 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
             // identical input can reuse its preview (without defaulting targets).
             TargetId = request.SelectedTargetIds.FirstOrDefault(),
             TargetIds = request.SelectedTargetIds,
-            CostOptionId = request.CostOptionId
+            CostOptionId = request.CostOptionId,
+            PaymentSelections = request.PaymentSelections
         };
         var legal = _legalActions.Evaluate(run, combat, command, CombatCommandOrigin.PlayerInput);
         if (legal.IsFailure)

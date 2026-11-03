@@ -16,6 +16,8 @@ public sealed record CombatActionCommand
     public string? PowerId { get; init; }
     public string? TargetId { get; init; }
     public string? CostOptionId { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<Core.Run.Content.CardPaymentSelection>? PaymentSelections { get; init; }
     public Guid? RunId { get; init; }
     public Guid? CardInstanceId { get; init; }
     public IReadOnlyList<string> TargetIds

@@ -80,6 +80,8 @@ public sealed record CardPresentationFacts
     public CardRarity Rarity { get; init; }
     public ImmutableArray<string> Tags { get; init; } = [];
     public ImmutableArray<CardCostPresentation> Costs { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? HasCardPayments { get; init; }
     public ImmutableArray<CardEffectPresentation> Effects { get; init; } = [];
     public ImmutableArray<CardConditionComponentDefinition> Conditions { get; init; } = [];
     public ImmutableArray<CardTargetingComponentDefinition> Targeting { get; init; } = [];

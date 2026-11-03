@@ -1,0 +1,41 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/overlays/card_payment_view.gd" id="1"]
+[node name="CardPayment" type="ConfirmationDialog"]
+size = Vector2i(1120, 760)
+exclusive = true
+script = ExtResource("1")
+[node name="Content" type="VBoxContainer" parent="."]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 1108.0
+offset_bottom = 700.0
+[node name="Choices" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+[node name="Cost" type="OptionButton" parent="Content/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 48)
+[node name="Targets" type="ItemList" parent="Content/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(240, 90)
+size_flags_horizontal = 3
+select_mode = 1
+[node name="Columns" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+[node name="Resolving" type="VBoxContainer" parent="Content/Columns"]
+layout_mode = 2
+[node name="Scroll" type="ScrollContainer" parent="Content/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+[node name="Groups" type="VBoxContainer" parent="Content/Columns/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Result" type="Label" parent="Content"]
+layout_mode = 2
+autowrap_mode = 2
+[node name="Feedback" type="Label" parent="Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+autowrap_mode = 2

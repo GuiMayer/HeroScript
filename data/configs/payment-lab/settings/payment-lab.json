@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "payment-lab",
+  "displayName": "Payment Workshop",
+  "description": "Card payment proofs: offer a card from hand, then reuse an offered card from discard.",
+  "launch": {
+    "runDefinitionId": "payment_lab_run",
+    "playerEntityId": "player",
+    "modeId": "payment_lab"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.payment-lab",
+      "versionRange": "1.1.0"
+    }
+  ]
+}

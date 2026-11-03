@@ -399,3 +399,7 @@ func header_model(labels: Dictionary):
 		"tools": _i18n.text("ZONE TOOLS"),
 		"allow_tools": not preload("res://scripts/presentation/card_zone_presenter.gd").tool_flows(_run).is_empty(),
 		"pause": _i18n.text("PAUSE")})
+
+func requires_payment(id: String) -> bool:
+	var requirements = _evaluations.get(id, {}).get("evaluation", {}).get("paymentRequirements")
+	return bool(_base_facts.get(id, {}).get("hasCardPayments", false)) or (requirements is Array and not requirements.is_empty())

@@ -354,4 +354,5 @@ public sealed record CombatGameplayCommand(
     string? TargetId = null,
     IReadOnlyList<string>? TargetIds = null,
     string? CostOptionId = null,
-    Guid? CardInstanceId = null);
+    Guid? CardInstanceId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ImmutableArray<Content.CardPaymentSelection>? PaymentSelections = null);

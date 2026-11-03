@@ -43,6 +43,7 @@ public static class CardBasePresentationProjector
             Identity = identity,
             Version = version with { DefinitionFingerprint = original.Fingerprint, CompositionFingerprint = composed.Fingerprint },
             FaceValueMode = CardFaceValueMode.ComposedBase, Rarity = original.Rarity, Tags = composed.Tags,
+            HasCardPayments = composed.All<CardCostComponentDefinition>().Any(component => component.ZonePayments is { IsEmpty: false }) ? true : null,
             Costs = composed.All<CardCostComponentDefinition>().OrderBy(component => component.Order).ThenBy(component => component.ComponentId, StringComparer.Ordinal)
                 .Select(component => new CardCostPresentation(component.ComponentId, component.Costs)).ToImmutableArray(),
             Effects = effects.ToImmutable(), Conditions = composed.All<CardConditionComponentDefinition>().ToImmutableArray(),

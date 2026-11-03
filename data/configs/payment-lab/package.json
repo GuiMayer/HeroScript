@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.payment-lab",
+  "version": "1.1.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.volatile-core",
+      "versionRange": "1.1.0"
+    }
+  ],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "cards",
+      "sourcePath": "Resources/cards.json",
+      "artifactPath": "cards/payment-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-zone-systems",
+      "sourcePath": "Resources/zones.json",
+      "artifactPath": "card-zone-systems/payment-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "modes",
+      "sourcePath": "Resources/modes.json",
+      "artifactPath": "modes/payment-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "runs",
+      "sourcePath": "Resources/runs.json",
+      "artifactPath": "runs/payment-lab.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "entities",
+      "sourcePath": "Resources/entities.json",
+      "artifactPath": "entities/payment-lab.json"
+    }
+  ]
+}

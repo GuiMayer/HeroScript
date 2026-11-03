@@ -68,6 +68,17 @@ func submit(candidate: Dictionary) -> bool:
 	if accepted: state.clear()
 	changed.emit()
 	return accepted
+func submit_payment(preview: Dictionary) -> bool:
+	if locked() or str(preview.get("command", {}).get("cardInstanceId", "")) != state.selected_card or not _session.payment_context_matches(preview.get("version", {})): return false
+	var ticket := _epoch
+	state.submitting = true; changed.emit()
+	var accepted: bool = await _session.submit_payment_preview(preview.duplicate(true))
+	if not _alive: return false
+	if ticket != _epoch: return accepted
+	state.submitting = false
+	if accepted: state.clear()
+	changed.emit(); return accepted
+
 func execute_zone_flow(payload: Dictionary) -> bool:
 	if locked(): return false
 	var ticket := _epoch

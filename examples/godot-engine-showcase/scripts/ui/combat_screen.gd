@@ -419,6 +419,8 @@ func dispose() -> void:
 
 func _drop_card(id: String, point: Vector2) -> void:
 	if _locked(): return
+	if presenter.requires_payment(id) and view.contains_battlefield_point(point):
+		_choose_card(id); return
 	var actor_id := view.target_at(point)
 	if not actor_id.is_empty() and presenter.candidates(id).any(func(candidate): return actor_id in presenter.targets(candidate)):
 		if controller.select_card(id): _select_target(actor_id)
@@ -433,7 +435,7 @@ func _select_target(actor_id: String) -> void:
 	if not matches.is_empty(): _offer_candidates(matches)
 
 
-func _play_candidate(candidate: Dictionary) -> void:
+func _play_candidate(candidate: Dictionary, payment_preview: Dictionary = {}) -> void:
 	if _locked() or candidate.is_empty():
 		return
 	var id := str(candidate.command.get("cardInstanceId", ""))
@@ -445,7 +447,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 	# A dragged face is parked at its release pose until the receipt authorizes departure.
 	view.hand.prepare_use(id)
 	_interaction_trace.mark("sent")
-	var success: bool = await controller.submit(candidate)
+	var success: bool = await controller.submit(candidate) if payment_preview.is_empty() else await controller.submit_payment(payment_preview)
 	if not is_inside_tree():
 		return
 	if success:
@@ -486,6 +488,9 @@ func _next_frame() -> void:
 
 func _choose_card(id: String) -> void:
 	if _locked():
+		return
+	if presenter.requires_payment(id):
+		if controller.select_card(id): _open_payment(id)
 		return
 	var matches := view._candidates(id)
 	if selected_card == id and matches.size() == 1:
@@ -544,3 +549,29 @@ func _load_inspection(ticket: int) -> void:
 func _execute_zone_flow(payload: Dictionary) -> void:
 	var accepted: bool = await controller.execute_zone_flow(payload)
 	if is_inside_tree() and accepted and not Playback.has_blocking_work(): router.open_game()
+
+func _open_payment(id: String) -> void:
+	var opening_context := [GameSession.replay_context(), GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.combat.get("combatId"), GameSession.combat.get("step")]
+	var dialog = preload("res://scenes/ui/overlays/card_payment.tscn").instantiate()
+	add_child(dialog); dialog.mount(visual_context, presenter._appearance)
+	var actors := {}
+	for actor in presenter.actors():
+		var actor_id := str(actor.get("instanceId", "")); actors[actor_id] = presenter.actor_name(actor_id)
+	dialog.actor_names = actors
+	dialog.command = {"actorId": GameSession.input_actor_id(), "actionType": "PLAY_CARD", "cardInstanceId": id, "targetIds": []}
+	dialog.preview_requested.connect(func(intent, generation):
+		var response: Dictionary = await GameSession.preview_card_payment(intent)
+		if is_instance_valid(dialog):
+			if int(response.get("status", 0)) == 409: dialog.cancel_selection()
+			else: dialog.accept(response, generation))
+	dialog.play_requested.connect(func(preview):
+		if not GameSession.payment_context_matches(preview.get("version", {})): return
+		_play_candidate({"source": "Card", "command": preview.command, "costs": preview.evaluation.get("costs", []), "applications": preview.get("applications", [])}, preview))
+	dialog.canceled.connect(func(): _cancel_selection())
+	var guard = func():
+		if is_instance_valid(dialog) and opening_context != [GameSession.replay_context(), GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.combat.get("combatId"), GameSession.combat.get("step")]:
+			dialog.cancel_selection()
+	GameSession.changed.connect(guard)
+	dialog.tree_exiting.connect(func(): if GameSession.changed.is_connected(guard): GameSession.changed.disconnect(guard))
+	dialog.popup_centered(Vector2i(mini(1120, int(get_viewport_rect().size.x * 0.9)), mini(780, int(get_viewport_rect().size.y * 0.9))))
+	dialog.refresh_preview()

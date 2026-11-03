@@ -172,7 +172,7 @@ func content(kind: String, revision: String, setting_id: String, limit: int) -> 
 
 static func candidate_payload(command: Dictionary) -> Dictionary:
 	var payload := {}
-	for key in ["actorId", "actionType", "powerId", "targetId", "targetIds", "costOptionId", "cardInstanceId"]:
+	for key in ["actorId", "actionType", "powerId", "targetId", "targetIds", "costOptionId", "cardInstanceId", "paymentSelections"]:
 		if command.has(key) and command[key] != null:
 			payload[key] = command[key]
 	return payload.duplicate(true)
@@ -183,6 +183,10 @@ func _uuid() -> String:
 	bytes[8] = (bytes[8] & 0x3f) | 0x80
 	var hex := bytes.hex_encode()
 	return "%s-%s-%s-%s-%s" % [hex.substr(0, 8), hex.substr(8, 4), hex.substr(12, 4), hex.substr(16, 4), hex.substr(20, 12)]
+
+func preview_card_payment(combat_id: String, sequence: int, step: int, command: Dictionary) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/combats/%s/cards/payment-preview" % combat_id.uri_encode(), {
+		"expectedSequence": Numbers.integer_token(sequence), "expectedStep": Numbers.integer_token(step), "command": command.duplicate(true)})
 
 func inspect_hand(combat_id: String, actor_id: String, target_ids := []) -> Dictionary:
 	var path := "/api/v1/combats/%s/cards/evaluations?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()]
