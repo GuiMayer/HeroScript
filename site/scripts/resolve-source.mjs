@@ -1,6 +1,9 @@
 import {appendFileSync,readFileSync} from 'node:fs';
 import path from 'node:path';
-import {siteRoot,git} from './import-docs.mjs';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const siteRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const git=(repo,...args)=>execFileSync('git',['-C',repo,...args]);
 const policy=JSON.parse(readFileSync(path.join(siteRoot,'source-policy.json'),'utf8'));
 const repo=process.env.DOCS_REPOSITORY;
 if(!repo)throw new Error('DOCS_REPOSITORY is required');
