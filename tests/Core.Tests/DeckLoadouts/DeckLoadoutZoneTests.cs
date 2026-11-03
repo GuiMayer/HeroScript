@@ -48,6 +48,22 @@ public sealed class DeckLoadoutZoneTests
         Assert.Equal(3, first.Value.Deck.Topology.GetZone(new() { ZoneId = "ready", OwnerId = "hero" })!.InstanceIds.Count);
         Assert.Single(first.Value.Deck.Topology.GetZone(new() { ZoneId = "neutral", OwnerId = "hero" })!.InstanceIds);
         Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(Manager().StartRun(options).Value));
+        var editing = Manager(); var original = editing.StartRun(options).Value;
+        var edit = new DeckLoadoutEdit("hero", "primary", original.DeckLoadout!.Actors["hero"].Groups["primary"][0],
+            DeckLoadoutZoneSets.Resolve(original)["deck.reserve"].Single());
+        var payload = System.Text.Json.JsonSerializer.SerializeToElement(edit);
+        var envelope = new GameplayCommandEnvelope(new(Guid.Parse("60000000-0000-4000-8000-000000000001"), RunCommandTypes.EditDeckLoadout,
+            original.Sequence, original.Determinism.Step, CanonicalJson.ComputeHash(payload)), payload);
+        var committed = editing.Execute(original.RunId, envelope);
+        Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
+        Assert.True(editing.Execute(original.RunId, envelope).Value.Duplicate);
+        var edited = editing.GetRun(original.RunId).Value;
+        Assert.Equal(original.Sequence + 1, edited.Sequence);
+        Assert.Contains(edit.ReplacementCardId!.Value, edited.DeckLoadout!.Actors["hero"].Groups["primary"]);
+        Assert.Equal(CanonicalJson.ComputeHash(original.Deck), CanonicalJson.ComputeHash(edited.Deck));
+        Assert.Equal(original.Determinism.RandomState, edited.Determinism.RandomState);
+        var resumed = Manager(); Assert.True(resumed.HydrateForReplay(edited).IsSuccess);
+        Assert.Equal(CanonicalJson.ComputeHash(edited), CanonicalJson.ComputeHash(resumed.GetRun(edited.RunId).Value));
         var seed = first.Value.Determinism.DrawUInt64();
         var combat = new Core.Combat.Models.CombatState { CombatId = Guid.NewGuid(), RunId = first.Value.RunId, RunNodeId = "opening",
             Determinism = DeterministicContext.Create(seed.Value, runtime.Manifest.Revision) };

@@ -348,6 +348,27 @@ func execute_run_command(type: String, payload: Dictionary, label := "") -> bool
 	var expected_step := int(advertised.get("expectedStep", _run.get("step", 0)))
 	return await _execute("runs", str(_run.get("runId", "")), type, payload, label, expected_step)
 
+func read_deck_loadout() -> Dictionary:
+	if busy or has_pending_command or _run.is_empty(): return {"ok": false, "error": "Recover pending commands before editing."}
+	var ticket := _generation
+	var response: Dictionary = await _gateway.read_deck_loadout(str(_run.runId))
+	if ticket != _generation: return {"ok": false, "status": 409, "error": "Session changed while reading the deck."}
+	if response.get("ok", false):
+		if not response.get("data") is Dictionary or not loadout_context_matches(response.data) or str(response.data.get("actorId", "")) != str(_run.get("playerEntityId", "")):
+			return {"ok": false, "status": 409, "error": "Deck context changed. Reopen the loadout."}
+		response.data["_clientContext"] = replay_context()
+	return response
+
+func preview_deck_loadout(snapshot: Dictionary, edit: Dictionary) -> Dictionary:
+	if busy or has_pending_command or not loadout_context_matches(snapshot): return {"ok": false, "status": 409, "error": "Deck context changed."}
+	var response: Dictionary = await _gateway.preview_deck_loadout(snapshot, edit)
+	if not loadout_context_matches(snapshot): return {"ok": false, "status": 409, "error": "Session changed while previewing."}
+	return response
+
+func apply_deck_loadout(snapshot: Dictionary, edit: Dictionary) -> bool:
+	if not loadout_context_matches(snapshot) or str(edit.get("actorId", "")) != str(_run.get("playerEntityId", "")): return false
+	return await _execute("runs", str(snapshot.runId), "EDIT_DECK_LOADOUT", edit.duplicate(true), "Change deck", int(snapshot.expectedStep))
+
 func read_deck_compartments() -> Dictionary:
 	if busy or has_pending_command or _run.is_empty(): return {"ok": false, "error": "Open a run and recover pending commands first."}
 	var ticket := _generation

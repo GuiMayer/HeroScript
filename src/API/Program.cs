@@ -508,6 +508,7 @@ builder.Services.AddSingleton<ICardModifierItemQueryService, CardModifierItemQue
 builder.Services.AddSingleton<CardModifierItemApplicationPlanner>();
 builder.Services.AddSingleton<Core.Run.Loadouts.LoadoutChangePlanner>();
 builder.Services.AddSingleton<Core.Run.DeckCompartments.IDeckCompartmentQueryService, Core.Run.DeckCompartments.DeckCompartmentQueryService>();
+builder.Services.AddSingleton<Core.Run.DeckLoadouts.IDeckLoadoutQueryService, Core.Run.DeckLoadouts.DeckLoadoutQueryService>();
 builder.Services.AddSingleton<Core.Run.Loadouts.ILoadoutQueryService, Core.Run.Loadouts.LoadoutQueryService>();
 builder.Services.AddSingleton<IActorAttributeProjectionService, ActorAttributeProjectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();

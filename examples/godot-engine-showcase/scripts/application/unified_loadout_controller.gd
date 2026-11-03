@@ -10,6 +10,7 @@ var message := "Loading equipment…"
 var _alive := true
 var _reading := false
 var compartments
+var composition := {}
 var deck_cards: Array = []
 var modifier_items := {}
 var choices: Array = []
@@ -97,7 +98,10 @@ func ensure_deck() -> void:
 	var captured := version()
 	var response: Dictionary = await session.load_collection_presentations()
 	var zones: Dictionary = await session.read_deck_compartments()
+	var build: Dictionary = await session.read_deck_loadout() if session.has_method("read_deck_loadout") else {"ok": true, "data": {"enabled": false}}
 	if current() and captured == version():
+		composition = build.data.duplicate(true) if build.get("ok", false) and build.get("data") is Dictionary and (not build.data.get("enabled", false) or valid(build.data)) else {}
+		if not build.get("ok", false): read_error = true; message = "Deck composition unavailable."
 		if response.get("ok", false) and response.get("data") is Dictionary:
 			deck_cards = response.data.get("cards", []).duplicate(true)
 		if zones.get("ok", false) and zones.get("data") is Dictionary and valid(zones.data):
@@ -107,9 +111,22 @@ func ensure_deck() -> void:
 		if response.get("ok", false): _deck_version = captured
 		else: read_error = true; message = "Deck unavailable. Retry the read."
 	else:
-		_deck_version = []; deck_cards = []; compartments = null; modifier_items = {}; choices = []
+		_deck_version = []; deck_cards = []; compartments = null; composition = {}; modifier_items = {}; choices = []
 		read_error = true; message = "Equipment changed. Synchronizing…"
 	_deck_reading = false; changed.emit()
+func edit_composition(intent: Dictionary) -> void:
+	if not editable() or not composition.get("enabled", false) or not composition.get("canChange", false) or not valid(composition): return
+	var source := composition.duplicate(true)
+	var edit := intent.duplicate(true); edit["actorId"] = str(identity[1])
+	busy = true; message = "Validating deck…"; changed.emit()
+	var preview: Dictionary = await session.preview_deck_loadout(source, edit)
+	if not current() or not preview.get("ok", false) or not preview.get("data") is Dictionary or not preview.data.get("after") is Dictionary or not valid(preview.data.after):
+		_finish(str(preview.get("error", "Deck was not changed."))); return
+	message = "Saving deck…"; changed.emit()
+	var ok: bool = await session.apply_deck_loadout(source, edit)
+	uncertain = session.has_pending_command
+	_finish("Deck saved automatically." if ok else "Deck not saved. Recover or retry the operation.")
+
 func move_card(card_id: String, target: String, clear := false) -> void:
 	if not editable() or compartments == null: return
 	busy = true; message = "Validating equipment…"; changed.emit()

@@ -2,6 +2,7 @@
 class_name DeckModuleView
 extends VBoxContainer
 ## Passive current-deck view. Uses combat cards and canonical component presentations.
+signal composition_requested(intent: Dictionary)
 signal move_requested(card_id: String, compartment_id: String)
 signal clear_requested
 signal modifier_requested(reference: String)
@@ -30,7 +31,7 @@ func _ready() -> void:
 func mount(context) -> void:
 	visual_context = context; theme = context.theme
 	if _bound:
-		for entry in [["cards", "Cards"], ["compartments", "Compartments"], ["modifiers", "Card modifiers"]]: _sub_buttons[entry[0]].text = context.translator.text(entry[1])
+		for entry in [["cards", "Cards"], ["compartments", "Compartments"], ["modifiers", "Card modifiers"], ["composition", "Build"]]: _sub_buttons[entry[0]].text = context.translator.text(entry[1])
 		get_node("Body/CardBody/Tools/Search").placeholder_text = context.translator.text("Search cards")
 		for entry in [["Targets/Clear", "Clear distribution"], ["Targets/Inspect", "Inspect card"], ["Hint", "Drag a card to a compartment, or select a card and a destination. Changes save automatically."]]: get_node("Body/CardBody/" + entry[0]).text = context.translator.text(entry[1])
 		var sort_picker: OptionButton = get_node("Body/CardBody/Tools/Sort")
@@ -43,12 +44,14 @@ func mount(context) -> void:
 		for category in overlay:
 			if not appearance.has(category): appearance[category] = {}
 			if overlay[category] is Dictionary: appearance[category].merge(overlay[category], true)
-	for entry in [["cards", "Cards"], ["compartments", "Compartments"], ["modifiers", "Card modifiers"]]:
+	for entry in [["cards", "Cards"], ["compartments", "Compartments"], ["modifiers", "Card modifiers"], ["composition", "Build"]]:
 		var id: String = entry[0]
 		var control: Button = get_node("Subtabs/" + id.capitalize())
 		control.text = context.translator.text(entry[1])
 		control.pressed.connect(func(): subtab = id; _render()); _sub_buttons[id] = control
 	_body = get_node("Body"); _parking = get_node("Parking")
+	get_node("Body/Composition").mount(context)
+	get_node("Body/Composition").edit_requested.connect(composition_requested.emit)
 	var search: LineEdit = get_node("Body/CardBody/Tools/Search")
 	search.placeholder_text = context.translator.text("Search cards")
 	search.text_changed.connect(func(value): _search = value; _filter_cards())
@@ -78,6 +81,7 @@ func present(model: Dictionary) -> void:
 	var signature := JSON.stringify(data)
 	if signature != _signature: _signature = signature; _render()
 	for action in _actions: if is_instance_valid(action): action.disabled = model.get("busy", false) or not model.get("canChange", false)
+	_present_composition()
 func _render() -> void:
 	if not is_instance_valid(_body): return
 	for entry in _card_buttons:
@@ -93,11 +97,14 @@ func _render() -> void:
 	for id in _card_cache.keys():
 		if not id in instance_ids: _card_cache[id].queue_free(); _card_cache.erase(id)
 	for id in _sub_buttons: _sub_buttons[id].set_pressed_no_signal(id == subtab)
+	_sub_buttons.composition.visible = _model.get("composition", {}).get("enabled", false)
 	_sub_buttons.compartments.visible = _model.get("enabled", false)
 	_sub_buttons.modifiers.visible = not _model.get("modifierItems", {}).get("items", []).is_empty()
 	if not _sub_buttons.get(subtab, _sub_buttons.cards).visible: subtab = "cards"; _sub_buttons.cards.set_pressed_no_signal(true)
 	get_node("Body/ModifierInventory").visible = subtab == "modifiers"
-	get_node("Body/CardBody").visible = subtab != "modifiers"
+	get_node("Body/CardBody").visible = subtab not in ["modifiers", "composition"]
+	_present_composition()
+	if subtab == "composition": return
 	if subtab == "modifiers":
 		get_node("Body/ModifierInventory").configure(_model.get("modifierItems", {}), _model.get("choices", []), _model.get("cards", []), appearance, visual_context)
 		return
@@ -185,3 +192,12 @@ func _inspect(model: Dictionary) -> void:
 	dialog.size = Vector2i(500, 540)
 	dialog.setup(visual_context.translator.text("Card details"), "", {}, model, visual_context.card_style)
 	add_child(dialog); dialog.popup_centered()
+
+func _present_composition() -> void:
+	if not _bound: return
+	var view = get_node("Body/Composition")
+	view.visible = subtab == "composition" and _model.get("composition", {}).get("enabled", false)
+	if view.visible:
+		var build: Dictionary = _model.get("composition", {}).duplicate(true)
+		build["busy"] = _model.get("busy", false); build["context"] = _model.get("context", []).duplicate(true)
+		view.appearance = appearance; view.present(build)

@@ -46,6 +46,18 @@ Testes: **185 aprovados, zero falhas/skips**, incluindo criação real pelo RunM
 
 Documentação de autoria: [composição de baralho](../guides/deck-composition.md). O setting jogável e a edição REST/Godot ainda dependem das próximas etapas.
 
+## Etapa 4 — Edição REST e Godot
+
+Estado: concluída.
+
+GET/preview de composição projetam a seleção e as apresentações canônicas do personagem atual. O comando `EDIT_DECK_LOADOUT` usa o dispatcher/journal/idempotência existentes. Substituição e troca de módulo são gestos completos validados pelo mesmo planner; não há gravação intermediária de grupo incompleto. Módulos usam suas listas iniciais autoradas sobre instâncias já possuídas; escolher novamente o módulo atual preserva personalizações. Propriedade, revisões, elegibilidade, cotas e janela são autoridades do servidor.
+
+A aba Deck → Build usa uma cena editável e CardView canônico, com grupos, módulo, deck ativo e reserva. Clique/teclado ou drag usam a mesma intenção → preview → commit → leitura confirmada. Controles de carta são preservados na sincronização. Falha de preview, setting alterado e resposta tardia não gravam; recibo incerto bloqueia saída/novas operações e usa a recuperação existente, sem repetir a troca.
+
+Testes: **108 testes Core**, **4 testes API** (incluindo contrato servido pelo host real de teste) e **65 verificações Godot em cinco roteiros**, todos aprovados. Incluídos commit duplicado, retomada de snapshot, preservação de zonas/RNG, substituição/módulo, drag, autosave, rejeição, recuperação e contexto tardio. Evidências em `.runtime/tactical-mvp/results/stage04-*.trx` e `.runtime/tactical-mvp/stage04-godot.log`. Nenhum save do jogador foi utilizado.
+
+Contrato e exemplos: [deck-loadouts](../api/deck-loadouts.md). Atualizado o OpenAPI estático com as novas rotas/DTOs, preservando alterações pendentes anteriores.
+
 ## Próxima etapa
 
-Etapa 4: REST e Godot para deck, reserva e módulos. Etapas 4–17 permanecem pendentes.
+Etapa 5: custos genéricos com cartas. Etapas 5–17 permanecem pendentes. O plano possui 18 etapas numeradas de 0 a 17; não contém uma etapa 18 adicional.

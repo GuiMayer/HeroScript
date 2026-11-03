@@ -43,4 +43,4 @@ Ativar outra revisão exige ausência de encontro pendente, manutenção do vín
 
 ## Estado da entrega
 
-Contratos, planner e integração com criação/encontros/zonas implementados nas etapas 1–3. A edição pública por REST/Godot e o setting jogável do MVP pertencem às etapas seguintes; este documento não os apresenta como disponíveis.
+Contratos, planner e integração com criação/encontros/zonas implementados nas etapas 1–3. A etapa 4 disponibiliza a edição REST/Godot, documentada em [deck-loadouts](../api/deck-loadouts.md). O setting jogável do MVP pertence às próximas etapas.

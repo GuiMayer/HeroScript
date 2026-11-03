@@ -1,6 +1,6 @@
 {
   "openapi": "3.0.4",
-  "x-heroscript-command-payloads": {"APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
+  "x-heroscript-command-payloads": {"EDIT_DECK_LOADOUT":"#/components/schemas/DeckLoadoutEdit","APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
   "info": {
     "title": "HeroScript API",
     "version": "v1",
@@ -17,6 +17,125 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/deck-loadout": {
+      "get": {
+        "tags": [
+          "DeckLoadout"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckLoadoutSnapshot"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckLoadoutSnapshot"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckLoadoutSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{runId}/deck-loadout/preview": {
+      "post": {
+        "tags": [
+          "DeckLoadout"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeckLoadoutPreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeckLoadoutPreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeckLoadoutPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckLoadoutPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckLoadoutPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckLoadoutPreview"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/content/{settingId}/revisions/{revision}/gameplay-events/catalog": {
         "get": {
           "tags": [
@@ -943,6 +1062,1891 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+    "ActionCosts": {
+      "type": "object",
+      "properties": {
+        "costs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ResourceCost"
+          },
+          "nullable": true
+        },
+        "alternativeCosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/AlternativeCostOption"
+          },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ActorDeckLoadoutState": {
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "nullable": true
+        },
+        "policyId": {
+          "type": "string",
+          "nullable": true
+        },
+        "groups": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "nullable": true
+        },
+        "modules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "AlternativeCostOption": {
+      "type": "object",
+      "properties": {
+        "optionId": {
+          "type": "string",
+          "nullable": true
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "costs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ResourceCost"
+          },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "AttributeLifetime": {
+      "enum": [
+        "Encounter",
+        "RunBase"
+      ],
+      "type": "string"
+    },
+    "AttributeMutationDefinition": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "valueId": {
+          "type": "string",
+          "nullable": true
+        },
+        "operation": {
+          "$ref": "#/components/schemas/AttributeOperation"
+        },
+        "lifetime": {
+          "$ref": "#/components/schemas/AttributeLifetime"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AttributeOperation": {
+      "enum": [
+        "Add",
+        "Multiply",
+        "Set"
+      ],
+      "type": "string"
+    },
+    "CalculationBucketOperation": {
+      "enum": [
+        "Add",
+        "AddPercent",
+        "Multiply",
+        "Set",
+        "Minimum",
+        "Maximum",
+        "ConsumeCapacity",
+        "Formula"
+      ],
+      "type": "string"
+    },
+    "CalculationBucketTrace": {
+      "type": "object",
+      "properties": {
+        "bucketId": {
+          "type": "string",
+          "nullable": true
+        },
+        "stageId": {
+          "type": "string",
+          "nullable": true
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "operation": {
+          "$ref": "#/components/schemas/CalculationBucketOperation"
+        },
+        "formula": {
+          "type": "string",
+          "nullable": true
+        },
+        "input": {
+          "type": "number",
+          "format": "float"
+        },
+        "contributions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CalculationContributionTrace"
+          },
+          "nullable": true
+        },
+        "outputBeforeBounds": {
+          "type": "number",
+          "format": "float"
+        },
+        "output": {
+          "type": "number",
+          "format": "float"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CalculationContributionTrace": {
+      "type": "object",
+      "properties": {
+        "influenceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "sourceKind": {
+          "$ref": "#/components/schemas/CalculationSourceKind"
+        },
+        "sourceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "value": {
+          "type": "number",
+          "format": "float"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "orderKey": {
+          "type": "string",
+          "nullable": true
+        },
+        "applied": {
+          "type": "boolean"
+        },
+        "input": {
+          "type": "number",
+          "format": "float"
+        },
+        "effectiveValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "output": {
+          "type": "number",
+          "format": "float"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CalculationDistributionMode": {
+      "enum": [
+        "Continuous",
+        "Quantized"
+      ],
+      "type": "string"
+    },
+    "CalculationDistributionPolicy": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/components/schemas/CalculationDistributionMode"
+        },
+        "quantum": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "remainderAllocation": {
+          "$ref": "#/components/schemas/CalculationRemainderAllocation"
+        },
+        "allowTargetScopedInput": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CalculationMidpointRounding": {
+      "enum": [
+        "ToEven",
+        "AwayFromZero",
+        "ToZero",
+        "ToNegativeInfinity",
+        "ToPositiveInfinity"
+      ],
+      "type": "string"
+    },
+    "CalculationRemainderAllocation": {
+      "enum": [
+        "Earliest",
+        "Latest"
+      ],
+      "type": "string"
+    },
+    "CalculationRounding": {
+      "enum": [
+        "None",
+        "Floor",
+        "Ceiling",
+        "Round"
+      ],
+      "type": "string"
+    },
+    "CalculationSignPolicy": {
+      "enum": [
+        "Any",
+        "NonNegative",
+        "Positive"
+      ],
+      "type": "string"
+    },
+    "CalculationSourceKind": {
+      "enum": [
+        "Effect",
+        "Card",
+        "Actor",
+        "Target",
+        "Status",
+        "Relic",
+        "Upgrade",
+        "GameMode",
+        "Encounter",
+        "Modifier",
+        "Inscription"
+      ],
+      "type": "string"
+    },
+    "CalculationValuePolicy": {
+      "type": "object",
+      "properties": {
+        "rounding": {
+          "$ref": "#/components/schemas/CalculationRounding"
+        },
+        "midpointRounding": {
+          "$ref": "#/components/schemas/CalculationMidpointRounding"
+        },
+        "sign": {
+          "$ref": "#/components/schemas/CalculationSignPolicy"
+        },
+        "requireInteger": {
+          "type": "boolean"
+        },
+        "minimum": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "maximum": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardCalculationSource": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/components/schemas/CalculationSourceKind"
+        },
+        "instanceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "definitionId": {
+          "type": "string",
+          "nullable": true
+        },
+        "attributeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "bucket": {
+          "type": "string",
+          "nullable": true
+        },
+        "value": {
+          "type": "number",
+          "format": "float"
+        },
+        "applied": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardComponentContributionTrace": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "contentRevision": {
+          "type": "string",
+          "nullable": true
+        },
+        "componentIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nameKey": {
+          "type": "string",
+          "nullable": true
+        },
+        "descriptionKey": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardConditionComponentDefinition": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capabilityIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "expression": {
+          "type": "string",
+          "nullable": true
+        },
+        "failureReason": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardCostPresentation": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "costs": {
+          "$ref": "#/components/schemas/ActionCosts"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardDispositionComponentDefinition": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capabilityIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "cardZoneResolutionFlowId": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardEffectPresentation": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "effectPath": {
+          "type": "string",
+          "nullable": true
+        },
+        "parentEffectPath": {
+          "type": "string",
+          "nullable": true
+        },
+        "boundary": {
+          "type": "string",
+          "nullable": true
+        },
+        "definition": {
+          "$ref": "#/components/schemas/EffectDefinition"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CardParameterPresentation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardEffectRuleOverrideComponentDefinition": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capabilityIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "rule": {
+          "$ref": "#/components/schemas/EffectRuleOverrideDefinition"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardFaceValueMode": {
+      "enum": [
+        "ComposedBase",
+        "Source"
+      ],
+      "type": "string"
+    },
+    "CardImpactExplanation": {
+      "type": "object",
+      "properties": {
+        "impactId": {
+          "type": "string",
+          "nullable": true
+        },
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "targetEntityId": {
+          "type": "string",
+          "nullable": true
+        },
+        "validity": {
+          "type": "string",
+          "nullable": true
+        },
+        "applied": {
+          "type": "boolean"
+        },
+        "skipReason": {
+          "type": "string",
+          "nullable": true
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CardImpactParameterExplanation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardImpactParameterExplanation": {
+      "type": "object",
+      "properties": {
+        "parameter": {
+          "$ref": "#/components/schemas/EffectNumericParameter"
+        },
+        "unitId": {
+          "type": "string",
+          "nullable": true
+        },
+        "value": {
+          "type": "number",
+          "format": "float"
+        },
+        "buckets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CalculationBucketTrace"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CardCalculationSource"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardInfluenceComponentDefinition": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capabilityIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "channel": {
+          "type": "string",
+          "nullable": true
+        },
+        "bucket": {
+          "type": "string",
+          "nullable": true
+        },
+        "value": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "formula": {
+          "type": "string",
+          "nullable": true
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "requiredTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "excludedTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardNumericPatchOperation": {
+      "enum": [
+        "Add",
+        "Multiply",
+        "Set"
+      ],
+      "type": "string"
+    },
+    "CardParameterPresentation": {
+      "type": "object",
+      "properties": {
+        "parameter": {
+          "$ref": "#/components/schemas/EffectNumericParameter"
+        },
+        "values": {
+          "$ref": "#/components/schemas/CardNumericLayers"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardPresentationIdentity": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/components/schemas/CardPresentationSubjectKind"
+        },
+        "definitionId": {
+          "type": "string",
+          "nullable": true
+        },
+        "cardInstanceId": {
+          "type": "string",
+          "format": "uuid",
+          "nullable": true
+        },
+        "offerId": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardPresentationSubjectKind": {
+      "enum": [
+        "Definition",
+        "Offer",
+        "Instance",
+        "Transformation"
+      ],
+      "type": "string"
+    },
+    "CardPresentationVersion": {
+      "type": "object",
+      "properties": {
+        "contentRevision": {
+          "type": "string",
+          "nullable": true
+        },
+        "definitionFingerprint": {
+          "type": "string",
+          "nullable": true
+        },
+        "compositionFingerprint": {
+          "type": "string",
+          "nullable": true
+        },
+        "runId": {
+          "type": "string",
+          "format": "uuid",
+          "nullable": true
+        },
+        "runSequence": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "combatId": {
+          "type": "string",
+          "format": "uuid",
+          "nullable": true
+        },
+        "combatStep": {
+          "type": "integer",
+          "format": "int64",
+          "nullable": true
+        },
+        "actorId": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardRarity": {
+      "enum": [
+        "Common",
+        "Uncommon",
+        "Rare",
+        "Legendary"
+      ],
+      "type": "string"
+    },
+    "CardRuleInfluence": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string",
+          "nullable": true
+        },
+        "value": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardRuleReference": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "nullable": true
+        },
+        "definitionId": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string",
+          "nullable": true
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "influences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CardRuleInfluence"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardScalingAttribute": {
+      "type": "object",
+      "properties": {
+        "bindingId": {
+          "type": "string",
+          "nullable": true
+        },
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "attributeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "scope": {
+          "$ref": "#/components/schemas/CalculationEntityScope"
+        },
+        "bucket": {
+          "type": "string",
+          "nullable": true
+        },
+        "eligible": {
+          "type": "boolean"
+        },
+        "inactiveReason": {
+          "type": "string",
+          "nullable": true
+        },
+        "currentValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "scale": {
+          "type": "number",
+          "format": "float"
+        },
+        "offset": {
+          "type": "number",
+          "format": "float"
+        },
+        "operation": {
+          "$ref": "#/components/schemas/CalculationBucketOperation"
+        },
+        "resourceField": {
+          "type": "string",
+          "nullable": true
+        },
+        "contributionValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "applied": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardTargetingComponentDefinition": {
+      "type": "object",
+      "properties": {
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capabilityIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "relativeOffset": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "target": {
+          "$ref": "#/components/schemas/EffectTarget"
+        },
+        "minimumTargets": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "maximumTargets": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "allowSelf": {
+          "type": "boolean"
+        },
+        "selectionResourceId": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardTransformationCategory": {
+      "enum": [
+        "Base",
+        "Affinity",
+        "Behavior"
+      ],
+      "type": "string"
+    },
+    "CardUpgradeApplicationTrace": {
+      "type": "object",
+      "properties": {
+        "transformationId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "category": {
+          "$ref": "#/components/schemas/CardTransformationCategory"
+        },
+        "upgradeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "componentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "attribute": {
+          "type": "string",
+          "nullable": true
+        },
+        "operation": {
+          "$ref": "#/components/schemas/CardNumericPatchOperation"
+        },
+        "previousValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "currentValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "previousChoice": {
+          "type": "string",
+          "nullable": true
+        },
+        "currentChoice": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "CardValueExplanation": {
+      "type": "object",
+      "properties": {
+        "effectPath": {
+          "type": "string",
+          "nullable": true
+        },
+        "parameter": {
+          "$ref": "#/components/schemas/EffectNumericParameter"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CardScalingAttribute"
+          }
+        },
+        "buckets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CalculationBucketTrace"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CardCalculationSource"
+          }
+        },
+        "contextTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conditionPassed": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "conditionExpression": {
+          "type": "string",
+          "nullable": true
+        },
+        "validity": {
+          "type": "string",
+          "nullable": true
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "unresolvedReason": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckCompositionGroupDefinition": {
+      "required": [
+        "allowDuplicateDefinitions",
+        "maximum",
+        "minimum"
+      ],
+      "type": "object",
+      "properties": {
+        "groupId": {
+          "type": "string",
+          "nullable": true
+        },
+        "minimum": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "maximum": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "allowDuplicateDefinitions": {
+          "type": "boolean"
+        },
+        "cardIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startingCardIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "moduleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startingModuleId": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckCompositionPolicyDefinition": {
+      "type": "object",
+      "properties": {
+        "policyId": {
+          "type": "string",
+          "nullable": true
+        },
+        "revisionMigration": {
+          "$ref": "#/components/schemas/LoadoutRevisionMigration"
+        },
+        "editWindows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/LoadoutEquipmentWindow"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/DeckCompositionGroupDefinition"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckLoadoutCardView": {
+      "type": "object",
+      "properties": {
+        "cardInstanceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "definitionId": {
+          "type": "string",
+          "nullable": true
+        },
+        "groupId": {
+          "type": "string",
+          "nullable": true
+        },
+        "presentation": {
+          "$ref": "#/components/schemas/CardPresentationFacts"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckLoadoutEdit": {
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "nullable": true
+        },
+        "groupId": {
+          "type": "string",
+          "nullable": true
+        },
+        "replacedCardId": {
+          "type": "string",
+          "format": "uuid",
+          "nullable": true
+        },
+        "replacementCardId": {
+          "type": "string",
+          "format": "uuid",
+          "nullable": true
+        },
+        "moduleId": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckLoadoutPreview": {
+      "type": "object",
+      "properties": {
+        "before": {
+          "$ref": "#/components/schemas/DeckLoadoutSnapshot"
+        },
+        "after": {
+          "$ref": "#/components/schemas/DeckLoadoutSnapshot"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckLoadoutPreviewRequest": {
+      "type": "object",
+      "properties": {
+        "expectedSequence": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "expectedStep": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "edit": {
+          "$ref": "#/components/schemas/DeckLoadoutEdit"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DeckLoadoutSnapshot": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "settingId": {
+          "type": "string",
+          "nullable": true
+        },
+        "runSequence": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "expectedStep": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "contentRevision": {
+          "type": "string",
+          "nullable": true
+        },
+        "actorId": {
+          "type": "string",
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "canChange": {
+          "type": "boolean"
+        },
+        "unavailableReason": {
+          "type": "string",
+          "nullable": true
+        },
+        "policy": {
+          "$ref": "#/components/schemas/DeckCompositionPolicyDefinition"
+        },
+        "selection": {
+          "$ref": "#/components/schemas/ActorDeckLoadoutState"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/DeckLoadoutCardView"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "DispelOrder": {
+      "enum": [
+        "InstanceId",
+        "OldestFirst",
+        "NewestFirst",
+        "HighestPriorityFirst"
+      ],
+      "type": "string"
+    },
+    "EffectChanceScope": {
+      "enum": [
+        "PerEffect",
+        "PerTarget",
+        "PerSequence",
+        "PerAction",
+        "PerProc"
+      ],
+      "type": "string"
+    },
+    "EffectChildTiming": {
+      "enum": [
+        "AfterParentImpact",
+        "BeforeParentImpact"
+      ],
+      "type": "string"
+    },
+    "EffectContinuationDefinition": {
+      "type": "object",
+      "properties": {
+        "maximumHops": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "selector": {
+          "$ref": "#/components/schemas/EffectTarget"
+        },
+        "selectionResourceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "overflowPipelineId": {
+          "type": "string",
+          "nullable": true
+        },
+        "overflowChannel": {
+          "type": "string",
+          "nullable": true
+        },
+        "overflowStageIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "impactStageIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "carryChildren": {
+          "type": "boolean"
+        },
+        "retestChance": {
+          "type": "boolean"
+        },
+        "retestCondition": {
+          "type": "boolean"
+        },
+        "rollImpactInputs": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectDefinition": {
+      "type": "object",
+      "properties": {
+        "effectId": {
+          "type": "string",
+          "nullable": true
+        },
+        "outputId": {
+          "type": "string",
+          "nullable": true
+        },
+        "executionScope": {
+          "$ref": "#/components/schemas/EffectExecutionScope"
+        },
+        "executionGroupId": {
+          "type": "string",
+          "nullable": true
+        },
+        "chanceGroupId": {
+          "type": "string",
+          "nullable": true
+        },
+        "childTiming": {
+          "$ref": "#/components/schemas/EffectChildTiming"
+        },
+        "randomInputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/EffectRandomInputDefinition"
+          }
+        },
+        "ruleOverrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/EffectRuleOverrideDefinition"
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/EffectNumericParameterDefinition"
+          }
+        },
+        "payloadBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/StackPayloadBinding"
+          }
+        },
+        "condensationRecipeId": {
+          "type": "string",
+          "nullable": true
+        },
+        "continuation": {
+          "$ref": "#/components/schemas/EffectContinuationDefinition"
+        },
+        "attributeMutation": {
+          "$ref": "#/components/schemas/AttributeMutationDefinition"
+        },
+        "type": {
+          "$ref": "#/components/schemas/EffectType"
+        },
+        "sequenceMutation": {
+          "$ref": "#/components/schemas/SequenceMutation"
+        },
+        "relativeOffset": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "target": {
+          "$ref": "#/components/schemas/EffectTarget"
+        },
+        "targetLoss": {
+          "$ref": "#/components/schemas/EffectTargetLossDefinition"
+        },
+        "selectionResourceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "flatValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "formulaValue": {
+          "type": "string",
+          "nullable": true
+        },
+        "targetResource": {
+          "type": "string",
+          "nullable": true
+        },
+        "operation": {
+          "$ref": "#/components/schemas/ResourceEffectOperation"
+        },
+        "resourceField": {
+          "$ref": "#/components/schemas/ResourceValueField"
+        },
+        "calculationChannel": {
+          "type": "string",
+          "nullable": true
+        },
+        "calculationPipelineId": {
+          "type": "string",
+          "nullable": true
+        },
+        "statusId": {
+          "type": "string",
+          "nullable": true
+        },
+        "statusStacks": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "statusDuration": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "dispel": {
+          "$ref": "#/components/schemas/StatusDispelDefinition"
+        },
+        "modifierId": {
+          "type": "string",
+          "nullable": true
+        },
+        "modifierStacks": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "modifierDuration": {
+          "type": "integer",
+          "format": "int32",
+          "nullable": true
+        },
+        "modifierOwner": {
+          "$ref": "#/components/schemas/GameplayOwner"
+        },
+        "cardDefinitionId": {
+          "type": "string",
+          "nullable": true
+        },
+        "cardZoneFlowId": {
+          "type": "string",
+          "nullable": true
+        },
+        "cardCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "cardInstanceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "condition": {
+          "type": "string",
+          "nullable": true
+        },
+        "requiredTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "excludedTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "chance": {
+          "type": "number",
+          "format": "float"
+        },
+        "chanceScope": {
+          "$ref": "#/components/schemas/EffectChanceScope"
+        },
+        "repeat": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "nullable": true
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {},
+          "nullable": true
+        },
+        "chainedEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/EffectDefinition"
+          },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectDistributionScope": {
+      "enum": [
+        "Sequence",
+        "ParentSequence"
+      ],
+      "type": "string"
+    },
+    "EffectExecutionScope": {
+      "enum": [
+        "EveryInvocation",
+        "OncePerAction",
+        "OncePerParentProc"
+      ],
+      "type": "string"
+    },
+    "EffectNumericParameter": {
+      "enum": [
+        "Amount",
+        "StatusStacks",
+        "StatusDuration",
+        "ModifierStacks",
+        "ModifierDuration",
+        "CardCount"
+      ],
+      "type": "string"
+    },
+    "EffectNumericParameterDefinition": {
+      "type": "object",
+      "properties": {
+        "parameter": {
+          "$ref": "#/components/schemas/EffectNumericParameter"
+        },
+        "flatValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "formulaValue": {
+          "type": "string",
+          "nullable": true
+        },
+        "inputQuantityId": {
+          "type": "string",
+          "nullable": true
+        },
+        "channel": {
+          "type": "string",
+          "nullable": true
+        },
+        "pipelineId": {
+          "type": "string",
+          "nullable": true
+        },
+        "unitId": {
+          "type": "string",
+          "nullable": true
+        },
+        "stageIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conversion": {
+          "$ref": "#/components/schemas/CalculationValuePolicy"
+        },
+        "distribution": {
+          "$ref": "#/components/schemas/EffectSequenceDistribution"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectRandomInputDefinition": {
+      "type": "object",
+      "properties": {
+        "inputId": {
+          "type": "string",
+          "nullable": true
+        },
+        "groupId": {
+          "type": "string",
+          "nullable": true
+        },
+        "chance": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "probability": {
+          "$ref": "#/components/schemas/EffectRandomProbabilityDefinition"
+        },
+        "scope": {
+          "$ref": "#/components/schemas/EffectRandomScope"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectRandomProbabilityDefinition": {
+      "type": "object",
+      "properties": {
+        "flatValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "formulaValue": {
+          "type": "string",
+          "nullable": true
+        },
+        "channel": {
+          "type": "string",
+          "nullable": true
+        },
+        "pipelineId": {
+          "type": "string",
+          "nullable": true
+        },
+        "unitId": {
+          "type": "string",
+          "nullable": true
+        },
+        "stageIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conversion": {
+          "$ref": "#/components/schemas/CalculationValuePolicy"
+        },
+        "sharedContextCapture": {
+          "$ref": "#/components/schemas/EffectRandomSharedContextCapture"
+        },
+        "captures": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/EffectNumericParameterDefinition"
+          },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectRandomScope": {
+      "enum": [
+        "Action",
+        "ParentProc",
+        "Impact"
+      ],
+      "type": "string"
+    },
+    "EffectRandomSharedContextCapture": {
+      "enum": [
+        "SourceOnly",
+        "FirstEligibleImpact"
+      ],
+      "type": "string"
+    },
+    "EffectRuleOverrideDefinition": {
+      "type": "object",
+      "properties": {
+        "effectId": {
+          "type": "string",
+          "nullable": true
+        },
+        "requiredTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "critical": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "armor": {
+          "type": "boolean",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectSequenceDistribution": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "$ref": "#/components/schemas/EffectDistributionScope"
+        },
+        "sourceStageIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allocation": {
+          "$ref": "#/components/schemas/CalculationDistributionPolicy"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectTarget": {
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "type": "integer",
+      "format": "int32"
+    },
+    "EffectTargetLossDefinition": {
+      "type": "object",
+      "properties": {
+        "policy": {
+          "$ref": "#/components/schemas/EffectTargetLossPolicy"
+        },
+        "retarget": {
+          "$ref": "#/components/schemas/EffectTarget"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EffectTargetLossPolicy": {
+      "enum": [
+        "Fail",
+        "Skip",
+        "StopRepeat",
+        "Retarget"
+      ],
+      "type": "string"
+    },
+    "EffectType": {
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "type": "integer",
+      "format": "int32"
+    },
+    "GameplayOwner": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/components/schemas/GameplayOwnerKind"
+        },
+        "id": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "GameplayOwnerKind": {
+      "enum": [
+        "Entity",
+        "Side",
+        "Run",
+        "Global"
+      ],
+      "type": "string"
+    },
+    "ResourceCost": {
+      "type": "object",
+      "properties": {
+        "resourceId": {
+          "type": "string",
+          "nullable": true
+        },
+        "amount": {
+          "type": "number",
+          "format": "float"
+        },
+        "formula": {
+          "type": "string",
+          "nullable": true
+        },
+        "allowOverdraft": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResourceEffectOperation": {
+      "enum": [
+        "ADD",
+        "SUBTRACT",
+        "SET"
+      ],
+      "type": "string"
+    },
+    "ResourceValueField": {
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "type": "integer",
+      "format": "int32"
+    },
+    "SequenceDirection": {
+      "enum": [
+        "Unspecified",
+        "Forward",
+        "Reverse"
+      ],
+      "type": "string"
+    },
+    "SequenceMutation": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "$ref": "#/components/schemas/SequenceOperation"
+        },
+        "direction": {
+          "$ref": "#/components/schemas/SequenceDirection"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SequenceOperation": {
+      "enum": [
+        "Unspecified",
+        "ReverseDirection",
+        "SetDirection",
+        "AddAdvance"
+      ],
+      "type": "string"
+    },
+    "StackPayloadBinding": {
+      "type": "object",
+      "properties": {
+        "parameterId": {
+          "type": "string",
+          "nullable": true
+        },
+        "cardEffectComponentId": {
+          "type": "string",
+          "nullable": true
+        },
+        "flatValue": {
+          "type": "number",
+          "format": "float",
+          "nullable": true
+        },
+        "formulaValue": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "StatusDispelDefinition": {
+      "type": "object",
+      "properties": {
+        "statusIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceEntityId": {
+          "type": "string",
+          "nullable": true
+        },
+        "maximumInstances": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "order": {
+          "$ref": "#/components/schemas/DispelOrder"
+        }
+      },
+      "additionalProperties": false
+    },
       "OpenInscriptionOfferCommand": {
         "type": "object",
         "properties": {

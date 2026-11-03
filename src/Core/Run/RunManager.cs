@@ -541,6 +541,21 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var commands = _progression.GetAvailableCommands(run.Value);
         if (commands.IsFailure)
             return commands;
+        if (_contentRuntimes != null && snapshot.ResolvedMode?.Definition.DeckCompositionPolicyId is { } compositionPolicyId)
+        {
+            var runtime = _contentRuntimes.Resolve(snapshot.Determinism.ContentRevision, snapshot.ConfigName);
+            if (runtime.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(runtime.Error);
+            var policy = DeckLoadouts.DeckLoadoutPlanner.Policy(runtime.Value, compositionPolicyId);
+            if (policy.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(policy.Error);
+            if (DeckLoadouts.DeckLoadoutPlanner.CanChange(snapshot, policy.Value).IsSuccess)
+                commands = Result<IReadOnlyList<RunAvailableCommand>>.Success(commands.Value.Concat([new RunAvailableCommand
+                {
+                    Type = RunCommandTypes.EditDeckLoadout, CurrentNodeId = snapshot.CurrentNodeId ?? string.Empty,
+                    ExpectedSequence = snapshot.Sequence, ExpectedStep = snapshot.Determinism.Step,
+                    PayloadSchema = JsonSerializer.SerializeToElement(new { actorId = "string", groupId = "string", replacedCardId = "guid?", replacementCardId = "guid?", moduleId = "string?" }),
+                    ValidPayload = JsonSerializer.SerializeToElement(new { actorId = snapshot.PlayerEntityId, atomicReplacement = true })
+                }]).ToArray());
+        }
         if (_contentRuntimes != null && snapshot.ResolvedMode?.Definition.DeckCompartmentPolicyId != null)
         {
             var runtime = _contentRuntimes.Resolve(snapshot.Determinism.ContentRevision, snapshot.ConfigName);
@@ -815,6 +830,7 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             RunCommandTypes.ApplyCardModifierItem => ExecuteApplyCardModifierItem(runId, payload),
             RunCommandTypes.ApplyLoadout => ExecuteApplyLoadout(runId, payload),
             RunCommandTypes.ApplyDeckCompartments => ExecuteApplyDeckCompartments(runId, payload),
+            RunCommandTypes.EditDeckLoadout => ExecuteEditDeckLoadout(runId, payload),
             RunCommandTypes.OpenInscriptionOffer => ExecuteInscriptionOffer(runId, payload, false),
             RunCommandTypes.ChooseInscriptionOffer => ExecuteInscriptionOffer(runId, payload, true),
             RunCommandTypes.TransferInscription => ExecuteTransferInscription(runId, payload),
@@ -1118,6 +1134,17 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
         var request = DeserializePayload<Loadouts.ApplyLoadoutCommand>(payload);
         var planned = new Loadouts.LoadoutChangePlanner(_contentRuntimes).Plan(_runs[runId], request.ActorId, request.Assignments);
         return planned.IsFailure ? Result.Failure(planned.Error) : ToResult(Persist(planned.Value.Candidate, RunCommandTypes.ApplyLoadout, payload));
+    }
+
+    private Result ExecuteEditDeckLoadout(Guid runId, JsonElement payload)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
+        var run = _runs[runId];
+        var request = DeserializePayload<DeckLoadouts.DeckLoadoutEdit>(payload);
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var plan = DeckLoadouts.DeckLoadoutEdits.Plan(run, runtime.Value, request);
+        return plan.IsFailure ? Result.Failure(plan.Error) : ToResult(Persist(plan.Value.Candidate, RunCommandTypes.EditDeckLoadout, payload));
     }
 
     private Result ExecuteApplyDeckCompartments(Guid runId, JsonElement payload)

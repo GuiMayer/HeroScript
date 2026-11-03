@@ -43,6 +43,7 @@ func _ready() -> void:
 	_clear_dialog.confirmed.connect(func(): controller.edit_inscription("clear"))
 	deck_view = shell.content.get_node("Deck"); deck_view.mount(context); shell.install("deck", deck_view)
 	deck_view.move_requested.connect(controller.move_card)
+	deck_view.composition_requested.connect(controller.edit_composition)
 	deck_view.modifier_requested.connect(controller.apply_modifier)
 	deck_view.clear_requested.connect(func():
 		var confirm := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); confirm.dialog_text = I18n.text("Clear all compartment allocations? Changes are saved automatically.")
@@ -85,7 +86,7 @@ func _render() -> void:
 		var snapshot: Dictionary = controller.compartments.source if controller.compartments != null else {}
 		if initial_deck_tab == "compartments" and snapshot.get("enabled", false) or initial_deck_tab == "modifiers" and not controller.modifier_items.get("items", []).is_empty():
 			deck_view.subtab = initial_deck_tab; initial_deck_tab = "cards"
-		var deck_model := {"cards": controller.deck_cards, "modifierItems": controller.modifier_items, "choices": controller.choices,
+		var deck_model := {"composition": controller.composition, "cards": controller.deck_cards, "modifierItems": controller.modifier_items, "choices": controller.choices,
 			"profile": snapshot.get("profile", {}), "allocations": controller.compartments.draft if controller.compartments != null else {},
 			"enabled": snapshot.get("enabled", false), "canChange": snapshot.get("canChange", false),
 			"busy": not controller.editable(), "context": controller.identity + controller.version()}

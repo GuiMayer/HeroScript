@@ -56,6 +56,13 @@ func read_loadout_info(run_id: String) -> Dictionary:
 	if not attributes.get("ok", false): return attributes
 	return {"ok": true, "data": {"relics": relics.data, "attributes": attributes.data}}
 
+func read_deck_loadout(run_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/deck-loadout" % run_id.uri_encode())
+
+func preview_deck_loadout(snapshot: Dictionary, edit: Dictionary) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/deck-loadout/preview" % str(snapshot.runId).uri_encode(), {
+		"expectedSequence": Numbers.integer_token(snapshot.runSequence), "expectedStep": Numbers.integer_token(snapshot.expectedStep), "edit": edit.duplicate(true)})
+
 func read_deck_compartments(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/deck-compartments" % run_id.uri_encode())
 
