@@ -22,6 +22,11 @@ ferramentas de QA. O contrato de máquina está em `/openapi/v1.json` e em
 | [Atributos e regras globais](../content/hero-attribute-scaling.md) | Armor, tiers críticos, overrides e projeções read-only do personagem. |
 | [Cartas e itens modificadores](../content/card-presentation-and-modifier-items.md) | Base/origem/impacto, explicações e aquisição/aplicação atômica. |
 | [Loadouts de inscrições](inscription-loadouts.md) | Inventário por personagem/run, preview versionado e equipamento atômico (experimental). |
+| [Composição do deck](deck-loadouts.md) | Deck ativo, reserva, módulos e substituições atômicas por personagem. |
+| [Pagamentos com cartas](card-payments.md) | Escolha de instâncias, preview versionado e confirmação de custos. |
+| [Suporte](support-loadouts.md) | Equipamento, rotina e cadência publicados pela engine. |
+| [Recompensas exclusivas](reward-decisions.md) | Guardar na reserva ou decompilar sem duplicar concessões. |
+| [Compartimentos](deck-compartments.md) | Componentes herdados pelo container da carta, separados das zonas de combate. |
 | [Autenticação](authentication.md) | Usar administração sem expor a chave. |
 | [Changelog](changelog.md) | Mudanças publicadas no contrato. |
 
