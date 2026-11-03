@@ -76,3 +76,12 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
 - Substituídas todas as chamadas a métodos privados de `CombatView` e `CombatPresenter` em `combat_screen.gd` por APIs públicas (`clear_choices()`, `show_preview()`, `toggle_character_sidebar()`, `hand_scope()`, `pile_buttons()`, `presenter.candidates()`, `presenter.targets()`, `presenter.system_candidate()`, `presenter.appearance()`).
 - Lease de cenário de combate (`acquire_combat_scenery`/`release_combat_scenery`) e navegação (`show_timeline`, `toggle_pause`, `open_game`, `navigation_epoch`) roteados via `ScreenContext.navigation`, eliminando acesso direto a `router.shell.run_scenery` em `combat_screen.gd`.
 - Validação aprovada: `combat_controller`, `combat_collaborators`, `combat_input_soak`, `presentation_director`, `presentation_envelope`, `presentation_planner`, `animation_contracts`, `animation_live`, `turn_hand_cycle` e `ui_decoupling_baseline`.
+
+## Etapa 8 — Sessão e comunicação
+
+- Colaboradores extraídos e compostos sob `GameSession` (`scripts/application/game_session.gd`), preservando sua interface pública e de sinais:
+  - `SessionSnapshotStore` (`scripts/application/session_snapshot_store.gd`): validação atômica do bundle compacto de sessão (`validate_session_bundle`), resolução de ator de input (`input_actor_id`), contexto de avaliação (`evaluation_context`) e captura de snapshot privado imutável (`capture_view_snapshot`).
+  - `SessionInspectionService` (`scripts/application/session_inspection_service.gd`): validação de contexto de loadout (`loadout_context_matches`, `validate_loadout_info`), pagamento (`payment_context_matches`) e preview de transformação/modificadores (`preview_transformation`).
+  - `SessionReplayService` (`scripts/application/session_replay_service.gd`): resolução de bookmark/histórico para retomada de jornada (`find_resume`) e respostas padronizadas de capacidades (`tool_denied`).
+  - `SessionCommandDispatcher` (`scripts/application/session_command_dispatcher.gd`): mapeamento de tipo de comando de candidato (`candidate_command_type`), normalização defensiva de recibo 2xx malformado (`normalize_receipt_response`) e política de limpeza de comando pendente (`should_clear_pending_on_failure`).
+- Validação aprovada: `compact_session`, `http_transport_pool`, `rest_transport_latency`, `connection_epoch`, `api_request_numbers`, `replay_transport`, `replay_progressive` e `ui_decoupling_baseline`.

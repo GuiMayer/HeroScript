@@ -1,12 +1,17 @@
 extends Node
 
 const ActivityChoices = preload("res://scripts/application/activity_choices.gd")
+const SnapshotStore = preload("res://scripts/application/session_snapshot_store.gd")
+const InspectionService = preload("res://scripts/application/session_inspection_service.gd")
+const ReplayService = preload("res://scripts/application/session_replay_service.gd")
+const CommandDispatcher = preload("res://scripts/application/session_command_dispatcher.gd")
 
 signal operation_changed(state: String)
 signal changed
 signal command_started(label: String)
 signal receipt_received(receipt: Dictionary)
 signal presentation_ready(envelope)
+signal presentation_discarded
 var _accepted_presentation: Dictionary = {}
 var _command_started_ms := 0
 signal run_opened(run_id: String)
@@ -66,16 +71,14 @@ var _operation := "idle"
 var last_view_capture_usec := 0
 
 func _belongs_to_current_run(snapshot: Dictionary) -> bool:
-	return str(snapshot.get("runId", "")) == str(_run.get("runId", "")) and int(snapshot.get("runSequence", -1)) == int(_run.get("sequence", 0)) and str(snapshot.get("contentRevision", "")) == str(_run.get("contentRevision", ""))
+	return SnapshotStore.belongs_to_run(snapshot, _run)
 
 func capture_view_snapshot() -> Dictionary:
 	# One private copy per consumer/revision. Never expose the mutable backing maps.
 	var started := Time.get_ticks_usec()
-	var value := {"run": _run, "combat": _combat, "actions": _legal_actions, "zones": _card_zones,
-		"evaluations": _card_evaluations if card_evaluations_ready else [],
-		"presentations": _card_presentations.get("cards", []) if _belongs_to_current_run(_card_presentations) else [],
-		"attributes": _character_attributes if _belongs_to_current_run(_character_attributes) else {}}
-	var result := value.duplicate(true)
+	var result := SnapshotStore.capture_view_snapshot(
+		_run, _combat, _legal_actions, _card_zones, _card_evaluations,
+		card_evaluations_ready, _card_presentations, _character_attributes)
 	last_view_capture_usec = Time.get_ticks_usec() - started
 	return result
 var _generation := 0
@@ -217,23 +220,7 @@ func refresh() -> bool:
 
 func preview_transformation(choice: Dictionary) -> Dictionary:
 	if busy or not synchronized or _run.is_empty(): return {}
-	var captured_sequence := int(_run.get("sequence", -1))
-	var captured_run := str(_run.get("runId", ""))
-	var operation: String = {"UPGRADE_CARD": "Apply", "REMOVE_CARD_TRANSFORMATION": "Remove", "REPLACE_CARD_TRANSFORMATION": "Replace"}.get(str(choice.get("type", "")), "")
-	if str(choice.get("type", "")) == "APPLY_CARD_MODIFIER_ITEM":
-		var item_payload: Dictionary = choice.get("payload", {})
-		var preview: Dictionary = await _gateway.modifier_item_preview(captured_run, str(item_payload.get("itemInstanceId", "")), str(item_payload.get("cardInstanceId", "")))
-		if not preview.ok or captured_run != str(_run.get("runId", "")) or captured_sequence != int(_run.get("sequence", -1)) or int(preview.data.get("runSequence", -2)) != captured_sequence: return {}
-		var data: Dictionary = preview.data.duplicate(true)
-		data["isCompatible"] = true
-		return data
-	if operation.is_empty(): return {}
-	var payload: Dictionary = choice.get("payload", {})
-	var upgrade_id := str(payload.upgradeId) if payload.get("upgradeId") != null else ""
-	var response: Dictionary = await _gateway.transformation_preview(captured_run, str(payload.get("cardInstanceId", "")), operation, upgrade_id, payload.get("transformationId"))
-	if not response.ok or captured_run != str(_run.get("runId", "")) or captured_sequence != int(_run.get("sequence", -1)): return {}
-	if int(response.data.get("expectedSequence", -2)) != captured_sequence: return {}
-	return response.data.duplicate(true)
+	return await InspectionService.preview_transformation(_gateway, func(): return _run, choice)
 
 func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence := -1) -> bool:
 	if _run.is_empty():
@@ -248,69 +235,22 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 		committed_combat = {}
 	if not _current(ticket):
 		return false
-	if not response.ok:
-		return _refresh_failed(response)
-	var data: Dictionary = response.data
-	var next_run: Dictionary = data.get("run", {})
-	var version: Dictionary = data.get("version", {})
-	var next_combat: Dictionary = data.combat if data.get("combat") is Dictionary else {}
-	if str(next_run.get("runId", "")) != run_id or str(version.get("runId", "")) != run_id or \
-		int(version.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or \
-		str(version.get("settingId", "")) != str(next_run.get("settingId", next_run.get("configName", ""))) or \
-		str(version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")) or \
-		int(version.get("runStep", -1)) != int(next_run.get("step", 0)) or \
-		str(version.get("engineVersion", "")) != str(next_run.get("engineVersion", "")) or \
-		str(version.get("stateFingerprint", "")) != str(next_run.get("stateHash", "")) or \
-		str(version.get("stateFingerprint", "")).is_empty() or \
-		(receipt_sequence >= 0 and int(next_run.get("sequence", -1)) != receipt_sequence):
-		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-	if not next_combat.is_empty() and (str(version.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
-		int(version.get("combatStep", -1)) != int(next_combat.get("step", 0))):
-		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-	if not committed_combat.is_empty() and receipt_sequence >= 0 and (str(committed_combat.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
-		int(committed_combat.get("step", -1)) != int(next_combat.get("step", 0))):
-		return _refresh_failed({"ok": false, "errorKey": "Presentation was superseded by a newer game revision."})
-	var responses: Dictionary = {}
-	for section in ["commands", "capabilities", "cardZones", "attributes", "cardPresentations", "modifierItems"]:
-		if not data.get(section) is Dictionary: return _refresh_failed({"ok": false, "errorKey": "The engine returned an invalid JSON response."})
-		responses[section] = {"ok": true, "data": data[section]}
 	var refresh_timings := {"session_loaded": Time.get_ticks_msec()}
-	if not data.get("actions") is Dictionary or not data.get("evaluations") is Dictionary:
-		return _refresh_failed({"ok": false, "errorKey": "The engine returned an invalid JSON response."})
-	var next_actions: Array = data.get("actions", {}).get("candidates", [])
-	var next_evaluations: Array = data.get("evaluations", {}).get("cards", [])
-	for card in next_evaluations:
-		var inspection_version: Dictionary = card.get("version", {})
-		if int(inspection_version.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or \
-			str(inspection_version.get("runId", "")) != run_id or str(inspection_version.get("combatId", "")) != str(next_combat.get("combatId", "")) or \
-			int(inspection_version.get("combatStep", -1)) != int(next_combat.get("step", 0)) or str(inspection_version.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
-			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-	var next_attributes: Dictionary = responses.attributes.data if responses.has("attributes") else {}
-	if not next_attributes.is_empty():
-		if str(next_attributes.get("runId", "")) != run_id or int(next_attributes.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_attributes.get("contentRevision", "")) != str(next_run.get("contentRevision", "")):
-			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-		if not next_combat.is_empty() and (str(next_attributes.get("combatId", "")) != str(next_combat.get("combatId", "")) or int(next_attributes.get("combatStep", -1)) != int(next_combat.get("step", 0))):
-			return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-	var next_presentations: Dictionary = responses.cardPresentations.data if responses.has("cardPresentations") else {}
-	if not next_presentations.is_empty() and (str(next_presentations.get("runId", "")) != run_id or int(next_presentations.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_presentations.get("contentRevision", "")) != str(next_run.get("contentRevision", ""))):
-		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-	var next_items: Dictionary = responses.modifierItems.data if responses.has("modifierItems") else {}
-	if not next_items.is_empty() and (str(next_items.get("runId", "")) != run_id or int(next_items.get("runSequence", -1)) != int(next_run.get("sequence", 0)) or str(next_items.get("contentRevision", "")) != str(next_run.get("contentRevision", ""))):
-		return _refresh_failed({"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."})
-	_modifier_items = next_items.duplicate(true)
-	_card_presentations = next_presentations.duplicate(true)
-	_character_attributes = next_attributes.duplicate(true)
-	_run = next_run.duplicate(true)
-	_combat = next_combat.duplicate(true)
-	_card_zones = responses.cardZones.data.duplicate(true)
-	_available_commands = responses.commands.data.get("commands", []).duplicate(true)
-	_legal_actions = next_actions.duplicate(true)
-	_card_evaluations = next_evaluations.duplicate(true)
+	var validated := SnapshotStore.validate_session_bundle(response, run_id, committed_combat, receipt_sequence)
+	if not validated.get("ok", false):
+		return _refresh_failed(validated.get("error", {"ok": false, "errorKey": "Could not refresh the game. Reconnect before playing again."}))
+	_modifier_items = validated.modifier_items
+	_card_presentations = validated.card_presentations
+	_character_attributes = validated.character_attributes
+	_run = validated.run
+	_combat = validated.combat
+	_card_zones = validated.card_zones
+	_available_commands = validated.available_commands
+	_legal_actions = validated.legal_actions
+	_card_evaluations = validated.card_evaluations
 	_card_evaluation_context = _evaluation_context(_run, _combat)
-	_tool_capabilities = {}
-	tool_profile = str(responses.capabilities.data.get("profile", "normal"))
-	for capability in responses.capabilities.data.get("granted", []):
-		_tool_capabilities[str(capability)] = true
+	_tool_capabilities = validated.tool_capabilities
+	tool_profile = validated.tool_profile
 	synchronized = true
 	changed.emit()
 	if not _accepted_presentation.is_empty():
@@ -323,7 +263,9 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 			envelope.mark_at("submitted", int(accepted.get("submitted", 0)))
 			envelope.mark_at("received", int(accepted.get("received", 0)))
 			presentation_ready.emit(envelope)
-		else: failed.emit({"errorKey": "Presentation was superseded by a newer game revision."})
+		else:
+			presentation_discarded.emit()
+			failed.emit({"errorKey": "Presentation was superseded by a newer game revision."})
 	return true
 
 func _refresh_failed(error: Dictionary) -> bool:
@@ -339,9 +281,7 @@ func _refresh_failed(error: Dictionary) -> bool:
 	return false
 
 func _evaluation_context(run_state: Dictionary, combat_state: Dictionary) -> Array:
-	return [selected_setting_id, run_state.get("runId", ""), run_state.get("branchId", ""),
-		run_state.get("sequence", -1), run_state.get("contentRevision", ""),
-		combat_state.get("combatId", ""), combat_state.get("step", -1), _input_actor_id(combat_state)]
+	return SnapshotStore.evaluation_context(selected_setting_id, run_state, combat_state)
 
 func execute_run_command(type: String, payload: Dictionary, label := "") -> bool:
 	var advertised := command(type)
@@ -408,15 +348,7 @@ func read_loadout_info() -> Dictionary:
 	var response: Dictionary = await _gateway.read_loadout_info(str(_run.runId))
 	if captured != [_run.get("runId"), _run.get("sequence"), _run.get("step"), _run.get("contentRevision"), _run.get("playerEntityId"), replay_context()]:
 		return {"ok": false, "status": 409, "error": "Equipment changed. Synchronizing…"}
-	if response.get("ok", false):
-		var data = response.get("data")
-		if not data is Dictionary or not data.get("relics") is Dictionary or not data.get("attributes") is Dictionary:
-			return {"ok": false, "error": "Invalid loadout information."}
-		if not data.relics.get("relics") is Array or not data.attributes.get("attributes") is Array or str(data.attributes.get("runId", "")) != str(_run.runId):
-			return {"ok": false, "error": "Invalid loadout information."}
-		if str(data.relics.get("runId", "")) != str(_run.runId) or int(data.relics.get("sequence", -1)) != int(_run.sequence) or int(data.attributes.get("runSequence", -1)) != int(_run.sequence) or str(data.attributes.get("actorId", "")) != str(_run.playerEntityId) or str(data.attributes.get("contentRevision", "")) != str(_run.get("contentRevision", "")):
-			return {"ok": false, "status": 409, "error": "Equipment changed. Synchronizing…"}
-	return response
+	return InspectionService.validate_loadout_info(response, _run)
 
 func preview_deck_compartments(snapshot: Dictionary, allocations: Array) -> Dictionary:
 	if busy or has_pending_command or not loadout_context_matches(snapshot): return {"ok": false, "status": 409, "error": "Compartment context changed. Reopen the editor."}
@@ -430,11 +362,7 @@ func apply_deck_compartments(snapshot: Dictionary, allocations: Array) -> bool:
 		"actorId": snapshot.actorId, "allocations": allocations.duplicate(true)}, "Apply deck compartments", int(snapshot.expectedStep))
 
 func loadout_context_matches(snapshot: Dictionary) -> bool:
-	return synchronized and not _run.is_empty() and str(snapshot.get("runId", "")) == str(_run.get("runId", "")) \
-		and int(snapshot.get("runSequence", -1)) == int(_run.get("sequence", 0)) \
-		and int(snapshot.get("expectedStep", -1)) == int(_run.get("step", 0)) \
-		and str(snapshot.get("contentRevision", "")) == str(_run.get("contentRevision", "")) \
-		and snapshot.get("_clientContext", replay_context()) == replay_context()
+	return InspectionService.loadout_context_matches(synchronized, _run, snapshot, replay_context())
 
 func read_loadout(actor_id: String) -> Dictionary:
 	if busy or has_pending_command or _run.is_empty(): return {"ok": false, "error": "Open a run and recover pending commands first."}
@@ -463,8 +391,7 @@ func execute_combat_command(type: String, payload: Dictionary, label := "") -> b
 
 func submit_candidate(candidate: Dictionary) -> bool:
 	var command_data: Dictionary = candidate.get("command", {})
-	var type := "PLAY_CARD" if str(candidate.get("source", "")) == "Card" else (
-		"END_TURN" if str(command_data.get("actionType", "")) == "END_TURN" else "EXECUTE_ACTION")
+	var type := CommandDispatcher.candidate_command_type(candidate)
 	return await execute_combat_command(type, _gateway.candidate_payload(command_data))
 
 func _execute(scope: String, id: String, type: String, payload: Dictionary, label: String, expected_step: int) -> bool:
@@ -490,9 +417,9 @@ func _send_pending(ticket: int) -> bool:
 	var response: Dictionary = await _gateway.send_prepared(_pending)
 	if not _current(ticket):
 		return false
+	response = CommandDispatcher.normalize_receipt_response(response)
 	if not response.ok:
-		var status := int(response.get("status", 0))
-		if status > 0 and status < 500:
+		if CommandDispatcher.should_clear_pending_on_failure(response):
 			_pending = {}
 		synchronized = false
 		_legal_actions = []
@@ -558,15 +485,7 @@ func input_actor_id() -> String:
 	return _input_actor_id(_combat)
 
 static func _input_actor_id(snapshot: Dictionary) -> String:
-	if snapshot.is_empty():
-		return ""
-	var priority = snapshot.get("priorityWindow")
-	if priority is Dictionary and not priority.is_empty():
-		return str(priority.get("holderActorId", ""))
-	var activation = snapshot.get("activation", {})
-	if activation is Dictionary and bool(activation.get("waitingForInput", false)):
-		return str(activation.get("activeActorId", snapshot.get("activeActorId", "")))
-	return str(snapshot.get("activeActorId", ""))
+	return SnapshotStore.input_actor_id(snapshot)
 
 
 func command(type: String) -> Dictionary:
@@ -579,12 +498,7 @@ func allows_tool(capability: String) -> bool:
 	return _tool_capabilities.has(capability)
 
 func _tool_denied(capability: String) -> Dictionary:
-	return {
-		"ok": false,
-		"status": 403,
-		"errorKey": "This tool is not available in the current mode.",
-		"error": "Tool capability denied: %s" % capability
-	}
+	return ReplayService.tool_denied(capability)
 
 func timeline(after_sequence := 0) -> Dictionary:
 	if not allows_tool("timeline.read"):
@@ -633,51 +547,9 @@ func find_resume(index, api: String, legacy_id := "") -> Dictionary:
 	# Reading bookmarks/profiles must not activate a run or change settings.
 	var setting := selected_setting_id
 	var launch: Dictionary = selected_setting.get("launch", {})
-	var player := str(launch.get("playerEntityId", "player"))
-	var mode := str(launch.get("modeId", ""))
 	var generation := _generation
-	var ids: Array[String] = []
-	var bookmarked: String = index.candidate(api, player, setting, mode)
-	if bookmarked.is_empty() and index.has_scope(api, player, setting, mode):
-		return {"ok": true, "runId": "", "legacyChecked": false}
-	if not bookmarked.is_empty(): ids.append(bookmarked)
-	if not legacy_id.is_empty() and legacy_id not in ids: ids.append(legacy_id)
-	var legacy_checked := false
-	for id in ids:
-		var response: Dictionary = await _gateway.read_run(id)
-		if generation != _generation or selected_setting_id != setting:
-			return {"ok": false, "errorKey": "The selected setting changed. Try again."}
-		if not response.ok:
-			if int(response.get("status", 0)) != 404: return response
-			index.forget(api, player, setting, mode, id)
-			if index.has_scope(api, player, setting, mode): return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
-			continue
-		var record: Dictionary = response.data
-		if str(record.get("runId", "")) != id:
-			return {"ok": false, "errorKey": "This journey does not match the selected setting, player or mode, or is no longer active."}
-		if id == legacy_id: legacy_checked = true
-		index.remember(api, record) # Import only verified metadata, never the menu's selection.
-		if str(record.get("settingId", record.get("configName", ""))) == setting \
-			and str(record.get("playerEntityId", "")) == player and str(record.get("modeId", "")) == mode \
-			and str(record.get("lifecycle", "")).to_lower() == "active":
-			return {"ok": true, "runId": id, "legacyChecked": legacy_checked}
-		index.forget(api, player, setting, mode, id)
-		if index.has_scope(api, player, setting, mode) and index.candidate(api, player, setting, mode).is_empty():
-			return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
-	var profile: Dictionary = await _gateway.run_history(player, setting)
-	if generation != _generation or selected_setting_id != setting:
-		return {"ok": false, "errorKey": "The selected setting changed. Try again."}
-	if not profile.ok: return profile
-	# Old saves lack a recency bookmark. Prefer the most progressed active matching
-	# journey (the profile's deterministic order); all others remain in history.
-	for record in profile.data.get("items", []):
-		if str(record.get("settingId", record.get("configName", ""))) != setting \
-			or str(record.get("modeId", "")) != mode or str(record.get("lifecycle", "")).to_lower() != "active": continue
-		var metadata: Dictionary = record.duplicate(true)
-		metadata["playerEntityId"] = player
-		index.remember(api, metadata)
-		return {"ok": true, "runId": str(record.get("runId", "")), "legacyChecked": legacy_checked}
-	return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
+	return await ReplayService.find_resume(_gateway, index, api, legacy_id, setting, launch, generation, func(gen: int, expected_setting: String) -> bool:
+		return gen == _generation and selected_setting_id == expected_setting)
 
 func replay_timeline(run_id: String, after_sequence := 0, limit := 25, through_sequence := 0) -> Dictionary:
 	if run_id.is_empty():
@@ -719,7 +591,7 @@ func submit_activity(choice: Dictionary) -> bool:
 	return await execute_run_command(str(choice.get("type", "")), choice.get("payload", {}))
 
 func payment_context_matches(version: Dictionary) -> bool:
-	return synchronized and not _run.is_empty() and not _combat.is_empty() and str(version.get("runId", "")) == str(_run.get("runId", "")) and str(version.get("combatId", "")) == str(_combat.get("combatId", "")) and int(version.get("runSequence", -1)) == int(_run.get("sequence", 0)) and int(version.get("combatStep", -1)) == int(_combat.get("step", 0)) and str(version.get("contentRevision", "")) == content_revision and version.get("_clientContext", replay_context()) == replay_context()
+	return InspectionService.payment_context_matches(synchronized, _run, _combat, content_revision, version, replay_context())
 
 func preview_card_payment(command: Dictionary) -> Dictionary:
 	if busy or has_pending_command or not synchronized: return {"ok": false, "error": "Recover pending commands first."}
