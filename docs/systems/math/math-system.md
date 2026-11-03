@@ -782,7 +782,7 @@ public float CalculateDamage(string formulaName, float input)
 
 - **Código-fonte:** `src/Core/Math/`
 - **Testes:** `tests/Core.Tests/Math/`
-- **API Endpoints:** [`endpoints.md`](../../api/endpoints.md)
+- **API Endpoints:** [`endpoints.md`](../../api/README.md)
 - **Modos de Operação:** [`expression-modes.md`](expression-modes.md)
 - **Sistema de Config:** [`config-system.md`](../config/config-system.md)
 - **Arquitetura Geral:** [`overview.md`](../../architecture/overview.md)

@@ -1,7 +1,7 @@
 # HeroScript Documentation
 
-**Última atualização:** 2026-10-10
-**Versão:** 1.0.0
+**Última atualização:** 2026-11-03
+**Escopo:** documentação de desenvolvimento; versão REST e versão executável são identificadores distintos.
 
 ---
 
