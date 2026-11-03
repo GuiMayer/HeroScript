@@ -1,0 +1,82 @@
+{
+  "prototype_focus": {
+    "inscriptionId": "prototype_focus",
+    "equipmentCost": 3,
+    "tags": [
+      "critical"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "prototype_focus.critical_chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 30
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Calibrated focus",
+      "description": "Character: +30 percentage points of critical chance.",
+      "rarity": "uncommon"
+    }
+  },
+  "prototype_ward": {
+    "inscriptionId": "prototype_ward",
+    "equipmentCost": 3,
+    "tags": [
+      "defense"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "prototype_ward.block_efficiency",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Warding trace",
+      "description": "Character: +20% increased Block generation on eligible defense effects.",
+      "rarity": "common"
+    }
+  },
+  "prototype_edge": {
+    "inscriptionId": "prototype_edge",
+    "equipmentCost": 3,
+    "tags": [
+      "attack"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "attack_bonus",
+        "influence": {
+          "influenceId": "prototype_edge.attack_bonus",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "damage",
+            "attack"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Serrated trace",
+      "description": "Character: +20% increased attack damage.",
+      "rarity": "common"
+    }
+  }
+}

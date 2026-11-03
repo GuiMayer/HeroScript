@@ -4,7 +4,7 @@
     "playerDefinitionId": "prototype_hero",
     "startingResources": {
       "gold": 0,
-      "parts": 0
+      "parts": 3
     },
     "initialPlayableCardCount": 0,
     "initialCardZoneId": "owned",
@@ -99,11 +99,41 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
-          "thermal_trial_2"
+          "trial_forge"
         ],
         "metadata": {
           "displayName": "Build preparation",
           "description": "Inspect your reserve, change module or support routine, then confirm readiness."
+        }
+      },
+      {
+        "nodeId": "trial_forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "prototype_split_item",
+              "prototype_ward_link_item",
+              "prototype_stable_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "thermal_trial_2"
+        ],
+        "metadata": {
+          "displayName": "Pattern workshop",
+          "description": "Spend 3 Parts to acquire one card modifier, or leave without buying. Apply it to a compatible active or reserve card."
         }
       },
       {

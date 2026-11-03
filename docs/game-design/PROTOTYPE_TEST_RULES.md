@@ -114,3 +114,34 @@ critical tiers; it verifies no authoritative store write and repeated fingerprin
 `prototype_trial_online.gd` uses the normal Godot scenes against a disposable real
 API store. Passing these checks verifies the rules; balance and chapter playtests
 remain necessary.
+
+## Character equipment and card patterns
+
+The character owns three inscriptions, initially unequipped. Actor-scoped inventory,
+three slots and capacity 6 allow two different items of cost 3. Focus adds 30
+percentage points of critical chance; Warding adds 20% increased eligible Block;
+Serrated adds 20% increased attack damage. These are character influences consumed
+by existing pipelines; they do not rewrite card base components. Equipment can be
+changed outside combat, with canonical preview and autosave.
+
+The campaign starts with 3 Parts. The optional Pattern workshop costs 3 Parts for
+one acquisition; leaving without purchase is allowed. Decompiling a reward grants
+3 more Parts. An activity cannot sell a second item after its acquisition completes.
+The purchased item is independent inventory until applied to a compatible card:
+
+| Pattern | Permanent card change |
+| --- | --- |
+| Split | Main effect repeats three times, sharing its original amount |
+| Guard | Adds a separate effect granting 4 base Block |
+| Stable | Damage effects cannot roll critical tiers |
+
+Eligible definitions are Thermal cut, Scorch, Void bolt and Necro bolt. Each pattern
+can be applied once per card and occupies a Behavior slot; cards have two such
+slots. Items bind to one physical card, including cards in reserve. Moving the
+instance into/out of the active composition or switching modules preserves its
+transformation ledger. Relics remain separate and this preset grants none.
+
+The existing editor supplies Before/After, character attribute sources and card
+compatibility. No client-authored stat calculation or alternate apply authority is
+introduced. `reward-lab` includes a separate `reward_build_lab` mode for the real
+REST workshop regression; its reward-only mode is unchanged.

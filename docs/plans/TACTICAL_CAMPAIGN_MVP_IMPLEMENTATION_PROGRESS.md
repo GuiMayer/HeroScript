@@ -152,6 +152,16 @@ O setting de prova reward-lab atravessa vitória, recompensa, preparação obrig
 
 Validação: **61 testes Core**, **2 jornadas API** (guardar e decompilar) e **39 verificações Godot**, todos aprovados. As jornadas reiniciam o host com o armazenamento persistido, verificam replay semântico/hash, repetem o comando idempotente e rejeitam a alternativa após a escolha. Incluem falha de pagamento sem publicação parcial e compatibilidade da opção ausente. Evidências: `.runtime/tactical-mvp/results/stage12-*.trx` e `stage12-godot.log`.
 
+## Etapa 13 — Inscrições, mutações e preparação
+
+Estado: concluída em 2026-11-03.
+
+Conteúdo próprio habilita inventário de inscrições por personagem, três slots, capacidade seis e três itens de custo três. Focus, Warding e Serrated alteram atributos existentes via influências canônicas; não transformam cartas. Três itens separados de mutação (Split, Guard, Stable) usam patches/ledger existentes, com compatibilidade explícita e limite por carta. Relíquias permanecem separadas.
+
+O workshop opcional custa três Parts por aquisição e encerra a oportunidade de compra, preservando o item até sua aplicação. Campanha começa com três Parts; recompensa decompilada concede outros três. Reserva e composição usam as mesmas instâncias melhoradas, sem reaplicar mutações ao trocar módulo. Reutilizados autosave, previews Before/After, fontes de atributos, compatibilidade e cenas atuais, sem regra nova na Godot.
+
+Validação: **100 testes Core**, **3 jornadas API** e **66 verificações Godot** aprovados. Jornadas REST específicas cobrem as três mutações, isolamento carta/personagem, preview sem escrita, 409 e recuperação, slots/capacidade, incompatibilidade, pagamento, reserva/composição/módulo e reinício com replay. Todos passaram, incluindo restart/replay do estado final. Evidências: `.runtime/tactical-mvp/results/stage13-*.trx` e `stage13-godot.log`.
+
 ## Próxima etapa
 
-Etapa 13: inscrições, mutações e preparação da build. Etapas 13–17 permanecem pendentes.
+Etapa 14: capítulo jogável. Etapas 14–17 permanecem pendentes.

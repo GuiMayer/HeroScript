@@ -1,0 +1,32 @@
+{
+  "prototype_split_item": {
+    "itemDefinitionId": "prototype_split_item",
+    "upgradeId": "prototype_split",
+    "use": "Bind",
+    "presentation": {
+      "name": "Split pattern",
+      "description": "Repeats this card's main effect three times, sharing its original amount across hits.",
+      "artId": "flurry"
+    }
+  },
+  "prototype_ward_link_item": {
+    "itemDefinitionId": "prototype_ward_link_item",
+    "upgradeId": "prototype_ward_link",
+    "use": "Bind",
+    "presentation": {
+      "name": "Guard pattern",
+      "description": "Adds a separate effect: gain 4 base Block after this card's other effects.",
+      "artId": "guard"
+    }
+  },
+  "prototype_stable_item": {
+    "itemDefinitionId": "prototype_stable_item",
+    "upgradeId": "prototype_stable",
+    "use": "Bind",
+    "presentation": {
+      "name": "Stable pattern",
+      "description": "Prevents this card's damage effects from rolling critical tiers.",
+      "artId": "precision"
+    }
+  }
+}
