@@ -53,6 +53,7 @@ func _bind_nodes() -> void:
 	if _bound: return
 	_header = get_node("ActivityHeader"); _columns = get_node("ActivityColumns")
 	_workspace = _columns.get_node("ActivityWorkspace"); _summary = _workspace.get_node("ActivitySummary")
+	_workspace.get_node("EncounterAttempt").adjust_requested.connect(func(): intent_requested.emit("loadout",[]))
 	action_panel = _workspace.get_node("ActionScroll/ActionPanel"); _ending = get_node("ActivityEnding")
 	action_panel.intent_requested.connect(func(action,arguments): intent_requested.emit(action,arguments))
 	_header.get_node("Row/Verify").pressed.connect(_verify); _header.get_node("Row/Map").pressed.connect(_map)
@@ -128,7 +129,7 @@ func _node_name(id: String) -> String:
 	return str(presentation.get("nodes", {}).get(id, {}).get("name", id.replace("_", " ").capitalize()))
 
 
-func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: Dictionary, projection, context) -> void:
+func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: Dictionary, projection, context, can_adjust_build := false) -> void:
 	var first_projection := _region_keys.is_empty()
 	mount(context)
 	theme = context.theme
@@ -152,6 +153,7 @@ func apply_projection(run: Dictionary, choices: Array, zones: Dictionary, data: 
 	_columns.visible = lifecycle == "active"; _ending.visible = lifecycle != "active"
 	if lifecycle != "active":
 		_update_ending(lifecycle); visual_context.styles.apply_view_preferences(self); return
+	_workspace.get_node("EncounterAttempt").apply_projection(run, can_adjust_build, visual_context)
 	var summary_key: Array = [_current_node(),_zone_snapshot,visual_key]
 	_summary.visible = str(_current_node().get("activity",{}).get("type","")) != "Dialogue"
 	if _summary.visible and _region_keys.get("summary") != summary_key:

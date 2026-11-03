@@ -96,6 +96,16 @@ Corrigida a consulta de conclusão: usa a tentativa mais recente e a política d
 
 Validação: **88 testes Core aprovados**, zero falhas/skips. Incluem quatro resultados, restauração configurada, preservação de materiais/estado permanente, idempotência, restart, dez replays semânticos por jornada, nova tentativa consumindo o próximo seed, abertura inválida sem publicação, captura de loadout e limpeza de zonas/instâncias temporárias já existentes. Testes usam stores próprios; nenhum save do jogador foi tocado. Evidência: `.runtime/tactical-mvp/results/stage07.trx`.
 
+## Etapa 8 — Derrota, preparação e retomada
+
+Estado: implementada e validada por contratos/cenas em 2026-11-03. A jornada jogável completa no setting final será recertificada nas etapas 16–17, após publicação do conteúdo.
+
+Resumo `encounterAttempt` derivado do histórico existente, sem novo estado persistido: identidade, número no nó atual, resultado, regra de resultado quando publicada e fronteiras de confirmação/retry. Consulta não confirma nem modifica gameplay. Política compartilhada com a progressão evita duas interpretações de elegibilidade.
+
+A Godot encaminha derrotas retryable e preparação pendente para a cena de atividade existente, com componente editável próprio para tentativa. Confirmação precede edição; Ajustar build usa permissões publicadas e o loadout do personagem atual; Tentar novamente só executa START_ENCOUNTER publicado. Não há autoavanço da preparação. A saída do loadout também aguarda as leituras canônicas após autosave, além dos bloqueios existentes de gravação/recibo incerto. Comandos dedicados de composição não aparecem como botões genéricos sem payload. Inglês como fallback e textos em português.
+
+Validação: **36 testes Core**, **9 testes API** e **71 verificações Godot** (tentativa 12, reconciliação de atividades 21, loadout 22, composição 12, navegação 4), todos aprovados. Ausência/null do resumo mantém a navegação anterior; tentativa ativa/encerrada e nó resolvido não reutilizam resumo antigo. Evidências: `.runtime/tactical-mvp/results/stage08-*.trx` e `stage08-godot.log`. Nenhum save real foi utilizado.
+
 ## Próxima etapa
 
-Etapa 8: fluxo de derrota, preparação e retomada na Godot. Etapas 8–17 permanecem pendentes.
+Etapa 9: suporte/companion configurável na engine. Etapas 9–17 permanecem pendentes.

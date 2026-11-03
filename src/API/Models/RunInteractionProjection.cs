@@ -20,6 +20,7 @@ public static class RunInteractionProjection
         {
             run.RunId, run.SettingId, run.ConfigName, run.Sequence, run.CurrentNodeId, run.Lifecycle,
             run.PlayerEntityId, run.PlayerEntity, run.ModeId, run.ActiveEncounterId,
+            encounterAttempt = RunEncounterAttempts.Current(run),
             loadout = run.Loadouts == null ? null : new { policyId = run.Loadouts.PolicyId, run.Loadouts.InventoryScope,
                 actorIds = run.Loadouts.Actors.Keys, equippedCount = run.Loadouts.Actors.Values.Sum(actor => actor.Assignments.Count) },
             run.Determinism.Step, run.Determinism.Seed, run.Determinism.ContentRevision,

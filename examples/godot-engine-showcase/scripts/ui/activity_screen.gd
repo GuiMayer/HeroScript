@@ -29,7 +29,8 @@ func _render(data: Dictionary) -> void:
 		key[3] = presentation
 		_projection_key = key; render_epoch += 1
 		presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, presentation, I18n, GameSession.card_presentations, GameSession.modifier_items)
-		view.apply_projection(run, choices, zones, presentation, presenter, visual_context)
+		view.apply_projection(run, choices, zones, presentation, presenter, visual_context,
+			not GameSession.command("EDIT_DECK_LOADOUT").is_empty() or not GameSession.command("APPLY_LOADOUT").is_empty() or not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	view.set_compartments_available(not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	var workflow_key: Array = [run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0), choices]
 	if workflow_key != _workflow_key:

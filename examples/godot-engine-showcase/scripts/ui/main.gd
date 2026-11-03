@@ -243,6 +243,8 @@ func gameplay_route() -> String:
 		return "menu"
 	if not GameSession.combat.is_empty() and str(GameSession.combat.get("status", "ACTIVE")) == "ACTIVE":
 		return "combat"
+	var attempt = GameSession.run.get("encounterAttempt")
+	if attempt is Dictionary and (bool(attempt.get("awaitingConfirmation", false)) or bool(attempt.get("pendingRetry", false))): return "activity"
 	if _has_dialogue_activity(): return "dialogue"
 	var types: Array = GameSession.activity_choices().map(func(choice): return str(choice.get("type", "")))
 	var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC", "OPEN_INSCRIPTION_OFFER", "CHOOSE_INSCRIPTION_OFFER"])

@@ -30,6 +30,7 @@ func current_node() -> Dictionary:
 
 func choice_label(choice: Dictionary, model: Dictionary = {}) -> String:
 	var type := str(choice.get("type", ""))
+	if type == "START_ENCOUNTER" and _run.get("encounterAttempt") is Dictionary and bool(_run.encounterAttempt.get("pendingRetry", false)): return _i18n.text("TRY AGAIN")
 	if type == "OPEN_INSCRIPTION_OFFER": return _i18n.text("REVEAL INSCRIPTIONS")
 	if type == "CHOOSE_INSCRIPTION_OFFER": return _i18n.text("DECLINE INSCRIPTIONS") if choice.payload.get("inscriptionId") == null else _i18n.text("ACQUIRE INSCRIPTION")
 	var templates := {"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",

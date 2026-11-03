@@ -263,9 +263,7 @@ public sealed class RunProgressionService(RunActivityRegistry activities)
 
     public bool ShouldRestartEncounterActivity(RunState run, CombatStatus outcome)
     {
-        var policy = run.ResolvedMode?.ProgressionPolicy;
-        return policy?.EncounterRetry == RunEncounterRetryPolicy.RestartActivity &&
-            policy.RetryableEncounterOutcomes.Contains(outcome);
+        return RunEncounterAttempts.IsRetryable(run, outcome);
     }
 
     public Result<RunState> Abandon(RunState run)
@@ -368,9 +366,7 @@ internal sealed class EncounterRunActivityHandler : RunActivityHandlerBase
         // A prior failed attempt cannot complete a pending or newly reopened encounter.
         var latest = run.Encounters.LastOrDefault(encounter => encounter.NodeId == node.NodeId);
         if (latest == null || latest.Combat.IsActive) return false;
-        var policy = run.ResolvedMode?.ProgressionPolicy;
-        return policy?.EncounterRetry != RunEncounterRetryPolicy.RestartActivity ||
-            !policy.RetryableEncounterOutcomes.Contains(latest.Combat.Status);
+        return !RunEncounterAttempts.IsRetryable(run, latest.Combat.Status);
     }
 
     public override IReadOnlyList<RunAvailableCommand> GetAvailableCommands(RunState run, RunMapNodeState node)

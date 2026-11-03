@@ -1,0 +1,19 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/encounter_attempt_view.gd" id="Script"]
+[node name="EncounterAttempt" type="VBoxContainer"]
+visible = false
+theme_override_constants/separation = 12
+script = ExtResource("Script")
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+[node name="Description" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 3
+[node name="Reason" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 3
+[node name="AdjustBuild" type="Button" parent="."]
+layout_mode = 2
+size_flags_horizontal = 0
+text = "ADJUST BUILD"

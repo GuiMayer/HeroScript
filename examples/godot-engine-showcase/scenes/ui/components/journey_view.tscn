@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/activity_summary.tscn" id="Summary"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/activity_ending.tscn" id="Ending"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/activity_options.tscn" id="Options"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/encounter_attempt.tscn" id="Attempt"]
 [node name="JourneyView" type="VBoxContainer"]
 theme_override_constants/separation = 16
 script = ExtResource("Script")
@@ -17,6 +18,8 @@ theme_override_constants/separation = 22
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
+[node name="EncounterAttempt" parent="ActivityColumns/ActivityWorkspace" instance=ExtResource("Attempt")]
+layout_mode = 2
 [node name="ActivitySummary" parent="ActivityColumns/ActivityWorkspace" instance=ExtResource("Summary")]
 layout_mode = 2
 [node name="ActionScroll" type="ScrollContainer" parent="ActivityColumns/ActivityWorkspace"]

@@ -29,7 +29,7 @@ func context() -> Array:
 	var run: Dictionary = session.run
 	return [run.get("runId", ""), run.get("playerEntityId", ""), run.get("settingId", run.get("configName", "")), run.get("branchId", "")]
 func current() -> bool: return _alive and not str(identity[0]).is_empty() and context() == identity
-func can_leave() -> bool: return not busy and not uncertain and not session.has_pending_command
+func can_leave() -> bool: return not busy and not _reading and not _deck_reading and not uncertain and not session.has_pending_command
 func _session_changed() -> void:
 	if not busy and not _reading: refresh()
 func refresh() -> void:

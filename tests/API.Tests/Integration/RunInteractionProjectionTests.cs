@@ -11,6 +11,32 @@ namespace API.Tests.Integration;
 public sealed class RunInteractionProjectionTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RetrySummaryIsDerivedFromLatestCurrentAttemptWithoutExposingHistory(bool resolved)
+    {
+        var combat = new CombatState { CombatId = Guid.NewGuid(), Status = CombatStatus.DEFEAT };
+        var run = new RunState { CurrentNodeId = "fight", ActiveEncounterId = resolved ? null : combat.CombatId,
+            Encounters = [new() { NodeId = "old", Combat = combat },
+                new() { NodeId = "fight", Combat = combat, Resolved = resolved }],
+            ResolvedMode = new() { ProgressionPolicy = new() { EncounterRetry = RunEncounterRetryPolicy.RestartActivity,
+                RetryableEncounterOutcomes = [CombatStatus.DEFEAT] } } };
+        var before = CanonicalJson.ComputeHash(run);
+        var projected = RunInteractionProjection.Project(new(run));
+        var attempt = projected.GetProperty("encounterAttempt");
+        Assert.Equal(1, attempt.GetProperty("number").GetInt32());
+        Assert.Equal(combat.CombatId, attempt.GetProperty("combatId").GetGuid());
+        Assert.Equal(resolved, attempt.GetProperty("pendingRetry").GetBoolean());
+        Assert.Equal(!resolved, attempt.GetProperty("awaitingConfirmation").GetBoolean());
+        Assert.False(projected.TryGetProperty("encounters", out _));
+        Assert.Equal(before, CanonicalJson.ComputeHash(run));
+        Assert.Null(RunEncounterAttempts.Current(run with { Lifecycle = RunLifecycleState.Failed }));
+        Assert.Null(RunEncounterAttempts.Current(run with { Map = new() { ResolvedNodeIds = ["fight"] } }));
+        Assert.Null(RunEncounterAttempts.Current(run with { Encounters = run.Encounters.Add(new()
+            { NodeId = "fight", Combat = combat with { Status = CombatStatus.ACTIVE } }) }));
+    }
+
+    [Theory]
     [InlineData(CombatStatus.ACTIVE, 1)]
     [InlineData(CombatStatus.VICTORY, 3)]
     [InlineData(CombatStatus.DEFEAT, 3)]

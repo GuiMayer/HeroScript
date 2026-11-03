@@ -1,4 +1,10 @@
 {
+  "ATTEMPT %s · %s": "TENTATIVA %s · %s",
+  "ADJUST BUILD": "AJUSTAR BUILD",
+  "TRY AGAIN": "TENTAR NOVAMENTE",
+  "Your campaign and build are preserved. Adjust your build or try this encounter again.": "Sua campanha e build foram preservadas. Ajuste sua build ou tente este encontro novamente.",
+  "Confirm the result to prepare another attempt. Your campaign will continue.": "Confirme o resultado para preparar outra tentativa. Sua campanha continuará.",
+  "Outcome rule: %s": "Regra do resultado: %s",
   "DECK COMPARTMENTS": "COMPARTIMENTOS DO BARALHO",
   "DECK BUILD": "MONTAR BARALHO",
   "MOVE SELECTED": "MOVER SELECIONADA",
