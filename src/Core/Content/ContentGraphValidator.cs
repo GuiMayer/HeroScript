@@ -77,6 +77,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             var valid = policy.IsFailure ? Result.Failure(policy.Error) : policy.Value.Validate();
             if (valid.IsFailure) errors.Add($"deck-compartment-policies/{id}: {valid.Error}");
         }
+        BuildContentValidator.Validate(runtime, errors);
         ValidateModes(runtime, errors);
         foreach (var id in runtime.GetDefinitions("effect-resolution-policies").Keys)
         {

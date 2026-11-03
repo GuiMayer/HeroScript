@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://heroscript.local/schemas/build-composition-content.schema.json",
+  "title": "Build composition and support authoring contracts",
+  "description": "Standalone definitions. Cross references and relational bounds are validated at content publication. Runtime binding is opt-in when the executor is integrated.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/deck-composition-policy"
+    },
+    {
+      "$ref": "#/$defs/deck-module"
+    },
+    {
+      "$ref": "#/$defs/support"
+    },
+    {
+      "$ref": "#/$defs/support-routine"
+    },
+    {
+      "$ref": "#/$defs/support-loadout-policy"
+    },
+    {
+      "$ref": "#/$defs/card-zone-payment"
+    }
+  ],
+  "$defs": {
+    "symbol": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": ".*\\S.*"
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "groupId",
+        "minimum",
+        "maximum",
+        "allowDuplicateDefinitions"
+      ],
+      "properties": {
+        "groupId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "minimum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 512
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 512
+        },
+        "allowDuplicateDefinitions": {
+          "type": "boolean"
+        },
+        "cardIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true
+        },
+        "startingCardIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          }
+        },
+        "moduleIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true
+        },
+        "startingModuleId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "deck-composition-policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policyId",
+        "editWindows",
+        "groups"
+      ],
+      "properties": {
+        "policyId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "editWindows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "OutsideCombat",
+              "Preparation"
+            ]
+          }
+        },
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/group"
+          }
+        }
+      }
+    },
+    "deck-module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "moduleId",
+        "cardIds",
+        "startingCardIds"
+      ],
+      "properties": {
+        "moduleId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "cardIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "startingCardIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supportId",
+        "entityDefinitionId",
+        "routineIds",
+        "defaultRoutineId"
+      ],
+      "properties": {
+        "supportId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "entityDefinitionId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "routineIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "defaultRoutineId": {
+          "$ref": "#/$defs/symbol"
+        }
+      }
+    },
+    "support-routine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routineId",
+        "gambitIds"
+      ],
+      "properties": {
+        "routineId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "gambitIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        }
+      }
+    },
+    "support-loadout-policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policyId",
+        "editWindows",
+        "supportIds"
+      ],
+      "properties": {
+        "policyId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "editWindows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "OutsideCombat",
+              "Preparation"
+            ]
+          }
+        },
+        "supportIds": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "startingSupportId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "card-zone-payment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paymentId",
+        "sourceZoneId",
+        "targetZoneId"
+      ],
+      "properties": {
+        "paymentId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "sourceZoneId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "targetZoneId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 1
+        },
+        "allowResolvingCard": {
+          "type": "boolean",
+          "default": false
+        },
+        "requiredTags": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true
+        },
+        "excludedTags": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
