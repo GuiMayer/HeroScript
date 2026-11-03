@@ -20,3 +20,15 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
   - `MapLayoutProfile`: `caption_height`, `caption_gap`, `node_font_size`, `inspector_compact_breakpoint`, `inspector_min_width`, `inspector_max_width`, `inspector_width_ratio`, `inspector_compact_height`, `inspector_compact_bottom_offset`, `inspector_side_min_height`, `inspector_side_max_height`, `inspector_toggle_size`, `inspector_margin`.
   - `ActorPanel`: `battlefield_intent_height`, `battlefield_margin_vertical`, `compact_margin_vertical`, `battlefield_content_gap` e preservação de `_authored_intent_height` no modo completo.
 - Novo teste `tests/visual_authority_contract.gd` cobrindo edição observável de propriedades locais (`.tscn`) e de recursos exportados sem mudança na baseline visual (`ui_decoupling_baseline`).
+
+## Etapa 2 — Composição e contexto de tela
+
+- Contratos estreitos criados em `examples/godot-engine-showcase/scripts/ui/context/`:
+  - `navigation_port.gd` (`NavigationPort`): encapsula navegação de rotas, estado de leitura de mapa/diálogo e leases de cenário sem expor `router.shell` nem métodos privados do router.
+  - `session_port.gd` (`SessionPort`): adaptador estreito de leitura e comando sobre a sessão autoritativa (`GameSession`) ou sobre um stub em memória para testes isolados, sem criar um segundo serviço de sessão.
+  - `feedback_port.gd` (`FeedbackPort`): encapsula toasts, erros e eventos cosméticos de áudio (`GameAudio`).
+  - `playback_port.gd` (`PlaybackPort`): encapsula o cursor de apresentação (`Playback`).
+  - `screen_context.gd` (`ScreenContext`): agrega `visual_context`, `navigation`, `session`, `feedback`, `playback` e `i18n`, com fábricas `ScreenContext.ensure()`, `ScreenContext.from_router()` e `ScreenContext.isolated()`.
+- `VisualContext.English` estendido com `presentation()` e `error()` para satisfazer integralmente o contrato de tradução offline/isolado.
+- Tela piloto `scripts/ui/codex_screen.gd` migrada para consumir `ScreenContext` sem referenciar `GameSession`, `I18n` ou `GameAudio` diretamente, preservando compatibilidade com `setup(owner)`.
+- Novo teste `tests/screen_context_pilot.gd` validando abertura isolada com serviços falsos, cancelamento assíncrono (`request_epoch`) e execução em runtime com serviços reais.

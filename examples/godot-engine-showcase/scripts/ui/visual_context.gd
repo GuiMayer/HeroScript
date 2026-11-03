@@ -7,6 +7,12 @@ class English extends RefCounted:
 	func text(key: String) -> String: return key
 	func content_name(id: String, fallback := "") -> String: return fallback if not fallback.is_empty() else id.replace("_", " ").capitalize()
 	func number(value: float) -> String: return str(roundi(value)) if is_equal_approx(value, roundi(value)) else String.num(value, 3)
+	func presentation(source: Dictionary) -> Dictionary: return source.duplicate(true)
+	func error(result: Dictionary) -> String:
+		var key := str(result.get("errorKey", ""))
+		if key.is_empty(): return str(result.get("error", "Unknown engine error."))
+		var arguments: Array = result.get("errorArgs", [])
+		return text(key) % arguments if not arguments.is_empty() else text(key)
 var translator = English.new()
 var profile: Resource = preload("res://data/themes/ivory_run.tres")
 var scenery_profile: Resource = preload("res://scripts/ui/styles/scenery_visual_profile.gd").new()
