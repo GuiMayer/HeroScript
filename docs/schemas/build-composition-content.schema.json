@@ -117,6 +117,13 @@
           "items": {
             "$ref": "#/$defs/group"
           }
+        },
+        "revisionMigration": {
+          "type": "string",
+          "enum": [
+            "RejectRevisionChange",
+            "RebindCompatible"
+          ]
         }
       }
     },

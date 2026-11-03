@@ -115,6 +115,8 @@ public sealed record CardZoneFlowStepDefinition
 
 public sealed record CardZoneSelectionDefinition
 {
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? InstanceSetId { get; init; }
     private ImmutableArray<Guid> _instanceIds = [];
     private ImmutableArray<string> _definitionIds = [];
     private ImmutableArray<string> _requiredTags = [];

@@ -233,7 +233,10 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
             if (pinned.IsFailure) return Result<RunState>.Failure(pinned.Error);
             creationRuntime = pinned.Value;
         }
-        var deferStartup = creationRuntime?.ContainsGameplayResponses == true ||
+        if (resolvedMode.Definition.DeckCompositionPolicyId != null && creationRuntime == null)
+            return Result<RunState>.Failure("Deck composition requires a pinned content runtime");
+        var deferStartup = resolvedMode.Definition.DeckCompositionPolicyId != null ||
+            creationRuntime?.ContainsGameplayResponses == true ||
             Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations(resolvedMode.Definition) ||
             mapResult.Value.Nodes.Any(Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations) ||
             startingCards.SelectMany(card => card.Upgrades).Any(Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ContainsDeclarations);
@@ -300,6 +303,12 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 var loadouts = Loadouts.InscriptionAcquisition.Initialize(state, runtime.Value, [state.PlayerEntityId]);
                 if (loadouts.IsFailure) return Result<RunState>.Failure(loadouts.Error);
                 state = loadouts.Value;
+            }
+            if (state.ResolvedMode?.Definition.DeckCompositionPolicyId is { } compositionPolicy)
+            {
+                var composition = DeckLoadouts.DeckLoadoutPlanner.Initialize(state, runtime.Value, state.PlayerEntityId, compositionPolicy);
+                if (composition.IsFailure) return Result<RunState>.Failure(composition.Error);
+                state = composition.Value;
             }
             var cards = RunContentCompatibilityValidator.ValidateForActivation(state, runtime.Value);
             if (cards.IsFailure) return Result<RunState>.Failure(cards.Error);
@@ -1571,9 +1580,20 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                  stateBeforeInitialization.Determinism.Seed != combatState.Determinism.Seed))
                 return Result<RunState>.Failure("Pre-initialization combat state does not match the encounter");
 
+            DeckLoadouts.CapturedDeckLoadout? capturedComposition = null;
+            if (state.ResolvedMode?.Definition.DeckCompositionPolicyId != null)
+            {
+                if (_contentRuntimes == null) return Result<RunState>.Failure("Deck composition requires a pinned content runtime");
+                var runtime = _contentRuntimes.Resolve(state.Determinism.ContentRevision, state.ConfigName);
+                if (runtime.IsFailure) return Result<RunState>.Failure(runtime.Error);
+                var capture = DeckLoadouts.DeckLoadoutPlanner.Capture(state, runtime.Value, state.PlayerEntityId);
+                if (capture.IsFailure) return Result<RunState>.Failure(capture.Error);
+                capturedComposition = capture.Value;
+            }
             var encounter = new RunEncounterState
             {
                 NodeId = currentNode.NodeId,
+                DeckComposition = capturedComposition,
                 Combat = combatState
             };
             if (initializedRun != null && (initializedRun.RunId != state.RunId ||
@@ -2645,6 +2665,8 @@ public sealed partial class RunManager : IRunManager, IRunEncounterRuntime, ICon
                 return Result<RunState>.Failure("A run commit requires at least one transition frame");
             if (candidates.Any(candidate => candidate.State.DeckCompartments != null))
                 candidates = candidates.Select(candidate => (DeckCompartments.DeckCompartmentPlanner.ReconcileDestroyedCards(candidate.State), candidate.Step)).ToArray();
+            if (candidates.Any(candidate => candidate.State.DeckLoadout != null))
+                candidates = candidates.Select(candidate => (DeckLoadouts.DeckLoadoutPlanner.ReconcileDestroyedCards(candidate.State), candidate.Step)).ToArray();
             foreach (var candidate in candidates)
             {
                 var eligible = RunEligibility.ValidateCandidate(previous, candidate.State);

@@ -78,7 +78,7 @@ public static class DeckLoadoutPlanner
         Result<CapturedDeckLoadout> Fail(string error) => Result<CapturedDeckLoadout>.Failure(error);
         var scope = Scope(run, runtime, actorId);
         if (scope.IsFailure) return Fail(scope.Error);
-        if (run.DeckLoadout?.Actors.TryGetValue(actorId, out var actor) != true) return Fail("Deck composition is not initialized for this actor");
+        if (run.DeckLoadout?.Actors.TryGetValue(actorId, out var actor) != true || actor == null) return Fail("Deck composition is not initialized for this actor");
         if (actor.ActorId != actorId) return Fail("Composition actor identity mismatch");
         var policy = Policy(runtime, actor.PolicyId);
         if (policy.IsFailure) return Fail(policy.Error);

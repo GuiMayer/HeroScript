@@ -45,6 +45,8 @@ public sealed record GameModeDefinition : Core.GameplayEvents.Responses.IGamepla
     public string? LoadoutPolicyId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? DeckCompartmentPolicyId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DeckCompositionPolicyId { get; init; }
     public ImmutableSortedDictionary<string, string> DefaultCalculationPipelines { get; init; } =
         ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
 

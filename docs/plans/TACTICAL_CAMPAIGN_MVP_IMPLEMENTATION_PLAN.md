@@ -1,6 +1,6 @@
 # Plano de implementação do MVP — campanha tática, baralhos modulares e companions
 
-Data: 2026-11-02. Estado: **planejado; implementação não iniciada por este documento**.
+Data: 2026-11-02. Estado: **em execução — etapas 0–3 concluídas; etapas 4–17 pendentes**. Consulte [o registro de execução](TACTICAL_CAMPAIGN_MVP_IMPLEMENTATION_PROGRESS.md) para evidências e limites.
 
 Escopo: engine em `src/Core`, REST em `src/API`, conteúdo em `data/configs` e cliente `examples/godot-engine-showcase`.
 

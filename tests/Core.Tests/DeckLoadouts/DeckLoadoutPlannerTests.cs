@@ -26,7 +26,7 @@ public sealed class DeckLoadoutPlannerTests
         {
             var instances = Enumerable.Range(1, 6).ToDictionary(i => Id(i), i => new CardInstanceState
             { CardInstanceId = Id(i), OwnerId = "hero", DefinitionId = i == 6 ? "other" : "card", CreationOrdinal = (ulong)i,
-                Upgrades = i == 4 ? [new CardUpgradeState { UpgradeId = "preserved", TransformationId = 1 }] : [] });
+                Upgrades = i == 4 ? [new CardUpgradeState { UpgradeId = "preserved", TransformationId = 1, ContentRevision = Runtime.Manifest.Revision }] : [] });
             var zone = new CardZoneState { Address = new() { ZoneId = "neutral", OwnerId = "hero" }, InstanceIds = instances.Keys.ToArray() };
             return new() { ConfigName = "test", PlayerEntityId = "hero", Determinism = DeterministicContext.Create(23, Runtime.Manifest.Revision),
                 Deck = new() { Topology = new() { Instances = instances, Zones = new Dictionary<string, CardZoneState> { [zone.Address.Key] = zone } } } };

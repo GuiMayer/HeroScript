@@ -203,6 +203,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     if (valid.IsFailure) errors.Add($"modes/{id}: {valid.Error}");
                 }
             }
+            if (mode.Value.DeckCompositionPolicyId is { } compositionPolicyId)
+                Require(runtime, errors, "modes", id, compositionPolicyId, "deck-composition-policies");
             if (mode.Value.DeckCompartmentPolicyId is { } compartmentPolicyId)
                 Require(runtime, errors, "modes", id, compartmentPolicyId, "deck-compartment-policies");
             if (mode.Value.ProfileProgressProvenance is { } provenance && !Enum.IsDefined(provenance))

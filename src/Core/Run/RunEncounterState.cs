@@ -15,6 +15,8 @@ public sealed record RunEncounterState
 {
     public string NodeId { get; init; } = string.Empty;
     public CombatState Combat { get; init; } = new();
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public DeckLoadouts.CapturedDeckLoadout? DeckComposition { get; init; }
     public bool Resolved { get; init; }
     public string? Outcome { get; init; }
 }

@@ -15,6 +15,9 @@ public sealed record CardZoneFlowContext
     [System.Text.Json.Serialization.JsonIgnore]
     public RunState? RunSnapshot { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
+    public ImmutableDictionary<string, ImmutableArray<Guid>> InstanceSets { get; init; } =
+        ImmutableDictionary<string, ImmutableArray<Guid>>.Empty.WithComparers(StringComparer.Ordinal);
+    [System.Text.Json.Serialization.JsonIgnore]
     public Core.Combat.Models.CombatState? CombatSnapshot { get; init; }
     private ImmutableArray<Guid> _cardInstanceIds = [];
     private ImmutableArray<string> _cardDefinitionIds = [];
@@ -376,13 +379,23 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             }
             predicate = instance => matches.GetValueOrDefault(instance.CardInstanceId);
         }
+        if (step.Selection.InstanceSetId is { } setId)
+        {
+            if (!context.InstanceSets.TryGetValue(setId, out var set))
+                return Fail($"Card-zone instance set is unavailable: {setId}");
+            var membership = set.ToImmutableHashSet();
+            var previousPredicate = predicate;
+            predicate = instance => membership.Contains(instance.CardInstanceId) && (previousPredicate?.Invoke(instance) ?? true);
+            if (step.Selection.Strategy == CardZoneSelectionStrategy.All)
+                requested = Result<int>.Success(state.GetZone(source!)!.InstanceIds.Count(id => predicate(state.Instances[id])));
+        }
         if (step.Selection.SelectAllMatches)
         {
-            var zoneIds = state.GetZone(source!)!.InstanceIds;
+            var zoneIds = state.GetZone(source!)!.InstanceIds.Where(id => predicate?.Invoke(state.Instances[id]) ?? true).ToArray();
             requested = Result<int>.Success(step.Selection.Strategy == CardZoneSelectionStrategy.ByDefinition
                 ? zoneIds.Count(id => step.Selection.DefinitionIds.Contains(
                     state.Instances[id].DefinitionId, StringComparer.Ordinal))
-                : matches?.Count(pair => pair.Value) ?? 0);
+                : zoneIds.Count(id => matches?.GetValueOrDefault(id) == true));
         }
         var effectiveSelection = step.Selection with
         {

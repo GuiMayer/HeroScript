@@ -10,11 +10,15 @@ namespace Core.Run.DeckLoadouts;
 public sealed record DeckCompositionPolicyDefinition
 {
     public string PolicyId { get; init; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LoadoutRevisionMigration? RevisionMigration { get; init; }
     public ImmutableArray<LoadoutEquipmentWindow> EditWindows { get; init; } = [];
     public ImmutableArray<DeckCompositionGroupDefinition> Groups { get; init; } = [];
 
     public Result Validate(ContentRuntime runtime)
     {
+        if (RevisionMigration.HasValue && !Enum.IsDefined(RevisionMigration.Value))
+            return Result.Failure("Unsupported composition revision migration");
         if (!BuildDefinitionRules.Symbol(PolicyId) || Groups.IsDefaultOrEmpty || Groups.Length > 32 ||
             Groups.Any(g => g == null) || Groups.Select(g => g.GroupId).Distinct(StringComparer.Ordinal).Count() != Groups.Length ||
             EditWindows.IsDefaultOrEmpty || EditWindows.Any(w => !Enum.IsDefined(w) || w == LoadoutEquipmentWindow.Combat) ||

@@ -222,6 +222,10 @@ public static partial class CardZoneSystemCompiler
                 step.Operation is CardZoneOperation.Shuffle or CardZoneOperation.Reorder)
                 errors.Add($"{path}: unordered source zone cannot be shuffled or reordered");
         }
+        if (step.Selection.InstanceSetId is { } setId &&
+            (string.IsNullOrWhiteSpace(setId) || setId.Length > 128 ||
+             step.Operation is not (CardZoneOperation.Move or CardZoneOperation.Destroy)))
+            errors.Add($"{path}: instanceSetId requires a nonempty bounded ID and a move/destroy operation");
         if (step.Operation == CardZoneOperation.Reorder &&
             step.Selection.Strategy is not (CardZoneSelectionStrategy.All or CardZoneSelectionStrategy.Explicit))
             errors.Add($"{path}: reorder requires all or explicit selection");

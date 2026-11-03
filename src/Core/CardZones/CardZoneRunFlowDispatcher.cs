@@ -53,6 +53,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                InstanceSets = Core.Run.DeckLoadouts.DeckLoadoutZoneSets.Resolve(run),
                 CombatSnapshot = combatSnapshot ?? run.GetActiveEncounter()?.Combat,
                 CardInstanceIds = cardInstanceIds ?? [],
                 Variables = variables ?? new Dictionary<string, double>()
@@ -88,6 +89,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                InstanceSets = Core.Run.DeckLoadouts.DeckLoadoutZoneSets.Resolve(run),
                 CardInstanceIds = [cardInstanceId]
             });
     }
@@ -118,6 +120,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                InstanceSets = Core.Run.DeckLoadouts.DeckLoadoutZoneSets.Resolve(run),
                 CardInstanceIds = cardInstanceIds,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
@@ -157,6 +160,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                InstanceSets = Core.Run.DeckLoadouts.DeckLoadoutZoneSets.Resolve(run),
                 CardInstanceIds = cardInstanceIds,
                 Variables = new Dictionary<string, double>
                 {
@@ -198,6 +202,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                InstanceSets = Core.Run.DeckLoadouts.DeckLoadoutZoneSets.Resolve(run),
                 CardInstanceIds = cardInstanceIds,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
@@ -231,6 +236,7 @@ public static class CardZoneRunFlowDispatcher
                 ConfigName = run.ConfigName,
                 Eligibility = run.Eligibility,
                 RunSnapshot = run,
+                InstanceSets = Core.Run.DeckLoadouts.DeckLoadoutZoneSets.Resolve(run),
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
                 {

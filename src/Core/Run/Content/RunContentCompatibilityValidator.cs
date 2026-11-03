@@ -17,6 +17,28 @@ public static class RunContentCompatibilityValidator
         using var timing = Core.Diagnostics.OperationalTiming.Measure("content_compatibility");
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
+        if (run.DeckLoadout == null && run.ResolvedMode?.Definition.ModeId is { } existingMode &&
+            runtime.GetDefinition<GameModeDefinition>("modes", existingMode) is { IsSuccess: true } targetMode &&
+            targetMode.Value.DeckCompositionPolicyId != null)
+            return Result.Failure("Enabling deck composition on an existing run requires a new run");
+        if (run.DeckLoadout != null)
+        {
+            var changing = run.Determinism.ContentRevision != runtime.Manifest.Revision;
+            if (changing && run.ActiveEncounterId != null)
+                return Result.Failure("Content activation cannot replace a captured encounter composition");
+            var modeId = run.ResolvedMode?.Definition.ModeId;
+            var mode = modeId == null ? null : runtime.GetDefinition<GameModeDefinition>("modes", modeId);
+            if (mode?.IsFailure == true) return Result.Failure(mode.Error);
+            if (mode?.Value.DeckCompositionPolicyId is not { } policyId)
+                return Result.Failure("Target mode does not define the existing deck composition");
+            var policy = DeckLoadouts.DeckLoadoutPlanner.Policy(runtime, policyId);
+            if (policy.IsFailure) return Result.Failure(policy.Error);
+            if (changing && policy.Value.RevisionMigration != Loadouts.LoadoutRevisionMigration.RebindCompatible)
+                return Result.Failure("Composition policy rejects revision changes");
+            var candidate = run with { Determinism = run.Determinism.WithContentRevision(runtime.Manifest.Revision) };
+            var composition = DeckLoadouts.DeckLoadoutPlanner.Initialize(candidate, runtime, run.PlayerEntityId, policyId);
+            if (composition.IsFailure) return Result.Failure(composition.Error);
+        }
         if (run.DeckCompartments != null)
         {
             var window = DeckCompartments.DeckCompartmentAccess.CanChange(run, runtime);
@@ -131,6 +153,7 @@ public static class RunContentCompatibilityValidator
     }
 
     public static bool RequiresRuntime(RunState run) =>
+        run.DeckLoadout != null ||
         run.DeckCompartments != null ||
         run.Loadouts != null ||
         run.PlayerEntity != null ||

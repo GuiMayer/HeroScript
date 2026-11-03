@@ -21,6 +21,7 @@ internal static class RunCreationFlows
             FlowOwnerId = owner, RunOwnerId = "$run", ActiveActorId = state.PlayerEntityId,
             RunPlayerActorId = state.PlayerEntityId, ContentRevision = state.Determinism.ContentRevision,
             ConfigName = state.ConfigName, Eligibility = state.Eligibility, RunSnapshot = state,
+            InstanceSets = DeckLoadouts.DeckLoadoutZoneSets.Resolve(state),
             Variables = new Dictionary<string, double> { ["initialPlayableCardCount"] = playableCount }
         });
         return result.IsFailure ? Result<RunState>.Failure(result.Error)
