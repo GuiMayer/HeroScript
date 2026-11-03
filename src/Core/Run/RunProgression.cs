@@ -363,8 +363,15 @@ internal sealed class EncounterRunActivityHandler : RunActivityHandlerBase
     };
     protected override bool RequiresDefinition => false;
 
-    public override bool IsComplete(RunState run, RunMapNodeState node) => run.Encounters.Any(encounter =>
-        encounter.NodeId == node.NodeId && !encounter.Combat.IsActive);
+    public override bool IsComplete(RunState run, RunMapNodeState node)
+    {
+        // A prior failed attempt cannot complete a pending or newly reopened encounter.
+        var latest = run.Encounters.LastOrDefault(encounter => encounter.NodeId == node.NodeId);
+        if (latest == null || latest.Combat.IsActive) return false;
+        var policy = run.ResolvedMode?.ProgressionPolicy;
+        return policy?.EncounterRetry != RunEncounterRetryPolicy.RestartActivity ||
+            !policy.RetryableEncounterOutcomes.Contains(latest.Combat.Status);
+    }
 
     public override IReadOnlyList<RunAvailableCommand> GetAvailableCommands(RunState run, RunMapNodeState node)
     {

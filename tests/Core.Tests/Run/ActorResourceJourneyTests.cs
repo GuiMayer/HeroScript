@@ -27,7 +27,7 @@ using Xunit;
 
 namespace Core.Tests.Run;
 
-public sealed class ActorResourceJourneyTests
+public sealed partial class ActorResourceJourneyTests
 {
     [Fact]
     public void ExplicitParticipantBindingSupportsCustomIdentityAndRejectsAliasOrOwnerCollisions()

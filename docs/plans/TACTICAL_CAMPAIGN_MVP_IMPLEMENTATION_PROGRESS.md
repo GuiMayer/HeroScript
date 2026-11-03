@@ -86,6 +86,16 @@ Validação: **71 testes Core**, **2 testes API** e **71 verificações Godot of
 
 Contratos: [API de pagamentos](../api/card-payments.md) e [autoria](../guides/card-zone-payments.md).
 
+## Etapa 7 — Tentativas persistentes
+
+Estado: concluída em 2026-11-03.
+
+Reutilizados RestartActivity, lifecycle por recurso, histórico RunEncounterState/CombatId, captura de build e stream determinístico da campanha. Não foi criado contador/ledger concorrente nem reset implícito de recursos. Documentada a matriz de permanência e autoria em [tentativas](../guides/encounter-attempts.md).
+
+Corrigida a consulta de conclusão: usa a tentativa mais recente e a política de retry vinculada à run. Uma derrota retryable ou uma tentativa atual ativa não é concluída por um combate anterior encerrado. O fluxo de resolução mantém o nó pendente e não executa recompensas/saída na derrota retryable.
+
+Validação: **88 testes Core aprovados**, zero falhas/skips. Incluem quatro resultados, restauração configurada, preservação de materiais/estado permanente, idempotência, restart, dez replays semânticos por jornada, nova tentativa consumindo o próximo seed, abertura inválida sem publicação, captura de loadout e limpeza de zonas/instâncias temporárias já existentes. Testes usam stores próprios; nenhum save do jogador foi tocado. Evidência: `.runtime/tactical-mvp/results/stage07.trx`.
+
 ## Próxima etapa
 
-Etapa 7: política de tentativa e retry persistente. Etapas 7–17 permanecem pendentes.
+Etapa 8: fluxo de derrota, preparação e retomada na Godot. Etapas 8–17 permanecem pendentes.
