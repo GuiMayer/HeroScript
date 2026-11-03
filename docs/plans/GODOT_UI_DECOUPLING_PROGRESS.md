@@ -53,3 +53,10 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
   - `ActorPanel` (`scripts/ui/actor_panel.gd`): adicionados seletores públicos `resource_view()`, `resource_counter()` e `status_badge()` sobre os containers autorados `%ActorResources`, `%ActorCounters` e `%ActorStatusBadges`.
   - `ActivityOptionsView` (`scripts/ui/components/activity_options_view.gd`), `JourneyView` (`scripts/ui/journey_view.gd`) e `activity_screen.gd`: substituído acesso a `_choice_label` pela API pública `choice_label()` e vinculado `_action_scroll` diretamente em `_bind_nodes()`.
 - Suíte de editabilidade, catálogo e laboratórios validada (`editable_ui_nodes`, `editable_card_inspection`, `editable_character_attributes`, `combat_attributes_drawer`, `editable_activity_scenes`, `card_style_canonical`, `workbench_smoke`, `screen_catalog_full`).
+
+## Etapa 5 — Layout responsivo do mapa e combate
+
+- Cálculo puro de geometria do inspetor flutuante e extensão do canvas do mapa consolidado em `MapLayout` (`scripts/presentation/map_layout.gd`: `inspector_geometry` e `canvas_extent`).
+- Encapsulamento do estado geométrico de `RouteView` (`scripts/ui/route_view.gd`) por meio das APIs públicas `geometry_snapshot()`, `has_node_rect()`, `node_rect()`, `node_button_center()` e `set_initial_focus_node()`, removendo acessos privados a `route._geometry` e mutação externa de metadados de foco em `MapView` (`scripts/ui/map_view.gd`).
+- Cálculos responsivos de offsets de dock flutuante, painel de candidatos, preview flutuante e rodapé de campo de batalha concentrados em `CombatLayoutMetrics.stage_layout()` (`scripts/presentation/combat_layout_metrics.gd`) e consumidos por `CombatView._layout_gameplay()` (`scripts/ui/combat_view.gd`).
+- Validação aprovada sem deriva na baseline: `map_geometry`, `map_graph_view`, `map_camera`, `map_camera_motion`, `editable_map_scenes`, `editable_combat_shell`, `visual_authority_contract` e `ui_decoupling_baseline`.

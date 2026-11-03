@@ -2,6 +2,7 @@
 extends "res://scripts/ui/screen_view.gd"
 ## Read-only map inspection and explicit semantic actions. No rule evaluation.
 signal intent_requested(action: String, arguments: Array)
+const MapLayout = preload("res://scripts/presentation/map_layout.gd")
 var route
 var _scroll: ScrollContainer
 var _inspector: VBoxContainer
@@ -70,9 +71,10 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 	if key != _model_key:
 		_model_key = key.duplicate(true)
 		route.visual_context = context
-		var previous_geometry: Dictionary = route._geometry
+		var previous_geometry: Dictionary = route.geometry_snapshot()
 		route.setup(nodes)
-		geometry_changed = route._geometry.get("rects", {}) != previous_geometry.get("rects", {}) or route._geometry.get("bounds", Vector2.ZERO) != previous_geometry.get("bounds", Vector2.ZERO)
+		var next_geometry: Dictionary = route.geometry_snapshot()
+		geometry_changed = next_geometry.get("rects", {}) != previous_geometry.get("rects", {}) or next_geometry.get("bounds", Vector2.ZERO) != previous_geometry.get("bounds", Vector2.ZERO)
 		_update_extent()
 	if progressed or not nodes.any(func(node): return node.id == _selected): _selected = current
 	if _selected.is_empty() and not nodes.is_empty(): _selected = str(nodes[0].id)
@@ -122,15 +124,11 @@ func _layout_inspector() -> void:
 	_inspector_panel.visible = _inspector_open
 	_inspector_toggle.text = "›" if _inspector_open else "‹"
 	var profile = route.layout_profile if is_instance_valid(route) and route.layout_profile != null else preload("res://scripts/ui/styles/map_layout_profile.gd").new()
-	var width := minf(profile.inspector_max_width, maxf(profile.inspector_min_width, _body.size.x * profile.inspector_width_ratio))
-	if _body.size.x < profile.inspector_compact_breakpoint:
-		_inspector_panel.position = Vector2(profile.inspector_margin, maxf(0, _body.size.y - profile.inspector_compact_bottom_offset))
-		_inspector_panel.size = Vector2(maxf(0, _body.size.x - profile.inspector_toggle_size.x - profile.inspector_margin * 2.5), profile.inspector_compact_height)
-	else:
-		_inspector_panel.position = Vector2(maxf(0, _body.size.x - width - profile.inspector_toggle_size.x - profile.inspector_margin), profile.inspector_margin)
-		_inspector_panel.size = Vector2(width, clampf(_body.size.y - profile.inspector_margin * 2, profile.inspector_side_min_height, profile.inspector_side_max_height))
-	_inspector_toggle.position = Vector2(maxf(0, _body.size.x - profile.inspector_toggle_size.x), profile.inspector_margin)
-	_inspector_toggle.size = profile.inspector_toggle_size
+	var metrics := MapLayout.inspector_geometry(_body.size, profile)
+	_inspector_panel.position = metrics.panel_position
+	_inspector_panel.size = metrics.panel_size
+	_inspector_toggle.position = metrics.toggle_position
+	_inspector_toggle.size = metrics.toggle_size
 	_update_extent()
 
 func _usable_size() -> Vector2: return _scroll.size
@@ -229,18 +227,17 @@ func _restore_progress_frame(previous: String, current: String, ticket: int) -> 
 	if not route.buttons.has(previous) or not route.buttons.has(current): return
 	_update_extent()
 	_camera_restore_from = ""
-	_scroll_to(route.buttons[previous].position + route.buttons[previous].size * .5)
-	_scroll_to(route.buttons[current].position + route.buttons[current].size * .5, true)
+	_scroll_to(route.node_button_center(previous))
+	_scroll_to(route.node_button_center(current), true)
 
 func _update_extent() -> void:
 	if not is_instance_valid(_canvas): return
 	# Symmetric camera gutters allow even first/last nodes to occupy screen center.
 	# Inspector visibility never participates in map extent, scale or framing.
-	route.position = _scroll.size * .5
-	_canvas.custom_minimum_size = route.custom_minimum_size + _scroll.size
-	for id in route.buttons:
-		if str(id) == navigation.current: route.buttons[id].set_meta("initial_focus", true)
-		elif route.buttons[id].has_meta("initial_focus"): route.buttons[id].remove_meta("initial_focus")
+	var extent := MapLayout.canvas_extent(route.custom_minimum_size, _scroll.size)
+	route.position = extent.route_position
+	_canvas.custom_minimum_size = extent.canvas_minimum_size
+	route.set_initial_focus_node(navigation.current)
 
 func _scroll_to(point: Vector2, smooth := false) -> void:
 	var offset := camera.offset_for(point + route.position, _scroll.size, _canvas.custom_minimum_size)
@@ -316,15 +313,14 @@ func _notification(what: int) -> void:
 func _reveal_node(id: String) -> void:
 	if not _camera_restore_from.is_empty(): return
 	if id == navigation.current and _camera_tween != null and _camera_tween.is_valid(): return
-	if not route._geometry.rects.has(id): return
-	var rect: Rect2 = route._geometry.rects[id]
+	if not route.has_node_rect(id): return
+	var rect: Rect2 = route.node_rect(id)
 	var visible_rect := Rect2(Vector2(_scroll.scroll_horizontal, _scroll.scroll_vertical) - route.position, _usable_size())
 	if not visible_rect.encloses(rect): _place_frame.call_deferred(rect.get_center(), true)
 func _center_node(id: String, smooth := false) -> void:
 	if not is_inside_tree() or not route.buttons.has(id): return
 	_update_extent()
-	var button: Button = route.buttons[id]
-	_place_frame.call_deferred(button.position + button.size * .5, smooth)
+	_place_frame.call_deferred(route.node_button_center(id), smooth)
 func _center_current(smooth := false) -> void:
 	# Initial layout/focus callbacks must not flash the new stop for a frame
 	# before the restored transition begins at the previous stop.

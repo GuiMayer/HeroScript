@@ -108,30 +108,36 @@ func _layout_gameplay() -> void:
 	_gameplay_layout_pending = false
 	if not is_inside_tree() or not is_instance_valid(bottom_hud): return
 	var height := bottom_hud.get_combined_minimum_size().y
+	var hand_min_height := hand_section.get_combined_minimum_size().y if is_instance_valid(hand_section) else 0.0
+	var toolbar_height: float = hand.toolbar.get_combined_minimum_size().y if is_instance_valid(hand) and is_instance_valid(hand.toolbar) else 0.0
+	var turn_controls_node: Control = bottom_hud.get_node_or_null("TurnControls")
+	var turn_height: float = turn_controls_node.get_combined_minimum_size().y if is_instance_valid(turn_controls_node) else 0.0
+	var stage_metrics: Dictionary = preload("res://scripts/presentation/combat_layout_metrics.gd").stage_layout(
+		gameplay_column.size, height, hand_min_height, toolbar_height, turn_height, layout_profile)
 	if is_instance_valid(hand_section):
-		var metrics: Dictionary = preload("res://scripts/presentation/combat_layout_metrics.gd").calculate(gameplay_column.size, Vector2(0, hand_section.get_combined_minimum_size().y), height - hand_section.get_combined_minimum_size().y, layout_profile)
 		hand_section.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		hand_section.custom_minimum_size.x = metrics.hand_width
-	bottom_hud.offset_top = -height
+		hand_section.custom_minimum_size.x = float(stage_metrics.get("hand_width", 0.0))
+	bottom_hud.offset_top = float(stage_metrics.get("bottom_hud_top", -height))
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
 		if is_instance_valid(character_sidebar):
 			character_sidebar.fit_bounds(gameplay_column.get_global_rect(), layout_profile.sidebar_width, layout_profile.sidebar_height)
 		if is_instance_valid(candidate_panel):
-			var dock_height: float = hand.toolbar.get_combined_minimum_size().y + bottom_hud.get_node("TurnControls").get_combined_minimum_size().y + layout_profile.floating_dock_gap
-			candidate_panel.offset_bottom = -dock_height
-			candidate_panel.offset_top = -dock_height - layout_profile.candidate_height
-			candidate_panel.offset_right = layout_profile.candidate_width
+			candidate_panel.offset_bottom = float(stage_metrics.get("candidate_bottom", 0.0))
+			candidate_panel.offset_top = float(stage_metrics.get("candidate_top", 0.0))
+			candidate_panel.offset_right = float(stage_metrics.get("candidate_right", layout_profile.candidate_width))
 	if is_instance_valid(_feedback_column) and layout_profile.preview_placement == "floating_left":
 		_feedback_column.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-		var dock_height: float = hand.toolbar.get_combined_minimum_size().y + turn_view.get_combined_minimum_size().y + layout_profile.floating_dock_gap
-		_feedback_column.offset_right = layout_profile.preview_width
-		_feedback_column.offset_bottom = -dock_height
-		_feedback_column.offset_top = -dock_height - layout_profile.floating_preview_height
+		var preview_turn_height: float = turn_view.get_combined_minimum_size().y if is_instance_valid(turn_view) else turn_height
+		var preview_metrics: Dictionary = preload("res://scripts/presentation/combat_layout_metrics.gd").stage_layout(
+			gameplay_column.size, height, hand_min_height, toolbar_height, preview_turn_height, layout_profile)
+		_feedback_column.offset_right = float(preview_metrics.get("floating_preview_right", layout_profile.preview_width))
+		_feedback_column.offset_bottom = float(preview_metrics.get("floating_preview_bottom", 0.0))
+		_feedback_column.offset_top = float(preview_metrics.get("floating_preview_top", 0.0))
 	# The scenery extends behind the floating hand, but actor information stays
 	# above even the raised cards. No rules or card count limits affect this layout.
 	if is_instance_valid(battlefield_actors):
-		battlefield_actors.offset_bottom = -height - layout_profile.safe_margin
+		battlefield_actors.offset_bottom = float(stage_metrics.get("battlefield_bottom", -height - layout_profile.safe_margin))
 		var available := battlefield_actors.size.y
 		if battlefield_actors.get_h_scroll_bar().visible: available -= battlefield_actors.get_h_scroll_bar().size.y
 		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):

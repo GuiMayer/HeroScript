@@ -108,6 +108,30 @@ func calculate(nodes: Array, profile: Resource) -> Dictionary:
 	_result = {"rects": rects, "markers": markers, "edges": edges, "bounds": bounds, "cyclic": cyclic, "diagnostics": diagnostics}
 	return _result.duplicate(true)
 
+static func inspector_geometry(body_size: Vector2, profile: Resource) -> Dictionary:
+	var width := minf(profile.inspector_max_width, maxf(profile.inspector_min_width, body_size.x * profile.inspector_width_ratio))
+	var panel_pos: Vector2
+	var panel_size: Vector2
+	if body_size.x < profile.inspector_compact_breakpoint:
+		panel_pos = Vector2(profile.inspector_margin, maxf(0, body_size.y - profile.inspector_compact_bottom_offset))
+		panel_size = Vector2(maxf(0, body_size.x - profile.inspector_toggle_size.x - profile.inspector_margin * 2.5), profile.inspector_compact_height)
+	else:
+		panel_pos = Vector2(maxf(0, body_size.x - width - profile.inspector_toggle_size.x - profile.inspector_margin), profile.inspector_margin)
+		panel_size = Vector2(width, clampf(body_size.y - profile.inspector_margin * 2, profile.inspector_side_min_height, profile.inspector_side_max_height))
+	var toggle_pos := Vector2(maxf(0, body_size.x - profile.inspector_toggle_size.x), profile.inspector_margin)
+	return {
+		"panel_position": panel_pos,
+		"panel_size": panel_size,
+		"toggle_position": toggle_pos,
+		"toggle_size": profile.inspector_toggle_size
+	}
+
+static func canvas_extent(route_bounds: Vector2, viewport_size: Vector2) -> Dictionary:
+	return {
+		"route_position": viewport_size * .5,
+		"canvas_minimum_size": route_bounds + viewport_size
+	}
+
 
 func _strong_components(graph: Dictionary, ids: Array) -> Array:
 	# Iterative Kosaraju: stable IDs, no recursion depth dependence, O(V+E).

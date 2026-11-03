@@ -126,6 +126,25 @@ func set_hover(id: String) -> void:
 	if _hovered == id: return
 	_hovered = id; queue_redraw()
 
+func geometry_snapshot() -> Dictionary:
+	return {"rects": _geometry.get("rects", {}).duplicate(true), "bounds": _geometry.get("bounds", Vector2.ZERO)}
+
+func has_node_rect(id: String) -> bool:
+	return _geometry.get("rects", {}).has(id)
+
+func node_rect(id: String) -> Rect2:
+	return _geometry.get("rects", {}).get(id, Rect2())
+
+func node_button_center(id: String) -> Vector2:
+	return buttons[id].position + buttons[id].size * .5 if buttons.has(id) else Vector2.ZERO
+
+func set_initial_focus_node(current_id: String) -> void:
+	for id in buttons:
+		if str(id) == current_id:
+			buttons[id].set_meta("initial_focus", true)
+		elif buttons[id].has_meta("initial_focus"):
+			buttons[id].remove_meta("initial_focus")
+
 func highlight_kind(kind: String) -> void:
 	_highlight_kind = kind
 	queue_redraw()
