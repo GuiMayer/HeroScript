@@ -30,10 +30,13 @@ export function checkManifest(manifest, policy) {
 
 export async function importDocs() {
   const repo = path.resolve(process.env.DOCS_REPOSITORY || path.join(siteRoot, '..'));
-  const requested = process.env.DOCS_SOURCE_SHA || 'main';
+  let canonical = 'origin/main';
+  if (!process.env.CI) {
+    try { git(repo, 'rev-parse', '--verify', '--quiet', 'refs/heads/main'); canonical = 'main'; } catch { /* A portal-only clone has only origin/main. */ }
+  }
+  const requested = process.env.DOCS_SOURCE_SHA || canonical;
   if (!/^(main|origin\/main|[a-f0-9]{40})$/.test(requested)) throw new Error('Source must be main or a full commit SHA');
   const sha = git(repo, 'rev-parse', '--verify', `${requested}^{commit}`).toString().trim();
-  const canonical = process.env.CI ? 'origin/main' : 'main';
   git(repo, 'merge-base', '--is-ancestor', sha, canonical);
   const siteSha = git(siteRoot, 'rev-parse', 'HEAD').toString().trim();
   const manifest = JSON.parse(await readFile(path.join(siteRoot, 'docs-manifest.json'), 'utf8'));

@@ -25,7 +25,7 @@ npm run smoke
 npm run serve
 ```
 
-A importação usa exclusivamente o Git. O repositório precisa ter o histórico de main disponível. Em clone separado da fonte, configure `DOCS_REPOSITORY` para esse clone; `DOCS_SOURCE_SHA` aceita um commit completo pertencente à main. Nunca são lidos artigos ainda não commitados. O teste de integração regenera os arquivos: não execute build e testes simultaneamente.
+A importação usa exclusivamente o Git. O repositório precisa ter o histórico de main disponível (`git fetch origin main`). Em clone somente do portal, usa `origin/main`; em checkout com main local, usa essa revisão local. Em clone separado da fonte, configure `DOCS_REPOSITORY` para esse clone; `DOCS_SOURCE_SHA` aceita um commit completo pertencente à main. Nunca são lidos artigos ainda não commitados. O teste de integração regenera os arquivos: não execute build e testes simultaneamente.
 
 ## Edição e descoberta
 
