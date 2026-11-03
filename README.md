@@ -1,5 +1,8 @@
 # HeroScript
 
+📚 **Documentação:** [Consumir a API](https://guimayer.github.io/HeroScript/api/) · [Desenvolver](https://guimayer.github.io/HeroScript/developers/) · [Referências](https://guimayer.github.io/HeroScript/reference/)
+
+
 Engine headless e data-driven para jogos de cartas e roguelikes, com regras
 autoritativas expostas por uma API REST.
 
