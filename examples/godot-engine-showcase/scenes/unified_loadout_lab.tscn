@@ -6,7 +6,8 @@
 
 [ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/inscriptions_editorial.tscn" id="Inscriptions"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_summary.tscn" id="Summary"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/planned_companions.tscn" id="Companions"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/support_workbench.tscn" id="Companions"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/deck_composition.tscn" id="Composition"]
 [node name="UnifiedLoadoutLab" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -26,7 +27,7 @@ size_flags_horizontal = 3
 shared_attributes = true
 [node name="DeckScroll" type="ScrollContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost"]
 horizontal_scroll_mode = 0
-[node name="Cards" type="HFlowContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/DeckScroll"]
+[node name="Composition" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/DeckScroll" instance=ExtResource("Composition")]
 layout_mode = 2
 size_flags_horizontal = 3
 [node name="Overview" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost" instance=ExtResource("Summary")]

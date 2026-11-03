@@ -1,4 +1,73 @@
 {
+  "prototype_void": {
+    "en": "Void module",
+    "pt_BR": "Módulo Void"
+  },
+  "prototype_necro": {
+    "en": "Necro module",
+    "pt_BR": "Módulo Necro"
+  },
+  "prototype_sentinel": {
+    "en": "Tactical sentinel",
+    "pt_BR": "Sentinela tática"
+  },
+  "prototype_support_finish": {
+    "en": "Finish",
+    "pt_BR": "Finalizar"
+  },
+  "prototype_support_pressure": {
+    "en": "Pressure",
+    "pt_BR": "Pressionar"
+  },
+  "prototype_strike": {
+    "en": "Thermal cut",
+    "pt_BR": "Corte térmico"
+  },
+  "prototype_guard": {
+    "en": "Thermal guard",
+    "pt_BR": "Guarda térmica"
+  },
+  "prototype_scorch": {
+    "en": "Scorch",
+    "pt_BR": "Incendiar"
+  },
+  "prototype_soak": {
+    "en": "Soak",
+    "pt_BR": "Encharcar"
+  },
+  "prototype_coolant": {
+    "en": "Coolant",
+    "pt_BR": "Resfriamento"
+  },
+  "prototype_condense": {
+    "en": "Condense",
+    "pt_BR": "Condensar"
+  },
+  "prototype_void_bolt": {
+    "en": "Void bolt",
+    "pt_BR": "Disparo Void"
+  },
+  "prototype_void_guard": {
+    "en": "Void guard",
+    "pt_BR": "Guarda Void"
+  },
+  "prototype_void_condense": {
+    "en": "Void release",
+    "pt_BR": "Liberação Void"
+  },
+  "prototype_necro_bolt": {
+    "en": "Necro bolt",
+    "pt_BR": "Disparo Necro"
+  },
+  "prototype_necro_guard": {
+    "en": "Necro guard",
+    "pt_BR": "Guarda Necro"
+  },
+  "prototype_necro_condense": {
+    "en": "Necro release",
+    "pt_BR": "Liberação Necro"
+  },
+
   "w1_power_surge": {
 	"en": "Power Surge",
 	"pt_BR": "Surto de energia"

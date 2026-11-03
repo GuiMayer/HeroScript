@@ -172,6 +172,14 @@ Briefings e conclusão escrevem flags duráveis através de escolhas canônicas.
 
 Validação: **21 verificações Godot com API real** aprovadas, desde o lançamento normal e diálogo inicial até o combate, retenção e suporte. Percurso API usa ações legais e comandos normais; provoca derrota(s) no chefe, equipa inscrições na preparação e continua até completar as três vitórias. A jornada API passou com reinício do host e replay semântico reexecutado com hash final idêntico. Mais **82 verificações Godot offline** passaram para diálogos, retry, mapa e loadout. IDs dos comandos do roteiro são fixos; nenhum estado foi editado para vencer. Evidências: `stage14-online-final.log`, `stage14-api.log` e `stage14-godot.log`, sob `.runtime/tactical-mvp`.
 
+## Etapa 15 — Catálogo e apresentação integrada
+
+Estado: concluída em 2026-11-03; aprovação manual/playtest permanece no gate final.
+
+Laboratório unificado usa as mesmas cenas de composição/reserva/módulo e suporte da run. Não monta mais o placeholder de companion. Uma captura somente leitura da API, com origem/revisão/seed documentadas, exibe as 27 instâncias, seleção 15+5, dois módulos, duas rotinas e cadência. Não é fallback de campanha nem executor offline. Mantidos CardView, atributos, seletores, pagamento, layouts e animações existentes. Incluídos nomes EN/PT para o conteúdo do MVP.
+
+Validação: **570 verificações de regressão Godot**, **20 novas verificações do catálogo** e **153 verificações de animação/ciclo da mão**, todas aprovadas. Nova rodada final de 111 verificações repetiu catálogo, layout e gestos após as traduções. Cobertura inclui 1280×720/1920×1080/2560×1080, EN/PT-BR, escala de texto, foco por teclado/controle, drag contextual, autosave, pagamento, atributos flutuantes, cancelamento/skip/pausa e movimento reduzido sem espera fictícia. Evidências: `.runtime/tactical-mvp/stage15-*.log`. Guia: [validação de UI](../guides/tactical-mvp-ui-validation.md).
+
 ## Próxima etapa
 
-Etapa 15: legibilidade e catálogo. Etapas 15–17 permanecem pendentes; playtest externo e balanceamento não foram certificados.
+Etapa 16: certificação transversal de determinismo, persistência e desempenho. Etapas 16–17 permanecem pendentes; playtest externo e balanceamento não foram certificados.

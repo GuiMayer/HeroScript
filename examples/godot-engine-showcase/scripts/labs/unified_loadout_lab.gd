@@ -3,6 +3,8 @@ extends Control
 signal back_requested
 var shell
 var draft = preload("res://scripts/labs/inscription_loadout_draft.gd").new()
+var composition_view
+var support_view
 var inscriptions_view
 func _ready() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n).derive(preload("res://data/themes/ivory_theme.tres"))
@@ -23,18 +25,18 @@ func _ready() -> void:
 	inscriptions_view.clear_requested.connect(func(): draft.clear(); _refresh())
 	inscriptions_view.search_requested.connect(func(value): draft.search = value; _refresh())
 	var deck_scroll = shell.content.get_node("DeckScroll")
-	var cards = deck_scroll.get_node("Cards")
-	var hand_fixture = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/card_hand_lab.json"))
-	for id in ["strike", "ward", "fireball", "heal", "arcane"]:
-		var model: Dictionary = hand_fixture.cards[id].duplicate(true)
-		if I18n.locale == "pt_BR" and model.get("pt_BR") is Dictionary: model.merge(model.pt_BR, true)
-		model.erase("availability")
-		var card = preload("res://scripts/ui/card_view.gd").create(context); card.animate_entry = false; card.configure(model); cards.add_child(card)
+	# A captured REST projection, never a fallback for a real campaign.
+	var tactical: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/tactical_build_lab.json"))
+	composition_view = deck_scroll.get_node("Composition"); composition_view.mount(context)
+	composition_view.present(tactical.deck)
 	shell.install("deck", deck_scroll)
+	var active_count := 0
+	for group in tactical.deck.selection.groups.values(): active_count += group.size()
 	for id in ["overview", "relics"]:
 		var summary = shell.content.get_node("Relics" if id == "relics" else "Overview"); summary.mount(context); summary.relics_only = id == "relics"
-		summary.module_requested.connect(shell.select); summary.present({"equipped": 3, "cards": 5, "relics": []}); shell.install(id, summary)
-	var planned = shell.content.get_node("Companions"); planned.mount(context); shell.install("companions", planned)
+		summary.module_requested.connect(shell.select); summary.present({"equipped": 3, "cards": active_count, "relics": []}); shell.install(id, summary)
+	support_view = shell.content.get_node("Companions"); support_view.mount(context)
+	support_view.present(tactical.support, false); shell.install("companions", support_view)
 	_refresh()
 	shell.set_feedback("Visual laboratory — no run changes"); shell.select("overview")
 func _refresh() -> void:
