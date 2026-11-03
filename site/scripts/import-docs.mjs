@@ -91,7 +91,7 @@ export async function importDocs() {
       if (bySource.has(target)) {
         node.url = path.posix.relative(path.posix.dirname(entry.source), target) + fragment;
       } else if (node.type === 'image' || /\.(json|ya?ml|http)$/.test(target)) {
-        node.url = await asset(target) + fragment;
+        node.url = 'pathname://' + await asset(target) + fragment;
       } else {node.url = sourceUrl(target) + fragment;}
     }
     const metadata = `---\ntitle: ${JSON.stringify(entry.title)}\nslug: ${JSON.stringify(entry.slug)}\nedit_url: ${JSON.stringify(`https://github.com/${policy.repository}/edit/main/${entry.source}`)}\n---\n`;

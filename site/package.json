@@ -11,13 +11,16 @@
     "serve": "docusaurus serve",
     "typecheck": "tsc --noEmit",
     "prepare:docs": "node scripts/import-docs.mjs && node scripts/generate-reference.mjs",
-    "test": "node --test scripts/*.test.mjs"
+    "test": "node --test scripts/*.test.mjs",
+    "clear": "docusaurus clear",
+    "validate": "node scripts/validate-docs.mjs"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",
     "@docusaurus/preset-classic": "3.10.2",
     "@docusaurus/theme-mermaid": "3.10.2",
     "@mermaid-js/layout-elk": "0.1.9",
+    "parse5": "7.3.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "remark-gfm": "4.0.1",

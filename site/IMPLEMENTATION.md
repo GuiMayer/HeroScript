@@ -23,3 +23,7 @@ Trilhas de autoria, internals e operação, com links aos sistemas. Corrigidos n
 ## 7 — Referências
 
 Operações e schemas REST gerados sem expansão recursiva; AsyncAPI/SSE, três schemas de autoria e cinco exemplos HTTP do mesmo SHA. Sem execução de requests no portal.
+
+## 8 — Links e Markdown
+
+Prefixos de rotas normalizados, links internos por arquivo/âncora e downloads com pathname explícito para evitar slash em JSON/HTTP. O build mantém links quebrados como erro.

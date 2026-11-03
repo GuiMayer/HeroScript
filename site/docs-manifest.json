@@ -28,7 +28,7 @@
     {
       "source": "docs/api/README.md",
       "docId": "api/README",
-      "slug": "/api/api/index/",
+      "slug": "/api/index/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "HeroScript API v1"
@@ -36,7 +36,7 @@
     {
       "source": "docs/api/authentication.md",
       "docId": "api/authentication",
-      "slug": "/api/api/authentication/",
+      "slug": "/api/authentication/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Autenticação e administração"
@@ -44,7 +44,7 @@
     {
       "source": "docs/api/card-payments.md",
       "docId": "api/card-payments",
-      "slug": "/api/api/card-payments/",
+      "slug": "/api/card-payments/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Card payment selection"
@@ -52,7 +52,7 @@
     {
       "source": "docs/api/changelog.md",
       "docId": "api/changelog",
-      "slug": "/api/api/changelog/",
+      "slug": "/api/changelog/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Changelog do contrato público"
@@ -60,7 +60,7 @@
     {
       "source": "docs/api/combat-sandbox.md",
       "docId": "api/combat-sandbox",
-      "slug": "/api/api/combat-sandbox/",
+      "slug": "/api/combat-sandbox/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Combat sandbox para Godot"
@@ -68,7 +68,7 @@
     {
       "source": "docs/api/content-and-platform.md",
       "docId": "api/content-and-platform",
-      "slug": "/api/api/content-and-platform/",
+      "slug": "/api/content-and-platform/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Conteúdo, operação e módulos de plataforma"
@@ -76,7 +76,7 @@
     {
       "source": "docs/api/contracts.md",
       "docId": "api/contracts",
-      "slug": "/api/api/contracts/",
+      "slug": "/api/contracts/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Contratos compartilhados"
@@ -84,7 +84,7 @@
     {
       "source": "docs/api/deck-compartments.md",
       "docId": "api/deck-compartments",
-      "slug": "/api/api/deck-compartments/",
+      "slug": "/api/deck-compartments/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Deck compartments (optional)"
@@ -92,7 +92,7 @@
     {
       "source": "docs/api/deck-loadouts.md",
       "docId": "api/deck-loadouts",
-      "slug": "/api/api/deck-loadouts/",
+      "slug": "/api/deck-loadouts/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Deck composition (optional)"
@@ -100,7 +100,7 @@
     {
       "source": "docs/api/events.md",
       "docId": "api/events",
-      "slug": "/api/api/events/",
+      "slug": "/api/events/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Eventos duráveis e SSE"
@@ -108,7 +108,7 @@
     {
       "source": "docs/api/getting-started.md",
       "docId": "api/getting-started",
-      "slug": "/api/api/getting-started/",
+      "slug": "/api/getting-started/",
       "section": "api",
       "category": "Primeiros passos",
       "title": "Quickstart: uma run determinística"
@@ -116,7 +116,7 @@
     {
       "source": "docs/api/governance.md",
       "docId": "api/governance",
-      "slug": "/api/api/governance/",
+      "slug": "/api/governance/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Governança do contrato HTTP"
@@ -124,7 +124,7 @@
     {
       "source": "docs/api/inscription-loadouts.md",
       "docId": "api/inscription-loadouts",
-      "slug": "/api/api/inscription-loadouts/",
+      "slug": "/api/inscription-loadouts/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Loadouts de inscrições (experimental)"
@@ -132,7 +132,7 @@
     {
       "source": "docs/api/interactive-session.md",
       "docId": "api/interactive-session",
-      "slug": "/api/api/interactive-session/",
+      "slug": "/api/interactive-session/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Sessão interativa REST"
@@ -140,7 +140,7 @@
     {
       "source": "docs/api/reward-decisions.md",
       "docId": "api/reward-decisions",
-      "slug": "/api/api/reward-decisions/",
+      "slug": "/api/reward-decisions/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Exclusive card reward decisions"
@@ -148,7 +148,7 @@
     {
       "source": "docs/api/runs-and-combat.md",
       "docId": "api/runs-and-combat",
-      "slug": "/api/api/runs-and-combat/",
+      "slug": "/api/runs-and-combat/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Runs, combates e replay"
@@ -156,7 +156,7 @@
     {
       "source": "docs/api/support-loadouts.md",
       "docId": "api/support-loadouts",
-      "slug": "/api/api/support-loadouts/",
+      "slug": "/api/support-loadouts/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Support loadouts"
@@ -164,7 +164,7 @@
     {
       "source": "docs/api/world-one-foundations.md",
       "docId": "api/world-one-foundations",
-      "slug": "/api/api/world-one-foundations/",
+      "slug": "/api/world-one-foundations/",
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Contratos dos fundamentos do mundo 1"
