@@ -15,9 +15,8 @@ static func execute(frame: Dictionary, hand, handle) -> void:
 		if not is_instance_valid(hand): return
 		if hand.reorder_settled.is_connected(completed): hand.reorder_settled.disconnect(completed)
 		if handle.result != "completed": hand.cancel_gesture())
-	hand.interaction.pressed = id; hand.interaction.press_position = start.center; hand.interaction.dragging = true
-	hand._drag_visual(point)
-	if frame.get("cancel", false): hand.interaction.cancel_pointer(); hand._return_ghost(); hand._relayout()
+	hand.begin_drag_at(id, start.center, point)
+	if frame.get("cancel", false): hand.interaction.cancel_pointer(); hand.return_drag_ghost(); hand.relayout_now()
 	else: hand.finish_drag(id, point)
 	# Observe the current hand's settlement, not stale tweens replaced by reflow.
-	hand._check_reorder_settled()
+	hand.check_reorder_settled()

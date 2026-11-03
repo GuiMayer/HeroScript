@@ -60,3 +60,12 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
 - Encapsulamento do estado geométrico de `RouteView` (`scripts/ui/route_view.gd`) por meio das APIs públicas `geometry_snapshot()`, `has_node_rect()`, `node_rect()`, `node_button_center()` e `set_initial_focus_node()`, removendo acessos privados a `route._geometry` e mutação externa de metadados de foco em `MapView` (`scripts/ui/map_view.gd`).
 - Cálculos responsivos de offsets de dock flutuante, painel de candidatos, preview flutuante e rodapé de campo de batalha concentrados em `CombatLayoutMetrics.stage_layout()` (`scripts/presentation/combat_layout_metrics.gd`) e consumidos por `CombatView._layout_gameplay()` (`scripts/ui/combat_view.gd`).
 - Validação aprovada sem deriva na baseline: `map_geometry`, `map_graph_view`, `map_camera`, `map_camera_motion`, `editable_map_scenes`, `editable_combat_shell`, `visual_authority_contract` e `ui_decoupling_baseline`.
+
+## Etapa 6 — Mão: geometria, input e apresentação
+
+- Colaboradores coesos extraídos de `CardHandView` (`scripts/ui/card_hand_view.gd`), mantendo uma única implementação canônica compartilhada entre combate e laboratório:
+  - `HandLayout.presentation_layout()` (`scripts/ui/hand_layout.gd`): cálculo puro de posições e rotações de leque durante apresentação e alinhamento de chegadas.
+  - `HandCardReconciler` (`scripts/ui/hand_card_reconciler.gd`): reconciliação de slots (`hand_card_slot.tscn`) e instâncias de `CardView` por `cardInstanceId` sem recriar cartas sobreviventes.
+  - `HandPointerCoordinator` (`scripts/ui/hand_pointer_coordinator.gd`): resolução pura de face visível sob rotação/sobreposição (`pick_global`, `is_pickable`, `contains_card`, `is_above`) e direção de auto-scroll em overflow (`auto_scroll_direction`).
+- APIs públicas adicionadas em `CardHandView` (`update_counter()`, `set_overview_button_visible()`, `relayout_now()`, `begin_drag_at()`, `drag_to()`, `return_drag_ghost()`, `check_reorder_settled()`), eliminando chamadas privadas a partir de `combat_view.gd`, `hand_overview_dialog.gd` e `hand_reorder_lab.gd`.
+- Validação aprovada: `hand_selection`, `reference_hand_geometry`, `hand_arrangement`, `hand_reorder_flow`, `hand_reorder_drop`, `hand_reorder_preview`, `hand_reorder_overflow`, `hand_reorder_interruptions`, `card_draw_pose` e `ui_decoupling_baseline`.

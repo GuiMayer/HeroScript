@@ -18,6 +18,8 @@ signal visual_order_changed(ids: Array)
 signal reorder_settled
 const Layout = preload("res://scripts/ui/hand_layout.gd")
 const Retarget = preload("res://scripts/ui/hand_retarget_motion.gd")
+const CardReconciler = preload("res://scripts/ui/hand_card_reconciler.gd")
+const PointerCoordinator = preload("res://scripts/ui/hand_pointer_coordinator.gd")
 @export var visual_style: HandVisualStyle = preload("res://data/default_hand_visual_style.tres")
 var interaction = preload("res://scripts/ui/hand_interaction.gd").new()
 var read_only := false
@@ -331,6 +333,24 @@ func disable_overview() -> void:
 	overview_enabled = false
 	var button := toolbar.get_node_or_null("HandOverviewButton")
 	if button: toolbar.remove_child(button); button.queue_free()
+func set_overview_button_visible(visible_state: bool) -> void:
+	var button := toolbar.get_node_or_null("HandOverviewButton")
+	if button: button.visible = visible_state
+func update_counter() -> void:
+	_update_counter()
+func relayout_now() -> void:
+	_relayout()
+func begin_drag_at(id: String, start_center: Vector2, point: Vector2) -> void:
+	interaction.pressed = id
+	interaction.press_position = start_center
+	interaction.dragging = true
+	_drag_visual(point)
+func drag_to(point: Vector2) -> void:
+	_drag_visual(point)
+func return_drag_ghost() -> void:
+	_return_ghost()
+func check_reorder_settled() -> void:
+	_check_reorder_settled()
 
 func sync_models(models: Array, context: String, empty_message := "Your hand is empty.") -> void:
 	_syncing = true
@@ -351,44 +371,17 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 		_arrangement_bound = true
 		anchor = ""
 		focus_id = ""
-	var incoming: Array[String] = []
-	var geometry_changed := false
-	for model in models:
-		var id := str(model.get("cardInstanceId", model.get("labId", "")))
-		assert(not id.is_empty() and id not in incoming, "Hand models need unique instance IDs")
-		incoming.append(id)
-		if not _cards.has(id):
-			var card := CardView.create(visual_context)
-			card.name = "HandCard_" + id.validate_node_name()
-			card.animate_entry = false
-			card.hand_managed = true
-			card.toggle_mode = true
-			card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.configure(model)
-			var slot: Control = preload("res://scenes/ui/components/hand_card_slot.tscn").instantiate()
-			slot.name = "Slot_" + id.validate_node_name()
-			slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			slot.add_child(card)
-			surface.add_child(slot)
-			_cards[id] = card
-			_slots[id] = slot
-			card.pressed.connect(func():
-				if read_only: card.set_pressed_no_signal(id == interaction.selected)
-				else: card_activated.emit(id))
-			card.focus_entered.connect(func(): _focus(id))
-			card.focus_exited.connect(func():
-				if interaction.focused == id: interaction.focused = ""
-				_apply_emphasis())
-			if _transit.has(id): card.hide()
-			elif is_inside_tree() and duration() > 0:
-				card.modulate.a = 0
-				_entries[id] = card.create_tween()
-				_entries[id].tween_property(card, "modulate:a", 1.0, duration())
-		else:
-			var card: CardView = _cards[id]
-			var before := card.custom_minimum_size
-			card.configure(model)
-			geometry_changed = geometry_changed or before != card.custom_minimum_size
+	var reconciled := CardReconciler.reconcile_cards(
+		models, _cards, _slots, _transit, _entries, surface, visual_context, duration(), is_inside_tree(),
+		func(id: String, card: CardView):
+			if read_only: card.set_pressed_no_signal(id == interaction.selected)
+			else: card_activated.emit(id),
+		func(id: String): _focus(id),
+		func(id: String):
+			if interaction.focused == id: interaction.focused = ""
+			_apply_emphasis())
+	var incoming: Array[String] = reconciled.incoming
+	var geometry_changed: bool = bool(reconciled.geometry_changed)
 	if not _presenting:
 		var was_dragging: bool = interaction.dragging
 		if arrangement.sync(incoming) and was_dragging: cancel_gesture()
@@ -486,19 +479,7 @@ func _relayout() -> void:
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
 	dimensions = dimensions.max(_reserved_card_size)
 	_reserved_card_size = dimensions
-	_layout = Layout.calculate(order.size(), maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
-	if _presenting:
-		var target_layout := Layout.calculate(_presentation_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
-		var arrival_layout := Layout.calculate(_destination_order.size(), maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
-		for i in order.size():
-			var target_index := _destination_order.find(order[i]) if _aligning_arrivals else _presentation_order.find(order[i])
-			if target_index >= 0:
-				_layout.positions[i] = arrival_layout.positions[target_index] if _aligning_arrivals else target_layout.positions[target_index]
-				_layout.rotations[i] = arrival_layout.rotations[target_index] if _aligning_arrivals else target_layout.rotations[target_index]
-			elif order[i] in _destination_order:
-				var arrival_index := _destination_order.find(order[i])
-				_layout.positions[i] = arrival_layout.positions[arrival_index]
-				_layout.rotations[i] = arrival_layout.rotations[arrival_index]
+	_layout = Layout.presentation_layout(order, _presentation_order, _destination_order, _presenting, _aligning_arrivals, maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
 	scroll.custom_minimum_size.y = _layout.height + 12
 	surface.custom_minimum_size = Vector2(_layout.extent, _layout.height)
 	# Reserve the scroll chrome even when the native bar toggles during layout.
@@ -600,42 +581,20 @@ func pick(local_point: Vector2, stable := true) -> String:
 	return pick_global(get_global_transform() * local_point, stable)
 
 func _pickable(id: String) -> bool:
-	var card = _cards.get(id)
-	return is_instance_valid(card) and card.is_visible_in_tree() and not _transit.has(id) and card.get_parent() == _slots.get(id)
+	return PointerCoordinator.is_pickable(id, _cards, _slots, _transit)
 
 func _contains_card(id: String, point: Vector2, padding := 0.0) -> bool:
-	var card: Control = _cards[id]
-	return Rect2(Vector2.ZERO, card.size).grow(padding).has_point(card.get_global_transform().affine_inverse() * point)
+	return PointerCoordinator.contains_card(_cards[id], point, padding)
 
 func _draw_rank(id: String) -> int:
-	return int(_slots[id].z_index) + int(_cards[id].z_index)
+	return PointerCoordinator.draw_rank(id, _cards, _slots)
 func _above(a: String, b: String) -> bool:
-	return _draw_rank(a) > _draw_rank(b) or (_draw_rank(a) == _draw_rank(b) and _slots[a].get_index() > _slots[b].get_index())
+	return PointerCoordinator.is_above(a, b, _cards, _slots)
 
 func pick_global(point: Vector2, stable := true) -> String:
-	if _layout.is_empty() or reading_modal: return ""
-	# The hit surface follows the clipped viewport, excluding scroll chrome.
-	if not Rect2(Vector2.ZERO, hit_surface.size).has_point(hit_surface.get_global_transform().affine_inverse() * point): return ""
-	if is_instance_valid(_reading_proxy) and _reading_proxy.is_visible_in_tree():
-		var proxy_id := str(_reading_proxy.model.get("cardInstanceId", _reading_proxy.model.get("labId", "")))
-		if _pickable(proxy_id) and Rect2(Vector2.ZERO, _reading_proxy.size).has_point(_reading_proxy.get_global_transform().affine_inverse() * point): return proxy_id
-	var best := ""
-	for id in order:
-		if not _pickable(id) or not _contains_card(id, point): continue
-		if best.is_empty() or _above(id, best): best = id
-	var current: String = interaction.hovered
-	if stable and _pickable(current) and (best.is_empty() or current == best or _above(current, best)):
-		if _contains_card(current, point, visual_style.pointer_hysteresis): return current
-		# A lift can uncover the pixel that originally entered the card. Keep that
-		# resting footprint to avoid oscillation without claiming another top face.
-		var index := order.find(current)
-		if point.is_equal_approx(_hover_point) and index >= 0 and index < _layout.rotations.size():
-			var card: Control = _cards[current]
-			var resting := Transform2D(float(_layout.rotations[index]), Vector2.ZERO)
-			resting.origin = card.pivot_offset - resting.basis_xform(card.pivot_offset)
-			var transform: Transform2D = _slots[current].get_global_transform() * resting
-			if Rect2(Vector2.ZERO, card.size).grow(visual_style.pointer_hysteresis).has_point(transform.affine_inverse() * point): return current
-	return best
+	return PointerCoordinator.pick_global(
+		point, stable, order, _cards, _slots, _transit, _layout, reading_modal,
+		hit_surface, _reading_proxy, interaction.hovered, _hover_point, visual_style.pointer_hysteresis)
 func _focus(id: String) -> void:
 	interaction.focused = id
 	hit_surface.follow_card(id)
@@ -798,9 +757,7 @@ func _auto_scroll_reorder(delta: float) -> void:
 	var bar := scroll.get_h_scroll_bar()
 	var maximum := maxf(0, bar.max_value - bar.page)
 	if maximum <= 0: _reorder_scroll_fraction = 0; return
-	var point: Vector2 = hit_surface.get_global_transform().affine_inverse() * _last_drag_point
-	var band := clampf(visual_style.reorder_edge_band, 1, maxf(1, hit_surface.size.x * .25))
-	var direction := clampf((point.x - (hit_surface.size.x-band)) / band, 0, 1) - clampf((band-point.x) / band, 0, 1)
+	var direction := PointerCoordinator.auto_scroll_direction(hit_surface, _last_drag_point, visual_style.reorder_edge_band)
 	_reorder_scroll_fraction += direction * maxf(0, visual_style.reorder_scroll_speed) * maxf(0, delta)
 	var step := int(_reorder_scroll_fraction)
 	_reorder_scroll_fraction -= step

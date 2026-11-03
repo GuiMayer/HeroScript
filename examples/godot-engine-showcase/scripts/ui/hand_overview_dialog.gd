@@ -21,7 +21,7 @@ func setup(models: Array, scope: String, selected: String) -> void:
 	hand.set_selection(selected)
 	hand.card_activated.connect(func(id): card_chosen.emit(id); hide(); queue_free())
 	hand.inspection_requested.connect(_inspect)
-	hand.find_child("HandOverviewButton", true, false).hide()
+	hand.set_overview_button_visible(false)
 	confirmed.connect(queue_free)
 	canceled.connect(queue_free)
 

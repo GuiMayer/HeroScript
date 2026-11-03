@@ -258,7 +258,7 @@ func _build_footer() -> void:
 		pile_controls.owner = null; pile_controls.reparent(turn_view, false); turn_view.move_child(pile_controls, 0)
 		hand.toolbar.owner = null; hand.toolbar.reparent(turn_view, false); turn_view.move_child(hand.toolbar, 1)
 		right_pile_controls.owner = null; right_pile_controls.reparent(turn_view, false); turn_view.move_child(right_pile_controls, turn_view.get_child_count() - 2)
-		hand.toolbar_external = true; hand._update_counter()
+		hand.toolbar_external = true; hand.update_counter()
 		reconnect_button = get_node("OverlayDefinitions/Reconnect")
 		reconnect_button.pressed.connect(_reconnect)
 		preload("res://scripts/ui/combat_chrome.gd").apply(reconnect_button, "tools", visual_context.translator.text("RECONNECT"), visual_context)

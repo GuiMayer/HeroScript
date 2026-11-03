@@ -41,3 +41,21 @@ static func calculate(count: int, available: float, card: Vector2, style: Resour
 	return {"positions": positions, "rotations": rotations, "hitRects": hit_rects,
 		"extent": extent, "step": step, "overflow": extent > available + 1,
 		"height": card.y + top + style.arc_height + card.x * absf(sin(reserved_angle)) * .5 + style.padding}
+
+
+static func presentation_layout(order: Array, presentation_order: Array, destination_order: Array, presenting: bool, aligning_arrivals: bool, available: float, card: Vector2, style: Resource, mode: String) -> Dictionary:
+	var base := calculate(order.size(), available, card, style, mode)
+	if not presenting: return base
+	var target_layout := calculate(presentation_order.size(), available, card, style, mode)
+	var arrival_layout := calculate(destination_order.size(), available, card, style, mode)
+	for i in order.size():
+		var target_index := destination_order.find(order[i]) if aligning_arrivals else presentation_order.find(order[i])
+		if target_index >= 0:
+			base.positions[i] = arrival_layout.positions[target_index] if aligning_arrivals else target_layout.positions[target_index]
+			base.rotations[i] = arrival_layout.rotations[target_index] if aligning_arrivals else target_layout.rotations[target_index]
+		elif order[i] in destination_order:
+			var arrival_index := destination_order.find(order[i])
+			base.positions[i] = arrival_layout.positions[arrival_index]
+			base.rotations[i] = arrival_layout.rotations[arrival_index]
+	return base
+
