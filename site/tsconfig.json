@@ -1,1 +1,17 @@
-{"extends":"@docusaurus/tsconfig","compilerOptions":{"baseUrl":".","jsx":"react-jsx"},"exclude":["node_modules","build",".docusaurus","generated"]}
+{
+  "extends": "@docusaurus/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "types": [
+      "@docusaurus/module-type-aliases",
+      "@docusaurus/theme-classic"
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    "build",
+    ".docusaurus",
+    "generated"
+  ]
+}

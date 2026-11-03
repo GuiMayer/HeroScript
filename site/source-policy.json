@@ -1,0 +1,18 @@
+{
+  "repository": "GuiMayer/HeroScript",
+  "canonicalBranch": "main",
+  "siteBranch": "codex/docs-site",
+  "allowedRoots": [
+    "docs/",
+    "openapi/",
+    "asyncapi/",
+    "examples/http/"
+  ],
+  "excludedRoots": [
+    "docs/plans/",
+    "docs/game-design/",
+    "docs/design/",
+    "docs/research/",
+    "docs/roadmap/"
+  ]
+}

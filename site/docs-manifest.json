@@ -1,0 +1,677 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "source": "docs/CLIENT_INTEGRATION.md",
+      "docId": "CLIENT_INTEGRATION",
+      "slug": "/api/client_integration/",
+      "section": "api",
+      "category": "Primeiros passos",
+      "title": "Integração de clientes"
+    },
+    {
+      "source": "docs/INTEGRATION_TESTING_GUIDE.md",
+      "docId": "INTEGRATION_TESTING_GUIDE",
+      "slug": "/developers/integration_testing_guide/",
+      "section": "developers",
+      "category": "Operação e contribuição",
+      "title": "Guia de testes de integração"
+    },
+    {
+      "source": "docs/PRODUCTION.md",
+      "docId": "PRODUCTION",
+      "slug": "/developers/production/",
+      "section": "developers",
+      "category": "Operação e contribuição",
+      "title": "Production Deployment Guide"
+    },
+    {
+      "source": "docs/api/README.md",
+      "docId": "api/README",
+      "slug": "/api/api/index/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "HeroScript API v1"
+    },
+    {
+      "source": "docs/api/authentication.md",
+      "docId": "api/authentication",
+      "slug": "/api/api/authentication/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Autenticação e administração"
+    },
+    {
+      "source": "docs/api/card-payments.md",
+      "docId": "api/card-payments",
+      "slug": "/api/api/card-payments/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Card payment selection"
+    },
+    {
+      "source": "docs/api/changelog.md",
+      "docId": "api/changelog",
+      "slug": "/api/api/changelog/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Changelog do contrato público"
+    },
+    {
+      "source": "docs/api/combat-sandbox.md",
+      "docId": "api/combat-sandbox",
+      "slug": "/api/api/combat-sandbox/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Combat sandbox para Godot"
+    },
+    {
+      "source": "docs/api/content-and-platform.md",
+      "docId": "api/content-and-platform",
+      "slug": "/api/api/content-and-platform/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Conteúdo, operação e módulos de plataforma"
+    },
+    {
+      "source": "docs/api/contracts.md",
+      "docId": "api/contracts",
+      "slug": "/api/api/contracts/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Contratos compartilhados"
+    },
+    {
+      "source": "docs/api/deck-compartments.md",
+      "docId": "api/deck-compartments",
+      "slug": "/api/api/deck-compartments/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Deck compartments (optional)"
+    },
+    {
+      "source": "docs/api/deck-loadouts.md",
+      "docId": "api/deck-loadouts",
+      "slug": "/api/api/deck-loadouts/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Deck composition (optional)"
+    },
+    {
+      "source": "docs/api/events.md",
+      "docId": "api/events",
+      "slug": "/api/api/events/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Eventos duráveis e SSE"
+    },
+    {
+      "source": "docs/api/getting-started.md",
+      "docId": "api/getting-started",
+      "slug": "/api/api/getting-started/",
+      "section": "api",
+      "category": "Primeiros passos",
+      "title": "Quickstart: uma run determinística"
+    },
+    {
+      "source": "docs/api/governance.md",
+      "docId": "api/governance",
+      "slug": "/api/api/governance/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Governança do contrato HTTP"
+    },
+    {
+      "source": "docs/api/inscription-loadouts.md",
+      "docId": "api/inscription-loadouts",
+      "slug": "/api/api/inscription-loadouts/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Loadouts de inscrições (experimental)"
+    },
+    {
+      "source": "docs/api/interactive-session.md",
+      "docId": "api/interactive-session",
+      "slug": "/api/api/interactive-session/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Sessão interativa REST"
+    },
+    {
+      "source": "docs/api/reward-decisions.md",
+      "docId": "api/reward-decisions",
+      "slug": "/api/api/reward-decisions/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Exclusive card reward decisions"
+    },
+    {
+      "source": "docs/api/runs-and-combat.md",
+      "docId": "api/runs-and-combat",
+      "slug": "/api/api/runs-and-combat/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Runs, combates e replay"
+    },
+    {
+      "source": "docs/api/support-loadouts.md",
+      "docId": "api/support-loadouts",
+      "slug": "/api/api/support-loadouts/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Support loadouts"
+    },
+    {
+      "source": "docs/api/world-one-foundations.md",
+      "docId": "api/world-one-foundations",
+      "slug": "/api/api/world-one-foundations/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Contratos dos fundamentos do mundo 1"
+    },
+    {
+      "source": "docs/architecture/API_NUMERIC_WIRE_CONTRACT.md",
+      "docId": "architecture/API_NUMERIC_WIRE_CONTRACT",
+      "slug": "/developers/architecture/api_numeric_wire_contract/",
+      "section": "developers",
+      "category": "Arquitetura",
+      "title": "Números no contrato Godot → REST"
+    },
+    {
+      "source": "docs/architecture/cross-cutting-systems.md",
+      "docId": "architecture/cross-cutting-systems",
+      "slug": "/developers/architecture/cross-cutting-systems/",
+      "section": "developers",
+      "category": "Arquitetura",
+      "title": "Sistemas transversais da engine"
+    },
+    {
+      "source": "docs/architecture/deterministic-runs.md",
+      "docId": "architecture/deterministic-runs",
+      "slug": "/developers/architecture/deterministic-runs/",
+      "section": "developers",
+      "category": "Arquitetura",
+      "title": "Deterministic runs"
+    },
+    {
+      "source": "docs/architecture/overview.md",
+      "docId": "architecture/overview",
+      "slug": "/developers/architecture/overview/",
+      "section": "developers",
+      "category": "Arquitetura",
+      "title": "Arquitetura da HeroScript"
+    },
+    {
+      "source": "docs/architecture/service-patterns.md",
+      "docId": "architecture/service-patterns",
+      "slug": "/developers/architecture/service-patterns/",
+      "section": "developers",
+      "category": "Arquitetura",
+      "title": "Core Service Patterns"
+    },
+    {
+      "source": "docs/architecture/timeline-system.md",
+      "docId": "architecture/timeline-system",
+      "slug": "/developers/architecture/timeline-system/",
+      "section": "developers",
+      "category": "Arquitetura",
+      "title": "Timeline, replay e branches"
+    },
+    {
+      "source": "docs/content/actor-resource-lifecycle.md",
+      "docId": "content/actor-resource-lifecycle",
+      "slug": "/developers/content/actor-resource-lifecycle/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Recursos do personagem entre encontros"
+    },
+    {
+      "source": "docs/content/calculated-random-inputs.md",
+      "docId": "content/calculated-random-inputs",
+      "slug": "/developers/content/calculated-random-inputs/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Inputs aleatórios calculados"
+    },
+    {
+      "source": "docs/content/card-presentation-and-modifier-items.md",
+      "docId": "content/card-presentation-and-modifier-items",
+      "slug": "/developers/content/card-presentation-and-modifier-items/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Cartas: apresentação, cálculo e itens modificadores"
+    },
+    {
+      "source": "docs/content/circular-table-flow.md",
+      "docId": "content/circular-table-flow",
+      "slug": "/developers/content/circular-table-flow/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Percurso circular, participantes e regras de mesa"
+    },
+    {
+      "source": "docs/content/gameplay-event-hierarchies.md",
+      "docId": "content/gameplay-event-hierarchies",
+      "slug": "/developers/content/gameplay-event-hierarchies/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Hierarquias de eventos e motivos"
+    },
+    {
+      "source": "docs/content/gameplay-occurrences.md",
+      "docId": "content/gameplay-occurrences",
+      "slug": "/developers/content/gameplay-occurrences/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Ocorrências de gameplay — contratos internos"
+    },
+    {
+      "source": "docs/content/gameplay-responses.md",
+      "docId": "content/gameplay-responses",
+      "slug": "/developers/content/gameplay-responses/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Respostas de gameplay"
+    },
+    {
+      "source": "docs/content/hero-attribute-scaling.md",
+      "docId": "content/hero-attribute-scaling",
+      "slug": "/developers/content/hero-attribute-scaling/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Atributos e resolução global de efeitos"
+    },
+    {
+      "source": "docs/content/hot-reload-and-tool-profiles.md",
+      "docId": "content/hot-reload-and-tool-profiles",
+      "slug": "/developers/content/hot-reload-and-tool-profiles/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Hot reload e perfis de ferramentas"
+    },
+    {
+      "source": "docs/content/inscription-acquisition.md",
+      "docId": "content/inscription-acquisition",
+      "slug": "/developers/content/inscription-acquisition/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Aquisição de inscrições"
+    },
+    {
+      "source": "docs/content/inscription-migrations.md",
+      "docId": "content/inscription-migrations",
+      "slug": "/developers/content/inscription-migrations/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Inscrições: revisões, propriedade e certificação"
+    },
+    {
+      "source": "docs/content/inscriptions.md",
+      "docId": "content/inscriptions",
+      "slug": "/developers/content/inscriptions/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Inscrições: contratos de conteúdo"
+    },
+    {
+      "source": "docs/content/multi-tier-critical-inputs.md",
+      "docId": "content/multi-tier-critical-inputs",
+      "slug": "/developers/content/multi-tier-critical-inputs/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Capturas numéricas, críticos multinível e previews"
+    },
+    {
+      "source": "docs/content/packages-and-settings.md",
+      "docId": "content/packages-and-settings",
+      "slug": "/developers/content/packages-and-settings/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Packages e settings"
+    },
+    {
+      "source": "docs/content/profile-progress-policies.md",
+      "docId": "content/profile-progress-policies",
+      "slug": "/developers/content/profile-progress-policies/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Progresso e desbloqueios por setting"
+    },
+    {
+      "source": "docs/content/relic-reactions.md",
+      "docId": "content/relic-reactions",
+      "slug": "/developers/content/relic-reactions/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Reações de relíquias a aplicações de recurso"
+    },
+    {
+      "source": "docs/content/resource-restrictions.md",
+      "docId": "content/resource-restrictions",
+      "slug": "/developers/content/resource-restrictions/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Restrições de recurso por dono"
+    },
+    {
+      "source": "docs/content/run-eligibility.md",
+      "docId": "content/run-eligibility",
+      "slug": "/developers/content/run-eligibility/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Elegibilidade de conteúdo por run"
+    },
+    {
+      "source": "docs/distribution.md",
+      "docId": "distribution",
+      "slug": "/developers/distribution/",
+      "section": "developers",
+      "category": "Operação e contribuição",
+      "title": "Local runtime distribution (Windows x64)"
+    },
+    {
+      "source": "docs/guides/card-zone-payments.md",
+      "docId": "guides/card-zone-payments",
+      "slug": "/developers/guides/card-zone-payments/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Pagamentos com cartas"
+    },
+    {
+      "source": "docs/guides/deck-compartments-godot.md",
+      "docId": "guides/deck-compartments-godot",
+      "slug": "/developers/guides/deck-compartments-godot/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Deck Workshop e compartimentos"
+    },
+    {
+      "source": "docs/guides/deck-composition.md",
+      "docId": "guides/deck-composition",
+      "slug": "/developers/guides/deck-composition/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Composição de baralho e circulação de cartas"
+    },
+    {
+      "source": "docs/guides/encounter-attempts.md",
+      "docId": "guides/encounter-attempts",
+      "slug": "/developers/guides/encounter-attempts/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Encounter attempts and persistent campaigns"
+    },
+    {
+      "source": "docs/guides/support-loadouts.md",
+      "docId": "guides/support-loadouts",
+      "slug": "/developers/guides/support-loadouts/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Support equipment and actor cadence"
+    },
+    {
+      "source": "docs/guides/unified-loadout-godot.md",
+      "docId": "guides/unified-loadout-godot",
+      "slug": "/developers/guides/unified-loadout-godot/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Loadout unificado na Godot"
+    },
+    {
+      "source": "docs/guides/volatile-core-godot.md",
+      "docId": "guides/volatile-core-godot",
+      "slug": "/developers/guides/volatile-core-godot/",
+      "section": "developers",
+      "category": "Guias",
+      "title": "Core volátil na Godot"
+    },
+    {
+      "source": "docs/observability.md",
+      "docId": "observability",
+      "slug": "/developers/observability/",
+      "section": "developers",
+      "category": "Operação e contribuição",
+      "title": "Observabilidade - HeroScript API"
+    },
+    {
+      "source": "docs/persistence.md",
+      "docId": "persistence",
+      "slug": "/developers/persistence/",
+      "section": "developers",
+      "category": "Operação e contribuição",
+      "title": "Persistência autoritativa e telemetria"
+    },
+    {
+      "source": "docs/security.md",
+      "docId": "security",
+      "slug": "/developers/security/",
+      "section": "developers",
+      "category": "Operação e contribuição",
+      "title": "Segurança - HeroScript API"
+    },
+    {
+      "source": "docs/systems/calculations/calculation-system.md",
+      "docId": "systems/calculations/calculation-system",
+      "slug": "/developers/systems/calculations/calculation-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de cálculos"
+    },
+    {
+      "source": "docs/systems/calculations/quantity-distribution.md",
+      "docId": "systems/calculations/quantity-distribution",
+      "slug": "/developers/systems/calculations/quantity-distribution/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Distribuição de quantidades"
+    },
+    {
+      "source": "docs/systems/cards/composition-grammar.md",
+      "docId": "systems/cards/composition-grammar",
+      "slug": "/developers/systems/cards/composition-grammar/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Gramática de composição de cartas"
+    },
+    {
+      "source": "docs/systems/cards/permanent-transformations.md",
+      "docId": "systems/cards/permanent-transformations",
+      "slug": "/developers/systems/cards/permanent-transformations/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Transformações permanentes de cartas"
+    },
+    {
+      "source": "docs/systems/combat/alternative-costs.md",
+      "docId": "systems/combat/alternative-costs",
+      "slug": "/developers/systems/combat/alternative-costs/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Alternative costs"
+    },
+    {
+      "source": "docs/systems/combat/combat-system.md",
+      "docId": "systems/combat/combat-system",
+      "slug": "/developers/systems/combat/combat-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de combate"
+    },
+    {
+      "source": "docs/systems/combat/reaction-system.md",
+      "docId": "systems/combat/reaction-system",
+      "slug": "/developers/systems/combat/reaction-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Prioridade, reações e stack"
+    },
+    {
+      "source": "docs/systems/combat/turn-phase-system.md",
+      "docId": "systems/combat/turn-phase-system",
+      "slug": "/developers/systems/combat/turn-phase-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Fluxo de turnos e fases"
+    },
+    {
+      "source": "docs/systems/config/config-system.md",
+      "docId": "systems/config/config-system",
+      "slug": "/developers/systems/config/config-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Configuração, packages e settings"
+    },
+    {
+      "source": "docs/systems/config/delta-reference.md",
+      "docId": "systems/config/delta-reference",
+      "slug": "/developers/systems/config/delta-reference/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Referência de composição de conteúdo"
+    },
+    {
+      "source": "docs/systems/damage/damage-examples.md",
+      "docId": "systems/damage/damage-examples",
+      "slug": "/developers/systems/damage/damage-examples/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Exemplos de cálculo e alteração de recursos"
+    },
+    {
+      "source": "docs/systems/damage/damage-pipeline.md",
+      "docId": "systems/damage/damage-pipeline",
+      "slug": "/developers/systems/damage/damage-pipeline/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Dano e pipeline de cálculo"
+    },
+    {
+      "source": "docs/systems/dialogue-system.md",
+      "docId": "systems/dialogue-system",
+      "slug": "/developers/systems/dialogue-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de diálogos"
+    },
+    {
+      "source": "docs/systems/effects/accumulated-stacks.md",
+      "docId": "systems/effects/accumulated-stacks",
+      "slug": "/developers/systems/effects/accumulated-stacks/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Leitura e consumo de stacks acumulados"
+    },
+    {
+      "source": "docs/systems/effects/causal-continuation.md",
+      "docId": "systems/effects/causal-continuation",
+      "slug": "/developers/systems/effects/causal-continuation/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Continuação por abate"
+    },
+    {
+      "source": "docs/systems/effects/condensation-recipes.md",
+      "docId": "systems/effects/condensation-recipes",
+      "slug": "/developers/systems/effects/condensation-recipes/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Condensação de stacks em um proc"
+    },
+    {
+      "source": "docs/systems/effects/effect-system.md",
+      "docId": "systems/effects/effect-system",
+      "slug": "/developers/systems/effects/effect-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de efeitos"
+    },
+    {
+      "source": "docs/systems/effects/sequence-budgets.md",
+      "docId": "systems/effects/sequence-budgets",
+      "slug": "/developers/systems/effects/sequence-budgets/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Orçamento de uma sequência de efeitos"
+    },
+    {
+      "source": "docs/systems/entities/persistent-attributes.md",
+      "docId": "systems/entities/persistent-attributes",
+      "slug": "/developers/systems/entities/persistent-attributes/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Atributos persistentes do personagem"
+    },
+    {
+      "source": "docs/systems/events/eventbus-implementation.md",
+      "docId": "systems/events/eventbus-implementation",
+      "slug": "/developers/systems/events/eventbus-implementation/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Implementação do EventBus operacional"
+    },
+    {
+      "source": "docs/systems/events/eventbus-system.md",
+      "docId": "systems/events/eventbus-system",
+      "slug": "/developers/systems/events/eventbus-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Eventos e observabilidade"
+    },
+    {
+      "source": "docs/systems/math/effect-calculation-profiles.md",
+      "docId": "systems/math/effect-calculation-profiles",
+      "slug": "/developers/systems/math/effect-calculation-profiles/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Parâmetros de efeito e perfis de cálculo"
+    },
+    {
+      "source": "docs/systems/math/expression-modes.md",
+      "docId": "systems/math/expression-modes",
+      "slug": "/developers/systems/math/expression-modes/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Math Expression API - Dois Modos de Operacao"
+    },
+    {
+      "source": "docs/systems/math/math-system.md",
+      "docId": "systems/math/math-system",
+      "slug": "/developers/systems/math/math-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Core.Math - Sistema de Fórmulas Matemáticas"
+    },
+    {
+      "source": "docs/systems/modifiers/modifier-system.md",
+      "docId": "systems/modifiers/modifier-system",
+      "slug": "/developers/systems/modifiers/modifier-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de modifiers"
+    },
+    {
+      "source": "docs/systems/relics/relic-system.md",
+      "docId": "systems/relics/relic-system",
+      "slug": "/developers/systems/relics/relic-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de relíquias"
+    },
+    {
+      "source": "docs/systems/resources/resource-system.md",
+      "docId": "systems/resources/resource-system",
+      "slug": "/developers/systems/resources/resource-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de recursos"
+    },
+    {
+      "source": "docs/systems/status/status-system.md",
+      "docId": "systems/status/status-system",
+      "slug": "/developers/systems/status/status-system/",
+      "section": "developers",
+      "category": "Sistemas",
+      "title": "Sistema de status"
+    }
+  ]
+}

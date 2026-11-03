@@ -14,13 +14,23 @@
   "dependencies": {
     "@docusaurus/core": "3.10.2",
     "@docusaurus/preset-classic": "3.10.2",
+    "@docusaurus/theme-mermaid": "3.10.2",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "remark-stringify": "11.0.0",
+    "unified": "11.0.5",
+    "unist-util-visit": "5.0.0"
   },
   "devDependencies": {
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
     "@types/react": "19.2.0",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "tinypool": "2.2.0",
+    "serialize-javascript": "7.1.4"
   }
 }
