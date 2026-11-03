@@ -293,6 +293,19 @@
             "$ref": "#/$defs/symbol"
           },
           "uniqueItems": true
+        },
+        "flowId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "costOptionId": {
+          "$ref": "#/$defs/symbol"
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "SourceOrder",
+            "ChosenOrder"
+          ]
         }
       }
     }

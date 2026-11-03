@@ -17,7 +17,7 @@ using Xunit;
 
 namespace Core.Tests.Run;
 
-public sealed class CardPlayExecutorTests
+public sealed partial class CardPlayExecutorTests
 {
     private const string Revision = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
@@ -426,9 +426,9 @@ public sealed class CardPlayExecutorTests
             runtimes.Object,
             new CardContentCompiler(),
             new EffectiveCardResolver(),
-            new CardPlayEvaluator(new ActionCostEvaluator(formulas.Object), formulas.Object),
+            new CardPlayEvaluator(new ActionCostEvaluator(formulas.Object), formulas.Object, runtimes.Object),
             new EffectTriggerExecutor(formulas.Object, new ImmutableEffectProcessor(),
-                runtimes.Object, new CalculationEngine(), influences));
+                runtimes.Object, new CalculationEngine(), influences, cardZoneFlows: new Core.CardZones.CardZoneFlowExecutor()));
     }
 
     private static ContentRuntime Runtime(

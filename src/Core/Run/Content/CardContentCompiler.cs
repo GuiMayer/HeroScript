@@ -260,6 +260,11 @@ public sealed class CardContentCompiler(Core.GameplayEvents.GameplayEventCatalog
             costs.Costs.Concat(costs.AlternativeCosts.SelectMany(option => option.Costs)).Any(item =>
                 item == null || string.IsNullOrWhiteSpace(item.ResourceId) || !float.IsFinite(item.Amount) || item.Amount < 0))
             return Result.Failure($"Card {cardId} component {component.ComponentId} contains an invalid cost or alternative option");
+        var payments = component.ZonePayments ?? [];
+        if (payments.IsDefault || payments.Any(p => p == null || p.Validate().IsFailure || string.IsNullOrWhiteSpace(p.FlowId) ||
+            p.CostOptionId != null && !costs.AlternativeCosts.Any(o => o.OptionId == p.CostOptionId)) ||
+            payments.Select(p => p.PaymentId).Distinct(StringComparer.Ordinal).Count() != payments.Length)
+            return Result.Failure($"Card {cardId} component {component.ComponentId} contains an invalid zone payment");
         return Result.Success();
     }
 

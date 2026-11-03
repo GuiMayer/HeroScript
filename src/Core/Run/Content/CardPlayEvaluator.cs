@@ -23,6 +23,8 @@ public sealed record CardPlayRequest
         init => _selectedTargetIds = value?.ToImmutableArray() ?? [];
     }
     public string? CostOptionId { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardPaymentSelection>? PaymentSelections { get; init; }
     public bool IgnoreConfiguredCosts { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
     public IReadOnlyDictionary<string, float> Variables
@@ -63,6 +65,10 @@ public sealed record CardPlayEvaluation
     public Guid CardInstanceId { get; init; }
     public string ActorId { get; init; } = string.Empty;
     public bool IsLegal { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardPaymentRequirement>? PaymentRequirements { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<ResolvedCardZonePayment>? ZonePayments { get; init; }
     public IReadOnlyList<CardConditionTrace> Conditions
     {
         get => _conditions;
@@ -110,13 +116,15 @@ public interface ICardPlayEvaluator
 /// </summary>
 public sealed class CardPlayEvaluator : ICardPlayEvaluator
 {
+    private readonly Core.Content.IContentRuntimeResolver? _runtimes;
     private readonly IActionCostEvaluator _costs;
     private readonly IRuntimeFormulaEvaluator _formulas;
 
     public CardPlayEvaluator(
         IActionCostEvaluator costs,
-        IRuntimeFormulaEvaluator formulas)
+        IRuntimeFormulaEvaluator formulas, Core.Content.IContentRuntimeResolver? runtimes = null)
     {
+        _runtimes = runtimes;
         _costs = costs ?? throw new ArgumentNullException(nameof(costs));
         _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
     }
@@ -192,6 +200,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
 
         var resolvedCosts = ImmutableArray.CreateBuilder<ResolvedCardCost>();
         var affordableOptions = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
+        var alternativeGroups = new List<HashSet<string>>();
         foreach (var component in card.All<CardCostComponentDefinition>())
         {
             var normal = ResolveCosts(
@@ -208,6 +217,8 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
 
             if (component.Costs.AlternativeCosts.Count == 0)
                 continue;
+            var componentOptions = new HashSet<string>(StringComparer.Ordinal);
+            alternativeGroups.Add(componentOptions);
             foreach (var option in component.Costs.AlternativeCosts
                          .OrderBy(item => item.OptionId, StringComparer.Ordinal))
             {
@@ -220,7 +231,9 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 if (quote.IsFailure)
                     return Result<CardPlayEvaluation>.Failure(quote.Error);
                 if (quote.Value.All(cost => cost.Affordable))
-                    affordableOptions.Add(option.OptionId);
+                {
+                    affordableOptions.Add(option.OptionId); componentOptions.Add(option.OptionId);
+                }
                 if (string.Equals(option.OptionId, request.CostOptionId, StringComparison.Ordinal))
                     resolvedCosts.AddRange(quote.Value);
             }
@@ -228,10 +241,11 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 continue;
             if (string.IsNullOrWhiteSpace(request.CostOptionId))
                 failures.Add($"Cost option is required for {component.ComponentId}");
-            else if (!affordableOptions.Contains(request.CostOptionId))
+            else if (!componentOptions.Contains(request.CostOptionId))
                 failures.Add($"Cost option cannot be paid: {request.CostOptionId}");
         }
 
+        affordableOptions.IntersectWith(affordableOptions.Where(id => alternativeGroups.All(group => group.Contains(id))).ToArray());
         if (!request.IgnoreConfiguredCosts && resolvedCosts.Count > 0)
         {
             var aggregate = ResourceCostTransitions.Spend(
@@ -247,12 +261,23 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 failures.Add($"Selected card costs cannot be paid: {aggregate.Error}");
         }
 
+        CardZonePaymentQuote? paymentQuote = null;
+        if (!request.IgnoreConfiguredCosts && (card.All<CardCostComponentDefinition>().Any(c => c.ZonePayments is { IsEmpty: false }) || request.PaymentSelections.HasValue))
+        {
+            if (_runtimes == null || request.Run == null)
+                return Result<CardPlayEvaluation>.Failure("Zone payments require the pinned run content runtime");
+            var quote = CardZonePaymentPlanner.Quote(card, request.Run, request.ActorId, request.CostOptionId, request.PaymentSelections, _runtimes);
+            if (quote.IsFailure) return Result<CardPlayEvaluation>.Failure(quote.Error);
+            paymentQuote = quote.Value; failures.AddRange(quote.Value.Failures);
+        }
         var failureArray = failures.Distinct(StringComparer.Ordinal).ToImmutableArray();
         return Result<CardPlayEvaluation>.Success(new CardPlayEvaluation
         {
             CardInstanceId = card.CardInstanceId,
             ActorId = actor.InstanceId,
             IsLegal = failureArray.IsEmpty,
+            PaymentRequirements = paymentQuote?.Requirements,
+            ZonePayments = paymentQuote?.Payments,
             Conditions = conditionTraces.ToImmutable(),
             Costs = resolvedCosts.ToImmutable(),
             AffordableCostOptionIds = affordableOptions.OrderBy(id => id, StringComparer.Ordinal).ToArray(),

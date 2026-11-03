@@ -58,6 +58,20 @@ Testes: **108 testes Core**, **4 testes API** (incluindo contrato servido pelo h
 
 Contrato e exemplos: [deck-loadouts](../api/deck-loadouts.md). Atualizado o OpenAPI estático com as novas rotas/DTOs, preservando alterações pendentes anteriores.
 
+## Etapa 5 — Custos com cartas
+
+Estado: concluída.
+
+O componente de custo aceita `zonePayments`, mantendo os custos/alternativas de recursos existentes. Cada pagamento referencia um fluxo JSON de transferência explícita, sem segundo processador de zonas; suas restrições são validadas na publicação e novamente no contexto da ação. Custos AND e pagamentos associados às alternativas são avaliados conjuntamente. Uma opção válida em outro componente não pode autorizar ignorar o custo do componente atual.
+
+O planner verifica identidades, quantidade exata, tags efetivas, visibilidade, origem/propriedade, duplicação entre pagamentos e capacidade conjunta sobre snapshots locais. Ordem pode ser SourceOrder ou ChosenOrder. Quantidade zero é inválida; um pagamento sem custo é omitido. Origens ocultas não expõem IDs para pagamento manual. A própria carta é inelegível por padrão; se autorizada e escolhida, a transferência do custo consome sua disposição, preservando a execução dos efeitos e impedindo um segundo descarte.
+
+Pagamentos confirmados viram prefixos CARD_ZONE_FLOW no processador de efeitos existente, com as mesmas observações/respostas e transação dos custos de recurso. Qualquer falha posterior descarta todos os candidatos. Campos opcionais ausentes continuam omitidos dos hashes/snapshots anteriores.
+
+Testes: **168 aprovados, zero falhas/skips**, cobrindo pagamento de duas origens, recursos + cartas, alternativas, tags, ordem, sobreposição, outro ator, origem oculta, destino cheio, disposição e falha posterior. Execução observada e sem observação produziram os mesmos resultados; repetição e snapshots retidos foram comparados. Evidência: `.runtime/tactical-mvp/results/stage05.trx`.
+
+Autoria e limites: [pagamentos com cartas](../guides/card-zone-payments.md). A UI/transporte das escolhas e os exemplos jogáveis são a etapa seguinte; nenhum setting existente recebeu custos novos.
+
 ## Próxima etapa
 
-Etapa 5: custos genéricos com cartas. Etapas 5–17 permanecem pendentes. O plano possui 18 etapas numeradas de 0 a 17; não contém uma etapa 18 adicional.
+Etapa 6: avaliação pública e seletor de pagamentos na Godot. Etapas 6–17 permanecem pendentes. O plano possui 18 etapas numeradas de 0 a 17; não contém uma etapa 18 adicional.

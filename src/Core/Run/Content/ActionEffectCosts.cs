@@ -18,5 +18,13 @@ public static class ActionEffectCosts
         },
         SourceEntityId = actorId, TargetEntityIds = [actorId], ResolvedValue = cost.Amount,
         Provenance = origin with { ComponentId = cost.ComponentId }
-    }).ToImmutableArray();
+    }).Concat((evaluation.ZonePayments ?? []).Select(payment => new ResolvedEffectCommand
+    {
+        SemanticReasonId = semanticReasonId,
+        EffectInstanceId = $"{origin.SourceId}:cost:{payment.ComponentId}:{payment.PaymentId}",
+        Definition = new() { EffectId = $"cost:{payment.ComponentId}:{payment.PaymentId}", Type = EffectType.CARD_ZONE_FLOW,
+            CardZoneFlowId = payment.FlowId, CardInstanceIds = payment.CardInstanceIds, CardCount = payment.CardInstanceIds.Length },
+        SourceEntityId = actorId, TargetEntityIds = [actorId], ResolvedValue = payment.CardInstanceIds.Length,
+        Provenance = origin with { ComponentId = payment.ComponentId }
+    })).ToImmutableArray();
 }

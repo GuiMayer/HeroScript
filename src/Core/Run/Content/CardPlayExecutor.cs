@@ -29,6 +29,8 @@ public sealed record CardPlayExecutionRequest
         init => _selectedTargetIds = value?.ToImmutableArray() ?? [];
     }
     public string? CostOptionId { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardPaymentSelection>? PaymentSelections { get; init; }
     public bool IgnoreConfiguredCosts { get; init; }
 }
 
@@ -144,6 +146,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 ActorId = request.ActorId,
                 SelectedTargetIds = request.SelectedTargetIds,
                 CostOptionId = request.CostOptionId,
+                PaymentSelections = request.PaymentSelections,
                 ContentRevision = request.Run.Determinism.ContentRevision,
                 IgnoreConfiguredCosts = request.IgnoreConfiguredCosts
             });

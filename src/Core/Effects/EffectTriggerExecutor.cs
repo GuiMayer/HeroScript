@@ -248,12 +248,24 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
                     prefix.Definition.OutputId)
             };
             var observationBefore = observation == null ? null : current;
-            var applied = _effects.Apply(current, [command]);
+            var prefixRunBefore = currentRun;
+            Result<EffectBatchResult> applied;
+            if (command.Definition.Type == EffectType.CARD_ZONE_FLOW)
+            {
+                if (currentRun == null) return Result<EffectBatchResult>.Failure("Zone prefix requires the immutable run snapshot");
+                if (request.Combat.CombatId == Guid.Empty) currentRun = currentRun with { Determinism = current.Determinism };
+                var transferred = RunEffectReducer.Apply(currentRun, current, command, _contentRuntimes, request.ContentRevision, _cardZoneFlows);
+                if (transferred.IsFailure) return Result<EffectBatchResult>.Failure(transferred.Error);
+                currentRun = transferred.Value.Run;
+                if (request.Combat.CombatId == Guid.Empty) current = current with { Determinism = currentRun.Determinism };
+                applied = Result<EffectBatchResult>.Success(new() { State = current, Run = currentRun, Records = [transferred.Value.Record] });
+            }
+            else applied = _effects.Apply(current, [command]);
             if (applied.IsFailure) return Result<EffectBatchResult>.Failure(applied.Error);
             current = applied.Value.State;
             if (observation != null)
             {
-                var observed = observation.Record(command, observationBefore!, current, applied.Value.Records, currentRun, currentRun);
+                var observed = observation.Record(command, observationBefore!, current, applied.Value.Records, prefixRunBefore, currentRun);
                 if (observed.IsFailure) return Result<EffectBatchResult>.Failure(observed.Error);
                 observation = observed.Value;
             }

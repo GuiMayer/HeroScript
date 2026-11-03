@@ -298,6 +298,16 @@ internal sealed partial class GameplayContentValidator(ContentRuntime runtime, I
                     if (cost.Costs == null) { Error(address, "cost payload cannot be null"); break; }
                     var alternatives = cost.Costs.AlternativeCosts.Where(option => option != null).ToArray();
                     if (alternatives.Length != cost.Costs.AlternativeCosts.Count) Error(address, "alternative option cannot be null");
+                    foreach (var payment in cost.ZonePayments ?? [])
+                    {
+                        if (payment == null || payment.Validate().IsFailure || string.IsNullOrWhiteSpace(payment.FlowId))
+                        { Error(address, "invalid zone payment definition"); continue; }
+                        var found = runtime.GetDefinitions("card-zone-systems").Keys
+                            .Select(id => runtime.GetDefinition<CardZoneSystemDefinition>("card-zone-systems", id))
+                            .Where(result => result.IsSuccess).SelectMany(result => result.Value.Flows)
+                            .Any(flow => flow.FlowId == payment.FlowId && CardZonePaymentPlanner.ValidateFlow(payment, flow).IsSuccess);
+                        if (!found) Error(address, $"zone payment requires a compatible authored flow: {payment.FlowId}");
+                    }
                     foreach (var resource in cost.Costs.Costs.Concat(alternatives.SelectMany(option => option.Costs)))
                     {
                         if (resource == null) { Error(address, "resource cost cannot be null"); continue; }

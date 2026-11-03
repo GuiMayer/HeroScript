@@ -34,6 +34,8 @@ public abstract record CardComponentDefinition
 public sealed record CardCostComponentDefinition : CardComponentDefinition
 {
     public ActionCosts Costs { get; init; } = new();
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CardZonePaymentDefinition>? ZonePayments { get; init; }
 }
 
 public sealed record CardEffectComponentDefinition : CardComponentDefinition
