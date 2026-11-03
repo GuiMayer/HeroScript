@@ -157,6 +157,11 @@ func show_settings(return_to_gameplay := false) -> void:
 	if is_instance_valid(_router) and _router.has_method("show_settings"):
 		_router.show_settings(return_to_gameplay)
 
+func toggle_pause() -> void:
+	history.append({"route": "toggle_pause"})
+	if is_instance_valid(_router) and _router.has_method("toggle_pause"):
+		_router.toggle_pause()
+
 func map_reading_state(scope_key: String) -> Dictionary:
 	if is_instance_valid(_router) and "map_reading_states" in _router:
 		return _router.map_reading_states.get(scope_key, {}).duplicate(true)
@@ -193,18 +198,19 @@ func clear_dialogue_reading_state(scope_key: String) -> void:
 		_router.dialogue_reading_states.erase(scope_key)
 	_dialogue_reading_states.erase(scope_key)
 
-func acquire_combat_scenery() -> void:
+func acquire_combat_scenery():
 	_combat_scenery_leases += 1
 	if is_instance_valid(_router):
 		if _router.has_method("acquire_combat_scenery"):
-			_router.acquire_combat_scenery()
+			return _router.acquire_combat_scenery()
 		elif "shell" in _router and _router.shell != null and "run_scenery" in _router.shell and _router.shell.run_scenery != null:
-			_router.shell.run_scenery.acquire_combat()
+			return _router.shell.run_scenery.acquire_combat()
+	return null
 
-func release_combat_scenery() -> void:
+func release_combat_scenery(scenery = null) -> void:
 	_combat_scenery_leases = maxi(0, _combat_scenery_leases - 1)
 	if is_instance_valid(_router):
 		if _router.has_method("release_combat_scenery"):
-			_router.release_combat_scenery()
+			_router.release_combat_scenery(scenery)
 		elif "shell" in _router and _router.shell != null and "run_scenery" in _router.shell and _router.shell.run_scenery != null:
-			_router.shell.run_scenery.release_combat()
+			_router.shell.run_scenery.release_combat(scenery)

@@ -299,6 +299,10 @@ func _build_character_sidebar() -> Control:
 	return view
 
 
+func toggle_character_sidebar() -> void:
+	_toggle_character_sidebar()
+
+
 func _toggle_character_sidebar() -> void:
 	if is_instance_valid(character_sidebar): character_sidebar.set_open(not character_sidebar_expanded)
 
@@ -394,11 +398,19 @@ func _targets(candidate: Dictionary) -> Array:
 	return presenter.targets(candidate)
 
 
+func clear_choices() -> void:
+	_clear_choices()
+
+
 func _clear_choices() -> void:
 	if is_instance_valid(candidate_panel): candidate_panel.hide()
 	for child in choices.get_children():
 		choices.remove_child(child)
 		child.queue_free()
+
+
+func show_preview(id: String) -> void:
+	_show_preview(id)
 
 
 func _show_preview(id: String) -> void:
@@ -610,7 +622,14 @@ func _reconnect() -> void:
 func _execute_zone_flow(payload: Dictionary) -> void:
 	intent_requested.emit("_execute_zone_flow", [payload])
 
+func hand_scope() -> String: return _scope
 func _hand_scope() -> String: return _scope
+
+func pile_buttons() -> Array[Button]:
+	var result: Array[Button] = []
+	for button in find_children("Pile_*", "Button", true, false):
+		if button is Button: result.append(button)
+	return result
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
 	mount(context)

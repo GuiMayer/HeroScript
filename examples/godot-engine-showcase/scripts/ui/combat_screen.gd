@@ -3,8 +3,11 @@ extends "res://scripts/ui/screen_view.gd"
 const Presenter = preload("res://scripts/presentation/combat_presenter.gd")
 const CardZonePresenter = preload("res://scripts/presentation/card_zone_presenter.gd")
 const CombatView = preload("res://scripts/ui/combat_view.gd")
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+const BeatOrchestrator = preload("res://scripts/ui/controllers/combat_beat_orchestrator.gd")
 var view: CombatView
 var router
+var screen_context: ScreenContext
 var controller
 var inspection_coordinator
 var presentation_driver
@@ -28,6 +31,7 @@ var _intro_handle
 var _receipt_departure
 var _receipt_motion_started := 0
 var _resume_card_prefix := false
+var _settled_generation := -1
 var _transfer_models: Dictionary = {}
 var _active_motion
 var _transits
@@ -44,16 +48,17 @@ var submitting: bool:
 
 func setup(owner, data: Dictionary) -> void:
 	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
-	router = owner
-	mount(owner.visual_context)
-	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return router.get_tree().paused)
+	screen_context = ScreenContext.ensure(owner)
+	router = screen_context.router if screen_context.router != null else owner
+	mount(screen_context.visual_context)
+	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return screen_context.navigation.is_tree_paused())
 	controller.changed.connect(_update_controls)
 	inspection_coordinator = preload("res://scripts/ui/controllers/combat_inspection_coordinator.gd").new(controller)
-	presentation_driver = preload("res://scripts/ui/controllers/presentation_director.gd").new(Playback, Preferences, func(): return router.get_tree().paused)
+	presentation_driver = preload("res://scripts/ui/controllers/presentation_director.gd").new(Playback, Preferences, func(): return screen_context.navigation.is_tree_paused())
 	presentation_driver.changed.connect(_update_controls)
 	add_child(presentation_driver)
 	view = get_node("CombatView")
-	view.scenery = router.shell.run_scenery.acquire_combat()
+	view.scenery = screen_context.navigation.acquire_combat_scenery()
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	view.intent_requested.connect(_on_intent)
 	Playback.frame_presented.connect(_on_frame)
@@ -61,6 +66,7 @@ func setup(owner, data: Dictionary) -> void:
 	Playback.visual_resolver = _can_animate
 	Playback.settled.connect(_on_settled)
 	GameSession.presentation_ready.connect(_on_presentation_ready)
+	GameSession.presentation_discarded.connect(_on_presentation_discarded)
 	GameSession.receipt_received.connect(_on_receipt_received)
 	_render(data)
 	_resume_presentation.call_deferred()
@@ -128,18 +134,20 @@ func _on_intent(action: String, arguments: Array) -> void:
 			if view.hand.interaction.pointer_active and not view.hand.interaction.dragging and not _locked() \
 					and not id.is_empty() and not selected_card.is_empty() and selected_card != id:
 				if controller.cancel():
-					view._clear_choices()
+					view.clear_choices()
 					_update_controls()
-					view._show_preview(id)
+					view.show_preview(id)
+	elif action == "card_hover_entered":
+		if is_inside_tree() and not get_tree().paused and not view.hand.reading_modal:
 			GameAudio.play_event("card_hover")
 	elif action == "inspect_zone": _open_collection(arguments[0])
-	elif action == "timeline": router.show_timeline()
-	elif action == "pause": router.toggle_pause()
+	elif action == "timeline": screen_context.navigation.show_timeline()
+	elif action == "pause": screen_context.navigation.toggle_pause()
 	elif action == "skip_presentation": presentation_driver.skip()
 	elif action == "select_card":
 		if controller.select_card(str(arguments[0])):
 			GameAudio.select_card()
-			view._clear_choices(); view._show_preview(str(arguments[0])); _update_controls()
+			view.clear_choices(); view.show_preview(str(arguments[0])); _update_controls()
 	elif action == "_play_option":
 		for option in presenter.action_options(str(arguments[1])):
 			if option.reference == str(arguments[0]):
@@ -185,7 +193,7 @@ func _open_collection(address: Dictionary) -> void:
 	dialog.tree_exiting.connect(func():
 		if _zone_reading_states.size() >= 16: _zone_reading_states.erase(_zone_reading_states.keys()[0])
 		_zone_reading_states[scope] = dialog.capture_local_state()
-		for button in view.find_children("Pile_*", "Button", true, false):
+		for button in view.pile_buttons():
 			if button.get_meta("zone_address") == address and button.is_inside_tree(): button.grab_focus())
 	view.hand.track_reading_modal(dialog); dialog.popup_centered_clamped(Vector2i(1100, 720), .9)
 	GameAudio.play_event("open")
@@ -221,7 +229,7 @@ func _resolve_scenery() -> Dictionary:
 	return preload("res://scripts/presentation/scenery_presenter.gd").build(_run_snapshot, _combat_snapshot,
 		GameSession.selected_setting_id, mappings).to_dictionary()
 func _candidates(id: String) -> Array: return presenter.candidates(id)
-func _toggle_character_sidebar() -> void: view._toggle_character_sidebar()
+func _toggle_character_sidebar() -> void: view.toggle_character_sidebar()
 func replace_composition(scene: PackedScene, profile: Resource) -> void: view.replace_composition(scene, profile)
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	if _active_motion != null: visual_context.motion = _active_motion
@@ -229,19 +237,23 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 func _card_stage() -> Vector2:
 	return preload("res://scripts/presentation/card_choreography.gd").stage_center(view.hand)
 
+func _on_presentation_discarded() -> void:
+	if not is_inside_tree() or GameSession.run.get("runId") != _run_snapshot.get("runId"): return
+	controller.presentation_pending = true
+	if _receipt_departure != null: _receipt_departure.finish("cancelled"); _receipt_departure = null
+	Playback.clear()
+	_on_settled("cancelled", Playback.generation)
+
 func _on_receipt_received(receipt: Dictionary) -> void:
 	# Acceptance authorizes visual departure only. No effects, costs, final faces
 	# or input unlocks are published until the atomic synchronized envelope.
 	if not is_inside_tree() or _prepared_card.is_empty() or _receipt_departure != null: return
-	if int(receipt.get("sequence", -1)) != int(_prepared_card.get("sequence", -2)) + 1: return
-	if GameSession.run.get("runId") != _run_snapshot.get("runId"): return
-	var receipt_state := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt.get("state"))
-	var combat := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt_state.get("combat"))
-	if combat.get("combatId") != _combat_snapshot.get("combatId"): return
+	if not BeatOrchestrator.matches_receipt_departure(receipt, _prepared_card, GameSession.run.get("runId"), _run_snapshot.get("runId"), _combat_snapshot.get("combatId")): return
 	_interaction_trace.mark("receipt")
 	var id := str(_prepared_card.get("cardInstanceId", ""))
 	if not is_instance_valid(view.hand.card_for(id)): return
 	_active_motion = visual_context.capture_motion()
+	var receipt_state := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt.get("state"))
 	var resolution := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt_state.get("resolution"))
 	if preload("res://scripts/ui/card_zone_motion.gd").uses_burn(resolution.get("frames", []), id, _active_motion): return
 	if _active_motion.duration("card_flight", true) <= 0: return
@@ -258,32 +270,18 @@ func _on_receipt_received(receipt: Dictionary) -> void:
 func _on_presentation_ready(value) -> void:
 	if not is_inside_tree() or value != Playback.envelope: return
 	_interaction_trace.mark("envelope")
+	_settled_generation = -1
 	controller.presentation_pending = true
 	if _active_motion == null: _active_motion = visual_context.capture_motion()
 	visual_context.motion = _active_motion
 	presentation_driver.watchdog_seconds = visual_context.motion.duration("watchdog")
-	var payments: Array = []
-	for cost in _prepared_card.get("costs", []):
-		if cost.get("componentId") != null: payments.append({"componentId": cost.componentId, "sourceId": _prepared_card.get("cardInstanceId", "")})
-	Playback.annotate({"payments": payments})
-	_transfer_models.clear()
-	for card in view.hand.ordered_cards(): _transfer_models[str(card.model.cardInstanceId)] = card.model
-	var after: Dictionary = value.snapshot("after")
-	_motion_zones = [value.snapshot("before").get("zones", {}), after.get("zones", {})]
-	_pile_anchors.clear(); _zone_roles.clear()
-	for button in view.find_children("Pile_*", "Button", true, false):
-		_pile_anchors[preload("res://scripts/ui/card_zone_motion.gd").address_key(button.get_meta("zone_address", {}))] = button
-	for snapshot in _motion_zones:
-		for zone in snapshot.get("zones", []): _zone_roles[preload("res://scripts/ui/card_zone_motion.gd").address_key(zone)] = "hand" if zone.get("allowsCardPlay", false) else "pile"
-	var final_presenter = Presenter.new(after.get("run", {}), value.snapshot("combat"), after.get("actions", []),
-		visual_context.translator, presentation, after.get("zones", {}))
-	final_presenter.accept_evaluations(after.get("evaluations", []))
-	final_presenter.accept_presentations(after.get("presentations", []))
-	for zone in after.get("zones", {}).get("zones", []):
-		if zone.get("contentsVisible", false):
-			for card in zone.get("cards", []): _transfer_models[str(card.cardInstanceId)] = final_presenter.card_view_model(str(card.cardInstanceId))
-	var final_cards: Array = CardZonePresenter.new(after.get("zones", {}), visual_context.translator).playable_cards()
-	view.hand.begin_presentation(final_cards.map(func(card): return final_presenter.card_view_model(str(card.cardInstanceId))))
+	Playback.annotate({"payments": BeatOrchestrator.build_payment_annotations(_prepared_card)})
+	var prepared := BeatOrchestrator.prepare_envelope_presentation(value, view, visual_context, presentation)
+	_transfer_models = prepared.transfer_models
+	_motion_zones = prepared.motion_zones
+	_pile_anchors = prepared.pile_anchors
+	_zone_roles = prepared.zone_roles
+	view.hand.begin_presentation(prepared.final_models)
 	if _transits == null:
 		_transits = preload("res://scripts/ui/card_transit_registry.gd").new(view.hand, view.feedback.effects, visual_context)
 	var prefix: Array = []
@@ -299,6 +297,10 @@ func _on_presentation_ready(value) -> void:
 	_update_controls()
 
 func _process(_delta: float) -> void:
+	# Settlement and canonical synchronization can complete in either order.
+	# Keep the reconciliation pending until both are ready, not for one callback.
+	if _settled_generation >= 0 and not get_tree().paused:
+		_finish_navigation(_settled_generation, screen_context.navigation_epoch)
 	if not _resume_card_prefix or get_tree().paused: return
 	_resume_card_prefix = false
 	# Card input already confirmed this cue. Synchronizing while paused must
@@ -326,8 +328,7 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 		var retained: bool = CardZonePresenter.new(final_zones, visual_context.translator).playable_cards().any(func(item): return str(item.get("cardInstanceId", "")) == id)
 		var continued := false
 		for beat in Playback.frames:
-			var steps: Array = beat.get("cardZoneSteps", []).duplicate()
-			for application in beat.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
+			var steps: Array = BeatOrchestrator.extract_card_zone_steps(beat, false)
 			if steps.any(func(step): return id in step.get("instanceIds", [])): continued = true; break
 		handle.completed.connect(func(_result):
 			if not is_inside_tree(): return
@@ -346,14 +347,8 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 				visual_context, _card_stage, handle, early != null)
 	else:
 		if frame.get("stateAfter") is Dictionary: view.present_combat_snapshot(frame.stateAfter)
-		var steps: Array = frame.get("cardZoneSteps", []).duplicate(true)
-		if steps.is_empty():
-			for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
+		var steps: Array = BeatOrchestrator.extract_card_zone_steps(frame, true)
 		if not steps.is_empty() and Playback.envelope != null:
-			view.hand.prepare_zone_beat(steps, _zone_role)
-			# Commit before completion releases the cursor or reconciles final state.
-			handle.cleanup(func():
-				if handle.result == "completed" and is_inside_tree(): view.hand.settle_zone_beat())
 			# Card motion owns its arrival milestone; static outcomes still publish
 			# immediately and do not add a second timer to the transfer.
 			var cosmetics = preload("res://scripts/presentation/presentation_handle.gd").new()
@@ -368,12 +363,7 @@ func _execute_beat(frame: Dictionary, handle) -> void:
 			view.actor_portraits, view.battlefield_view.panels, Playback.index - 1, Playback.total, GameAudio.play_beat, not _prepared_card.is_empty())
 
 func _can_animate(frame: Dictionary) -> bool:
-	if frame.get("presentationOnly", "") == "card_departure":
-		return not preload("res://scripts/ui/card_zone_motion.gd").uses_burn(Playback.frames, str(frame.get("cardInstanceId", "")), visual_context.motion) and visual_context.motion.duration("card_flight", true) > 0 and is_instance_valid(view.hand.card_for(str(frame.get("cardInstanceId", ""))))
-	var steps: Array = frame.get("cardZoneSteps", []).duplicate()
-	for application in frame.get("applications", []): steps.append_array(application.get("cardZoneSteps", []))
-	if not steps.is_empty() and not preload("res://scripts/ui/card_zone_motion.gd").resolve(steps, _motion_zones, _zone_anchor, visual_context.motion, _zone_role).is_empty(): return true
-	return preload("res://scripts/ui/effect_motion.gd").can_animate(frame, visual_context, view.actor_portraits, view.battlefield_view.panels, not _prepared_card.is_empty())
+	return BeatOrchestrator.can_animate_beat(frame, Playback.frames, _motion_zones, _zone_anchor, _zone_role, view, visual_context, not _prepared_card.is_empty())
 
 func _zone_anchor(address: String, id: String) -> Vector2:
 	if _zone_roles.get(address) == "hand": return view.hand.destination_center(id)
@@ -387,6 +377,7 @@ func _zone_role(address: String) -> String:
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
 	if not _prepared_card.is_empty(): _interaction_trace.mark("settled")
+	_settled_generation = generation
 	_prepared_card = {}; _intro_handle = null
 	_resume_card_prefix = false
 	_receipt_motion_started = 0; _active_motion = null
@@ -396,13 +387,15 @@ func _on_settled(_result: String, generation: int) -> void:
 	_transfer_models.clear()
 	_motion_zones.clear(); _pile_anchors.clear(); _zone_roles.clear()
 	_update_controls()
-	_finish_navigation.call_deferred(generation, router.navigation_epoch)
+	_finish_navigation.call_deferred(generation, screen_context.navigation_epoch)
 
 func _finish_navigation(generation: int, epoch: int) -> void:
-	if not is_inside_tree() or generation != Playback.generation or epoch != router.navigation_epoch: return
+	if not is_inside_tree() or generation != Playback.generation or epoch != screen_context.navigation_epoch: return
+	if _settled_generation != generation or Playback.has_blocking_work() or get_tree().paused: return
 	if GameSession.synchronized and not GameSession.busy:
+		_settled_generation = -1
 		controller.presentation_pending = false
-		router.open_game()
+		screen_context.open_game()
 		Playback.release_facts()
 func apply_model(model) -> void: refresh_state(model)
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
@@ -417,10 +410,11 @@ func dispose() -> void:
 	if inspection_coordinator: inspection_coordinator.dispose()
 	if presentation_driver: presentation_driver.dispose()
 	if is_instance_valid(view): view.dispose()
-	if is_instance_valid(view) and is_instance_valid(view.scenery) and is_instance_valid(router): router.shell.run_scenery.release_combat(view.scenery)
+	if is_instance_valid(view) and is_instance_valid(view.scenery) and screen_context != null: screen_context.navigation.release_combat_scenery(view.scenery)
 	if Playback.frame_presented.is_connected(_on_frame): Playback.frame_presented.disconnect(_on_frame)
 	if Playback.settled.is_connected(_on_settled): Playback.settled.disconnect(_on_settled)
 	if GameSession.presentation_ready.is_connected(_on_presentation_ready): GameSession.presentation_ready.disconnect(_on_presentation_ready)
+	if GameSession.presentation_discarded.is_connected(_on_presentation_discarded): GameSession.presentation_discarded.disconnect(_on_presentation_discarded)
 	if GameSession.receipt_received.is_connected(_on_receipt_received): GameSession.receipt_received.disconnect(_on_receipt_received)
 	Playback.executor = Callable()
 	Playback.visual_resolver = Callable()
@@ -434,7 +428,7 @@ func _drop_card(id: String, point: Vector2) -> void:
 		if controller.select_card(id): _select_target(actor_id)
 		return
 	if view.contains_battlefield_point(point):
-		var candidates := view._candidates(id).filter(func(candidate): return view._targets(candidate).is_empty())
+		var candidates := presenter.candidates(id).filter(func(candidate): return presenter.targets(candidate).is_empty())
 		if not candidates.is_empty() and controller.select_card(id): _offer_candidates(candidates)
 
 
@@ -469,7 +463,7 @@ func _play_candidate(candidate: Dictionary, payment_preview: Dictionary = {}) ->
 			_prepared_card = {}; _active_motion = null; _receipt_motion_started = 0
 		var accepted_generation: int = Playback.generation
 		if _intro_handle != null and not _intro_handle.done: await _intro_handle.completed
-		if is_inside_tree() and accepted_generation == Playback.generation and not Playback.has_blocking_work() and GameSession.synchronized: router.open_game()
+		if is_inside_tree() and accepted_generation == Playback.generation and not Playback.has_blocking_work() and GameSession.synchronized: screen_context.open_game()
 	else:
 		view.hand.reject_use(id)
 		_prepared_card = {}
@@ -478,7 +472,7 @@ func _play_candidate(candidate: Dictionary, payment_preview: Dictionary = {}) ->
 
 
 func _end_turn() -> void:
-	_execute_system(view._system_candidate(["END_TURN"]))
+	_execute_system(presenter.system_candidate(["END_TURN"]))
 
 
 func _execute_system(candidate: Dictionary) -> void:
@@ -486,7 +480,7 @@ func _execute_system(candidate: Dictionary) -> void:
 	if not is_inside_tree(): return
 	if accepted:
 		GameAudio.turn()
-		if not Playback.has_blocking_work(): router.open_game()
+		if not Playback.has_blocking_work(): screen_context.open_game()
 	else: GameAudio.error()
 
 
@@ -500,16 +494,16 @@ func _choose_card(id: String) -> void:
 	if presenter.requires_payment(id):
 		if controller.select_card(id): _open_payment(id)
 		return
-	var matches := view._candidates(id)
+	var matches := presenter.candidates(id)
 	if selected_card == id and matches.size() == 1:
 		_play_candidate(matches[0])
 		return
 	if not controller.select_card(id): return
 	GameAudio.select_card()
-	view._clear_choices()
-	view._show_preview(id)
+	view.clear_choices()
+	view.show_preview(id)
 	_update_controls()
-	if matches.all(func(candidate): return view._targets(candidate).is_empty()):
+	if matches.all(func(candidate): return presenter.targets(candidate).is_empty()):
 		_offer_candidates(matches)
 
 
@@ -521,7 +515,7 @@ func _cancel_selection() -> void:
 
 
 func _offer_candidates(candidates: Array) -> void:
-	view._clear_choices()
+	view.clear_choices()
 	if candidates.size() == 1:
 		_play_candidate(candidates[0])
 		return
@@ -532,11 +526,11 @@ func _reconnect() -> void:
 	if not is_inside_tree():
 		return
 	if accepted:
-		if not Playback.has_blocking_work(): router.open_game()
+		if not Playback.has_blocking_work(): screen_context.open_game()
 
 
 func _load_inspection(ticket: int) -> void:
-	var inspection_key: Array = [view._hand_scope(), _run_snapshot.get("sequence", 0), _combat_snapshot.get("step", 0),
+	var inspection_key: Array = [view.hand_scope(), _run_snapshot.get("sequence", 0), _combat_snapshot.get("step", 0),
 		_run_snapshot.get("contentRevision", _run_snapshot.get("contentRevisionId", "")), GameSession.input_actor_id()]
 	var representative_targets: Array = []
 	if not selected_target.is_empty(): representative_targets = [selected_target]
@@ -556,12 +550,12 @@ func _load_inspection(ticket: int) -> void:
 
 func _execute_zone_flow(payload: Dictionary) -> void:
 	var accepted: bool = await controller.execute_zone_flow(payload)
-	if is_inside_tree() and accepted and not Playback.has_blocking_work(): router.open_game()
+	if is_inside_tree() and accepted and not Playback.has_blocking_work(): screen_context.open_game()
 
 func _open_payment(id: String) -> void:
 	var opening_context := [GameSession.replay_context(), GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.combat.get("combatId"), GameSession.combat.get("step")]
 	var dialog = preload("res://scenes/ui/overlays/card_payment.tscn").instantiate()
-	add_child(dialog); dialog.mount(visual_context, presenter._appearance)
+	add_child(dialog); dialog.mount(visual_context, presenter.appearance())
 	var actors := {}
 	for actor in presenter.actors():
 		var actor_id := str(actor.get("instanceId", "")); actors[actor_id] = presenter.actor_name(actor_id)
