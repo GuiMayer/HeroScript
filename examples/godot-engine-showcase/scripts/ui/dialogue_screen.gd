@@ -1,6 +1,22 @@
 extends "res://scripts/ui/screen_view.gd"
 ## Application adapter for the isolated narrative presentation.
-var router
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var controller
 var view
 var presentation: Dictionary
@@ -8,13 +24,16 @@ var _model: Dictionary = {}
 var _start_attempted := false
 var _alive := true
 func setup(owner, data: Dictionary) -> void:
-	router = owner; mount(owner.visual_context); presentation = data.duplicate(true)
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
+	presentation = data.duplicate(true)
 	controller = preload("res://scripts/ui/controllers/dialogue_controller.gd").new(GameSession)
 	controller.changed.connect(_interaction)
 	view = get_node("DialogueScene")
 	view.intent_requested.connect(_intent)
 	refresh_state(data)
-	view.restore_local_state(router.dialogue_reading_states.get(_reading_scope(), {}))
+	view.restore_local_state(screen_context.navigation.dialogue_reading_state(_reading_scope()))
 	_start_if_needed.call_deferred()
 func refresh_state(data: Dictionary) -> void:
 	if not _alive: return
@@ -28,14 +47,14 @@ func refresh_state(data: Dictionary) -> void:
 func _start_if_needed() -> void:
 	if controller == null or not _alive or not is_inside_tree() or get_tree().paused or controller.locked() or _start_attempted or not _model.is_empty(): return
 	_start_attempted = true
-	if await controller.execute_published("START_DIALOGUE") and _alive: router.open_game()
+	if await controller.execute_published("START_DIALOGUE") and _alive: screen_context.open_game()
 func _process(_delta: float) -> void:
 	if _model.is_empty() and not _start_attempted: _start_if_needed()
 func _intent(action: String, arguments: Array) -> void:
 	if not _alive or not is_inside_tree(): return
 	match action:
-		"pause": router.toggle_pause()
-		"map": router.show_activity(true)
+		"pause": screen_context.navigation.toggle_pause()
+		"map": screen_context.navigation.show_activity(true)
 		"recover":
 			if await controller.recover() and _alive:
 				refresh_state(presentation)
@@ -49,9 +68,9 @@ func _intent(action: String, arguments: Array) -> void:
 					if not controller.command("RESOLVE_NODE").is_empty():
 						if not await controller.execute_published("RESOLVE_NODE"): return
 					if _alive:
-						router.dialogue_return_barrier = true
-						router.show_activity(true)
-				else: router.open_game()
+						screen_context.dialogue_return_barrier = true
+						screen_context.navigation.show_activity(true)
+				else: screen_context.open_game()
 func _interaction() -> void:
 	if is_instance_valid(view): view.set_read_only(controller.locked())
 func apply_interaction(_state) -> void: _interaction()
@@ -59,8 +78,7 @@ func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
 	if not _alive: return
 	if is_instance_valid(view):
-		if router.dialogue_reading_states.size() >= 16 and not router.dialogue_reading_states.has(_reading_scope()): router.dialogue_reading_states.erase(router.dialogue_reading_states.keys()[0])
-		router.dialogue_reading_states[_reading_scope()] = view.capture_local_state()
+		screen_context.navigation.save_dialogue_reading_state(_reading_scope(), view.capture_local_state())
 	_alive = false
 	if controller: controller.dispose()
 func _reading_scope() -> String:

@@ -85,3 +85,11 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
   - `SessionReplayService` (`scripts/application/session_replay_service.gd`): resolução de bookmark/histórico para retomada de jornada (`find_resume`) e respostas padronizadas de capacidades (`tool_denied`).
   - `SessionCommandDispatcher` (`scripts/application/session_command_dispatcher.gd`): mapeamento de tipo de comando de candidato (`candidate_command_type`), normalização defensiva de recibo 2xx malformado (`normalize_receipt_response`) e política de limpeza de comando pendente (`should_clear_pending_on_failure`).
 - Validação aprovada: `compact_session`, `http_transport_pool`, `rest_transport_latency`, `connection_epoch`, `api_request_numbers`, `replay_transport`, `replay_progressive` e `ui_decoupling_baseline`.
+
+## Etapa 9 — Router, atividades e demais telas
+
+- Criado `GameplayRouteResolver` (`scripts/ui/gameplay_route_resolver.gd`) para isolar a resolução pura da rota ativa (`combat`, `dialogue`, `map`, `activity`) e detecção de atividades de diálogo sem depender da cena principal.
+- Atualizado `main.gd` (`scripts/ui/main.gd`) com `screen_context = ScreenContext.from_router(self)`, método público `start_new_campaign()` e delegação para `GameplayRouteResolver`.
+- Atualizados `NavigationPort` (`scripts/ui/context/navigation_port.gd`) e `FeedbackPort` (`scripts/ui/context/feedback_port.gd`) com política LRU de 16 entradas para `save_map_reading_state` / `save_dialogue_reading_state` e despacho compatível com `show_toast` de 1 ou 2 parâmetros.
+- Migradas `activity_screen.gd`, `dialogue_screen.gd`, `map_screen.gd`, `timeline_screen.gd`, `run_history_screen.gd`, `run_replay_screen.gd`, `sandbox_screen.gd` e `settings_screen.gd` para consumir `ScreenContext` (eliminando `router._new_campaign()`, mutações diretas em `router.dialogue_reading_states` / `router.map_reading_states` e leituras diretas de `router.presentation`).
+- Validação aprovada: `screen_scene_registry`, `run_screen_lifecycle`, `replay_lifecycle`, `dialogue_contracts`, `dialogue_coordination`, `dialogue_reading`, `activity_reconciliation`, `activity_ingress`, `activity_map_completion`, `map_selection`, `settings_contracts`, `settings_interaction`, `settings_recovery`, `run_loadout`, `loadout_editorial`, `loadout_input`, `screen_context_pilot` e `ui_decoupling_baseline`.

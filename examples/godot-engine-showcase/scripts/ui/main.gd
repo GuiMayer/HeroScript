@@ -1,8 +1,11 @@
 extends Control
 
 const MenuProfile = preload("res://data/themes/ivory_theme.tres")
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+const RouteResolver = preload("res://scripts/ui/gameplay_route_resolver.gd")
 
 var visual_context
+var screen_context: ScreenContext
 var shell
 var host: MarginContainer:
 	get: return shell.host
@@ -45,6 +48,7 @@ func _ready() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
 	_load_presentation()
 	visual_context.setting_id = GameSession.selected_setting_id
+	screen_context = ScreenContext.from_router(self)
 	_menu_paper = get_node("%MenuPaper")
 	shell = get_node("%ApplicationShell")
 	shell.mount(visual_context)
@@ -208,6 +212,9 @@ func _select_setting_from_menu(index: int, selector: OptionButton) -> void:
 	Preferences.save_session()
 	call_deferred("_show_main_menu")
 
+func start_new_campaign() -> void:
+	_new_campaign()
+
 func _new_campaign() -> void:
 	var epoch := navigation_epoch
 	if GameSession.busy or GameSession.has_pending_command:
@@ -239,16 +246,7 @@ func _recover_session() -> void:
 func gameplay_route() -> String:
 	# Single UI routing decision, shared by opening a run and the map return tab.
 	# These are presentation routes, not activity eligibility or gameplay rules.
-	if GameSession.run.is_empty():
-		return "menu"
-	if not GameSession.combat.is_empty() and str(GameSession.combat.get("status", "ACTIVE")) == "ACTIVE":
-		return "combat"
-	var attempt = GameSession.run.get("encounterAttempt")
-	if attempt is Dictionary and (bool(attempt.get("awaitingConfirmation", false)) or bool(attempt.get("pendingRetry", false))): return "activity"
-	if _has_dialogue_activity(): return "dialogue"
-	var types: Array = GameSession.activity_choices().map(func(choice): return str(choice.get("type", "")))
-	var detailed := types.any(func(type): return type in ["PICK_CARD_REWARD", "DECOMPOSE_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "ACQUIRE_RELIC", "OPEN_INSCRIPTION_OFFER", "CHOOSE_INSCRIPTION_OFFER"])
-	return "activity" if detailed or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active" else "map"
+	return RouteResolver.resolve_route(GameSession.run, GameSession.combat, GameSession.activity_choices())
 
 func open_game() -> void:
 	_prune_hand_arrangements()
@@ -264,13 +262,7 @@ func _prune_hand_arrangements() -> void:
 		visual_context.hand_arrangements.clear()
 
 func _has_dialogue_activity() -> bool:
-	var run: Dictionary = GameSession.run
-	if str(run.get("lifecycle", "Active")).to_lower() != "active": return false
-	var id := str(run.get("currentNodeId", ""))
-	if id in run.get("map", {}).get("resolvedNodeIds", []): return false
-	for node in run.get("map", {}).get("nodes", []):
-		if str(node.get("nodeId", "")) == id: return str(node.get("activity", {}).get("type", "")) == "Dialogue"
-	return false
+	return RouteResolver.has_dialogue_activity(GameSession.run)
 
 func show_dialogue() -> void:
 	if current_screen == "dialogue" and host.get_child_count() == 1:

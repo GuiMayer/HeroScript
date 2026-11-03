@@ -1,16 +1,34 @@
 extends "res://scripts/ui/screen_view.gd"
 ## Application adapter. Workflows only react to authoritative changes/intents.
 const JourneyView = preload("res://scripts/ui/journey_view.gd")
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
 var view: JourneyView
 var controller
-var router
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var presenter
 var presentation: Dictionary
 var render_epoch := 0
 var _projection_key: Array = []
 var _workflow_key: Array = []
 func setup(owner, data: Dictionary) -> void:
-	router = owner; mount(owner.visual_context)
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
 	controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(GameSession)
 	view = get_node("JourneyView")
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -43,24 +61,24 @@ func _on_intent(action: String, arguments: Array) -> void:
 	GameAudio.ui()
 	match action:
 		"map": _return_to_map()
-		"pause": router.toggle_pause()
-		"replay": router.show_run_replay(str(arguments[0]))
-		"new_journey": router._new_campaign()
-		"main_menu": router.back_to_menu()
+		"pause": screen_context.navigation.toggle_pause()
+		"replay": screen_context.navigation.show_run_replay(str(arguments[0]))
+		"new_journey": screen_context.navigation.start_new_campaign()
+		"main_menu": screen_context.back_to_menu()
 		"verify": _verify()
 		"recover": _recover_actions()
 		"confirm": _confirm_ref(str(arguments[0]))
-		"modifier_items": router.show_run_loadout("deck", "modifiers")
-		"loadout": router.show_run_loadout()
-		"inscriptions": router.show_run_loadout("inscriptions")
-		"deck_compartments": router.show_run_deck_compartments()
+		"modifier_items": screen_context.navigation.show_run_loadout("deck", "modifiers")
+		"loadout": screen_context.navigation.show_run_loadout()
+		"inscriptions": screen_context.navigation.show_run_loadout("inscriptions")
+		"deck_compartments": screen_context.navigation.show_run_deck_compartments()
 		"execute":
 			var choice: Dictionary = controller.choice_for(str(arguments[0]))
 			if not choice.is_empty(): _execute(choice)
 func apply_model(model) -> void: refresh_state(model)
 func _return_to_map() -> void:
 	if not is_inside_tree() or get_tree().paused: return
-	if await controller.finish_for_map() and is_inside_tree(): router.show_map()
+	if await controller.finish_for_map() and is_inside_tree(): screen_context.navigation.show_map()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
 	if controller: controller.dispose()
@@ -82,7 +100,7 @@ func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> vo
 			return
 		if assessment.is_empty():
 			dialog.free()
-			router.show_toast(I18n.text("Detailed inspection is unavailable."))
+			screen_context.show_toast(I18n.text("Detailed inspection is unavailable."))
 			return
 		var models: Array = presenter.transformation_models(assessment)
 		if not models.is_empty():
@@ -115,7 +133,7 @@ func _open_items() -> void:
 func _execute(choice: Dictionary) -> void:
 	if GameSession.busy: return
 	for button in view.choice_buttons: button.disabled = true
-	router.show_toast(I18n.text("PROCESSING…"))
+	screen_context.show_toast(I18n.text("PROCESSING…"))
 	var accepted: bool = await controller.execute(choice)
 	if not is_inside_tree():
 		return
@@ -123,9 +141,9 @@ func _execute(choice: Dictionary) -> void:
 	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "ACQUIRE_CARD_MODIFIER_ITEM", "APPLY_CARD_MODIFIER_ITEM"]:
 			GameAudio.reward()
-		if router.gameplay_route() == "map":
+		if screen_context.navigation.gameplay_route() == "map":
 			if not await controller.finish_for_map() or not is_inside_tree(): return
-		router.open_game()
+		screen_context.open_game()
 
 
 func _recover_actions() -> void:
@@ -137,41 +155,41 @@ func _recover_actions() -> void:
 	if not is_inside_tree():
 		return
 	if accepted:
-		router.open_game()
+		screen_context.open_game()
 	else:
 		for button in view.choice_buttons:
 			if is_instance_valid(button): button.disabled = false
 
 
 func _maybe_auto_advance(ticket := -1) -> void:
-	if router.dialogue_return_barrier: return
+	if screen_context.dialogue_return_barrier: return
 	if (ticket >= 0 and ticket != render_epoch) or controller.auto_advancing or not is_inside_tree() or \
-		router.current_screen != "activity" or GameSession.busy or get_tree().paused:
+		screen_context.current_screen != "activity" or GameSession.busy or get_tree().paused:
 		return
 	var choice: Dictionary = controller.forced_advance()
 	if choice.is_empty(): return
 	controller.auto_advancing = true
 	for button in view.choice_buttons: button.disabled = true
-	router.show_toast(I18n.text("Moving to the next stop…"))
+	screen_context.show_toast(I18n.text("Moving to the next stop…"))
 	var accepted: bool = await controller.execute(choice)
 	if not is_inside_tree(): return
 	controller.auto_advancing = false
-	if accepted: router.open_game()
+	if accepted: screen_context.open_game()
 	elif ticket < 0 or ticket == render_epoch:
 		for button in view.choice_buttons: button.disabled = false
 
 
 func _verify() -> void:
 	if controller.verifying: return
-	router.show_toast(I18n.text("Verifying replay…"))
+	screen_context.show_toast(I18n.text("Verifying replay…"))
 	var result: Dictionary = await controller.verify()
 	if not is_inside_tree():
 		return
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
-		router.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)
+		screen_context.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)
 	else:
-		router.show_error(I18n.error(result))
+		screen_context.show_error(I18n.error(result))
 
 
 func _confirm_ref(reference_id: String) -> void:

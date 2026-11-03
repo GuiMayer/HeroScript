@@ -1,6 +1,22 @@
 extends "res://scripts/ui/screen_view.gd"
 ## Adapter between read-only replay coordination and a passive view.
-var router
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var controller
 var view
 var replay_run_id := ""
@@ -21,7 +37,10 @@ var playing: bool:
 var play_button: Button:
 	get: return view.play_button
 func setup(owner, run_id: String, from_history := false) -> void:
-	router = owner; mount(owner.visual_context); replay_run_id = run_id; return_to_history = from_history
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
+	replay_run_id = run_id; return_to_history = from_history
 	controller = preload("res://scripts/ui/controllers/run_replay_controller.gd").new()
 	controller.setup(GameSession, run_id, visual_context.translator)
 	view = get_node("RunReplayView")
@@ -94,29 +113,29 @@ func _watch() -> void:
 	var response: Dictionary = await _visual_ticket.result()
 	if not is_inside_tree() or not controller.valid() or epoch != _visual_epoch or selected_index < 0 or int(entries[selected_index].sequence) != sequence: return
 	if not response.get("ok", false):
-		if not response.get("cancelled", false): router.show_error(I18n.error(response))
+		if not response.get("cancelled", false): screen_context.show_error(I18n.error(response))
 		return
 	if str(response.data.get("runId", "")) != replay_run_id or int(response.data.get("sequence", -1)) != sequence: return
-	if JSON.stringify(response.data).to_utf8_buffer().size() > controller.max_cache_bytes: router.show_toast(I18n.text("Visual replay payload is too large.")); return
+	if JSON.stringify(response.data).to_utf8_buffer().size() > controller.max_cache_bytes: screen_context.show_toast(I18n.text("Visual replay payload is too large.")); return
 	_visual_sequence = sequence
 	_visual_replay = preload("res://scripts/ui/historical_beat_view.gd").create(visual_context.derive(visual_context.profile))
 	view.visual_slot.add_child(_visual_replay); view.visual_scroll.show(); view.frame_text.hide()
-	_visual_replay.load_commit(response.data, router.presentation)
+	_visual_replay.load_commit(response.data, screen_context.presentation)
 func _verify() -> void:
 	if controller.verifying: return
 	controller.verifying = true; _update()
-	router.show_toast(I18n.text("Verifying replay…"))
+	screen_context.show_toast(I18n.text("Verifying replay…"))
 	var result: Dictionary = await GameSession.verify_run(replay_run_id)
 	if not is_inside_tree(): return
 	controller.verifying = false; _update()
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
-		router.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)
-	else: router.show_error(I18n.error(result))
+		screen_context.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)
+	else: screen_context.show_error(I18n.error(result))
 func _back() -> void:
 	controller.stop()
-	if return_to_history: router.show_history()
-	else: router.open_game()
+	if return_to_history: screen_context.navigation.show_history()
+	else: screen_context.open_game()
 func _inspect() -> void:
 	if not controller.inspection_allowed or selected_index < 0: return
 	var sequence := int(entries[selected_index].sequence)
@@ -125,7 +144,7 @@ func _inspect() -> void:
 	var response: Dictionary = await _inspection_ticket.result()
 	if not is_inside_tree() or not controller.valid() or selected_index < 0 or int(entries[selected_index].sequence) != sequence: return
 	if not response.get("ok", false):
-		if not response.get("cancelled", false): router.show_error(I18n.error(response))
+		if not response.get("cancelled", false): screen_context.show_error(I18n.error(response))
 		return
 	if is_instance_valid(_inspection_dialog): _inspection_dialog.queue_free()
 	_inspection_dialog = preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)

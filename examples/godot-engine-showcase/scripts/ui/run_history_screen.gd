@@ -2,7 +2,23 @@
 extends "res://scripts/ui/screen_view.gd"
 ## Read-only archive browser. It never activates a run unless Continue is chosen.
 
-var router
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var entries: Array = []
 var selected: Dictionary = {}
 var list: ItemList
@@ -26,8 +42,9 @@ func _bind_nodes() -> void:
 	unlock_summary = get_node("ProfileUnlockSummary")
 	verify_button = get_node("Body/DetailsPanel/Information/VerifyButton")
 func setup(owner) -> void:
-	router = owner
-	mount(owner.visual_context)
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
 	_bind_nodes()
 	theme = visual_context.theme
 	get_node("Header/Back").text = I18n.text("BACK")
@@ -41,7 +58,7 @@ func setup(owner) -> void:
 	if not _connected:
 		_connected = true
 		list.item_selected.connect(_select)
-		_wire_button(get_node("Header/Back"), router.back_to_menu)
+		_wire_button(get_node("Header/Back"), func(): screen_context.back_to_menu())
 		_wire_button(get_node("Body/DetailsPanel/Information/WatchReplayButton"), _watch)
 		_wire_button(get_node("Body/DetailsPanel/Information/ContinueButton"), _continue)
 		_wire_button(get_node("Body/DetailsPanel/Information/VerifyButton"), _verify)
@@ -98,30 +115,30 @@ func _select(index: int) -> void:
 
 func _watch() -> void:
 	if selected.is_empty(): return
-	router.show_run_replay(str(selected.get("runId", "")), true)
+	screen_context.navigation.show_run_replay(str(selected.get("runId", "")), true)
 
 func _verify() -> void:
 	if selected.is_empty() or loading: return
 	loading = true
 	verify_button.disabled = true
-	router.show_toast(I18n.text("Verifying replay…"))
+	screen_context.show_toast(I18n.text("Verifying replay…"))
 	var result: Dictionary = await GameSession.verify_run(str(selected.get("runId", "")))
 	if not is_inside_tree(): return
 	loading = false
 	verify_button.disabled = false
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
-		router.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)
+		screen_context.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)
 	else:
-		router.show_error(I18n.error(result))
+		screen_context.show_error(I18n.error(result))
 
 func _continue() -> void:
 	if selected.is_empty() or loading: return
 	loading = true
 	continue_button.disabled = true
-	router.show_toast(I18n.text("Restoring your journey…"))
+	screen_context.show_toast(I18n.text("Restoring your journey…"))
 	if await GameSession.continue_run(str(selected.get("runId", ""))) and is_inside_tree():
-		router.open_game()
+		screen_context.open_game()
 	elif is_inside_tree():
 		loading = false
 		continue_button.disabled = false

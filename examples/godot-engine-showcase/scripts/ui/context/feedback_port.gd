@@ -14,7 +14,10 @@ func _init(router_target = null, audio_target = null) -> void:
 func show_toast(message: String, error := false) -> void:
 	toasts.append({"message": message, "error": error})
 	if is_instance_valid(_router) and _router.has_method("show_toast"):
-		_router.show_toast(message, error)
+		if error:
+			_router.show_toast(message, true)
+		else:
+			_router.show_toast(message)
 
 func show_error(message: String) -> void:
 	toasts.append({"message": message, "error": true})

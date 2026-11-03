@@ -1,6 +1,22 @@
 extends "res://scripts/ui/screen_view.gd"
 ## Navigation adapter: inspection is local; travel uses current published choices.
-var router
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var controller
 var view
 var presentation: Dictionary
@@ -8,7 +24,9 @@ var _scope := ""
 var _workflow_key: Array = []
 var _alive := true
 func setup(owner, data: Dictionary) -> void:
-	router = owner; mount(owner.visual_context)
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
 	controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(GameSession)
 	view = get_node("MapView")
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -26,9 +44,12 @@ func refresh_state(data: Dictionary) -> void:
 	controller.bind(run, choices)
 	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, data, I18n, GameSession.card_presentations, GameSession.modifier_items)
 	view.apply_projection(run, choices, presenter, visual_context)
-	view.set_resume_target(router.gameplay_route())
+	view.set_resume_target(screen_context.navigation.gameplay_route())
 	if changed_scope:
-		view.restore_local_state(router.map_reading_states.get(_scope, {"selected": run.get("currentNodeId", ""), "overview": false, "filter": ""}))
+		var saved: Dictionary = screen_context.navigation.map_reading_state(_scope)
+		if saved.is_empty():
+			saved = {"selected": run.get("currentNodeId", ""), "overview": false, "filter": ""}
+		view.restore_local_state(saved)
 	view.set_read_only(GameSession.busy or not GameSession.synchronized)
 	view.set_compartments_available(not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	var workflow: Array = [run.get("runId"), run.get("branchId"), run.get("sequence"), choices]
@@ -38,15 +59,15 @@ func refresh_state(data: Dictionary) -> void:
 func _intent(action: String, arguments: Array) -> void:
 	if not _alive or not is_inside_tree(): return
 	match action:
-		"loadout": router.show_run_loadout()
-		"inscriptions": router.show_run_loadout("inscriptions")
-		"deck_compartments": router.show_run_deck_compartments()
-		"pause": router.toggle_pause()
+		"loadout": screen_context.navigation.show_run_loadout()
+		"inscriptions": screen_context.navigation.show_run_loadout("inscriptions")
+		"deck_compartments": screen_context.navigation.show_run_deck_compartments()
+		"pause": screen_context.navigation.toggle_pause()
 		"modifier_items":
-			router.show_run_loadout("deck", "modifiers")
-		"resume_dialogue": router.show_dialogue()
+			screen_context.navigation.show_run_loadout("deck", "modifiers")
+		"resume_dialogue": screen_context.navigation.show_dialogue()
 		"resume_run":
-			if not get_tree().paused: router.open_game()
+			if not get_tree().paused: screen_context.open_game()
 		"command":
 			if get_tree().paused or GameSession.busy or not GameSession.synchronized: return
 			# Revalidate the opaque reference against the latest snapshot, not a
@@ -62,7 +83,7 @@ func _intent(action: String, arguments: Array) -> void:
 					var entry: Dictionary = preload("res://scripts/application/activity_choices.gd").single_entry(choices)
 					if not entry.is_empty():
 						await controller.execute(entry)
-				if _alive: router.open_game()
+				if _alive: screen_context.open_game()
 			elif is_inside_tree(): view.set_read_only(not GameSession.synchronized)
 func capture_local_state() -> Dictionary: return view.capture_local_state()
 func apply_interaction(_state) -> void: view.set_read_only(GameSession.busy or not GameSession.synchronized)
@@ -75,10 +96,9 @@ func dispose() -> void:
 	if controller: controller.dispose()
 func _store_reading() -> void:
 	if not is_instance_valid(view): return
-	if router.map_reading_states.size() >= 16 and not router.map_reading_states.has(_scope): router.map_reading_states.erase(router.map_reading_states.keys()[0])
-	router.map_reading_states[_scope] = view.capture_local_state()
+	screen_context.navigation.save_map_reading_state(_scope, view.capture_local_state())
 func _auto_advance(ticket: Array) -> void:
-	if not _alive or ticket != _workflow_key or router.dialogue_return_barrier or router.current_screen != "map" or get_tree().paused or GameSession.busy or not GameSession.synchronized: return
+	if not _alive or ticket != _workflow_key or screen_context.dialogue_return_barrier or screen_context.current_screen != "map" or get_tree().paused or GameSession.busy or not GameSession.synchronized: return
 	var choice: Dictionary = controller.only_completion()
 	if not choice.is_empty() and str(choice.get("payload", {}).get("currentNodeId", "")) != str(GameSession.run.get("currentNodeId", "")): return
 	if choice.is_empty(): choice = controller.forced_advance()

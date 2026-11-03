@@ -2,7 +2,23 @@
 extends "res://scripts/ui/screen_view.gd"
 
 const TimelinePresenter = preload("res://scripts/presentation/timeline_presenter.gd")
-var router
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var model := TimelinePresenter.new()
 var entries: Array = []
 var list: ItemList
@@ -51,8 +67,9 @@ func _bind_nodes() -> void:
 	scrubber = get_node("Body/DetailsPanel/Information/Scrubber")
 	tree_view = get_node("Body/ArchivePanel/Archive/TreeView")
 func setup(owner) -> void:
-	router = owner
-	mount(owner.visual_context)
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
 	screen_run_id = str(GameSession.run.get("runId", ""))
 	history_allowed = GameSession.allows_tool("timeline.inspect_state")
 	fork_allowed = GameSession.allows_tool("timeline.branch.create")
@@ -82,7 +99,7 @@ func setup(owner) -> void:
 		list.item_selected.connect(_select)
 		tree_view.item_activated.connect(_activate_selected)
 		scrubber.value_changed.connect(func(value): _select(int(value)))
-		_wire_button(get_node("Header/Back"), router.open_game)
+		_wire_button(get_node("Header/Back"), func(): screen_context.open_game())
 		_wire_button(get_node("Body/ArchivePanel/Archive/MoreButton"), _load)
 		_wire_button(get_node("Body/ArchivePanel/Archive/ActivateButton"), _activate_selected)
 		_wire_button(get_node("Body/DetailsPanel/Information/BranchControls/BranchButton"), _branch)
@@ -166,7 +183,7 @@ func _mount_history(commit: Dictionary) -> void:
 	if is_instance_valid(_history_widget): _history_widget.dispose(); _history_widget.queue_free()
 	_history_widget = preload("res://scripts/ui/historical_beat_view.gd").create(visual_context)
 	history_view.add_child(_history_widget)
-	_history_widget.load_commit(commit, router.presentation, false)
+	_history_widget.load_commit(commit, screen_context.presentation, false)
 	playback = _history_widget.playback
 
 func _next_frame() -> void:
@@ -210,12 +227,12 @@ func _activate_selected() -> void:
 	var accepted := await GameSession.continue_run(id)
 	if not is_inside_tree(): return
 	working = false
-	if accepted: router.open_game()
+	if accepted: screen_context.open_game()
 
 func _branch() -> void:
 	if working or not fork_allowed: return
 	if selected_sequence < 0 or branch_key.text.strip_edges().is_empty():
-		router.show_error(I18n.text("Select a command and enter a branch name."))
+		screen_context.show_error(I18n.text("Select a command and enter a branch name."))
 		return
 	working = true
 	branch_button.disabled = true
@@ -225,7 +242,7 @@ func _branch() -> void:
 	working = false
 	branch_button.disabled = false
 	if not response.ok:
-		router.show_error(I18n.error(response))
+		screen_context.show_error(I18n.error(response))
 		return
 	var id := str(response.data.get("runId", ""))
 	if id.is_empty(): return
@@ -234,8 +251,8 @@ func _branch() -> void:
 	if not is_inside_tree(): return
 	working = false
 	if accepted:
-		router.show_toast(I18n.text("Branch '%s' activated.") % key)
-		router.open_game()
+		screen_context.show_toast(I18n.text("Branch '%s' activated.") % key)
+		screen_context.open_game()
 
 func _verify() -> void:
 	if working: return
@@ -243,8 +260,8 @@ func _verify() -> void:
 	var result := await GameSession.verify()
 	if not _valid(): return
 	working = false
-	if result.ok: router.show_toast(I18n.text("All hashes match.") if result.data.get("isValid", false) else I18n.text("A divergence was found."))
-	else: router.show_error(I18n.error(result))
+	if result.ok: screen_context.show_toast(I18n.text("All hashes match.") if result.data.get("isValid", false) else I18n.text("A divergence was found."))
+	else: screen_context.show_error(I18n.error(result))
 
 func _simulate() -> void:
 	if working: return
@@ -257,7 +274,7 @@ func _simulate() -> void:
 		dialog.setup(I18n.text("Simulation"), I18n.text("Simulation completed without changing the run."), response.data)
 		add_child(dialog)
 		dialog.popup_centered()
-	else: router.show_error(I18n.error(response))
+	else: screen_context.show_error(I18n.error(response))
 
 func _inspect_raw() -> void:
 	var dialog := preload("res://scripts/ui/inspection_dialog.gd").create(visual_context)

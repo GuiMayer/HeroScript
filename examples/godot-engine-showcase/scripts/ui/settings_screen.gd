@@ -4,10 +4,26 @@ extends "res://scripts/ui/screen_view.gd"
 
 const FocusNavigation = preload("res://scripts/ui/focus_navigation.gd")
 const Schema = preload("res://scripts/ui/styles/settings_schema.gd")
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
 const CATEGORY_IDS := ["general", "audio", "display", "accessibility", "controls", "connection"]
 var controller
 
-var router
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var close_action: Callable
 var capture_action := ""
 var capture_button: Button
@@ -25,9 +41,10 @@ func _ready() -> void:
 		theme = preload("res://scripts/ui/visual_context.gd").new(null, {}, preload("res://data/themes/ivory_theme.tres")).theme
 
 func setup(owner, on_close: Callable) -> void:
-	router = owner
-	mount(owner.visual_context)
-	theme = owner.visual_context.theme
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
+	theme = screen_context.visual_context.theme
 	controller = preload("res://scripts/ui/controllers/settings_controller.gd").new(Preferences, I18n, GameSession)
 	close_action = on_close
 	page_title = find_child("SettingsPageTitle", true, false)
@@ -211,7 +228,7 @@ func _input(event: InputEvent) -> void:
 		return
 	var error: String = controller.remap_event(capture_action, event)
 	if not error.is_empty():
-		router.show_error(I18n.text(error))
+		screen_context.show_error(I18n.text(error))
 		return
 	capture_action = ""
 	_refresh_bindings()
@@ -235,7 +252,7 @@ func _reset_bindings() -> void:
 
 func _save_connection(value: String) -> void:
 	var error: String = controller.save_connection(value)
-	if not error.is_empty(): router.show_error(I18n.text(error))
+	if not error.is_empty(): screen_context.show_error(I18n.text(error))
 	else: _mark_saved()
 
 func _mark_saved() -> void:

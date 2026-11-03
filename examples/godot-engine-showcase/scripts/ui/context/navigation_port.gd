@@ -171,8 +171,12 @@ func save_map_reading_state(scope_key: String, state: Dictionary) -> void:
 	if scope_key.is_empty():
 		return
 	if is_instance_valid(_router) and "map_reading_states" in _router:
+		if _router.map_reading_states.size() >= 16 and not _router.map_reading_states.has(scope_key):
+			_router.map_reading_states.erase(_router.map_reading_states.keys()[0])
 		_router.map_reading_states[scope_key] = state.duplicate(true)
 	else:
+		if _map_reading_states.size() >= 16 and not _map_reading_states.has(scope_key):
+			_map_reading_states.erase(_map_reading_states.keys()[0])
 		_map_reading_states[scope_key] = state.duplicate(true)
 
 func clear_map_reading_state(scope_key: String) -> void:
@@ -189,8 +193,12 @@ func save_dialogue_reading_state(scope_key: String, state: Dictionary) -> void:
 	if scope_key.is_empty():
 		return
 	if is_instance_valid(_router) and "dialogue_reading_states" in _router:
+		if _router.dialogue_reading_states.size() >= 16 and not _router.dialogue_reading_states.has(scope_key):
+			_router.dialogue_reading_states.erase(_router.dialogue_reading_states.keys()[0])
 		_router.dialogue_reading_states[scope_key] = state.duplicate(true)
 	else:
+		if _dialogue_reading_states.size() >= 16 and not _dialogue_reading_states.has(scope_key):
+			_dialogue_reading_states.erase(_dialogue_reading_states.keys()[0])
 		_dialogue_reading_states[scope_key] = state.duplicate(true)
 
 func clear_dialogue_reading_state(scope_key: String) -> void:

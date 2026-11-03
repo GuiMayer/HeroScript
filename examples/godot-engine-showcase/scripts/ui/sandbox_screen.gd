@@ -1,7 +1,23 @@
 @tool
 extends "res://scripts/ui/screen_view.gd"
 
-var router
+const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
+var _router
+var _screen_context
+var router:
+	get: return _router
+	set(value):
+		_router = value
+		_screen_context = ScreenContext.ensure(value)
+var screen_context:
+	get:
+		if _screen_context == null:
+			_screen_context = ScreenContext.ensure(_router)
+		return _screen_context
+	set(value):
+		_screen_context = value
+		if value != null and value.router != null:
+			_router = value.router
 var presentation: Dictionary
 var selected_mode := "combat_sandbox"
 var mode_buttons: Dictionary = {}
@@ -23,8 +39,9 @@ func _bind_nodes() -> void:
 	scenario_picker = get_node("Columns/ScenarioPanel/Scenario/ScenarioPicker")
 	seed_input = get_node("Columns/ScenarioPanel/Scenario/LaunchControls/SeedInput")
 func setup(owner, data: Dictionary) -> void:
-	router = owner
-	mount(owner.visual_context)
+	screen_context = ScreenContext.ensure(owner)
+	if _router == null: _router = owner
+	mount(screen_context.visual_context)
 	presentation = data
 	_bind_nodes(); theme = visual_context.theme
 	get_node("Header/Menu").text = I18n.text("MENU")
@@ -36,7 +53,7 @@ func setup(owner, data: Dictionary) -> void:
 	get_node("Columns/ModesPanel/Modes/Heading").text = I18n.text("1. Choose the rules")
 	if not _bound:
 		_bound = true
-		get_node("Header/Menu").pressed.connect(func(): GameAudio.ui(); router.back_to_menu())
+		get_node("Header/Menu").pressed.connect(func(): GameAudio.ui(); screen_context.back_to_menu())
 		scenario_picker.item_selected.connect(_select_scenario)
 		launch_button.pressed.connect(func(): GameAudio.ui(); _launch())
 	var modes = get_node("Columns/ModesPanel/Modes")
@@ -81,14 +98,14 @@ func _select_scenario(index: int) -> void:
 func _launch() -> void:
 	var parsed = JSON.parse_string(editor.text)
 	if not parsed is Dictionary:
-		router.show_error(I18n.text("The scenario must be a valid JSON object."))
+		screen_context.show_error(I18n.text("The scenario must be a valid JSON object."))
 		return
 	launch_button.disabled = true
-	router.show_toast(I18n.text("Compiling scenario and rules…"))
+	screen_context.show_toast(I18n.text("Compiling scenario and rules…"))
 	var accepted := await GameSession.start_sandbox(selected_mode, parsed, int(seed_input.value))
 	if not is_inside_tree():
 		return
 	if accepted:
-		router.open_game()
+		screen_context.open_game()
 	else:
 		launch_button.disabled = false
