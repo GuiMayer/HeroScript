@@ -15,3 +15,7 @@ Importador Git por SHA, limites de caminho, allowlist, AST e assets reproduzíve
 ## 5 — Consumidores
 
 Entrada orientada ao fluxo REST e índice canônico atualizado com composição, pagamentos, suporte, recompensas e compartimentos. Mermaid recebeu a dependência de layout exigida pelo bundler.
+
+## 6 — Desenvolvimento
+
+Trilhas de autoria, internals e operação, com links aos sistemas. Corrigidos na main o link antigo da matemática e a versão executável do README, sem incluir outras alterações pendentes.
