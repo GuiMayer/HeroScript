@@ -19,6 +19,8 @@ A HeroScript executa regras e publica resultados autoritativos. Seu cliente envi
 - [Deck ativo e reserva](../api/deck-loadouts.md), [pagamentos](../api/card-payments.md) e [recompensas exclusivas](../api/reward-decisions.md).
 - [Inscrições](../api/inscription-loadouts.md), [compartimentos](../api/deck-compartments.md) e [suporte](../api/support-loadouts.md).
 - [Sandbox, timeline e branches](../api/combat-sandbox.md), conforme as capacidades do modo.
-- [Governança e estabilidade](../api/governance.md): documentação não promove recursos experimentais a estáveis.
+- [Atividades e desafio diário](../api/activities-and-challenges.md), [simulações e matemática](../api/simulations-and-math.md) e [autoria de conteúdo](../api/content-authoring.md).
+- [Diagnóstico e telemetria administrativa](../api/administration-and-telemetry.md).
+- [Inventário de endpoints](../api/endpoint-inventory.md) e [governança e estabilidade](../api/governance.md): documentação não promove recursos experimentais a estáveis.
 
 [Contratos de máquina](/HeroScript/reference/) · [Criar conteúdo e desenvolver a engine](/HeroScript/developers/)

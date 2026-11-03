@@ -680,6 +680,38 @@
       "section": "api",
       "category": "Contrato e jornadas",
       "title": "Inventário de endpoints HTTP"
+    },
+    {
+      "source": "docs/api/activities-and-challenges.md",
+      "docId": "api/activities-and-challenges",
+      "slug": "/api/activities-and-challenges/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Atividades e desafio diário"
+    },
+    {
+      "source": "docs/api/simulations-and-math.md",
+      "docId": "api/simulations-and-math",
+      "slug": "/api/simulations-and-math/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Simulações e matemática"
+    },
+    {
+      "source": "docs/api/content-authoring.md",
+      "docId": "api/content-authoring",
+      "slug": "/api/content-authoring/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Autoria e publicação de conteúdo"
+    },
+    {
+      "source": "docs/api/administration-and-telemetry.md",
+      "docId": "api/administration-and-telemetry",
+      "slug": "/api/administration-and-telemetry/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Diagnóstico e telemetria administrativa"
     }
   ]
 }
