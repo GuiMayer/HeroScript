@@ -31,6 +31,12 @@ Substitua nome e revisão por valores existentes; `paramOverrides` é opcional e
 
 ## Expressões e metadados de operações
 
-`POST /api/v1/simulations/math/expression/evaluate` recebe `initialValue`, `steps` e, opcionalmente, `parameters`. Cada passo pode usar valores numéricos ou operandos simbólicos, como `$current`, `$initial` e `params.X`. A resposta `200` contém `result`, `initialValue`, `steps` e `executionTimeMs`; uma expressão inválida retorna `400`. O tempo de execução é telemetria, não parte determinística do resultado matemático.
+`POST /api/v1/simulations/math/expression/evaluate` recebe `initialValue`, `steps` e, opcionalmente, `parameters`. Cada passo pode usar valores numéricos ou operandos simbólicos, como `$current`, `$initial` e `params.X`. Cada passo tem `operation` e usa `values` ou `operands`, que são mutuamente exclusivos. Um exemplo com valores literais:
+
+```json
+{"initialValue":10,"steps":[{"operation":"ADD","values":[5]}]}
+```
+
+A resposta `200` contém `result`, `initialValue`, `steps` e `executionTimeMs`; uma expressão inválida retorna `400`. O tempo de execução é telemetria, não parte determinística do resultado matemático.
 
 `GET /api/v1/operations` lista os metadados das operações matemáticas; `GET /api/v1/operations/categories` as agrupa; `GET /api/v1/operations/{name}` consulta uma operação pelo nome sem diferenciar maiúsculas e minúsculas e retorna `404` se não existir. Esses endpoints descrevem operações de cálculo; não alteram a run.
