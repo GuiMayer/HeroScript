@@ -130,6 +130,18 @@ Projeção compacta supportCombat usa o equipamento capturado do encontro e seus
 
 Validação: build API sem warnings/erros; **18 testes API/contratos**, **101 verificações Godot offline** e **17 verificações Godot com API real**, todos aprovados. A prova real equipa Defense, confirma um único autosave, abre o encontro com captura, completa três ativações e executa defend pelo processador normal; equipamento fica bloqueado durante combate. Preview preserva hash; POST duplicado não replica a troca. Servidor de QA e stores próprios, encerrado após o teste. Evidências: `.runtime/tactical-mvp/results/stage10*.trx`, `stage10-godot.log` e `stage10-online.log`. Contrato: [suportes](../api/support-loadouts.md).
 
+## Etapa 11 — Setting mínimo prototype-test
+
+Estado: concluída em 2026-11-03.
+
+Publicado pacote opt-in próprio, com 20 kinds de conteúdo e modos normal/teste coerentes com suas políticas. Não altera definições herdadas. O herói não possui Energy/Mana; Calor, queda, limite, defesa, vida e retry são JSON. Composição 15+5, duas opções de módulo, sete cartas fora da circulação, abertura cinco, compra posterior duas, retenção comum e capacidade oito. Grant aponta para coleção/reserva; banimento não destrói propriedade e encerra pelo fluxo de tentativa.
+
+Queimadura captura potência de fogo/atributos/Calor uma vez; tick/condensação consomem quantidades incorporadas sem repetir o scaling de origem. Molhado aumenta apenas a condensação de fogo em 25%, dura dois avanços do contador do alvo e não remove Queimadura. Crítico global usa tiers lineares e dados por impacto; recurso, cura e quantidades usam seus pipelines apropriados. O suporte aplica Molhado e possui rotinas de menor/maior Health do inimigo, com empate canônico. Matriz de scaling e números publicados em [regras executáveis](../game-design/PROTOTYPE_TEST_RULES.md).
+
+Validação: **8 testes API/integração aprovados**, incluindo publicação, mão 5→7→8, retenção, reserva, dois pagamentos escolhidos, derrota/retry completo com preservação das mesmas 27 instâncias, restauração e nova captura. Simulações imutáveis do conteúdo real verificam Calor 0/60/85/100, captura, ausência de scaling duplicado, Molhado, críticos ×1/×2/×3 e Coolant curando/resfriando sem efeitos herdados extras. Conferidos hashes/fingerprints e zero gravação autoritativa nas simulações. Mais **17 verificações na Godot com API real**, repetidas na revisão final do pacote, usando cenas normais e executor compartilhado. Evidências: `.runtime/tactical-mvp/results/stage11-api.trx`, `stage11-online-final.log`. Servidor e saves de QA próprios; servidor encerrado após a prova.
+
+O pacote ainda contém apenas o encontro de prova; recompensas, preparo ampliado e capítulo são as etapas seguintes. Nenhum capítulo completo foi declarado pronto.
+
 ## Próxima etapa
 
-Etapa 11: setting mínimo prototype-test (Calor, statuses e ciclo retido da mão). Etapas 11–17 permanecem pendentes.
+Etapa 12: recompensa exclusiva guardar/decompilar e destino da reserva. Etapas 12–17 permanecem pendentes.

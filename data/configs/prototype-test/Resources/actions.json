@@ -1,0 +1,30 @@
+{
+  "prototype_mark": {
+    "actionId": "prototype_mark",
+    "displayName": "Target designator",
+    "description": "Apply Wet to a legal enemy.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "prototype_wet",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "tags": [
+          "wet"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "support",
+      "wet"
+    ]
+  }
+}

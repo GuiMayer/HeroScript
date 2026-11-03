@@ -1,0 +1,224 @@
+{
+  "prototype_burn": {
+    "statusId": "prototype_burn",
+    "displayName": "Burn",
+    "description": "Captured fire potency ticks at the affected actor's end of activation. Condense consumes all stacks in one proc.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "prototype_dot",
+          "pipelineId": "prototype_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "prototype_condense"
+      ]
+    },
+    "tags": [
+      "residual",
+      "fire",
+      "damage_payload"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "prototype_burn.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "",
+            "outputId": null,
+            "executionScope": "EveryInvocation",
+            "executionGroupId": null,
+            "chanceGroupId": null,
+            "childTiming": "AfterParentImpact",
+            "randomInputs": [],
+            "ruleOverrides": [],
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": null,
+                "formulaValue": null,
+                "inputQuantityId": "payload.potency",
+                "channel": "prototype_dot",
+                "pipelineId": "prototype_dot",
+                "unitId": "points",
+                "stageIds": [
+                  "w1_target"
+                ],
+                "conversion": {
+                  "rounding": "None",
+                  "midpointRounding": "ToEven",
+                  "sign": "Any",
+                  "requireInteger": false,
+                  "minimum": null,
+                  "maximum": null
+                },
+                "distribution": null
+              }
+            ],
+            "payloadBindings": [],
+            "condensationRecipeId": null,
+            "continuation": null,
+            "attributeMutation": null,
+            "type": "DAMAGE",
+            "sequenceMutation": null,
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip",
+              "retarget": null
+            },
+            "selectionResourceId": null,
+            "flatValue": null,
+            "formulaValue": null,
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": null,
+            "statusId": null,
+            "statusStacks": null,
+            "statusDuration": null,
+            "dispel": {
+              "statusIds": [],
+              "requiredTags": [],
+              "sourceEntityId": null,
+              "maximumInstances": 2147483647,
+              "order": "InstanceId"
+            },
+            "modifierId": null,
+            "modifierStacks": null,
+            "modifierDuration": null,
+            "modifierOwner": null,
+            "cardDefinitionId": null,
+            "cardZoneFlowId": null,
+            "cardCount": 1,
+            "cardInstanceIds": [],
+            "condition": null,
+            "requiredTags": null,
+            "excludedTags": null,
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "damage",
+              "residual"
+            ],
+            "metadata": {},
+            "chainedEffects": null
+          }
+        ]
+      }
+    ]
+  },
+  "prototype_wet": {
+    "statusId": "prototype_wet",
+    "displayName": "Wet",
+    "description": "Fire condensation deals 25% more damage. Expires after two affected-actor end-of-activation duration advances. Does not remove Burn.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "wet"
+    ],
+    "influences": [
+      {
+        "influenceId": "wet.fire-release",
+        "scope": "Target",
+        "channel": "prototype_dot",
+        "bucket": "wet-release",
+        "value": 1.25,
+        "requiredTags": [
+          "damage.condensed",
+          "fire"
+        ]
+      }
+    ]
+  }
+}

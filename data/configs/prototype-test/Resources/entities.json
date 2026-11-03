@@ -1,0 +1,107 @@
+{
+  "prototype_hero": {
+    "definitionId": "prototype_hero",
+    "displayName": "Thermal operator",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 100,
+            "max": 100
+          },
+          "heat": {
+            "current": 0,
+            "max": 100
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "spell_damage": 0,
+          "elemental_damage": 0,
+          "dot_damage": 0,
+          "block_efficiency": 0,
+          "armor": 0,
+          "critical_chance": 15,
+          "critical_damage": 100
+        }
+      }
+    ]
+  },
+  "prototype_target": {
+    "definitionId": "prototype_target",
+    "displayName": "Training automaton",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 120,
+            "max": 120
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "mana": {
+            "current": 4,
+            "max": 4
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 2,
+          "dexterity": 2,
+          "intelligence": 2
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "enemy_basic_attack"
+        ]
+      }
+    ]
+  },
+  "prototype_support": {
+    "definitionId": "prototype_support",
+    "displayName": "Tactical sentinel",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 20,
+            "max": 20
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "prototype_mark"
+        ]
+      }
+    ]
+  }
+}

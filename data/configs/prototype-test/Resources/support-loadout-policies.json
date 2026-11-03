@@ -1,0 +1,17 @@
+{
+  "prototype_supports": {
+    "policyId": "prototype_supports",
+    "revisionMigration": "RebindCompatible",
+    "inventoryScope": "Actor",
+    "editWindows": [
+      "OutsideCombat"
+    ],
+    "supportIds": [
+      "prototype_sentinel"
+    ],
+    "startingOwnedSupportIds": [
+      "prototype_sentinel"
+    ],
+    "startingSupportId": "prototype_sentinel"
+  }
+}

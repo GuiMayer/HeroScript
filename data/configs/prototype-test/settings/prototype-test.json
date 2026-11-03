@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "prototype-test",
+  "displayName": "Tactical campaign MVP",
+  "description": "Persistent tactical campaign proof: Heat, retained hand, card payments and support.",
+  "launch": {
+    "runDefinitionId": "prototype_trial",
+    "playerEntityId": "player",
+    "modeId": "prototype_campaign"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.prototype-test",
+      "versionRange": "1.1.0"
+    }
+  ]
+}

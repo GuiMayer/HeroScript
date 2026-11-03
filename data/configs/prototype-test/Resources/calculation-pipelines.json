@@ -1,0 +1,551 @@
+{
+  "prototype_direct_amount": {
+    "pipelineId": "prototype_direct_amount",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      },
+      {
+        "bucketId": "heat",
+        "stageId": "w1_origin",
+        "order": 25,
+        "operation": "AddPercent"
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_critical_amount.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "attack"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "spell"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.elemental_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "elemental_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "elemental"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "defense",
+          "block"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "ignore_armor"
+        ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_critical_amount.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      },
+      {
+        "bindingId": "w1_direct_amount.block_scaling",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.5,
+        "requiredTags": [
+          "damage",
+          "block_scaling"
+        ],
+        "missingResource": "Error"
+      },
+      {
+        "bindingId": "thermal-potency",
+        "scope": "Actor",
+        "resourceId": "heat",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "heat",
+        "scale": 0.005,
+        "requiredTags": [
+          "fire"
+        ],
+        "missingResource": "Ignore"
+      }
+    ]
+  },
+  "prototype_critical_amount": {
+    "pipelineId": "prototype_critical_amount",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_impact",
+        "scope": "Shared"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
+      },
+      {
+        "bucketId": "critical",
+        "stageId": "w1_impact",
+        "order": 40,
+        "operation": "Formula",
+        "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      },
+      {
+        "bucketId": "heat",
+        "stageId": "w1_origin",
+        "order": 25,
+        "operation": "AddPercent"
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_critical_amount.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "attack"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "spell"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.elemental_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "elemental_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "elemental"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "defense",
+          "block"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "ignore_armor"
+        ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_critical_amount.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      },
+      {
+        "bindingId": "w1_critical_amount.block_scaling",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.5,
+        "requiredTags": [
+          "damage",
+          "block_scaling"
+        ],
+        "missingResource": "Error"
+      },
+      {
+        "bindingId": "thermal-potency",
+        "scope": "Actor",
+        "resourceId": "heat",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "heat",
+        "scale": 0.005,
+        "requiredTags": [
+          "fire"
+        ],
+        "missingResource": "Ignore"
+      }
+    ]
+  },
+  "prototype_dot": {
+    "pipelineId": "prototype_dot",
+    "channel": "prototype_dot",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_release",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "release",
+        "stageId": "w1_release",
+        "order": 40,
+        "operation": "Formula",
+        "formula": "bucket.input"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      },
+      {
+        "bucketId": "heat",
+        "stageId": "w1_origin",
+        "order": 25,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "wet-release",
+        "stageId": "w1_target",
+        "order": 45,
+        "operation": "Multiply"
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_dot.potency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "dot_damage",
+        "channel": "prototype_dot",
+        "bucket": "increased",
+        "missingValue": "Ignore",
+        "requiredTags": [
+          "residual"
+        ]
+      },
+      {
+        "bindingId": "w1_dot.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "prototype_dot",
+        "bucket": "armor",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "ignore_armor"
+        ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_dot.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "prototype_dot",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      },
+      {
+        "bindingId": "thermal-potency",
+        "scope": "Actor",
+        "resourceId": "heat",
+        "field": "Current",
+        "channel": "prototype_dot",
+        "bucket": "heat",
+        "scale": 0.005,
+        "requiredTags": [
+          "fire"
+        ],
+        "missingResource": "Ignore"
+      }
+    ]
+  },
+  "prototype_values": {
+    "pipelineId": "prototype_values",
+    "channel": "effect_amount",
+    "buckets": [
+      {
+        "bucketId": "base",
+        "operation": "Add"
+      }
+    ]
+  }
+}

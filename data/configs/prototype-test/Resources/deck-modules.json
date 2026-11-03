@@ -1,0 +1,32 @@
+{
+  "prototype_void": {
+    "moduleId": "prototype_void",
+    "cardIds": [
+      "prototype_void_bolt",
+      "prototype_void_guard",
+      "prototype_void_condense"
+    ],
+    "startingCardIds": [
+      "prototype_void_bolt",
+      "prototype_void_bolt",
+      "prototype_void_guard",
+      "prototype_void_guard",
+      "prototype_void_condense"
+    ]
+  },
+  "prototype_necro": {
+    "moduleId": "prototype_necro",
+    "cardIds": [
+      "prototype_necro_bolt",
+      "prototype_necro_guard",
+      "prototype_necro_condense"
+    ],
+    "startingCardIds": [
+      "prototype_necro_bolt",
+      "prototype_necro_bolt",
+      "prototype_necro_guard",
+      "prototype_necro_guard",
+      "prototype_necro_condense"
+    ]
+  }
+}

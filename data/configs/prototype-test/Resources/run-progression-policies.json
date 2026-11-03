@@ -1,0 +1,18 @@
+{
+  "prototype_campaign": {
+    "progressionPolicyId": "prototype_campaign",
+    "encounterVictory": "Continue",
+    "encounterDefeat": "Fail",
+    "encounterDraw": "Fail",
+    "encounterAbandoned": "Fail",
+    "endOfMap": "Complete",
+    "encounterRetry": "RestartActivity",
+    "retryableEncounterOutcomes": [
+      "DEFEAT",
+      "DRAW",
+      "ABANDONED"
+    ],
+    "allowAbandon": true,
+    "allowOutOfActivityCommands": false
+  }
+}

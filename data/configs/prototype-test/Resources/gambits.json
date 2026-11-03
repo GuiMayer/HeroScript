@@ -1,0 +1,50 @@
+{
+  "prototype_support_finish": {
+    "gambitId": "prototype_support_finish",
+    "displayName": "Finish",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "prototype_mark",
+      "targetSelector": {
+        "strategy": "LowestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Designate",
+      "description": "Apply Wet to the selected opponent.",
+      "telegraphType": "Debuff"
+    }
+  },
+  "prototype_support_pressure": {
+    "gambitId": "prototype_support_pressure",
+    "displayName": "Pressure",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "prototype_mark",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Designate",
+      "description": "Apply Wet to the selected opponent.",
+      "telegraphType": "Debuff"
+    }
+  }
+}
