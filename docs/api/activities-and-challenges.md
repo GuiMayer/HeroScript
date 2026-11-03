@@ -39,3 +39,13 @@ A submissão pode retornar `403` para tentativa de outro jogador, `404` quando a
 `GET /api/v1/runs/{runId}/capabilities` retorna as capacidades efetivas (`granted` e `denied`), perfil e identificadores das políticas de modo, replay e timeline. Uma run inexistente retorna `404`. Os recursos disponíveis dependem do perfil e das regras do modo; leia o resultado para adaptar a interface.
 
 `GET /api/v1/runs/{runId}/content/activation-preview?targetRevision=<revisao>` consulta a possibilidade de ativar uma revisão na run. O endpoint exige a capacidade de ativação de conteúdo: pode responder `403` quando negada, `404` para run ausente ou `422` quando a prévia falha. A consulta não ativa a revisão; a alteração exige o comando autorizado descrito no [guia de conteúdo e plataforma](content-and-platform.md).
+
+## Encontro, relíquias e instâncias de cartas
+
+- `GET /api/v1/runs/{runId}/encounters/current` retorna o estado do combate no encontro atual. Quando não é encontrado, retorna `404`.
+- `GET /api/v1/runs/{runId}/relics` retorna `runId`, `sequence`, `step` e `relics`, ordenadas por ID de instância; uma run inexistente retorna `404`.
+- `GET /api/v1/runs/{runId}/cards/{cardInstanceId}` retorna a instância visível da carta; retorna `404` se a run ou carta visível não existir.
+- `GET /api/v1/runs/{runId}/cards/{cardInstanceId}/upgrade-options` retorna `runId`, `cardInstanceId`, `definitionId`, `contentRevision` e `options`. A ação retorna `404` para run/carta invisível ou inexistente e `503` se as opções de transformação estiverem indisponíveis.
+- `GET /api/v1/runs/{runId}/cards/{cardInstanceId}/transformation-preview` aceita `operation` (padrão `Apply`), `transformationId` e `upgradeId` como parâmetros de consulta. Retorna a avaliação em `200` ou `400` se a prévia não puder ser realizada. É uma consulta: para efetivar uma transformação, use o comando da run autorizado.
+
+Visibilidade de cartas e opções dependem do estado da run. Use IDs de instância obtidos da API, preservando a revisão e as versões da run ao enviar comandos.

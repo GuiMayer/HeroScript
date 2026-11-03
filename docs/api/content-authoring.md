@@ -34,3 +34,7 @@ Os identificadores e pacotes são definidos pelo conteúdo da instância; os exe
 O corpo é opcional e, sem `settingId`, o endpoint usa `default`. A recarga deve estar habilitada na configuração do servidor. Pode retornar `403` quando desabilitada, `400` para identificador inválido e `422` quando rejeitada. O retorno `200` é um comprovante da operação. O comando é administrativo e deve ser tratado como alteração de conteúdo, não como uma leitura ou prévia.
 
 Para verificar se uma revisão pode ser aplicada a uma run existente, use a prévia de ativação descrita em [atividades e desafio diário](activities-and-challenges.md); a aplicação efetiva segue o comando e as capacidades da run.
+
+## Validar conteúdo sem criar draft
+
+`POST /api/v1/content/validate` aceita um objeto com `bundle` ou `revision`. Quando `bundle` não é fornecido e `revision` está preenchida, a engine carrega a revisão publicada. Sem nenhum dos dois, responde `400`; revisão não encontrada responde `404`. Uma validação bem-sucedida retorna `200`, e conteúdo inválido retorna `422` com o resultado da validação. Essa operação não publica o conteúdo.
