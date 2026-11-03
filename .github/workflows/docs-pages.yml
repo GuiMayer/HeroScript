@@ -1,0 +1,21 @@
+name: Documentation Pages
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Canonical main commit (empty selects current main)
+        required: false
+        type: string
+      rollback:
+        description: Explicitly publish an older canonical source revision
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  registration-only:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo 'Select codex/docs-site to publish. This main-branch file only registers workflow_dispatch.'
+          exit 1

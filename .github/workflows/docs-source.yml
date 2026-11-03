@@ -1,0 +1,21 @@
+name: Documentation source synchronization
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: docs-source-main
+  cancel-in-progress: true
+jobs:
+  dispatch:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild dedicated documentation branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: gh workflow run docs-pages.yml --repo "$GITHUB_REPOSITORY" --ref codex/docs-site -f source_sha="$SOURCE_SHA"
