@@ -672,6 +672,14 @@
       "section": "developers",
       "category": "Sistemas",
       "title": "Sistema de status"
+    },
+    {
+      "source": "docs/api/endpoint-inventory.md",
+      "docId": "api/endpoint-inventory",
+      "slug": "/api/endpoint-inventory/",
+      "section": "api",
+      "category": "Contrato e jornadas",
+      "title": "Inventário de endpoints HTTP"
     }
   ]
 }
