@@ -39,3 +39,7 @@ Pipeline de artifact Pages com permissões por job, environment dedicado, contro
 ## 11 — Descoberta e acessibilidade
 
 Busca estática local com 376 entradas, normalização de acentos e filtros por público. Inputs rotulados, resultados anunciados, foco visível, grade responsiva e preferência por movimento reduzido. Rodapé identifica as revisões da fonte e do portal. Testes cobrem busca, escopo e geração reproduzível.
+
+## 12 — Certificação e manutenção
+
+Guias da branch e da fonte, link público no README da main, relatório de certificação e procedimento de rollback entregues. Cinco testes, typecheck, build, validação de 391 páginas/67.225 links e smoke HTTP aprovados. Recuperação explícita concluída no Actions 41699101388, com procedência pública conferida. A atualização normal usa a main documentada em 2087b3ef e o workflow da branch dedicada. Detalhes e limites em CERTIFICATION.md.

@@ -41,9 +41,8 @@ const manifest=JSON.parse(await readFile(path.join(siteRoot,'docs-manifest.json'
 const entries=[];
 for(const item of (Array.isArray(manifest)?manifest:manifest.entries)){
  const text=await readFile(path.join(docs,item.docId+'.md'),'utf8');
- entries.push({title:item.title,url:item.slug,section:item.section,text:text.replace(/```[\s\S]*?```/g,' ').replace(/[#*`|]/g,' ').slice(0,6000)});
+ entries.push({title:item.title,url:item.slug,section:item.section,text:text.replace(/^---[\s\S]*?---\s*/, '').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/```[\s\S]*?```/g,' ').replace(/[#*`|]/g,' ').replace(/\s+/g,' ').trim().slice(0,6000)});
 }
 for(const op of operations)entries.push({title:op.title,url:'/'+op.id+'/',section:'reference',text:spec.paths[op.route][op.method].description??spec.paths[op.route][op.method].summary??''});
 for(const [name,value]of Object.entries(schemas))entries.push({title:name,url:'/reference/schema/'+slug(name)+'/',section:'reference',text:value.description??''});
 await writeFile(path.join(root,'static/search-index.json'),JSON.stringify(entries));
-

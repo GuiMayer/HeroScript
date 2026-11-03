@@ -2,3 +2,5 @@
 
 .search-input{display:block;width:100%;max-width:48rem;padding:.7rem;margin:.5rem 0 1rem} select{padding:.6rem;margin-left:.7rem} :focus-visible{outline:3px solid #a63821;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+[data-theme='dark']{--ifm-color-primary:#ff9b86}[data-theme='dark'] :focus-visible{outline-color:#ff9b86}
