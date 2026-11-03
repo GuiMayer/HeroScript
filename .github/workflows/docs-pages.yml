@@ -10,6 +10,10 @@ on:
         description: Canonical main commit (empty selects current main)
         required: false
         type: string
+      site_sha:
+        description: Older validated site commit (requires explicit rollback)
+        required: false
+        type: string
       rollback:
         description: Explicitly publish an older canonical source revision
         default: false
@@ -19,16 +23,21 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     timeout-minutes: 15
     concurrency:
       group: docs-build-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     outputs:
       source_sha: ${{ steps.source.outputs.sha }}
+      site_sha: ${{ steps.source.outputs.site_sha }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: portal
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -37,13 +46,6 @@ jobs:
           fetch-depth: 0
           path: source
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: portal/site/.nvmrc
-          cache: npm
-          cache-dependency-path: portal/site/package-lock.json
-      - run: npm ci
-        working-directory: portal/site
       - name: Resolve approved source
         id: source
         run: node scripts/resolve-source.mjs
@@ -51,6 +53,20 @@ jobs:
         env:
           DOCS_REPOSITORY: ${{ github.workspace }}/source
           REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+          REQUESTED_SITE_SHA: ${{ inputs.site_sha }}
+          ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ steps.source.outputs.site_sha }}
+          path: portal
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: portal/site/.nvmrc
+          cache: npm
+          cache-dependency-path: portal/site/package-lock.json
+      - run: npm ci
+        working-directory: portal/site
       - name: Import and generate references
         run: npm run prepare:docs
         working-directory: portal/site
@@ -97,7 +113,7 @@ jobs:
         run: node site/scripts/publication-guard.mjs
         env:
           GH_TOKEN: ${{ github.token }}
-          SITE_SHA: ${{ github.sha }}
+          WORKFLOW_SHA: ${{ github.sha }}
           SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
           EVENT_NAME: ${{ github.event_name }}
           ROLLBACK: ${{ inputs.rollback }}

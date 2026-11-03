@@ -9,5 +9,11 @@ if(!/github\.com[/:]GuiMayer\/HeroScript(?:\.git)?$/i.test(remote))throw new Err
 const requested=process.env.REQUESTED_SOURCE_SHA||git(repo,'rev-parse','origin/main').toString().trim();
 if(!/^[a-f0-9]{40}$/.test(requested))throw new Error('Expected a full source commit SHA');
 git(repo,'merge-base','--is-ancestor',requested,`origin/${policy.canonicalBranch}`);
-if(process.env.GITHUB_OUTPUT)appendFileSync(process.env.GITHUB_OUTPUT,`sha=${requested}\n`);
+const siteRequested=process.env.REQUESTED_SITE_SHA||git(siteRoot,'rev-parse','HEAD').toString().trim();
+if(!/^[a-f0-9]{40}$/.test(siteRequested))throw new Error('Expected full site SHA');
+if(process.env.REQUESTED_SITE_SHA&&process.env.ROLLBACK!=='true')throw new Error('Pinned site requires explicit manual rollback');
+git(siteRoot,'merge-base','--is-ancestor',siteRequested,'origin/'+policy.siteBranch);
+const sitePackage=JSON.parse(git(siteRoot,'show',siteRequested+':site/package.json').toString());
+if(sitePackage.name!=='heroscript-documentation'||!sitePackage.scripts.validate||!sitePackage.scripts.smoke)throw new Error('Site revision predates validated publication');
+if(process.env.GITHUB_OUTPUT)appendFileSync(process.env.GITHUB_OUTPUT,`sha=${requested}\nsite_sha=${siteRequested}\n`);
 console.log(`Resolved canonical source ${requested}`);
