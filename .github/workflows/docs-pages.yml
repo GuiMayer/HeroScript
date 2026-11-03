@@ -6,6 +6,10 @@ on:
         description: Canonical main commit (empty selects current main)
         required: false
         type: string
+      site_sha:
+        description: Older validated site commit (requires explicit rollback)
+        required: false
+        type: string
       rollback:
         description: Explicitly publish an older canonical source revision
         default: false
