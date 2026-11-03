@@ -1,0 +1,13 @@
+import {appendFileSync,readFileSync} from 'node:fs';
+import path from 'node:path';
+import {siteRoot,git} from './import-docs.mjs';
+const policy=JSON.parse(readFileSync(path.join(siteRoot,'source-policy.json'),'utf8'));
+const repo=process.env.DOCS_REPOSITORY;
+if(!repo)throw new Error('DOCS_REPOSITORY is required');
+const remote=git(repo,'remote','get-url','origin').toString().trim();
+if(!/github\.com[/:]GuiMayer\/HeroScript(?:\.git)?$/i.test(remote))throw new Error('Source repository is not canonical');
+const requested=process.env.REQUESTED_SOURCE_SHA||git(repo,'rev-parse','origin/main').toString().trim();
+if(!/^[a-f0-9]{40}$/.test(requested))throw new Error('Expected a full source commit SHA');
+git(repo,'merge-base','--is-ancestor',requested,`origin/${policy.canonicalBranch}`);
+if(process.env.GITHUB_OUTPUT)appendFileSync(process.env.GITHUB_OUTPUT,`sha=${requested}\n`);
+console.log(`Resolved canonical source ${requested}`);

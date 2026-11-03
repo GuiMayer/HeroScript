@@ -27,3 +27,7 @@ Operações e schemas REST gerados sem expansão recursiva; AsyncAPI/SSE, três 
 ## 8 — Links e Markdown
 
 Prefixos de rotas normalizados, links internos por arquivo/âncora e downloads com pathname explícito para evitar slash em JSON/HTTP. O build mantém links quebrados como erro.
+
+## 9 — CI e sincronização
+
+Main contém somente dispatcher e registro de workflow. Cada push em main despacha a branch dedicada com SHA explícito; builds de PR não publicam. Política de fonte, cache e guards evitam refs arbitrários ou deploy supersedido.
