@@ -18,6 +18,7 @@ var _columns: HBoxContainer
 var _workspace: VBoxContainer
 var _summary: Control
 var _ending: Control
+var _action_scroll: ScrollContainer
 var _lifecycle := ""
 var _region_keys: Dictionary = {}
 @export var initial_ending_header_gap := 4
@@ -25,6 +26,7 @@ func set_compartments_available(value: bool) -> void:
 	var button := find_child("DeckCompartmentsButton", true, false)
 	if button is Button: button.visible = value
 func _scroll_value(name: String) -> int:
+	if name == "ActionScroll" and is_instance_valid(_action_scroll): return _action_scroll.scroll_vertical
 	var scroll := find_child(name, true, false)
 	return scroll.scroll_vertical if scroll is ScrollContainer else 0
 
@@ -32,7 +34,7 @@ func _scroll_value(name: String) -> int:
 func _restore_scroll(ticket: int, route_value: int, action_value: int, route_horizontal := 0) -> void:
 	if ticket != render_epoch or not is_inside_tree(): return
 	var route := find_child("RouteScroll", true, false)
-	var actions := find_child("ActionScroll", true, false)
+	var actions := _action_scroll if is_instance_valid(_action_scroll) else find_child("ActionScroll", true, false)
 	# Container bounds settle at the end of the frame; defer the values once more
 	# so Godot does not clamp a valid previous position against an old zero range.
 	if route is ScrollContainer:
@@ -54,6 +56,7 @@ func _bind_nodes() -> void:
 	_header = get_node("ActivityHeader"); _columns = get_node("ActivityColumns")
 	_workspace = _columns.get_node("ActivityWorkspace"); _summary = _workspace.get_node("ActivitySummary")
 	_workspace.get_node("EncounterAttempt").adjust_requested.connect(func(): intent_requested.emit("loadout",[]))
+	_action_scroll = _workspace.get_node("ActionScroll")
 	action_panel = _workspace.get_node("ActionScroll/ActionPanel"); _ending = get_node("ActivityEnding")
 	action_panel.intent_requested.connect(func(action,arguments): intent_requested.emit(action,arguments))
 	_header.get_node("Row/Verify").pressed.connect(_verify); _header.get_node("Row/Map").pressed.connect(_map)
@@ -177,8 +180,9 @@ func _new_journey() -> void: intent_requested.emit("new_journey", [])
 func _main_menu() -> void: intent_requested.emit("main_menu", [])
 
 
+func choice_label(choice: Dictionary, model: Dictionary) -> String: return action_panel.choice_label(choice, model)
 func _choice_label(choice: Dictionary, model: Dictionary) -> String:
-	return action_panel._choice_label(choice, model)
+	return action_panel.choice_label(choice, model)
 
 
 func _map() -> void: intent_requested.emit("map", [])

@@ -178,4 +178,4 @@ func _confirm_ref(reference_id: String) -> void:
 	var choice: Dictionary = controller.choice_for(reference_id)
 	if choice.is_empty(): return
 	var model: Dictionary = presenter.offer(choice)
-	_confirm_choice(choice, model, view._choice_label(choice, model))
+	_confirm_choice(choice, model, view.choice_label(choice, model))

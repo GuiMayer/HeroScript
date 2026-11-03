@@ -44,3 +44,12 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
   - `StateKeeper` para preservar o último snapshot válido diante de respostas malformadas, truncadas ou fora de ordem (`runSequence`/`combatStep` atrasados ou mistura de `runId`).
 - Integração nos adaptadores `snapshot_projection.gd`, `combat_presenter.gd` e `card_zone_presenter.gd`.
 - Novo teste `tests/presentation_boundaries.gd` (20 checks) aprovado junto com `ui_contracts`, `card_presentation`, `combat_collaborators` e `ui_decoupling_baseline`.
+
+## Etapa 4 — Componentes visuais e editabilidade
+
+- Desacoplamento de acessos privados e caminhos profundos entre componentes visuais:
+  - `CharacterAttributesView` (`scripts/ui/loadout/character_attributes_view.gd`) e `CombatAttributesDrawer` (`scripts/ui/components/combat_attributes_drawer.gd`): exposta propriedade pública `scroll_container`, parametrizadas reservas/limites de altura em `@export` e validados bindings `%UniqueName` no início.
+  - `CardView` (`scripts/ui/card_view.gd`), `CardHandView` (`scripts/ui/card_hand_view.gd`) e `HandHitSurface` (`scripts/ui/hand_hit_surface.gd`): adicionadas APIs públicas `CardView.create_tooltip_panel()` e `CardHandView.is_card_pickable()`, eliminando chamadas externas a `_make_custom_tooltip` e `_pickable`, além de vínculo direto a `%CardArtwork` em `CardView.artwork()`.
+  - `ActorPanel` (`scripts/ui/actor_panel.gd`): adicionados seletores públicos `resource_view()`, `resource_counter()` e `status_badge()` sobre os containers autorados `%ActorResources`, `%ActorCounters` e `%ActorStatusBadges`.
+  - `ActivityOptionsView` (`scripts/ui/components/activity_options_view.gd`), `JourneyView` (`scripts/ui/journey_view.gd`) e `activity_screen.gd`: substituído acesso a `_choice_label` pela API pública `choice_label()` e vinculado `_action_scroll` diretamente em `_bind_nodes()`.
+- Suíte de editabilidade, catálogo e laboratórios validada (`editable_ui_nodes`, `editable_card_inspection`, `editable_character_attributes`, `combat_attributes_drawer`, `editable_activity_scenes`, `card_style_canonical`, `workbench_smoke`, `screen_catalog_full`).

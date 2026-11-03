@@ -122,7 +122,10 @@ static func create(context = null) -> CardView:
 	return card
 
 func _bind_face() -> void:
-	assert(has_node("%Rules"), "Instantiate CardView through its PackedScene/create()")
+	assert(has_node("%Rules") and has_node("%CardArtwork") and has_node("%CardTitle") and has_node("%CostLine"), "Instantiate CardView through its PackedScene/create()")
+
+func create_tooltip_panel() -> Object:
+	return _make_custom_tooltip(tooltip_text)
 
 func _clear_items(parent: Node) -> void:
 	for child in parent.get_children():
@@ -308,6 +311,8 @@ func _init(context = null) -> void:
 
 func artwork() -> TextureRect:
 	# A single shared seam for cosmetic art effects; the printed face stays intact.
+	var direct_art = get_node_or_null("%CardArtwork")
+	if direct_art is TextureRect: return direct_art
 	for item in find_children("*", "TextureRect", true, false):
 		if item.get_script() == preload("res://scripts/ui/art_slot.gd"): return item
 	return null

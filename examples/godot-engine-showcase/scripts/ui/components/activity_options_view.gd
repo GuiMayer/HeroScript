@@ -19,7 +19,8 @@ static func create() -> ActivityOptionsView:
 func _ready() -> void:
 	if visual_context == null:
 		visual_context = ContextType.new(); theme = visual_context.theme
-func _choice_label(choice: Dictionary, model: Dictionary) -> String: return presenter.choice_label(choice, model)
+func choice_label(choice: Dictionary, model: Dictionary) -> String: return presenter.choice_label(choice, model)
+func _choice_label(choice: Dictionary, model: Dictionary) -> String: return choice_label(choice, model)
 func _current_node() -> Dictionary: return presenter.current_node()
 func _confirm_ref(reference_id: String) -> void: intent_requested.emit("confirm", [reference_id])
 func _recover_actions() -> void: intent_requested.emit("recover", [])

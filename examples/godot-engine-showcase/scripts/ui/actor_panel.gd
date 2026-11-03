@@ -79,12 +79,30 @@ func _on_target_pressed() -> void:
 
 func present_resource(application: Dictionary, duration: float) -> Tween:
 	var id := str(application.get("resourceId", ""))
-	var view = find_child("Resource_" + id.validate_node_name(), true, false)
+	var view = resource_view(id)
 	if view != null: return view.present_change(application, duration)
-	var counter = find_child("ResourceCounter_" + id.validate_node_name(), true, false)
+	var counter = resource_counter(id)
 	if counter != null and application.get("currentValue") != null and str(application.get("resourceField", "Current")) in ["Current", "0", "0.0"]:
 		counter.text = "%s %s" % [visual_context.translator.number(float(application.currentValue)), visual_context.translator.content_name(id)]
 	return null
+
+func resource_view(resource_id: String) -> Control:
+	var key := "Resource_" + resource_id.validate_node_name()
+	if _resources != null and _resources.has_node(NodePath(key)):
+		return _resources.get_node(NodePath(key))
+	return find_child(key, true, false) as Control
+
+func resource_counter(resource_id: String) -> Control:
+	var key := "ResourceCounter_" + resource_id.validate_node_name()
+	if _counters != null and _counters.has_node(NodePath(key)):
+		return _counters.get_node(NodePath(key))
+	return find_child(key, true, false) as Control
+
+func status_badge(status_id: String) -> Control:
+	var key := "StatusBadge_" + status_id.validate_node_name()
+	if _statuses != null and _statuses.has_node(NodePath(key)):
+		return _statuses.get_node(NodePath(key))
+	return find_child(key, true, false) as Control
 
 func presentation_model() -> Dictionary: return _model.duplicate(true)
 

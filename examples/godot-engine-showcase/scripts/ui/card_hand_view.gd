@@ -254,6 +254,7 @@ func destination_pose(id: String) -> Dictionary:
 	return {"center": transform * (position + _cards[id].size * .5), "rotation": basis.get_rotation(), "scale": basis.get_scale(), "size": _cards[id].size}
 
 func is_in_transit(id: String) -> bool: return _transit.has(id)
+func is_card_pickable(id: String) -> bool: return _pickable(id)
 
 func borrow_card(id: String, overlay: Control) -> Control:
 	var card: CardView = _cards[id]

@@ -42,7 +42,7 @@ func mount(context) -> void:
 	toggle_button.tooltip_text = context.translator.text("Close")
 	if not toggle_button.pressed.is_connected(_close): toggle_button.pressed.connect(_close)
 	attributes_view.mount(context)
-	content_scroll = attributes_view._scroll
+	content_scroll = attributes_view.scroll_container
 	if first_mount and not Engine.is_editor_hint(): hide()
 func _close() -> void: set_open(false)
 

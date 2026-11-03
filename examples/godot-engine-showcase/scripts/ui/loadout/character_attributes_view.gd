@@ -8,18 +8,32 @@ var visual_context
 @export var editorial_layout := false
 @export var fill_available_height := false
 @export var value_heading := "Equipped"
+@export var editorial_vertical_reserve := 450.0
+@export var compact_vertical_reserve := 340.0
+@export var editorial_scroll_min_height := 270.0
+@export var compact_scroll_min_height := 300.0
+@export var editorial_scroll_max_height := 650.0
+@export var compact_scroll_max_height := 700.0
+@export var column_min_width := 65.0
 @export var preview_character: Dictionary = {"name":"Preview hero","attributes":[{"id":"health","group":"Resources","label":"Health","base":72,"value":80,"change":8,"format":"number","sources":[]}]}
 var _rows := {}
 var _character_name: Label
 var _table: VBoxContainer
 var _scroll: ScrollContainer
+var scroll_container: ScrollContainer:
+	get:
+		_bind_nodes()
+		return _scroll
 var _schema: Array = []
 var _authored_font_sizes: Dictionary = {}
 static func create() -> CharacterAttributesView:
 	return (load("res://scenes/ui/components/loadout/character_attributes_view.tscn") as PackedScene).instantiate()
 func _bind_nodes() -> void:
+	if _character_name != null and _table != null and _scroll != null:
+		return
 	_character_name = get_node("%CharacterName")
 	_table = get_node("%Table"); _scroll = get_node("%LoadoutAttributeScroll")
+	assert(_character_name != null and _table != null and _scroll != null, "CharacterAttributesView requires %CharacterName, %Table, and %LoadoutAttributeScroll")
 func _ready() -> void:
 	_bind_nodes()
 	if visual_context == null and (Engine.is_editor_hint() or get_parent() == get_tree().root):
@@ -32,7 +46,11 @@ func _fit_scroll() -> void:
 	if _scroll == null: return
 	if fill_available_height:
 		_scroll.custom_minimum_size.y = 0; return
-	if is_inside_tree(): _scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - (450 if editorial_layout else 340),270 if editorial_layout else 300,650 if editorial_layout else 700)
+	if is_inside_tree():
+		var reserve := editorial_vertical_reserve if editorial_layout else compact_vertical_reserve
+		var min_h := editorial_scroll_min_height if editorial_layout else compact_scroll_min_height
+		var max_h := editorial_scroll_max_height if editorial_layout else compact_scroll_max_height
+		_scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - reserve, min_h, max_h)
 func configure_text(label: Label, key: String, size: int) -> void:
 	label.set_meta("attribute_translation_key",key)
 	label.set_meta("attribute_base_font_size",size)
@@ -57,11 +75,11 @@ func mount(context) -> void:
 	get_node("%Description").visible = not editorial_layout
 	get_node("%Explanation").visible = not editorial_layout
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL if fill_available_height else Control.SIZE_FILL
-	_scroll.custom_minimum_size.y = 0 if fill_available_height else 300
+	_scroll.custom_minimum_size.y = 0 if fill_available_height else compact_scroll_min_height
 	get_node("%Base").visible = not editorial_layout
 	get_node("%Equipped").set_meta("attribute_translation_key",value_heading)
 	get_node("%Equipped").text = context.translator.text(value_heading)
-	for caption in [get_node("%Base"),get_node("%Equipped")]: caption.custom_minimum_size.x = 65 * context.text_scale
+	for caption in [get_node("%Base"),get_node("%Equipped")]: caption.custom_minimum_size.x = column_min_width * context.text_scale
 func present(character: Dictionary) -> void:
 	var translator = visual_context.translator
 	for label in find_children("*", "Label", true, false):
@@ -93,7 +111,7 @@ func present(character: Dictionary) -> void:
 			var base = row.get_node("Base"); var equipped = row.get_node("Equipped")
 			for number in [base, equipped]:
 				configure_text(number, "", 14)
-				number.custom_minimum_size.x = 65 * visual_context.text_scale
+				number.custom_minimum_size.x = column_min_width * visual_context.text_scale
 			base.visible = not editorial_layout
 			_table.add_child(row)
 			_rows[stat.id] = {"row": row,"base": base,"equipped": equipped,"marker": marker}
