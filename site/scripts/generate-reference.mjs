@@ -36,3 +36,14 @@ for(const source of ['docs/schemas/build-composition-content.schema.json','docs/
 await page('reference/schemas','Schemas e exemplos',examples.join('\n')+'\n\n## Jornadas HTTP\n\n'+report.assets.filter(a=>a.source.startsWith('examples/http/')).map(a=>`- [${path.basename(a.source)}](pathname:///HeroScript/assets/${a.source})`).join('\n')+'\n\nOs exemplos usam IDs e credenciais fictícios; substitua-os no seu ambiente. O GitHub Pages não hospeda a engine nem executa requests.');
 await writeFile(path.join(root,'reference-sidebar.json'),JSON.stringify(['portal/reference','reference/rest',...[...groups].map(([label,items])=>({type:'category',label,collapsed:true,items})),{type:'category',label:'Schemas REST',collapsed:true,items:Object.keys(schemas).sort().map(n=>'reference/schema/'+slug(n))},'reference/events','reference/schemas','portal/glossary'],null,2));
 console.log(`Generated ${operations.length} REST operations and ${Object.keys(schemas).length} schemas.`);
+
+const manifest=JSON.parse(await readFile(path.join(siteRoot,'docs-manifest.json'),'utf8'));
+const entries=[];
+for(const item of (Array.isArray(manifest)?manifest:manifest.entries)){
+ const text=await readFile(path.join(docs,item.docId+'.md'),'utf8');
+ entries.push({title:item.title,url:item.slug,section:item.section,text:text.replace(/```[\s\S]*?```/g,' ').replace(/[#*`|]/g,' ').slice(0,6000)});
+}
+for(const op of operations)entries.push({title:op.title,url:'/'+op.id+'/',section:'reference',text:spec.paths[op.route][op.method].description??spec.paths[op.route][op.method].summary??''});
+for(const [name,value]of Object.entries(schemas))entries.push({title:name,url:'/reference/schema/'+slug(name)+'/',section:'reference',text:value.description??''});
+await writeFile(path.join(root,'static/search-index.json'),JSON.stringify(entries));
+

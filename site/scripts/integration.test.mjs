@@ -10,6 +10,10 @@ test('same source and site revisions generate byte-identical documentation twice
  const env={...process.env,DOCS_SOURCE_SHA:report.sourceSha};
  async function generate(){execFileSync(process.execPath,['scripts/import-docs.mjs'],{cwd:siteRoot,env});execFileSync(process.execPath,['scripts/generate-reference.mjs'],{cwd:siteRoot,env});return snapshot(path.join(siteRoot,'generated'));}
  const first=await generate(),second=await generate();assert.deepEqual(first,second);
+ const search=JSON.parse(await readFile(path.join(siteRoot,'generated/static/search-index.json'),'utf8'));
+ assert.equal(search.length,376);
+ assert.ok(search.every(entry=>entry.title&&entry.url.startsWith('/')&&['api','developers','reference'].includes(entry.section)));
+ assert.ok(!search.some(entry=>entry.url.includes('/plans/')));
  assert.ok(Object.keys(first).some(name=>name.startsWith('docs/api/')));
  assert.ok(Object.keys(first).some(name=>name.startsWith('docs/reference/schema/')));
  assert.ok(!Object.keys(first).some(name=>name.startsWith('docs/plans/')));

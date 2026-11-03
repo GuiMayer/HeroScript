@@ -34,4 +34,8 @@ Main contém somente dispatcher e registro de workflow. Cada push em main despac
 
 ## 10 — Publicação
 
-Pipeline de artifact Pages com permissões por job, environment dedicado, controle de concorrência, freshness guard e rollback explícito. Smoke HTTP verifica páginas profundas e contratos sob /HeroScript/. Ativação e URL real serão registradas após a execução do Actions.
+Pipeline de artifact Pages com permissões por job, environment dedicado, controle de concorrência, freshness guard e rollback explícito. Smoke HTTP verifica páginas profundas e contratos sob /HeroScript/. Pages ativo em https://guimayer.github.io/HeroScript/. Primeira publicação confirmada pelo Actions 41697956383 e pelo site-version.json público (fonte 47fd89dd, portal 6dc08b8f).
+
+## 11 — Descoberta e acessibilidade
+
+Busca estática local com 376 entradas, normalização de acentos e filtros por público. Inputs rotulados, resultados anunciados, foco visível, grade responsiva e preferência por movimento reduzido. Rodapé identifica as revisões da fonte e do portal. Testes cobrem busca, escopo e geração reproduzível.
