@@ -108,7 +108,7 @@ public sealed partial class CombatActionStateReducer : ICombatActionStateReducer
         var resolvedCommand = candidate.ResolvedCommand;
         var consumedCardId = resolvedCommand?.CardInstanceId?.ToString();
         ImmutableArray<CardZoneFlowStepRecord> cardZoneSteps = [];
-        if (candidate.CardPlay != null && candidate.CardPlay.Evaluation.ZonePayments?.Any(payment => payment.IncludesResolvingCard) != true)
+        if (candidate.CardPlay != null && candidate.CardPlay.Evaluation?.ZonePayments?.Any(payment => payment.IncludesResolvingCard) != true)
         {
             if (consumedCardId == null)
                 return Result<CombatActionReduction>.Failure("Played card instance id is required");

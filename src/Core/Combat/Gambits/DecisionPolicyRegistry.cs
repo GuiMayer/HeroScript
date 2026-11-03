@@ -97,11 +97,16 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
         }
         var decisionCombat = ProjectActivation(request.Combat, request.ActorId);
         var effectiveRequest = request with { Combat = decisionCombat };
-        var legal = _legalActions.Resolve(
-            request.Run,
-            decisionCombat,
-            request.ActorId,
-            CombatCommandOrigin.AutomaticController);
+        // A policy with explicit action types cannot select unrelated previews.
+        // In particular, previewing END_TURN simulates status/card-zone boundaries
+        // even when this actor's only configured routine is a single ability.
+        // Wildcards and custom resolvers retain complete discovery. Priority pass
+        // remains available for the reducer's canonical fallback.
+        var legal = _legalActions is IActionTypeLegalActionResolver scoped && definitions.All(rule => rule.Action.ActionType.HasValue)
+            ? scoped.ResolveForActionTypes(request.Run, decisionCombat, request.ActorId,
+                CombatCommandOrigin.AutomaticController,
+                definitions.Select(rule => rule.Action.ActionType!.Value).Append(ActionType.PASS_PRIORITY).ToHashSet())
+            : _legalActions.Resolve(request.Run, decisionCombat, request.ActorId, CombatCommandOrigin.AutomaticController);
         return legal.IsFailure
             ? Result<DecisionPolicyResult>.Failure(legal.Error)
             : _reducer.Decide(effectiveRequest, definitions, legal.Value);

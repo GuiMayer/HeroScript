@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using API.Tests.Helpers;
 using Core.Combat.LegalActions;
@@ -17,6 +19,7 @@ public sealed class PrototypeChapterTests(ITestOutputHelper output)
     public async Task PublishedChapterCompletesWithBossRetryDurableDialogueAndNoCheats()
     {
         using var factory = new TestWebApplicationFactory();
+        factory.UseKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
         using var client = factory.CreateClient();
         var settings = await client.GetFromJsonAsync<JsonElement>("/api/v1/content/settings");
         var setting = settings.GetProperty("items").EnumerateArray().Single(value => value.GetProperty("settingId").GetString() == "prototype-test");
@@ -32,14 +35,32 @@ public sealed class PrototypeChapterTests(ITestOutputHelper output)
         var retriedBoss = false;
         var hasLostBoss = false;
         var commandOrdinal = 0;
+        var recorded = new List<(string Route, object Envelope, string Hash)>();
+        var timings = new List<(string Type, double Post, double Session)>();
+        output.WriteLine($"Runtime: {RuntimeInformation.FrameworkDescription}; OS: {RuntimeInformation.OSDescription}; logical processors: {Environment.ProcessorCount}");
         async Task Send(string type, object payload, Guid? combatId = null)
         {
             var run = Current();
             var step = combatId.HasValue || type == "RESOLVE_COMBAT" ? run.GetActiveEncounter()!.Combat.Determinism.Step : run.Determinism.Step;
             var route = combatId.HasValue ? $"/api/v1/combats/{combatId}/commands" : $"/api/v1/runs/{id}/commands";
-            using var response = await client.PostAsJsonAsync(route, new
-            { commandId = Guid.Parse($"14000000-0000-4000-8000-{++commandOrdinal:000000000000}"), type, expectedSequence = run.Sequence, expectedStep = step, payload });
+            var envelope = new { commandId = Guid.Parse($"14000000-0000-4000-8000-{++commandOrdinal:000000000000}"), type,
+                expectedSequence = run.Sequence, expectedStep = step, payload };
+            using var request = new HttpRequestMessage(HttpMethod.Post, route) { Content = JsonContent.Create(envelope) };
+            request.Headers.Add("Prefer", "return=minimal");
+            var watch = Stopwatch.StartNew();
+            using var response = await client.SendAsync(request);
+            var postMs = watch.Elapsed.TotalMilliseconds;
             Assert.True(response.IsSuccessStatusCode, $"{run.CurrentNodeId}: {type}: {await response.Content.ReadAsStringAsync()}");
+            var hash = CanonicalJson.ComputeHash(Current());
+            recorded.Add((route, envelope, hash));
+            watch.Restart();
+            using var session = await client.GetAsync($"/api/v1/runs/{id}/session");
+            var view = await session.Content.ReadFromJsonAsync<JsonElement>();
+            var sessionMs = watch.Elapsed.TotalMilliseconds;
+            Assert.True(session.IsSuccessStatusCode, view.GetRawText());
+            Assert.Equal(hash, view.GetProperty("version").GetProperty("stateFingerprint").GetString());
+            Assert.Equal(hash, CanonicalJson.ComputeHash(Current()));
+            timings.Add((type, postMs, sessionMs));
         }
         for (var gesture = 0; gesture < 600 && Current().Lifecycle == RunLifecycleState.Active; gesture++)
         {
@@ -144,6 +165,18 @@ public sealed class PrototypeChapterTests(ITestOutputHelper output)
         Assert.Equal(9, final.ResourceState.Current("parts"));
         Assert.Equal(originalHash, CanonicalJson.ComputeHash(original));
         var expected = CanonicalJson.ComputeHash(final);
+        static double Percentile(IEnumerable<double> samples, double quantile)
+        {
+            var ordered = samples.Order().ToArray();
+            return ordered[(int)Math.Ceiling(ordered.Length * quantile) - 1];
+        }
+        foreach (var group in timings.GroupBy(sample => sample.Type))
+        {
+            var values = group.Select(sample => sample.Post).ToArray();
+            output.WriteLine($"CHAPTER_POST type={group.Key}; n={values.Length}; first={values[0]:F2}ms; p50={Percentile(values, .5):F2}ms; p95={Percentile(values, .95):F2}ms; p99={Percentile(values, .99):F2}ms; max={values.Max():F2}ms");
+            if (values.Length > 1) output.WriteLine($"CHAPTER_WARM type={group.Key}; n={values.Length - 1}; p95={Percentile(values.Skip(1), .95):F2}ms; max={values.Skip(1).Max():F2}ms");
+        }
+        output.WriteLine($"CHAPTER_SESSION n={timings.Count}; p95={Percentile(timings.Select(sample => sample.Session), .95):F2}ms; p99={Percentile(timings.Select(sample => sample.Session), .99):F2}ms; max={timings.Max(sample => sample.Session):F2}ms");
         var directory = factory.PersistenceRoot;
         client.Dispose(); factory.Dispose();
         using var restarted = new TestWebApplicationFactory(directory);
@@ -153,5 +186,23 @@ public sealed class PrototypeChapterTests(ITestOutputHelper output)
         Assert.True(replay.IsValid, string.Join("; ", replay.Errors));
         Assert.True(replay.Reexecuted);
         Assert.Equal(expected, replay.ActualFinalHash);
+        resumed.Dispose(); restarted.Dispose();
+        // Fresh store, same published revision, seed and command identities: compare every commit.
+        using var independent = new TestWebApplicationFactory();
+        independent.UseKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
+        using var secondClient = independent.CreateClient();
+        var secondGame = new GameEngineClientSimulator(secondClient);
+        Assert.Equal(id, await secondGame.StartRunAsync("prototype-test", "prototype_chapter", "player", 8814, "prototype_chapter"));
+        var secondReads = independent.Services.GetRequiredService<IRunQueryService>();
+        Assert.Equal(originalHash, CanonicalJson.ComputeHash(secondReads.GetRun(id).Value));
+        foreach (var item in recorded)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, item.Route) { Content = JsonContent.Create(item.Envelope) };
+            request.Headers.Add("Prefer", "return=minimal");
+            using var response = await secondClient.SendAsync(request);
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            Assert.Equal(item.Hash, CanonicalJson.ComputeHash(secondReads.GetRun(id).Value));
+        }
+        output.WriteLine($"CHAPTER_DETERMINISM independent commits compared={recorded.Count}; initial={originalHash}; final={expected}");
     }
 }

@@ -32,7 +32,7 @@ if ($ReuseProject) {
 }
 New-Item -ItemType Directory -Path $project -Force | Out-Null
 Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object {
-    $_.FullName -notmatch '[\\/]\.godot[\\/]|[\\/]\.runtime[\\/]|[\\/]tests[\\/]output[\\/]'
+    [IO.Path]::GetRelativePath($source, $_.FullName) -notmatch '(^|[\\/])(\.godot|\.runtime|tests[\\/]output)[\\/]'
 } | ForEach-Object {
     $relative = [IO.Path]::GetRelativePath($source, $_.FullName)
     $destination = Join-Path $project $relative

@@ -13,10 +13,8 @@ public class EntityDefinitionLoaderTests
     
     public EntityDefinitionLoaderTests()
     {
-        // Usar o caminho absoluto baseado no workspace root
-        // Assumindo que os testes rodam de tests/Core.Tests/bin/Debug/net10.0
-        var workspaceRoot = Path.GetFullPath(
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", ".."));
+        var workspaceRoot = ResourceProviderFactory.FindProjectRoot()
+            ?? throw new DirectoryNotFoundException("Repository data directory not found");
         _testDataPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Resources", "entities");
     }
     

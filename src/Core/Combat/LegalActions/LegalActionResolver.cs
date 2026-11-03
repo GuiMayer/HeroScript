@@ -130,6 +130,13 @@ public interface ILegalActionQueryService
     Result<LegalActionSet> Get(Guid combatId, string? actorId = null);
 }
 
+/// <summary>A scoped discovery hint. Every included command still uses the canonical evaluator.</summary>
+public interface IActionTypeLegalActionResolver
+{
+    Result<LegalActionSet> ResolveForActionTypes(RunState run, CombatState combat, string actorId,
+        CombatCommandOrigin origin, IReadOnlySet<ActionType> actionTypes);
+}
+
 /// <summary>Read application service used by HTTP without moving rules into controllers.</summary>
 public sealed class LegalActionQueryService : ILegalActionQueryService
 {
@@ -168,7 +175,7 @@ public sealed class LegalActionQueryService : ILegalActionQueryService
 /// Sole legality/preview boundary for player commands, automatic policies and
 /// REST projections. Calling it never commits or mutates runtime state.
 /// </summary>
-public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
+public sealed class LegalActionResolver : ILegalActionResolver, IActionTypeLegalActionResolver, ICacheService
 {
     private readonly LruCache<string, LegalActionEvaluation> _evaluations = new(128);
     private readonly LruCache<string, LegalActionSet> _sets = new(16);
@@ -333,21 +340,34 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
         RunState run,
         CombatState combat,
         string actorId,
-        CombatCommandOrigin origin)
+        CombatCommandOrigin origin) => ResolveScoped(run, combat, actorId, origin, null);
+
+    public Result<LegalActionSet> ResolveForActionTypes(RunState run, CombatState combat, string actorId,
+        CombatCommandOrigin origin, IReadOnlySet<ActionType> actionTypes) =>
+        ResolveScoped(run, combat, actorId, origin, actionTypes);
+
+    private Result<LegalActionSet> ResolveScoped(RunState run, CombatState combat, string actorId,
+        CombatCommandOrigin origin, IReadOnlySet<ActionType>? actionTypes)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
+        if (string.IsNullOrWhiteSpace(actorId)) return Result<LegalActionSet>.Failure("Actor id is required");
         using var hashes = CanonicalJson.BeginHashScope();
-        var key = SnapshotKey(run, combat) + ":" + origin + ":" + actorId;
+        var snapshot = SnapshotKey(run, combat);
+        // Separate namespaces and length-prefix identity: arbitrary actor IDs must
+        // never make a complete discovery collide with another actor's scoped set.
+        var key = actionTypes == null ? snapshot + ":" + origin + ":" + actorId :
+            snapshot + ":typed:" + origin + ":" + actorId.Length + ":" + actorId + ":" +
+            string.Join(',', actionTypes.Order().Select(type => (int)type));
         if (_sets.TryGetValue(key, out var cached))
             return Result<LegalActionSet>.Success(cached!);
-        var result = ResolveUncached(run, combat, actorId, origin);
+        var result = ResolveUncached(run, combat, actorId, origin, actionTypes);
         if (result.IsSuccess) _sets.Set(key, result.Value);
         return result;
     }
 
     private Result<LegalActionSet> ResolveUncached(
-        RunState run, CombatState combat, string actorId, CombatCommandOrigin origin)
+        RunState run, CombatState combat, string actorId, CombatCommandOrigin origin, IReadOnlySet<ActionType>? actionTypes)
     {
         using var timing = Core.Diagnostics.OperationalTiming.Measure("legal_discovery");
         if (string.IsNullOrWhiteSpace(actorId))
@@ -372,6 +392,7 @@ public sealed class LegalActionResolver : ILegalActionResolver, ICacheService
             ? new Dictionary<string, CardPlayExecutionResult>(StringComparer.Ordinal) : null;
         foreach (var command in commands)
         {
+            if (actionTypes != null && !actionTypes.Contains(command.ActionType)) continue;
             var evaluated = Evaluate(run, combat, command, origin, executions);
             if (evaluated.IsFailure)
                 return Result<LegalActionSet>.Failure(evaluated.Error);

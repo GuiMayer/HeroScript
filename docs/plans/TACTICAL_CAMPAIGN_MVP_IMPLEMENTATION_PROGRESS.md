@@ -180,6 +180,18 @@ Laboratório unificado usa as mesmas cenas de composição/reserva/módulo e sup
 
 Validação: **570 verificações de regressão Godot**, **20 novas verificações do catálogo** e **153 verificações de animação/ciclo da mão**, todas aprovadas. Nova rodada final de 111 verificações repetiu catálogo, layout e gestos após as traduções. Cobertura inclui 1280×720/1920×1080/2560×1080, EN/PT-BR, escala de texto, foco por teclado/controle, drag contextual, autosave, pagamento, atributos flutuantes, cancelamento/skip/pausa e movimento reduzido sem espera fictícia. Evidências: `.runtime/tactical-mvp/stage15-*.log`. Guia: [validação de UI](../guides/tactical-mvp-ui-validation.md).
 
+## Etapa 16 — Certificação transversal e gargalo medido
+
+Estado: execução técnica concluída com exceções abertas; **gate de 100 ms não aprovado**.
+
+Capítulo executado em Release por sockets Kestrel e persistência real. Mesmo seed/revisão e mesmas identidades/payloads produziram **161 hashes sucessores idênticos** em hosts/stores independentes; restart e replay semântico também passaram. Mantido snapshot inicial imutável, todas as recompensas/flags e histórico das tentativas.
+
+Perfil detectou previews de ações passivas irrelevantes na descoberta de IA com tipos explícitos. A descoberta canônica agora aceita escopo por tipo, preservando candidatos, fingerprints e fallback de prioridade. Políticas wildcard e resolvers customizados mantêm descoberta completa. Consulta pública continua completa, com namespaces de cache separados. Nenhuma regra, hash autoritativo, validação ou gravação foi removida.
+
+Resultado observado após otimização: PLAY_CARD p95 **83,54 ms**, END_TURN **470,11 ms**, sessão **80,00 ms**. Primeiro START_ENCOUNTER 421,46 ms; outros quatro p95/máximo 72,24 ms. Há picos, amostras pequenas para algumas ações e um gargalo restante no turno; não declarar todos os POSTs abaixo de 100 ms. Ambiente, método, p99/máximos e limites estão no [relatório](../validation/TACTICAL_CAMPAIGN_MVP.md).
+
+Validação: **1.232 testes Core** aprovados; suíte focada de descoberta/suporte **67** aprovada. **21 casos API não estendidos** passaram sem falhas, mas a sessão ampliada foi abortada no limite global de cinco minutos durante o caso estendido circular-table; esse caso não está certificado. Exportação limpa da árvore preparada para commit: API Release sem warnings/erros, capítulo completo com restart/replay/comparação independente aprovado e **114 verificações Godot** aprovadas após importação nova em caminho curto. Corrigidos um acesso nulo na disposição de cartas, caminho fixo de fixture e filtro de cópia de QA. Evidências: `.runtime/tactical-mvp/results/stage16-*.trx` e logs correspondentes.
+
 ## Próxima etapa
 
-Etapa 16: certificação transversal de determinismo, persistência e desempenho. Etapas 16–17 permanecem pendentes; playtest externo e balanceamento não foram certificados.
+Etapa 17: documentação/certificação final com exceções explícitas. O gate de latência de turno, a regressão circular estendida e o playtest externo permanecem abertos; o MVP não será declarado integralmente certificado.

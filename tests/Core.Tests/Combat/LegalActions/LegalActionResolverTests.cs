@@ -23,6 +23,36 @@ namespace Core.Tests.Combat.LegalActions;
 
 public sealed class LegalActionResolverTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ScopedDiscoveryPreservesExactCandidatesFingerprintsAndCompleteQueryCache(bool priority)
+    {
+        var (run, combat) = State(includeAbility: true, priority: priority);
+        var before = CanonicalJson.ComputeHash(new { run, combat });
+        var abilities = new Mock<IAbilityExecutor>();
+        abilities.Setup(service => service.Execute(It.IsAny<AbilityExecutionRequest>())).Returns(Result<AbilityExecutionResult>.Success(new()
+        {
+            Combat = combat, Definition = new() { ActionId = "slash", ActionType = ActionType.POWER },
+            Evaluation = new() { IsLegal = true, ActorId = "enemy", ResolvedTargetIds = ["hero"] }, ResolutionFingerprint = "canonical"
+        }));
+        var resolver = Resolver(abilities);
+        var allowed = new HashSet<ActionType> { ActionType.POWER, ActionType.PASS_PRIORITY };
+        var scoped = resolver.ResolveForActionTypes(run, combat, "enemy", CombatCommandOrigin.AutomaticController, allowed);
+        var complete = resolver.Resolve(run, combat, "enemy", CombatCommandOrigin.AutomaticController);
+        Assert.True(scoped.IsSuccess, scoped.IsFailure ? scoped.Error : null);
+        Assert.True(complete.IsSuccess, complete.IsFailure ? complete.Error : null);
+        Assert.NotEmpty(scoped.Value.Candidates);
+        Assert.Equal(complete.Value.StateFingerprint, scoped.Value.StateFingerprint);
+        Assert.Equal(complete.Value.Candidates.Where(candidate => allowed.Contains(candidate.Command.ActionType)).Select(candidate => CanonicalJson.ComputeHash(candidate)),
+            scoped.Value.Candidates.Select(candidate => CanonicalJson.ComputeHash(candidate)));
+        Assert.DoesNotContain(scoped.Value.Candidates, candidate => candidate.Command.ActionType is ActionType.PASS or ActionType.END_TURN);
+        Assert.Equal(CanonicalJson.ComputeHash(complete.Value), CanonicalJson.ComputeHash(resolver.Resolve(run, combat, "enemy", CombatCommandOrigin.AutomaticController).Value));
+        Assert.Equal(CanonicalJson.ComputeHash(scoped.Value), CanonicalJson.ComputeHash(resolver.ResolveForActionTypes(run, combat, "enemy", CombatCommandOrigin.AutomaticController,
+            new HashSet<ActionType> { ActionType.PASS_PRIORITY, ActionType.POWER }).Value));
+        Assert.Equal(before, CanonicalJson.ComputeHash(new { run, combat }));
+    }
+
     [Fact]
     public void ObservedCandidatesNeverUseOrPopulateTheNormalPreviewCache()
     {

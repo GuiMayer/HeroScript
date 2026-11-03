@@ -20,6 +20,7 @@ public sealed class GameplayEventLatencyTests(ITestOutputHelper output)
     }
 
     [Theory]
+    [InlineData("prototype-test", "prototype_trial", "prototype_campaign")]
     [InlineData("default", "spire_showcase_run", "spire_showcase")]
     [InlineData("ascendant", "ascendant_world_one_run", "ascendant_world_one")]
     public async Task SocketRestCommandAndSessionPreserveCommittedStateAndMeasureResponseWork(string setting, string definition, string mode)
