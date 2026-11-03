@@ -1,97 +1,70 @@
-# 📜 Relatório de Direcionamento Estratégico & Game Design: HeroScript
+# 📜 Relatório de Direcionamento Estratégico & Game Design: HeroScript (Visão Unificada)
 
 **Projeto:** HeroScript / Protótipo de Combate  
-**Data:** 30 de Outubro de 2026 (Atualizado)  
-**Documento:** Síntese de Alinhamento de Produto e Design  
+**Data:** Novembro de 2026 (Visão Consolidada & Unificada)  
+**Documento:** Síntese Definitiva de Alinhamento de Produto, Mecânicas e Arquitetura  
 
 ---
 
 ## 1. Visão Geral & Tese do Jogo
 
-O **HeroScript** não será mais um clone de *Slay the Spire*. O projeto encontrou sua identidade no cruzamento entre a **profundidade matemática de um ARPG (*Path of Exile / Warframe*)**, a **fusão modular de baralhos (*Smash Up / Inscryption*)**, a **narrativa de progressão linear de uma Light Novel com RPG Tático (*Mega Man Battle Network / SteamWorld Quest*)** e a **automação reativa de companheiros (*Gambits de Final Fantasy XII*)**.
+O **HeroScript** não é um clone procedural de *Slay the Spire*, nem um TCG tradicional de mesa. O projeto define sua identidade no cruzamento entre:
+* A **profundidade matemática e modular de builds de ARPGs** (*Path of Exile / Warframe*);
+* A **fusão de baralhos complementares** (*Smash Up / Inscryption*);
+* A **narrativa linear de personagens com estética de Light Novel / Visual Novel** (*Hades / Persona / Mega Man Battle Network*);
+* O **combate como quebra-cabeça tático resolutivo sem permadeath** (*SteamWorld Quest / Into the Breach*);
+* A **automação reativa de companheiros de lore** (*Gambits de Final Fantasy XII*).
 
 > **Pitch do Jogo (Steam):**  
-> *"Um RPG tático de cartas com narrativa linear e estética de Light Novel, projetado para entusiastas de theorycrafting e customização profunda de sistemas. Em vez de depender do acaso de runs descartáveis, você acompanha a jornada de personagens marcantes enquanto projeta máquinas de combate sinérgicas: ajuste os atributos do seu herói por meio de inscrições de poder, altere a estrutura fundamental de suas cartas ao longo da jornada e programe o comportamento reativo de companheiros que atuam como facilitadores táticos.*  
-> *O combate trata cada batalha como um quebra-cabeça tático. Se for derrotado, não há punição de recomeço: refine seu baralho de 15 cartas de herói e 5 de módulo, adapte sua estratégia com as cartas da mochila e tente novamente até superar o desafio."*
+> *"HeroScript é um RPG tático de cartas com narrativa linear e estética marcante de Light Novel, feito sob medida para entusiastas de theorycrafting, personalização e builds profundas. Acompanhe a jornada pessoal de heróis carismáticos enquanto projeta motores de combate sinérgicos: calibre os atributos do seu personagem com Inscrições modulares de capacidade e polaridade, recombine módulos táticos mantendo um baralho enxuto de 20 cartas e decodifique o baralho dos seus oponentes batalha após batalha.*  
+> *O combate trata cada confronto como um quebra-cabeça tático. Se for derrotado, não há perda de progresso nem reinício punitivo: estude as cartas do inimigo catalogadas no bestiário, ajuste as cartas da sua mochila e tente novamente até dominar o desafio."*
 
 ---
 
-## 2. Os 4 Pilares Centrais
+## 2. A Grande Decisão de Design: O Núcleo de Combate Unificado
 
 ```mermaid
 flowchart TD
-    A["Atributos & Inscrições<br/>(Escalonamento com custo e cap)"] --> B["Cartas com Mutação Estrutural<br/>(Alterações fundamentais de regras)"]
-    B --> C["Companions Programáveis<br/>(Enablers reativos tipo FFXII Gambits)"]
-    C --> D["Combate Profundo & Condensação<br/>(Crítico multi-tier, DoTs e explosão de status)"]
-    D --> E["Campanha Linear & Light Novel<br/>(História cativante + quebra-cabeça tático)"]
+    subgraph Pacing["Regulador Universal de Ritmo"]
+        Energia["Energia Universal (ex: 3 por turno)<br/>• Compartilhada por Herói e Inimigos<br/>• Evita explosões de turno 1 e deck bloat"]
+    end
+
+    subgraph Tempero["Medidores & Mecânicas Temáticas (Payoffs)"]
+        Calor["Fogo / Calor:<br/>Termostato & Limiares"]
+        Vazio["Vazio / Void:<br/>Custo adicional: Banir da Mão"]
+        Necro["Necromancia:<br/>Consumir do Descarte"]
+        Arcano["Arcano:<br/>Cristais de Mana / Bateria"]
+    end
+
+    Pacing --> Calor
+    Pacing --> Vazio
+    Pacing --> Necro
+    Pacing --> Arcano
 ```
 
-1. **Escalonamento por Atributos do Herói:** Cartas não têm números engessados; elas herdam multiplicadores a partir de atributos configurados com Inscrições que possuem custo e limite máximo (*cap*).
-2. **Mutação Estrutural de Cartas:** Cartas podem ser alteradas em sua essência ao longo da campanha, mudando comportamentos, custos e tipos de dano.
-3. **Companions Programáveis como Enablers:** Os companheiros não causam dano alto e não jogam sozinhos. Eles preparam o terreno (ex: o Elemental da Água molha os inimigos) e atuam como parceiros de diálogo e lore.
-4. **Combate Visceral e Condensação:** Mecânicas de acerto crítico em camadas (*multi-tier* estilo Warframe) e capacidade de "condensar" dezenas de acúmulos de status contínuo (DoT) em um único impacto catastrófico.
+### A. Por que Abandonamos as Físicas de Recursos Puramente Assimétricas?
+A proposta anterior de *físicas puramente assimétricas* (onde o baralho de Fogo não gastava energia e usava apenas Calor, o do Vazio não tinha números e só bania cartas da mão, e o Arcano usava mana clássica) foi **oficialmente descontinuada**:
+1. **Monopolização dos Sistemas:** Sem uma moeda universal de ação, a física do recurso precisava ser a mecânica absoluta do jogo inteiro, anulando a elegância dos outros subsistemas (Atributos, Inscrições e Companions).
+2. **Desbalanceamento e Ritmo Quebrado:** Um baralho sem custo de energia permitia jogar a mão inteira no Turno 1 sem restrição de ritmo (*pacing governor*), criando pesadelos matemáticos de balanceamento.
+3. **Isolamento Modular:** Cartas de temas diferentes não conversavam harmonicamente entre si nem com os inimigos.
 
----
-
-## 3. As Grandes Viradas de Design (Pivots Desta Sessão)
-
-### A. Fuga da Saturação: Campanha Linear de Personagem com Light Novel
-* **O Problema:** O mercado de roguelikes tradicionais está saturadíssimo com milhares de clones de StS onde o jogador morre, perde tudo e anda num mapa de árvore procedural sem apego aos personagens.
-* **A Decisão:** Adotar uma **Campanha Linear por Personagem com narrativa forte no estilo Light Novel / Visual Novel**:
-  * Cada herói possui seu próprio arco dramático, rivalidades e diálogos ilustrados.
-  * O jogador nunca perde o progresso da campanha ao morrer: **"Perdeu a batalha? Sem punição. Abre o Loadout, ajusta o deck e tenta de novo!"**
-  * O combate atua como um **quebra-cabeça tático (Tactical Puzzle)**: ao enfrentar um chefe, o jogador aprende os padrões do inimigo e personaliza seu baralho para vencer.
-  * **O Modo Roguelike:** Fica preservado como um modo arcade/fenda infinita opcional para o endgame, sem comprometer a integridade da história.
-
-### B. Baralhos Modulares com Físicas Assimétricas (A Ideia "Smash Up")
-Em vez de todos os baralhos gastarem a mesma "Mana", cada pacote de cartas introduz uma **física de recurso própria**:
-
-| Módulo de Baralho | Filosofia Mecânica | Comportamento do Recurso |
-|---|---|---|
-| **Baralho Ardente** | O Termostato (*Threshold*) | **Não gasta**. As cartas geram Calor; quanto maior o Calor, mais brutais os bônus passivos das cartas. Decai com o tempo. |
-| **Baralho Arcano** | A Bateria (*Pool*) | Clássico. Cristais de Mana fixos que recarregam a cada turno para comprar cartas e barreiras. |
-| **Baralho do Caos / Void** | O Tributo da Mão (*Hand Sacrifice*) | **Sem números**. Custa cartas banidas diretamente da **mão** para a zona de `Banimento`. |
-| **Baralho Necromântico** | A Ceifa do Descarte (*Graveyard Banish*) | Custa banir cartas do **Cemitério / Descarte** para alimentar rituais de morte. |
-| **Baralho Volátil / Cinético** | O Ímpeto (*Fleeting*) | Cartas gratuitas ou super-fortes, mas com **prazo de validade**: todas são descartadas/destruídas no fim do turno. |
+### B. A Solução Adotada (Opção E: Energia Universal + Medidores como "Tempero Tático")
+Adota-se um **núcleo de combate centralizado, legível e universal**:
+* **Energia Universal por Turno:** Jogador e inimigos operam com uma reserva fixa e previsível (ex: **3 de Energia por turno**, recarregada a cada rodada). Toda carta possui um custo base de Energia (0, 1, 2, 3).
+* **Meters e Palavras-Chave como Identidade (Payoffs Táticos):** Cada tema adiciona sua regra especial como modificador ou mecânica secundária:
+  * **Baralho de Fogo (Calor):** Cartas custam Energia normal, mas **geram Calor (0-100)**. Cartas ganham bônus passivos massivos ao cruzar limiares (*Thresholds*, ex: Calor ≥ 50) ou descarregam todo o calor em explosões críticas.
+  * **Baralho do Vazio (Void):** Cartas custam Energia normal, mas possuem o custo adicional ou aprimoramento de **Banir cartas diretamente da Mão** (*Hand Sacrifice*) para desencadear aniquilações imediatas.
+  * **Baralho Necromântico:** Cartas custam Energia normal, mas interagem com o **Cemitério/Descarte** (*Graveyard Banish*), consumindo cartas descartadas para erguer barreiras e maldições.
+  * **Baralho Arcano:** Cartas manipulam a estocagem de cristais ou convertem energia não gasta em barreiras duradouras.
 
 ### C. Gestão de Mão: A Bancada de Ferramentas
-* **Regra Padrão da Mesa:** **Retenção de mão + compra cadenciada.** O jogador começa com 4 a 5 cartas e compra 2 a 3 por turno, **mantendo o que sobrou** na mão (até um limite máximo de 8 a 10).
-* **Por que isso salva o jogo:** Permite guardar a carta do combo para a rodada em que o Calor estiver em 100% ou esperar a carta do Caos para queimar o combustível certo. O descarte deixa de ser punição aleatória e vira uma mecânica controlada.
+* **Retenção de Mão:** As cartas não gastas **permanecem na mão** no final do turno (até um limite máximo de 8 a 10 cartas).
+* **Compra Cadenciada:** O jogador compra **2 a 3 cartas por turno** (em vez de descartar e comprar 5).
+* **Valor Estratégico:** O descarte aleatório punitivo dá lugar ao planejamento deliberado: o jogador pode guardar a carta final de Fogo esperando o medidor de Calor atingir 80%, ou reter a carta do Vazio até comprar o "tributo" ideal.
 
 ---
 
-## 4. O Loop da Campanha Linear (A Experiência do Jogador)
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        O LOOP DA CAMPANHA LINEAR                       │
-│                                                                        │
-│   [ 1. CAPÍTULO DA LIGHT NOVEL ] ── Diálogos ilustrados com o          │
-│                                     Companion e personagens do mundo.  │
-│                                                                        │
-│                               ▼                                        │
-│                                                                        │
-│   [ 2. A BATALHA TÁTICA ] ──────── Duelo com o deck ativo (15+5).      │
-│                                                                        │
-│                ┌──────────────┴──────────────┐                         │
-│                ▼                             ▼                         │
-│         [ VENCEU A LUTA ]             [ PERDEU A LUTA ]                │
-│         • Recompensa:                 • Sem frustração de recomeço!    │
-│           Decompilar ou Mochila       • Abre a tela de Loadout.        │
-│         • A história avança para o    • Adapta as cartas e Tenta       │
-│           próximo encontro da LN!       Novamente até vencer o puzzle! │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-* **Inspirações Mestres:** *Mega Man Battle Network*, *SteamWorld Quest: Hand of Gilgamech*, *Yu-Gi-Oh! (RPGs clássicos)*, *Card City Nights*.
-* **O Companion como Personagem:** O Elemental da Água não é apenas uma passiva de combate; ele conversa com o Piromaníaco nos diálogos da Light Novel, reage com falas rápidas de combate (*barks*) e comenta o crescimento do herói.
-
----
-
-## 5. Arquitetura de Baralho (15 + 5) & O Loop de Decompilação / Mochila
-
-### A. A Composição do Baralho Ativo (Cravado em 20 Cartas)
-O baralho de combate é gerado a partir de dois blocos complementares que são **embaralhados juntos na mesma pilha de compra** com **reciclagem contínua** (draw pile -> mão -> descarte -> reembaralha):
+## 3. Arquitetura de Baralho Modular (15 + 5) & Sem Deck Bloat
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -99,112 +72,131 @@ O baralho de combate é gerado a partir de dois blocos complementares que são *
 │                                                                        │
 │   BARALHO PRINCIPAL DO HERÓI (15)        MÓDULO SECUNDÁRIO (5)         │
 │   ├──────────────────────────────┤       ├─────────────────────────┤   │
-│   │ • Fixo pelo Personagem       │       │ • Flexível / Escolhido  │   │
-│   │ • Define a física de recurso │       │ • Define a mecânica de  │   │
-│   │   primária (ex: Calor)       │       │   manipulação de zonas  │   │
-│   │ • Ataques e defesas-base     │       │ • Cartas de impacto     │   │
+│   │ • Identidade do Personagem   │       │ • Especialização Tática │   │
+│   │ • Base de dano e defesa      │       │ • Efeitos de alto risco │   │
+│   │ • Interação com Medidor Core │       │ • Manipulação de zonas  │   │
+│   │   (ex: Geradores de Calor)   │       │   (ex: Banimento/Void)  │   │
 │   └──────────────────────────────┘       └─────────────────────────┘   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Baralho Principal (15 cartas):** Amarrado ao Personagem escolhido. Dita a sua energia personalizada (ex: o Piromaníaco traz 15 cartas que usam e geram Calor).
-2. **Baralho Secundário (5 cartas):** Flexível e modular. Dita a mecânica secundária de zonas:
-   * **Módulo Void (Vazio):** Custa banir cartas diretamente da **Mão** para gerar efeitos avassaladores imediatos.
-   * **Módulo Necromântico:** Custa banir cartas do **Cemitério / Descarte** para alimentar rituais de morte.
-3. **Sem Deck Bloat:** O baralho ativo no combate permanece sempre com **20 cartas fixas**, garantindo que a reciclagem ocorra com precisão a cada 4 turnos.
+1. **Baralho Ativo Fixo em 20 Cartas:**
+   * **15 Cartas de Herói:** Núcleo da classe/personagem da campanha.
+   * **5 Cartas de Módulo Secundário:** Escolha tática flexível (ex: Módulo Void, Módulo Necro, Módulo Defensivo).
+2. **Pilha Única de Compra com Reciclagem:** Os dois blocos são embaralhados juntos. As cartas transitam entre `Draw Pile -> Mão -> Descarte -> (Reembaralha)`, garantindo que o baralho recircule a cada ~4-5 turnos de forma consistente e calculável.
+3. **Zona de Banimento (Vazio):** Cartas banidas saem do ciclo de reciclagem até o final do combate, criando decisões reais de custo/benefício.
 
 ---
 
-### B. O Loop de Recompensas na Campanha: "Decompilar" vs. "Mochila"
-Ao vencer um combate ou marco de capítulo, **a carta ganha nunca entra diretamente no baralho ativo**. O jogador é colocado diante de uma decisão deliberada:
+## 4. Sistema de Inscrições de Poder (Warframe Modding Architecture)
+
+Em vez de relíquias passivas genéricas (estilo *Slay the Spire*), a progressão e customização profunda do herói utiliza a arquitetura de **Inscrições de Poder**, inspirada nos **Mods do Warframe**:
+
+```mermaid
+flowchart LR
+    subgraph Loadout["Painel de Inscrições do Herói"]
+        Cap["Capacidade Total: 30/30"]
+        Slot1["Slot 1 [Polaridade: Fogo]<br/>Inscrição de Calor (Custo 6 -> 3)"]
+        Slot2["Slot 2 [Polaridade: Vazio]<br/>Inscrição de Crítico (Custo 8 -> 4)"]
+        Slot3["Slot 3 [Polaridade: Neutra]<br/>Inscrição de Armadura (Custo 5)"]
+    end
+```
+
+### Regras do Sistema de Inscrições:
+1. **Sem Relíquias:** Não há ganho passivo descontrolado de itens aleatórios. Toda passiva do jogador precisa ser encaixada intencionalmente no seu painel de Inscrições.
+2. **Capacidade (Orçamento de Energia de Build):**
+   * O herói começa com capacidade limitada (ex: 15-20 pontos).
+   * A capacidade expande através de **marcos da história da campanha** e itens raros de forja (*Reatores/Catalisadores*).
+3. **Polaridades de Slot:**
+   * Cada slot do herói possui uma polaridade (ex: *Fogo, Vazio, Arcano, Neutra*).
+   * **Polaridade Correspondente:** O custo da inscrição cai pela metade (arredondado para cima).
+   * **Polaridade Incompatível:** O custo da inscrição aumenta em 25%.
+   * **Slot Neutro:** Custo normal sem modificador.
+4. **Ranks de Aprimoramento:** Inscrições possuem níveis (Rank 0 a Rank 5/10). Aumentar o rank eleva os valores dos bônus, mas também aumenta a capacidade exigida.
+5. **Tipos de Inscrições:**
+   * **Inscrições de Núcleo:** Afetam atributos globais (Vida Máxima, Escudo Base, Multiplicador de Crítico, Dano por Tag).
+   * **Inscrições de Cartas:** Acopladas a regras específicas de cartas (ex: *"Cartas com a tag Fogo aplicam +2 Chamas extras"*).
+
+---
+
+## 5. Campanha Linear, Narrativa Light Novel & Puzzle Tático
+
+### A. Estrutura de Campanha Linear (Zero Permadeath)
+* O jogo é estruturado em **capítulos lineares por personagem** (ex: 8 a 12 combates desenhados a mão por arco narrativo).
+* **Filosofia da Derrota:** Morrer em combate **nunca reinicia a campanha**. A derrota é um convite ao theorycrafting:
+  > *"Você caiu diante do Golem de Magma. Nenhum progresso foi perdido. Abra o seu Loadout, reconfigure suas Inscrições e suas cartas da Mochila, e tente novamente!"*
+
+### B. Narrativa no Estilo Light Novel
+* Diálogos ilustrados no formato **Visual Novel** antes e após as batalhas fundamentais.
+* **Companions com Personalidade:** O Elemental da Água não é uma passiva sem rosto; ele participa das conversas, expressa opiniões, debate estratégias com o herói e solta falas curtas de combate (*barks*).
+
+### C. Inimigos Inteligentes & Scouting Progressivo (Bestiário Tático)
+* **Inimigos têm Baralhos Reais:** Inimigos não usam mecânicas arbitrárias de dano mágico opaco; eles jogam com o mesmo sistema de regras do jogador (energia, cartas, status e tags).
+* **O Sistema de Scouting (Reconhecimento Progressivo):**
+  1. *Primeiro Encontro:* O jogador vê a silhueta, atributos básicos e o arquétipo do inimigo. As cartas da mão do inimigo são incógnitas.
+  2. *Durante o Combate:* Cada carta jogada pelo oponente é catalogada e revelada em tempo real na interface do bestiário.
+  3. *Revanche / Estudo Tático:* Ao ser derrotado ou ao inspecionar o inimigo, o jogador tem acesso à lista das cartas prováveis do oponente.
+  4. *Resultado:* O combate torna-se um **quebra-cabeça tático decodificável** (estilo *Into the Breach* e chefes de *Mega Man*), recompensando quem estuda as fraquezas do adversário.
+
+---
+
+## 6. O Loop de Recompensas: "Decompilar" vs. "Mochila"
+
+Ao vencer uma batalha na campanha, a carta recebida **nunca entra diretamente no baralho ativo**. O jogador é colocado diante de uma decisão deliberada:
 
 ```mermaid
 flowchart TD
     Vitoria["Vitória no Combate"] --> Drop["Carta Oferecida"]
-    Drop --> Decisao{"O que fazer?"}
+    Drop --> Decisao{"Decisão do Jogador"}
     
-    Decisao -->|"Opção 1: DECOMPILAR"| Recurso["Fragmentos de Código / Recursos de Forja"]
-    Recurso --> Modificar["Aplica Inscrição ou Muta uma carta existente do deck!"]
+    Decisao -->|"DECOMPILAR (Desmontar)"| Recurso["Fragmentos de Código / Materiais de Forja"]
+    Recurso --> Upgrades["• Aumenta o Rank de Inscrições<br/>• Forja novas Inscrições modulares<br/>• Modifica atributos de cartas do baralho"]
     
-    Decisao -->|"Opção 2: MOCHILA"| Mochila["Guarda na Mochila (Reserva Tática)"]
-    Mochila --> Troca["No Acampamento / Loadout:<br/>Substitui 1 carta mantendo 15/5"]
+    Decisao -->|"MOCHILA (Reserva Tática)"| Mochila["Armazena na Mochila"]
+    Mochila --> Sideboard["Na tela de Preparação/Loadout:<br/>Substitui cartas no deck mantendo o limite 15 + 5"]
 ```
 
-1. **Opção 1: Decompilar (Desmontar a Carta):**
-   * Transforma a carta ganha em recursos/materiais de forja.
-   * Esses recursos são usados para **modificar cartas existentes** (adicionar Inscrições de atributos, alterar custos, adicionar palavras-chave como *Condensação* ou *Crítico Multi-tier*).
-   * **Resultado:** O baralho não incha; ele fica mais denso, letal e especializado.
-2. **Opção 2: Guardar na Mochila (Reserva Tática):**
-   * A carta vai para a Mochila do herói.
-   * Fora de combate (na tela de Descanso, Mapa ou Loadout), o jogador pode abrir a mochila e **substituir uma carta do deck ativo**, respeitando a proporção de 15 cartas de Herói e 5 cartas de Módulo.
-   * Permite que o jogador adapte sua estratégia antes de enfrentar um chefe com fraquezas ou resistências específicas.
+1. **Decompilar (Desmontagem / Scrap):**
+   * Transforma a carta em materiais de forja (*Fragmentos de Código / Endo*).
+   * Permite evoluir os ranks das Inscrições e aplicar mutações controladas nas cartas já existentes do herói.
+   * Mantém o baralho focado, denso e sem cartas "lixo".
+2. **Guardar na Mochila (Sideboard Tático):**
+   * Armazena a carta na reserva de estratégia.
+   * Permite que o jogador altere o módulo de 5 cartas secundárias ou refine as 15 cartas principais antes de enfrentar um chefe específico na tela de Loadout.
 
 ---
 
-## 6. Arquitetura da Interface de Combate & Identidade Visual
+## 7. O Modo Roguelike (Arcade / Endgame)
 
-### A. Filosofia: Combate entre Entidades Vivas (Anti-TCG)
-* **Sem permanentes na mesa:** Não existem cartas de "criaturas/tropas" paradas no campo de batalha. O jogo é um duelo dinâmico e direto entre duas entidades.
-* **Cartas como Técnicas/Descargas:** As cartas representam impulsos neurais, golpes marciais e reações elementais. Elas são jogadas a partir da mão, executam seu impacto visual no alvo e vão direto para a pilha de descarte ou para o banimento.
-
-### B. Divisão Espacial da Tela (65% / 35%)
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        [ ARENA DE DUELO (65%) ]                        │
-│                                                                        │
-│   [HERÓI: PIROMANÍACO]                                 [INIMIGO: GOLEM]│
-│   • Pele cinza, fissuras de magma e incandescência     • Sprite rochoso│
-│   • Barra de Vida + Escudo                             • Vida + Escudo │
-│   • Termômetro de Calor (0-100)                        • Status Badges │
-│                                                          (Chamas/Wet)  │
-│   [COMPANION: ELEMENTAL DA ÁGUA]                                       │
-│   • Widget de cadência (3 gotas d'água)                                │
-│                                                                        │
-├────────────────────────────────────────────────────────────────────────┤
-│                     [ BANDEJA DE COMANDO (35%) ]                       │
-│                                                                        │
-│  [Baralho]          [ CARTA 1 ]  [ CARTA 2 ]  [ CARTA 3 ]   [Descarte] │
-│                     (Mão retida com até 8 cartas)          [BANIMENTO] │
-│                                                                        │
-│                                                   [ ENCERRAR TURNO ]   │
-│                                                   [ (15 Herói + 5 Mod)]│
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### C. Conceito Visual de Referência
-
-![Conceito da Interface de Combate](tactical_deckbuilder_combat_ui_1793220839413.jpg)
-*(Mockup visual 16:9 ilustrando o duelo do Piromaníaco e Elemental contra o Golem de Pedra, com o termômetro de Calor e a bandeja de cartas com o portal de Banimento).*
+O modo Roguelike existe como uma **experiência arcade complementar** para quem terminou a história ou deseja testar builds extremas:
+* **Aproveitamento Total de Conteúdo:** Utiliza todos os inimigos, chefes, cartas e inscrições desenvolvidos para a campanha.
+* **Baralhos Híbridos dos Inimigos:**
+  * **60% a 70% Núcleo Fixo:** Cartas que definem o arquétipo e o comportamento legível da IA do inimigo.
+  * **30% a 40% Cartas Auxiliares Aleatórias:** Sorteadas a partir de uma tabela temática para garantir variedade e surpresa entre runs.
 
 ---
 
-## 7. Filosofia de Produção e Estratégia Comercial
+## 8. Arquitetura Técnica & Engine HeroScript (C# Core)
 
-```
-[Fase 1: Vertical Slice]  -> 1 Herói (Piromaníaco) + 1 Companion (Elemental) + 2 Módulos
-[Fase 2: Fechamento Core] -> Validação do "Game Juice", ritmo e legibilidade na Godot
-[Fase 3: Contratação Arte] -> Com o jogo divertido e pronto, contrata-se arte e áudio sob medida
-[Fase 4: Lançamento]       -> Modelo Mindustry (Código Aberto + Steam a R$ 25 / US$ 10 com Workshop)
-```
-
-1. **A Regra de Ouro da Arte:** Não gastar tempo nem dinheiro com ilustrações agora. O jogo deve ser construído primeiro com "programmer art", ícones vetoriais limpos e excelente tipografia/layout. Uma gameplay comprovadamente viciante atrai artistas parceiros e evita desperdício financeiro.
-2. **O Modelo "Mindustry":**
-   * Engine e jogo com código aberto (GPLv3 / MIT), atraindo a comunidade de programadores e modders;
-   * Versão oficial compilada vendida na Steam por um valor acessível (R$ 20 a R$ 25 / US$ 7.99 a 9.99);
-   * Monetização via **conveniência**: suporte a Steam Cloud, conquistas e integração nativa com o **Steam Workshop** (que a sua engine data-driven em JSON atende perfeitamente).
-3. **Alavanca de Portfólio:** O projeto consolidado serve como prova cabal de habilidades de engenharia de nível *Staff / Systems Engineer*.
+A engine C# do HeroScript é perfeitamente alinhada com esta visão de design:
+1. **Pipeline de Atributos Determinístico:**
+   $$\text{Valor Final} = (\text{Base} + \text{Flat}) \times (1 + \sum \text{Increased}) \times \prod \text{More}$$
+2. **Arquitetura Baseada em Tags:** Cartas, efeitos, atributos e inimigos comunicam-se via tags (`Fogo`, `Vazio`, `Feitiço`, `Ataque`, `Crítico`). As Inscrições bonificam tags específicas, viabilizando sinergias cruzadas intuitivas.
+3. **Barramento de Eventos e Fila de Ações:** Resolução determinística e sem corridas assíncronas no modelo `Gatilho -> Condição -> Ação`.
+4. **Data-Driven (JSON Puro):** O motor de jogo processa dados. Todo herói, carta, inimigo e inscrição é declarado em arquivos JSON, permitindo balanceamento ágil e suporte total a modding.
 
 ---
 
-## 8. O Experimento Mínimo Imediato (Action Items Atualizados)
+## 9. Próximos Passos & Protótipo Mínimo Jogável (Vertical Slice)
 
-* [ ] **Criar o Setting Mínimo na Engine (`data/configs/prototype-test`):**
-  * **15 Cartas do Piromaníaco (Herói):** Geram e escalam com Calor (Termostato).
-  * **5 Cartas do Void (Módulo Secundário):** Custam banir cartas da própria mão.
-  * **1 Companion:** Elemental da Água aplicando `Molhado` em cadência de 3 turnos.
-* [ ] **Fluxo de Mão e Ciclo:**
-  * Baralho de 20 cartas unificadas na compra, mão retida, reciclagem por descarte.
-* [ ] **Sistema de Recompensa e Retry Testável:**
-  * Se perder o combate: botão **[Ajustar Baralho]** e **[Tentar Novamente]** sem recomeçar o jogo.
-  * Se vencer: tela com opção de **Decompilar** (gerando material de Inscrição) ou **Guardar na Mochila**.
+1. **Combate Base com Energia Universal:**
+   * Implementar o custo universal de 3 de Energia por turno no fluxo de jogo.
+   * Configurar a mão com retenção e compra de 2 cartas por rodada (teto de 8 cartas).
+2. **Configuração de Cartas de Teste (`data/configs/prototype-test`):**
+   * **15 Cartas do Piromaníaco (Fogo):** Custam energia e geram Calor; cartas ganham bônus de dano ou condensação quando Calor ≥ 50.
+   * **5 Cartas do Módulo Void:** Custam energia + o requisito adicional de banir 1 carta da mão para aplicar dano massivo ou perfuração.
+3. **Companion Inicial (Elemental da Água):**
+   * Gatilho reativo: ao jogar carta de Fogo, aplica `Molhado` no alvo (Cooldown de 2 turnos).
+4. **Telas de Fluxo de Campanha:**
+   * Tela de Vitória: Opção de **Decompilar** vs. **Guardar na Mochila**.
+   * Tela de Derrota: Opção amigável de **[Ajustar Loadout]** e **[Tentar Novamente]**.
