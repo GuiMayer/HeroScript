@@ -10,7 +10,7 @@
     "build": "docusaurus build",
     "serve": "docusaurus serve",
     "typecheck": "tsc --noEmit",
-    "prepare:docs": "node scripts/import-docs.mjs",
+    "prepare:docs": "node scripts/import-docs.mjs && node scripts/generate-reference.mjs",
     "test": "node --test scripts/*.test.mjs"
   },
   "dependencies": {

@@ -19,3 +19,7 @@ Entrada orientada ao fluxo REST e índice canônico atualizado com composição,
 ## 6 — Desenvolvimento
 
 Trilhas de autoria, internals e operação, com links aos sistemas. Corrigidos na main o link antigo da matemática e a versão executável do README, sem incluir outras alterações pendentes.
+
+## 7 — Referências
+
+Operações e schemas REST gerados sem expansão recursiva; AsyncAPI/SSE, três schemas de autoria e cinco exemplos HTTP do mesmo SHA. Sem execução de requests no portal.

@@ -101,7 +101,7 @@ export async function importDocs() {
     await writeFile(target, metadata + processor.stringify(ast) + provenance);
     report.documents.push({source: entry.source, docId: entry.docId, slug: entry.slug, sha256: digest(bytes)});
   }
-  for (const name of ['api', 'developers', 'reference']) {
+  for (const name of ['api', 'developers', 'reference', 'glossary']) {
     const source = path.join(siteRoot, 'docs/portal', `${name}.md`);
     const target = path.join(generated, 'docs/portal', `${name}.md`);
     await mkdir(path.dirname(target), {recursive: true}); await writeFile(target, await readFile(source));
