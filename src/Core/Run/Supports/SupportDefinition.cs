@@ -10,6 +10,8 @@ namespace Core.Run.Supports;
 public sealed record SupportDefinition
 {
     public string SupportId { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
     [System.Text.Json.Serialization.JsonRequired]
     public bool CountsForOutcome { get; init; }
     public int OwnerActivationInterval { get; init; }
@@ -37,6 +39,8 @@ public sealed record SupportDefinition
 public sealed record SupportRoutineDefinition
 {
     public string RoutineId { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
     public ImmutableArray<string> GambitIds { get; init; } = [];
     public Result Validate(ContentRuntime runtime)
     {

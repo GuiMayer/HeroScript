@@ -1,6 +1,6 @@
 {
   "openapi": "3.0.4",
-  "x-heroscript-command-payloads": {"PLAY_CARD":"#/components/schemas/CombatGameplayCommand","EDIT_DECK_LOADOUT":"#/components/schemas/DeckLoadoutEdit","APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
+  "x-heroscript-command-payloads": {"EQUIP_SUPPORT":"#/components/schemas/EquipSupportCommand","PLAY_CARD":"#/components/schemas/CombatGameplayCommand","EDIT_DECK_LOADOUT":"#/components/schemas/DeckLoadoutEdit","APPLY_LOADOUT":"#/components/schemas/ApplyLoadoutCommand","OPEN_INSCRIPTION_OFFER":"#/components/schemas/OpenInscriptionOfferCommand","CHOOSE_INSCRIPTION_OFFER":"#/components/schemas/ChooseInscriptionOfferCommand","TRANSFER_INSCRIPTION":"#/components/schemas/TransferInscriptionCommand"},
   "info": {
     "title": "HeroScript API",
     "version": "v1",
@@ -17,6 +17,125 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/support-loadout": {
+      "get": {
+        "tags": [
+          "SupportLoadout"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLoadoutSnapshot"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLoadoutSnapshot"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLoadoutSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{runId}/support-loadout/preview": {
+      "post": {
+        "tags": [
+          "SupportLoadout"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportLoadoutPreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportLoadoutPreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportLoadoutPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLoadoutPreview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLoadoutPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLoadoutPreview"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/combats/{combatId}/cards/payment-preview": {
       "post": {
         "tags": [
@@ -1141,6 +1260,294 @@
       "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
+      "ActorActivationCadence": {
+        "type": "object",
+        "properties": {
+          "anchorActorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "every": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActorSupportLoadout": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportId": {
+            "type": "string",
+            "nullable": true
+          },
+          "routineId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ControllerKind": {
+        "enum": [
+          "Player",
+          "AI",
+          "None"
+        ],
+        "type": "string"
+      },
+      "EquipSupportCommand": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportId": {
+            "type": "string",
+            "nullable": true
+          },
+          "routineId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportCatalogEntry": {
+        "type": "object",
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/SupportDefinition"
+          },
+          "routines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportRoutineDefinition"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportCombatView": {
+        "type": "object",
+        "properties": {
+          "participantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "remainingOwnerActivations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "ownerAvailable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportDefinition": {
+        "required": [
+          "countsForOutcome"
+        ],
+        "type": "object",
+        "properties": {
+          "supportId": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "countsForOutcome": {
+            "type": "boolean"
+          },
+          "ownerActivationInterval": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entityDefinitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "routineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultRoutineId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportInventoryScope": {
+        "enum": [
+          "Actor",
+          "Run"
+        ],
+        "type": "string"
+      },
+      "SupportLoadoutPolicyDefinition": {
+        "type": "object",
+        "properties": {
+          "policyId": {
+            "type": "string",
+            "nullable": true
+          },
+          "editWindows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoadoutEquipmentWindow"
+            }
+          },
+          "supportIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startingSupportId": {
+            "type": "string",
+            "nullable": true
+          },
+          "revisionMigration": {
+            "$ref": "#/components/schemas/LoadoutRevisionMigration"
+          },
+          "inventoryScope": {
+            "$ref": "#/components/schemas/SupportInventoryScope"
+          },
+          "startingOwnedSupportIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportLoadoutPreview": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/SupportLoadoutSnapshot"
+          },
+          "after": {
+            "$ref": "#/components/schemas/SupportLoadoutSnapshot"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportLoadoutPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "expectedSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "equipment": {
+            "$ref": "#/components/schemas/EquipSupportCommand"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportLoadoutSnapshot": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "settingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "runSequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedStep": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contentRevision": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "canChange": {
+            "type": "boolean"
+          },
+          "unavailableReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "policy": {
+            "$ref": "#/components/schemas/SupportLoadoutPolicyDefinition"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/ActorSupportLoadout"
+          },
+          "owned": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportCatalogEntry"
+            }
+          },
+          "combat": {
+            "$ref": "#/components/schemas/SupportCombatView"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportRoutineDefinition": {
+        "type": "object",
+        "properties": {
+          "routineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "gambitIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "AccumulatedStackReference": {
         "type": "object",
         "properties": {
@@ -5101,6 +5508,16 @@
         "type": "object",
         "required": ["kind"],
         "properties": {
+          "decisionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "cadence": {
+            "$ref": "#/components/schemas/ActorActivationCadence"
+          },
           "kind": { "type": "string", "enum": ["Player", "AI", "None"] },
           "policyId": { "type": "string", "nullable": true }
         }

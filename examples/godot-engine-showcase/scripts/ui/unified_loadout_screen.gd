@@ -7,6 +7,7 @@ var shell
 var inscriptions_view
 var deck_view
 var overview_view
+var supports_view
 var relics_view
 var _pending_item := ""
 var _clear_dialog: ConfirmationDialog
@@ -52,12 +53,14 @@ func _ready() -> void:
 	overview_view = shell.content.get_node("Overview"); overview_view.mount(context)
 	overview_view.module_requested.connect(_select_tab); shell.install("overview", overview_view)
 	relics_view = shell.content.get_node("Relics"); relics_view.relics_only = true; relics_view.mount(context); shell.install("relics", relics_view)
-	var planned = shell.content.get_node("Companions"); planned.mount(context); shell.install("companions", planned)
+	supports_view = shell.content.get_node("Companions"); supports_view.mount(context); shell.install("companions", supports_view)
+	supports_view.equipment_requested.connect(controller.edit_support)
 	controller.changed.connect(_render)
 	_select_tab(initial_tab); _render(); controller.refresh()
 func _select_tab(id: String) -> void:
 	shell.select(id); _render()
 	if id in ["deck", "overview"]: controller.ensure_deck()
+	if id == "companions": controller.ensure_support()
 func _select_item(id: String) -> void:
 	if controller.inscriptions == null: return
 	_pending_item = id; controller.inscriptions.select_item(id); _render()
@@ -94,6 +97,7 @@ func _render() -> void:
 	if controller.info_ready and usable:
 		_present_attributes(preload("res://scripts/presentation/loadout_presenter.gd").character(controller.attributes, str(session.run.get("playerEntityId", "")), session.run.get("characterResources", {}), I18n))
 	elif controller.inscriptions == null: _present_attributes({"name": "", "attributes": []})
+	if is_instance_valid(supports_view): supports_view.present(controller.support if usable else {}, not controller.editable())
 	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null and usable else 0, "cards": controller.deck_cards.size() if usable else 0, "relics": controller.relics if usable else []}
 	if is_instance_valid(overview_view): overview_view.present(summary)
 	if is_instance_valid(relics_view): relics_view.present(summary)

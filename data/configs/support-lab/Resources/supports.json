@@ -1,0 +1,15 @@
+{
+  "support_sentinel": {
+    "supportId": "support_sentinel",
+    "displayName": "Clockwork sentinel",
+    "description": "An automatic ally with its own abilities. Its survival does not determine victory.",
+    "entityDefinitionId": "support_sentinel",
+    "ownerActivationInterval": 3,
+    "countsForOutcome": false,
+    "routineIds": [
+      "support_offense",
+      "support_defense"
+    ],
+    "defaultRoutineId": "support_offense"
+  }
+}

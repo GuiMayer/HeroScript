@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_summary.tscn" id="Overview"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/loadout_summary.tscn" id="Relics"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/deck_module.tscn" id="Deck"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/planned_companions.tscn" id="Companions"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/loadout/support_workbench.tscn" id="Companions"]
 [node name="UnifiedLoadout" type="Control"]
 layout_mode = 3
 anchors_preset = 15

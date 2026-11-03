@@ -1,4 +1,13 @@
 {
+  "Companions": "Companheiros",
+  "COMPANION": "COMPANHEIRO",
+  "Equipped companion": "Companheiro equipado",
+  "Routine": "Rotina",
+  "Changes are saved automatically. Companions use their own abilities and routines.": "As alterações são salvas automaticamente. Companheiros usam suas próprias habilidades e rotinas.",
+  "Supports are not enabled for this character or setting.": "Companheiros não estão habilitados para este personagem ou setting.",
+  "Acts after every %s completed character activations.": "Age a cada %s ativações concluídas do personagem.",
+  "%s · %s activations remaining": "%s · faltam %s ativações",
+  "Companion information unavailable.": "Informações do companheiro indisponíveis.",
   "ATTEMPT %s · %s": "TENTATIVA %s · %s",
   "ADJUST BUILD": "AJUSTAR BUILD",
   "TRY AGAIN": "TENTAR NOVAMENTE",

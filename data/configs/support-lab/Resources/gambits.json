@@ -1,0 +1,24 @@
+{
+  "support_defend": {
+    "gambitId": "support_defend",
+    "displayName": "Sentinel guard",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "defend",
+      "targetSelector": {
+        "strategy": "None"
+      }
+    },
+    "intent": {
+      "displayName": "Guard",
+      "description": "Gain Block on the sentinel.",
+      "telegraphType": "Defense"
+    }
+  }
+}

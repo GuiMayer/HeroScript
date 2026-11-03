@@ -3,5 +3,5 @@ extends RefCounted
 static func entries() -> Array:
 	return [{"id": "overview", "label": "Overview"}, {"id": "inscriptions", "label": "Inscriptions"},
 		{"id": "deck", "label": "Deck"}, {"id": "relics", "label": "Relics"},
-		{"id": "companions", "label": "Companions · Planned"}]
+		{"id": "companions", "label": "Companions"}]
 

@@ -1,0 +1,20 @@
+{
+  "support_offense": {
+    "routineId": "support_offense",
+    "displayName": "Offense",
+    "description": "Use Enemy Strike against a legal opponent, otherwise end activation.",
+    "gambitIds": [
+      "enemy_basic_attack",
+      "enemy_end_turn"
+    ]
+  },
+  "support_defense": {
+    "routineId": "support_defense",
+    "displayName": "Defense",
+    "description": "Gain 5 Block on the sentinel for 1 Energy, otherwise end activation.",
+    "gambitIds": [
+      "support_defend",
+      "enemy_end_turn"
+    ]
+  }
+}

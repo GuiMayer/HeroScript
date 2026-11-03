@@ -17,6 +17,10 @@ var choices: Array = []
 var _deck_version: Array = []
 var _deck_reading := false
 var deck_requested := false
+var support := {}
+var support_requested := false
+var _support_reading := false
+var _support_version: Array = []
 var relics: Array = []
 var attributes := {}
 var info_ready := false
@@ -29,7 +33,7 @@ func context() -> Array:
 	var run: Dictionary = session.run
 	return [run.get("runId", ""), run.get("playerEntityId", ""), run.get("settingId", run.get("configName", "")), run.get("branchId", "")]
 func current() -> bool: return _alive and not str(identity[0]).is_empty() and context() == identity
-func can_leave() -> bool: return not busy and not _reading and not _deck_reading and not uncertain and not session.has_pending_command
+func can_leave() -> bool: return not busy and not _reading and not _deck_reading and not _support_reading and not uncertain and not session.has_pending_command
 func _session_changed() -> void:
 	if not busy and not _reading: refresh()
 func refresh() -> void:
@@ -57,10 +61,11 @@ func refresh() -> void:
 		message = "Equipment information unavailable. Retry the read."
 	_reading = false; changed.emit()
 	if deck_requested: await ensure_deck()
+	if support_requested: await ensure_support()
 func valid(snapshot: Dictionary) -> bool:
 	return current() and str(snapshot.get("actorId", "")) == str(identity[1]) and session.loadout_context_matches(snapshot)
 func editable() -> bool:
-	return current() and not busy and not _reading and not _deck_reading and not uncertain and not session.has_pending_command
+	return current() and not busy and not _reading and not _deck_reading and not _support_reading and not uncertain and not session.has_pending_command
 func edit_inscription(method: String, args: Array = []) -> void:
 	if not editable() or inscriptions == null or method not in ["stage_drop", "stage_selected", "remove_selected", "clear"]: return
 	busy = true; message = "Validating equipment…"; changed.emit()
@@ -85,7 +90,7 @@ func edit_inscription(method: String, args: Array = []) -> void:
 	_finish("Equipment saved automatically." if ok else "Equipment not saved. Recover or retry the operation.")
 func _finish(status: String) -> void:
 	busy = false; message = status
-	_deck_version = []
+	_deck_version = []; _support_version = []
 	if current() and not uncertain: await refresh()
 	changed.emit()
 func version() -> Array:
@@ -166,3 +171,27 @@ func dispose() -> void:
 	_alive = false
 	if session.changed.is_connected(_session_changed): session.changed.disconnect(_session_changed)
 
+
+func ensure_support() -> void:
+	support_requested = true
+	if not current() or busy or _reading or _support_reading or uncertain or _support_version == version(): return
+	_support_reading = true
+	var captured := version()
+	var response: Dictionary = await session.read_support_loadout() if session.has_method("read_support_loadout") else {"ok": true, "data": {"enabled": false}}
+	if current() and captured == version() and response.get("ok", false) and response.get("data") is Dictionary and (not response.data.get("enabled", false) or valid(response.data)):
+		support = response.data.duplicate(true); _support_version = captured
+	else:
+		support = {}; _support_version = []; read_error = true; message = "Companion information unavailable."
+	_support_reading = false; changed.emit()
+func edit_support(support_id, routine_id) -> void:
+	if not editable() or not support.get("enabled", false) or not support.get("canChange", false) or not valid(support): return
+	var source := support.duplicate(true)
+	var equipment := {"actorId": str(identity[1]), "supportId": support_id, "routineId": routine_id}
+	busy = true; message = "Validating equipment…"; changed.emit()
+	var preview: Dictionary = await session.preview_support_loadout(source, equipment)
+	if not current() or not preview.get("ok", false) or not preview.get("data") is Dictionary or not preview.data.get("after") is Dictionary or not valid(preview.data.after):
+		_finish(str(preview.get("error", "Equipment was not changed."))); return
+	message = "Saving equipment…"; changed.emit()
+	var ok: bool = await session.apply_support_loadout(source, equipment)
+	uncertain = session.has_pending_command
+	_finish("Equipment saved automatically." if ok else "Equipment not saved. Recover or retry the operation.")

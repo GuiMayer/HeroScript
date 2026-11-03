@@ -1,0 +1,16 @@
+{
+  "support_lab": {
+    "policyId": "support_lab",
+    "inventoryScope": "Actor",
+    "editWindows": [
+      "OutsideCombat"
+    ],
+    "supportIds": [
+      "support_sentinel"
+    ],
+    "startingOwnedSupportIds": [
+      "support_sentinel"
+    ],
+    "startingSupportId": "support_sentinel"
+  }
+}

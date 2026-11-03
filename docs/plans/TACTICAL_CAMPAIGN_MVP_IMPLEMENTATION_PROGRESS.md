@@ -118,6 +118,18 @@ Participação no resultado é uma opção explícita do participante. Um suport
 
 Validação: **83 testes focados** aprovados, mais a suíte ampliada de **276 testes de regressão** de combate, composições, progressão e jornadas, zero falhas/skips. Incluem sequência real de fases/ativações (3ª e 6ª ativações do dono), três repetições, restauração de counters, dono derrotado com suporte vivo, âncoras inválidas, duas rotinas, dois escopos, isolamento de ator/revisão, comando duplicado/restart e dez replays semânticos do equipamento. Evidências: `.runtime/tactical-mvp/results/stage09*.trx`. Documentação: [suportes e cadência](../guides/support-loadouts.md).
 
+## Etapa 10 — REST e Godot para suporte
+
+Estado: concluída em 2026-11-03.
+
+GET support-loadout publica equipamento, inventário do ator atual, rotinas autorizadas e permissões. POST preview é somente leitura, versionado por sequence/step, com 409 para snapshot antigo; confirmação usa EQUIP_SUPPORT no dispatcher canônico. Catálogo inclui descrições autoradas, sem cálculo de habilidade na UI. OpenAPI atualizado de forma aditiva, preservando todos os valores previamente existentes e alterações pendentes anteriores.
+
+A aba real de companions usa cena editável própria, dados confirmados, seleção de suporte/rotina e autosave. Sem botões de aplicar/refresh. Validação/save/recuperação compartilham o bloqueio dos demais módulos; preview tardio não escreve após troca de personagem. Campo numérico de versão usa o normalizador existente. Settings sem suporte mostram indisponibilidade, sem inventário de exemplo.
+
+Projeção compacta supportCombat usa o equipamento capturado do encontro e seus contadores; o indicador ocupa o espaço livre já existente no cabeçalho, sem deslocar os controles. Habilidade/targets e animações continuam nos mesmos intents/aplicações/executor. EN como fallback e textos PT-BR. Criado o setting independente Support Workshop (support-lab) para comprovar duas rotinas; nenhum setting anterior foi ativado/modificado.
+
+Validação: build API sem warnings/erros; **18 testes API/contratos**, **101 verificações Godot offline** e **17 verificações Godot com API real**, todos aprovados. A prova real equipa Defense, confirma um único autosave, abre o encontro com captura, completa três ativações e executa defend pelo processador normal; equipamento fica bloqueado durante combate. Preview preserva hash; POST duplicado não replica a troca. Servidor de QA e stores próprios, encerrado após o teste. Evidências: `.runtime/tactical-mvp/results/stage10*.trx`, `stage10-godot.log` e `stage10-online.log`. Contrato: [suportes](../api/support-loadouts.md).
+
 ## Próxima etapa
 
-Etapa 10: catálogo REST e Godot para companion. Etapas 10–17 permanecem pendentes.
+Etapa 11: setting mínimo prototype-test (Calor, statuses e ciclo retido da mão). Etapas 11–17 permanecem pendentes.
