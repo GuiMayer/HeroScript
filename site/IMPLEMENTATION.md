@@ -11,3 +11,7 @@ Docusaurus 3.10.2, Node 24.14.0, React e lockfile fixados. Site isolado, três e
 ## 4 — Importação
 
 Importador Git por SHA, limites de caminho, allowlist, AST e assets reproduzíveis. Cópias geradas não são versionadas. Verificação integral encontrou links antigos quebrados, bloqueados até revisão editorial das etapas 5–6.
+
+## 5 — Consumidores
+
+Entrada orientada ao fluxo REST e índice canônico atualizado com composição, pagamentos, suporte, recompensas e compartimentos. Mermaid recebeu a dependência de layout exigida pelo bundler.
