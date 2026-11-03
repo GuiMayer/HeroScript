@@ -1,12 +1,22 @@
 extends RefCounted
 ## Turns revisioned zone presentation metadata into UI groups, without card rules.
 
+const Boundary = preload("res://scripts/contracts/presentation_boundary.gd")
+
 var _zones: Array = []
+var _zone_models: Array = []
 var _i18n
+var boundary_errors: Array[String] = []
 
 func _init(snapshot: Dictionary, translator) -> void:
 	_i18n = translator
-	_zones = snapshot.get("zones", []).duplicate(true)
+	var adapted := Boundary.adapt_zones(snapshot)
+	boundary_errors = adapted.errors
+	_zone_models = adapted.models
+	_zones = adapted.zones
+
+func zone_models() -> Array:
+	return _zone_models.duplicate()
 
 func playable_cards() -> Array:
 	var result: Array = []
@@ -37,7 +47,8 @@ func auxiliary_zones() -> Array:
 	return result
 
 func zone_label(zone: Dictionary) -> String:
-	var label_key := str(zone.get("presentation", {}).get("labelKey", zone.get("zoneId", "")))
+	var presentation = zone.get("presentation", {})
+	var label_key := str(presentation.get("labelKey", zone.get("zoneId", "")) if presentation is Dictionary else zone.get("zoneId", ""))
 	return _i18n.text(label_key)
 
 func zone_cards(zone_id: String) -> Array:
@@ -47,13 +58,20 @@ func zone_cards(zone_id: String) -> Array:
 	return []
 
 static func tool_flows(run: Dictionary) -> Array:
-	var mode: Dictionary = run.get("resolvedMode", {})
-	if not bool(mode.get("capabilityPolicy", {}).get("allowCardZoneCheats", false)):
+	if not (run is Dictionary):
 		return []
-	var system: Dictionary = mode.get("cardZoneSystem", {})
+	var mode = run.get("resolvedMode", {})
+	if not (mode is Dictionary):
+		return []
+	var policy = mode.get("capabilityPolicy", {})
+	if not (policy is Dictionary) or not bool(policy.get("allowCardZoneCheats", false)):
+		return []
+	var system = mode.get("cardZoneSystem", {})
+	if not (system is Dictionary) or not (system.get("flows") is Array):
+		return []
 	var result: Array = []
 	for flow in system.get("flows", []):
-		if flow is Dictionary and "Tool" in flow.get("allowedInvocations", []):
+		if flow is Dictionary and flow.get("allowedInvocations") is Array and "Tool" in flow.get("allowedInvocations", []):
 			result.append(flow.duplicate(true))
 	result.sort_custom(func(a, b): return str(a.get("flowId", "")) < str(b.get("flowId", "")))
 	return result

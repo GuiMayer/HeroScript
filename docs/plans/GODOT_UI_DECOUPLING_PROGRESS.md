@@ -32,3 +32,15 @@ Plano: [`GODOT_UI_DECOUPLING_AND_EDITABILITY_PLAN.md`](GODOT_UI_DECOUPLING_AND_E
 - `VisualContext.English` estendido com `presentation()` e `error()` para satisfazer integralmente o contrato de tradução offline/isolado.
 - Tela piloto `scripts/ui/codex_screen.gd` migrada para consumir `ScreenContext` sem referenciar `GameSession`, `I18n` ou `GameAudio` diretamente, preservando compatibilidade com `setup(owner)`.
 - Novo teste `tests/screen_context_pilot.gd` validando abertura isolada com serviços falsos, cancelamento assíncrono (`request_epoch`) e execução em runtime com serviços reais.
+
+## Etapa 3 — Modelos de apresentação e validação de fronteiras
+
+- Modelos tipados (`RefCounted`) consolidados em `examples/godot-engine-showcase/scripts/presentation/view_models.gd`:
+  - `SessionIdentity`, `Card`, `Actor`, `ResourceValue`, `LegalAction`, `ActionOption`, `Zone` e `InteractionState`.
+  - Preservação explícita de cópias defensivas e campos desconhecidos/extensões por setting (`extensions()`).
+- Validador e adaptador de fronteira criado em `examples/godot-engine-showcase/scripts/contracts/presentation_boundary.gd`:
+  - Validação de UUIDs (`is_valid_uuid`), identificadores (`is_valid_id`), identidade de sessão (`validate_session_identity`) e contexto de revisão (`matches_revision_context`).
+  - Adaptadores `adapt_actors`, `adapt_cards`, `adapt_legal_actions` (que rejeita candidatos inválidos sem fabricar `actionType` ou `cardInstanceId` sintéticos) e `adapt_zones`.
+  - `StateKeeper` para preservar o último snapshot válido diante de respostas malformadas, truncadas ou fora de ordem (`runSequence`/`combatStep` atrasados ou mistura de `runId`).
+- Integração nos adaptadores `snapshot_projection.gd`, `combat_presenter.gd` e `card_zone_presenter.gd`.
+- Novo teste `tests/presentation_boundaries.gd` (20 checks) aprovado junto com `ui_contracts`, `card_presentation`, `combat_collaborators` e `ui_decoupling_baseline`.

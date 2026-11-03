@@ -1,5 +1,6 @@
 extends RefCounted
 ## Passive projection of one engine snapshot. Never evaluates effects or issues commands.
+const Boundary = preload("res://scripts/contracts/presentation_boundary.gd")
 var _i18n
 var _run: Dictionary
 var _combat: Dictionary
@@ -12,27 +13,50 @@ var _appearance: Dictionary = {}
 var _zone_snapshot: Dictionary = {}
 var _sections
 var _base_facts: Dictionary = {}
+var session_identity
+var boundary_errors: Array[String] = []
+
+func appearance() -> Dictionary:
+	return _appearance.duplicate(true)
 
 func accept_presentations(cards: Array) -> void:
 	_base_facts.clear()
+	if not (cards is Array): return
 	for facts in cards:
-		var id := str(facts.get("identity", {}).get("cardInstanceId", ""))
+		if not (facts is Dictionary): continue
+		if facts.get("version") is Dictionary and session_identity != null and not session_identity.matches_version(facts.get("version")):
+			continue
+		var identity_dict: Dictionary = facts.get("identity", {}) if facts.get("identity") is Dictionary else {}
+		var id := str(identity_dict.get("cardInstanceId", "")) if identity_dict.get("cardInstanceId") is String else ""
 		if not id.is_empty(): _base_facts[id] = facts.duplicate(true)
 
 func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}, zone_snapshot := {}) -> void:
 	_i18n = translator
 	_run = preload("res://scripts/contracts/snapshot_projection.gd").run(run)
 	_combat = preload("res://scripts/contracts/snapshot_projection.gd").combat(combat)
-	_actions = actions.duplicate(true)
+	var id_check := Boundary.validate_session_identity(_run, _combat)
+	session_identity = id_check.identity
+	boundary_errors.append_array(id_check.errors)
+	var actions_adapted := Boundary.adapt_legal_actions(actions)
+	boundary_errors.append_array(actions_adapted.errors)
+	_actions = actions_adapted.items
 	_appearance = appearance.duplicate(true) if appearance is Dictionary else {}
 	_zone_snapshot = zone_snapshot.duplicate(true) if zone_snapshot is Dictionary else {}
 	if _zone_snapshot.get("zones", []) is Array and not _zone_snapshot.get("zones", []).is_empty():
-		for zone in _zone_snapshot.zones:
+		var zones_adapted := Boundary.adapt_zones(_zone_snapshot)
+		boundary_errors.append_array(zones_adapted.errors)
+		for zone in zones_adapted.zones:
 			for card in zone.get("cards", []):
 				_cards[str(card.get("cardInstanceId", ""))] = card
 	else:
-		for card in _run.get("deck", {}).get("cardInstances", []):
+		var deck_cards = _run.get("deck", {}).get("cardInstances", []) if _run.get("deck") is Dictionary else []
+		var cards_adapted := Boundary.adapt_cards(deck_cards)
+		boundary_errors.append_array(cards_adapted.errors)
+		for card in cards_adapted.items:
 			_cards[str(card.get("cardInstanceId", ""))] = card
+	var actors_adapted := Boundary.adapt_actors(_combat.get("actors", []))
+	boundary_errors.append_array(actors_adapted.errors)
+	_combat["actors"] = actors_adapted.items
 	for actor in _combat.get("actors", []):
 		_actors[str(actor.get("instanceId", ""))] = actor
 	_sections = preload("res://scripts/presentation/card_section_presenter.gd").new(_i18n, _appearance, actors())
@@ -262,9 +286,15 @@ func relationship(actor: Dictionary, viewpoint: String) -> String:
 	return str(policy.get("sameSide" if from_side == to_side else "differentSides", "Neutral"))
 
 func accept_evaluations(cards: Array) -> void:
+	if not (cards is Array): return
 	for card in cards:
-		if int(card.get("version", {}).get("runSequence", -1)) == int(_run.get("sequence", 0)):
-			_evaluations[str(card.get("evaluation", {}).get("cardInstanceId", ""))] = card.duplicate(true)
+		if not (card is Dictionary): continue
+		var version: Dictionary = card.get("version", {}) if card.get("version") is Dictionary else {}
+		if int(version.get("runSequence", -1)) == int(_run.get("sequence", 0)) and (session_identity == null or session_identity.matches_version(version)):
+			var evaluation: Dictionary = card.get("evaluation", {}) if card.get("evaluation") is Dictionary else {}
+			var card_id := str(evaluation.get("cardInstanceId", "")) if evaluation.get("cardInstanceId") is String else ""
+			if not card_id.is_empty():
+				_evaluations[card_id] = card.duplicate(true)
 
 func unavailable_reason(id: String) -> String:
 	var reasons: Array = _evaluations.get(id, {}).get("evaluation", {}).get("failureReasons", [])
