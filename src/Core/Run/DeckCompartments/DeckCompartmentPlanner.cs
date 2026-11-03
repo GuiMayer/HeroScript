@@ -50,9 +50,8 @@ public static class DeckCompartmentAccess
         return Result.Success();
     }
 
-    public static bool Owns(RunState run, string actorId, CardInstanceState card) => actorId == run.PlayerEntityId &&
-        (card.OwnerId == actorId || card.OwnerId == "$run") && card.Persistence == CardInstancePersistence.Run &&
-        card.Lifetime.Strategy == CardInstanceLifetimeStrategy.Run;
+    public static bool Owns(RunState run, string actorId, CardInstanceState card) =>
+        Core.Run.Content.PersistentCardOwnership.Owns(run, actorId, card);
 }
 
 /// <summary>Plans the final distribution atomically. No RNG, zone movement or writes.</summary>

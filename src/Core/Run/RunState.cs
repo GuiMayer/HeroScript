@@ -40,6 +40,8 @@ public sealed record RunState : ICanonicalHashMemoizable
     public Guid? ActiveEncounterId { get; init; }
     public ImmutableArray<RunEncounterState> Encounters { get; init; } = [];
     public DeckState Deck { get; init; } = new();
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public DeckLoadouts.DeckLoadoutState? DeckLoadout { get; init; }
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
