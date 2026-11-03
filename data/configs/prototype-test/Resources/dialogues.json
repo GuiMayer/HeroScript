@@ -1,0 +1,131 @@
+{
+  "prototype_opening": {
+    "dialogueId": "prototype_opening",
+    "title": {
+      "text": "Calibration route",
+      "translations": {
+        "pt_BR": "Calibration route"
+      }
+    },
+    "startNodeId": "briefing",
+    "nodes": [
+      {
+        "nodeId": "briefing",
+        "speaker": {
+          "text": "Tactical sentinel",
+          "translations": {
+            "pt_BR": "Sentinela tática"
+          }
+        },
+        "text": {
+          "text": "Keep useful cards between activations. Heat boosts Fire potency, but at 100 you must cool down. Change your build outside combat; losing an encounter preserves the campaign.",
+          "translations": {
+            "pt_BR": "Guarde cartas úteis entre ativações. Calor aumenta a potência de Fogo, mas no limite 100 você precisa resfriar. Altere a build fora do combate; perder um encontro preserva a campanha."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Continue",
+              "translations": {
+                "pt_BR": "Continuar"
+              }
+            },
+            "setFlags": {
+              "prototype.chapter.started": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "prototype_warning": {
+    "dialogueId": "prototype_warning",
+    "title": {
+      "text": "Before the gate",
+      "translations": {
+        "pt_BR": "Before the gate"
+      }
+    },
+    "startNodeId": "briefing",
+    "nodes": [
+      {
+        "nodeId": "briefing",
+        "speaker": {
+          "text": "Tactical sentinel",
+          "translations": {
+            "pt_BR": "Sentinela tática"
+          }
+        },
+        "text": {
+          "text": "The warden alternates a guarded attack and an 18-point blow. Save defense, prepare Wet and choose when to release Burn. You can still change inscriptions, module and support routine before entering.",
+          "translations": {
+            "pt_BR": "O guardião alterna um ataque protegido e um golpe de 18. Guarde defesa, prepare Molhado e escolha quando liberar Queimadura. Você ainda pode trocar inscrições, módulo e rotina antes de entrar."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Continue",
+              "translations": {
+                "pt_BR": "Continuar"
+              }
+            },
+            "setFlags": {
+              "prototype.boss.briefed": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "prototype_ending": {
+    "dialogueId": "prototype_ending",
+    "title": {
+      "text": "Chapter complete",
+      "translations": {
+        "pt_BR": "Chapter complete"
+      }
+    },
+    "startNodeId": "briefing",
+    "nodes": [
+      {
+        "nodeId": "briefing",
+        "speaker": {
+          "text": "Tactical sentinel",
+          "translations": {
+            "pt_BR": "Sentinela tática"
+          }
+        },
+        "text": {
+          "text": "The gate is open. This concludes the demo chapter. Your build, discoveries and encounter history remain saved in this setting.",
+          "translations": {
+            "pt_BR": "O portão abriu. O capítulo da demo termina aqui. Sua build, descobertas e histórico permanecem salvos neste setting."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Continue",
+              "translations": {
+                "pt_BR": "Continuar"
+              }
+            },
+            "setFlags": {
+              "prototype.chapter.completed": "true"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

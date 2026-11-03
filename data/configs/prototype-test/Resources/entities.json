@@ -103,5 +103,150 @@
         ]
       }
     ]
+  },
+  "prototype_scout": {
+    "definitionId": "prototype_scout",
+    "displayName": "Survey automaton",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 65,
+            "max": 65
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "prototype_enemy_probe"
+        ]
+      }
+    ]
+  },
+  "prototype_duelist": {
+    "definitionId": "prototype_duelist",
+    "displayName": "Line defender",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 60,
+            "max": 60
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "prototype_enemy_probe"
+        ]
+      }
+    ]
+  },
+  "prototype_swarm": {
+    "definitionId": "prototype_swarm",
+    "displayName": "Twinblade drone",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 42,
+            "max": 42
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "prototype_enemy_flurry"
+        ]
+      }
+    ]
+  },
+  "prototype_warden": {
+    "definitionId": "prototype_warden",
+    "displayName": "Gate warden",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 150,
+            "max": 150
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "prototype_enemy_brace",
+          "prototype_enemy_crush"
+        ]
+      }
+    ]
   }
 }

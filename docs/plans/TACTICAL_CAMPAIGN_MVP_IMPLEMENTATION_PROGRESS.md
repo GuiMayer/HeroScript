@@ -162,6 +162,16 @@ O workshop opcional custa três Parts por aquisição e encerra a oportunidade d
 
 Validação: **100 testes Core**, **3 jornadas API** e **66 verificações Godot** aprovados. Jornadas REST específicas cobrem as três mutações, isolamento carta/personagem, preview sem escrita, 409 e recuperação, slots/capacidade, incompatibilidade, pagamento, reserva/composição/módulo e reinício com replay. Todos passaram, incluindo restart/replay do estado final. Evidências: `.runtime/tactical-mvp/results/stage13-*.trx` e `stage13-godot.log`.
 
+## Etapa 14 — Capítulo jogável
+
+Estado: concluída em 2026-11-03.
+
+O lançamento normal do setting aponta para prototype_chapter. Cenário curto prototype_trial e seus modos permanecem disponíveis para regressão isolada. O capítulo linear contém briefing, três encontros (batedor, dupla e chefe), duas recompensas exclusivas, duas preparações obrigatórias, dois workshops opcionais e encerramento em diálogo. Decisões de IA por participante publicam intenções e alternância do chefe. Valores são conteúdo de playtest, não balanceamento comprovado.
+
+Briefings e conclusão escrevem flags duráveis através de escolhas canônicas. Perder no chefe não repete recompensas anteriores; mantém o nó pendente para mudança de inscrições/módulo/suporte e retry. Resolver o último diálogo encerra a demo pelo fluxo existente. Não há executor, regra ou concessão de recompensa nova na Godot.
+
+Validação: **21 verificações Godot com API real** aprovadas, desde o lançamento normal e diálogo inicial até o combate, retenção e suporte. Percurso API usa ações legais e comandos normais; provoca derrota(s) no chefe, equipa inscrições na preparação e continua até completar as três vitórias. A jornada API passou com reinício do host e replay semântico reexecutado com hash final idêntico. Mais **82 verificações Godot offline** passaram para diálogos, retry, mapa e loadout. IDs dos comandos do roteiro são fixos; nenhum estado foi editado para vencer. Evidências: `stage14-online-final.log`, `stage14-api.log` e `stage14-godot.log`, sob `.runtime/tactical-mvp`.
+
 ## Próxima etapa
 
-Etapa 14: capítulo jogável. Etapas 14–17 permanecem pendentes.
+Etapa 15: legibilidade e catálogo. Etapas 15–17 permanecem pendentes; playtest externo e balanceamento não foram certificados.

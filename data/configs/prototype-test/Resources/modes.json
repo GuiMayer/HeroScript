@@ -108,5 +108,60 @@
     "deckCompositionPolicyId": "prototype_build",
     "supportLoadoutPolicyId": "prototype_supports",
     "loadoutPolicyId": "prototype_inscriptions"
+  },
+  "prototype_chapter": {
+    "modeId": "prototype_chapter",
+    "runDefinitionId": "prototype_chapter",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "prototype_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_probability",
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_direct_amount",
+      "w1_block_attribute",
+      "w1_dot_attribute",
+      "w1_attack_attribute",
+      "w1_utility",
+      "w1_defense",
+      "prototype_direct_amount",
+      "prototype_critical_amount",
+      "prototype_dot",
+      "prototype_values"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "prototype_values",
+      "prototype_dot": "prototype_dot",
+      "resource_delta": "signed_resource_delta"
+    },
+    "cardPoolIds": [
+      "prototype_rewards"
+    ],
+    "enemyPoolIds": [],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "prototype_campaign",
+    "actorResourceLifecyclePolicyId": "prototype_attempt_resources",
+    "cardZoneSystemId": "prototype_zones",
+    "rules": {
+      "presentation": "prototype",
+      "difficulty": "chapter-playtest",
+      "condensationModel": "captured-potency",
+      "chapter": 1
+    },
+    "effectResolutionPolicyId": "prototype_effect_rules",
+    "deckCompositionPolicyId": "prototype_build",
+    "supportLoadoutPolicyId": "prototype_supports",
+    "loadoutPolicyId": "prototype_inscriptions"
   }
 }

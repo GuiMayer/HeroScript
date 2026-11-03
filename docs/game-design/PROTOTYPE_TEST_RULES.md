@@ -1,9 +1,10 @@
 # Tactical campaign: executable initial rules
 
 Setting: `prototype-test`. Package: `heroscript.prototype-test`, version 1.1.0.
-This rule set now includes exclusive card rewards and required build preparation.
-The complete three-encounter chapter is a subsequent content stage. Existing
-settings are unchanged.
+The normal launch uses `prototype_chapter`: three encounters, short dialogues,
+exclusive card rewards, required preparation and optional pattern workshops.
+`prototype_campaign` / `prototype_trial` retain the short regression scenario.
+Existing settings are unchanged.
 
 ## Build and circulation
 
@@ -145,3 +146,30 @@ The existing editor supplies Before/After, character attribute sources and card
 compatibility. No client-authored stat calculation or alternate apply authority is
 introduced. `reward-lab` includes a separate `reward_build_lab` mode for the real
 REST workshop regression; its reward-only mode is unchanged.
+
+## Playable chapter
+
+The setting menu launches the normal capability policy, pinned revision and a
+linear chapter: opening briefing → Survey checkpoint → reward → preparation →
+optional workshop → Crossfire checkpoint → reward → preparation → optional workshop
+→ boss briefing → Gate warden → closing dialogue. The final resolved dialogue
+completes the demo. There are no additional editor-only steps or mandatory purchases.
+
+| Encounter | Opponents | Published intent |
+| --- | --- | --- |
+| Survey checkpoint | 65 Health scout | 6 damage each activation |
+| Crossfire checkpoint | 60 Health defender + 42 Health drone | 6 damage; 6 shared over two hits |
+| Gate warden | 150 Health boss | Alternates 7 damage + 10 Block and 18 damage |
+
+Enemy routines target the enemy with the highest current Health (canonical tie
+break). Thus the support participates in normal targeting and can intercept an
+attack when the hero is critically low; it is not immune or required for victory.
+Defense, damage, critical eligibility and hit distribution use the same configured
+pipelines as player effects. These are initial playtest values, not certified balance.
+
+Each encounter restores the hero's entry Health under the published lifecycle;
+this MVP is not the old Ascendant attrition setting. Defeat at the boss keeps that
+node pending, preserves previous rewards/flags and permits build changes before a
+new attempt. Opening, boss briefing and closing choices set durable chapter flags.
+Dialogue choices and activity resolution use normal idempotent commands; there is
+no second reward path in the presentation.

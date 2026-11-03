@@ -17,6 +17,13 @@ func run() -> void:
 	check(await session.connect_engine("prototype-test"), "Godot discovers opt-in tactical campaign setting")
 	check(await session.start_campaign(2026110311), "Godot creates JSON-authored prototype campaign")
 	if failures: quit(1); return
+	# The setting launch is now the playable chapter, not the short proof run.
+	check(await session.execute_run_command("START_DIALOGUE", {"dialogueId": "prototype_opening"}), "normal launch opens authored chapter dialogue")
+	var dialogue = session.command("CHOOSE_DIALOGUE_OPTION")
+	var choice: Dictionary = dialogue.get("validPayload", {})
+	check(not choice.is_empty() and await session.execute_run_command("CHOOSE_DIALOGUE_OPTION", {"dialogueInstanceId": choice.get("dialogueInstanceId"), "nodeId": choice.get("nodeId"), "choiceId": "continue"}), "canonical choice closes the opening briefing")
+	check(await session.execute_run_command("RESOLVE_NODE", {"currentNodeId": "chapter_opening"}), "completed dialogue resolves without client-authored consequence")
+	check(await session.execute_run_command("ADVANCE_NODE", {"targetNodeId": "chapter_scout"}), "published chapter reaches the first encounter")
 	var start: Dictionary = session.command("START_ENCOUNTER")
 	check(await session.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})), "published encounter initializes selected build and support")
 	var router = load("res://main.tscn").instantiate(); root.add_child(router)

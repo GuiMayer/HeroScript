@@ -171,5 +171,339 @@
         }
       }
     ]
+  },
+  "prototype_chapter": {
+    "runId": "prototype_chapter",
+    "playerDefinitionId": "prototype_hero",
+    "startingResources": {
+      "gold": 0,
+      "parts": 3
+    },
+    "initialPlayableCardCount": 0,
+    "initialCardZoneId": "owned",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "prototype_strike",
+      "prototype_strike",
+      "prototype_strike",
+      "prototype_strike",
+      "prototype_guard",
+      "prototype_guard",
+      "prototype_guard",
+      "prototype_scorch",
+      "prototype_scorch",
+      "prototype_scorch",
+      "prototype_soak",
+      "prototype_soak",
+      "prototype_coolant",
+      "prototype_coolant",
+      "prototype_condense",
+      "prototype_void_bolt",
+      "prototype_void_bolt",
+      "prototype_void_guard",
+      "prototype_void_guard",
+      "prototype_void_condense",
+      "prototype_necro_bolt",
+      "prototype_necro_bolt",
+      "prototype_necro_guard",
+      "prototype_necro_guard",
+      "prototype_necro_condense",
+      "prototype_strike",
+      "prototype_guard"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "chapter_opening",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "prototype_opening"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_scout"
+        ],
+        "metadata": {
+          "displayName": "Calibration route"
+        }
+      },
+      {
+        "nodeId": "chapter_scout",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "prototype_hero",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "prototype_scout",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "prototype_enemy_probe"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_reward_1"
+        ],
+        "metadata": {
+          "displayName": "Survey checkpoint",
+          "description": "Read the published intents; retain useful cards and choose your timing."
+        }
+      },
+      {
+        "nodeId": "chapter_reward_1",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "prototype_reward"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_prepare_1"
+        ],
+        "metadata": {
+          "displayName": "Recovered patterns",
+          "description": "Store one new pattern in reserve, or decompile it into crafting material.",
+          "rewardDestination": "Reserve"
+        }
+      },
+      {
+        "nodeId": "chapter_prepare_1",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "prototype_rebuild"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_forge_1"
+        ],
+        "metadata": {
+          "displayName": "Build preparation",
+          "description": "Inspect your reserve, change module or support routine, then confirm readiness."
+        }
+      },
+      {
+        "nodeId": "chapter_forge_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "prototype_split_item",
+              "prototype_ward_link_item",
+              "prototype_stable_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "chapter_pair"
+        ],
+        "metadata": {
+          "displayName": "Pattern workshop",
+          "description": "Spend 3 Parts to acquire one card modifier, or leave without buying. Apply it to a compatible active or reserve card."
+        }
+      },
+      {
+        "nodeId": "chapter_pair",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "prototype_hero",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "prototype_duelist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "prototype_enemy_probe"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "prototype_swarm",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "prototype_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_reward_2"
+        ],
+        "metadata": {
+          "displayName": "Crossfire checkpoint",
+          "description": "Read the published intents; retain useful cards and choose your timing."
+        }
+      },
+      {
+        "nodeId": "chapter_reward_2",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "prototype_reward"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_prepare_2"
+        ],
+        "metadata": {
+          "displayName": "Recovered patterns",
+          "description": "Store one new pattern in reserve, or decompile it into crafting material.",
+          "rewardDestination": "Reserve"
+        }
+      },
+      {
+        "nodeId": "chapter_prepare_2",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "prototype_rebuild"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_forge_2"
+        ],
+        "metadata": {
+          "displayName": "Build preparation",
+          "description": "Inspect your reserve, change module or support routine, then confirm readiness."
+        }
+      },
+      {
+        "nodeId": "chapter_forge_2",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "prototype_split_item",
+              "prototype_ward_link_item",
+              "prototype_stable_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "chapter_warning"
+        ],
+        "metadata": {
+          "displayName": "Pattern workshop",
+          "description": "Spend 3 Parts to acquire one card modifier, or leave without buying. Apply it to a compatible active or reserve card."
+        }
+      },
+      {
+        "nodeId": "chapter_warning",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "prototype_warning"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_boss"
+        ],
+        "metadata": {
+          "displayName": "Before the gate"
+        }
+      },
+      {
+        "nodeId": "chapter_boss",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "prototype_hero",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "prototype_warden",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "prototype_enemy_brace",
+                    "prototype_enemy_crush"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_ending"
+        ],
+        "metadata": {
+          "displayName": "Gate warden",
+          "description": "Read the published intents; retain useful cards and choose your timing."
+        }
+      },
+      {
+        "nodeId": "chapter_ending",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "prototype_ending"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Chapter complete"
+        }
+      }
+    ]
   }
 }

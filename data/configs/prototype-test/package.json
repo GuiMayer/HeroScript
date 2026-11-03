@@ -202,6 +202,13 @@
       "kind": "card-modifier-items",
       "sourcePath": "Resources/card-modifier-items.json",
       "artifactPath": "card-modifier-items/prototype-test.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "dialogues",
+      "sourcePath": "Resources/dialogues.json",
+      "artifactPath": "dialogues/prototype-test.json"
     }
   ]
 }
