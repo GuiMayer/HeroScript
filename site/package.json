@@ -9,7 +9,9 @@
     "start": "docusaurus start",
     "build": "docusaurus build",
     "serve": "docusaurus serve",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare:docs": "node scripts/import-docs.mjs",
+    "test": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",
