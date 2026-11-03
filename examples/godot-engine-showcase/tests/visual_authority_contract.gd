@@ -147,6 +147,22 @@ func _exercise() -> void:
 	pause_menu.queue_free()
 	await settle(2)
 
+	# 6. Etapa 10: ViewStyleFactory classification and Workbench fixture modes without mutating shared resources
+	var style_factory = load("res://scripts/ui/styles/view_style_factory.gd").new()
+	check(style_factory.DYNAMIC_BUILDER_CLASSIFICATION.size() == 6 and style_factory.DYNAMIC_BUILDER_CLASSIFICATION.has("panel"), "ViewStyleFactory classifies dynamic/lab builders explicitly")
+	var workbench = load("res://scenes/ui/workbenches/ui_catalog_workbench.tscn").instantiate()
+	root.add_child(workbench)
+	await settle(2)
+	var hero_panel = workbench.get_node("%HeroActorPanel")
+	var attack_card = workbench.get_node("%AttackCard")
+	var original_actor_preview := JSON.stringify(hero_panel.preview_actor)
+	var original_card_preview := JSON.stringify(attack_card.preview_data)
+	for mode in ["empty", "error", "long_text", "full"]:
+		workbench.apply_fixture_mode(mode)
+	check(JSON.stringify(hero_panel.preview_actor) == original_actor_preview and JSON.stringify(attack_card.preview_data) == original_card_preview, "UICatalogWorkbench fixture modes never mutate authored preview dictionaries")
+	workbench.queue_free()
+	await settle(2)
+
 func _run() -> void:
 	await _exercise()
 	root.get_node("GameAudio").shutdown()

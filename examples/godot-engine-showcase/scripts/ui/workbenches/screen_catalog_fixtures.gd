@@ -15,11 +15,17 @@ static func run_fixture() -> Dictionary:
 static func apply(view, kind: String, state: String, context) -> void:
 	var empty := state in ["empty","loading","error"]
 	var locked := state in ["blocked","loading"]
-	var data := appearance()
+	var long_text := state == "long_text"
+	var data := appearance().duplicate(true)
 	match kind:
+		"shared":
+			if view.has_method("apply_fixture_mode"):
+				view.apply_fixture_mode(state if state in ["full", "empty", "error", "long_text"] else "full")
 		"menu":
 			view.mount(context); var model: Dictionary = view.preview_model.duplicate(true)
 			model.available = not empty; model.connecting = state == "loading"; model.pending = state == "error"
+			if long_text:
+				model["setting_summary"] = "Extended chronicle summary verifying multi-line wrapping and editorial proportions without mutating shared menu resources."
 			view.apply_model(model)
 		"combat":
 			var run := run_fixture()
@@ -39,6 +45,9 @@ static func apply(view, kind: String, state: String, context) -> void:
 		"map", "activity":
 			var run := run_fixture()
 			if empty: run.map.nodes = []; run.currentNodeId = ""
+			elif long_text:
+				for node in run.map.nodes:
+					node.metadata.displayName = str(node.metadata.displayName) + " — Sanctuary of the Long Horizon"
 			var options: Array = [] if empty else [{"type":"START_ENCOUNTER","validPayload":{}}]
 			var presenter = load("res://scripts/presentation/activity_presenter.gd").new(run,options,data,context.translator)
 			if kind == "map": view.apply_projection(run,options,presenter,context)
@@ -46,27 +55,30 @@ static func apply(view, kind: String, state: String, context) -> void:
 			if view.has_method("set_read_only"): view.set_read_only(locked)
 			elif view.has_method("set_choices_disabled"): view.set_choices_disabled(locked)
 		"dialogue":
-			var model := {} if empty else {"runId":"catalog","branchId":"origin","dialogueInstanceId":"conversation","nodeId":"line","title":"A conversation","speaker":"Keeper","portrait":"","text":"This is a visual fixture. A choice sends only its published reference; the engine determines its consequence.","options":[{"id":"continue","text":"Continue","available":true,"cost":"","reason":"","reference":"fixture","command":{"type":"CHOOSE_DIALOGUE_OPTION"}}]}
+			var body_text := "This is a visual fixture. A choice sends only its published reference; the engine determines its consequence."
+			if long_text:
+				body_text += " Extended narrative passage used by the offline workbench to verify scrolling, line wrapping, and reading progress preservation across long paragraphs."
+			var model := {} if empty else {"runId":"catalog","branchId":"origin","dialogueInstanceId":"conversation","nodeId":"line","title":"A conversation","speaker":"Keeper","portrait":"","text":body_text,"options":[{"id":"continue","text":"Continue along the outer archive corridor" if long_text else "Continue","available":true,"cost":"","reason":"","reference":"fixture","command":{"type":"CHOOSE_DIALOGUE_OPTION"}}]}
 			view.apply_projection(model,context); view.set_read_only(locked)
 		"replay":
 			view.setup(context,true)
-			view.apply_model({"entries":[] if empty else [{"sequence":1,"commandType":"PLAY_CARD","step":1}],"selected_index":-1 if empty else 0,"through_sequence":1,"page_error":state == "error","state_text":"Saved state" if state != "error" else "Fixture connection error","frame_text":"Recorded effects","has_more":state == "loading","playing":false,"verifying":false,"page_loading":state == "loading","inspection_allowed":not locked,"presentation_loading":state == "loading"})
+			view.apply_model({"entries":[] if empty else [{"sequence":1,"commandType":"PLAY_CARD","step":1}],"selected_index":-1 if empty else 0,"through_sequence":1,"page_error":state == "error","state_text":"Saved state" if state != "error" else "Fixture connection error","frame_text":"Recorded effects — extended inspection trace for long text verification" if long_text else "Recorded effects","has_more":state == "loading","playing":false,"verifying":false,"page_loading":state == "loading","inspection_allowed":not locked,"presentation_loading":state == "loading"})
 		"history":
 			view.list.clear()
 			if not empty:
 				view.entries = [{"runId":"catalog","sequence":12,"lifecycle":"Completed","modeId":"fixture","currentNodeId":"boss"}]
-				view.list.add_item("Completed · Boss"); view._select(0)
+				view.list.add_item("Completed · Boss — Extended Chronicle Entry" if long_text else "Completed · Boss"); view._select(0)
 			else: view.details.text = "Loading journey history…" if state == "loading" else ("Fixture connection error" if state == "error" else "No recorded journeys yet.")
 		"timeline":
 			view.entries = [] if empty else [{"runSequence":1,"turn":1,"phase":"middle","actorId":"hero","stateAvailable":false}]
 			if not empty: view.list.add_item("#001 · PLAY_CARD"); view._select(0)
 		"sandbox":
 			var owner := Owner.new(); owner.visual_context = context
-			view.setup(owner,{"sandbox_modes":[] if empty else [{"id":"combat_sandbox","name":"Published mode","description":"Fixture rules"}],"default_scenario":{"actors":[]}})
+			view.setup(owner,{"sandbox_modes":[] if empty else [{"id":"combat_sandbox","name":"Published mode","description":"Fixture rules with extended description for wrapping verification" if long_text else "Fixture rules"}],"default_scenario":{"actors":[]}})
 			view.launch_button.disabled = true # A preview never launches gameplay.
 		"codex":
 			var list: ItemList = view.get_node("Columns/List")
-			if not empty: list.add_item("fixture_definition")
+			if not empty: list.add_item("fixture_definition_with_extended_identifier" if long_text else "fixture_definition")
 			view.get_node("Columns/Detail").text = '{"definitionId":"fixture_definition"}' if not empty else ""
 		"hand_lab":
 			var hand = view.get_node("Margin/Outer/Hand"); hand.mount(context)

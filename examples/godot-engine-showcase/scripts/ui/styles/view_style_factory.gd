@@ -1,5 +1,18 @@
 @tool
 extends RefCounted
+## Theme builder and dynamic typography/surface helper.
+## Canonical scenes own static component hierarchy; builders below (`title`, `muted`,
+## `caption`, `wrap`, `button`, `panel`) are classified strictly for variable-length
+## dynamic content and isolated laboratory harnesses.
+
+const DYNAMIC_BUILDER_CLASSIFICATION := {
+	"title": "dynamic_section_header_or_lab",
+	"muted": "dynamic_description_or_empty_state",
+	"caption": "dynamic_metadata_tag_or_counter",
+	"wrap": "dynamic_multiline_accessibility_helper",
+	"button": "dynamic_choice_or_lab_action",
+	"panel": "dynamic_inspector_or_lab_surface",
+}
 
 var INK: Color:
 	get: return color("text.primary")

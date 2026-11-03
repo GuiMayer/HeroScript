@@ -340,7 +340,7 @@ func _capture_motion_baseline() -> Dictionary:
 	var map_target: Vector2 = map_view._camera_target
 	if map_view._camera_tween != null and map_view._camera_tween.is_valid():
 		map_view._camera_tween.pause()
-		map_view._camera_tween.custom_step(0.14)
+		map_view._camera_tween.custom_step(maxf(0.0, 0.148 - map_view._camera_tween.get_total_elapsed_time()))
 		map_mid = Vector2(map_view._scroll.scroll_horizontal, map_view._scroll.scroll_vertical)
 		map_view._camera_tween.custom_step(1.0)
 	map_holder.queue_free()

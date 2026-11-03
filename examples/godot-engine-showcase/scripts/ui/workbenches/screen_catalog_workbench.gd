@@ -5,7 +5,7 @@ const Context = preload("res://scripts/ui/visual_context.gd")
 var visual_context = Context.new()
 var preview: Node
 var selected_screen := 0
-const STATES := ["full", "empty", "blocked", "loading", "error", "modal"]
+const STATES := ["full", "empty", "blocked", "loading", "error", "modal", "long_text"]
 # These point to production visuals. Application adapters are never set up here.
 const ENTRIES := [
 	["Shared components","res://scenes/ui/workbenches/ui_catalog_workbench.tscn","shared"],
@@ -37,7 +37,7 @@ func _ready() -> void:
 	for entry in ENTRIES: selector.add_item(entry[0])
 	selector.item_selected.connect(show_preview)
 	var state_selector: OptionButton = get_node("%StateSelector")
-	for state in STATES: state_selector.add_item(state.capitalize())
+	for state in STATES: state_selector.add_item(state.replace("_", " ").capitalize())
 	state_selector.item_selected.connect(func(_index): show_preview(selected_screen))
 	show_preview(0)
 func show_preview(index: int) -> void:
@@ -52,6 +52,7 @@ func show_preview(index: int) -> void:
 	if entry[2] in ["hand_lab", "inscription_lab", "codex"]: preview.set_script(null)
 	host.add_child(preview)
 	if preview is Control: preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var state: String = STATES[get_node("%StateSelector").selected]
+	var state_index: int = clampi(get_node("%StateSelector").selected, 0, STATES.size() - 1)
+	var state: String = STATES[state_index]
 	get_node("%PreviewState").text = "Offline fixture · " + state + " · inputs emit local intents only"
 	preload("res://scripts/ui/workbenches/screen_catalog_fixtures.gd").apply(preview,entry[2],state,visual_context)
