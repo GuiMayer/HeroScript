@@ -213,6 +213,8 @@ public sealed record CalculationBucketTrace
     public CalculationBucketOperation Operation { get; init; }
     public string? Formula { get; init; }
     public float Input { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<CalculationGroupTrace>? Groups { get; init; }
     public IReadOnlyList<CalculationContributionTrace> Contributions
     {
         get => _contributions;
@@ -221,6 +223,8 @@ public sealed record CalculationBucketTrace
     public float OutputBeforeBounds { get; init; }
     public float Output { get; init; }
 }
+
+public sealed record CalculationGroupTrace(string Key, float Raw, float Transformed, float Weight, float Effective);
 
 public sealed record CalculationResult
 {

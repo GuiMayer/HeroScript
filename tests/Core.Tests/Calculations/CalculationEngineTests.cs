@@ -20,6 +20,48 @@ public sealed class CalculationEngineTests
     private readonly CalculationEngine _engine = new();
 
     [Fact]
+    public void GroupedBucket_WeightsGroupsAndKeepsUnmappedContributions()
+    {
+        var bucket = new CalculationBucketDefinition
+        {
+            BucketId = "bonus", Operation = CalculationBucketOperation.AddPercent,
+            Grouping = new()
+            {
+                InfluenceGroups = ImmutableSortedDictionary<string, string>.Empty
+                    .Add("a", "first").Add("b", "first").Add("c", "second"),
+                Groups = ImmutableSortedDictionary<string, CalculationGroupDefinition>.Empty
+                    .Add("first", new() { Weight = 0.5f }).Add("second", new() { Weight = 0.25f })
+            }
+        };
+        var pipeline = new CalculationPipelineDefinition
+        {
+            PipelineId = "grouped", Channel = "resource_reduction", Buckets = [bucket]
+        };
+        var request = new CalculationRequest
+        {
+            CalculationId = "grouped-test", Channel = pipeline.Channel, BaseValue = 16,
+            Influences =
+            [
+                Influence("a", "bonus", 0.25f, CalculationSourceKind.Actor),
+                Influence("b", "bonus", 0.25f, CalculationSourceKind.Actor),
+                Influence("c", "bonus", 0.5f, CalculationSourceKind.Actor),
+                Influence("global", "bonus", 0.125f, CalculationSourceKind.Actor)
+            ]
+        };
+        var grouped = _engine.Calculate(request, pipeline);
+        Assert.True(grouped.IsSuccess, grouped.IsFailure ? grouped.Error : null);
+        Assert.Equal(24, grouped.Value.Value);
+        Assert.Equal(2, Assert.Single(grouped.Value.Buckets).Groups!.Value.Length);
+        var repeated = _engine.Calculate(request with { Influences = request.Influences.Reverse().ToArray() }, pipeline);
+        Assert.Equal(grouped.Value.Fingerprint, repeated.Value.Fingerprint);
+
+        var flat = _engine.Calculate(request, pipeline with { Buckets = [bucket with { Grouping = null }] });
+        Assert.True(flat.IsSuccess, flat.IsFailure ? flat.Error : null);
+        Assert.Equal(34, flat.Value.Value);
+        Assert.Null(Assert.Single(flat.Value.Buckets).Groups);
+    }
+
+    [Fact]
     public void Result_RoundTripsThroughStrictPersistenceJson()
     {
         var calculated = _engine.Calculate(new CalculationRequest

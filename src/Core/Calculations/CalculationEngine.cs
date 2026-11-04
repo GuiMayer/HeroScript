@@ -68,6 +68,7 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                 Formula = bucket.Formula,
                 Input = input,
                 Contributions = evaluated.Value.Contributions,
+                Groups = evaluated.Value.Groups,
                 OutputBeforeBounds = beforeBounds,
                 Output = current
             });
@@ -190,6 +191,16 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
             return Result.Failure($"Pipeline {pipeline.PipelineId} contains non-finite bounds");
         foreach (var bucket in pipeline.Buckets)
         {
+            if (bucket.Grouping is { } grouping &&
+                (bucket.Operation is not (CalculationBucketOperation.Add or CalculationBucketOperation.AddPercent) ||
+                 grouping.Groups is null || grouping.InfluenceGroups is null ||
+                 grouping.Groups.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || pair.Value is null ||
+                     !IsFinite(pair.Value.Weight) || pair.Value.Weight < 0 || pair.Value.Parameters is null ||
+                     pair.Value.Parameters.Any(parameter => string.IsNullOrWhiteSpace(parameter.Key) || !IsFinite(parameter.Value)) ||
+                     pair.Value.Formula is not null && string.IsNullOrWhiteSpace(pair.Value.Formula)) ||
+                 grouping.InfluenceGroups.Any(pair => string.IsNullOrWhiteSpace(pair.Key) ||
+                     string.IsNullOrWhiteSpace(pair.Value) || !grouping.Groups.ContainsKey(pair.Value))))
+                return Result.Failure($"Bucket {bucket.BucketId} has invalid grouping configuration");
             if (bucket.Operation == CalculationBucketOperation.Formula && string.IsNullOrWhiteSpace(bucket.Formula))
                 return Result.Failure($"Formula bucket {bucket.BucketId} requires formula");
             if (bucket.Operation != CalculationBucketOperation.Formula && !string.IsNullOrWhiteSpace(bucket.Formula))
@@ -338,6 +349,9 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
         float current,
         ImmutableArray<CalculationInfluence> influences)
     {
+        if (bucket.Grouping is { } grouping)
+            return EvaluateGroupedBucket(request, bucket, grouping, current, influences);
+
         if (bucket.Operation == CalculationBucketOperation.Formula)
         {
             if (formulas == null)
@@ -417,6 +431,53 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
         return Result<BucketEvaluation>.Success(new(value, traces.ToImmutable()));
     }
 
+    private Result<BucketEvaluation> EvaluateGroupedBucket(
+        CalculationRequest request, CalculationBucketDefinition bucket, CalculationGroupingDefinition grouping,
+        float current, ImmutableArray<CalculationInfluence> influences)
+    {
+        var traces = ImmutableArray.CreateBuilder<CalculationContributionTrace>();
+        var groups = ImmutableArray.CreateBuilder<CalculationGroupTrace>();
+        var total = 0f;
+        foreach (var group in influences
+                     .GroupBy(item => grouping.InfluenceGroups.GetValueOrDefault(item.InfluenceId), StringComparer.Ordinal)
+                     .OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            var raw = group.Sum(item => item.Value);
+            var transformed = raw;
+            var weight = 1f;
+            if (group.Key is { } key)
+            {
+                var definition = grouping.Groups[key];
+                weight = definition.Weight;
+                if (definition.Formula is { } formula)
+                {
+                    if (formulas is null)
+                        return Result<BucketEvaluation>.Failure($"Group {key} requires a formula evaluator");
+                    var variables = definition.Parameters.ToDictionary(
+                        item => $"group.parameters.{item.Key}", item => item.Value, StringComparer.Ordinal);
+                    variables["group.raw"] = raw;
+                    var evaluated = formulas is IRevisionedRuntimeFormulaEvaluator revisioned && !string.IsNullOrWhiteSpace(request.ContentRevision)
+                        ? revisioned.EvaluateAtRevision(formula, request.ContentRevision, variables, raw)
+                        : formulas.Evaluate(formula, variables, raw);
+                    if (evaluated.IsFailure) return Result<BucketEvaluation>.Failure(evaluated.Error);
+                    transformed = evaluated.Value;
+                }
+                groups.Add(new(key, raw, transformed, weight, transformed * weight));
+            }
+            var effective = transformed * weight;
+            if (!IsFinite(raw) || !IsFinite(effective))
+                return Result<BucketEvaluation>.Failure($"Bucket {bucket.BucketId} produced a non-finite group contribution");
+            total += effective;
+            var output = bucket.Operation == CalculationBucketOperation.AddPercent
+                ? current + current * total
+                : current + total;
+            foreach (var item in group)
+                traces.Add(Trace(item, current, true, group.Key is null ? item.Value : null, output));
+        }
+        var value = bucket.Operation == CalculationBucketOperation.AddPercent ? current + current * total : current + total;
+        return Result<BucketEvaluation>.Success(new(value, traces.ToImmutable(), groups.ToImmutable()));
+    }
+
     private static CalculationContributionTrace Trace(
         CalculationInfluence influence, float input, bool applied, float? effective, float output) => new()
     {
@@ -460,5 +521,6 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
 
     private sealed record BucketEvaluation(
         float Value,
-        ImmutableArray<CalculationContributionTrace> Contributions);
+        ImmutableArray<CalculationContributionTrace> Contributions,
+        ImmutableArray<CalculationGroupTrace>? Groups = null);
 }
