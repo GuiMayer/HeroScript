@@ -27,7 +27,8 @@ O **HeroScript** não é um clone procedural de *Slay the Spire*, nem um TCG tra
 flowchart TD
     subgraph Pacing["Regulador Universal de Ritmo"]
         Energia["Energia Universal (3 por turno)<br/>• Compartilhada por Herói e Inimigos<br/>• Pacing estrito e legível"]
-        EscudoPersistente["Cartas de Defesa & Escudo Persistente<br/>• Não zera no fim do turno<br/>• Teto Máximo Base = Vida Máxima (100% HP)"]
+        EscudoPersistente["Cartas de Defesa & Escudo Persistente<br/>• Não zera no fim do turno<br/>• Teto Base = Vida Máxima (100% HP)"]
+        Mitigacao["Mitigação com Diminishing Returns<br/>• Geral: K = 900 (100 pts = 10%)<br/>• Específica: K = 100 (100 pts = 50%)"]
     end
 
     subgraph Tempero["Medidores & Mecânicas Temáticas (Payoffs)"]
@@ -65,7 +66,30 @@ Após testes práticos de protótipo, a dinâmica defensiva foi ajustada para ga
 5. **Escalonamento por Atributos:** O atributo defensivo do herói (*Tenacidade / Armadura*) não gera escudo do nada, mas multiplica o valor concedido pelas cartas de defesa:
    $$\text{Escudo Concedido} = (\text{Base da Carta} + \text{Flat}) \times (1 + \text{Atributo de Defesa})$$
 
-### D. Gestão de Mão: A Bancada de Ferramentas
+### D. Sistema de Mitigação de Dano com Diminishing Returns (Dual-K)
+Para evitar que heróis ou inimigos se tornem invulneráveis, a redução percentual de dano adota a fórmula assintótica clássica de retornos decrescentes:
+
+$$\text{Redução de Dano (\%)} = \frac{\text{Rating}}{\text{Rating} + K}$$
+
+* **Sem Invulnerabilidade:** A fórmula aproxima-se assintoticamente de 100%, mas nunca atinge a imunidade absoluta.
+* **Arquitetura Dual-K (Específico vs. Geral):**
+  Defesas especializadas devem ser substancialmente mais potentes por ponto do que defesas gerais, valorizando diretamente a preparação de build e o *Scouting*:
+  1. **Mitigação Geral (Armadura Universal):** $K_{\text{geral}} = 900$.
+     * Protege contra todos os tipos de dano.
+     * $100 \text{ pontos} \implies 10\%$ de redução.
+     * $300 \text{ pontos} \implies 25\%$ de redução.
+     * $900 \text{ pontos} \implies 50\%$ de redução.
+  2. **Mitigação Específica (Resistência por Tag Elementar, ex: Fogo, Vazio):** $K_{\text{específico}} = 100$.
+     * Protege apenas contra o elemento correspondente.
+     * $25 \text{ pontos} \implies 20\%$ de redução.
+     * $50 \text{ pontos} \implies 33,3\%$ de redução.
+     * $100 \text{ pontos} \implies 50\%$ de redução (dano do elemento cortado pela metade!).
+     * $300 \text{ pontos} \implies 75\%$ de redução.
+* **Ordem de Resolução de Dano no Combate:**
+  $$\text{Dano Bruto} \longrightarrow \text{Mitigações (Geral \& Específica)} \longrightarrow \text{Escudo Persistente} \longrightarrow \text{Vida (HP)}$$
+  * O Escudo ganha **Vida Efetiva (EHP)** multiplicada: quanto maior a resistência, mais o Escudo dura antes de ser perfurado.
+
+### E. Gestão de Mão: A Bancada de Ferramentas
 * **Retenção de Mão:** Cartas não jogadas permanecem na mão (limite de 8 a 10 cartas).
 * **Compra Cadenciada:** Compra padrão de **2 a 3 cartas por turno**, permitindo planejamento e estocagem premeditada de combos.
 
@@ -179,8 +203,12 @@ flowchart TD
 
 ## 8. Arquitetura Técnica & Engine HeroScript (C# Core)
 
-1. **Pipeline de Atributos Determinístico:**
-   $$\text{Valor Final} = (\text{Base} + \text{Flat}) \times (1 + \sum \text{Increased}) \times \prod \text{More}$$
+1. **Pipeline de Atributos & Resolução de Dano:**
+   * **Cálculo de Saída da Carta:**
+     $$\text{Valor da Carta} = (\text{Base} + \text{Flat}) \times (1 + \sum \text{Increased}) \times \prod \text{More}$$
+   * **Resolução de Mitigação de Dano Recebido:**
+     $$\text{Dano Mitigado} = \text{Dano Bruto} \times \left(1 - \frac{\text{Armadura}}{\text{Armadura} + 900}\right) \times \left(1 - \frac{\text{Resistência}_{\text{Tag}}}{\text{Resistência}_{\text{Tag}} + 100}\right)$$
+     O dano resultante subtrai primeiramente do Escudo Persistente; o excedente reduz a Vida (HP).
 2. **Arquitetura de Tags Ortogonais (Elemento + Função):**
    * As tags **não embutem efeitos ocultos automáticos** (o que engessaria o design). Elas atuam como marcadores ortogonais em dois eixos:
      * **Eixo Elementar / Origem:** `Fogo`, `Vazio`, `Sombra`, `Divino`, `Arcano`.
@@ -214,9 +242,10 @@ flowchart TD
 
 ## 9. Próximos Passos & Protótipo Mínimo Jogável (Vertical Slice)
 
-1. **Combate Base com Energia & Escudo Persistente:**
+1. **Combate Base com Energia, Escudo Persistente & Mitigação Dual-K:**
    * 3 de Energia por turno + Cartas com tag `[Defesa]` gerando Escudo Persistente.
    * Teto Máximo de Escudo inicial travado em 100% da Vida Máxima do Herói (com suporte a mods multiplicadores).
+   * Mitigação por fórmula assintótica ($K=900$ geral, $K=100$ específico).
    * Mão retida com compra de 2 a 3 cartas por turno.
 2. **Configuração de Cartas de Teste (`data/configs/prototype-test`):**
    * **15 Cartas do Piromaníaco (Fogo):** Divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; geram/gastam Calor; bônus em limiares.
