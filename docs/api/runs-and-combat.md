@@ -301,10 +301,24 @@ de replay reexecuta comandos usando seed, versão da engine e conteúdo fixado,
 comparando hashes em vez de confiar no estado enviado pelo cliente.
 # Core volátil: consultas de apresentação
 
+`CardPresentationFacts.referencedRules` publica nomes, descrições e contribuições
+de status, modificadores e receitas de condensação referenciados pelos efeitos,
+obtidos da mesma revisão imutável da carta. Não executa regras nem consome RNG.
+Os atributos em `explanations` incluem `scale`, `offset`, `operation`,
+`resourceField` (para recursos), `applied` e `contributionValue`. Este último é
+o valor consumido pelo cálculo canônico, não uma estimativa da interface.
+O cliente pode apresentar coeficientes simples e filtrar atributos não aplicados;
+não deve reconstruir a pipeline, aplicar mitigação ou sortear crítico.
+Fórmulas arbitrárias usam uma explicação genérica, sem inventar uma decomposição.
+
 `GET /api/v1/runs/{runId}/cards/{cardInstanceId}/transformation-preview` aceita
 `operation=Apply|Remove|Replace`, `upgradeId` e, quando necessário, `transformationId`.
 Retorna compatibilidade, diagnósticos, custos e containers efetivos `before`/`after`,
 com revisão, sequência e step capturados. Consultar não compra a transformação.
+Quando compatível, inclui também `beforePresentation` e `afterPresentation`: fatos
+canônicos de apresentação (`CardPresentationFacts`) com custos, efeitos e valores
+base compostos. A interface usa esses fatos para mostrar as cartas Antes/Depois;
+não interpreta patches nem calcula os valores a partir dos containers efetivos.
 A mutation continua no gateway de comandos, com controle de versão e idempotência.
 
 As evaluations de combate incluem `previewScope` e `procs`. O escopo captura hashes

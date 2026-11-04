@@ -3322,94 +3322,6 @@
       },
       "additionalProperties": false
     },
-    "CardRuleReference": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "type": "string",
-          "nullable": true
-        },
-        "definitionId": {
-          "type": "string",
-          "nullable": true
-        },
-        "name": {
-          "type": "string",
-          "nullable": true
-        },
-        "description": {
-          "type": "string",
-          "nullable": true
-        },
-        "influences": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/CardRuleInfluence"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "CardScalingAttribute": {
-      "type": "object",
-      "properties": {
-        "bindingId": {
-          "type": "string",
-          "nullable": true
-        },
-        "componentId": {
-          "type": "string",
-          "nullable": true
-        },
-        "attributeId": {
-          "type": "string",
-          "nullable": true
-        },
-        "scope": {
-          "$ref": "#/components/schemas/CalculationEntityScope"
-        },
-        "bucket": {
-          "type": "string",
-          "nullable": true
-        },
-        "eligible": {
-          "type": "boolean"
-        },
-        "inactiveReason": {
-          "type": "string",
-          "nullable": true
-        },
-        "currentValue": {
-          "type": "number",
-          "format": "float",
-          "nullable": true
-        },
-        "scale": {
-          "type": "number",
-          "format": "float"
-        },
-        "offset": {
-          "type": "number",
-          "format": "float"
-        },
-        "operation": {
-          "$ref": "#/components/schemas/CalculationBucketOperation"
-        },
-        "resourceField": {
-          "type": "string",
-          "nullable": true
-        },
-        "contributionValue": {
-          "type": "number",
-          "format": "float",
-          "nullable": true
-        },
-        "applied": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
-    },
     "CardTargetingComponentDefinition": {
       "type": "object",
       "properties": {
@@ -5077,6 +4989,7 @@
             "type": "boolean",
             "nullable": true
           },
+          "referencedRules": {"type": "array", "description": "Descriptive status, modifier and condensation-recipe references from the pinned revision. Does not execute effects.", "items": {"$ref": "#/components/schemas/CardRuleReference"}},
           "identity": {"type": "object", "properties": {"kind": {"type": "string", "enum": ["Definition", "Offer", "Instance", "Transformation"]}, "definitionId": {"type": "string"}, "cardInstanceId": {"type": "string", "format": "uuid", "nullable": true}, "offerId": {"type": "string", "nullable": true}}},
           "version": {"type": "object", "description": "Pinned content, composition and run/combat coordinates.", "additionalProperties": true},
           "faceValueMode": {"type": "string", "enum": ["ComposedBase", "Source"]}, "rarity": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}},
@@ -5089,6 +5002,8 @@
         }
       },
       "CardPresentationBatch": {"type": "object", "required": ["runId", "runSequence", "contentRevision", "cards"], "properties": {"runId": {"type": "string", "format": "uuid"}, "runSequence": {"type": "integer"}, "contentRevision": {"type": "string"}, "cards": {"type": "array", "maxItems": 512, "items": {"$ref": "#/components/schemas/CardPresentationFacts"}}}},
+      "CardRuleReference": {"type": "object", "properties": {"kind": {"type": "string"}, "definitionId": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}, "influences": {"type": "array", "items": {"type": "object", "properties": {"channel": {"type": "string"}, "value": {"type": "number", "nullable": true}}}}}},
+      "CardScalingAttribute": {"type": "object", "description": "Binding metadata, not an instruction to calculate gameplay on the client. Contribution is the value actually consumed by the canonical calculation.", "properties": {"bindingId": {"type": "string"}, "componentId": {"type": "string"}, "attributeId": {"type": "string"}, "scope": {"type": "string"}, "bucket": {"type": "string"}, "eligible": {"type": "boolean"}, "reason": {"type": "string", "nullable": true}, "currentValue": {"type": "number", "nullable": true}, "scale": {"type": "number"}, "offset": {"type": "number"}, "operation": {"type": "string"}, "resourceField": {"type": "string", "nullable": true}, "contributionValue": {"type": "number", "nullable": true}, "applied": {"type": "boolean"}}},
       "CardModifierItemDefinition": {"type": "object", "required": ["itemDefinitionId", "upgradeId", "use"], "properties": {"itemDefinitionId": {"type": "string"}, "upgradeId": {"type": "string"}, "use": {"type": "string", "enum": ["Consume", "Bind"]}, "presentation": {"type": "object", "additionalProperties": {"type": "string"}}}},
       "CardModifierItemSnapshot": {"type": "object", "required": ["runId", "runSequence", "contentRevision", "catalog", "items"], "properties": {
         "runId": {"type": "string", "format": "uuid"}, "runSequence": {"type": "integer"}, "contentRevision": {"type": "string"}, "catalog": {"type": "array", "items": {"$ref": "#/components/schemas/CardModifierItemDefinition"}},

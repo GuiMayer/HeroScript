@@ -41,7 +41,8 @@ internal sealed record TagSynergyExecutionFixture(ContentRuntime Runtime,
                 ["critical_chance"] = critical, ["critical_damage"] = 100, ["armor"] = armor,
                 ["weapon_damage"] = 0, ["block_efficiency"] = 0 } } },
             ResourceState = new() { OwnerId = id, Resources = new Dictionary<string, ResourcePool> {
-                ["health"] = Pool("health", hp, 100), ["energy"] = Pool("energy", ep, 3),
+                ["health"] = Pool("health", hp, 100),
+                ["energy"] = ResourcePool.Materialize(runtime.GetDefinition<ResourceDefinition>("resources", "energy").Value, ep, 3),
                 ["block"] = Pool("block", bp, 999) } }
         };
         var run = new RunState { RunId = Guid.Parse("51000000-0000-4000-8000-000000000001"),

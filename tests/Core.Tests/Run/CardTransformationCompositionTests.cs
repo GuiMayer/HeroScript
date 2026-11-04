@@ -135,7 +135,13 @@ public sealed partial class CardTransformationCompositionTests
                 new ResourceDefinition { ResourceId = "health", DisplayName = "Health" }, 10, 20) } } };
         var planner = new CardTransformationPlanner(runtime);
         var hash = CanonicalJson.ComputeHash(run);
-        Assert.True(planner.Assess(run, CardId, CardTransformationOperation.Apply, upgradeId: "plus").IsCompatible);
+        var assessment = planner.Assess(run, CardId, CardTransformationOperation.Apply, upgradeId: "plus");
+        Assert.True(assessment.IsCompatible);
+        Assert.NotNull(assessment.BeforePresentation);
+        Assert.NotNull(assessment.AfterPresentation);
+        Assert.Equal(CardId, assessment.BeforePresentation.Identity.CardInstanceId);
+        Assert.Equal(run.Sequence, assessment.AfterPresentation.Version.RunSequence);
+        Assert.NotEqual(assessment.BeforePresentation.Fingerprint, assessment.AfterPresentation.Fingerprint);
         Assert.Equal(10, Assert.Single(planner.Options(run).Value).Costs[0].Amount);
         Assert.Equal(0, CardTransformationAccess.SpendCosts(run).Value.Get("health")!.Current);
         Assert.Equal(hash, CanonicalJson.ComputeHash(run));

@@ -18,7 +18,7 @@
       "nameKey": "card.w1_power_surge",
       "artKey": "placeholder.w1_power_surge",
       "displayName": "Power Surge",
-      "description": "Gain 2 Energy, up to its maximum. Exile."
+      "description": "Gain 2 Energy. Exile."
     },
     "transformationSlots": [
       {
@@ -316,7 +316,7 @@
       "nameKey": "card.w1_release_charge",
       "artKey": "placeholder.w1_release_charge",
       "displayName": "Release Charge",
-      "description": "Consume all your Energy reserves; gain their potency once, up to maximum Energy."
+      "description": "Consume all your Energy reserves; gain their potency once as Energy."
     },
     "transformationSlots": [
       {

@@ -11,6 +11,7 @@
   ],
   "conflicts": [],
   "content": [
+    { "schemaVersion": 1, "operation": "patch", "sourcePath": "Resources/resources/energy.json", "target": { "packageId": "heroscript.base", "kind": "resources", "artifactPath": "resources/energy.json", "definitionId": "energy" }, "expectedHash": "d2825ccc53b99931832ae2474ef46acffcd2edfe095652b5c5a920b7610e20d2" },
     { "schemaVersion": 1, "operation": "definition", "kind": "enemy-pools", "sourcePath": "Resources/enemy-pools/tag_synergy.json", "artifactPath": "enemy-pools/tag_synergy.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "card-pools", "sourcePath": "Resources/card-pools/tag_synergy.json", "artifactPath": "card-pools/tag_synergy.json" },
     { "schemaVersion": 1, "operation": "definition", "kind": "modes", "sourcePath": "Resources/modes/tag_synergy.json", "artifactPath": "modes/tag_synergy.json" },

@@ -55,6 +55,9 @@ public sealed class ContractDocumentationTests
         Assert.True(layers.TryGetProperty("composedBase", out _));
         Assert.True(layers.TryGetProperty("source", out _));
         Assert.False(layers.TryGetProperty("impact", out _));
+        Assert.True(schemas.GetProperty("CardPresentationFacts").GetProperty("properties").TryGetProperty("referencedRules", out _));
+        foreach (var field in new[] { "scale", "offset", "operation", "resourceField", "contributionValue", "applied" })
+            Assert.True(schemas.GetProperty("CardScalingAttribute").GetProperty("properties").TryGetProperty(field, out _));
         Assert.Equal(512, schemas.GetProperty("CardPresentationBatch").GetProperty("properties").GetProperty("cards").GetProperty("maxItems").GetInt32());
     }
     [Fact]

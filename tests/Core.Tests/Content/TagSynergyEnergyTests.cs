@@ -6,8 +6,8 @@ namespace Core.Tests.Content;
 public sealed class TagSynergyEnergyTests
 {
     [Theory]
-    [InlineData(0, 2)] [InlineData(2, 3)] [InlineData(3, 3)]
-    public async Task PowerSurge_ClampsWithoutChangingSource(float current, float expected)
+    [InlineData(0, 2)] [InlineData(2, 4)] [InlineData(3, 5)] [InlineData(20, 22)]
+    public async Task PowerSurge_ExceedsBaseEnergyWithoutChangingSource(float current, float expected)
     {
         var f = await TagSynergyExecutionFixture.Create(energy: current, critical: 250, armor: 5000, block: 20);
         var before = CanonicalJson.ComputeHash(f.Combat);
@@ -15,7 +15,13 @@ public sealed class TagSynergyEnergyTests
         Assert.True(played.IsSuccess, played.IsFailure ? played.Error : null);
         Assert.Equal(expected, TagSynergyExecutionFixture.Value(played.Value.State, "energy"));
         Assert.Equal(20, TagSynergyExecutionFixture.Value(played.Value.State, "block"));
+        var energy = played.Value.State.GetActor("hero")!.ResourceState.Resources["energy"];
+        Assert.Equal(3, energy.Maximum);
+        Assert.Equal(3, energy.Reset().Current);
         Assert.Equal(before, CanonicalJson.ComputeHash(f.Combat));
+        var repeated = f.Play("w1_power_surge");
+        Assert.True(repeated.IsSuccess);
+        Assert.Equal(CanonicalJson.ComputeHash(played.Value.State), CanonicalJson.ComputeHash(repeated.Value.State));
     }
 
     [Theory]
