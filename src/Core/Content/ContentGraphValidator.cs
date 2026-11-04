@@ -63,6 +63,12 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         }
 
         var runtime = created.Value;
+        foreach (var pipelineId in runtime.GetDefinitions("calculation-pipelines").Keys.Order(StringComparer.Ordinal))
+        {
+            var pipeline = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", pipelineId);
+            if (pipeline.IsSuccess) warnings.AddRange(CalculationAuthoringDiagnostics.Inspect(pipeline.Value));
+        }
+
         if (bundle.Manifest.SchemaVersion == 2)
             errors.AddRange(CanonicalGameplayAuthoring.Validate(runtime));
         foreach (var id in runtime.GetDefinitions("deck-compartment-profiles").Keys)
