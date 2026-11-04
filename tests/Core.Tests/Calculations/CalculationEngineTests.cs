@@ -20,6 +20,57 @@ public sealed class CalculationEngineTests
     private readonly CalculationEngine _engine = new();
 
     [Fact]
+    public void GroupedBucket_TransformsEachAggregateWithThePinnedRevision()
+    {
+        var formulas = new Mock<IRevisionedRuntimeFormulaEvaluator>(MockBehavior.Strict);
+        formulas.Setup(evaluator => evaluator.EvaluateAtRevision("curve", "revision-a",
+                It.IsAny<Dictionary<string, float>>(), It.IsAny<float>()))
+            .Returns((string _, string _, Dictionary<string, float> values, float raw) =>
+                Core.Common.Result<float>.Success(raw / (1 + raw / values["group.parameters.cap"])));
+        var group = new CalculationGroupDefinition
+        {
+            Formula = "curve",
+            Parameters = ImmutableSortedDictionary<string, float>.Empty.Add("cap", 1)
+        };
+        var pipeline = new CalculationPipelineDefinition
+        {
+            PipelineId = "group-curve", Channel = "resource_reduction",
+            Buckets = [new()
+            {
+                BucketId = "bonus", Operation = CalculationBucketOperation.AddPercent,
+                Grouping = new()
+                {
+                    SubjectKeys = ["alpha", "beta"], WeightBySubjectCount = [1, 0.8f],
+                    Groups = ImmutableSortedDictionary<string, CalculationGroupDefinition>.Empty
+                        .Add("alpha", group).Add("beta", group),
+                    InfluenceGroups = ImmutableSortedDictionary<string, string>.Empty
+                        .Add("one", "alpha").Add("two", "alpha").Add("three", "beta")
+                }
+            }]
+        };
+        var request = new CalculationRequest
+        {
+            CalculationId = "curve-test", ContentRevision = "revision-a", Channel = pipeline.Channel,
+            BaseValue = 10, SubjectKeys = ["alpha", "beta"],
+            Influences =
+            [
+                Influence("one", "bonus", 0.2f, CalculationSourceKind.Actor),
+                Influence("two", "bonus", 0.4f, CalculationSourceKind.Inscription),
+                Influence("three", "bonus", 0.4f, CalculationSourceKind.Actor)
+            ]
+        };
+        var result = new CalculationEngine(formulas.Object).Calculate(request, pipeline);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(15.285714f, result.Value.Value, precision: 4);
+        var traces = Assert.Single(result.Value.Buckets).Groups!.Value;
+        Assert.Equal(0.6f, traces[0].Raw, precision: 4);
+        Assert.Equal(0.375f, traces[0].Transformed, precision: 4);
+        Assert.Equal(0.4f, traces[1].Raw, precision: 4);
+        formulas.Verify(evaluator => evaluator.EvaluateAtRevision("curve", "revision-a",
+            It.IsAny<Dictionary<string, float>>(), It.IsAny<float>()), Times.Exactly(2));
+    }
+
+    [Fact]
     public void GroupedBucket_WeightsGroupsAndKeepsUnmappedContributions()
     {
         var bucket = new CalculationBucketDefinition
