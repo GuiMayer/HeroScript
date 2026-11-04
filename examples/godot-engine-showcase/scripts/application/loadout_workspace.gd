@@ -28,7 +28,7 @@ func stage_selected() -> void:
 func stage_drop(item: String, slot: String, origin: String) -> bool:
 	if not source.get("canEquip", false): return false
 	if not source.items.any(func(row): return str(row.instance.instanceId) == item): return false
-	if not source.policy.slots.any(func(row): return str(row.slotId) == slot): return false
+	if not slot in equipment_positions(): return false
 	var actual := str(assignments.find_key(item)) if item in assignments.values() else ""
 	if actual != origin or slot == origin: return false
 	var displaced: String = assignments.get(slot, "")
@@ -52,6 +52,19 @@ func accept_preview(value: Dictionary, ticket: int, captured: Dictionary) -> boo
 	preview = value.duplicate(true); message = "Authoritative preview ready."
 	return true
 func can_confirm() -> bool: return dirty() and not preview.is_empty() and source.get("canEquip", false)
+func equipment_positions() -> Array:
+	var policy: Dictionary = source.get("policy", {})
+	if not policy.get("capacityOnly", false):
+		return policy.get("slots", []).map(func(slot): return str(slot.slotId))
+	var positions: Array = assignments.keys()
+	positions.sort()
+	if positions.size() < source.get("items", []).size():
+		var index := 1
+		while assignments.has("capacity_%d" % index):
+			index += 1
+		positions.append("capacity_%d" % index)
+	return positions
+
 func snapshot() -> Dictionary:
 	var current: Dictionary = preview.get("after", source)
 	var items: Array = []
@@ -72,7 +85,7 @@ func snapshot() -> Dictionary:
 			"base": baseline, "value": stat.effectiveValue, "change": float(stat.effectiveValue) - baseline,
 			"format": "percent" if stat.unit in ["percent", "%"] else "number", "sources": [], "contextTags": stat.get("contextTags", [])})
 	return {"authority": "REST", "contextKey": [source.get("runId"), source.get("actorId"), source.get("inventoryId"), source.get("contentRevision")],
-		"slots": source.get("policy", {}).get("slots", []).map(func(slot): return str(slot.slotId)), "items": items,
+		"slots": equipment_positions(), "items": items,
 		"assignments": assignments.duplicate(true), "selectedItem": selected_item, "selectedSlot": selected_slot,
 		"usedCapacity": current.get("usedCapacity", 0), "capacity": source.get("policy", {}).get("capacity", 0),
 		"overBudget": false, "presets": [], "presetIndex": -1, "search": search,

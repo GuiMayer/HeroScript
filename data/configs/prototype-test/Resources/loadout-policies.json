@@ -6,17 +6,8 @@
     "allowDuplicateDefinitions": false,
     "revisionMigration": "RebindCompatible",
     "maximumInventoryEntries": 64,
-    "slots": [
-      {
-        "slotId": "trace_1"
-      },
-      {
-        "slotId": "trace_2"
-      },
-      {
-        "slotId": "trace_3"
-      }
-    ],
+    "capacityOnly": true,
+    "slots": [],
     "inscriptionIds": [
       "prototype_fire_mastery",
       "prototype_fire_focus",

@@ -42,7 +42,7 @@ public sealed class PrototypeBuildWorkshopTests
         var owned = loadout.GetProperty("items").EnumerateArray().ToDictionary(
             item => item.GetProperty("definition").GetProperty("inscriptionId").GetString()!,
             item => item.GetProperty("instance").GetProperty("instanceId").GetGuid());
-        var assignments = new Dictionary<string, Guid> { ["trace_1"] = owned["prototype_focus"] };
+        var assignments = new Dictionary<string, Guid> { ["custom_position"] = owned["prototype_focus"] };
         using var preview = await client.PostAsJsonAsync($"/api/v1/runs/{id}/loadout/preview", new
         { actorId = "player", assignments, expectedSequence = initial.Sequence, expectedStep = initial.Determinism.Step });
         Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
@@ -60,8 +60,9 @@ public sealed class PrototypeBuildWorkshopTests
         using var overflow = await Command("APPLY_LOADOUT", new { actorId = "player", assignments = new Dictionary<string, Guid>
         { ["trace_1"] = owned["prototype_focus"], ["trace_2"] = owned["prototype_ward"], ["trace_3"] = owned["prototype_edge"] } });
         Assert.False(overflow.IsSuccessStatusCode);
-        using var badSlot = await Command("APPLY_LOADOUT", new { actorId = "player", assignments = new Dictionary<string, Guid> { ["unknown"] = owned["prototype_focus"] } });
-        Assert.False(badSlot.IsSuccessStatusCode);
+        using var duplicate = await Command("APPLY_LOADOUT", new { actorId = "player", assignments = new Dictionary<string, Guid>
+        { ["first"] = owned["prototype_focus"], ["second"] = owned["prototype_focus"] } });
+        Assert.False(duplicate.IsSuccessStatusCode);
         Assert.Equal(beforeInvalid, CanonicalJson.ComputeHash(Current()));
         await Apply("ACQUIRE_CARD_MODIFIER_ITEM", new { itemDefinitionId });
         Assert.Equal(0, Current().ResourceState.Current("parts"));
