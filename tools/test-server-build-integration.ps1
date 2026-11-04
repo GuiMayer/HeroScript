@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $repository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $repository 'examples/godot-engine-showcase/scripts/launcher/server_build.ps1')
 function Write-StartupProgress([string]$Phase) { }
-$fixture = Join-Path $repository '.runtime/server-build-integration'
+$fixture = Join-Path $repository '.runtime/server build integration'
 foreach ($path in @('src/API', 'data/configs', 'docs/schemas', 'runtime')) {
     New-Item -ItemType Directory -Path (Join-Path $fixture $path) -Force | Out-Null
 }
