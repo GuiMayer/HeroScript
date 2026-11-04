@@ -49,3 +49,10 @@ Para observar fases internas da API, definir HEROSCRIPT_STARTUP_TIMINGS=1. Para 
 ## Limites restantes
 
 Falta certificar p95 abaixo de 5 s em execuções aquecidas, com e sem carga, e levantar uma série maior do tempo completo pela Godot. A primeira compilação permanece significativamente mais lenta. O cenário de SDK indisponível e a recuperação de um bundle publicado autoritativo corrompido não foram certificados; a engine preserva falha explícita em vez de sobrescrever esse bundle. Os resultados de teste não certificam uma build exportada standalone.
+
+## Medições adicionais e estado da validação
+
+- Uma cópia limpa da revisão testada conectou pela Godot em 24.807 ms, incluindo compilação e preparação inicial de dados.
+- Duas instâncias Godot iniciadas simultaneamente se conectaram em 35.494 ms e 35.459 ms durante uma execução com build. Ambas observaram as fases compartilhadas. A carga dessa execução não foi controlada.
+- Uma experiência temporária com oito validações concorrentes teve, nas dez amostras aquecidas, p50 de 4.558 ms e p95 de 5.061 ms. O código voltou ao limite de quatro, pois a amostra não demonstrou ganho consistente que justificasse maior concorrência.
+- O último conjunto de testes API executado após as alterações passou nos três casos filtrados de catálogo, branch e publicação. O teste do capítulo foi executado no conjunto anterior e passou.
