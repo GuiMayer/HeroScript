@@ -1,7 +1,7 @@
 # 📜 Relatório de Direcionamento Estratégico & Game Design: HeroScript (Visão Unificada)
 
 **Projeto:** HeroScript / Protótipo de Combate  
-**Data:** Novembro de 2026 (Visão Consolidada & Lacunas Fechadas)  
+**Data:** Novembro de 2026 (Visão Consolidada & Validada em Playtest)  
 **Documento:** Síntese Definitiva de Alinhamento de Produto, Mecânicas e Arquitetura  
 
 ---
@@ -27,7 +27,7 @@ O **HeroScript** não é um clone procedural de *Slay the Spire*, nem um TCG tra
 flowchart TD
     subgraph Pacing["Regulador Universal de Ritmo"]
         Energia["Energia Universal (3 por turno)<br/>• Compartilhada por Herói e Inimigos<br/>• Pacing estrito e legível"]
-        EscudoPassivo["Escudo Passivo por Atributo<br/>• Concedido no início do turno<br/>• Reseta a cada rodada (sem adivinhação)"]
+        EscudoPersistente["Cartas de Defesa & Escudo Persistente<br/>• Não zera no fim do turno<br/>• Teto Máximo Base = Vida Máxima (100% HP)"]
     end
 
     subgraph Tempero["Medidores & Mecânicas Temáticas (Payoffs)"]
@@ -50,11 +50,20 @@ Físicas que eliminavam o custo de energia (ex: baralho que só usava calor sem 
 * **3 de Energia por Turno:** Padrão para herói e inimigos, recarregada no início de cada rodada.
 * **Meters como Payoffs:** Calor (0-100), Cristais e Sacrifício de Zonas atuam como regras secundárias e multiplicadores de impacto, nunca como substitutos da energia de ação.
 
-### C. A Solução da Defesa: Escudo Passivo Baseado em Atributos
-Para evitar o problema do "jogo cego" (onde o jogador gasta energia com escudos sem saber se o inimigo vai atacar):
-* **Escudo Passivo Natural:** No início de cada rodada, o herói (e o inimigo) recebe uma quantia de **Escudo Passivo** determinada pelos seus atributos defensivos (ex: *Tenacidade / Armadura*) e Inscrições.
-* **Ciclo do Escudo:** Esse escudo passivo **reseta todo turno** (não acumula infinitamente). Ele absorve o dano basal dos combates rotineiros.
-* **Arquétipos Ativos de Escudo:** Cartas de escudo ativas passam a ter propósitos estratégicos claros: absorver picos de dano massivo ou viabilizar arquétipos específicos (ex: *Golpe de Escudo / Dano baseado no Escudo Atual*).
+### C. A Mecânica de Defesa: Cartas de Defesa, Escudo Persistente & Teto de Vida
+Após testes práticos de protótipo, a dinâmica defensiva foi ajustada para garantir a melhor experiência tática:
+1. **Resultado de Playtest (O Fim do Escudo Fixo Passivo):** O escudo passivo automático todo turno foi descartado por gerar sensação de "vida inflada artificial", anular cartas de ataque leves (*primers* com dano menor que o escudo) e eliminar o dilema do jogador sobre quando atacar ou se defender.
+2. **Retorno das Cartas de Defesa Ativas:** O Escudo é gerado ativamente por cartas que carregam a tag de função `[Defesa]`, combinada com a tag de elemento (ex: `[Fogo, Defesa]`, `[Vazio, Defesa]`).
+3. **Escudo Persistente (Zero Desperdício de Energia):**
+   * O escudo gerado por cartas **NÃO zera no final do turno** (estilo a Armadura de *Hearthstone* ou Escudos de *Warframe*).
+   * Se o jogador gastar energia com defesa e o inimigo não atacar naquele turno, o escudo permanece intacto para as próximas rodadas.
+4. **Teto Máximo de Escudo = Vida Máxima do Herói (100% HP):**
+   * Por padrão, o herói só pode estocar escudo até o limite da sua Vida Máxima (ex: 50 HP = máx. 50 de Escudo).
+   * **Espaço para Builds & Inscrições (Overshields):**
+     * Inscrições podem alterar esse multiplicador (ex: *Inscrição de Bateria: Teto de Escudo = Vida × 2*).
+     * Inscrições podem viabilizar arquétipos de impacto (*Shield Slam*: causa dano proporcional ao Escudo estocado).
+5. **Escalonamento por Atributos:** O atributo defensivo do herói (*Tenacidade / Armadura*) não gera escudo do nada, mas multiplica o valor concedido pelas cartas de defesa:
+   $$\text{Escudo Concedido} = (\text{Base da Carta} + \text{Flat}) \times (1 + \text{Atributo de Defesa})$$
 
 ### D. Gestão de Mão: A Bancada de Ferramentas
 * **Retenção de Mão:** Cartas não jogadas permanecem na mão (limite de 8 a 10 cartas).
@@ -141,7 +150,7 @@ flowchart LR
 * **Regra de Ouro de UX:** Botão de **Skip imediato** e **zero repetição de diálogo** ao tentar novamente uma luta (*retry*).
 
 ### B. Inimigos Inteligentes & Scouting Progressivo
-* Inimigos usam baralhos reais e obedecem às mesmas regras de energia, tags e escudo passivo.
+* Inimigos usam baralhos reais e obedecem às mesmas regras de energia, tags e escudo persistente.
 * **Bestiário Progressivo:**
   1. *1º Encontro:* Silhueta e atributos base revelados.
   2. *Durante o Combate:* Cartas jogadas pelo oponente são catalogadas e passam a exibir seus efeitos.
@@ -172,7 +181,11 @@ flowchart TD
 
 1. **Pipeline de Atributos Determinístico:**
    $$\text{Valor Final} = (\text{Base} + \text{Flat}) \times (1 + \sum \text{Increased}) \times \prod \text{More}$$
-2. **Tags como Ponto de Cruzamento:** `Fogo`, `Vazio`, `Feitiço`, `Ataque`, `Crítico`, `Escudo`.
+2. **Arquitetura de Tags Ortogonais (Elemento + Função):**
+   * As tags **não embutem efeitos ocultos automáticos** (o que engessaria o design). Elas atuam como marcadores ortogonais em dois eixos:
+     * **Eixo Elementar / Origem:** `Fogo`, `Vazio`, `Sombra`, `Divino`, `Arcano`.
+     * **Eixo Funcional / Papel:** `Ataque`, `Defesa`, `Buff`, `Postura`, `Feitiço`.
+   * **Inscrições Operam em Interseções:** As Inscrições filtram regras combinadas (ex: *"Ataques de [Fogo] aplicam +2 Queimaduras"*; *"Defesas de [Fogo] geram +10 de Calor"*). Isso garante que um buff de fogo nunca queime o próprio herói e que defesas de fogo não ativem gatilhos ofensivos indevidos.
 3. **Barramento de Eventos e Fila de Ações:** Modelo estrito `Gatilho -> Condição -> Ação`.
 4. **Data-Driven Total (JSON):** Cartas, inimigos, companions e inscrições declarados em dados.
 
@@ -180,14 +193,15 @@ flowchart TD
 
 ## 9. Próximos Passos & Protótipo Mínimo Jogável (Vertical Slice)
 
-1. **Combate Base com Energia & Escudo Passivo:**
-   * 3 de Energia por turno + Escudo Passivo regenerado todo início de rodada.
+1. **Combate Base com Energia & Escudo Persistente:**
+   * 3 de Energia por turno + Cartas com tag `[Defesa]` gerando Escudo Persistente.
+   * Teto Máximo de Escudo inicial travado em 100% da Vida Máxima do Herói (com suporte a mods multiplicadores).
    * Mão retida com compra de 2 a 3 cartas por turno.
 2. **Configuração de Cartas de Teste (`data/configs/prototype-test`):**
-   * **15 Cartas do Piromaníaco (Fogo):** Geram/gastam Calor; bônus em limiares.
-   * **5 Cartas do Vazio:** Custam energia + banir da mão; risco de fadiga se esgotar o baralho.
+   * **15 Cartas do Piromaníaco (Fogo):** Divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; geram/gastam Calor; bônus em limiares.
+   * **5 Cartas do Vazio:** Custam energia + banir da mão; cartas de alto risco/recompensa; risco de fadiga se esgotar o baralho.
 3. **Companion Inicial (Elemental da Água):**
-   * Intangível; aplica `Molhado` em gatilho de Fogo (Cooldown 2 turnos); testar efeito de `Sleep`.
+   * Intangível; aplica `Molhado` em gatilho de carta de Fogo (Cooldown 2 turnos); suporte a status de `Sleep`.
 4. **Telas de Fluxo de Campanha:**
    * Vitória: Decompilar vs Mochila.
    * Derrota: [Ajustar Baralho] e [Tentar Novamente] instantâneo sem diálogo.
