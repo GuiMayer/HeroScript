@@ -54,6 +54,10 @@ func ensure_started(url: String) -> Dictionary:
 			var progress = JSON.parse_string(FileAccess.get_file_as_string(progress_path))
 			if progress is Dictionary and progress.get("attemptId", "") == attempt:
 				var phase := str(progress.get("phase", ""))
+				if phase == "failed":
+					DirAccess.remove_absolute(progress_path)
+					starting = false
+					return {"ok": false, "errorKey": "Could not start the local engine. Check the launcher and .NET installation."}
 				if phase != last_phase and phase in ["preparing_data", "building_server", "starting_server", "loading_settings", "connecting"]:
 					last_phase = phase
 					progress_changed.emit(phase)
@@ -61,10 +65,6 @@ func ensure_started(url: String) -> Dictionary:
 			DirAccess.remove_absolute(progress_path)
 			starting = false
 			return {"ok": true}
-		if not OS.is_process_running(launcher_pid):
-			DirAccess.remove_absolute(progress_path)
-			starting = false
-			return {"ok": false, "errorKey": "Could not start the local engine. Check the launcher and .NET installation."}
 		await get_tree().create_timer(0.5, true).timeout
 	DirAccess.remove_absolute(progress_path)
 	starting = false
