@@ -33,7 +33,7 @@ flowchart TD
 
     subgraph Tempero["Medidores & Mecânicas Temáticas (Payoffs)"]
         Calor["Fogo / Calor:<br/>Termostato & Limiares"]
-        Vazio["Vazio / Void:<br/>Custo: Banir da Mão + Fadiga"]
+        Vazio["Vazio / Void:<br/>Custo: Banir da Mão + Risco de Esgotamento"]
         Necro["Necromancia:<br/>Consumir do Descarte"]
         Arcano["Arcano:<br/>Cristais de Mana / Bateria"]
     end
@@ -104,8 +104,8 @@ $$\text{Redução de Dano (\%)} = \frac{\text{Rating}}{\text{Rating} + K}$$
 │   FAIXA PADRÃO DE TAMANHO                    MECÂNICA DA MOCHILA       │
 │   ├──────────────────────────────┤           ├─────────────────────┤   │
 │   │ • MÍNIMO Padrão: 20 cartas   │           │ • Troca livre fora  │   │
-│   │   (Protege contra fadiga e   │ ◄───────► │   de combate        │   │
-│   │    garante consistência)     │           │ • Zero ansiedade    │   │
+│   │   (Protege contra esgotamento│ ◄───────► │   de combate        │   │
+│   │    e garante consistência)   │           │ • Zero ansiedade    │   │
 │   │ • MÁXIMO Padrão: 30 cartas   │           │   de draft          │   │
 │   │   (Permite cartas de Vazio e │           │ • Decompilar a      │   │
 │   │    ferramentas situacionais) │           │   qualquer momento  │   │
@@ -118,13 +118,15 @@ $$\text{Redução de Dano (\%)} = \frac{\text{Rating}}{\text{Rating} + K}$$
    * Conforme avança na história e vence duelos, ganha novas cartas de outras escolas (Vazio, Sombra, Elites) que vão para a **Mochila**.
 2. **Faixa Tática Padrão (Mínimo 20 / Máximo 30 cartas):**
    * **20 Cartas (Deck Enxuto):** Consistência máxima para ciclar combos rapidamente a cada 3 a 4 turnos.
-   * **25 a 30 Cartas (Deck Volumoso):** Fornece combustível essencial para builds de **Vazio** (que banem cartas da mão) sem risco de morrer por Fadiga, além de permitir cartas situacionais de resposta (*Toolbox*).
+   * **25 a 30 Cartas (Deck Volumoso):** Fornece combustível essencial para builds de **Vazio** (que banem cartas da mão) sem risco de sofrer Derrota por Esgotamento (Deck-Out), além de permitir cartas situacionais de resposta (*Toolbox*).
 3. **Mochila como Arsenal Tático (Anti-Deck Bloat):**
    * Fora de combate (no Loadout ou Acampamento), o jogador **adiciona e remove cartas livremente** entre o Baralho Ativo e a Mochila, sem nenhum custo em ouro ou recursos.
    * Cartas obsoletas ou indesejadas podem ser **Decompiladas** a qualquer momento para gerar materiais de evolução de Inscrições.
-4. **Zona de Banimento (Vazio) & Fadiga:**
-   * Banir cartas acelera a compra de peças de combo.
-   * **Mecânica de Fadiga:** Caso o baralho de compra e o descarte se esgotem, compras adicionais causam **Dano de Fadiga progressivo** (1, 2, 3...) direto na Vida.
+4. **Zona de Banimento (Vazio) & Condição de Derrota por Esgotamento (Deck-Out):**
+   * **Reciclagem Normal Infinita:** Em combate padrão, quando a Pilha de Compra esvazia, a Pilha de Descarte é imediatamente reembaralhada. O ciclo é infinito e cartas comuns nunca esgotam o baralho.
+   * **A Regra de Deck-Out (Derrota Instantânea):** Se uma entidade (herói ou inimigo) precisar comprar cartas no início do turno e **não houver nenhuma carta na Pilha de Compra nem no Descarte** (devido a cartas terem sido banidas para o Vazio), ela sofre **Derrota Imediata por Colapso / Esgotamento Total**.
+   * **Tensão Máxima para o Vazio:** O Vazio atua como um pacto de alto risco — banir cartas afina o baralho e acelera combos, mas queimar cartas em excesso aproxima o jogador da derrota fulminante.
+   * **Vitória Alternativa (Mill):** A regra é simétrica! Se o jogador utilizar cartas que banem o baralho do oponente, pode derrotar um chefe hiper-resistente esgotando o deck dele.
 5. **Mecânica de Resgate Temporal:**
    * Cartas de utilidade do Vazio permitem resgatar cartas banidas de volta ao ciclo ativo para loops calculados de sacrifício.
 
@@ -178,7 +180,7 @@ Para veteranos que buscam theorycrafting extremo e quebra intencional de sistema
 * **Regra Obrigatória do Efeito Negativo (Drawback):** Toda Inscrição que altera regras estruturais do jogo **possui obrigatoriamente uma desvantagem ou penalidade proporcional** (estilo *Corrupted Mods* do Warframe e *Keystones* do Path of Exile):
   * **Exemplo 1 (Compressão Quântica):** O tamanho mínimo do baralho cai de 20 para 12 cartas (permite combos ultra-consistentes); *Penalidade:* Reduz a Vida Máxima do herói em 25%.
   * **Exemplo 2 (Grimório Infinito):** Remove o limite máximo de 30 cartas (permite 40+ cartas para queimar no Vazio sem medo); *Penalidade:* A primeira carta jogada em cada turno custa +1 de Energia (⚡).
-  * **Exemplo 3 (Jailbreak / Chassi Livre):** Remove todas as restrições de mínimo e máximo de baralho; *Penalidade:* O dano de Fadiga recebido é permanentemente dobrado.
+  * **Exemplo 3 (Jailbreak / Chassi Livre):** Remove todas as restrições de mínimo e máximo de baralho; *Penalidade:* No início de cada rodada, bane 1 carta aleatória do topo do seu próprio baralho para o Vazio.
 
 ---
 
@@ -262,10 +264,11 @@ flowchart TD
    * 3 de Energia por turno + Cartas com tag `[Defesa]` gerando Escudo Persistente (teto = 100% HP).
    * Baralho ativo respeitando **Mínimo 20 e Máximo 30 cartas** (com suporte a Inscrições de mutação de regras com drawback).
    * Mitigação por fórmula assintótica ($K=900$ geral, $K=100$ específico).
+   * Regra de **Deck-Out (Derrota Instantânea)** caso a compra ocorra com baralho e descarte zerados.
    * Mão retida com compra de 2 a 3 cartas por turno.
 2. **Configuração de Cartas de Teste (`data/configs/prototype-test`):**
    * **Baralho Básico do Piromaníaco:** 20 cartas divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; geram/gastam Calor; bônus em limiares.
-   * **Pool de Recompensas do Vazio:** Cartas que custam energia + banir da mão; cartas de alto risco/recompensa; risco de fadiga se o deck for muito fino.
+   * **Pool de Recompensas do Vazio:** Cartas que custam energia + banir da mão; risco de derrota por esgotamento se o deck for muito fino.
 3. **Companion Inicial (Elemental da Água):**
    * Intangível; aplica `Molhado` em gatilho de carta de Fogo (Cooldown 2 turnos); suporte a status de `Sleep`.
 4. **Telas de Fluxo de Campanha:**
