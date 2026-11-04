@@ -324,6 +324,8 @@ public sealed record ContextualInfluenceDefinition
     public float? Value { get; init; }
     public string? Formula { get; init; }
     public int Priority { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CalculationSubjectKeyCondition? SubjectKeyCondition { get; init; }
     public IReadOnlyList<string> RequiredTags
     {
         get => _requiredTags;
@@ -334,6 +336,14 @@ public sealed record ContextualInfluenceDefinition
         get => _excludedTags;
         init => _excludedTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
     }
+}
+
+public sealed record CalculationSubjectKeyCondition
+{
+    public ImmutableArray<string> Keys { get; init; } = [];
+    public ImmutableArray<string> RequiredKeys { get; init; } = [];
+    public int MinimumCount { get; init; }
+    public int? MaximumCount { get; init; }
 }
 
 public sealed record ResourceInfluenceBindingDefinition

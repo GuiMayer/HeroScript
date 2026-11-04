@@ -17,6 +17,14 @@ public static class ContextualInfluencePolicies
             return $"influence {definition.InfluenceId} value must be finite";
         if (definition.RequiredTags.Any(string.IsNullOrWhiteSpace) || definition.ExcludedTags.Any(string.IsNullOrWhiteSpace))
             return $"influence {definition.InfluenceId} contains an empty tag";
+        if (definition.SubjectKeyCondition is { } condition &&
+            (condition.Keys.IsDefaultOrEmpty || condition.RequiredKeys.IsDefault ||
+             condition.Keys.Any(string.IsNullOrWhiteSpace) ||
+             condition.Keys.Distinct(StringComparer.Ordinal).Count() != condition.Keys.Length ||
+             condition.RequiredKeys.Any(key => !condition.Keys.Contains(key, StringComparer.Ordinal)) ||
+             condition.MinimumCount < 0 || condition.MinimumCount > condition.Keys.Length ||
+             condition.MaximumCount < condition.MinimumCount))
+            return $"influence {definition.InfluenceId} has an invalid subject key condition";
         return null;
     }
 
@@ -33,6 +41,14 @@ public static class ContextualInfluencePolicies
             if (invalid != null) return Result<IReadOnlyList<CalculationInfluence>>.Failure(invalid);
             if (!definition.RequiredTags.All(context.Tags.Contains) || definition.ExcludedTags.Any(context.Tags.Contains))
                 continue;
+            if (definition.SubjectKeyCondition is { } condition)
+            {
+                if (context.Card is not { } card) continue;
+                var count = condition.Keys.Count(key => card.Tags.Contains(key, StringComparer.Ordinal));
+                if (count < condition.MinimumCount || count > condition.MaximumCount ||
+                    !condition.RequiredKeys.All(key => card.Tags.Contains(key, StringComparer.Ordinal)))
+                    continue;
+            }
             var value = definition.Value;
             if (!value.HasValue)
             {
