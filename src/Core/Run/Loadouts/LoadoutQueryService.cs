@@ -73,7 +73,8 @@ public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeRe
             if (definition.IsFailure) return Fail(definition.Error);
             var owner = run.Loadouts.Actors.Values.FirstOrDefault(value => value.Assignments.Values.Contains(instance.InstanceId));
             var slot = owner?.Assignments.First(value => value.Value == instance.InstanceId).Key;
-            if (owner?.ActorId == actorId) cost += definition.Value.EquipmentCost;
+            if (owner?.ActorId == actorId)
+                cost += definition.Value.ResolveCost(policy.Value.Slots.FirstOrDefault(position => position.SlotId == slot));
             items.Add(new(instance, definition.Value, owner?.ActorId, slot));
         }
         if (!double.IsFinite(cost) || cost > float.MaxValue) return Fail("Invalid inscription equipment cost");

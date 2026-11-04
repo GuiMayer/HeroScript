@@ -47,6 +47,26 @@ public sealed class InscriptionLoadoutTests
     }
 
     [Fact]
+    public void AuthoredRankChangesCostAndInfluenceAndMatchingPolarityDiscountsCost()
+    {
+        var bonus = new InscriptionAttributeBonusDefinition
+        {
+            Influence = new() { InfluenceId = "style", Value = 1.1f }
+        };
+        var inscription = new InscriptionDefinition
+        {
+            EquipmentCost = 2, Polarity = "fire", Rank = 1,
+            Ranks = [new() { Rank = 1, EquipmentCost = 4,
+                InfluenceValues = ImmutableSortedDictionary<string, float>.Empty.Add("style", 1.25f) }]
+        };
+        Assert.Equal(4, inscription.ResolveCost(null));
+        Assert.Equal(4, inscription.ResolveCost(new() { Polarity = "void", MatchingMultiplier = 0.5f }));
+        Assert.Equal(2, inscription.ResolveCost(new() { Polarity = "fire", MatchingMultiplier = 0.5f }));
+        Assert.Equal(1.25f, inscription.ResolveInfluence(bonus).Value);
+        Assert.Equal(1.1f, bonus.Influence.Value);
+    }
+
+    [Fact]
     public void CapacityOnlyAcceptsUnconfiguredPositionsAndRejectsExcessCost()
     {
         var (run, runtime, planner) = Setup(LoadoutTestContent.Policy() with

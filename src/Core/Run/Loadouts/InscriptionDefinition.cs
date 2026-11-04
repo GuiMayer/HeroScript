@@ -19,9 +19,26 @@ public sealed record InscriptionDefinition
 {
     public string InscriptionId { get; init; } = string.Empty;
     public float EquipmentCost { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Rank { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<InscriptionRankDefinition>? Ranks { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Polarity { get; init; }
     public ImmutableArray<string> Tags { get; init; } = [];
     public ImmutableArray<InscriptionAttributeBonusDefinition> AttributeBonuses { get; init; } = [];
     public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
+
+    private InscriptionRankDefinition? ActiveRank => Ranks is { } ranks ? ranks.FirstOrDefault(rank => rank.Rank == Rank) : null;
+
+    public float ResolveCost(LoadoutSlotDefinition? slot) =>
+        (ActiveRank?.EquipmentCost ?? EquipmentCost) *
+        (Polarity != null && Polarity == slot?.Polarity ? slot.MatchingCostMultiplier : 1);
+
+    public ContextualInfluenceDefinition ResolveInfluence(InscriptionAttributeBonusDefinition bonus) =>
+        ActiveRank?.InfluenceValues.TryGetValue(bonus.Influence.InfluenceId, out var value) == true
+            ? bonus.Influence with { Value = value }
+            : bonus.Influence;
 
     public Result Validate(ContentRuntime runtime)
     {
@@ -30,6 +47,14 @@ public sealed record InscriptionDefinition
             AttributeBonuses.IsDefaultOrEmpty || AttributeBonuses.Any(bonus => bonus == null || bonus.Influence == null) ||
             AttributeBonuses.Select(bonus => bonus.Influence.InfluenceId).Distinct(StringComparer.Ordinal).Count() != AttributeBonuses.Length)
             return Result.Failure("Inscription requires an identity, finite nonnegative equipment cost, unique tags and attribute bonuses");
+        if (Polarity != null && string.IsNullOrWhiteSpace(Polarity) ||
+            Rank < 0 || (Rank != 0 && ActiveRank == null) ||
+            Ranks is { } ranks && (ranks.IsDefaultOrEmpty ||
+                ranks.Any(rank => rank is null || rank.Rank <= 0 || !float.IsFinite(rank.EquipmentCost) || rank.EquipmentCost < 0 ||
+                    rank.InfluenceValues is null || rank.InfluenceValues.Any(pair => !float.IsFinite(pair.Value) ||
+                        !AttributeBonuses.Any(bonus => bonus.Influence.InfluenceId == pair.Key && bonus.Influence.Value.HasValue))) ||
+                ranks.Select(rank => rank.Rank).Distinct().Count() != ranks.Length))
+            return Result.Failure("Invalid inscription rank or polarity");
         foreach (var bonus in AttributeBonuses)
         {
             var invalid = ContextualInfluencePolicies.Validate(bonus.Influence);
@@ -47,6 +72,14 @@ public sealed record InscriptionDefinition
     }
 }
 
+public sealed record InscriptionRankDefinition
+{
+    public int Rank { get; init; }
+    public float EquipmentCost { get; init; }
+    public ImmutableSortedDictionary<string, float> InfluenceValues { get; init; } =
+        ImmutableSortedDictionary<string, float>.Empty;
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum InscriptionInventoryScope { Actor, Run }
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -58,6 +91,11 @@ public sealed record LoadoutSlotDefinition
 {
     public string SlotId { get; init; } = string.Empty;
     public ImmutableArray<string> RequiredTags { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Polarity { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public float? MatchingMultiplier { get; init; }
+    internal float MatchingCostMultiplier => MatchingMultiplier ?? 1;
 }
 
 public sealed record LoadoutPolicyDefinition
@@ -87,6 +125,8 @@ public sealed record LoadoutPolicyDefinition
             AllowDuplicateDefinitions == null || !float.IsFinite(Capacity) || Capacity < 0 || MaximumInventoryEntries is < 1 or > 4096 ||
             InscriptionIds.IsDefaultOrEmpty || InscriptionIds.Any(string.IsNullOrWhiteSpace) || InscriptionIds.Distinct(StringComparer.Ordinal).Count() != InscriptionIds.Length ||
             Slots.IsDefault || CapacityOnly != Slots.IsEmpty || Slots.Length > 64 || Slots.Any(slot => slot == null || string.IsNullOrWhiteSpace(slot.SlotId) ||
+                slot.Polarity != null && string.IsNullOrWhiteSpace(slot.Polarity) ||
+                slot.MatchingMultiplier is { } factor && (slot.Polarity == null || !float.IsFinite(factor) || factor < 0 || factor > 1) ||
                 slot.RequiredTags.Any(string.IsNullOrWhiteSpace) || slot.RequiredTags.Distinct(StringComparer.Ordinal).Count() != slot.RequiredTags.Length) ||
             Slots.Select(slot => slot.SlotId).Distinct(StringComparer.Ordinal).Count() != Slots.Length ||
             EquipmentWindows.IsDefaultOrEmpty || EquipmentWindows.Any(window => !Enum.IsDefined(window)) || EquipmentWindows.Distinct().Count() != EquipmentWindows.Length)

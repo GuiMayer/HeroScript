@@ -159,7 +159,7 @@ public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
             if (slot != null && !slot.RequiredTags.All(item.Value.Tags.Contains))
                 return Fail("Inscription tags are not compatible with this slot");
             if (!definitions.Add(owned.DefinitionId) && policy.Value.AllowDuplicateDefinitions != true) return Fail("Duplicate inscription definitions are not allowed");
-            used += item.Value.EquipmentCost;
+            used += item.Value.ResolveCost(slot);
         }
         if (used > policy.Value.Capacity) return Fail("Inscription equipment capacity exceeded");
         var after = assignments.ToImmutableSortedDictionary(StringComparer.Ordinal);

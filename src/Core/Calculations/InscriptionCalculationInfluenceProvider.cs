@@ -38,7 +38,7 @@ public sealed class InscriptionCalculationInfluenceProvider(IContentRuntimeResol
                 if (definition.IsFailure) return Fail(definition.Error);
                 foreach (var bonus in definition.Value.AttributeBonuses)
                 {
-                    var influence = bonus.Influence;
+                    var influence = definition.Value.ResolveInfluence(bonus);
                     var scoped = influence.Scope == CalculationEntityScope.Actor ? context.Actor : context.Target;
                     if (scoped == null || scoped.InstanceId != actorId || !context.SelectsInfluence(influence.Channel, influence.Bucket)) continue;
                     var collected = ContextualInfluencePolicies.Resolve([influence], CalculationSourceKind.Inscription,
