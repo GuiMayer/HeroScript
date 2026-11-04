@@ -206,6 +206,10 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                  grouping.Groups.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || pair.Value is null ||
                      !IsFinite(pair.Value.Weight) || pair.Value.Weight < 0 || pair.Value.Parameters is null ||
                      pair.Value.Parameters.Any(parameter => string.IsNullOrWhiteSpace(parameter.Key) || !IsFinite(parameter.Value)) ||
+                     pair.Value.ParameterInfluences is null ||
+                     pair.Value.ParameterInfluences.Any(influence => string.IsNullOrWhiteSpace(influence.Key) ||
+                         string.IsNullOrWhiteSpace(influence.Value) || !pair.Value.Parameters.ContainsKey(influence.Value) ||
+                         grouping.InfluenceGroups.GetValueOrDefault(influence.Key) != pair.Key) ||
                      pair.Value.Formula is not null && string.IsNullOrWhiteSpace(pair.Value.Formula)) ||
                  grouping.InfluenceGroups.Any(pair => string.IsNullOrWhiteSpace(pair.Key) ||
                      string.IsNullOrWhiteSpace(pair.Value) || !grouping.Groups.ContainsKey(pair.Value))))
@@ -468,7 +472,9 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                      .GroupBy(item => grouping.InfluenceGroups.GetValueOrDefault(item.InfluenceId), StringComparer.Ordinal)
                      .OrderBy(group => group.Key, StringComparer.Ordinal))
         {
-            var raw = group.Sum(item => item.Value);
+            var definition = group.Key is { } groupKey ? grouping.Groups[groupKey] : null;
+            var raw = group.Where(item => definition?.ParameterInfluences.ContainsKey(item.InfluenceId) != true)
+                .Sum(item => item.Value);
             var transformed = raw;
             var weight = 1f;
             if (group.Key is { } key)
@@ -478,17 +484,25 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                     foreach (var item in group) traces.Add(Trace(item, current, false, null, current));
                     continue;
                 }
-                var definition = grouping.Groups[key];
-                weight = definition.Weight;
+                var configured = definition!;
+                weight = configured.Weight;
                 if (!grouping.WeightBySubjectCount.IsEmpty)
                     weight *= grouping.WeightBySubjectCount[subjectKeys.Count - 1];
                 if (overrides != null && overrides.TryGetValue(key, out var explicitWeight))
                     weight = explicitWeight;
-                if (definition.Formula is { } formula)
+                var parameters = configured.Parameters.ToBuilder();
+                foreach (var influence in group)
+                {
+                    if (configured.ParameterInfluences.TryGetValue(influence.InfluenceId, out var parameter))
+                        parameters[parameter] += influence.Value;
+                }
+                if (parameters.Values.Any(value => !IsFinite(value)))
+                    return Result<BucketEvaluation>.Failure($"Group {key} produced a non-finite formula parameter");
+                if (configured.Formula is { } formula)
                 {
                     if (formulas is null)
                         return Result<BucketEvaluation>.Failure($"Group {key} requires a formula evaluator");
-                    var variables = definition.Parameters.ToDictionary(
+                    var variables = parameters.ToDictionary(
                         item => $"group.parameters.{item.Key}", item => item.Value, StringComparer.Ordinal);
                     variables["group.raw"] = raw;
                     var evaluated = formulas is IRevisionedRuntimeFormulaEvaluator revisioned && !string.IsNullOrWhiteSpace(request.ContentRevision)
@@ -497,7 +511,10 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                     if (evaluated.IsFailure) return Result<BucketEvaluation>.Failure(evaluated.Error);
                     transformed = evaluated.Value;
                 }
-                groups.Add(new(key, raw, transformed, weight, transformed * weight));
+                groups.Add(new(key, raw, transformed, weight, transformed * weight)
+                {
+                    Parameters = parameters.Count == 0 ? null : parameters.ToImmutable()
+                });
             }
             var effective = transformed * weight;
             if (!IsFinite(raw) || !IsFinite(effective))

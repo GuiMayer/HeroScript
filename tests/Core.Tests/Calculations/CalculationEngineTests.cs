@@ -85,6 +85,24 @@ public sealed class CalculationEngineTests
                 overrides["hybrid"].SetItem("alpha", 1)) }
         }] };
         Assert.True(new CalculationEngine(formulas.Object).Calculate(request with { SubjectDefinitionId = "hybrid" }, invalid).IsFailure);
+
+        var mastery = bucket.Grouping! with
+        {
+            InfluenceGroups = bucket.Grouping!.InfluenceGroups.Add("mastery", "alpha"),
+            Groups = bucket.Grouping!.Groups.SetItem("alpha", group with
+            {
+                ParameterInfluences = ImmutableSortedDictionary<string, string>.Empty.Add("mastery", "cap")
+            })
+        };
+        var mastered = new CalculationEngine(formulas.Object).Calculate(request with
+        {
+            Influences = request.Influences.Append(Influence("mastery", "bonus", 0.5f, CalculationSourceKind.Inscription)).ToArray()
+        }, pipeline with { Buckets = [bucket with { Grouping = mastery }] });
+        Assert.True(mastered.IsSuccess, mastered.IsFailure ? mastered.Error : null);
+        var masteredGroup = Assert.Single(mastered.Value.Buckets).Groups!.Value[0];
+        Assert.Equal(0.6f, masteredGroup.Raw, precision: 4);
+        Assert.Equal(1.5f, masteredGroup.Parameters!["cap"]);
+        Assert.Equal(0.4285714f, masteredGroup.Transformed, precision: 4);
     }
 
     [Fact]

@@ -104,6 +104,8 @@ public sealed record CalculationGroupDefinition
     public float Weight { get; init; } = 1;
     public ImmutableSortedDictionary<string, float> Parameters { get; init; } =
         ImmutableSortedDictionary<string, float>.Empty;
+    public ImmutableSortedDictionary<string, string> ParameterInfluences { get; init; } =
+        ImmutableSortedDictionary<string, string>.Empty;
 }
 
 public sealed record CalculationPipelineDefinition : ICanonicalHashMemoizable
@@ -230,7 +232,11 @@ public sealed record CalculationBucketTrace
     public float Output { get; init; }
 }
 
-public sealed record CalculationGroupTrace(string Key, float Raw, float Transformed, float Weight, float Effective);
+public sealed record CalculationGroupTrace(string Key, float Raw, float Transformed, float Weight, float Effective)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableSortedDictionary<string, float>? Parameters { get; init; }
+}
 
 public sealed record CalculationResult
 {
