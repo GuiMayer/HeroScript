@@ -79,9 +79,27 @@ public sealed record CalculationBucketDefinition
     public CalculationRounding Rounding { get; init; }
     public CalculationMidpointRounding MidpointRounding { get; init; } = CalculationMidpointRounding.ToEven;
     public string? Formula { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CalculationGroupingDefinition? Grouping { get; init; }
     public float? Minimum { get; init; }
     public float? Maximum { get; init; }
     public SetConflictPolicy SetConflict { get; init; } = SetConflictPolicy.HighestPriorityWins;
+}
+
+public sealed record CalculationGroupingDefinition
+{
+    public ImmutableSortedDictionary<string, string> InfluenceGroups { get; init; } =
+        ImmutableSortedDictionary<string, string>.Empty;
+    public ImmutableSortedDictionary<string, CalculationGroupDefinition> Groups { get; init; } =
+        ImmutableSortedDictionary<string, CalculationGroupDefinition>.Empty;
+}
+
+public sealed record CalculationGroupDefinition
+{
+    public string? Formula { get; init; }
+    public float Weight { get; init; } = 1;
+    public ImmutableSortedDictionary<string, float> Parameters { get; init; } =
+        ImmutableSortedDictionary<string, float>.Empty;
 }
 
 public sealed record CalculationPipelineDefinition : ICanonicalHashMemoizable
