@@ -51,11 +51,29 @@ func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 			_add_unique(behaviors, _i18n.text("Cannot crit"))
 	var tags: Array[String] = []
 	var labels: Dictionary = _appearance.get("card_tag_labels", {})
+	var weights := _published_weights(inspection.get("presentation", {}))
 	for tag in effective.get("tags", container.get("tags", [])):
-		if labels.has(tag): tags.append(_i18n.text(str(labels[tag])))
+		if weights.has(tag):
+			var weight: float = weights[tag]
+			var marker := "●●●" if weight >= 0.9 else ("●●○" if weight >= 0.75 else ("●○○" if weight > 0.0 else "○○○"))
+			var label: String = _i18n.text(str(labels[tag])) if labels.has(tag) else _i18n.content_name(str(tag))
+			tags.append("%s %s" % [label, marker])
+		elif labels.has(tag):
+			tags.append(_i18n.text(str(labels[tag])))
 	return {"rarityId": enum_name(container.get("rarity", appearance.get("rarityId", "")), ["Common", "Uncommon", "Rare", "Legendary"]).to_lower(),
 		"identityTags": tags, "requirements": requirements, "effectRows": rows, "behaviors": behaviors,
 		"previewNote": ""}
+
+func _published_weights(facts: Dictionary) -> Dictionary:
+	var weights := {}
+	for explanation in facts.get("explanations", []):
+		for bucket in explanation.get("buckets", []):
+			for group in bucket.get("groups", []):
+				var key := str(group.get("key", ""))
+				var weight = group.get("weight")
+				if not key.is_empty() and not weights.has(key) and (weight is float or weight is int):
+					weights[key] = float(weight)
+	return weights
 
 func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary, inspection: Dictionary, rows: Array, behaviors: Array[String], depth := 0) -> void:
 	if depth > 32: return # The authoritative validator applies the same depth bound.

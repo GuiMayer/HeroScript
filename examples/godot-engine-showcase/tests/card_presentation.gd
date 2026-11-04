@@ -255,6 +255,10 @@ func check_player_tooltip(i18n) -> void:
 	facts.explanations[0].buckets[0]["groups"] = [{"key": "fire", "raw": 0.6, "transformed": 0.375, "weight": 0.8, "effective": 0.3}]
 	var grouped := "\n".join(calculator.describe(facts, true))
 	check(grouped.contains("60%") and grouped.contains("37.5%") and grouped.contains("30%"), "tooltip shows the server's raw, transformed and weighted scaling")
+	facts["tags"] = ["fire"]
+	var sections = load("res://scripts/presentation/card_section_presenter.gd").new(i18n, {}, [])
+	var face: Dictionary = sections.sections({"presentation": facts}, {})
+	check(face.identityTags.size() == 1 and face.identityTags[0].ends_with("●●○"), "card face shows the published thematic weight")
 	facts.effects[0].parameters[0].values.source = 73
 	check("\n".join(calculator.describe(facts, true)).contains("73 (base 4)"), "engine result wins even when it differs from locally inferable arithmetic")
 	facts.explanations = []
