@@ -94,3 +94,14 @@ No prototype-test, cada participante definido no setting tem 3 de energia. O flu
 
 A alteração da etapa 9 está limitada aos JSONs de autoria do prototype-test e produz uma nova revisão na publicação. A ativação em runs existentes segue o fluxo de revisão da engine. A suíte de reload, runtime, manifestos, atributos, crítico e inscrições passou com 38 casos; o teste REST PackageSetting_ValidatesPublishesAndDoesNotRebindActiveRun passou. A jornada de branch do volatile-core passou na certificação anterior à alteração de energia. O teste de migração de uma run real do prototype-test entre as duas revisões específicas permanece pendente.
 
+
+## Etapa 11 — certificação do capítulo com energia
+
+O teste de capítulo passou com persistência isolada por sockets Kestrel, em Release, .NET 10.0.9, Windows 10.0.26200, 12 processadores lógicos. A jornada concluiu o capítulo após perder e repetir o chefe, verificou restart e replay e comparou 170 hashes sucessores em stores independentes. Hash inicial 746ccf98649033b84370cf0e30ef66a0ea604047ab613ffe9fe1a2748bb09e6b. Hash final 5effd0b5ad2c9d5050f3a780d6b1af4d91157f17f57f1c50f989524cf6641c71.
+
+| POST | Amostras | p50 | p95 | p99 | p95 sem a primeira |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| PLAY_CARD | 71 | 57,35 ms | 102,45 ms | 184,81 ms | 102,45 ms |
+| END_TURN | 53 | 207,68 ms | 663,16 ms | 1049,27 ms | 663,16 ms |
+
+As amostras percorrem o capítulo, sem fase de aquecimento dedicada. O teste também registra a distribuição sem a primeira amostra de cada comando. O gate de 100 ms não passou. A diferença em relação à baseline não mede uma otimização isolada, pois a revisão, a jornada e a concorrência mudaram. O checkout contém alterações preexistentes e os hashes certificam a revisão usada na execução local.
