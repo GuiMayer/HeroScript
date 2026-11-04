@@ -1,0 +1,2264 @@
+{
+  "scope": "Raw working-tree declarations; not resolved inheritance or published revisions",
+  "pipelines": [
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/ascendant_critical.json",
+      "sha256": "5c53bb6703fb8731eadc2f9e9b5d9233c57a1f8f872718d64a8dae58f1823800",
+      "pipelineId": "ascendant_critical_chance",
+      "channel": "critical_chance",
+      "unitId": "percent",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "chance",
+          "order": 10,
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "actor.chance",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "critical_chance",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "missingValue": "Error"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/ascendant_critical.json",
+      "sha256": "5c53bb6703fb8731eadc2f9e9b5d9233c57a1f8f872718d64a8dae58f1823800",
+      "pipelineId": "ascendant_critical_bonus",
+      "channel": "critical_bonus",
+      "unitId": "factor",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "bonus",
+          "order": 10,
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "actor.multiplier",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "critical_multiplier",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "missingValue": "Error"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/ascendant_critical.json",
+      "sha256": "5c53bb6703fb8731eadc2f9e9b5d9233c57a1f8f872718d64a8dae58f1823800",
+      "pipelineId": "ascendant_critical_probability",
+      "channel": "critical_probability",
+      "unitId": "probability",
+      "stages": [
+        {
+          "stageId": "guaranteed",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "fraction",
+          "scope": "Actor"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "tiers",
+          "stageId": "guaranteed",
+          "order": 10,
+          "operation": "Formula",
+          "formula": "bucket.input / 100",
+          "rounding": "Floor"
+        },
+        {
+          "bucketId": "fraction",
+          "stageId": "fraction",
+          "order": 20,
+          "operation": "Formula",
+          "formula": "captures.chance % 100 / 100"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/ascendant_critical.json",
+      "sha256": "5c53bb6703fb8731eadc2f9e9b5d9233c57a1f8f872718d64a8dae58f1823800",
+      "pipelineId": "ascendant_critical_amount",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "elemental",
+          "order": 30,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "order": 40,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "critical",
+          "order": 50,
+          "operation": "Formula",
+          "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input"
+        },
+        {
+          "bucketId": "vulnerability",
+          "order": 60,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "order": 70,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "order": 80,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "actor.weapon-damage.increased",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "actor.spell-damage.increased",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "actor.elemental-damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "elemental",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "target.block.mitigation",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/ascendant_effect_amount.json",
+      "sha256": "fa4b099c4a64ea1c535ea0561f1f2ecb60e8954d72b57ccea00e1b6f7160bcf6",
+      "pipelineId": "ascendant_effect_amount",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "elemental",
+          "order": 30,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "order": 40,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "critical",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "vulnerability",
+          "order": 60,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "order": 70,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "order": 80,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "actor.weapon-damage.increased",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "scale": 1,
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "actor.spell-damage.increased",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "scale": 1,
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "actor.elemental-damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "elemental",
+          "scale": 1,
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "actor.critical-multiplier",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "critical_multiplier",
+          "channel": "effect_amount",
+          "bucket": "critical",
+          "scale": 1,
+          "requiredTags": [
+            "damage",
+            "critical"
+          ],
+          "missingValue": "Ignore"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "target.block.mitigation",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "scale": 1,
+          "priority": 100,
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_block_attribute",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "increased",
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "block.efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_dot_attribute",
+      "channel": "w1_dot",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "increased",
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_attack_attribute",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "increased",
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "attack.damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_critical_bonus",
+      "channel": "critical_bonus",
+      "unitId": "factor",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "bonus",
+          "order": 10,
+          "operation": "Add",
+          "minimum": 0
+        },
+        {
+          "bucketId": "bonus_cap",
+          "order": 1000,
+          "operation": "Minimum",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "actor.critical-damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "critical_damage",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "scale": 0.01,
+          "missingValue": "Zero",
+          "defaultValue": 100
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_critical_chance",
+      "channel": "critical_chance",
+      "unitId": "percent",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "chance",
+          "order": 10,
+          "operation": "Add",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "actor.chance",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "critical_chance",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_armor_attribute",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "armor",
+          "order": 10,
+          "operation": "Add",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "target.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/hero_attributes.json",
+      "sha256": "6aea25fded042cf3b10160fe668e8542900f6d5a440a4ec0c84e0c772f67cc09",
+      "pipelineId": "w1_armor_reduction",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "armor",
+          "order": 10,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "target.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/tag_synergy.json",
+      "sha256": "ba967d74be0418663b7132fe2aa13b0619cbc4d9a10a0773be7e40c324e5d7fe",
+      "pipelineId": "w1_utility",
+      "channel": "w1_utility",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_utility.block",
+          "scope": "Actor",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "w1_utility",
+          "bucket": "flat",
+          "scale": 0.1,
+          "requiredTags": [
+            "recovery",
+            "block_scaling"
+          ],
+          "missingResource": "Error"
+        },
+        {
+          "bindingId": "w1_utility.max_health",
+          "scope": "Actor",
+          "resourceId": "health",
+          "field": "Maximum",
+          "channel": "w1_utility",
+          "bucket": "flat",
+          "scale": 0.1,
+          "requiredTags": [
+            "recovery",
+            "max_health_scaling"
+          ],
+          "missingResource": "Error"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/tag_synergy.json",
+      "sha256": "ba967d74be0418663b7132fe2aa13b0619cbc4d9a10a0773be7e40c324e5d7fe",
+      "pipelineId": "w1_defense",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_amount.weapon_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.spell_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.elemental_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.block_efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "defense",
+            "block"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_amount.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "w1_defense.missing_maximum",
+          "scope": "Actor",
+          "resourceId": "health",
+          "field": "Maximum",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": 0.2,
+          "requiredTags": [
+            "defense",
+            "missing_health_scaling"
+          ],
+          "missingResource": "Error"
+        },
+        {
+          "bindingId": "w1_defense.missing_current",
+          "scope": "Actor",
+          "resourceId": "health",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": -0.2,
+          "requiredTags": [
+            "defense",
+            "missing_health_scaling"
+          ],
+          "missingResource": "Error"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/world_one.json",
+      "sha256": "59c10b1513c674b9504ff374c8d6e2d09ce341eda9a4881112d4009b4533942b",
+      "pipelineId": "w1_amount",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_amount.weapon_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.spell_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.elemental_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.block_efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "defense",
+            "block"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_amount.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_amount.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "w1_amount.missing_max",
+          "scope": "Actor",
+          "resourceId": "health",
+          "field": "Maximum",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": 0.2,
+          "requiredTags": [
+            "defense",
+            "missing_health_scaling"
+          ],
+          "missingResource": "Error"
+        },
+        {
+          "bindingId": "w1_amount.missing_current",
+          "scope": "Actor",
+          "resourceId": "health",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": -0.2,
+          "requiredTags": [
+            "defense",
+            "missing_health_scaling"
+          ],
+          "missingResource": "Error"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/world_one.json",
+      "sha256": "59c10b1513c674b9504ff374c8d6e2d09ce341eda9a4881112d4009b4533942b",
+      "pipelineId": "w1_critical_amount",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_impact",
+          "scope": "Shared"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero"
+        },
+        {
+          "bucketId": "critical",
+          "stageId": "w1_impact",
+          "order": 40,
+          "operation": "Formula",
+          "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_critical_amount.weapon_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.spell_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.elemental_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.block_efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "defense",
+            "block"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_critical_amount.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "w1_critical_amount.block_scaling",
+          "scope": "Actor",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": 0.5,
+          "requiredTags": [
+            "damage",
+            "block_scaling"
+          ],
+          "missingResource": "Error"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/world_one.json",
+      "sha256": "59c10b1513c674b9504ff374c8d6e2d09ce341eda9a4881112d4009b4533942b",
+      "pipelineId": "w1_dot",
+      "channel": "w1_dot",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_release",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "release",
+          "stageId": "w1_release",
+          "order": 40,
+          "operation": "Formula",
+          "formula": "bucket.input * 1.5"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_dot.potency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "dot_damage",
+          "channel": "w1_dot",
+          "bucket": "increased",
+          "missingValue": "Ignore",
+          "requiredTags": [
+            "residual"
+          ]
+        },
+        {
+          "bindingId": "w1_dot.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "w1_dot",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_dot.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "w1_dot",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        }
+      ]
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/world_one.json",
+      "sha256": "59c10b1513c674b9504ff374c8d6e2d09ce341eda9a4881112d4009b4533942b",
+      "pipelineId": "w1_overflow",
+      "channel": "w1_overflow",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_remainder",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "remainder",
+          "stageId": "w1_remainder",
+          "operation": "Formula",
+          "formula": "continuation.requested_change - continuation.applied_change * -1"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/ascendant/Resources/calculation-pipelines/world_one.json",
+      "sha256": "59c10b1513c674b9504ff374c8d6e2d09ce341eda9a4881112d4009b4533942b",
+      "pipelineId": "w1_direct_amount",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_critical_amount.weapon_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.spell_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.elemental_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.block_efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "defense",
+            "block"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_critical_amount.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "w1_direct_amount.block_scaling",
+          "scope": "Actor",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": 0.5,
+          "requiredTags": [
+            "damage",
+            "block_scaling"
+          ],
+          "missingResource": "Error"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/default/Resources/calculation-pipelines/default_effect_amount.json",
+      "sha256": "756ae8d42bd3e84584a4ed1383cf5e40c3ebfbc38568ccf18606adc3eb184410",
+      "pipelineId": "default_effect_amount",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "order": 30,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "order": 40,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "order": 50,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": [
+        {
+          "bindingId": "target.block.mitigation",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "scale": 1,
+          "offset": 0,
+          "priority": 100,
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        }
+      ]
+    },
+    {
+      "source": "data/configs/default/Resources/calculation-pipelines/signed_resource_delta.json",
+      "sha256": "cc0bd69c1f8cac701b0c4f7aa51269ecd9880d616566cd7ccd301f0b273dc654",
+      "pipelineId": "signed_resource_delta",
+      "channel": "resource_delta",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "order": 30,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "final",
+          "order": 50,
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/prototype-test/Resources/calculation-pipelines.json",
+      "sha256": "fe0ff563e5b22828d4b8ad61bfc44121f5923ac89146d39e2eed0979de63b03f",
+      "pipelineId": "prototype_direct_amount",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        },
+        {
+          "bucketId": "heat",
+          "stageId": "w1_origin",
+          "order": 25,
+          "operation": "AddPercent"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_critical_amount.weapon_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.spell_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.elemental_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.block_efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "defense",
+            "block"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_critical_amount.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "w1_direct_amount.block_scaling",
+          "scope": "Actor",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": 0.5,
+          "requiredTags": [
+            "damage",
+            "block_scaling"
+          ],
+          "missingResource": "Error"
+        },
+        {
+          "bindingId": "thermal-potency",
+          "scope": "Actor",
+          "resourceId": "heat",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "heat",
+          "scale": 0.005,
+          "requiredTags": [
+            "fire"
+          ],
+          "missingResource": "Ignore"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/prototype-test/Resources/calculation-pipelines.json",
+      "sha256": "fe0ff563e5b22828d4b8ad61bfc44121f5923ac89146d39e2eed0979de63b03f",
+      "pipelineId": "prototype_critical_amount",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_impact",
+          "scope": "Shared"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero"
+        },
+        {
+          "bucketId": "critical",
+          "stageId": "w1_impact",
+          "order": 40,
+          "operation": "Formula",
+          "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        },
+        {
+          "bucketId": "heat",
+          "stageId": "w1_origin",
+          "order": 25,
+          "operation": "AddPercent"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_critical_amount.weapon_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "weapon_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "attack"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.spell_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "spell_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "spell"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.elemental_damage",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "elemental_damage",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "damage",
+            "elemental"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.block_efficiency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "block_efficiency",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "requiredTags": [
+            "defense",
+            "block"
+          ],
+          "missingValue": "Ignore"
+        },
+        {
+          "bindingId": "w1_critical_amount.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_critical_amount.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "w1_critical_amount.block_scaling",
+          "scope": "Actor",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "scale": 0.5,
+          "requiredTags": [
+            "damage",
+            "block_scaling"
+          ],
+          "missingResource": "Error"
+        },
+        {
+          "bindingId": "thermal-potency",
+          "scope": "Actor",
+          "resourceId": "heat",
+          "field": "Current",
+          "channel": "effect_amount",
+          "bucket": "heat",
+          "scale": 0.005,
+          "requiredTags": [
+            "fire"
+          ],
+          "missingResource": "Ignore"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/prototype-test/Resources/calculation-pipelines.json",
+      "sha256": "fe0ff563e5b22828d4b8ad61bfc44121f5923ac89146d39e2eed0979de63b03f",
+      "pipelineId": "prototype_dot",
+      "channel": "prototype_dot",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "w1_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_release",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "w1_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "stageId": "w1_origin",
+          "order": 10,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "stageId": "w1_origin",
+          "order": 20,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "more",
+          "stageId": "w1_origin",
+          "order": 30,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "release",
+          "stageId": "w1_release",
+          "order": 40,
+          "operation": "Formula",
+          "formula": "bucket.input"
+        },
+        {
+          "bucketId": "vulnerability",
+          "stageId": "w1_target",
+          "order": 50,
+          "operation": "Multiply"
+        },
+        {
+          "bucketId": "mitigation",
+          "stageId": "w1_target",
+          "order": 60,
+          "operation": "ConsumeCapacity"
+        },
+        {
+          "bucketId": "final",
+          "stageId": "w1_target",
+          "order": 70,
+          "operation": "Add",
+          "rounding": "Round",
+          "midpointRounding": "AwayFromZero",
+          "minimum": 0
+        },
+        {
+          "bucketId": "armor",
+          "stageId": "w1_target",
+          "order": 55,
+          "operation": "Formula",
+          "formula": "W1_ARMOR_REMAINING_AMOUNT"
+        },
+        {
+          "bucketId": "heat",
+          "stageId": "w1_origin",
+          "order": 25,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "wet-release",
+          "stageId": "w1_target",
+          "order": 45,
+          "operation": "Multiply"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "w1_dot.potency",
+          "scope": "Actor",
+          "componentId": "stats",
+          "valueId": "dot_damage",
+          "channel": "prototype_dot",
+          "bucket": "increased",
+          "missingValue": "Ignore",
+          "requiredTags": [
+            "residual"
+          ]
+        },
+        {
+          "bindingId": "w1_dot.armor",
+          "scope": "Target",
+          "componentId": "stats",
+          "valueId": "armor",
+          "channel": "prototype_dot",
+          "bucket": "armor",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "ignore_armor"
+          ],
+          "missingValue": "Zero"
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "w1_dot.block",
+          "scope": "Target",
+          "resourceId": "block",
+          "field": "Current",
+          "channel": "prototype_dot",
+          "bucket": "mitigation",
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "piercing"
+          ],
+          "missingResource": "Ignore",
+          "settlement": {
+            "operation": "SUBTRACT",
+            "field": "Current",
+            "useEffectiveValue": true
+          }
+        },
+        {
+          "bindingId": "thermal-potency",
+          "scope": "Actor",
+          "resourceId": "heat",
+          "field": "Current",
+          "channel": "prototype_dot",
+          "bucket": "heat",
+          "scale": 0.005,
+          "requiredTags": [
+            "fire"
+          ],
+          "missingResource": "Ignore"
+        }
+      ]
+    },
+    {
+      "source": "data/configs/prototype-test/Resources/calculation-pipelines.json",
+      "sha256": "fe0ff563e5b22828d4b8ad61bfc44121f5923ac89146d39e2eed0979de63b03f",
+      "pipelineId": "prototype_values",
+      "channel": "effect_amount",
+      "unitId": "scalar",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "base",
+          "operation": "Add"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/volatile-core/Resources/calculation-pipelines/core.json",
+      "sha256": "0b5d65ebe029a636c484602884ec052f74b95fb139e9824584df3f27199b2c2f",
+      "pipelineId": "core_magnitude",
+      "channel": "core_magnitude",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "core_origin",
+          "scope": "Actor"
+        },
+        {
+          "stageId": "core_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "base",
+          "stageId": "core_origin"
+        },
+        {
+          "bucketId": "defense",
+          "stageId": "core_target",
+          "order": 1,
+          "operation": "ConsumeCapacity"
+        }
+      ],
+      "statBindings": [
+        {
+          "bindingId": "power",
+          "scope": "Actor",
+          "componentId": "attributes",
+          "valueId": "power",
+          "channel": "core_magnitude",
+          "bucket": "base",
+          "missingValue": "Ignore",
+          "requiredTags": [
+            "core_scale"
+          ]
+        }
+      ],
+      "resourceBindings": [
+        {
+          "bindingId": "block",
+          "scope": "Target",
+          "resourceId": "block",
+          "channel": "core_magnitude",
+          "bucket": "defense",
+          "missingResource": "Ignore",
+          "settlement": {}
+        }
+      ]
+    },
+    {
+      "source": "data/configs/volatile-core/Resources/calculation-pipelines/core.json",
+      "sha256": "0b5d65ebe029a636c484602884ec052f74b95fb139e9824584df3f27199b2c2f",
+      "pipelineId": "core_counts",
+      "channel": "core_counts",
+      "unitId": "stacks",
+      "stages": [
+        {
+          "stageId": "core_count_origin",
+          "scope": "Shared"
+        },
+        {
+          "stageId": "core_count_target",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "base",
+          "stageId": "core_count_origin"
+        },
+        {
+          "bucketId": "target",
+          "stageId": "core_count_target",
+          "order": 1
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/volatile-core/Resources/calculation-pipelines/core.json",
+      "sha256": "0b5d65ebe029a636c484602884ec052f74b95fb139e9824584df3f27199b2c2f",
+      "pipelineId": "core_overflow",
+      "channel": "core_overflow",
+      "unitId": "points",
+      "stages": [
+        {
+          "stageId": "core_remainder",
+          "scope": "Target"
+        }
+      ],
+      "buckets": [
+        {
+          "bucketId": "remainder",
+          "stageId": "core_remainder",
+          "operation": "Formula",
+          "formula": "continuation.requested_change - continuation.applied_change * -1"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    },
+    {
+      "source": "data/configs/volatile-core/Resources/calculation-pipelines/core.json",
+      "sha256": "0b5d65ebe029a636c484602884ec052f74b95fb139e9824584df3f27199b2c2f",
+      "pipelineId": "core_attributes",
+      "channel": "core_attributes",
+      "unitId": "attribute_points",
+      "stages": [],
+      "buckets": [
+        {
+          "bucketId": "base"
+        }
+      ],
+      "statBindings": [],
+      "resourceBindings": []
+    }
+  ]
+}
