@@ -626,9 +626,45 @@ var startupSettingIds = (configuredStartupSettingIds.Length > 0
 if (startupSettingIds.Length == 0)
     throw new InvalidOperationException("No startup settings were discovered or configured");
 
+var startupCache = new StartupContentCache(contentStorePath);
+startupMark = startupTimings.Now;
+var startupFingerprint = StartupContentCache.Fingerprint(packageRoots);
+var startupCacheEntry = startupFingerprint == null ? null : startupCache.Read(startupFingerprint, startupSettingIds);
+startupTimings.Record("startup_cache_fingerprint", startupMark);
+var publication = app.Services.GetRequiredService<IContentPublicationService>();
+var manifestProvider = app.Services.GetRequiredService<IContentManifestProvider>();
+var cachedBundles = new Dictionary<string, ContentBundle>(StringComparer.Ordinal);
+if (startupCacheEntry != null)
+{
+    foreach (var settingId in startupSettingIds)
+    {
+        var loaded = publication.GetPublishedAsync(startupCacheEntry.Revisions[settingId]).GetAwaiter().GetResult();
+        if (loaded.IsFailure || !string.Equals(loaded.Value.Manifest.ConfigName, settingId, StringComparison.Ordinal))
+        {
+            cachedBundles.Clear();
+            break;
+        }
+        cachedBundles.Add(settingId, loaded.Value);
+    }
+    if (cachedBundles.Count == startupSettingIds.Length &&
+        !string.Equals(startupFingerprint, StartupContentCache.Fingerprint(packageRoots), StringComparison.Ordinal))
+        cachedBundles.Clear();
+}
+
+var startupRevisions = new Dictionary<string, string>(StringComparer.Ordinal);
 foreach (var settingId in startupSettingIds)
 {
     startupProgress.Report("loading_settings", settingId);
+    if (cachedBundles.TryGetValue(settingId, out var cached))
+    {
+        startupMark = startupTimings.Now;
+        var activation = manifestProvider.ActivatePublishedManifest(cached.Manifest);
+        if (activation.IsFailure)
+            throw new InvalidOperationException($"Startup setting '{settingId}' activation failed: {activation.Error}");
+        startupTimings.Record("setting_cached", startupMark, settingId);
+        startupRevisions.Add(settingId, cached.Manifest.Revision);
+        continue;
+    }
     startupMark = startupTimings.Now;
     var startupCompilation = settingCompiler
         .CompileFromCatalogAsync(settingId, settingCatalog)
@@ -639,7 +675,7 @@ foreach (var settingId in startupSettingIds)
         throw new InvalidOperationException(
             $"Startup setting '{settingId}' compilation failed: {startupCompilation.Error}");
     startupMark = startupTimings.Now;
-    var startupPublication = app.Services.GetRequiredService<IContentPublicationService>()
+    var startupPublication = publication
         .PublishBundleAsync(startupCompilation.Value.Bundle)
         .GetAwaiter()
         .GetResult();
@@ -647,7 +683,11 @@ foreach (var settingId in startupSettingIds)
     if (startupPublication.IsFailure)
         throw new InvalidOperationException(
             $"Startup setting '{settingId}' publication failed: {startupPublication.Error}");
+    startupRevisions.Add(settingId, startupPublication.Value.Manifest.Revision);
 }
+if (cachedBundles.Count == 0 && startupFingerprint != null &&
+    string.Equals(startupFingerprint, StartupContentCache.Fingerprint(packageRoots), StringComparison.Ordinal))
+    startupCache.Write(startupFingerprint, startupRevisions);
 
 // Cache membership is explicit and complete. The coordinator orders broad
 // invalidations by dependency and preserves revision-addressed runtimes unless
