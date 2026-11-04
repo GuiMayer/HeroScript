@@ -186,8 +186,29 @@ flowchart TD
      * **Eixo Elementar / Origem:** `Fogo`, `Vazio`, `Sombra`, `Divino`, `Arcano`.
      * **Eixo Funcional / Papel:** `Ataque`, `Defesa`, `Buff`, `Postura`, `Feitiço`.
    * **Inscrições Operam em Interseções:** As Inscrições filtram regras combinadas (ex: *"Ataques de [Fogo] aplicam +2 Queimaduras"*; *"Defesas de [Fogo] geram +10 de Calor"*). Isso garante que um buff de fogo nunca queime o próprio herói e que defesas de fogo não ativem gatilhos ofensivos indevidos.
-3. **Barramento de Eventos e Fila de Ações:** Modelo estrito `Gatilho -> Condição -> Ação`.
-4. **Data-Driven Total (JSON):** Cartas, inimigos, companions e inscrições declarados em dados.
+3. **Anatomia & Apresentação Visual da Carta:**
+   * **Custo de Uso (Energia):** Posicionado no **canto superior direito** da carta (na linha do cabeçalho).
+   * **Título da Carta:** Topo esquerdo do cabeçalho.
+   * **Tags de Origem (Elemento):** Posicionadas diretamente **embaixo do título da carta** (ex: `[Fogo]`, `[Vazio]`, `[Sombra]`), permitindo leitura imediata da afinidade elementar antes da arte.
+   * **Área Central:** Arte/Ilustração (`ArtSlot`).
+   * **Corpo da Carta:** Tag de Função (`[Ataque]`, `[Defesa]`, `[Buff]`, `[Postura]`) e texto explicativo com números coloridos pelo scaling de atributos.
+
+```text
+┌──────────────────────────────────────────────┐
+│  [NOME DA CARTA]                  (⚡ CUSTO) │
+│  🏷️ [TAGS DE ORIGEM: ex: FOGO / VAZIO]       │
+├──────────────────────────────────────────────┤
+│                                              │
+│             [ARTE DA CARTA]                  │
+│                                              │
+├──────────────────────────────────────────────┤
+│  [TAG DE FUNÇÃO: ATAQUE / DEFESA / BUFF]     │
+│  Descrição do efeito com escalonamento...    │
+└──────────────────────────────────────────────┘
+```
+
+4. **Barramento de Eventos e Fila de Ações:** Modelo estrito `Gatilho -> Condição -> Ação`.
+5. **Data-Driven Total (JSON):** Cartas, inimigos, companions e inscrições declarados em dados.
 
 ---
 

@@ -14,9 +14,10 @@ Este documento consolida as diretrizes discutidas na conversa e as decisões de 
 | --- | --- | --- |
 | Nome | Cabeçalho | Posição estável. Nome longo não comprime custos nem vira texto vertical. O nome completo fica nos detalhes. |
 | Upgrade permanente | Indicador perto do nome | Usar um indicador separado. Não confundir upgrade da carta com status do personagem ou influência temporária. |
-| Custo de uso | Faixa própria abaixo do nome | Um token por recurso, com símbolo e quantidade. `+` significa pagamento conjunto; `OR` significa opções alternativas publicadas pela engine. |
+| Custo de uso | Canto superior direito, na linha do nome | Um token compacto por recurso. No tema impresso, símbolo escuro de 24×24 px com número branco centralizado sobreposto (fonte base 16). Preencher a própria silhueta do SVG, sem círculo ou painel adicional; exterior transparente, aspecto preservado e área quadrada 1:1. Dimensões, cor do símbolo e do número pertencem a `CardVisualStyle`. `+` significa pagamento conjunto; `OR` significa opções alternativas publicadas pela engine. |
 | Arte | Área central reservada | Usar `ArtSlot`, com placeholder identificável pelo nome enquanto não houver arte. Substituir a arte sem refazer o layout. |
 | Tipo e afinidade | Linha abaixo da arte | Mostrar tipo e tags com significado para o jogador. Tags técnicas ficam nos detalhes. Os rótulos são configuráveis na apresentação. |
+| Tags de origem | Faixa logo abaixo do título | Mostrar as tags de afinidade e origem elementar (ex: `Fogo`, `Vazio`, `Sombra`, `Arcano`) diretamente abaixo do título da carta (com o custo no canto superior direito), permitindo identificação imediata antes da arte. |
 | Raridade | Borda externa e texto discreto | A borda da carta, do tooltip e do painel de inspeção deve usar a mesma cor. O nome da raridade continua disponível, evitando depender só da cor. |
 | Condição para usar a carta | Faixa antes dos efeitos | Mostrar o requisito e, quando publicado, se ele foi atendido. Não avaliar expressões na Godot. |
 | Efeitos | Corpo principal | Verbo, valor, recurso/status e categoria de alvo (um alvo, todos os inimigos, você). Nunca nome do personagem atingido. Efeitos de recursos não presumem que dano significa reduzir vida. |
@@ -122,6 +123,37 @@ Opções de pagamento ainda não cotadas pela engine recebem indicação de cust
 Para novos settings, nomes de condições podem ser configurados por componente em `cards.<id>.conditions`; descrições de fluxos e condensação usam `card_flow_labels` e `condensation_labels`. Quando falta uma descrição, a interface aponta para os detalhes em vez de atribuir semântica arbitrária ao identificador.
 
 ## Referências e interpretação
+
+### Tooltip de regras e scaling
+
+A duração usa `effect_duration_presenter.gd`, apenas na camada visual. O sentinel
+`-1` aparece como “Sem expiração por tempo”, sem prometer persistência entre
+combates ou impedir consumo/remoção. Valores positivos mostram o contador e a
+fronteira de redução quando publicada (`durationTickBoundary`/`durationBoundary`).
+Sem essa informação, a unidade neutra é “ciclos”, nunca turnos presumidos.
+Valores ainda não calculados aparecem como “Duração definida ao aplicar”.
+Cartas e status no painel lateral compartilham essa apresentação localizada.
+
+O tooltip complementa a face: explica os status/efeitos referenciados ainda não
+explicados nela e apresenta somente os scalings pertinentes. Não repete custo,
+raridade, todas as camadas numéricas, IDs internos ou buckets não aplicáveis.
+Exemplo: `Cura · Vida: 24 (base 4)` seguido de `20% Vida máxima (100)`.
+Os valores e contribuições vêm da engine; a Godot apenas formata percentuais.
+Armadura e chance crítica não aparecem em uma cura que não as utiliza.
+Impactos específicos de alvo permanecem no preview separado.
+
+`card_glossary_presenter.gd` usa `referencedRules` da revisão fixada, com tradução
+por `<definitionId>.description`. Recibos antigos podem usar os IDs explícitos
+do efeito e o catálogo localizado. Descrições desconhecidas são sinalizadas,
+nunca inferidas do nome. Conteúdo novo deve fornecer uma descrição útil.
+`card_calculation_presenter.gd` consome os resultados publicados e bindings
+aplicados do ator. Fórmulas personalizadas não são avaliadas nem invertidas.
+Focus, Guard reserve e suas liberações possuem explicações em inglês/português.
+
+A hierarquia e a redução de ruído seguem o princípio descrito pela Riot em
+[Clarity in League](https://www.leagueoflegends.com/en-us/news/dev/clarity-in-league/),
+adaptado à leitura de cartas: resultado, atributo relevante e circunstâncias
+aplicadas, em vez de um relatório técnico de cálculo.
 
 A separação de nome, custo, arte, tipo e regras aproveita a anatomia documentada de [Magic: The Gathering](https://magic.wizards.com/en/news/feature/anatomy-magic-card-2006-10-21). A posição exata dos custos e a raridade na borda são decisões deste projeto.
 
