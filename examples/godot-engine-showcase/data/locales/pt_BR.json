@@ -1,4 +1,8 @@
 {
+  "●  PREPARING DATA": "●  PREPARANDO DADOS",
+  "●  BUILDING SERVER": "●  COMPILANDO SERVIDOR",
+  "●  STARTING SERVER": "●  INICIANDO SERVIDOR",
+  "●  LOADING SETTINGS": "●  CARREGANDO CONFIGURAÇÕES",
   "Offline snapshot — open a run to edit this build.": "Exemplo offline — abra uma campanha para editar esta build.",
   "STORE  •  %s": "GUARDAR  •  %s",
   "DECOMPILE  •  %s → %s": "DECOMPILAR  •  %s → %s",

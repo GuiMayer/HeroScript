@@ -2,9 +2,14 @@ extends Node
 ## Composition root: the only bridge between local preferences and engine services.
 const Transport = preload("res://scripts/engine/http_transport.gd")
 const Gateway = preload("res://scripts/engine/engine_gateway.gd")
+signal server_progress(phase: String)
 var _transport
+var _local_server
 
 func _ready() -> void:
+	_local_server = preload("res://scripts/engine/local_server.gd").new()
+	add_child(_local_server)
+	_local_server.progress_changed.connect(server_progress.emit)
 	_transport = Transport.new()
 	add_child(_transport)
 	_apply_connection()
@@ -39,3 +44,6 @@ func _remember_progress() -> void:
 
 func diagnostics() -> Array:
 	return _transport.timings.duplicate(true)
+
+func ensure_local_engine() -> Dictionary:
+	return await _local_server.ensure_started(Preferences.api_url)

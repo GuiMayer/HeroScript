@@ -4,20 +4,43 @@ param(
     [switch]$KeepEngine,
     [switch]$VerboseGodot,
     [switch]$UiSmoke,
+    [switch]$ServerOnly,
+    [switch]$AutoStart,
+    [int]$ClientProcessId = 0,
+    [string]$PlayerDataRoot = '',
+    [string]$ProgressPath = '',
+    [string]$ProgressAttempt = '',
     [ValidateRange(1024, 65535)][int]$Port = 5271
 )
 
 $ErrorActionPreference = 'Stop'
 $demoRoot = $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $demoRoot '..\..')).Path
-$runtimeRoot = Join-Path $demoRoot '.runtime'
-if ($Port -ne 5271) { $runtimeRoot = Join-Path $runtimeRoot "qa-$Port" }
+. (Join-Path $demoRoot 'scripts/launcher/player_data.ps1')
+$playerRoot = Get-HeroScriptPlayerRoot
+if ($PlayerDataRoot) { $playerRoot = [IO.Path]::GetFullPath($PlayerDataRoot) }
+$runtimeRoot = Get-HeroScriptRuntimeRoot $playerRoot $Port
 $apiProject = Join-Path $repositoryRoot 'src\API\API.csproj'
 $apiUrl = "http://127.0.0.1:$Port"
 $startedEngine = $null
+$ownedApi = $null
+$startupMutex = [Threading.Mutex]::new($false, "Local\HeroScriptDemoStartup-$Port")
+$startupLock = $false
+
+function Write-StartupProgress([string]$Phase) {
+    if (-not $ProgressPath -or -not $ProgressAttempt) { return }
+    try {
+        $temporary = "$ProgressPath.$PID.tmp"
+        $record = @{ version = 1; attemptId = $ProgressAttempt; phase = $Phase; timestampUtc = [DateTimeOffset]::UtcNow.ToString('o') }
+        [IO.File]::WriteAllText($temporary, ($record | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $temporary -Destination $ProgressPath -Force
+    } catch { Write-Warning "Startup progress could not be written: $_" }
+}
 
 function Test-CompatibleDemoEngine {
+    param([switch]$IgnoreStorageBinding)
     try {
+        if (-not $IgnoreStorageBinding -and -not (Test-HeroScriptStorageBinding $runtimeRoot $Port)) { return $false }
         Invoke-RestMethod -Uri "$apiUrl/api/v1/health/ready" -TimeoutSec 1 | Out-Null
         $capabilities = Invoke-RestMethod -Uri "$apiUrl/api/v1/capabilities" -TimeoutSec 2
         $catalog = Invoke-RestMethod -Uri "$apiUrl/api/v1/content/settings" -TimeoutSec 2
@@ -70,18 +93,28 @@ function Stop-StaleWorkspaceEngine {
     throw "A instância antiga da HeroScript não liberou a porta $Port."
 }
 
-New-Item -ItemType Directory -Force -Path `
-    (Join-Path $runtimeRoot 'runs'), `
-    (Join-Path $runtimeRoot 'content'), `
-    (Join-Path $runtimeRoot 'telemetry') | Out-Null
-
 try {
-    if (Test-CompatibleDemoEngine) {
+    try { $startupLock = $startupMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $startupLock = $true }
+    if (-not $startupLock) { throw "Outra inicialização já está em andamento na porta $Port. Aguarde o servidor ficar pronto." }
+    $reuseEngine = Test-CompatibleDemoEngine
+    if (-not $reuseEngine) {
+        if ($AutoStart -and (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)) {
+            throw "Porta $Port ocupada por um servidor não reconhecido. A inicialização automática não encerra servidores existentes."
+        }
+        Stop-StaleWorkspaceEngine
+    }
+    Write-StartupProgress 'preparing_data'
+    $legacyPreferences = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)) 'Godot/app_userdata/HeroScript- Ember Archive/heroscript_showcase.cfg'
+    $runtimeRoot = Initialize-HeroScriptPlayerData -DemoRoot $demoRoot -PlayerRoot $playerRoot -Port $Port -LegacyPreferences $legacyPreferences
+    Write-Host "Dados do jogador: $playerRoot" -ForegroundColor Cyan
+    if ($reuseEngine) {
         Write-Host "HeroScript online: $apiUrl" -ForegroundColor Green
     }
     else {
-        Stop-StaleWorkspaceEngine
+        Write-StartupProgress 'building_server'
         $apiEnvironment = @{
+            HEROSCRIPT_STARTUP_PROGRESS_PATH = $ProgressPath
+            HEROSCRIPT_STARTUP_ATTEMPT = $ProgressAttempt
             ASPNETCORE_URLS = $apiUrl
             ToolAccess__Profile = 'dev_modder'
             Admin__Enabled = 'true'
@@ -96,17 +129,17 @@ try {
         }
         $buildRoot = Join-Path $runtimeRoot 'build'
         $startedEngine = Start-Process -FilePath 'dotnet' `
-            -ArgumentList @('run', '--configuration', 'Release', '--project', $apiProject, '--no-launch-profile', '--artifacts-path', "`"$buildRoot`"") `
+            -ArgumentList @('run', '--configuration', 'Release', '--project', "`"$apiProject`"", '--no-launch-profile', '--artifacts-path', "`"$buildRoot`"") `
             -WorkingDirectory $repositoryRoot -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $runtimeRoot 'engine.log') `
             -RedirectStandardError (Join-Path $runtimeRoot 'engine-error.log')
         $ready = $false
-        for ($attempt = 0; $attempt -lt 80; $attempt++) {
+        for ($attempt = 0; $attempt -lt 240; $attempt++) {
             Start-Sleep -Milliseconds 250
             if ($startedEngine.HasExited) {
                 throw "HeroScript stopped during startup. See $runtimeRoot\engine.log."
             }
-            if (Test-CompatibleDemoEngine) {
+            if (Test-CompatibleDemoEngine -IgnoreStorageBinding) {
                 $ready = $true
                 break
             }
@@ -114,8 +147,23 @@ try {
         if (-not $ready) {
             throw "A HeroScript não iniciou. Consulte $runtimeRoot\engine-error.log."
         }
+        Save-HeroScriptStorageBinding $runtimeRoot $Port
+        $boundListener = Get-NetTCPConnection -LocalPort $Port -State Listen | Select-Object -First 1
+        $ownedApi = Get-Process -Id $boundListener.OwningProcess
         Write-Host 'HeroScript iniciada com dados isolados da demo.' -ForegroundColor Green
         if ($KeepEngine) { Write-Host "EngineProcessId=$($startedEngine.Id)" }
+    }
+    $startupMutex.ReleaseMutex()
+    $startupLock = $false
+
+    if ($ServerOnly) {
+        if ($null -ne $startedEngine -and -not $KeepEngine) {
+            $client = if ($ClientProcessId -gt 0) { Get-Process -Id $ClientProcessId -ErrorAction SilentlyContinue } else { $null }
+            while (-not $startedEngine.HasExited -and ($ClientProcessId -eq 0 -or ($null -ne $client -and -not $client.HasExited))) {
+                Start-Sleep -Milliseconds 500
+            }
+        }
+        return
     }
 
     if ($Headless -or $UiSmoke) {
@@ -135,6 +183,12 @@ try {
     }
 }
 finally {
+    if ($startupLock) { $startupMutex.ReleaseMutex() }
+    $startupMutex.Dispose()
+    if ($null -ne $startedEngine -and -not $KeepEngine -and $null -ne $ownedApi -and -not $ownedApi.HasExited) {
+        # dotnet run is the parent; its API child must not survive the game.
+        Stop-Process -Id $ownedApi.Id -ErrorAction SilentlyContinue
+    }
     if ($null -ne $startedEngine -and -not $KeepEngine -and -not $startedEngine.HasExited) {
         Stop-Process -Id $startedEngine.Id
     }

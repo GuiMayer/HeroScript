@@ -45,7 +45,11 @@ func apply_model(data: Dictionary) -> void:
 				control.custom_minimum_size.y = visual_style.link_height if control.get_meta("menu_link",false) else visual_style.action_height
 			control.tooltip_text = control.text
 	var status = get_node("%EngineStatus")
-	status.text = i18n.text("●  CONNECTING" if model.get("connecting",false) else ("●  ENGINE ONLINE" if model.available else "●  ENGINE OFFLINE"))
+	var phase_keys := {"preparing_data": "●  PREPARING DATA", "building_server": "●  BUILDING SERVER",
+		"starting_server": "●  STARTING SERVER", "loading_settings": "●  LOADING SETTINGS",
+		"connecting": "●  CONNECTING"}
+	var status_key: String = phase_keys.get(str(model.get("serverPhase", "connecting")), "●  CONNECTING") if model.get("connecting", false) else ("●  ENGINE ONLINE" if model.available else "●  ENGINE OFFLINE")
+	status.text = i18n.text(status_key)
 	status.add_theme_color_override("font_color",visual_context.styles.TEAL if model.available else visual_context.styles.GOLD)
 	status.set_meta("text_role","accent.positive" if model.available else "accent.primary")
 	var title = get_node("%SettingTitle")

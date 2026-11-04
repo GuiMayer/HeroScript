@@ -30,6 +30,7 @@ var dialogue_return_barrier: bool:
 func _run_navigation_scope() -> String:
 	return JSON.stringify([GameSession.run.get("runId", ""), GameSession.run.get("branchId", ""), GameSession.run.get("currentNodeId", "")])
 var _probing_engine := false
+var _server_phase := "connecting"
 const MENU_ROUTES := ["menu", "settings", "history", "sandbox", "codex", "loadout_lab"]
 var _entry_profile: Resource
 var _gameplay_profile: Resource
@@ -58,6 +59,7 @@ func _ready() -> void:
 	shell.menu_requested.connect(_pause_menu)
 	shell.abandon_requested.connect(_abandon_from_pause)
 	host.child_entered_tree.connect(_queue_focus_preparation)
+	GameServices.server_progress.connect(_on_server_progress)
 	GameSession.failed.connect(func(error): show_error(I18n.error(error)))
 	GameSession.changed.connect(_on_session_changed)
 	Preferences.changed.connect(_apply_preferences)
@@ -100,10 +102,26 @@ func _load_presentation() -> void:
 			presentation = I18n.presentation(value)
 	visual_context.set_resource_styles(presentation.get("resources", {}))
 
+func _on_server_progress(phase: String) -> void:
+	_server_phase = phase
+	if current_screen == "menu" and _probing_engine: _show_main_menu()
+
 func _probe_engine() -> void:
 	if _probing_engine or GameSession.busy or GameSession.has_pending_command: return
 	_probing_engine = true
 	if current_screen == "menu": _show_main_menu()
+	var captured_url: String = Preferences.api_url
+	var startup: Dictionary = await GameServices.ensure_local_engine()
+	if not is_inside_tree(): return
+	if captured_url != Preferences.api_url:
+		_probing_engine = false
+		_probe_engine.call_deferred()
+		return
+	if not startup.ok:
+		_probing_engine = false
+		show_error(I18n.error(startup))
+		if current_screen == "menu": _show_main_menu()
+		return
 	if await GameSession.connect_engine(Preferences.selected_setting_id):
 		Preferences.selected_setting_id = GameSession.selected_setting_id
 		visual_context.setting_id = GameSession.selected_setting_id
@@ -160,7 +178,7 @@ func _show_main_menu() -> void:
 		"A short ascent powered by HeroScript. Cards, enemies, resources, map and flow live in JSON; Godot brings each decision to life."))
 	view.apply_model({"settingName": setting_name, "description": I18n.text(setting_description),
 		"settings": GameSession.settings, "selectedSettingId": GameSession.selected_setting_id,
-		"available": GameSession.available, "pending": GameSession.has_pending_command, "connecting": _probing_engine})
+		"available": GameSession.available, "pending": GameSession.has_pending_command, "connecting": _probing_engine, "serverPhase": _server_phase})
 	AppTheme.apply_view_preferences(view, visual_context.text_scale, visual_context.high_contrast)
 	if view.get_parent() == null: host.add_child(view)
 	else: preload("res://scripts/ui/focus_navigation.gd").queue(view)
