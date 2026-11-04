@@ -1,0 +1,25 @@
+{
+  "scope": "Numeric reducer including trace and fingerprint; excludes resolver, REST, persistence and UI",
+  "configuration": "Release",
+  "runtime": "10.0.9",
+  "samplesPerCase": 200,
+  "warmupPerCase": 20,
+  "results": [
+    {
+      "name": "shared-group",
+      "value": 145,
+      "p50Ms": 0.1719,
+      "p95Ms": 0.25,
+      "p99Ms": 0.3316,
+      "fingerprint": "d7923083320437ad5503ccc75dc9445e17f366ab4fb0bef00b31a72cbc7c17a2"
+    },
+    {
+      "name": "separate-groups",
+      "value": 150,
+      "p50Ms": 0.2021,
+      "p95Ms": 0.6057,
+      "p99Ms": 0.9285,
+      "fingerprint": "d80aae124822086ee42c71c3d564ca11506cf547c37470bd7d9a3ed32f29a15b"
+    }
+  ]
+}

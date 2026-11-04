@@ -1,0 +1,81 @@
+[
+  {
+    "name": "shared-group",
+    "request": {
+      "calculationId": "baseline",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "baseValue": 100,
+      "influences": [
+        {
+          "influenceId": "attribute",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "heat",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25
+        }
+      ]
+    },
+    "pipeline": {
+      "pipelineId": "baseline",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "buckets": [
+        {
+          "bucketId": "increased",
+          "order": 10,
+          "operation": "AddPercent"
+        }
+      ]
+    }
+  },
+  {
+    "name": "separate-groups",
+    "request": {
+      "calculationId": "baseline",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "baseValue": 100,
+      "influences": [
+        {
+          "influenceId": "attribute",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "heat",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "heat",
+          "value": 0.25
+        }
+      ]
+    },
+    "pipeline": {
+      "pipelineId": "baseline",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "buckets": [
+        {
+          "bucketId": "increased",
+          "order": 10,
+          "operation": "AddPercent"
+        },
+        {
+          "bucketId": "heat",
+          "order": 20,
+          "operation": "AddPercent"
+        }
+      ]
+    }
+  }
+]
