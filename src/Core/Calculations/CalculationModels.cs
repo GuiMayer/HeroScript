@@ -90,6 +90,8 @@ public sealed record CalculationGroupingDefinition
 {
     public ImmutableArray<string> SubjectKeys { get; init; } = [];
     public ImmutableArray<float> WeightBySubjectCount { get; init; } = [];
+    public ImmutableSortedDictionary<string, ImmutableSortedDictionary<string, float>> SubjectWeightOverrides { get; init; } =
+        ImmutableSortedDictionary<string, ImmutableSortedDictionary<string, float>>.Empty;
     public ImmutableSortedDictionary<string, string> InfluenceGroups { get; init; } =
         ImmutableSortedDictionary<string, string>.Empty;
     public ImmutableSortedDictionary<string, CalculationGroupDefinition> Groups { get; init; } =
@@ -168,6 +170,7 @@ public sealed record CalculationRequest
     public CalculationValuePolicy ValuePolicy { get; init; } = new();
     public bool CaptureOnly { get; init; }
     public ImmutableArray<string> SubjectKeys { get; init; } = [];
+    public string? SubjectDefinitionId { get; init; }
     public IReadOnlyList<CalculationInfluence> Influences
     {
         get => _influences;

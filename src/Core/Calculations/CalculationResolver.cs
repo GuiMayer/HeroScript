@@ -180,6 +180,7 @@ public sealed class CalculationResolver(
                 calculationContext.SelectsInfluence(item.Channel, item.Bucket)).ToArray(),
             Tags = tags,
             SubjectKeys = context.Card?.Tags.Order(StringComparer.Ordinal).ToImmutableArray() ?? [],
+            SubjectDefinitionId = context.Card?.DefinitionId,
             Variables = context.Variables
         }, pipeline);
         if (calculated.IsFailure) return Result<ResolvedEffectAmount>.Failure(calculated.Error);

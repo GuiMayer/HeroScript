@@ -198,6 +198,10 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                  grouping.SubjectKeys.Any(string.IsNullOrWhiteSpace) ||
                  grouping.SubjectKeys.Distinct(StringComparer.Ordinal).Count() != grouping.SubjectKeys.Length ||
                  grouping.WeightBySubjectCount.Any(weight => !IsFinite(weight) || weight < 0) ||
+                 grouping.SubjectWeightOverrides is null ||
+                 grouping.SubjectWeightOverrides.Any(subject => string.IsNullOrWhiteSpace(subject.Key) ||
+                     subject.Value is null || subject.Value.Any(weight => !grouping.Groups.ContainsKey(weight.Key) ||
+                         !IsFinite(weight.Value) || weight.Value < 0)) ||
                  (!grouping.WeightBySubjectCount.IsEmpty && grouping.SubjectKeys.IsEmpty) ||
                  grouping.Groups.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || pair.Value is null ||
                      !IsFinite(pair.Value.Weight) || pair.Value.Weight < 0 || pair.Value.Parameters is null ||
@@ -446,6 +450,19 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
             .ToHashSet(StringComparer.Ordinal);
         if (!grouping.WeightBySubjectCount.IsEmpty && subjectKeys.Count > grouping.WeightBySubjectCount.Length)
             return Result<BucketEvaluation>.Failure($"Bucket {bucket.BucketId} has no weight for {subjectKeys.Count} subject keys");
+        var overrides = request.SubjectDefinitionId is { } subjectId
+            ? grouping.SubjectWeightOverrides.GetValueOrDefault(subjectId)
+            : null;
+        if (overrides != null && !grouping.WeightBySubjectCount.IsEmpty && subjectKeys.Count > 0)
+        {
+            var defaultWeight = grouping.WeightBySubjectCount[subjectKeys.Count - 1];
+            var budget = defaultWeight * subjectKeys.Count;
+            var actual = subjectKeys.Order(StringComparer.Ordinal).Sum(key =>
+                overrides.TryGetValue(key, out var weight) ? weight :
+                defaultWeight * (grouping.Groups.GetValueOrDefault(key)?.Weight ?? 1));
+            if (!IsFinite(actual) || actual > budget + 0.00001f)
+                return Result<BucketEvaluation>.Failure($"Bucket {bucket.BucketId} exceeds the subject weight budget");
+        }
         var total = 0f;
         foreach (var group in influences
                      .GroupBy(item => grouping.InfluenceGroups.GetValueOrDefault(item.InfluenceId), StringComparer.Ordinal)
@@ -465,6 +482,8 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
                 weight = definition.Weight;
                 if (!grouping.WeightBySubjectCount.IsEmpty)
                     weight *= grouping.WeightBySubjectCount[subjectKeys.Count - 1];
+                if (overrides != null && overrides.TryGetValue(key, out var explicitWeight))
+                    weight = explicitWeight;
                 if (definition.Formula is { } formula)
                 {
                     if (formulas is null)
