@@ -314,6 +314,14 @@
       "title": "Inscrições: contratos de conteúdo"
     },
     {
+      "source": "docs/content/calculation-build-groups.md",
+      "docId": "content/calculation-build-groups",
+      "slug": "/developers/content/calculation-build-groups/",
+      "section": "developers",
+      "category": "Autoria JSON",
+      "title": "Grupos de build na pipeline de cálculo"
+    },
+    {
       "source": "docs/content/multi-tier-critical-inputs.md",
       "docId": "content/multi-tier-critical-inputs",
       "slug": "/developers/content/multi-tier-critical-inputs/",
