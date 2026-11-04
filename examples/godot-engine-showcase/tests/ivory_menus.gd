@@ -127,7 +127,7 @@ func _run() -> void:
 			prefs.high_contrast = true
 			router._apply_preferences()
 			await settle()
-			check(router.pause_layer.find_child("PauseCircuit", true, false).simplified and AppTheme.profile == original, "accessible pause refresh stays scoped to the overlay")
+			check(router.pause_layer.find_child("PauseCircuit", true, false) == null and AppTheme.profile == original, "accessible pause refresh stays scoped to the overlay")
 			await capture("pause-high-contrast-" + language)
 			prefs.high_contrast = false
 			router.toggle_pause()
