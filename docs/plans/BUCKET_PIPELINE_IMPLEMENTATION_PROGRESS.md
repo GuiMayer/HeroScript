@@ -75,3 +75,10 @@ O valor base entra no resolver sem receipt. Captura e distribuição transportam
 
 CalculationDistributionTests e CondensationTests passaram na mesma execução. Cobrem conservação exata, isolamento por alvo, capacidade defensiva viva, revisão incompatível e avaliação configurável no início da ação ou na execução.
 
+
+## Etapa 7 — Condições e defesa
+
+Calor entra por binding de recurso e tag, Molhado entra na liberação configurada e armor precede o consumo da capacidade defensiva. A autoridade de aplicação é o settlement; o redutor trabalha com números resolvidos.
+
+CalculationSettlementTests e os testes de distribuição passaram na mesma execução. O teste API de Calor/Molhado da etapa 0 cobriu quatro entradas, mas a matriz completa de bordas, Sleep e cooldown ainda exige certificação. O checkout tem uma alteração preexistente que move Calor para `increased`; ela fica fora deste commit.
+
