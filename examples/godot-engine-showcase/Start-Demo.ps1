@@ -96,6 +96,13 @@ function Stop-StaleWorkspaceEngine {
 
 try {
     try { $startupLock = $startupMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $startupLock = $true }
+    if (-not $startupLock -and $AutoStart) {
+        Write-StartupProgress 'connecting'
+        for ($wait = 0; $wait -lt 240; $wait++) {
+            if (Test-CompatibleDemoEngine) { return }
+            Start-Sleep -Milliseconds 250
+        }
+    }
     if (-not $startupLock) { throw "Outra inicialização já está em andamento na porta $Port. Aguarde o servidor ficar pronto." }
     $reuseEngine = Test-CompatibleDemoEngine
     if (-not $reuseEngine) {

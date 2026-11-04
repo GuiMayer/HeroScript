@@ -29,5 +29,7 @@ func _run() -> void:
 	var connected: bool = await session.connect_engine("prototype-test")
 	var total_ms := Time.get_ticks_msec() - started
 	print("STARTUP_GODOT ready_ms=%s connected_ms=%s phases=%s" % [ready_ms, total_ms, phases])
+	if OS.get_environment("HEROSCRIPT_AUTOSTART_HOLD") == "1":
+		await create_timer(3).timeout
 	root.get_node("GameAudio").shutdown()
 	quit(0 if connected else 1)
