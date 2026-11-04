@@ -38,6 +38,8 @@ using API.Contracts;
 using Mods;
 
 var startupTimings = new StartupTimings();
+var startupProgress = new StartupProgress();
+startupProgress.Report("starting_server");
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseDefaultServiceProvider(options =>
 {
@@ -609,6 +611,7 @@ startupTimings.Record("host_build", startupMark);
 // Every discovered setting is published by default so launchers can switch the
 // complete config+content graph. Production hosts may restrict this explicitly
 // with Content:StartupSettings. Startup never exposes loose files to gameplay.
+startupProgress.Report("loading_settings");
 var settingCompiler = app.Services.GetRequiredService<ISettingCompiler>();
 startupMark = startupTimings.Now;
 var settingCatalog = settingCompiler.GetCatalogAsync().GetAwaiter().GetResult();
@@ -625,6 +628,7 @@ if (startupSettingIds.Length == 0)
 
 foreach (var settingId in startupSettingIds)
 {
+    startupProgress.Report("loading_settings", settingId);
     startupMark = startupTimings.Now;
     var startupCompilation = settingCompiler
         .CompileAsync(settingId)
@@ -719,5 +723,6 @@ Core.Determinism.SerializationMetadataWarmup.Prepare(
     app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>().Value.JsonSerializerOptions,
     typeof(Core.Run.Replay.ReplayTimelinePage), typeof(Core.Run.Replay.ReplayCommandPresentation));
 startupTimings.Record("serialization_warmup", startupMark);
+startupProgress.Report("connecting");
 app.Lifetime.ApplicationStarted.Register(() => startupTimings.Record("listening", 0));
 app.Run();
