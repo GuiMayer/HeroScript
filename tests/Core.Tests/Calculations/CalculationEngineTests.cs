@@ -68,6 +68,23 @@ public sealed class CalculationEngineTests
         Assert.Equal(0.4f, traces[1].Raw, precision: 4);
         formulas.Verify(evaluator => evaluator.EvaluateAtRevision("curve", "revision-a",
             It.IsAny<Dictionary<string, float>>(), It.IsAny<float>()), Times.Exactly(2));
+
+        var bucket = Assert.Single(pipeline.Buckets);
+        var overrides = ImmutableSortedDictionary<string, ImmutableSortedDictionary<string, float>>.Empty.Add(
+            "hybrid", ImmutableSortedDictionary<string, float>.Empty.Add("alpha", 0.9f).Add("beta", 0.7f));
+        var asymmetric = pipeline with { Buckets = [bucket with
+        {
+            Grouping = bucket.Grouping! with { SubjectWeightOverrides = overrides }
+        }] };
+        var weighted = new CalculationEngine(formulas.Object).Calculate(request with { SubjectDefinitionId = "hybrid" }, asymmetric);
+        Assert.True(weighted.IsSuccess, weighted.IsFailure ? weighted.Error : null);
+        Assert.Equal(15.375f, weighted.Value.Value, precision: 4);
+        var invalid = asymmetric with { Buckets = [bucket with
+        {
+            Grouping = bucket.Grouping! with { SubjectWeightOverrides = overrides.SetItem("hybrid",
+                overrides["hybrid"].SetItem("alpha", 1)) }
+        }] };
+        Assert.True(new CalculationEngine(formulas.Object).Calculate(request with { SubjectDefinitionId = "hybrid" }, invalid).IsFailure);
     }
 
     [Fact]
