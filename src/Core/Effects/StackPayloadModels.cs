@@ -60,6 +60,8 @@ public sealed record StackPayloadLot
     public Guid? CardInstanceId { get; init; }
     public string? CardDefinitionId { get; init; }
     public string? CardFingerprint { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<string>? CardSubjectKeys { get; init; }
     public ImmutableArray<CardInfluenceComponentDefinition> CardInfluences { get; init; } = [];
     public ImmutableSortedDictionary<string, float> Variables { get; init; } =
         ImmutableSortedDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);

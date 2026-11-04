@@ -73,6 +73,7 @@ public sealed class StackPayloadResolver(ICalculationResolver resolver, ICalcula
             OwnerEntityId = targetId, Origin = request.Provenance,
             CardInstanceId = request.Card?.CardInstanceId, CardDefinitionId = request.Card?.DefinitionId,
             CardFingerprint = request.Card?.Fingerprint,
+            CardSubjectKeys = request.Card?.Tags,
             CardInfluences = request.Card?.Components.OfType<CardInfluenceComponentDefinition>().ToImmutableArray() ?? [],
             Variables = request.Variables.Where(pair => !Generated(pair.Key))
                 .ToImmutableSortedDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
@@ -112,7 +113,8 @@ public sealed class StackPayloadResolver(ICalculationResolver resolver, ICalcula
                 var card = lot.CardInstanceId is { } cardId ? new EffectiveCardDefinition
                 {
                     CardInstanceId = cardId, DefinitionId = lot.CardDefinitionId!, Fingerprint = lot.CardFingerprint!,
-                    Components = lot.CardInfluences
+                    Components = lot.CardInfluences,
+                    Tags = lot.CardSubjectKeys ?? []
                 } : null;
                 var calculated = resolver.ResolveParameter(new() { Type = EffectType.APPLY_STATUS }, parameter.Definition.Numeric,
                     $"{calculationId}:lot:{lot.LotId}", new()
