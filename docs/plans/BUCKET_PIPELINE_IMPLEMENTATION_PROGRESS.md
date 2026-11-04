@@ -29,3 +29,9 @@ A referência histórica de desempenho em `docs/validation/TACTICAL_CAMPAIGN_MVP
 Criado `tools/CalculationBenchmark`, com entradas JSON em `tests/Fixtures/calculation-baseline/grouping.json`. A execução Release em .NET 10.0.9 passou, com 20 warmups e 200 amostras por caso, verificação de fingerprints e preservação dos inputs. Valores 145 e 150 confirmados. P95 local: 0,25 ms no grupo único e 0,6057 ms nos grupos separados. Resultado registrado em `docs/validation/bucket-pipeline-reducer-baseline.json`.
 
 A medição inclui trace/hash do redutor e exclui resolver, REST, persistência e interface. Não representa latência de POST e não fecha sozinha o gate da etapa 0. Os demais itens da baseline continuam abertos até evidência própria.
+
+## Integração de cálculo do prototype-test
+
+Cinco casos API em Release passaram: `PublishedCriticalTiersUseLinearBonusAndDoNotReuseAStaleSameStepActorQuote` e os quatro casos `PublishedHeatCaptureAndWetReleaseUseOnePipelineWithoutRescalingStoredPotency` (Calor 0, 60, 85, 100). A suíte verifica crítico linear, fingerprints repetidos, preservação do estado autoritativo e condensação sem reaplicar a potência capturada. Duração reportada: 1 min 19 s. Esses testes usam TestWebApplicationFactory e não medem latência por sockets de produção.
+
+A build inicial falhou porque a API aberta bloqueava DLLs de Release. A repetição usou `--artifacts-path .runtime/bucket-pipeline-build`, sem encerrar o servidor. Não declarar importação/build original limpos por causa dessa repetição isolada. Etapa 0 ainda pendente de corpus amplo com restart/branches e medição atual de comandos completos; etapas 1–12 não implementadas nesta continuação.
