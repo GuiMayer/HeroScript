@@ -23,6 +23,13 @@ static func launch_plan(url: String, arguments: PackedStringArray, demo_root: St
 	if port < 1024 or port > 65535: return {}
 	return {"port": port, "script": demo_root.path_join("Start-Demo.ps1")}
 
+static func startup_error_key(code: String) -> String:
+	match code:
+		"port_in_use": return "The local engine port is already in use."
+		"build_failed": return "The local engine could not be built. Check the engine logs."
+		"server_failed": return "The local engine stopped during startup. Check the engine logs."
+		_: return "Could not start the local engine. Check the launcher and .NET installation."
+
 func ensure_started(url: String) -> Dictionary:
 	var demo_root := _demo_root if not _demo_root.is_empty() else ProjectSettings.globalize_path("res://").simplify_path()
 	var sources := FileAccess.file_exists(demo_root.path_join("../../src/API/API.csproj")) and FileAccess.file_exists(demo_root.path_join("Start-Demo.ps1"))
@@ -57,7 +64,7 @@ func ensure_started(url: String) -> Dictionary:
 				if phase == "failed":
 					DirAccess.remove_absolute(progress_path)
 					starting = false
-					return {"ok": false, "errorKey": "Could not start the local engine. Check the launcher and .NET installation."}
+					return {"ok": false, "errorKey": startup_error_key(str(progress.get("errorCode", "")))}
 				if phase != last_phase and phase in ["preparing_data", "checking_build", "building_server", "starting_server", "loading_settings", "connecting"]:
 					last_phase = phase
 					progress_changed.emit(phase)

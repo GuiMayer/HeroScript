@@ -28,6 +28,7 @@ $startedEngine = $null
 $ownedApi = $null
 $startupMutex = [Threading.Mutex]::new($false, "Local\HeroScriptDemoStartup-$Port")
 $startupLock = $false
+$startupFailure = 'startup_failed'
 
 function Write-LauncherTiming([string]$Phase, [double]$StartedMs) {
     if ($env:HEROSCRIPT_STARTUP_TIMINGS -ne '1' -or -not $env:HEROSCRIPT_STARTUP_LAUNCHER_TIMINGS_PATH) { return }
@@ -37,11 +38,11 @@ function Write-LauncherTiming([string]$Phase, [double]$StartedMs) {
     } catch { Write-Warning "Launcher timing could not be written: $_" }
 }
 
-function Write-StartupProgress([string]$Phase) {
+function Write-StartupProgress([string]$Phase, [string]$ErrorCode = '') {
     if (-not $ProgressPath -or -not $ProgressAttempt) { return }
     try {
         $temporary = "$ProgressPath.$PID.tmp"
-        $record = @{ version = 1; attemptId = $ProgressAttempt; phase = $Phase; timestampUtc = [DateTimeOffset]::UtcNow.ToString('o') }
+        $record = @{ version = 1; attemptId = $ProgressAttempt; phase = $Phase; errorCode = $ErrorCode; timestampUtc = [DateTimeOffset]::UtcNow.ToString('o') }
         [IO.File]::WriteAllText($temporary, ($record | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
         Move-Item -LiteralPath $temporary -Destination $ProgressPath -Force
     } catch { Write-Warning "Startup progress could not be written: $_" }
@@ -118,6 +119,7 @@ try {
     Write-LauncherTiming 'existing_server_check' $phaseStart
     if (-not $reuseEngine) {
         if ($AutoStart -and (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)) {
+            $startupFailure = 'port_in_use'
             throw "Porta $Port ocupada por um servidor não reconhecido. A inicialização automática não encerra servidores existentes."
         }
         Stop-StaleWorkspaceEngine
@@ -150,7 +152,9 @@ try {
         }
         $buildRoot = Join-Path $runtimeRoot 'build'
         $phaseStart = $startupClock.Elapsed.TotalMilliseconds
+        $startupFailure = 'build_failed'
         $serverBinary = Get-HeroScriptServerBinary $repositoryRoot $apiProject $buildRoot $runtimeRoot
+        $startupFailure = 'server_failed'
         Write-LauncherTiming 'server_build' $phaseStart
         Write-StartupProgress 'starting_server'
         $phaseStart = $startupClock.Elapsed.TotalMilliseconds
@@ -211,7 +215,7 @@ try {
     }
 }
 catch {
-    Write-StartupProgress 'failed'
+    Write-StartupProgress 'failed' $startupFailure
     throw
 }
 finally {

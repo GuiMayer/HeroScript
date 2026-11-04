@@ -1,4 +1,7 @@
 {
+  "The local engine port is already in use.": "The local engine port is already in use.",
+  "The local engine could not be built. Check the engine logs.": "The local engine could not be built. Check the engine logs.",
+  "The local engine stopped during startup. Check the engine logs.": "The local engine stopped during startup. Check the engine logs.",
   "●  CHECKING BUILD": "●  CHECKING BUILD",
   "●  PREPARING DATA": "●  PREPARING DATA",
   "●  BUILDING SERVER": "●  BUILDING SERVER",

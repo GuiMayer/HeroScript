@@ -1,4 +1,7 @@
 {
+  "The local engine port is already in use.": "A porta da engine local já está em uso.",
+  "The local engine could not be built. Check the engine logs.": "Não foi possível compilar a engine local. Consulte os logs da engine.",
+  "The local engine stopped during startup. Check the engine logs.": "A engine local foi encerrada durante a inicialização. Consulte os logs da engine.",
   "●  CHECKING BUILD": "●  VERIFICANDO COMPILAÇÃO",
   "●  PREPARING DATA": "●  PREPARANDO DADOS",
   "●  BUILDING SERVER": "●  COMPILANDO SERVIDOR",
