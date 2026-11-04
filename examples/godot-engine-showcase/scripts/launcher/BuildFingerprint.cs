@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 /// <summary>Hashes startup build inputs without trusting file timestamps.</summary>
 public static class HeroScriptBuildFingerprint
@@ -15,6 +16,11 @@ public static class HeroScriptBuildFingerprint
             : new[] { Path.Combine(repositoryRoot, "src"), Path.Combine(repositoryRoot, "data", "configs"), Path.Combine(repositoryRoot, "docs", "schemas") };
         if (!outputs)
         {
+            // Custom build imports may read inputs outside the known source graph.
+            // Fall back to MSBuild instead of accepting an incomplete fingerprint.
+            for (var directory = new DirectoryInfo(repositoryRoot); directory != null; directory = directory.Parent)
+                foreach (var name in new[] { "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props" })
+                    if (File.Exists(Path.Combine(directory.FullName, name))) return null;
             foreach (var name in new[] { "global.json", "NuGet.Config", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props" })
             {
                 var file = Path.Combine(repositoryRoot, name);
@@ -41,7 +47,35 @@ public static class HeroScriptBuildFingerprint
                     }
                     else if (!outputs || !root.EndsWith("obj", StringComparison.OrdinalIgnoreCase) ||
                              string.Equals(Path.GetFileName(path), "project.assets.json", StringComparison.Ordinal))
+                    {
+                        if (!outputs && string.Equals(Path.GetExtension(path), ".csproj", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var project = File.ReadAllText(path);
+                            foreach (var tag in new[] { "<Import", "<Compile", "<AdditionalFiles", "<Analyzer", "<None" })
+                                if (project.IndexOf(tag, StringComparison.OrdinalIgnoreCase) >= 0) return null;
+                            var references = Regex.Matches(project,
+                                "<\\s*(ProjectReference|Content|EmbeddedResource)\\b[^>]*\\bInclude\\s*=\\s*[\"']([^\"']+)[\"']",
+                                RegexOptions.IgnoreCase);
+                            foreach (Match reference in references)
+                            {
+                                var kind = reference.Groups[1].Value;
+                                var include = reference.Groups[2].Value.Replace('\\', '/');
+                                if (string.Equals(kind, "ProjectReference", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (include.Contains("$")) return null;
+                                    var resolved = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), include));
+                                    var sourceRoot = Path.Combine(repositoryRoot, "src").TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                                    if (!resolved.StartsWith(sourceRoot, StringComparison.OrdinalIgnoreCase)) return null;
+                                }
+                                else if (include != "../../data/configs/**/*" &&
+                                         include != "../../docs/schemas/gameplay-response.schema.json") return null;
+                            }
+                        }
+                        if (!outputs && (string.Equals(Path.GetFileName(path), "Directory.Build.props", StringComparison.OrdinalIgnoreCase) ||
+                                         string.Equals(Path.GetFileName(path), "Directory.Build.targets", StringComparison.OrdinalIgnoreCase) ||
+                                         string.Equals(Path.GetFileName(path), "Directory.Packages.props", StringComparison.OrdinalIgnoreCase))) return null;
                         files.Add(path);
+                    }
                 }
             }
         }
