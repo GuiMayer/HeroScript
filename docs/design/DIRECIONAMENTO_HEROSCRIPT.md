@@ -95,30 +95,38 @@ $$\text{Redução de Dano (\%)} = \frac{\text{Rating}}{\text{Rating} + K}$$
 
 ---
 
-## 3. Arquitetura de Baralho Modular (15 + 5), Zonas & Fadiga
+## 3. Arquitetura de Baralho: O Baralho do Herói (Mín. 20 / Máx. 30), Zonas & Mochila
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   COMPOSIÇÃO DO BARALHO (20 CARTAS)                    │
+│                   COMPOSIÇÃO DO BARALHO ATIVO                          │
 │                                                                        │
-│   BARALHO PRINCIPAL DO HERÓI (15)        MÓDULO SECUNDÁRIO (5)         │
-│   ├──────────────────────────────┤       ├─────────────────────────┤   │
-│   │ • Identidade do Personagem   │       │ • Especialização Tática │   │
-│   │ • Base de dano e defesa      │       │ • Efeitos de alto risco │   │
-│   │ • Interação com Medidor Core │       │ • Manipulação de zonas  │   │
-│   │   (ex: Geradores de Calor)   │       │   (ex: Banimento/Void)  │   │
-│   └──────────────────────────────┘       └─────────────────────────┘   │
+│   FAIXA PADRÃO DE TAMANHO                    MECÂNICA DA MOCHILA       │
+│   ├──────────────────────────────┤           ├─────────────────────┤   │
+│   │ • MÍNIMO Padrão: 20 cartas   │           │ • Troca livre fora  │   │
+│   │   (Protege contra fadiga e   │ ◄───────► │   de combate        │   │
+│   │    garante consistência)     │           │ • Zero ansiedade    │   │
+│   │ • MÁXIMO Padrão: 30 cartas   │           │   de draft          │   │
+│   │   (Permite cartas de Vazio e │           │ • Decompilar a      │   │
+│   │    ferramentas situacionais) │           │   qualquer momento  │   │
+│   └──────────────────────────────┘           └─────────────────────┘   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Baralho Ativo Enxuto (20 Cartas):**
-   * **15 Cartas de Herói + 5 Cartas de Módulo:** Baralho de compra único com reciclagem contínua (`Draw Pile -> Mão -> Descarte -> Reembaralha`) a cada ~4-5 turnos.
-   * *Status de Flexibilidade (Hipótese sob Teste):* O protótipo inicia travado estritamente na proporção 15/5. Avaliaremos em playtesting se permitir proporções assimétricas (ex: 12/8 ou 10/10) enriquece ou dilui a identidade das classes.
-2. **Zona de Banimento (Vazio) & Risco de Deck Thinning:**
-   * Banir cartas da mão afina o baralho para comprar combos mais rápido.
-   * **Mecânica de Fadiga:** Para evitar loops infinitos onde o jogador bane quase tudo e joga as mesmas 4 cartas todo turno, o esgotamento do baralho de compra aplica **Dano de Fadiga** progressivo e cumulativo diretamente na vida a cada compra frustrada.
-3. **Mecânica de Resgate Temporal:**
-   * Módulos do Vazio possuem cartas de utilidade que devolvem cartas da zona de Banimento para a mão ou descarte, viabilizando ciclos calculados de sacrifício e recuperação.
+1. **Baralho Inicial & Descoberta na Campanha:**
+   * O jogador começa com um **Baralho Básico do Herói** (20 cartas da sua classe inicial).
+   * Conforme avança na história e vence duelos, ganha novas cartas de outras escolas (Vazio, Sombra, Elites) que vão para a **Mochila**.
+2. **Faixa Tática Padrão (Mínimo 20 / Máximo 30 cartas):**
+   * **20 Cartas (Deck Enxuto):** Consistência máxima para ciclar combos rapidamente a cada 3 a 4 turnos.
+   * **25 a 30 Cartas (Deck Volumoso):** Fornece combustível essencial para builds de **Vazio** (que banem cartas da mão) sem risco de morrer por Fadiga, além de permitir cartas situacionais de resposta (*Toolbox*).
+3. **Mochila como Arsenal Tático (Anti-Deck Bloat):**
+   * Fora de combate (no Loadout ou Acampamento), o jogador **adiciona e remove cartas livremente** entre o Baralho Ativo e a Mochila, sem nenhum custo em ouro ou recursos.
+   * Cartas obsoletas ou indesejadas podem ser **Decompiladas** a qualquer momento para gerar materiais de evolução de Inscrições.
+4. **Zona de Banimento (Vazio) & Fadiga:**
+   * Banir cartas acelera a compra de peças de combo.
+   * **Mecânica de Fadiga:** Caso o baralho de compra e o descarte se esgotem, compras adicionais causam **Dano de Fadiga progressivo** (1, 2, 3...) direto na Vida.
+5. **Mecânica de Resgate Temporal:**
+   * Cartas de utilidade do Vazio permitem resgatar cartas banidas de volta ao ciclo ativo para loops calculados de sacrifício.
 
 ---
 
@@ -156,13 +164,21 @@ flowchart LR
 
 ### Regras do Sistema:
 1. **Sem Relíquias:** Toda passiva decorre de Inscrições inseridas intencionalmente no painel do herói.
-2. **Capacidade & Polaridades:**
-   * Capacidade começa em 15-20 e expande na campanha.
+2. **Capacidade & Polaridades Nativas do Herói:**
+   * O chassi do herói define suas polaridades de fábrica (ex: Piromaníaco começa com polaridades de Fogo e Ataque).
    * Polaridade compatível reduz o custo pela metade; polaridade incompatível aumenta o custo em 25%.
+   * Inscrições de outras escolas (como Vazio) podem ser equipadas em slots neutros ou pagando custo integral, até que o jogador use um item de forja (estilo *Forma*) para alterar a polaridade do slot.
 3. **Economia & Obtenção Híbrida de Inscrições:**
-   * **Marcos Fixos da História:** Chefes de capítulo e eventos dramáticos garantem Inscrições centrais e expansões permanentes de Capacidade (*Reatores*).
-   * **Variedade & Aleatoriedade Controlada:** Encontros opcionais, elites de fenda e comerciantes trazem seleções semi-aleatórias de Inscrições, garantindo que runs diferentes possuam variações de theorycrafting.
+   * **Marcos Fixos da História:** Chefes de capítulo garantem Inscrições centrais e expansões de Capacidade (*Reatores*).
+   * **Variedade & Aleatoriedade Controlada:** Encontros opcionais e comerciantes oferecem um catálogo rotativo de Inscrições.
    * **Ranks de Aprimoramento:** Inscrições sobem de nível (Rank 0 a Rank 5/10) consumindo materiais gerados pela Decompilação de cartas.
+
+### 4. Inscrições de Mutação de Regras (Corrupted Mods / Keystones)
+Para veteranos que buscam theorycrafting extremo e quebra intencional de sistemas, existem Inscrições especiais que alteram as regras fundamentais do jogo:
+* **Regra Obrigatória do Efeito Negativo (Drawback):** Toda Inscrição que altera regras estruturais do jogo **possui obrigatoriamente uma desvantagem ou penalidade proporcional** (estilo *Corrupted Mods* do Warframe e *Keystones* do Path of Exile):
+  * **Exemplo 1 (Compressão Quântica):** O tamanho mínimo do baralho cai de 20 para 12 cartas (permite combos ultra-consistentes); *Penalidade:* Reduz a Vida Máxima do herói em 25%.
+  * **Exemplo 2 (Grimório Infinito):** Remove o limite máximo de 30 cartas (permite 40+ cartas para queimar no Vazio sem medo); *Penalidade:* A primeira carta jogada em cada turno custa +1 de Energia (⚡).
+  * **Exemplo 3 (Jailbreak / Chassi Livre):** Remove todas as restrições de mínimo e máximo de baralho; *Penalidade:* O dano de Fadiga recebido é permanentemente dobrado.
 
 ---
 
@@ -193,7 +209,7 @@ flowchart TD
     Recurso --> Upgrades["• Sobe o Rank de Inscrições<br/>• Forja mutações em cartas existentes"]
     
     Decisao -->|"MOCHILA (Reserva Tática)"| Mochila["Armazena na Mochila"]
-    Mochila --> Sideboard["Na tela de Preparação/Loadout:<br/>Substitui cartas no deck (mantendo 15 + 5)"]
+    Mochila --> Sideboard["Na tela de Preparação/Loadout:<br/>Substitui cartas no deck (respeitando Mín 20 / Máx 30)"]
 ```
 
 1. **Decompilar (Desmontagem / Scrap):** Fornece recursos para upar Inscrições e condensar o poder sem inchar o baralho ativo.
@@ -242,16 +258,16 @@ flowchart TD
 
 ## 9. Próximos Passos & Protótipo Mínimo Jogável (Vertical Slice)
 
-1. **Combate Base com Energia, Escudo Persistente & Mitigação Dual-K:**
-   * 3 de Energia por turno + Cartas com tag `[Defesa]` gerando Escudo Persistente.
-   * Teto Máximo de Escudo inicial travado em 100% da Vida Máxima do Herói (com suporte a mods multiplicadores).
+1. **Combate Base com Energia, Escudo Persistente & Faixa de Baralho:**
+   * 3 de Energia por turno + Cartas com tag `[Defesa]` gerando Escudo Persistente (teto = 100% HP).
+   * Baralho ativo respeitando **Mínimo 20 e Máximo 30 cartas** (com suporte a Inscrições de mutação de regras com drawback).
    * Mitigação por fórmula assintótica ($K=900$ geral, $K=100$ específico).
    * Mão retida com compra de 2 a 3 cartas por turno.
 2. **Configuração de Cartas de Teste (`data/configs/prototype-test`):**
-   * **15 Cartas do Piromaníaco (Fogo):** Divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; geram/gastam Calor; bônus em limiares.
-   * **5 Cartas do Vazio:** Custam energia + banir da mão; cartas de alto risco/recompensa; risco de fadiga se esgotar o baralho.
+   * **Baralho Básico do Piromaníaco:** 20 cartas divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; geram/gastam Calor; bônus em limiares.
+   * **Pool de Recompensas do Vazio:** Cartas que custam energia + banir da mão; cartas de alto risco/recompensa; risco de fadiga se o deck for muito fino.
 3. **Companion Inicial (Elemental da Água):**
    * Intangível; aplica `Molhado` em gatilho de carta de Fogo (Cooldown 2 turnos); suporte a status de `Sleep`.
 4. **Telas de Fluxo de Campanha:**
-   * Vitória: Decompilar vs Mochila.
+   * Vitória: Decompilar vs Mochila (com tela de Loadout permitindo mover cartas livremente).
    * Derrota: [Ajustar Baralho] e [Tentar Novamente] instantâneo sem diálogo.
