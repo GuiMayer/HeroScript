@@ -37,6 +37,7 @@ using Microsoft.OpenApi;
 using API.Contracts;
 using Mods;
 
+var startupTimings = new StartupTimings();
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseDefaultServiceProvider(options =>
 {
@@ -600,14 +601,18 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+var startupMark = startupTimings.Now;
 var app = builder.Build();
+startupTimings.Record("host_build", startupMark);
 
 // Shipped content crosses the same compile/validate/publish boundary as mods.
 // Every discovered setting is published by default so launchers can switch the
 // complete config+content graph. Production hosts may restrict this explicitly
 // with Content:StartupSettings. Startup never exposes loose files to gameplay.
 var settingCompiler = app.Services.GetRequiredService<ISettingCompiler>();
+startupMark = startupTimings.Now;
 var settingCatalog = settingCompiler.GetCatalogAsync().GetAwaiter().GetResult();
+startupTimings.Record("setting_catalog", startupMark);
 var startupSettingIds = (configuredStartupSettingIds.Length > 0
         ? configuredStartupSettingIds
         : settingCatalog.Settings.Select(item => item.Definition.SettingId))
@@ -620,17 +625,21 @@ if (startupSettingIds.Length == 0)
 
 foreach (var settingId in startupSettingIds)
 {
+    startupMark = startupTimings.Now;
     var startupCompilation = settingCompiler
         .CompileAsync(settingId)
         .GetAwaiter()
         .GetResult();
+    startupTimings.Record("setting_compile", startupMark, settingId);
     if (startupCompilation.IsFailure)
         throw new InvalidOperationException(
             $"Startup setting '{settingId}' compilation failed: {startupCompilation.Error}");
+    startupMark = startupTimings.Now;
     var startupPublication = app.Services.GetRequiredService<IContentPublicationService>()
         .PublishBundleAsync(startupCompilation.Value.Bundle)
         .GetAwaiter()
         .GetResult();
+    startupTimings.Record("setting_publish", startupMark, settingId);
     if (startupPublication.IsFailure)
         throw new InvalidOperationException(
             $"Startup setting '{settingId}' publication failed: {startupPublication.Error}");
@@ -703,9 +712,12 @@ app.MapControllers();
 
 // Compile serializer metadata before readiness. This reads no runs/content and
 // does not execute gameplay or precompute state hashes.
+startupMark = startupTimings.Now;
 Core.Determinism.SerializationMetadataWarmup.Prepare(RunCommitJson.Options, typeof(RunCommit), typeof(RunState));
 Core.Determinism.CanonicalJson.PrepareMetadata(typeof(RunState));
 Core.Determinism.SerializationMetadataWarmup.Prepare(
     app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>().Value.JsonSerializerOptions,
     typeof(Core.Run.Replay.ReplayTimelinePage), typeof(Core.Run.Replay.ReplayCommandPresentation));
+startupTimings.Record("serialization_warmup", startupMark);
+app.Lifetime.ApplicationStarted.Register(() => startupTimings.Record("listening", 0));
 app.Run();
