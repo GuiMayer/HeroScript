@@ -425,7 +425,25 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
 
     private ContentBundle? DeserializeBundle(byte[] bytes)
     {
-        // Match ReadAllText's BOM-aware decoding, including existing UTF-16 files.
+        // Persisted bundles are normally UTF-8. Decode directly without allocating
+        // a second full-sized UTF-16 string, while retaining legacy BOM handling.
+        var hasUtf16Or32Bom = bytes.Length >= 2 &&
+            ((bytes[0] == 0xff && bytes[1] == 0xfe) ||
+             (bytes[0] == 0xfe && bytes[1] == 0xff) ||
+             (bytes.Length >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0xfe && bytes[3] == 0xff));
+        if (!hasUtf16Or32Bom)
+        {
+            var offset = bytes.Length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf ? 3 : 0;
+            try
+            {
+                _ = new UTF8Encoding(false, true).GetCharCount(bytes, offset, bytes.Length - offset);
+                return JsonSerializer.Deserialize<ContentBundle>(bytes.AsSpan(offset), _jsonOptions);
+            }
+            catch (DecoderFallbackException)
+            {
+                // StreamReader historically replaces invalid UTF-8 sequences.
+            }
+        }
         using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         return JsonSerializer.Deserialize<ContentBundle>(reader.ReadToEnd(), _jsonOptions);
     }

@@ -149,6 +149,19 @@ public sealed class ContentPublicationServiceTests : IDisposable
         Assert.NotSame(original, revalidated.Value);
         Assert.Equal(CanonicalJson.Serialize(original), CanonicalJson.Serialize(revalidated.Value));
         Assert.Same(revalidated.Value, (await publisher.GetPublishedAsync(bundle.Manifest.Revision)).Value);
+        foreach (var encoding in new System.Text.Encoding[]
+                 {
+                     new System.Text.UTF8Encoding(true),
+                     System.Text.Encoding.BigEndianUnicode,
+                     new System.Text.UTF32Encoding(false, true),
+                     new System.Text.UTF32Encoding(true, true)
+                 })
+        {
+            await File.WriteAllTextAsync(path, json, encoding);
+            var read = await publisher.GetPublishedAsync(bundle.Manifest.Revision);
+            Assert.True(read.IsSuccess, read.IsFailure ? read.Error : null);
+            Assert.Equal(CanonicalJson.Serialize(original), CanonicalJson.Serialize(read.Value));
+        }
 
         // Another valid bundle cannot be substituted under an already cached revision.
         var other = BoardBundle(2);
