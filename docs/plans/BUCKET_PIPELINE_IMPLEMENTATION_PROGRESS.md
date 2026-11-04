@@ -68,3 +68,10 @@ O ledger recompõe componentes por identidade e ordem. O orçamento de um efeito
 
 Os testes CardTransformationTests, CardTransformationCompositionTests e CondensationTests passaram na execução de 230 casos. Cobrem retry idempotente, snapshots, referências inválidas, falha no último componente e repetição da receita sem consumir stacks novos.
 
+
+## Etapa 6 — Quantidades e captura
+
+O valor base entra no resolver sem receipt. Captura e distribuição transportam valor, unidade, revisão e estágios já incorporados. A agregação combina quantidades compatíveis. O alvo novo resolve os estágios próprios sobre cada parcela; o estágio de origem já incorporado permanece aplicado uma única vez.
+
+CalculationDistributionTests e CondensationTests passaram na mesma execução. Cobrem conservação exata, isolamento por alvo, capacidade defensiva viva, revisão incompatível e avaliação configurável no início da ação ou na execução.
+
