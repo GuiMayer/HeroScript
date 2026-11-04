@@ -179,6 +179,7 @@ public sealed class CalculationResolver(
             Influences = collected.Value.Where(item => item.Channel == effect.CalculationChannel &&
                 calculationContext.SelectsInfluence(item.Channel, item.Bucket)).ToArray(),
             Tags = tags,
+            SubjectKeys = context.Card?.Tags.Order(StringComparer.Ordinal).ToImmutableArray() ?? [],
             Variables = context.Variables
         }, pipeline);
         if (calculated.IsFailure) return Result<ResolvedEffectAmount>.Failure(calculated.Error);

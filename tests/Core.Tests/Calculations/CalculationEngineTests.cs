@@ -59,6 +59,18 @@ public sealed class CalculationEngineTests
         Assert.True(flat.IsSuccess, flat.IsFailure ? flat.Error : null);
         Assert.Equal(34, flat.Value.Value);
         Assert.Null(Assert.Single(flat.Value.Buckets).Groups);
+
+        var contextual = pipeline with
+        {
+            Buckets = [bucket with { Grouping = bucket.Grouping! with
+            {
+                SubjectKeys = ["first", "second"], WeightBySubjectCount = [1, 0.8f]
+            }}]
+        };
+        var mono = _engine.Calculate(request with { SubjectKeys = ["first", "functional"] }, contextual);
+        Assert.Equal(22, mono.Value.Value);
+        var hybrid = _engine.Calculate(request with { SubjectKeys = ["first", "second"] }, contextual);
+        Assert.Equal(22.8f, hybrid.Value.Value, precision: 4);
     }
 
     [Fact]

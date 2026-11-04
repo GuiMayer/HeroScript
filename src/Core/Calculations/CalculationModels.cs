@@ -88,6 +88,8 @@ public sealed record CalculationBucketDefinition
 
 public sealed record CalculationGroupingDefinition
 {
+    public ImmutableArray<string> SubjectKeys { get; init; } = [];
+    public ImmutableArray<float> WeightBySubjectCount { get; init; } = [];
     public ImmutableSortedDictionary<string, string> InfluenceGroups { get; init; } =
         ImmutableSortedDictionary<string, string>.Empty;
     public ImmutableSortedDictionary<string, CalculationGroupDefinition> Groups { get; init; } =
@@ -165,6 +167,7 @@ public sealed record CalculationRequest
         ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
     public CalculationValuePolicy ValuePolicy { get; init; } = new();
     public bool CaptureOnly { get; init; }
+    public ImmutableArray<string> SubjectKeys { get; init; } = [];
     public IReadOnlyList<CalculationInfluence> Influences
     {
         get => _influences;

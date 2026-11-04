@@ -194,6 +194,11 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
             if (bucket.Grouping is { } grouping &&
                 (bucket.Operation is not (CalculationBucketOperation.Add or CalculationBucketOperation.AddPercent) ||
                  grouping.Groups is null || grouping.InfluenceGroups is null ||
+                 grouping.SubjectKeys.IsDefault || grouping.WeightBySubjectCount.IsDefault ||
+                 grouping.SubjectKeys.Any(string.IsNullOrWhiteSpace) ||
+                 grouping.SubjectKeys.Distinct(StringComparer.Ordinal).Count() != grouping.SubjectKeys.Length ||
+                 grouping.WeightBySubjectCount.Any(weight => !IsFinite(weight) || weight < 0) ||
+                 (!grouping.WeightBySubjectCount.IsEmpty && grouping.SubjectKeys.IsEmpty) ||
                  grouping.Groups.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || pair.Value is null ||
                      !IsFinite(pair.Value.Weight) || pair.Value.Weight < 0 || pair.Value.Parameters is null ||
                      pair.Value.Parameters.Any(parameter => string.IsNullOrWhiteSpace(parameter.Key) || !IsFinite(parameter.Value)) ||
@@ -437,6 +442,10 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
     {
         var traces = ImmutableArray.CreateBuilder<CalculationContributionTrace>();
         var groups = ImmutableArray.CreateBuilder<CalculationGroupTrace>();
+        var subjectKeys = request.SubjectKeys.Where(key => grouping.SubjectKeys.Contains(key, StringComparer.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+        if (!grouping.WeightBySubjectCount.IsEmpty && subjectKeys.Count > grouping.WeightBySubjectCount.Length)
+            return Result<BucketEvaluation>.Failure($"Bucket {bucket.BucketId} has no weight for {subjectKeys.Count} subject keys");
         var total = 0f;
         foreach (var group in influences
                      .GroupBy(item => grouping.InfluenceGroups.GetValueOrDefault(item.InfluenceId), StringComparer.Ordinal)
@@ -447,8 +456,15 @@ public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas
             var weight = 1f;
             if (group.Key is { } key)
             {
+                if (!grouping.SubjectKeys.IsEmpty && !subjectKeys.Contains(key))
+                {
+                    foreach (var item in group) traces.Add(Trace(item, current, false, null, current));
+                    continue;
+                }
                 var definition = grouping.Groups[key];
                 weight = definition.Weight;
+                if (!grouping.WeightBySubjectCount.IsEmpty)
+                    weight *= grouping.WeightBySubjectCount[subjectKeys.Count - 1];
                 if (definition.Formula is { } formula)
                 {
                     if (formulas is null)
