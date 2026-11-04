@@ -1,4 +1,10 @@
 {
+  "prototype_style_attribute": {
+    "pipelineId": "prototype_style_attribute",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "buckets": [{ "bucketId": "more", "order": 10, "operation": "Multiply" }]
+  },
   "prototype_direct_amount": {
     "pipelineId": "prototype_direct_amount",
     "channel": "effect_amount",

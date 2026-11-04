@@ -77,6 +77,18 @@
     ],
     "attributes": [
       {
+        "attributeId": "fire_focus",
+        "displayName": "Fire focus",
+        "pipelineId": "prototype_style_attribute",
+        "displayUnit": "points"
+      },
+      {
+        "attributeId": "void_fusion",
+        "displayName": "Void fusion",
+        "pipelineId": "prototype_style_attribute",
+        "displayUnit": "points"
+      },
+      {
         "attributeId": "block_efficiency",
         "displayName": "Increased Block generation",
         "pipelineId": "w1_block_attribute",
