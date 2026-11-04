@@ -1,55 +1,18 @@
 # A build can be reused only when source inputs, SDK and every output byte match.
 function Get-HeroScriptBuildFingerprint {
     param([string]$RepositoryRoot, [string]$BuildRoot, [switch]$Outputs)
-    $paths = [Collections.Generic.List[string]]::new()
-    if ($Outputs) {
-        $outputRoot = Join-Path $BuildRoot 'bin'
-        if (-not (Test-Path -LiteralPath $outputRoot)) { return $null }
-        $roots = @($outputRoot, (Join-Path $BuildRoot 'obj'))
-    } else {
-        $roots = @((Join-Path $RepositoryRoot 'src'), (Join-Path $RepositoryRoot 'data/configs'), (Join-Path $RepositoryRoot 'docs/schemas'))
-        foreach ($name in @('global.json', 'NuGet.Config', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props')) {
-            $file = Join-Path $RepositoryRoot $name
-            if (Test-Path -LiteralPath $file -PathType Leaf) { $paths.Add($file) }
-        }
+    if (-not ('HeroScriptBuildFingerprint' -as [type])) {
+        Add-Type -Path (Join-Path $PSScriptRoot 'BuildFingerprint.cs')
     }
-    foreach ($root in $roots) {
-        if (-not (Test-Path -LiteralPath $root)) { return $null }
-        $pending = [Collections.Generic.Stack[string]]::new()
-        $pending.Push($root)
-        while ($pending.Count -gt 0) {
-            $directory = $pending.Pop()
-            foreach ($item in (Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop)) {
-                if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $null }
-                if ($item.PSIsContainer) {
-                    if (-not $Outputs -and $item.Name -in @('bin', 'obj')) { continue }
-                    $pending.Push($item.FullName)
-                } elseif (-not $Outputs -or $root -notlike '*obj' -or $item.Name -eq 'project.assets.json') {
-                    $paths.Add($item.FullName)
-                }
-            }
-        }
-    }
-    $entries = [Collections.Generic.List[string]]::new()
-    foreach ($file in ($paths | Sort-Object -CaseSensitive)) {
-        $relative = if ($Outputs) { $file.Substring($BuildRoot.TrimEnd([char[]]'\/').Length + 1) } else { $file.Substring($RepositoryRoot.TrimEnd([char[]]'\/').Length + 1) }
-        $algorithm = [Security.Cryptography.SHA256]::Create()
-        $stream = [IO.File]::OpenRead($file)
-        try { $fileHash = [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-', '') }
-        finally { $stream.Dispose(); $algorithm.Dispose() }
-        $entries.Add($relative.Replace('\', '/') + ':' + $fileHash)
-    }
+    $sdk = ''
+    $environment = @()
     if (-not $Outputs) {
-        $entries.Add('sdk:' + ((& dotnet --version | Out-String).Trim()))
+        $sdk = ((& dotnet --version | Out-String).Trim())
         if ($LASTEXITCODE -ne 0) { return $null }
-        foreach ($item in (Get-ChildItem Env: | Where-Object { $_.Name -match '^(DOTNET_|NUGET_|MSBUILD|Configuration$)' } | Sort-Object Name)) {
-            $entries.Add('env:' + $item.Name + '=' + $item.Value)
-        }
+        $environment = @(Get-ChildItem Env: | Where-Object { $_.Name -match '^(DOTNET_|NUGET_|MSBUILD|Configuration$)' } |
+            ForEach-Object { $_.Name + '=' + $_.Value })
     }
-    $bytes = [Text.Encoding]::UTF8.GetBytes(($entries -join "`n"))
-    $algorithm = [Security.Cryptography.SHA256]::Create()
-    try { return [BitConverter]::ToString($algorithm.ComputeHash($bytes)).Replace('-', '') }
-    finally { $algorithm.Dispose() }
+    return [HeroScriptBuildFingerprint]::Compute($RepositoryRoot, $BuildRoot, [bool]$Outputs, $sdk, [string[]]$environment)
 }
 
 function Get-HeroScriptServerBinary {
