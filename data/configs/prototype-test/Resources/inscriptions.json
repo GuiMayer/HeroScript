@@ -1,4 +1,21 @@
 {
+  "prototype_fire_mastery": {
+    "inscriptionId": "prototype_fire_mastery",
+    "equipmentCost": 3,
+    "attributeBonuses": [
+      {
+        "attributeId": "fire_mastery",
+        "influence": {
+          "influenceId": "prototype.fire_mastery",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.5,
+          "subjectKeyCondition": { "keys": ["fire"], "requiredKeys": ["fire"], "minimumCount": 1 }
+        }
+      }
+    ],
+    "presentation": { "name": "Fire mastery", "description": "Raises the Fire scaling cap by 50 percentage points." }
+  },
   "prototype_fire_focus": {
     "inscriptionId": "prototype_fire_focus",
     "equipmentCost": 3,

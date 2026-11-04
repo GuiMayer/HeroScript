@@ -3,7 +3,10 @@
     "pipelineId": "prototype_style_attribute",
     "channel": "effect_amount",
     "unitId": "points",
-    "buckets": [{ "bucketId": "more", "order": 10, "operation": "Multiply" }]
+    "buckets": [
+      { "bucketId": "increased", "order": 5, "operation": "AddPercent" },
+      { "bucketId": "more", "order": 10, "operation": "Multiply" }
+    ]
   },
   "prototype_direct_amount": {
     "pipelineId": "prototype_direct_amount",
@@ -36,11 +39,12 @@
           "weightBySubjectCount": [1, 0.8, 0.65],
           "influenceGroups": {
             "prototype.scaling.fire": "fire",
+            "prototype.fire_mastery": "fire",
             "prototype.scaling.void": "void",
             "prototype.scaling.shadow": "shadow"
           },
           "groups": {
-            "fire": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } },
+            "fire": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 }, "parameterInfluences": { "prototype.fire_mastery": "cap" } },
             "void": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } },
             "shadow": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } }
           }
@@ -258,11 +262,12 @@
           "weightBySubjectCount": [1, 0.8, 0.65],
           "influenceGroups": {
             "prototype.scaling.fire": "fire",
+            "prototype.fire_mastery": "fire",
             "prototype.scaling.void": "void",
             "prototype.scaling.shadow": "shadow"
           },
           "groups": {
-            "fire": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } },
+            "fire": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 }, "parameterInfluences": { "prototype.fire_mastery": "cap" } },
             "void": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } },
             "shadow": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } }
           }

@@ -77,6 +77,12 @@
     ],
     "attributes": [
       {
+        "attributeId": "fire_mastery",
+        "displayName": "Fire mastery",
+        "pipelineId": "prototype_style_attribute",
+        "displayUnit": "points"
+      },
+      {
         "attributeId": "fire_focus",
         "displayName": "Fire focus",
         "pipelineId": "prototype_style_attribute",
