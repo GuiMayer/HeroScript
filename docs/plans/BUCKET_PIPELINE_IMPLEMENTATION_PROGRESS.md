@@ -62,3 +62,9 @@ O contrato editorial da etapa 1 está preparado em `docs/content/calculation-bui
 - **Cobertura confirmada por nome/dados de teste:** chance 0/50/100/150/200 com probabilidade e tiers garantidos; bônus linear com tiers 0–4 (×1…×5) e bônus configurável (1, 0,5, 1,5); prioridade da proibição por carta (opt-out) sem alterar definições; pagamentos, residuais e canais não correspondentes não adquirem regras críticas; políticas ambíguas e overrides inválidos falham fechados; multihit sorteia por impacto após distribuir um orçamento; filho não configurado não herda o multiplicador. A matriz 0/15/99/100/150/200/250/300% está em `MultiTierCriticalProjectionTests` (API) e a inspeção publica alternativas locais sem alterar o estado; esse teste de API não foi reexecutado agora.
 - **Decisões deixadas em aberto de propósito:** Calor continua um bucket `heat` separado do `increased` (fator composto, 100 × 1,20 × 1,25 = 150). Convertê-lo para o mesmo grupo (145) ou para limiares mudaria gameplay/hashes e exige decisão de design e nova revisão (etapa 10). Não foram removidas repetições de pipeline por default do modo: não há prova de equivalência por efeito.
 - **Não verificado:** RNG ordenado entre fontes diferentes em jornada completa e ausência de consumo de RNG no preview além do teste de inspeção citado.
+## Etapa 5 — Transformações e execução estrutural
+
+O ledger recompõe componentes por identidade e ordem. O orçamento de um efeito dividido permanece no plano de execução. Condensação seleciona os stacks, resolve um único proc e aplica consumo e componentes na mesma transação. Pagamentos e movimentação de cartas seguem os fluxos canônicos.
+
+Os testes CardTransformationTests, CardTransformationCompositionTests e CondensationTests passaram na execução de 230 casos. Cobrem retry idempotente, snapshots, referências inválidas, falha no último componente e repetição da receita sem consumir stacks novos.
+
