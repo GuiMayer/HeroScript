@@ -6,6 +6,7 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
@@ -14,6 +15,7 @@ parser.add_argument("--repo", type=Path, default=Path.cwd())
 parser.add_argument("--store", required=True, type=Path)
 parser.add_argument("--port", type=int, default=18573)
 parser.add_argument("--samples", type=int, default=10)
+parser.add_argument("--fresh-store", action="store_true", help="Use a fresh store per sample without deleting existing data")
 args = parser.parse_args()
 if args.samples < 1 or not 1024 <= args.port <= 65535:
     parser.error("samples must be positive and port must be between 1024 and 65535")
@@ -31,14 +33,16 @@ except urllib.error.URLError:
     pass
 
 durations = []
+run_id = uuid.uuid4().hex
 for sample in range(args.samples):
+    sample_store = store / (run_id + "-" + str(sample + 1)) if args.fresh_store else store
     env = os.environ.copy()
     env.update({
         "ASPNETCORE_URLS": f"http://127.0.0.1:{args.port}",
         "HEROSCRIPT_STARTUP_TIMINGS": "1",
-        "Persistence__RunStatePath": str(store / "runs"),
-        "Persistence__ContentStorePath": str(store / "content"),
-        "Persistence__OperationalTelemetryPath": str(store / "telemetry"),
+        "Persistence__RunStatePath": str(sample_store / "runs"),
+        "Persistence__ContentStorePath": str(sample_store / "content"),
+        "Persistence__OperationalTelemetryPath": str(sample_store / "telemetry"),
     })
     log_path = store / f"startup-{sample + 1}.log"
     with log_path.open("w", encoding="utf-8") as log:
@@ -67,5 +71,5 @@ for sample in range(args.samples):
 ordered = sorted(durations)
 percentile = lambda fraction: ordered[max(0, int(__import__("math").ceil(len(ordered) * fraction)) - 1)]
 print(json.dumps({"samples": len(ordered), "scope": "direct API process to HTTP readiness; OS cache not controlled",
-                  "durations_ms": durations, "p50_ms": percentile(.5),
+                  "fresh_store": args.fresh_store, "durations_ms": durations, "p50_ms": percentile(.5),
                   "p95_ms": percentile(.95), "max_ms": max(ordered)}, indent=2))
