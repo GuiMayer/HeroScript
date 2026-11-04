@@ -89,3 +89,8 @@ A Godot apresenta mudanças de valor a partir de entradas e saídas publicadas p
 
 No prototype-test, cada participante definido no setting tem 3 de energia. O fluxo repõe o máximo na ativação. As 12 definições de carta gastam 1 de energia e conservam seus pagamentos de zona, condições e efeitos térmicos. Antes, essas definições tinham custo de recurso vazio. O teste REST verificou energia inicial de ambos os lados, gasto e reposição, além de retenção e ativação do companion. Os gambits de inimigo ainda usam suas regras próprias; o custo de energia das cartas não converte gambits em cartas. Escudo passivo por atributo e limiares de Calor não foram implantados nesta mudança.
 
+
+## Etapa 10 — compatibilidade de revisão
+
+A alteração da etapa 9 está limitada aos JSONs de autoria do prototype-test e produz uma nova revisão na publicação. A ativação em runs existentes segue o fluxo de revisão da engine. A suíte de reload, runtime, manifestos, atributos, crítico e inscrições passou com 38 casos; o teste REST PackageSetting_ValidatesPublishesAndDoesNotRebindActiveRun passou. A jornada de branch do volatile-core passou na certificação anterior à alteração de energia. O teste de migração de uma run real do prototype-test entre as duas revisões específicas permanece pendente.
+
