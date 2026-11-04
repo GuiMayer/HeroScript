@@ -692,6 +692,7 @@
     "basePrices": [],
     "tags": [
       "attack",
+      "void",
       "starter",
       "prototype"
     ],
@@ -981,6 +982,8 @@
     "basePrices": [],
     "tags": [
       "attack",
+      "void",
+      "shadow",
       "starter",
       "prototype"
     ],

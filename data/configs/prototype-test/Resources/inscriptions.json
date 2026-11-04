@@ -1,4 +1,47 @@
 {
+  "prototype_fire_focus": {
+    "inscriptionId": "prototype_fire_focus",
+    "equipmentCost": 3,
+    "attributeBonuses": [
+      {
+        "attributeId": "fire_focus",
+        "influence": {
+          "influenceId": "prototype.fire_focus",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.25,
+          "subjectKeyCondition": {
+            "keys": ["fire", "void", "shadow"],
+            "requiredKeys": ["fire"],
+            "minimumCount": 1,
+            "maximumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": { "name": "Fire focus", "description": "25% more effect amount for Fire cards with exactly one thematic tag." }
+  },
+  "prototype_void_fusion": {
+    "inscriptionId": "prototype_void_fusion",
+    "equipmentCost": 3,
+    "attributeBonuses": [
+      {
+        "attributeId": "void_fusion",
+        "influence": {
+          "influenceId": "prototype.void_fusion",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.2,
+          "subjectKeyCondition": {
+            "keys": ["fire", "void", "shadow"],
+            "requiredKeys": ["void"],
+            "minimumCount": 2
+          }
+        }
+      }
+    ],
+    "presentation": { "name": "Void fusion", "description": "20% more effect amount for Void cards with at least two thematic tags." }
+  },
   "prototype_focus": {
     "inscriptionId": "prototype_focus",
     "equipmentCost": 3,
