@@ -12,7 +12,8 @@
       { "op": "SET", "value": "params.group.raw" },
       { "op": "DIVIDE", "value": "params.group.parameters.cap" },
       { "op": "ADD", "value": "1" },
-      { "op": "DIVIDE_INVERSE", "value": "params.group.raw" }
+      { "op": "DIVIDE_INVERSE", "value": "1" },
+      { "op": "MULTIPLY", "value": "params.group.raw" }
     ]
   }
 }
