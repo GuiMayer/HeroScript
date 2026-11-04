@@ -18,8 +18,8 @@
       "actionBudget": {
         "strategy": "ResourceLimited",
         "actionCosts": "Configured",
-        "actorScope": "RunOwner",
-        "resourceId": "heat",
+        "actorScope": "All",
+        "resourceId": "energy",
         "consumingCommands": [
           "PLAY_CARD"
         ]
@@ -43,9 +43,9 @@
         }
       },
       "resourceCycle": {
-        "resourceId": "heat",
-        "actorScope": "RunOwner",
-        "startActivation": "Preserve"
+        "resourceId": "energy",
+        "actorScope": "All",
+        "startActivation": "ResetToMax"
       },
       "statusTiming": {
         "boundaries": [

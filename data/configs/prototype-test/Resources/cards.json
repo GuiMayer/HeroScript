@@ -35,7 +35,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         }
       },
       {
@@ -165,7 +165,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         }
       },
       {
@@ -270,7 +270,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         }
       },
       {
@@ -426,7 +426,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         }
       },
       {
@@ -524,7 +524,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         }
       },
       {
@@ -627,7 +627,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         }
       },
       {
@@ -722,7 +722,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         },
         "zonePayments": [
           {
@@ -838,7 +838,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         },
         "zonePayments": [
           {
@@ -928,7 +928,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         },
         "zonePayments": [
           {
@@ -1011,7 +1011,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         },
         "zonePayments": [
           {
@@ -1127,7 +1127,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         },
         "zonePayments": [
           {
@@ -1217,7 +1217,7 @@
         "componentId": "cost",
         "order": 10,
         "costs": {
-          "costs": []
+          "costs": [{ "resourceId": "energy", "amount": 1 }]
         },
         "zonePayments": [
           {

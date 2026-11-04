@@ -82,3 +82,10 @@ Calor entra por binding de recurso e tag, Molhado entra na liberação configura
 
 CalculationSettlementTests e os testes de distribuição passaram na mesma execução. O teste API de Calor/Molhado da etapa 0 cobriu quatro entradas, mas a matriz completa de bordas, Sleep e cooldown ainda exige certificação. O checkout tem uma alteração preexistente que move Calor para `increased`; ela fica fora deste commit.
 
+
+## Etapas 8 e 9 — apresentação e revisão de conteúdo
+
+A Godot apresenta mudanças de valor a partir de entradas e saídas publicadas pelo trace, em ordem. Buckets sem alteração são omitidos. O teste headless de apresentação passou, incluindo os cenários existentes em EN/PT. A cobertura adicionada usa trace de origem; a exibição de etapas por impacto e alvo continua pendente.
+
+No prototype-test, cada participante definido no setting tem 3 de energia. O fluxo repõe o máximo na ativação. As 12 definições de carta gastam 1 de energia e conservam seus pagamentos de zona, condições e efeitos térmicos. Antes, essas definições tinham custo de recurso vazio. O teste REST verificou energia inicial de ambos os lados, gasto e reposição, além de retenção e ativação do companion. Os gambits de inimigo ainda usam suas regras próprias; o custo de energia das cartas não converte gambits em cartas. Escudo passivo por atributo e limiares de Calor não foram implantados nesta mudança.
+

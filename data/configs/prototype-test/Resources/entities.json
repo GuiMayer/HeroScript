@@ -15,6 +15,10 @@
             "current": 0,
             "max": 100
           },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
           "block": {
             "current": 0,
             "max": 999
@@ -48,6 +52,10 @@
           "health": {
             "current": 120,
             "max": 120
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
           },
           "block": {
             "current": 0,
@@ -89,6 +97,10 @@
             "current": 20,
             "max": 20
           },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
           "block": {
             "current": 0,
             "max": 999
@@ -115,6 +127,10 @@
           "health": {
             "current": 65,
             "max": 65
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
           },
           "block": {
             "current": 0,
@@ -152,6 +168,10 @@
             "current": 60,
             "max": 60
           },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
           "block": {
             "current": 0,
             "max": 999
@@ -188,6 +208,10 @@
             "current": 42,
             "max": 42
           },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
           "block": {
             "current": 0,
             "max": 999
@@ -223,6 +247,10 @@
           "health": {
             "current": 150,
             "max": 150
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
           },
           "block": {
             "current": 0,

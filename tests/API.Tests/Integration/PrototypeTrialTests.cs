@@ -92,7 +92,8 @@ public sealed partial class PrototypeTrialTests
         Assert.Equal(7, run.Deck.Topology.GetZone("owned", "$run")!.InstanceIds.Count);
         Assert.Equal(5, run.Deck.Topology.GetZone("hand", "$run")!.InstanceIds.Count);
         Assert.Equal(15, run.Deck.Topology.GetZone("draw", "$run")!.InstanceIds.Count);
-        Assert.Null(run.GetActiveEncounter()!.Combat.GetActor("player")!.GetResource("energy"));
+        Assert.Equal(3, run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("energy"));
+        Assert.Equal(3, run.GetActiveEncounter()!.Combat.GetActor("enemy_0")!.ResourceState.Current("energy"));
         Assert.Equal(100, run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("health"));
         var retained = run.Deck.Topology.GetZone("hand", "$run")!.InstanceIds.ToArray();
         for (var activation = 0; activation < 3; activation++)
@@ -118,8 +119,10 @@ public sealed partial class PrototypeTrialTests
         Assert.True(played.IsSuccessStatusCode, await played.Content.ReadAsStringAsync());
         run = runs.GetRun(id).Value;
         Assert.Equal(10, run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("heat"));
+        Assert.Equal(2, run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("energy"));
         await EndTurn(client, runs, id, combatId);
         Assert.Equal(0, runs.GetRun(id).Value.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("heat"));
+        Assert.Equal(3, runs.GetRun(id).Value.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("energy"));
         Assert.Equal(27, initial.Deck.Topology.Instances.Count);
         Assert.Null(initial.ActiveEncounterId);
     }
