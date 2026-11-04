@@ -2689,9 +2689,27 @@
       ],
       "type": "string"
     },
+    "CalculationGroupTrace": {
+      "type": "object",
+      "required": ["key", "raw", "transformed", "weight", "effective"],
+      "properties": {
+        "key": { "type": "string" },
+        "raw": { "type": "number" },
+        "transformed": { "type": "number" },
+        "weight": { "type": "number" },
+        "effective": { "type": "number" },
+        "parameters": { "type": "object", "additionalProperties": { "type": "number" } }
+      },
+      "additionalProperties": false
+    },
     "CalculationBucketTrace": {
       "type": "object",
       "properties": {
+        "groups": {
+          "type": "array",
+          "description": "Present when this bucket uses grouped evaluation.",
+          "items": { "$ref": "#/components/schemas/CalculationGroupTrace" }
+        },
         "bucketId": {
           "type": "string",
           "nullable": true
@@ -4673,6 +4691,11 @@
       "LoadoutPolicyDefinition": {
         "type": "object",
         "properties": {
+          "capacityOnly": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, assignments use client-selected positions and capacity replaces the fixed slot list."
+          },
           "loadoutPolicyId": {
             "type": "string",
             "nullable": true

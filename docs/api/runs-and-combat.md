@@ -159,6 +159,8 @@ CRUD, loader ou fallback próprios. Predicados usam o runtime comum de fórmulas
 e seletores de alvo têm desempate ordinal explícito. A ação escolhida é avaliada
 novamente pela mesma fronteira antes de integrar o commit automático.
 
+Buckets configurados com `grouping` podem retornar `groups` no rastro de cálculo. Cada entrada traz a chave, o total bruto (`raw`), o valor após a curva (`transformed`), o peso (`weight`) e a contribuição efetiva (`effective`). `parameters` informa os parâmetros efetivos quando disponíveis. Em `AddPercent`, os valores do grupo são frações, por exemplo `0.30` representa 30%.
+
 Os intents no snapshot contêm `previewApplications`, `previewCalculations`,
 `previewFingerprint`, `decisionFingerprint` e `previewUncertain`. O game mode
 escolhe se eles são recalculados na publicação ou ficam travados até a ativação

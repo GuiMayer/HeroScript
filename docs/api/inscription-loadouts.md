@@ -6,6 +6,8 @@ Disponível somente para modos que habilitam `loadoutPolicyId`. Contratos de con
 - `POST /api/v1/runs/{runId}/loadout/preview`: rascunho completo, com `actorId`, `assignments` (objeto slot → GUID da instância), `expectedSequence` e `expectedStep`. Retorna `before` e `after` vinculados à versão consultada; não cria instâncias, não grava journal e não avança RNG. Versão obsoleta retorna 409 Problem Details.
 - `POST /api/v1/runs/{runId}/commands`: confirmação pelo gateway existente. Tipo `APPLY_LOADOUT`; payload contém somente `actorId` e `assignments`. O envelope inclui `commandId`, `expectedSequence` e `expectedStep` da consulta/preview. Posições omitidas ficam vazias: não é um patch parcial.
 
+Com `policy.capacityOnly: true`, a lista `policy.slots` fica vazia. Use chaves de posição estáveis, com até 128 caracteres, no objeto `assignments`. O servidor valida propriedade, duplicatas, janela de edição e custo total. Posicionamentos existentes continuam válidos quando a política muda para capacidade. Em políticas com slots fixos, use os IDs de `policy.slots`.
+
 ```json
 {
   "commandId":"5bc5347a-6009-4db3-b27c-81350cf1ec25",
