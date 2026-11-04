@@ -1114,6 +1114,21 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     if (formula.IsFailure)
                         errors.Add($"calculation-pipelines/{id}/buckets/{bucket.BucketId}: {formula.Error}");
                 }
+                if (validation.IsSuccess)
+                {
+                    foreach (var bucket in pipeline.Buckets.Where(item => item.Grouping != null))
+                    foreach (var (key, group) in bucket.Grouping!.Groups.OrderBy(item => item.Key, StringComparer.Ordinal))
+                    {
+                        if (group.Formula is not { } expression) continue;
+                        var formula = RuntimeFormulaEvaluator.ValidateSyntax(
+                            expression,
+                            token => token == "group.raw" ||
+                                group.Parameters.Keys.Any(parameter => token == $"group.parameters.{parameter}"),
+                            formulaId => runtime.GetDefinitions("formulas").ContainsKey(formulaId));
+                        if (formula.IsFailure)
+                            errors.Add($"calculation-pipelines/{id}/buckets/{bucket.BucketId}/groups/{key}: {formula.Error}");
+                    }
+                }
                 foreach (var binding in pipeline.ResourceInfluenceBindings)
                 {
                     if (!string.IsNullOrWhiteSpace(binding.ResourceId))
