@@ -67,6 +67,32 @@ public sealed class ContentPublicationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ConcurrentStartupReadsPreserveRevisionedBytesAndRejectCorruption()
+    {
+        var bundles = Enumerable.Range(1, 8).Select(BoardBundle).ToArray();
+        using (var publisher = new ContentPublicationService(_directory, new ContentManifestProvider()))
+            foreach (var bundle in bundles)
+                Assert.True((await publisher.PublishBundleAsync(bundle)).IsSuccess);
+
+        using var reader = new ContentPublicationService(_directory, new ContentManifestProvider());
+        var reads = await Task.WhenAll(Enumerable.Range(0, 32)
+            .Select(index => reader.GetPublishedForStartupAsync(bundles[index % bundles.Length].Manifest.Revision)));
+        for (var index = 0; index < reads.Length; index++)
+        {
+            Assert.True(reads[index].IsSuccess, reads[index].IsFailure ? reads[index].Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(bundles[index % bundles.Length]),
+                CanonicalJson.ComputeHash(reads[index].Value));
+        }
+
+        var damaged = bundles[0].Manifest.Revision;
+        var path = Path.Combine(_directory, "published", $"{damaged}.json");
+        await File.WriteAllTextAsync(path, "{}");
+        var results = await Task.WhenAll(bundles.Select(bundle => reader.GetPublishedForStartupAsync(bundle.Manifest.Revision)));
+        Assert.True(results[0].IsFailure);
+        Assert.All(results.Skip(1), result => Assert.True(result.IsSuccess));
+    }
+
+    [Fact]
     public async Task ValidationCacheSupportsEvictionInvalidationAndDisabledMode()
     {
         using var publisher = new ContentPublicationService(_directory, new ContentManifestProvider(), validationCacheCapacity: 1);

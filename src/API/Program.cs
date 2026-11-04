@@ -636,9 +636,23 @@ var manifestProvider = app.Services.GetRequiredService<IContentManifestProvider>
 var cachedBundles = new Dictionary<string, ContentBundle>(StringComparer.Ordinal);
 if (startupCacheEntry != null)
 {
-    foreach (var settingId in startupSettingIds)
+    using var startupReadGate = new SemaphoreSlim(4);
+    async Task<(string Id, Core.Common.Result<ContentBundle> Result)> LoadCached(string settingId)
     {
-        var loaded = publication.GetPublishedAsync(startupCacheEntry.Revisions[settingId]).GetAwaiter().GetResult();
+        await startupReadGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var revision = startupCacheEntry.Revisions[settingId];
+            var result = publication is ContentPublicationService standard
+                ? await standard.GetPublishedForStartupAsync(revision).ConfigureAwait(false)
+                : await publication.GetPublishedAsync(revision).ConfigureAwait(false);
+            return (settingId, result);
+        }
+        finally { startupReadGate.Release(); }
+    }
+    var results = Task.WhenAll(startupSettingIds.Select(LoadCached)).GetAwaiter().GetResult();
+    foreach (var (settingId, loaded) in results)
+    {
         if (loaded.IsFailure || !string.Equals(loaded.Value.Manifest.ConfigName, settingId, StringComparison.Ordinal))
         {
             cachedBundles.Clear();

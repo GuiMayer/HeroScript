@@ -277,9 +277,20 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
         }
     }
 
-    public async Task<Result<ContentBundle>> GetPublishedAsync(
+    public Task<Result<ContentBundle>> GetPublishedAsync(
         string revision,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        ReadPublishedAsync(revision, false, cancellationToken);
+
+    /// <summary>Allows independent immutable revisions to be validated concurrently during startup.</summary>
+    public Task<Result<ContentBundle>> GetPublishedForStartupAsync(
+        string revision,
+        CancellationToken cancellationToken = default) =>
+        ReadPublishedAsync(revision,
+            _graphValidator is ContentGraphValidator { SupportsValidationReuse: true }, cancellationToken);
+
+    private async Task<Result<ContentBundle>> ReadPublishedAsync(
+        string revision, bool concurrentValidation, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(revision))
             return Result<ContentBundle>.Failure("Content revision is required");
@@ -289,7 +300,7 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
         if (!File.Exists(path))
             return Result<ContentBundle>.Failure($"Published content revision not found: {revision}");
 
-        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (!concurrentValidation) await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Always read and fingerprint the file, even on a hit. Revision labels,
@@ -333,7 +344,7 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
         }
         finally
         {
-            _semaphore.Release();
+            if (!concurrentValidation) _semaphore.Release();
         }
     }
 
