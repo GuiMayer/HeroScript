@@ -8,6 +8,8 @@ Disponível somente para modos que habilitam `loadoutPolicyId`. Contratos de con
 
 Com `policy.capacityOnly: true`, a lista `policy.slots` fica vazia. Use chaves de posição estáveis, com até 128 caracteres, no objeto `assignments`. O servidor valida propriedade, duplicatas, janela de edição e custo total. Posicionamentos existentes continuam válidos quando a política muda para capacidade. Em políticas com slots fixos, use os IDs de `policy.slots`.
 
+O `rank` faz parte da definição vinculada à revisão da inscrição. Rank zero usa `equipmentCost` e os bônus base. Ranks positivos usam a linha correspondente em `ranks`, que pode substituir o custo e valores de influências. Um slot de polaridade igual à da inscrição pode aplicar `matchingMultiplier` ao custo. Em políticas apenas por capacidade, o custo vem do rank. Use `effectiveEquipmentCost` no item e `usedCapacity` na resposta da prévia para apresentar os valores resolvidos pela engine.
+
 ```json
 {
   "commandId":"5bc5347a-6009-4db3-b27c-81350cf1ec25",
