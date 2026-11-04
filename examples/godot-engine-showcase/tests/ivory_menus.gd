@@ -87,10 +87,13 @@ func _run() -> void:
 			router._apply_preferences()
 			await settle()
 			router._probing_engine = true
-			for phase in ["preparing_data", "checking_build", "building_server", "starting_server", "loading_settings", "connecting"]:
+			var phase_labels := {"preparing_data": "●  PREPARING DATA", "checking_build": "●  CHECKING BUILD",
+				"building_server": "●  BUILDING SERVER", "starting_server": "●  STARTING SERVER",
+				"loading_settings": "●  LOADING SETTINGS", "connecting": "●  CONNECTING"}
+			for phase in phase_labels:
 				router._on_server_progress(phase)
 				var phase_label: String = router.host.get_child(0).get_node("%EngineStatus").text
-				check(not phase_label.is_empty() and phase_label != i18n.text("●  ENGINE ONLINE"), "startup phase remains visible while connecting: " + phase)
+				check(phase_label == i18n.text(phase_labels[phase]), "startup phase is localized while connecting: " + phase)
 			router._probing_engine = false
 			router._show_main_menu()
 			for route in ["settings", "history", "codex", "sandbox", "replay"]:
