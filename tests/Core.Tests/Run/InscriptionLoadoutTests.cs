@@ -47,6 +47,27 @@ public sealed class InscriptionLoadoutTests
     }
 
     [Fact]
+    public void CapacityOnlyAcceptsUnconfiguredPositionsAndRejectsExcessCost()
+    {
+        var (run, runtime, planner) = Setup(LoadoutTestContent.Policy() with
+        {
+            CapacityOnly = true, Slots = [], Capacity = 9, AllowDuplicateDefinitions = true
+        });
+        for (var index = 0; index < 4; index++)
+            run = InscriptionAcquisition.Grant(run, runtime, "alice", "focus", $"grant:{index}").Value;
+        var before = CanonicalJson.ComputeHash(run);
+        var draft = Enumerable.Range(0, 3).ToDictionary(index => $"custom:{index}", index => Item(run, index: index));
+        var applied = planner.Plan(run, "alice", draft);
+        Assert.True(applied.IsSuccess, applied.IsFailure ? applied.Error : null);
+        Assert.Equal(9, applied.Value.UsedCapacity);
+        var repeated = planner.Plan(run, "alice", draft.Reverse().ToDictionary());
+        Assert.Equal(CanonicalJson.ComputeHash(applied.Value.Candidate), CanonicalJson.ComputeHash(repeated.Value.Candidate));
+        draft.Add("extra", Item(run, index: 3));
+        Assert.True(planner.Plan(run, "alice", draft).IsFailure);
+        Assert.Equal(before, CanonicalJson.ComputeHash(run));
+    }
+
+    [Fact]
     public void CompleteSwapUsesFinalBudgetAndPreservesInputRngCardsAndProvenance()
     {
         var (run, runtime, planner) = Setup(LoadoutTestContent.Policy() with { AllowDuplicateDefinitions = true });

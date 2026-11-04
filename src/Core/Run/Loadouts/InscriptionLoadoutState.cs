@@ -73,9 +73,10 @@ public sealed record InscriptionLoadoutState
         foreach (var (actor, loadout) in Actors)
         {
             if (!Inventories.TryGetValue(InventoryId(runId, actor), out var inventory)) return Result.Failure("Character inventory not found");
-            if (loadout.Assignments.Count > policy.Slots.Length) return Result.Failure("Too many equipped inscriptions");
+            if (loadout.Assignments.Count > (policy.CapacityOnly ? inventory.Items.Length : policy.Slots.Length))
+                return Result.Failure("Too many equipped inscriptions");
             foreach (var (slot, instanceId) in loadout.Assignments)
-                if (!policy.Slots.Any(value => value.SlotId == slot) || !equippedIds.Add(instanceId) || !inventory.Items.Any(item => item.InstanceId == instanceId))
+                if (!policy.AcceptsPosition(slot) || !equippedIds.Add(instanceId) || !inventory.Items.Any(item => item.InstanceId == instanceId))
                     return Result.Failure("Invalid slot, foreign ownership or instance equipped by multiple characters");
         }
         return Result.Success();

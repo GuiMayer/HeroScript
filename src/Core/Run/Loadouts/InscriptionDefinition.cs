@@ -68,6 +68,8 @@ public sealed record LoadoutPolicyDefinition
     public bool? AllowDuplicateDefinitions { get; init; }
     public int MaximumInventoryEntries { get; init; } = 512;
     public ImmutableArray<LoadoutSlotDefinition> Slots { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool CapacityOnly { get; init; }
     public ImmutableArray<string> InscriptionIds { get; init; } = [];
     public ImmutableArray<LoadoutEquipmentWindow> EquipmentWindows { get; init; } = [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -84,7 +86,7 @@ public sealed record LoadoutPolicyDefinition
         if (string.IsNullOrWhiteSpace(LoadoutPolicyId) || InventoryScope == null || !Enum.IsDefined(InventoryScope.Value) ||
             AllowDuplicateDefinitions == null || !float.IsFinite(Capacity) || Capacity < 0 || MaximumInventoryEntries is < 1 or > 4096 ||
             InscriptionIds.IsDefaultOrEmpty || InscriptionIds.Any(string.IsNullOrWhiteSpace) || InscriptionIds.Distinct(StringComparer.Ordinal).Count() != InscriptionIds.Length ||
-            Slots.IsDefaultOrEmpty || Slots.Length > 64 || Slots.Any(slot => slot == null || string.IsNullOrWhiteSpace(slot.SlotId) ||
+            Slots.IsDefault || CapacityOnly != Slots.IsEmpty || Slots.Length > 64 || Slots.Any(slot => slot == null || string.IsNullOrWhiteSpace(slot.SlotId) ||
                 slot.RequiredTags.Any(string.IsNullOrWhiteSpace) || slot.RequiredTags.Distinct(StringComparer.Ordinal).Count() != slot.RequiredTags.Length) ||
             Slots.Select(slot => slot.SlotId).Distinct(StringComparer.Ordinal).Count() != Slots.Length ||
             EquipmentWindows.IsDefaultOrEmpty || EquipmentWindows.Any(window => !Enum.IsDefined(window)) || EquipmentWindows.Distinct().Count() != EquipmentWindows.Length)
@@ -94,6 +96,10 @@ public sealed record LoadoutPolicyDefinition
         var stations = InscriptionStationTransitions.Validate(Stations ?? [], InscriptionIds);
         return RevisionMigration is { } migration && !Enum.IsDefined(migration) ? Result.Failure("Invalid loadout migration policy") : stations;
     }
+
+    internal bool AcceptsPosition(string position) => CapacityOnly
+        ? !string.IsNullOrWhiteSpace(position) && position.Length <= 128
+        : Slots.Any(slot => slot.SlotId == position);
 
     public Result ValidateBindings(ContentRuntime runtime, GameModeDefinition? mode = null)
     {

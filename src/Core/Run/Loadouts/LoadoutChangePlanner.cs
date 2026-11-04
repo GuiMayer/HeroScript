@@ -134,15 +134,18 @@ public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
         var valid = run.Loadouts.Validate(run.RunId, policy.Value);
         if (valid.IsFailure) return Fail(valid.Error);
         if (requireWindow && !LoadoutContentAccess.CanEquip(run, policy.Value)) return Fail("Equipment cannot be changed in the current policy window");
-        if (assignments.Count > policy.Value.Slots.Length || assignments.Values.Distinct().Count() != assignments.Count) return Fail("Invalid slots or duplicate inscription instance");
         var inventory = run.Loadouts.Inventories[run.Loadouts.InventoryId(run.RunId, actorId)];
+        var limit = policy.Value.CapacityOnly ? inventory.Items.Length : policy.Value.Slots.Length;
+        if (assignments.Count > limit || assignments.Values.Distinct().Count() != assignments.Count)
+            return Fail("Invalid positions or duplicate inscription instance");
         var definitions = new HashSet<string>(StringComparer.Ordinal);
         var used = 0d;
         foreach (var (slotId, instanceId) in assignments.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
             var slot = policy.Value.Slots.FirstOrDefault(value => value.SlotId == slotId);
             var owned = inventory.Items.FirstOrDefault(item => item.InstanceId == instanceId);
-            if (slot == null || owned == null || !policy.Value.InscriptionIds.Contains(owned.DefinitionId)) return Fail("Slot or owned inscription not found");
+            if (!policy.Value.AcceptsPosition(slotId) || owned == null || !policy.Value.InscriptionIds.Contains(owned.DefinitionId))
+                return Fail("Position or owned inscription not found");
             if (run.Loadouts.Actors.Values.Where(other => other.ActorId != actorId).Any(other => other.Assignments.Values.Contains(instanceId)))
                 return Fail("Inscription is already equipped by another character");
             var acquired = runtimes.Resolve(owned.EffectiveRevision, run.ConfigName);
@@ -153,7 +156,8 @@ public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
             if (item.IsFailure) return Fail(item.Error);
             valid = item.Value.Validate(acquired.Value);
             if (valid.IsFailure) return Fail(valid.Error);
-            if (!slot.RequiredTags.All(item.Value.Tags.Contains)) return Fail("Inscription tags are not compatible with this slot");
+            if (slot != null && !slot.RequiredTags.All(item.Value.Tags.Contains))
+                return Fail("Inscription tags are not compatible with this slot");
             if (!definitions.Add(owned.DefinitionId) && policy.Value.AllowDuplicateDefinitions != true) return Fail("Duplicate inscription definitions are not allowed");
             used += item.Value.EquipmentCost;
         }
