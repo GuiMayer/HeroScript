@@ -112,7 +112,7 @@ try {
         Write-Host "HeroScript online: $apiUrl" -ForegroundColor Green
     }
     else {
-        Write-StartupProgress 'building_server'
+        Write-StartupProgress 'checking_build'
         $apiEnvironment = @{
             HEROSCRIPT_STARTUP_PROGRESS_PATH = $ProgressPath
             HEROSCRIPT_STARTUP_ATTEMPT = $ProgressAttempt

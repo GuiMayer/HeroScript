@@ -61,6 +61,7 @@ function Get-HeroScriptServerBinary {
             }
         } catch { Write-Warning "Build cache ignored: $_" }
     }
+    Write-StartupProgress 'building_server'
     & dotnet build $ApiProject --configuration Release --artifacts-path $BuildRoot | Out-Host
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $binary)) { throw 'HeroScript server build failed.' }
     $after = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot

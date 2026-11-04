@@ -58,7 +58,7 @@ func ensure_started(url: String) -> Dictionary:
 					DirAccess.remove_absolute(progress_path)
 					starting = false
 					return {"ok": false, "errorKey": "Could not start the local engine. Check the launcher and .NET installation."}
-				if phase != last_phase and phase in ["preparing_data", "building_server", "starting_server", "loading_settings", "connecting"]:
+				if phase != last_phase and phase in ["preparing_data", "checking_build", "building_server", "starting_server", "loading_settings", "connecting"]:
 					last_phase = phase
 					progress_changed.emit(phase)
 		if await _ready_at(url):
