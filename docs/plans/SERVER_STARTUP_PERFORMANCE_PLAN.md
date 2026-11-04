@@ -100,3 +100,7 @@ Implementar o contrato de eventos junto da instrumentação da etapa 1 e integra
 Com HEROSCRIPT_STARTUP_TIMINGS=1, a API emite eventos JSON no stdout contendo duração de descoberta, compilação e publicação por setting, construção do host, preparação de serialização e abertura do listener. Sem a variável, a instrumentação não emite eventos.
 
 Uma execução isolada da DLL Release, com store novo e sem launcher, respondeu pronta em 14,618 s. A soma das etapas sequenciais de compilação e publicação dos dez settings ficou em aproximadamente 13,1 s. Ascendant consumiu 2,23 s de compilação e 1,77 s de publicação; prototype-test consumiu 1,40 s e 1,37 s; reward-lab consumiu 0,93 s e 1,01 s. A preparação de serialização levou 0,27 s. A medição foi única e não deve ser interpretada como p95 ou comparada diretamente ao tempo de launcher com build.
+
+## Repetição da medição direta
+
+Dez processos consecutivos da DLL Release, com o mesmo armazenamento isolado e sem controlar o cache do sistema operacional, responderam ao health/ready em p50 de 14.528 ms e p95/máximo de 15.634 ms. A amostra exclui o launcher, a compilação pelo dotnet run e a interface Godot. Com dez amostras, o p95 corresponde ao maior valor e deve ser interpretado com cautela. O teste de dez execuções foi realizado com a ferramenta tools/measure-server-startup.py.
