@@ -17,6 +17,7 @@ $ErrorActionPreference = 'Stop'
 $demoRoot = $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $demoRoot '..\..')).Path
 . (Join-Path $demoRoot 'scripts/launcher/player_data.ps1')
+. (Join-Path $demoRoot 'scripts/launcher/server_build.ps1')
 $playerRoot = Get-HeroScriptPlayerRoot
 if ($PlayerDataRoot) { $playerRoot = [IO.Path]::GetFullPath($PlayerDataRoot) }
 $runtimeRoot = Get-HeroScriptRuntimeRoot $playerRoot $Port
@@ -128,8 +129,11 @@ try {
             [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')
         }
         $buildRoot = Join-Path $runtimeRoot 'build'
+        $serverBinary = Get-HeroScriptServerBinary $repositoryRoot $apiProject $buildRoot $runtimeRoot
+        Write-StartupProgress 'starting_server'
+        [Environment]::SetEnvironmentVariable('ASPNETCORE_CONTENTROOT', (Split-Path $apiProject), 'Process')
         $startedEngine = Start-Process -FilePath 'dotnet' `
-            -ArgumentList @('run', '--configuration', 'Release', '--project', "`"$apiProject`"", '--no-launch-profile', '--artifacts-path', "`"$buildRoot`"") `
+            -ArgumentList @("`"$serverBinary`"") `
             -WorkingDirectory $repositoryRoot -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $runtimeRoot 'engine.log') `
             -RedirectStandardError (Join-Path $runtimeRoot 'engine-error.log')
@@ -181,6 +185,10 @@ try {
     else {
         & godot --path $demoRoot -- "--api-url=$apiUrl"
     }
+}
+catch {
+    Write-StartupProgress 'failed'
+    throw
 }
 finally {
     if ($startupLock) { $startupMutex.ReleaseMutex() }
