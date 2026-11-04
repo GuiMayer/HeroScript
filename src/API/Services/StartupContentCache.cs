@@ -33,7 +33,9 @@ internal sealed class StartupContentCache(string storePath)
                 hash.AppendData(bytes);
             }
             Append("heroscript-startup-cache-v1");
-            foreach (var assembly in new[] { typeof(StartupContentCache).Assembly, typeof(ContentBundle).Assembly, typeof(Mods.SettingCompiler).Assembly })
+            Append(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
+            foreach (var assembly in new[] { typeof(StartupContentCache).Assembly, typeof(ContentBundle).Assembly,
+                         typeof(Mods.SettingCompiler).Assembly, typeof(JsonSerializer).Assembly })
             {
                 var path = assembly.Location;
                 if (string.IsNullOrEmpty(path)) return null;
