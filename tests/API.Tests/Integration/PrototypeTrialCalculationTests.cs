@@ -6,6 +6,8 @@ using Core.Determinism;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
+using Core.Run.Loadouts;
+using Core.Content;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -13,6 +15,67 @@ namespace API.Tests.Integration;
 
 public sealed partial class PrototypeTrialTests
 {
+    [Fact]
+    public async Task EquippedStyleInscriptionsApplyOnlyToMatchingCards()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var game = new GameEngineClientSimulator(client);
+        var id = await game.StartRunAsync("prototype-test", "prototype_trial", "player", 8814, "prototype_campaign");
+        var reads = factory.Services.GetRequiredService<IRunQueryService>();
+        var initial = reads.GetRun(id).Value;
+        var runtimes = factory.Services.GetRequiredService<IContentRuntimeResolver>();
+        var loadouts = initial.Loadouts!;
+        var inventory = loadouts.Inventories[loadouts.InventoryId(id, "player")];
+        await game.StartCombatAsync("player", ["enemy_0"], runId: id, heroDefinitionId: "prototype_hero", enemyDefinitionId: "prototype_target");
+        var combatRun = reads.GetRun(id).Value;
+        var executor = factory.Services.GetRequiredService<ICardPlayExecutor>();
+        var planner = new LoadoutChangePlanner(runtimes);
+
+        foreach (var (card, style, applied, excluded) in new[]
+        {
+            ("prototype_scorch", "prototype_fire_mastery", "prototype.fire_focus", "prototype.void_fusion"),
+            ("prototype_necro_bolt", "prototype_void_fusion", "prototype.void_fusion", "prototype.fire_focus")
+        })
+        {
+            var draft = new[] { "prototype_fire_focus", style }.ToDictionary(
+                definition => definition, definition => inventory.Items.Single(item => item.DefinitionId == definition).InstanceId);
+            var equipped = planner.Plan(initial, "player", draft);
+            Assert.True(equipped.IsSuccess, equipped.IsFailure ? equipped.Error : null);
+            var run = Arrange(combatRun with { Loadouts = equipped.Value.Candidate.Loadouts }, card, "prototype_strike");
+            Guid? payment = null;
+            if (card == "prototype_necro_bolt")
+            {
+                var topology = run.Deck.Topology;
+                var hand = topology.GetZone("hand", "$run")!;
+                var discard = topology.GetZone("discard", "$run")!;
+                var fuel = hand.InstanceIds.Single(
+                    instance => run.Deck.Topology.Instances[instance].DefinitionId == "prototype_strike");
+                var moved = CardZoneTransitions.Move(topology, hand.Address, discard.Address, [fuel],
+                    new() { Strategy = CardZoneInsertionStrategy.Bottom }, null,
+                    CardZoneOrdering.Ordered, CardZoneOrdering.Ordered, run.Determinism);
+                Assert.True(moved.IsSuccess, moved.IsFailure ? moved.Error : null);
+                run = run with { Deck = new() { Topology = moved.Value.State } };
+                payment = fuel;
+            }
+            var request = Request(run, card);
+            if (payment is { } selectedFuel)
+                request = request with { PaymentSelections = [new("cost", "fuel", [selectedFuel])] };
+            var before = CanonicalJson.ComputeHash(run);
+            var result = executor.Execute(request);
+            Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            var buckets = result.Value.Calculations.SelectMany(calculation => calculation.Buckets).ToArray();
+            var contributions = buckets.SelectMany(bucket => bucket.Contributions).ToArray();
+            Assert.Contains(contributions, contribution => contribution.InfluenceId == applied && contribution.Applied);
+            Assert.DoesNotContain(contributions, contribution => contribution.InfluenceId == excluded && contribution.Applied);
+            if (style == "prototype_fire_mastery")
+                Assert.Contains(buckets, bucket => bucket.Groups?.Any(group => group.Key == "fire" &&
+                    group.Parameters?.GetValueOrDefault("cap") == 1.5f) == true);
+            Assert.Equal(before, CanonicalJson.ComputeHash(run));
+            Assert.Equal(result.Value.ResolutionFingerprint, executor.Execute(request).Value.ResolutionFingerprint);
+        }
+    }
+
     [Fact]
     public async Task PublishedCriticalTiersUseLinearBonusAndDoNotReuseAStaleSameStepActorQuote()
     {
