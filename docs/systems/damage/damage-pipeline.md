@@ -146,3 +146,10 @@ modo. Não existe aplicação escalar silenciosa quando a configuração está a
 - `src/Core/Calculations/CalculationSettlementPlanner.cs`
 - `src/Core/Resources/ResourceMutationReducer.cs`
 - `data/configs/default/Resources/calculation-pipelines/`
+## Como ler a ordem dos buckets
+
+Use [grupos de build](../../content/calculation-build-groups.md) para classificar a origem e a intenção das influências. O contrato numérico continua no JSON da pipeline. No mesmo bucket `AddPercent`, 0,20 e 0,25 são aumentos fracionários sobre a entrada comum: base 100 resulta em 145. Dois buckets consecutivos com os mesmos aumentos resultam em 150 antes de arredondar. Cada multiplicação aumenta a base do próximo bucket.
+
+Ao somar aumentos no mesmo grupo, cada incremento tem ganho relativo menor sobre o total já aumentado. Já uma curva de armadura com retornos decrescentes vem da fórmula configurada. Por exemplo, se a fração mitigada for `A / (A + K)` com `K = 100`, 100 pontos de armadura mitigam 50% e 200 mitigam cerca de 66,7%. A capacidade de bloqueio pode consumir o saldo em etapa posterior, conforme a ordem do JSON.
+
+Na inspeção, a Godot pode mostrar uma sequência curta de entradas e saídas publicadas pelo trace. Para validar uma divergência entre prévia e execução, compare revisão, alvo, estágio e momento de captura. Uma previsão sem alvo e uma execução com defesa do alvo são contextos diferentes.

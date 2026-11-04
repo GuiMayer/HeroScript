@@ -148,3 +148,9 @@ dez hosts isolados, restart e replay.
 A versão 23 muda traces, fingerprints e resultados do conteúdo crítico.
 O launcher exige a capability nova; saves históricos não são apagados,
 migrados silenciosamente ou prometidos como semanticamente compatíveis.
+
+## Unidades e combinação com outros buckets
+
+A chance crítica em atributos usa pontos percentuais. Por exemplo, 150 significa tier 1 garantido e 50% de chance de tier 2. Com bônus crítico de 100 pontos percentuais e política linear, o tier 2 fornece fator ×3. As contribuições `AddPercent` da pipeline usam frações, como 0,20 para +20%. O momento em que o fator crítico entra e quais estágios ficam incorporados pertencem ao JSON da revisão.
+
+O valor capturado por stack carrega os estágios já aplicados. Ao liberar ou condensar, aplique somente os estágios restantes configurados. Isso permite reavaliar a defesa do alvo sem aplicar o crítico da origem novamente. Consulte os [grupos de build](calculation-build-groups.md) e a [distribuição de quantidades](../systems/calculations/quantity-distribution.md).

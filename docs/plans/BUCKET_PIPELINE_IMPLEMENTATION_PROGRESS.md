@@ -105,3 +105,9 @@ O teste de capítulo passou com persistência isolada por sockets Kestrel, em Re
 | END_TURN | 53 | 207,68 ms | 663,16 ms | 1049,27 ms | 663,16 ms |
 
 As amostras percorrem o capítulo, sem fase de aquecimento dedicada. O teste também registra a distribuição sem a primeira amostra de cada comando. O gate de 100 ms não passou. A diferença em relação à baseline não mede uma otimização isolada, pois a revisão, a jornada e a concorrência mudaram. O checkout contém alterações preexistentes e os hashes certificam a revisão usada na execução local.
+
+## Etapa 12 — documentação e pendências
+
+Os guias de autoria, dano e crítico agora distinguem soma no mesmo bucket, composição entre buckets, unidades e defesa. O exemplo JSON do benchmark pode ser reproduzido no checkout.
+
+A passagem pelas etapas 0–12 não certifica todos os critérios de aceite. Permanecem abertos escudo passivo por atributo, payoff por limiares de Calor, matriz completa de Sleep/cooldown, trace por impacto e alvo na Godot, migração específica entre revisões do prototype-test e gate de latência. O teste de capítulo verifica viabilidade técnica, sem equivaler a playtest de equilíbrio.

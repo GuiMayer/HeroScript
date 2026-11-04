@@ -51,3 +51,11 @@ Snapshots antigos continuam vinculados ao conteúdo publicado de sua revisão. P
 Antes de publicar: validar referências/unidades, exemplos numéricos, situações sem influência, limites, crítico, preservação de input e consumo único. Revisar se cada fator independente deve realmente multiplicar. Documentar a proveniência de cada contribuição e sua aplicabilidade por tags/canal. Relíquias podem continuar suportadas na engine, mesmo quando não são oferecidas neste setting.
 
 As definições atuais permanecem válidas sem novos metadados obrigatórios. A exposição visual deve derivar de traces e metadados publicados; a Godot não recalcula os valores de gameplay.
+
+### Exemplo reproduzível
+
+O caso `shared-group` em `tests/Fixtures/calculation-baseline/grouping.json` fornece base 100 e duas contribuições, 0,20 e 0,25, para o mesmo bucket. O caso `separate-groups` envia a segunda contribuição a um bucket posterior. Execute os dois casos com o benchmark do repositório.
+
+```powershell
+dotnet run --project tools/CalculationBenchmark -c Release -- tests/Fixtures/calculation-baseline/grouping.json
+```
