@@ -15,13 +15,19 @@ function Get-HeroScriptBuildFingerprint {
     }
     foreach ($root in $roots) {
         if (-not (Test-Path -LiteralPath $root)) { return $null }
-        $all = Get-ChildItem -LiteralPath $root -Recurse -Force -ErrorAction Stop
-        if (@($all | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { return $null }
-        foreach ($item in $all) {
-            if ($item.PSIsContainer) { continue }
-            if (-not $Outputs -and $item.FullName -match '[\\/](bin|obj)[\\/]') { continue }
-            if ($Outputs -and $root -like '*obj' -and $item.Name -ne 'project.assets.json') { continue }
-            $paths.Add($item.FullName)
+        $pending = [Collections.Generic.Stack[string]]::new()
+        $pending.Push($root)
+        while ($pending.Count -gt 0) {
+            $directory = $pending.Pop()
+            foreach ($item in (Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop)) {
+                if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $null }
+                if ($item.PSIsContainer) {
+                    if (-not $Outputs -and $item.Name -in @('bin', 'obj')) { continue }
+                    $pending.Push($item.FullName)
+                } elseif (-not $Outputs -or $root -notlike '*obj' -or $item.Name -eq 'project.assets.json') {
+                    $paths.Add($item.FullName)
+                }
+            }
         }
     }
     $entries = [Collections.Generic.List[string]]::new()
@@ -50,7 +56,8 @@ function Get-HeroScriptServerBinary {
     param([string]$RepositoryRoot, [string]$ApiProject, [string]$BuildRoot, [string]$RuntimeRoot)
     $binary = Join-Path $BuildRoot 'bin/API/release/API.dll'
     $manifest = Join-Path $RuntimeRoot 'server-build-v1.json'
-    $before = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot
+    try { $before = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot }
+    catch { $before = $null }
     if ($before -and (Test-Path -LiteralPath $binary) -and (Test-Path -LiteralPath $manifest)) {
         try {
             $saved = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
@@ -64,8 +71,10 @@ function Get-HeroScriptServerBinary {
     Write-StartupProgress 'building_server'
     & dotnet build $ApiProject --configuration Release --artifacts-path $BuildRoot | Out-Host
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $binary)) { throw 'HeroScript server build failed.' }
-    $after = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot
-    $outputs = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot -Outputs
+    try {
+        $after = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot
+        $outputs = Get-HeroScriptBuildFingerprint $RepositoryRoot $BuildRoot -Outputs
+    } catch { $after = $null; $outputs = $null }
     if ($before -and $after -eq $before -and $outputs) {
         $temporary = "$manifest.$PID.tmp"
         $entry = @{ version = 1; source = $after; outputs = $outputs } | ConvertTo-Json -Compress
