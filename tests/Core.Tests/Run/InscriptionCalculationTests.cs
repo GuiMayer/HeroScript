@@ -1,8 +1,9 @@
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using Core.Calculations;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Content;
+using Core.Determinism;
 using Core.Effects;
 using Core.Math;
 using Core.Run;
@@ -93,6 +94,36 @@ public sealed class InscriptionCalculationTests
         var combat = new CombatState { Actors = new Dictionary<string, CombatActorState> { ["alice"] = new() { InstanceId = "alice" } } };
         Assert.Equal(Assert.Single(attributes.Project(changed, null, "alice").Value.Attributes).EffectiveValue,
             Assert.Single(attributes.Project(changed, combat, "alice").Value.Attributes).EffectiveValue);
+    }
+
+    [Fact]
+    public void TwoEquippedItemsContributeOnceEachWithStableOrderAndProjectionDoesNotMutateTheRun()
+    {
+        var (initial, runtime, planner) = InscriptionLoadoutTests.Setup(LoadoutTestContent.Policy() with { AllowDuplicateDefinitions = true });
+        var run = InscriptionAcquisition.Grant(initial, runtime, "alice", "focus", "one").Value;
+        run = InscriptionAcquisition.Grant(run, runtime, "alice", "focus", "two").Value;
+        var first = InscriptionLoadoutTests.Item(run); var second = InscriptionLoadoutTests.Item(run, index: 1);
+        var forward = planner.Plan(run, "alice", new Dictionary<string, Guid> { ["one"] = first, ["two"] = second }).Value.Candidate;
+        var swapped = planner.Plan(run, "alice", new Dictionary<string, Guid> { ["one"] = second, ["two"] = first }).Value.Candidate;
+        var resolver = new Mock<IContentRuntimeResolver>();
+        resolver.Setup(value => value.Resolve(runtime.Manifest.Revision, "default")).Returns(Result<ContentRuntime>.Success(runtime));
+        var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
+        var provider = new InscriptionCalculationInfluenceProvider(resolver.Object, formulas);
+        var alice = new CombatActorState { InstanceId = "alice" };
+        var context = new CalculationSourceContext { Run = forward, Actor = alice, Target = new() { InstanceId = "bob" }, ContentRevision = runtime.Manifest.Revision };
+        var influences = provider.Collect(context).Value;
+        Assert.Equal(2, influences.Count);
+        Assert.Equal(2, influences.Select(value => value.SourceId).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(influences, value => Assert.Equal(CalculationSourceKind.Inscription, value.SourceKind));
+        Assert.Equal(influences.Select(value => value.SourceId).Order(StringComparer.Ordinal).ToArray(),
+            provider.Collect(context with { Run = swapped }).Value.Select(value => value.SourceId).Order(StringComparer.Ordinal).ToArray());
+        var before = CanonicalJson.ComputeHash(forward);
+        var combat = new CombatState { Actors = new Dictionary<string, CombatActorState> { ["alice"] = alice } };
+        var attributes = new ActorAttributeProjectionService(resolver.Object, formulas, new CalculationEngine(), provider);
+        var projected = Assert.Single(attributes.Project(forward, combat, "alice").Value.Attributes);
+        Assert.Equal(50, projected.EffectiveValue);
+        Assert.Equal(projected.EffectiveValue, Assert.Single(attributes.Project(swapped, combat, "alice").Value.Attributes).EffectiveValue);
+        Assert.Equal(before, CanonicalJson.ComputeHash(forward));
     }
 
     [Fact]
