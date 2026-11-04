@@ -104,3 +104,9 @@ Uma execução isolada da DLL Release, com store novo e sem launcher, respondeu 
 ## Repetição da medição direta
 
 Dez processos consecutivos da DLL Release, com o mesmo armazenamento isolado e sem controlar o cache do sistema operacional, responderam ao health/ready em p50 de 14.528 ms e p95/máximo de 15.634 ms. A amostra exclui o launcher, a compilação pelo dotnet run e a interface Godot. Com dez amostras, o p95 corresponde ao maior valor e deve ser interpretado com cautela. O teste de dez execuções foi realizado com a ferramenta tools/measure-server-startup.py.
+
+## Implementação e certificação
+
+Foram implementados instrumentação, build isolado e reaproveitado com fingerprint, índice de revisões de conteúdo, validação concorrente limitada, progresso localizado na Godot e acompanhamento de inicializações simultâneas. A certificação, os comandos e os limites estão em [SERVER_STARTUP_CERTIFICATION.md](../validation/SERVER_STARTUP_CERTIFICATION.md).
+
+A meta de p95 inferior a 5 s permanece aberta. O teste de conexão real da Godot usa três amostras e não estabelece p95. SDK indisponível, recuperação de bundle publicado corrompido e distribuição standalone também permanecem sem certificação.
