@@ -48,6 +48,35 @@ function Write-StartupProgress([string]$Phase, [string]$ErrorCode = '') {
     } catch { Write-Warning "Startup progress could not be written: $_" }
 }
 
+function Get-OwnerProgressPath {
+    return Join-Path (Split-Path $runtimeRoot -Parent) ("startup-owner-{0}.json" -f $Port)
+}
+
+function Write-StartupOwner {
+    if (-not $ProgressPath -or -not $ProgressAttempt) { return }
+    try {
+        $ownerPath = Get-OwnerProgressPath
+        New-Item -ItemType Directory -Path (Split-Path $ownerPath -Parent) -Force | Out-Null
+        $temporary = "$ownerPath.$PID.tmp"
+        $record = @{ version = 1; attemptId = $ProgressAttempt; progressPath = $ProgressPath; processId = $PID }
+        [IO.File]::WriteAllText($temporary, ($record | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $temporary -Destination $ownerPath -Force
+    } catch { Write-Warning "Startup owner could not be written: $_" }
+}
+
+function Copy-OwnerStartupProgress {
+    if (-not $ProgressPath -or -not $ProgressAttempt) { return }
+    try {
+        $owner = Get-Content -LiteralPath (Get-OwnerProgressPath) -Raw | ConvertFrom-Json
+        if ($owner.version -ne 1 -or -not (Get-Process -Id $owner.processId -ErrorAction SilentlyContinue)) { return }
+        $progress = Get-Content -LiteralPath $owner.progressPath -Raw | ConvertFrom-Json
+        if ($progress.version -ne 1 -or $progress.attemptId -ne $owner.attemptId) { return }
+        if ($progress.phase -in @('preparing_data', 'checking_build', 'building_server', 'starting_server', 'loading_settings', 'connecting')) {
+            Write-StartupProgress $progress.phase
+        }
+    } catch { return }
+}
+
 function Test-CompatibleDemoEngine {
     param([switch]$IgnoreStorageBinding)
     try {
@@ -109,11 +138,13 @@ try {
     if (-not $startupLock -and $AutoStart) {
         Write-StartupProgress 'connecting'
         for ($wait = 0; $wait -lt 240; $wait++) {
+            Copy-OwnerStartupProgress
             if (Test-CompatibleDemoEngine) { return }
             Start-Sleep -Milliseconds 250
         }
     }
     if (-not $startupLock) { throw "Outra inicialização já está em andamento na porta $Port. Aguarde o servidor ficar pronto." }
+    Write-StartupOwner
     $phaseStart = $startupClock.Elapsed.TotalMilliseconds
     $reuseEngine = Test-CompatibleDemoEngine
     Write-LauncherTiming 'existing_server_check' $phaseStart
@@ -219,6 +250,15 @@ catch {
     throw
 }
 finally {
+    if ($ProgressPath -and $ProgressAttempt) {
+        try {
+            $ownerPath = Get-OwnerProgressPath
+            $owner = Get-Content -LiteralPath $ownerPath -Raw | ConvertFrom-Json
+            if ($owner.processId -eq $PID -and $owner.attemptId -eq $ProgressAttempt) {
+                [IO.File]::Delete($ownerPath)
+            }
+        } catch { }
+    }
     if ($startupLock) { $startupMutex.ReleaseMutex() }
     $startupMutex.Dispose()
     if ($null -ne $startedEngine -and -not $KeepEngine -and $null -ne $ownedApi -and -not $ownedApi.HasExited) {
