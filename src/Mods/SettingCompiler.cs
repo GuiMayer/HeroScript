@@ -112,6 +112,18 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
         if (!IsIdentifier(settingId))
             return Result<SettingCompilation>.Failure("Setting id contains unsupported characters");
         var catalog = await GetCatalogAsync(cancellationToken).ConfigureAwait(false);
+        return await CompileFromCatalogAsync(settingId, catalog, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Compiles against a caller-owned discovery snapshot without caching later reloads.</summary>
+    public async Task<Result<SettingCompilation>> CompileFromCatalogAsync(
+        string settingId,
+        SettingCatalog catalog,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        if (!IsIdentifier(settingId))
+            return Result<SettingCompilation>.Failure("Setting id contains unsupported characters");
         var catalogErrors = catalog.Diagnostics
             .Where(diagnostic => diagnostic.Severity == PackageDiagnosticSeverity.Error)
             .ToArray();

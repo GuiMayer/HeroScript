@@ -33,9 +33,16 @@ public sealed class SettingCompilerTests
                 ["addon@1.0.0/patch.json"] = Json(new { damage = 8 })
             });
 
-        var result = await new SettingCompiler([provider]).CompileAsync("demo");
+        var compiler = new SettingCompiler([provider]);
+        var catalog = await compiler.GetCatalogAsync();
+        var catalogBefore = CanonicalJson.ComputeHash(catalog);
+        var result = await compiler.CompileAsync("demo");
+        var fromSnapshot = await compiler.CompileFromCatalogAsync("demo", catalog);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True(fromSnapshot.IsSuccess, fromSnapshot.IsFailure ? fromSnapshot.Error : null);
+        Assert.Equal(CanonicalJson.Serialize(result.Value.Bundle), CanonicalJson.Serialize(fromSnapshot.Value.Bundle));
+        Assert.Equal(catalogBefore, CanonicalJson.ComputeHash(catalog));
         Assert.Collection(
             result.Value.Packages,
             package => Assert.Equal(new CompiledPackageReference("base", "1.2.0"), package),

@@ -612,7 +612,7 @@ startupTimings.Record("host_build", startupMark);
 // complete config+content graph. Production hosts may restrict this explicitly
 // with Content:StartupSettings. Startup never exposes loose files to gameplay.
 startupProgress.Report("loading_settings");
-var settingCompiler = app.Services.GetRequiredService<ISettingCompiler>();
+var settingCompiler = app.Services.GetRequiredService<SettingCompiler>();
 startupMark = startupTimings.Now;
 var settingCatalog = settingCompiler.GetCatalogAsync().GetAwaiter().GetResult();
 startupTimings.Record("setting_catalog", startupMark);
@@ -631,7 +631,7 @@ foreach (var settingId in startupSettingIds)
     startupProgress.Report("loading_settings", settingId);
     startupMark = startupTimings.Now;
     var startupCompilation = settingCompiler
-        .CompileAsync(settingId)
+        .CompileFromCatalogAsync(settingId, settingCatalog)
         .GetAwaiter()
         .GetResult();
     startupTimings.Record("setting_compile", startupMark, settingId);
