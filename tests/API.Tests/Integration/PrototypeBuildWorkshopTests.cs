@@ -38,10 +38,11 @@ public sealed class PrototypeBuildWorkshopTests
         var initial = Current();
         var deckHash = CanonicalJson.ComputeHash(initial.Deck);
         var loadout = await Loadout();
-        Assert.Equal(3, loadout.GetProperty("items").GetArrayLength());
         var owned = loadout.GetProperty("items").EnumerateArray().ToDictionary(
             item => item.GetProperty("definition").GetProperty("inscriptionId").GetString()!,
             item => item.GetProperty("instance").GetProperty("instanceId").GetGuid());
+        Assert.Equal(new[] { "prototype_edge", "prototype_fire_focus", "prototype_fire_mastery", "prototype_focus",
+            "prototype_void_fusion", "prototype_ward" }, owned.Keys.Order(StringComparer.Ordinal));
         var assignments = new Dictionary<string, Guid> { ["custom_position"] = owned["prototype_focus"] };
         using var preview = await client.PostAsJsonAsync($"/api/v1/runs/{id}/loadout/preview", new
         { actorId = "player", assignments, expectedSequence = initial.Sequence, expectedStep = initial.Determinism.Step });
@@ -91,6 +92,19 @@ public sealed class PrototypeBuildWorkshopTests
         await Apply("EDIT_DECK_LOADOUT", new { actorId = "player", groupId = "module", moduleId = "prototype_necro" });
         Assert.Single(Current().Deck.Topology.Instances[reserve].Upgrades);
         Assert.Equal(equipmentHash, CanonicalJson.ComputeHash(Current().Loadouts));
+        var firstStyle = new Dictionary<string, Guid>
+        {
+            ["focus"] = owned["prototype_fire_focus"],
+            ["fusion"] = owned["prototype_void_fusion"]
+        };
+        await Apply("APPLY_LOADOUT", new { actorId = "player", assignments = firstStyle });
+        var finalStyle = new Dictionary<string, Guid>
+        {
+            ["focus"] = owned["prototype_fire_focus"],
+            ["mastery"] = owned["prototype_fire_mastery"]
+        };
+        await Apply("APPLY_LOADOUT", new { actorId = "player", assignments = finalStyle });
+        Assert.Equal(finalStyle.OrderBy(pair => pair.Key), Current().Loadouts!.Actors["player"].Assignments);
         var finalHash = CanonicalJson.ComputeHash(Current());
         var directory = factory.PersistenceRoot;
         client.Dispose(); factory.Dispose();
@@ -98,6 +112,7 @@ public sealed class PrototypeBuildWorkshopTests
         using var resumed = restarted.CreateClient();
         var restored = restarted.Services.GetRequiredService<IRunQueryService>().GetRun(id).Value;
         Assert.Equal(finalHash, CanonicalJson.ComputeHash(restored));
+        Assert.Equal(finalStyle.OrderBy(pair => pair.Key), restored.Loadouts!.Actors["player"].Assignments);
         var replay = await restarted.Services.GetRequiredService<Core.Run.Replay.IRunReplayService>().VerifyAsync(id);
         Assert.True(replay.IsValid, string.Join("; ", replay.Errors));
         Assert.True(replay.Reexecuted);
