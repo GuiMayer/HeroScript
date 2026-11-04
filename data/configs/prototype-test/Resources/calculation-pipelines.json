@@ -24,7 +24,21 @@
         "bucketId": "increased",
         "stageId": "w1_origin",
         "order": 20,
-        "operation": "AddPercent"
+        "operation": "AddPercent",
+        "grouping": {
+          "subjectKeys": ["fire", "void", "shadow"],
+          "weightBySubjectCount": [1, 0.8, 0.65],
+          "influenceGroups": {
+            "prototype.scaling.fire": "fire",
+            "prototype.scaling.void": "void",
+            "prototype.scaling.shadow": "shadow"
+          },
+          "groups": {
+            "fire": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } },
+            "void": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } },
+            "shadow": { "formula": "PROTOTYPE_THEME_RETURN", "parameters": { "cap": 1 } }
+          }
+        }
       },
       {
         "bucketId": "more",
@@ -64,6 +78,21 @@
       },
       {
         "bucketId": "heat",
+      {
+        "bindingId": "prototype.scaling.fire",
+        "scope": "Actor", "componentId": "stats", "valueId": "fire_scaling",
+        "channel": "effect_amount", "bucket": "increased", "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "prototype.scaling.void",
+        "scope": "Actor", "componentId": "stats", "valueId": "void_scaling",
+        "channel": "effect_amount", "bucket": "increased", "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "prototype.scaling.shadow",
+        "scope": "Actor", "componentId": "stats", "valueId": "shadow_scaling",
+        "channel": "effect_amount", "bucket": "increased", "missingValue": "Ignore"
+      },
         "stageId": "w1_origin",
         "order": 25,
         "operation": "AddPercent"

@@ -1,0 +1,18 @@
+{
+  "PROTOTYPE_THEME_RETURN": {
+    "params": {
+      "group.raw": 0,
+      "group.parameters.cap": 1
+    },
+    "parameterConstraints": {
+      "group.raw": { "minimum": 0 },
+      "group.parameters.cap": { "minimumExclusive": 0 }
+    },
+    "operations": [
+      { "op": "SET", "value": "params.group.raw" },
+      { "op": "DIVIDE", "value": "params.group.parameters.cap" },
+      { "op": "ADD", "value": "1" },
+      { "op": "DIVIDE_INVERSE", "value": "params.group.raw" }
+    ]
+  }
+}

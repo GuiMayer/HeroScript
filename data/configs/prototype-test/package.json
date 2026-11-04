@@ -17,6 +17,13 @@
     {
       "schemaVersion": 1,
       "operation": "definition",
+      "kind": "formulas",
+      "sourcePath": "Resources/scaling-formulas.json",
+      "artifactPath": "formulas/prototype-test-scaling.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
       "kind": "calculation-pipelines",
       "sourcePath": "Resources/calculation-pipelines.json",
       "artifactPath": "calculation-pipelines/prototype-test.json"
