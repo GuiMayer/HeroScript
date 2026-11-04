@@ -18,6 +18,9 @@ func describe(facts: Dictionary, _compact: bool) -> Array[String]:
 					_add(details, _i18n.text("Condition not met"))
 					continue
 				_add(details, _bucket_sequence(explanation.get("buckets", [])))
+				for bucket in explanation.get("buckets", []):
+					for group in bucket.get("groups", []):
+						_add(details, _group_line(group, str(bucket.get("operation", ""))))
 				for attribute in explanation.get("attributes", []):
 					if not attribute.get("eligible", false) or not attribute.get("applied", true) or str(attribute.get("scope", "Actor")) != "Actor": continue
 					if attribute.get("currentValue") == null: continue
@@ -35,6 +38,14 @@ func describe(facts: Dictionary, _compact: bool) -> Array[String]:
 				lines.append("%s: %s%s" % [heading, (_i18n.text("base %s") % _number(base) + " · ") if _numeric(base) else "", _i18n.text("Calculated in combat")])
 			lines.append_array(details)
 	return lines
+
+func _group_line(group: Dictionary, operation: String) -> String:
+	var scale := 100.0 if operation == "AddPercent" else 1.0
+	var unit := "%" if operation == "AddPercent" else ""
+	return "%s: %s%s → %s%s × %s = %s%s" % [
+		_i18n.content_name(str(group.key)), _number(float(group.raw) * scale), unit,
+		_number(float(group.transformed) * scale), unit, _number(group.weight),
+		_number(float(group.effective) * scale), unit]
 
 func _bucket_sequence(buckets: Array) -> String:
 	var steps: Array[String] = []

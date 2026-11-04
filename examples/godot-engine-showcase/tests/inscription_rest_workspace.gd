@@ -18,6 +18,11 @@ func sample(actor := "alice", inventory := "actor:alice", sequence := 2) -> Dict
 func _run() -> void:
 	var workspace = preload("res://scripts/application/loadout_workspace.gd").new()
 	var source := sample()
+	var capacity_only := sample()
+	capacity_only.policy.slots = []
+	capacity_only.policy.capacityOnly = true
+	check(workspace.accept(capacity_only) and workspace.equipment_positions() == ["capacity_1"], "capacity policy exposes an available position")
+	check(workspace.stage_drop("one-item", "capacity_1", "") and capacity_only.assignments.is_empty(), "capacity draft stages an owned item without mutating the snapshot")
 	check(workspace.accept(source), "REST snapshot accepted without running local stat math")
 	workspace.source.attributes.attributes[0].unit = "%"
 	check(workspace.snapshot().character.attributes[0].format == "percent", "canonical percent unit is preserved in the character panel")

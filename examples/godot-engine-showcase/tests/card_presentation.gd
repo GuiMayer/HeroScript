@@ -251,6 +251,10 @@ func check_player_tooltip(i18n) -> void:
 	check(summary.contains("Calculation: 4 → 24") and not summary.contains("24 → 24"), "tooltip uses changing trace steps without recomputing them")
 	check(not summary.contains("armor") and not summary.contains("critical") and not summary.contains("target_only") and not summary.contains("999"), "tooltip excludes irrelevant attributes and never recalculates authored flat values")
 	check(JSON.stringify(facts) == before, "tooltip leaves authoritative facts immutable")
+	facts.explanations[0].buckets[0]["operation"] = "AddPercent"
+	facts.explanations[0].buckets[0]["groups"] = [{"key": "fire", "raw": 0.6, "transformed": 0.375, "weight": 0.8, "effective": 0.3}]
+	var grouped := "\n".join(calculator.describe(facts, true))
+	check(grouped.contains("60%") and grouped.contains("37.5%") and grouped.contains("30%"), "tooltip shows the server's raw, transformed and weighted scaling")
 	facts.effects[0].parameters[0].values.source = 73
 	check("\n".join(calculator.describe(facts, true)).contains("73 (base 4)"), "engine result wins even when it differs from locally inferable arithmetic")
 	facts.explanations = []
