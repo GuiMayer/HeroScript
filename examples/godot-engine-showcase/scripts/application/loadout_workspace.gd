@@ -72,7 +72,8 @@ func snapshot() -> Dictionary:
 		var definition: Dictionary = row.definition
 		var presentation: Dictionary = definition.get("presentation", {})
 		items.append({"instanceId": str(row.instance.instanceId), "name": presentation.get("name", definition.inscriptionId),
-			"family": "Character inscription", "rarity": presentation.get("rarity", "common"), "cost": definition.equipmentCost,
+			"family": "Character inscription", "rarity": presentation.get("rarity", "common"), "cost": row.get("effectiveEquipmentCost", definition.equipmentCost),
+			"rank": definition.get("rank", 0), "polarity": definition.get("polarity", ""),
 			"tags": definition.get("tags", []), "attributeBonuses": [], "tradeoffs": [],
 			"icon": presentation.get("icon", ""), "attributeIds": definition.get("attributeBonuses", []).map(func(bonus): return str(bonus.get("attributeId", ""))),
 			"description": presentation.get("description", ""), "equippedActorId": row.get("equippedActorId", "")})

@@ -8,7 +8,10 @@ namespace Core.Run.Loadouts;
 
 public sealed record ApplyLoadoutCommand(string ActorId, ImmutableSortedDictionary<string, Guid> Assignments);
 public sealed record LoadoutPreviewRequest(string ActorId, ImmutableSortedDictionary<string, Guid> Assignments, int ExpectedSequence, ulong ExpectedStep);
-public sealed record LoadoutItemView(InscriptionInstance Instance, InscriptionDefinition Definition, string? EquippedActorId, string? SlotId);
+public sealed record LoadoutItemView(InscriptionInstance Instance, InscriptionDefinition Definition, string? EquippedActorId, string? SlotId)
+{
+    public float EffectiveEquipmentCost { get; init; }
+}
 public sealed record LoadoutSnapshot(Guid RunId, int RunSequence, ulong ExpectedStep, string ContentRevision, string ActorId,
     string InventoryId, LoadoutPolicyDefinition Policy, bool CanEquip, float UsedCapacity,
     ImmutableArray<string> ActorIds, ImmutableArray<LoadoutItemView> Items, ImmutableSortedDictionary<string, Guid> Assignments)
@@ -73,9 +76,9 @@ public sealed class LoadoutQueryService(IRunQueryService runs, IContentRuntimeRe
             if (definition.IsFailure) return Fail(definition.Error);
             var owner = run.Loadouts.Actors.Values.FirstOrDefault(value => value.Assignments.Values.Contains(instance.InstanceId));
             var slot = owner?.Assignments.First(value => value.Value == instance.InstanceId).Key;
-            if (owner?.ActorId == actorId)
-                cost += definition.Value.ResolveCost(policy.Value.Slots.FirstOrDefault(position => position.SlotId == slot));
-            items.Add(new(instance, definition.Value, owner?.ActorId, slot));
+            var effectiveCost = definition.Value.ResolveCost(policy.Value.Slots.FirstOrDefault(position => position.SlotId == slot));
+            if (owner?.ActorId == actorId) cost += effectiveCost;
+            items.Add(new(instance, definition.Value, owner?.ActorId, slot) { EffectiveEquipmentCost = effectiveCost });
         }
         if (!double.IsFinite(cost) || cost > float.MaxValue) return Fail("Invalid inscription equipment cost");
         var snapshot = new LoadoutSnapshot(run.RunId, run.Sequence, run.Determinism.Step, run.Determinism.ContentRevision,

@@ -4759,6 +4759,7 @@
       "LoadoutItemView": {
         "type": "object",
         "properties": {
+          "effectiveEquipmentCost": { "type": "number", "minimum": 0 },
           "instance": {
             "$ref": "#/components/schemas/InscriptionInstance"
           },
@@ -4786,6 +4787,8 @@
       "LoadoutSlotDefinition": {
         "type": "object",
         "properties": {
+          "polarity": { "type": "string" },
+          "matchingMultiplier": { "type": "number", "minimum": 0, "maximum": 1 },
           "slotId": {
             "type": "string",
             "nullable": true
@@ -4840,6 +4843,15 @@
       "InscriptionDefinition": {
         "type": "object",
         "properties": {
+          "rank": { "type": "integer", "minimum": 0, "default": 0 },
+          "polarity": { "type": "string" },
+          "ranks": { "type": "array", "items": {
+            "type": "object", "properties": {
+              "rank": { "type": "integer", "minimum": 1 },
+              "equipmentCost": { "type": "number", "minimum": 0 },
+              "influenceValues": { "type": "object", "additionalProperties": { "type": "number" } }
+            }
+          } },
           "inscriptionId": {
             "type": "string",
             "nullable": true

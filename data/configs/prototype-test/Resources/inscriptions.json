@@ -1,7 +1,10 @@
 {
   "prototype_fire_mastery": {
     "inscriptionId": "prototype_fire_mastery",
-    "equipmentCost": 3,
+    "equipmentCost": 2,
+    "polarity": "fire",
+    "rank": 1,
+    "ranks": [{ "rank": 1, "equipmentCost": 3, "influenceValues": { "prototype.fire_mastery": 0.5 } }],
     "attributeBonuses": [
       {
         "attributeId": "fire_mastery",
@@ -9,7 +12,7 @@
           "influenceId": "prototype.fire_mastery",
           "channel": "effect_amount",
           "bucket": "increased",
-          "value": 0.5,
+          "value": 0.25,
           "subjectKeyCondition": { "keys": ["fire"], "requiredKeys": ["fire"], "minimumCount": 1 }
         }
       }
@@ -18,7 +21,10 @@
   },
   "prototype_fire_focus": {
     "inscriptionId": "prototype_fire_focus",
-    "equipmentCost": 3,
+    "equipmentCost": 2,
+    "polarity": "fire",
+    "rank": 1,
+    "ranks": [{ "rank": 1, "equipmentCost": 3, "influenceValues": { "prototype.fire_focus": 1.25 } }],
     "attributeBonuses": [
       {
         "attributeId": "fire_focus",
@@ -26,7 +32,7 @@
           "influenceId": "prototype.fire_focus",
           "channel": "effect_amount",
           "bucket": "more",
-          "value": 1.25,
+          "value": 1.15,
           "subjectKeyCondition": {
             "keys": ["fire", "void", "shadow"],
             "requiredKeys": ["fire"],
@@ -40,7 +46,10 @@
   },
   "prototype_void_fusion": {
     "inscriptionId": "prototype_void_fusion",
-    "equipmentCost": 3,
+    "equipmentCost": 2,
+    "polarity": "void",
+    "rank": 1,
+    "ranks": [{ "rank": 1, "equipmentCost": 3, "influenceValues": { "prototype.void_fusion": 1.2 } }],
     "attributeBonuses": [
       {
         "attributeId": "void_fusion",
@@ -48,7 +57,7 @@
           "influenceId": "prototype.void_fusion",
           "channel": "effect_amount",
           "bucket": "more",
-          "value": 1.2,
+          "value": 1.1,
           "subjectKeyCondition": {
             "keys": ["fire", "void", "shadow"],
             "requiredKeys": ["void"],
