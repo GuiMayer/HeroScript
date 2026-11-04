@@ -94,8 +94,9 @@ try {
         foreach ($entry in $apiEnvironment.GetEnumerator()) {
             [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')
         }
+        $buildRoot = Join-Path $runtimeRoot 'build'
         $startedEngine = Start-Process -FilePath 'dotnet' `
-            -ArgumentList @('run', '--configuration', 'Release', '--project', $apiProject, '--no-launch-profile') `
+            -ArgumentList @('run', '--configuration', 'Release', '--project', $apiProject, '--no-launch-profile', '--artifacts-path', "`"$buildRoot`"") `
             -WorkingDirectory $repositoryRoot -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $runtimeRoot 'engine.log') `
             -RedirectStandardError (Join-Path $runtimeRoot 'engine-error.log')
