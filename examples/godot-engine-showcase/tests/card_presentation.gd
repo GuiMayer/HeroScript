@@ -244,9 +244,11 @@ func check_player_tooltip(i18n) -> void:
 			{"attributeId": "armor", "currentValue": 100, "eligible": false},
 			{"attributeId": "critical_chance", "currentValue": 100, "eligible": true, "applied": false},
 			{"attributeId": "target_only", "currentValue": 100, "eligible": true, "scope": "Target"}]}]}
+	facts.explanations[0]["buckets"] = [{"input": 4, "output": 24}, {"input": 24, "output": 24}]
 	var before := JSON.stringify(facts)
 	var summary := "\n".join(calculator.describe(facts, true))
 	check(summary.contains("24 (base 4)") and summary.contains("20% Maximum Health (100)"), "healing shows published total and relevant maximum-health coefficient")
+	check(summary.contains("Calculation: 4 → 24") and not summary.contains("24 → 24"), "tooltip uses changing trace steps without recomputing them")
 	check(not summary.contains("armor") and not summary.contains("critical") and not summary.contains("target_only") and not summary.contains("999"), "tooltip excludes irrelevant attributes and never recalculates authored flat values")
 	check(JSON.stringify(facts) == before, "tooltip leaves authoritative facts immutable")
 	facts.effects[0].parameters[0].values.source = 73

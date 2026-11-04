@@ -17,6 +17,7 @@ func describe(facts: Dictionary, _compact: bool) -> Array[String]:
 				if explanation.get("conditionPassed") == false:
 					_add(details, _i18n.text("Condition not met"))
 					continue
+				_add(details, _bucket_sequence(explanation.get("buckets", [])))
 				for attribute in explanation.get("attributes", []):
 					if not attribute.get("eligible", false) or not attribute.get("applied", true) or str(attribute.get("scope", "Actor")) != "Actor": continue
 					if attribute.get("currentValue") == null: continue
@@ -34,6 +35,19 @@ func describe(facts: Dictionary, _compact: bool) -> Array[String]:
 				lines.append("%s: %s%s" % [heading, (_i18n.text("base %s") % _number(base) + " · ") if _numeric(base) else "", _i18n.text("Calculated in combat")])
 			lines.append_array(details)
 	return lines
+
+func _bucket_sequence(buckets: Array) -> String:
+	var steps: Array[String] = []
+	for bucket in buckets:
+		var before = bucket.get("input")
+		var after = bucket.get("output")
+		if not _numeric(before) or not _numeric(after) or is_equal_approx(float(before), float(after)):
+			continue
+		var start := _number(before)
+		if steps.is_empty() or steps.back() != start:
+			steps.append(start)
+		steps.append(_number(after))
+	return "" if steps.is_empty() else "%s: %s" % [_i18n.text("Calculation"), " → ".join(steps)]
 
 func _scaling(attribute: Dictionary, explanation: Dictionary) -> String:
 	var name: String = _i18n.content_name(str(attribute.get("attributeId", "")))
