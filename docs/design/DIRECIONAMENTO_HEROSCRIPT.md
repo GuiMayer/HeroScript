@@ -31,25 +31,25 @@ flowchart TD
         Mitigacao["Mitigação com Diminishing Returns<br/>• Geral: K = 900 (100 pts = 10%)<br/>• Específica: K = 100 (100 pts = 50%)"]
     end
 
-    subgraph Tempero["Medidores & Mecânicas Temáticas (Payoffs)"]
-        Calor["Fogo / Calor:<br/>Termostato & Limiares"]
+    subgraph Mecanicas["Especializações & Mods de Assinatura"]
+        Fogo["Fogo:<br/>Mod de Assinatura (Brasa em Ataques)"]
         Vazio["Vazio / Void:<br/>Custo: Banir da Mão + Risco de Esgotamento"]
         Necro["Necromancia:<br/>Consumir do Descarte"]
         Arcano["Arcano:<br/>Cristais de Mana / Bateria"]
     end
 
-    Pacing --> Calor
+    Pacing --> Fogo
     Pacing --> Vazio
     Pacing --> Necro
     Pacing --> Arcano
 ```
 
-### A. Abandono das Físicas Assimétricas Exclusivas
-Físicas que eliminavam o custo de energia (ex: baralho que só usava calor sem energia) foram **descontinuadas**. Elas monopolizavam o jogo inteiro, quebravam o ritmo no Turno 1 e impediam a integração equilibrada com atributos e inimigos.
+### A. Abandono das Físicas Assimétricas Exclusivas e Medidores Passivos
+Físicas que eliminavam o custo de energia ou criavam medidores contínuos burocráticos (como a antiga barra de Calor 0-100) foram **descontinuadas**. Elas monopolizavam o jogo, quebravam o ritmo no Turno 1 e agiam apenas como uma "segunda mana" passiva sem decisão real.
 
-### B. A Moeda Universal de Ação (Opção E: Energia Universal + Medidores)
+### B. A Moeda Universal de Ação (Opção E: Energia Universal + Mecânicas Ativas)
 * **3 de Energia por Turno:** Padrão para herói e inimigos, recarregada no início de cada rodada.
-* **Meters como Payoffs:** Calor (0-100), Cristais e Sacrifício de Zonas atuam como regras secundárias e multiplicadores de impacto, nunca como substitutos da energia de ação.
+* **Mecânicas Especiais via Mods de Assinatura:** Em vez de barras genéricas na UI, cada escola e herói opera com regras ativas e táteis (ex: marcadores de Brasa em ataques retidos, estocagem de cristais, banimento de cartas).
 
 ### C. A Mecânica de Defesa: Cartas de Defesa, Escudo Persistente & Teto de Vida
 Após testes práticos de protótipo, a dinâmica defensiva foi ajustada para garantir a melhor experiência tática:
@@ -158,7 +158,8 @@ flowchart LR
 flowchart LR
     subgraph Loadout["Painel de Inscrições do Herói"]
         Cap["Capacidade Total: 30/30"]
-        Slot1["Slot 1 [Polaridade: Fogo]<br/>Inscrição de Calor (Custo 6 -> 3)"]
+        Assinatura["[Slot de Assinatura]<br/>Mod de Assinatura: Forja de Brasas"]
+        Slot1["Slot 1 [Polaridade: Fogo]<br/>Inscrição de Queimadura (Custo 6 -> 3)"]
         Slot2["Slot 2 [Polaridade: Vazio]<br/>Inscrição de Crítico (Custo 8 -> 4)"]
         Slot3["Slot 3 [Polaridade: Neutra]<br/>Inscrição de Armadura (Custo 5)"]
     end
@@ -175,7 +176,16 @@ flowchart LR
    * **Variedade & Aleatoriedade Controlada:** Encontros opcionais e comerciantes oferecem um catálogo rotativo de Inscrições.
    * **Ranks de Aprimoramento:** Inscrições sobem de nível (Rank 0 a Rank 5/10) consumindo materiais gerados pela Decompilação de cartas.
 
-### 4. Inscrições de Mutação de Regras (Corrupted Mods / Keystones)
+### 4. Mods de Assinatura (Mecânicas Únicas de Personagem)
+Inspirado na identidade tática de jogos como *Expedition 33* e nas passivas centrais de *Warframe*, cada personagem possui um slot de **Mod de Assinatura** (sem custo de capacidade ou nativo do chassi) que define o seu "minigame" e estilo de jogo exclusivo, sem necessidade de barras genéricas na UI:
+* **Mod de Assinatura do Piromaníaco: "Forja de Brasas":**
+  * **Regra:** *No fim do turno, cada carta retida na sua mão com as tags `[Fogo, Ataque]` recebe +1 marcador de Brasa (máx. 3).*
+  * **Efeito:** Cada marcador de Brasa aumenta o dano base daquele ataque em +25% (ou aciona bônus descritos na própria carta). Ao ser jogada, a carta consome todos os seus marcadores de Brasa.
+  * **Feedback Visual (WYSIWYG):** Não há termômetro na tela. O jogador vê o marcador `[🔥 Brasa: 1]`, `[🔥 Brasa: 2]` na própria carta retida na mão, que ganha um brilho incandescente crescente a cada rodada retida.
+  * **Tensão Tática:** Conecta-se diretamente com o sistema de **Retenção de Mão**: guardar ataques de fogo na mão "cozinha" os golpes para um clímax devastador, mas ocupa espaço na mão e cria o risco de descarte forçado por inimigos.
+* **Variedade de Builds:** Ao longo da campanha, o herói pode forjar ou desbloquear outros Mods de Assinatura alternativos (ex: *Pavio Curto* que queima escudo para dobrar dano imediato, ou *Combustão Imediata* que bonifica ataques jogados no mesmo turno da compra).
+
+### 5. Inscrições de Mutação de Regras (Corrupted Mods / Keystones)
 Para veteranos que buscam theorycrafting extremo e quebra intencional de sistemas, existem Inscrições especiais que alteram as regras fundamentais do jogo:
 * **Regra Obrigatória do Efeito Negativo (Drawback):** Toda Inscrição que altera regras estruturais do jogo **possui obrigatoriamente uma desvantagem ou penalidade proporcional** (estilo *Corrupted Mods* do Warframe e *Keystones* do Path of Exile):
   * **Exemplo 1 (Compressão Quântica):** O tamanho mínimo do baralho cai de 20 para 12 cartas (permite combos ultra-consistentes); *Penalidade:* Reduz a Vida Máxima do herói em 25%.
@@ -267,7 +277,7 @@ flowchart TD
    * Regra de **Deck-Out (Derrota Instantânea)** caso a compra ocorra com baralho e descarte zerados.
    * Mão retida com compra de 2 a 3 cartas por turno.
 2. **Configuração de Cartas de Teste (`data/configs/prototype-test`):**
-   * **Baralho Básico do Piromaníaco:** 20 cartas divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; geram/gastam Calor; bônus em limiares.
+   * **Baralho Básico do Piromaníaco:** 20 cartas divididas entre `[Ataque, Fogo]`, `[Defesa, Fogo]` e `[Buff, Fogo]`; opera com o **Mod de Assinatura "Forja de Brasas"** (cartas de `[Ataque, Fogo]` retidas acumulam marcadores de Brasa no fim do turno).
    * **Pool de Recompensas do Vazio:** Cartas que custam energia + banir da mão; risco de derrota por esgotamento se o deck for muito fino.
 3. **Companion Inicial (Elemental da Água):**
    * Intangível; aplica `Molhado` em gatilho de carta de Fogo (Cooldown 2 turnos); suporte a status de `Sleep`.
