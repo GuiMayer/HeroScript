@@ -1,0 +1,17 @@
+{
+  "scope": "Published settings in current working tree; enabled mode pipelines and default channels at pinned runtime revisions",
+  "passed": true,
+  "results": [
+    "SETTING_BASELINE setting=ascendant; revision=0cc3728a5c27936a5cb04c0b64d7943db783bfceaed05a137629a8119ade963e",
+    "SETTING_BASELINE setting=circular-table; revision=27c0f93954396bd4bc8918363a71a02935ac4bf7a17b24b152de0f11898a1f5d",
+    "SETTING_BASELINE setting=compartment-lab; revision=adbbba4b199385459d30834b754f08b1e8692e9f1473b84afc54e717681d01e8",
+    "SETTING_BASELINE setting=default; revision=7035b326d780817bb04c815a4af038721594454027d32db32d74cf6bd054af10",
+    "SETTING_BASELINE setting=payment-lab; revision=7b99cd988f4016dc0c1081f7d3c3fb7e4e512cc2efcd750cef799b9310916b9c",
+    "SETTING_BASELINE setting=prototype-test; revision=746db66dca0e2f103bff74011e93cb8dbcc4d3d566bb0f061a7e6864fc9de50b",
+    "SETTING_BASELINE setting=reward-lab; revision=230f351c7c4021acf7f9024b998a3f15c27e0f13fae1f90ed2094285354754fd",
+    "SETTING_BASELINE setting=support-lab; revision=a9c306ad0338f0606af95d3f7b831d7fe838fde801fa0453a638cb321b383535",
+    "SETTING_BASELINE setting=uno-clash; revision=04473793d6440645f93cf9e5e8e465d39cd9dddc260508c19f81cbbab4adfafb",
+    "SETTING_BASELINE setting=volatile-core; revision=78177bc463e746cc145247f2ef8d0ecf489056ee4e93f9e38ee66da75f107867",
+    "PIPELINE_BINDINGS_VALIDATED 552"
+  ]
+}
