@@ -14,6 +14,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$startupClock = [Diagnostics.Stopwatch]::StartNew()
 $demoRoot = $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $demoRoot '..\..')).Path
 . (Join-Path $demoRoot 'scripts/launcher/player_data.ps1')
@@ -27,6 +28,14 @@ $startedEngine = $null
 $ownedApi = $null
 $startupMutex = [Threading.Mutex]::new($false, "Local\HeroScriptDemoStartup-$Port")
 $startupLock = $false
+
+function Write-LauncherTiming([string]$Phase, [double]$StartedMs) {
+    if ($env:HEROSCRIPT_STARTUP_TIMINGS -ne '1' -or -not $env:HEROSCRIPT_STARTUP_LAUNCHER_TIMINGS_PATH) { return }
+    try {
+        $record = @{ kind = 'launcher_timing'; phase = $Phase; elapsedMs = $startupClock.Elapsed.TotalMilliseconds - $StartedMs; sinceStartMs = $startupClock.Elapsed.TotalMilliseconds }
+        Add-Content -LiteralPath $env:HEROSCRIPT_STARTUP_LAUNCHER_TIMINGS_PATH -Value ($record | ConvertTo-Json -Compress) -Encoding UTF8
+    } catch { Write-Warning "Launcher timing could not be written: $_" }
+}
 
 function Write-StartupProgress([string]$Phase) {
     if (-not $ProgressPath -or -not $ProgressAttempt) { return }
@@ -104,7 +113,9 @@ try {
         }
     }
     if (-not $startupLock) { throw "Outra inicialização já está em andamento na porta $Port. Aguarde o servidor ficar pronto." }
+    $phaseStart = $startupClock.Elapsed.TotalMilliseconds
     $reuseEngine = Test-CompatibleDemoEngine
+    Write-LauncherTiming 'existing_server_check' $phaseStart
     if (-not $reuseEngine) {
         if ($AutoStart -and (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)) {
             throw "Porta $Port ocupada por um servidor não reconhecido. A inicialização automática não encerra servidores existentes."
@@ -113,7 +124,9 @@ try {
     }
     Write-StartupProgress 'preparing_data'
     $legacyPreferences = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)) 'Godot/app_userdata/HeroScript- Ember Archive/heroscript_showcase.cfg'
+    $phaseStart = $startupClock.Elapsed.TotalMilliseconds
     $runtimeRoot = Initialize-HeroScriptPlayerData -DemoRoot $demoRoot -PlayerRoot $playerRoot -Port $Port -LegacyPreferences $legacyPreferences
+    Write-LauncherTiming 'player_data' $phaseStart
     Write-Host "Dados do jogador: $playerRoot" -ForegroundColor Cyan
     if ($reuseEngine) {
         Write-Host "HeroScript online: $apiUrl" -ForegroundColor Green
@@ -136,8 +149,11 @@ try {
             [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')
         }
         $buildRoot = Join-Path $runtimeRoot 'build'
+        $phaseStart = $startupClock.Elapsed.TotalMilliseconds
         $serverBinary = Get-HeroScriptServerBinary $repositoryRoot $apiProject $buildRoot $runtimeRoot
+        Write-LauncherTiming 'server_build' $phaseStart
         Write-StartupProgress 'starting_server'
+        $phaseStart = $startupClock.Elapsed.TotalMilliseconds
         [Environment]::SetEnvironmentVariable('ASPNETCORE_CONTENTROOT', (Split-Path $apiProject), 'Process')
         $startedEngine = Start-Process -FilePath 'dotnet' `
             -ArgumentList @("`"$serverBinary`"") `
@@ -158,6 +174,7 @@ try {
         if (-not $ready) {
             throw "A HeroScript não iniciou. Consulte $runtimeRoot\engine-error.log."
         }
+        Write-LauncherTiming 'process_to_compatible' $phaseStart
         Save-HeroScriptStorageBinding $runtimeRoot $Port
         $boundListener = Get-NetTCPConnection -LocalPort $Port -State Listen | Select-Object -First 1
         $ownedApi = Get-Process -Id $boundListener.OwningProcess
