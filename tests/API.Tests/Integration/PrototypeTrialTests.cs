@@ -10,7 +10,7 @@ namespace API.Tests.Integration;
 public sealed partial class PrototypeTrialTests
 {
     [Theory]
-    [InlineData("void", "hand", "discard")]
+    [InlineData("void", "hand", "banish")]
     [InlineData("necro", "discard", "banish")]
     public async Task ModulePaymentsAndRetryPreserveOwnedInstancesAndCaptureTheNextAttempt(string module, string origin, string destination)
     {
@@ -49,6 +49,8 @@ public sealed partial class PrototypeTrialTests
         Assert.True(paid.IsSuccessStatusCode, await paid.Content.ReadAsStringAsync());
         var afterPayment = reads.GetRun(id).Value;
         Assert.Contains(fee, afterPayment.Deck.Topology.GetZone(destination, "$run")!.InstanceIds);
+        Assert.DoesNotContain(fee, afterPayment.Deck.Topology.GetZone(origin, "$run")!.InstanceIds);
+        Assert.DoesNotContain(fee, afterPayment.Deck.Topology.GetZone("discard", "$run")!.InstanceIds);
         Assert.DoesNotContain(fee, run.Deck.Topology.GetZone(destination, "$run")!.InstanceIds);
         for (var i = 0; i < 30 && reads.GetRun(id).Value.GetActiveEncounter()!.Combat.IsActive; i++) await EndTurn(client, reads, id, combatId);
         run = reads.GetRun(id).Value;

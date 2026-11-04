@@ -532,7 +532,7 @@
             "stepId": "transfer",
             "operation": "Move",
             "sourceZoneId": "hand",
-            "targetZoneId": "discard",
+            "targetZoneId": "banish",
             "sourceOwner": "RunOwner",
             "targetOwner": "RunOwner",
             "selection": {

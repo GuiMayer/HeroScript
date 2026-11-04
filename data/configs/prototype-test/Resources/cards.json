@@ -728,7 +728,7 @@
           {
             "paymentId": "fuel",
             "sourceZoneId": "hand",
-            "targetZoneId": "discard",
+            "targetZoneId": "banish",
             "count": 1,
             "flowId": "prototype.pay.hand",
             "allowResolvingCard": false,
@@ -844,7 +844,7 @@
           {
             "paymentId": "fuel",
             "sourceZoneId": "hand",
-            "targetZoneId": "discard",
+            "targetZoneId": "banish",
             "count": 1,
             "flowId": "prototype.pay.hand",
             "allowResolvingCard": false,
@@ -934,7 +934,7 @@
           {
             "paymentId": "fuel",
             "sourceZoneId": "hand",
-            "targetZoneId": "discard",
+            "targetZoneId": "banish",
             "count": 1,
             "flowId": "prototype.pay.hand",
             "allowResolvingCard": false,
