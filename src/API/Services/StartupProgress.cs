@@ -27,5 +27,8 @@ internal sealed class StartupProgress
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+        catch (ArgumentException) { }
+        catch (NotSupportedException) { }
+        catch (System.Security.SecurityException) { }
     }
 }

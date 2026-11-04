@@ -23,7 +23,7 @@ public static class HeroScriptBuildFingerprint
         }
         foreach (var root in roots)
         {
-            if (!Directory.Exists(root)) return null;
+            if (!Directory.Exists(root) || (File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) return null;
             var pending = new Stack<string>();
             pending.Push(root);
             while (pending.Count > 0)
