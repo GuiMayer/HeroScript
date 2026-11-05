@@ -158,6 +158,13 @@ public sealed class LoadoutChangePlanner(IContentRuntimeResolver runtimes)
             if (valid.IsFailure) return Fail(valid.Error);
             if (slot != null && !slot.RequiredTags.All(item.Value.Tags.Contains))
                 return Fail("Inscription tags are not compatible with this slot");
+            if (item.Value.AllowedActorDefinitionIds is { } allowedActors)
+            {
+                var definitionId = run.PlayerEntity?.InstanceId == actorId ? run.PlayerEntity.DefinitionId
+                    : run.GetActiveEncounter()?.Combat.GetActor(actorId)?.DefinitionId;
+                if (definitionId == null || !allowedActors.Contains(definitionId, StringComparer.Ordinal))
+                    return Fail("Inscription is not compatible with this character");
+            }
             if (!definitions.Add(owned.DefinitionId) && policy.Value.AllowDuplicateDefinitions != true) return Fail("Duplicate inscription definitions are not allowed");
             used += item.Value.ResolveCost(slot);
         }

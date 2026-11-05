@@ -26,6 +26,8 @@ public sealed record InscriptionDefinition
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Polarity { get; init; }
     public ImmutableArray<string> Tags { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<string>? AllowedActorDefinitionIds { get; init; }
     public ImmutableArray<InscriptionAttributeBonusDefinition> AttributeBonuses { get; init; } = [];
     public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
 
@@ -47,6 +49,10 @@ public sealed record InscriptionDefinition
             AttributeBonuses.IsDefaultOrEmpty || AttributeBonuses.Any(bonus => bonus == null || bonus.Influence == null) ||
             AttributeBonuses.Select(bonus => bonus.Influence.InfluenceId).Distinct(StringComparer.Ordinal).Count() != AttributeBonuses.Length)
             return Result.Failure("Inscription requires an identity, finite nonnegative equipment cost, unique tags and attribute bonuses");
+        if (AllowedActorDefinitionIds is { } actors && (actors.IsDefaultOrEmpty || actors.Any(string.IsNullOrWhiteSpace) ||
+            actors.Distinct(StringComparer.Ordinal).Count() != actors.Length || actors.Any(id =>
+                runtime.GetDefinition<Core.Entity.Definitions.EntityDefinition>("entities", id).IsFailure)))
+            return Result.Failure("Inscription character restrictions must reference unique existing entity definitions");
         if (Polarity != null && string.IsNullOrWhiteSpace(Polarity) ||
             Rank < 0 || (Rank != 0 && ActiveRank == null) ||
             Ranks is { } ranks && (ranks.IsDefaultOrEmpty ||

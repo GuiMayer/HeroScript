@@ -12,9 +12,9 @@ namespace Core.Tests.Run;
 
 public sealed class InscriptionLoadoutTests
 {
-    internal static (RunState Run, ContentRuntime Runtime, LoadoutChangePlanner Planner) Setup(LoadoutPolicyDefinition? policy = null)
+    internal static (RunState Run, ContentRuntime Runtime, LoadoutChangePlanner Planner) Setup(LoadoutPolicyDefinition? policy = null, InscriptionDefinition? inscription = null)
     {
-        var runtime = ContentRuntime.Create(LoadoutTestContent.Bundle(policy: policy)).Value;
+        var runtime = ContentRuntime.Create(LoadoutTestContent.Bundle(policy: policy, item: inscription)).Value;
         var run = new RunState { RunId = Guid.Parse("00000000-0000-0000-0000-000000000077"),
             Determinism = DeterministicContext.Create(77, runtime.Manifest.Revision),
             ResolvedMode = new() { Definition = new() { ModeId = "test", LoadoutPolicyId = "loadout", EffectResolutionPolicyId = "attributes", CalculationPipelineIds = ["critical"] } } };
@@ -26,6 +26,28 @@ public sealed class InscriptionLoadoutTests
     }
 
     internal static Guid Item(RunState run, string actor = "alice", int index = 0) => run.Loadouts!.Inventories[run.Loadouts.InventoryId(run.RunId, actor)].Items[index].InstanceId;
+
+    [Fact]
+    public void CharacterRestrictedEquipmentRejectsOtherOrUnknownCharactersWithoutMutation()
+    {
+        var inscription = LoadoutTestContent.Inscription() with { AllowedActorDefinitionIds = ["hero"] };
+        var (run, runtime, planner) = Setup(inscription: inscription);
+        Assert.True(inscription.Validate(runtime).IsSuccess);
+        Assert.True((inscription with { AllowedActorDefinitionIds = [] }).Validate(runtime).IsFailure);
+        Assert.True((inscription with { AllowedActorDefinitionIds = ["missing"] }).Validate(runtime).IsFailure);
+        Assert.True((inscription with { AllowedActorDefinitionIds = ["hero", "hero"] }).Validate(runtime).IsFailure);
+        run = InscriptionAcquisition.Grant(run, runtime, "alice", "focus", "test").Value with
+            { PlayerEntityId = "alice", PlayerEntity = new() { InstanceId = "alice", DefinitionId = "hero" } };
+        var hash = CanonicalJson.ComputeHash(run);
+        var assignments = new Dictionary<string, Guid> { ["one"] = Item(run) };
+        var first = planner.Plan(run, "alice", assignments);
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(first.Value.Candidate), CanonicalJson.ComputeHash(planner.Plan(run, "alice", assignments).Value.Candidate));
+        Assert.True(planner.Plan(run with { PlayerEntity = run.PlayerEntity with { DefinitionId = "other" } }, "alice", assignments).IsFailure);
+        Assert.True(planner.Plan(run with { PlayerEntity = null }, "alice", assignments).IsFailure);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(run));
+        Assert.DoesNotContain("AllowedActorDefinitionIds", JsonSerializer.Serialize(LoadoutTestContent.Inscription()));
+    }
 
     [Theory]
     [InlineData(InscriptionInventoryScope.Actor)]

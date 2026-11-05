@@ -27,6 +27,8 @@ internal static class LoadoutTestContent
     {
         var definitions = new Dictionary<string, Dictionary<string, object>>
         {
+            ["entities"] = new() { ["hero"] = new Core.Entity.Definitions.EntityDefinition { DefinitionId = "hero", DisplayName = "Hero", Components = [new Core.Entity.Definitions.StatEntityComponentDefinition { ComponentId = "stats" }] },
+                ["other"] = new Core.Entity.Definitions.EntityDefinition { DefinitionId = "other", DisplayName = "Other", Components = [new Core.Entity.Definitions.StatEntityComponentDefinition { ComponentId = "stats" }] } },
             ["inscriptions"] = new() { ["focus"] = item ?? Inscription() },
             ["loadout-policies"] = new() { ["loadout"] = policy ?? Policy() },
             ["calculation-pipelines"] = new() { ["critical"] = new CalculationPipelineDefinition
