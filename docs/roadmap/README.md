@@ -1,5 +1,7 @@
 # Roadmap atual
 
+Consulte o [TODO priorizado do MVP e do client Godot](TODO.md) para as pendências ativas revisadas em 2026-11-05, critérios de conclusão e distinção entre tarefas atuais e registros históricos.
+
 **Atualizado em:** 2026-10-16
 
 O núcleo de combate determinístico já possui run persistida, atores genéricos,
