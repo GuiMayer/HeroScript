@@ -1,80 +1,37 @@
-# Segurança - HeroScript API
+# Segurança — HeroScript API
 
-## AdminKeyMiddleware
+Atualizado em 2026-10-16.
 
-Endpoints administrativos que modificam configuração em runtime são protegidos por `AdminKeyMiddleware`.
+O contrato vigente está em [autenticação e administração](api/authentication.md).
+Este resumo substitui as instruções antigas de reload por subsistema e a
+variável `HERESCRIPT_ADMIN_KEY`, que o middleware atual não lê.
 
-### Configuração
+## Fronteiras atuais
 
-**Via appsettings.json:**
-```json
-{
-  "Admin": {
-    "ApiKey": "your-secret-key-here"
-  }
-}
-```
+- A API pública de gameplay não autentica jogadores por chave administrativa.
+  Ownership por ator/jogador e operação multiplayer não estão certificados.
+- Administração exige `Admin:Enabled`, chave `Admin:ApiKey` enviada em
+  `X-Admin-Key` e capability administrativa no perfil de ferramentas.
+- Variáveis de ambiente correspondentes: `Admin__Enabled`, `Admin__ApiKey`
+  e `ToolAccess__Profile`. Não inserir segredos em código, logs ou clientes.
+- Administração desabilitada retorna `404`; chave ausente/incorreta retorna
+  `401`; perfil sem a capability retorna `403`. Não presumir um corpo JSON
+  específico para as respostas diretas do middleware.
+- O estado base e Production têm administração desabilitada. O launcher da
+  demo habilita ferramentas para desenvolvimento; não é configuração de jogador.
 
-**Via variável de ambiente (recomendado para produção):**
-```bash
-export HERESCRIPT_ADMIN_KEY="your-secret-key-here"
-```
+## Conteúdo, origens e exposição
 
-### Uso
+As rotas antigas `/api/action/reload`, `/api/config/load`, `/api/modifiers/reload`,
+`/api/gambits/reload` e `/api/status/reload` não são o contrato atual. Use os
+[endpoints v1](api/README.md) e o fluxo de
+[publicação/ativação de revisões](content/hot-reload-and-tool-profiles.md).
 
-Inclua o header `X-Admin-Key` em requisições para endpoints protegidos:
+Em produção, as origens web vêm de `AllowedOrigins` na raiz da configuração
+(`AllowedOrigins__0`, etc.), não de `Cors:AllowedOrigins`. CORS é uma política
+de navegador, não controle de acesso para clientes nativos ou outros processos.
 
-```bash
-curl -X POST http://localhost:5260/api/action/reload \
-  -H "X-Admin-Key: your-secret-key-here"
-```
-
-### Endpoints Protegidos
-
-Os seguintes endpoints requerem `X-Admin-Key`:
-
-- `POST /api/action/reload` - Recarrega definições de ações
-- `POST /api/v1/admin/content/reload` - Valida, publica e ativa uma revisão completa do conteúdo
-- `POST /api/config/load` - Carrega nova configuração
-- `POST /api/modifiers/reload` - Recarrega modificadores
-- `POST /api/gambits/reload` - Recarrega gambits
-- `POST /api/status/reload` - Recarrega status effects
-
-### Resposta de Erro
-
-Requisições sem `X-Admin-Key` ou com chave inválida retornam `401 Unauthorized`:
-
-```json
-{
-  "error": "Unauthorized: Invalid or missing admin key"
-}
-```
-
-### Segurança em Produção
-
-⚠️ **IMPORTANTE:**
-
-1. **Nunca commite chaves em `appsettings.json`** - Use variáveis de ambiente
-2. **Use chaves fortes** - Mínimo 32 caracteres aleatórios
-3. **Rotacione chaves regularmente** - Especialmente após exposição acidental
-4. **Restrinja CORS** - Configure `AllowedOrigins` para domínios específicos, não `"*"`
-5. **Use HTTPS em produção** - Nunca exponha a API via HTTP
-
-### CORS
-
-Em desenvolvimento, CORS permite qualquer origem. Em produção, configure:
-
-```json
-{
-  "Cors": {
-    "AllowedOrigins": [
-      "https://yourgame.com",
-      "https://admin.yourgame.com"
-    ]
-  }
-}
-```
-
-### Implementação
-
-Ver: `src/API/Middleware/AdminKeyMiddleware.cs`
+Mantenha a instalação local em loopback. Não exponha o serviço publicamente
+com base apenas na proteção administrativa. Distribuição e hospedagem precisam
+de revisão de acesso, armazenamento e segredos adequada ao produto.
+Consulte [operação e limites de produção](PRODUCTION.md).

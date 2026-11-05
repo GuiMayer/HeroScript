@@ -1,0 +1,1099 @@
+{
+  "cards": [
+    {
+      "id": "pyro_golpe_faisca",
+      "name": "Golpe de Faísca",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque"
+      ],
+      "energy_cost": 1,
+      "rarity": "Básica",
+      "targeting": "Inimigo",
+      "base_damage": 7.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Queimadura",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 3,
+      "rule_text": "Causa 7 de dano de Fogo. Aplica 1 stack de Queimadura (2 de dano residual).",
+      "brasa_interaction": "Ganha +25% de dano base por marcador de Brasa retido.",
+      "designer_notes": "Ataque gerador de residual de baixo custo. Permite iniciar o ciclo de Queimadura ou acumular Brasas na mão."
+    },
+    {
+      "id": "pyro_labareda",
+      "name": "Labareda",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque"
+      ],
+      "energy_cost": 1,
+      "rarity": "Básica",
+      "targeting": "Inimigo",
+      "base_damage": 9.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 2,
+      "rule_text": "Causa 9 de dano direto de Fogo.",
+      "brasa_interaction": "Ganha +25% de dano base por Brasa (até 15.75 com 3 Brasas).",
+      "designer_notes": "Dano direto eficiente por 1 de energia. Forte escalonamento linear com Brasas retidas."
+    },
+    {
+      "id": "pyro_chama_perfurante",
+      "name": "Chama Perfurante",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Perfurante"
+      ],
+      "energy_cost": 1,
+      "rarity": "Comum",
+      "targeting": "Inimigo",
+      "base_damage": 6.0,
+      "mitigation_formula": "IgnoreArmor",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 6 de dano de Fogo. Ignora a Armadura do alvo (não sofre mitigação por K).",
+      "brasa_interaction": "Ganha +25% de dano base por Brasa.",
+      "designer_notes": "Ferramenta tática essencial contra inimigos blindados (como Sentinela Pesada e Colosso)."
+    },
+    {
+      "id": "pyro_combustao_dupla",
+      "name": "Combustão Dupla",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Multihit"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 6.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Queimadura",
+      "status_amount": 2,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 6 de dano de Fogo 2 vezes (total 12). Aplica 2 stacks de Queimadura.",
+      "brasa_interaction": "Ganha +25% de dano em cada um dos dois golpes.",
+      "designer_notes": "Ataque multi-impacto. Excelente para quebrar escudos pequenos e aplicar stacks dobrados de Queimadura."
+    },
+    {
+      "id": "pyro_golpe_brasa",
+      "name": "Golpe da Forja",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 14.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Queimadura",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 14 de dano de Fogo. Se consumiu pelo menos 2 Brasas, aplica 3 stacks de Queimadura.",
+      "brasa_interaction": "Payoff de retenção média (2 turnos guardando na mão ativam o efeito secundário potente).",
+      "designer_notes": "Incentivo tático direto a reter a carta por 2 turnos na mão antes de lançar."
+    },
+    {
+      "id": "pyro_lanca_solar",
+      "name": "Lança Solar",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Pesado"
+      ],
+      "energy_cost": 3,
+      "rarity": "Rara",
+      "targeting": "Inimigo",
+      "base_damage": 22.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 22 de dano pesado de Fogo. Consome todo o seu turno (3 energias).",
+      "brasa_interaction": "Com 3 Brasas atinge 38.5 de dano base (+75%), funcionando como finalizador de combate.",
+      "designer_notes": "Compromisso tático máximo: consome toda a energia do turno."
+    },
+    {
+      "id": "pyro_varredura_termica",
+      "name": "Varredura Térmica",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "AoE"
+      ],
+      "energy_cost": 2,
+      "rarity": "Comum",
+      "targeting": "Todos_Inimigos",
+      "base_damage": 10.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Queimadura",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 10 de dano de Fogo a TODOS os inimigos. Aplica 1 Queimadura em cada.",
+      "brasa_interaction": "O bônus de Brasa aplica-se ao dano causado em todos os alvos.",
+      "designer_notes": "Carta crucial para combates múltiplos."
+    },
+    {
+      "id": "pyro_impacto_cindico",
+      "name": "Impacto Cíndico",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Híbrido"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 8.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 8.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 8 de dano. Se o alvo tiver Queimadura ativa, você ganha 8 de Escudo Persistente.",
+      "brasa_interaction": "Ganha +25% de dano base por Brasa.",
+      "designer_notes": "Ponte entre a build de Queimadura e a build de Escudo."
+    },
+    {
+      "id": "pyro_golpe_contundente",
+      "name": "Pancada com o Cabo",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Físico",
+      "orthogonal_tags": [
+        "Físico",
+        "Ataque"
+      ],
+      "energy_cost": 1,
+      "rarity": "Básica",
+      "targeting": "Inimigo",
+      "base_damage": 8.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa 8 de dano FÍSICO direto (ignora resistências elementais a Fogo).",
+      "brasa_interaction": "Não é de Fogo, portanto não acumula Brasa da Forja de Brasas.",
+      "designer_notes": "Ferramenta de fallback físico. Garante que resistências a Fogo criem decisão de deckbuilding, e não uma parede/imposto insuperável."
+    },
+    {
+      "id": "pyro_arremesso_de_escombros",
+      "name": "Projétil de Cascalho",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Físico",
+      "orthogonal_tags": [
+        "Físico",
+        "Ataque",
+        "Quebra-Guarda"
+      ],
+      "energy_cost": 2,
+      "rarity": "Comum",
+      "targeting": "Inimigo",
+      "base_damage": 12.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "QuebraGuarda",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Causa 12 de dano Físico. Se o alvo tiver Escudo ativo, destrói 50% do escudo remanescente.",
+      "brasa_interaction": "Não acumula Brasa.",
+      "designer_notes": "Contrapressão para quebrar inimigos com defesas pesadas (como o Colosso e o Chefe Fase 1)."
+    },
+    {
+      "id": "pyro_punicao_temeraria",
+      "name": "Punição da Hesitação",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Reativo"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 9.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Causa 9 de dano de Fogo. Se a intenção visível do alvo NÃO for um ataque neste turno, causa +11 de dano extra (total 20).",
+      "brasa_interaction": "Acumula Brasa normalmente.",
+      "designer_notes": "Carta REATIVA a intenção. Recompensa o jogador por identificar quando o inimigo está apenas buffando ou defendendo."
+    },
+    {
+      "id": "pyro_brasas_persistentes",
+      "name": "Brasas Rasteiras",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Econômico"
+      ],
+      "energy_cost": 1,
+      "rarity": "Comum",
+      "targeting": "Inimigo",
+      "base_damage": 5.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Queimadura",
+      "status_amount": 2,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Causa 5 de dano de Fogo e aplica 2 Queimaduras. NÃO consome seus marcadores de Brasa ao ser jogada.",
+      "brasa_interaction": "Conserva as Brasas acumuladas para ataques mais pesados no mesmo turno ou no próximo.",
+      "designer_notes": "Evita o problema de ter que queimar um burst em uma jogada pequena."
+    },
+    {
+      "id": "pyro_chama_devoradora",
+      "name": "Chama Devoradora",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Sustento"
+      ],
+      "energy_cost": 2,
+      "rarity": "Rara",
+      "targeting": "Inimigo",
+      "base_damage": 10.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Causa 10 de dano de Fogo. Se o alvo tiver 3 ou mais stacks de Queimadura, cura o Herói em 5 de Vida.",
+      "brasa_interaction": "Acumula Brasa normalmente.",
+      "designer_notes": "Única fonte de cura sustentável do kit. Valida builds lentas de DoT contra o relógio de combate."
+    },
+    {
+      "id": "pyro_incinerar_defesas",
+      "name": "Incinerar Defesas",
+      "module": "Piromaníaco",
+      "function_type": "Ataque",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Debuff"
+      ],
+      "energy_cost": 1,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 4.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "CorrosaoTermica",
+      "status_amount": 2,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Causa 4 de dano de Fogo. Reduz a Armadura e Resistência a Fogo do alvo em -20 pontos por 2 turnos.",
+      "brasa_interaction": "Acumula Brasa normalmente.",
+      "designer_notes": "Desbloqueador tático de dano contra inimigos ultra-resistentes na Fase 2 do Chefe."
+    },
+    {
+      "id": "pyro_barreira_cinzas",
+      "name": "Barreira de Cinzas",
+      "module": "Piromaníaco",
+      "function_type": "Defesa",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Defesa"
+      ],
+      "energy_cost": 1,
+      "rarity": "Básica",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 8.0,
+      "starting_deck_copies": 3,
+      "rule_text": "Ganha 8 de Escudo Persistente (não decai no fim do turno, respeita teto de 100% Vida Máxima).",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Defesa básica fundamental do MVP. Valida o comportamento do escudo persistente."
+    },
+    {
+      "id": "pyro_muralha_ignea",
+      "name": "Muralha Ígnea",
+      "module": "Piromaníaco",
+      "function_type": "Defesa",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Defesa"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 16.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Ganha 16 de Escudo Persistente.",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Defesa densa para responder a turnos onde o inimigo telegrafa ataques massivos de 15+ de dano."
+    },
+    {
+      "id": "pyro_postura_brasa",
+      "name": "Postura da Brasa",
+      "module": "Piromaníaco",
+      "function_type": "Defesa",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Defesa",
+        "Suporte"
+      ],
+      "energy_cost": 1,
+      "rarity": "Incomum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 6.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Ganha 6 de Escudo Persistente. Adiciona imediatamente +1 marcador de Brasa a todas as cartas de Ataque de Fogo na sua mão.",
+      "brasa_interaction": "Acelerador ativo da mecânica de assinatura Forja de Brasas.",
+      "designer_notes": "Conecta sobrevivência com preparação de dano para o próximo turno."
+    },
+    {
+      "id": "pyro_escudo_reativo",
+      "name": "Escudo Reativo",
+      "module": "Piromaníaco",
+      "function_type": "Defesa",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Defesa",
+        "Retaliação"
+      ],
+      "energy_cost": 1,
+      "rarity": "Comum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "EscudoReativo",
+      "status_amount": 1,
+      "shield_amount": 7.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Ganha 7 de Escudo Persistente. Na próxima vez que receber dano neste turno, aplica 2 Queimaduras no agressor.",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Transforma a defesa em geração de dano residual passivo contra atacantes rápidos."
+    },
+    {
+      "id": "pyro_escudo_solar",
+      "name": "Escudo Solar",
+      "module": "Piromaníaco",
+      "function_type": "Defesa",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Defesa",
+        "Cantrip"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 12.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Ganha 12 de Escudo Persistente. Compra 1 carta.",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Mantém o fluxo da mão sem perder a paridade de cartas enquanto constrói defesa."
+    },
+    {
+      "id": "pyro_aparar_ignito",
+      "name": "Aparar Ígneo",
+      "module": "Piromaníaco",
+      "function_type": "Defesa",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Defesa",
+        "Reativo"
+      ],
+      "energy_cost": 1,
+      "rarity": "Incomum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 8.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Ganha 8 de Escudo Persistente. Se a intenção do atacante for um Ataque Pesado (>12 dano), reflete 50% do dano mitigado como Fogo.",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Carta REATIVA a intenção. Transforma golpes telegrafados letais em contra-ataques devastadores."
+    },
+    {
+      "id": "pyro_purga_termica",
+      "name": "Purga Térmica",
+      "module": "Piromaníaco",
+      "function_type": "Buff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Buff",
+        "Purga"
+      ],
+      "energy_cost": 1,
+      "rarity": "Comum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Remove todos os debuffs do Herói. Para cada debuff removido, ganha 6 de Escudo e adiciona 1 Brasa em uma carta de ataque na mão.",
+      "brasa_interaction": "Gera Brasas indiretamente.",
+      "designer_notes": "Resposta de limpeza para neutralizar debuffs do Chefe e drones."
+    },
+    {
+      "id": "pyro_catalisador_ignito",
+      "name": "Catalisador Ígnito",
+      "module": "Piromaníaco",
+      "function_type": "Buff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Buff",
+        "Desconto"
+      ],
+      "energy_cost": 1,
+      "rarity": "Incomum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "DescontoAtaque",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "A próxima carta de Ataque jogada neste turno custa -1 de Energia (mínimo 0).",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Permite viabilizar turnos explosivos com Lança Solar (3 vira 2)."
+    },
+    {
+      "id": "pyro_oxigenacao",
+      "name": "Oxigenação",
+      "module": "Piromaníaco",
+      "function_type": "Buff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Buff",
+        "Circulação"
+      ],
+      "energy_cost": 1,
+      "rarity": "Comum",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Compra 2 cartas. Limite de mão é temporariamente aumentado em +1 neste turno.",
+      "brasa_interaction": "Não acumula Brasas.",
+      "designer_notes": "Ajuda a encontrar cartas de payoff e encher a mão para reter mais cartas de ataque para o turno seguinte."
+    },
+    {
+      "id": "pyro_foco_piromantico",
+      "name": "Foco Piromântico",
+      "module": "Piromaníaco",
+      "function_type": "Buff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Buff",
+        "Escalabilidade"
+      ],
+      "energy_cost": 2,
+      "rarity": "Rara",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "FocoFogo",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Pelo resto do combate, todas as suas cartas de Fogo causam +25% de dano aumentado (bucket increased).",
+      "brasa_interaction": "Multiplica acumulativamente com o bônus de Brasa (more).",
+      "designer_notes": "Investimento de longo prazo para lutas contra elites e chefes."
+    },
+    {
+      "id": "pyro_condensar_chamas",
+      "name": "Condensar Chamas",
+      "module": "Piromaníaco",
+      "function_type": "Payoff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Payoff",
+        "Condensação"
+      ],
+      "energy_cost": 1,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 0.0,
+      "mitigation_formula": "CondensationRelease",
+      "status_applied": "Condensar",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Consome TODOS os stacks de Queimadura no alvo e causa imediatamente todo o dano residual restante em um único impacto concentrado.",
+      "brasa_interaction": "Detonador da rota de Queimadura.",
+      "designer_notes": "Transforma o dano ao longo do tempo (DoT) em dano de burst antes que o inimigo ative proteções."
+    },
+    {
+      "id": "pyro_impacto_de_escudo",
+      "name": "Batida de Escudo Flamejante",
+      "module": "Piromaníaco",
+      "function_type": "Payoff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Payoff",
+        "Escudo"
+      ],
+      "energy_cost": 2,
+      "rarity": "Incomum",
+      "targeting": "Inimigo",
+      "base_damage": 0.0,
+      "mitigation_formula": "ShieldScalingDamage",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 1,
+      "rule_text": "Causa dano de Fogo igual a 75% do seu Escudo Persistente atual (máximo de 75 de dano). Não consome o seu escudo.",
+      "brasa_interaction": "Por ser [Ataque], acumula Brasas se retida na mão, amplificando o dano baseado no escudo!",
+      "designer_notes": "Payoff mestre da build defensiva. Converte paciência e preservação de escudo em letalidade pura."
+    },
+    {
+      "id": "pyro_supernova",
+      "name": "Supernova",
+      "module": "Piromaníaco",
+      "function_type": "Payoff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Ataque",
+        "Payoff",
+        "Finalizador"
+      ],
+      "energy_cost": 3,
+      "rarity": "Rara",
+      "targeting": "Inimigo",
+      "base_damage": 25.0,
+      "mitigation_formula": "DirectDamage",
+      "status_applied": "Atordoar",
+      "status_amount": 1,
+      "shield_amount": 0.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Causa 25 de dano de Fogo. Se consumiu 3 marcadores de Brasa (retida por 3 turnos): causa +50% de dano extra (total 56 de dano) e Atordoa o alvo por 1 turno.",
+      "brasa_interaction": "O payoff definitivo da Forja de Brasas. Recompensa o jogador que planejou 3 turnos à frente.",
+      "designer_notes": "Testa se a retenção deliberada de mão cria momentos de alta satisfação tática."
+    },
+    {
+      "id": "pyro_forja_eterna",
+      "name": "Forja Eterna",
+      "module": "Piromaníaco",
+      "function_type": "Payoff",
+      "element_tag": "Fogo",
+      "orthogonal_tags": [
+        "Fogo",
+        "Payoff",
+        "Suporte"
+      ],
+      "energy_cost": 2,
+      "rarity": "Rara",
+      "targeting": "Self",
+      "base_damage": 0.0,
+      "mitigation_formula": "nan",
+      "status_applied": "Nenhum",
+      "status_amount": 0,
+      "shield_amount": 10.0,
+      "starting_deck_copies": 0,
+      "rule_text": "Ganha 10 de Escudo Persistente. Dobra os marcadores de Brasa de todas as cartas na sua mão (respeitando o teto de 3).",
+      "brasa_interaction": "Multiplicador de Brasas instantâneo.",
+      "designer_notes": "Permite saltar a preparação de cartas retidas para executar múltiplos ataques carregados no turno seguinte."
+    }
+  ],
+  "inscriptions": [
+    {
+      "id": "mod_forja_de_brasas",
+      "name": "Mod de Assinatura: Forja de Brasas",
+      "type": "Assinatura",
+      "capacity_cost": 0.0,
+      "tags": [
+        "assinatura",
+        "fogo",
+        "brasa",
+        "retencao"
+      ],
+      "calculation_channel": "effect_amount",
+      "bucket": "more",
+      "operation_value": "+25% por Brasa (max 3)",
+      "description": "Mecânica de Assinatura do Piromaníaco. No final do turno, cada carta com tags [Fogo, Ataque] retida na mão ganha +1 marcador de Brasa (máx 3). Cada Brasa concede +25% de dano base cumulativo (1 brasa = +25%, 2 brasas = +50%, 3 brasas = +75%). Todos os marcadores são consumidos ao jogar a carta.",
+      "tactical_notes": "Valida se reter cartas na mão gera uma decisão contínua real."
+    },
+    {
+      "id": "insc_chama_ardente",
+      "name": "Chama Ardente",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "fogo",
+        "dano"
+      ],
+      "calculation_channel": "effect_amount",
+      "bucket": "increased",
+      "operation_value": "0.20 (+20%)",
+      "description": "Personagem: +20% de dano aumentado em todos os efeitos com a tag [Fogo].",
+      "tactical_notes": "Alimenta o bucket aditivo de dano do pipeline."
+    },
+    {
+      "id": "insc_ferro_temperado",
+      "name": "Ferro Temperado",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "defesa",
+        "escudo"
+      ],
+      "calculation_channel": "effect_amount",
+      "bucket": "increased",
+      "operation_value": "0.20 (+20%)",
+      "description": "Personagem: +20% de eficiência na geração de Escudo em cartas [Defesa].",
+      "tactical_notes": "Acelera a construção do escudo persistente para viabilizar a build de Batida de Escudo."
+    },
+    {
+      "id": "insc_combustao_prolongada",
+      "name": "Combustão Prolongada",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "residual",
+        "queimadura"
+      ],
+      "calculation_channel": "status_duration",
+      "bucket": "flat",
+      "operation_value": "+1 Turno",
+      "description": "Personagem: Todos os efeitos de Queimadura aplicados têm sua duração aumentada em +1 turno.",
+      "tactical_notes": "Aumenta o dano total gerado por cada aplicação de Queimadura e dá mais tempo para detonar com Condensação."
+    },
+    {
+      "id": "insc_baluarte_adamantino",
+      "name": "Baluarte Adamantino",
+      "type": "Padrão",
+      "capacity_cost": 3.0,
+      "tags": [
+        "defesa",
+        "teto_escudo"
+      ],
+      "calculation_channel": "resource_cap",
+      "bucket": "flat",
+      "operation_value": "1.50 (150% HP)",
+      "description": "Personagem: O teto máximo de Escudo Persistente é aumentado de 100% para 150% da sua Vida Máxima (máx 150 de Escudo para 100 HP).",
+      "tactical_notes": "Permite acumular uma reserva muito maior de segurança contra os turnos brutais do Chefe."
+    },
+    {
+      "id": "insc_resistencia_ignea",
+      "name": "Resistência Ígnea",
+      "type": "Padrão",
+      "capacity_cost": 1.0,
+      "tags": [
+        "resistencia",
+        "fogo"
+      ],
+      "calculation_channel": "elemental_resistance",
+      "bucket": "flat",
+      "operation_value": "30 pontos (K=100)",
+      "description": "Personagem: Concede 30 pontos de Resistência a Fogo (mitiga dano de fogo via fórmula R/(R+100), reduzindo ~23% do dano de fogo recebido).",
+      "tactical_notes": "Scouting essencial para a Fase 2 do Chefe da Forja, que depende de ataques ígneos pesados."
+    },
+    {
+      "id": "insc_couraca_pesada",
+      "name": "Couraça Pesada",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "armadura",
+        "mitigacao"
+      ],
+      "calculation_channel": "armor",
+      "bucket": "flat",
+      "operation_value": "40 pontos (K=100)",
+      "description": "Personagem: Concede 40 pontos de Armadura geral contra ataques físicos (mitiga ~28.5% do dano físico recebido antes do escudo).",
+      "tactical_notes": "Mitigação passiva que reduz o desgaste do escudo persistente contra mobs rápidos."
+    },
+    {
+      "id": "insc_precisao_termica",
+      "name": "Precisão Térmica",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "critico",
+        "chance"
+      ],
+      "calculation_channel": "critical_chance",
+      "bucket": "chance",
+      "operation_value": "25 pontos (+25%)",
+      "description": "Personagem: +25 pontos percentuais de chance de acerto crítico em ataques de Fogo.",
+      "tactical_notes": "Habilita a rota de críticos para builds que buscam picos de dano imprevisíveis."
+    },
+    {
+      "id": "insc_impacto_devastador",
+      "name": "Impacto Devastador",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "critico",
+        "multiplicador"
+      ],
+      "calculation_channel": "critical_bonus",
+      "bucket": "bonus",
+      "operation_value": "0.30 (+30%)",
+      "description": "Personagem: +30 pontos percentuais de bônus de dano crítico por tier de sucesso.",
+      "tactical_notes": "Combina com Precisão Térmica para escalar golpes pesados como Lança Solar e Supernova."
+    },
+    {
+      "id": "insc_cinzas_recicladas",
+      "name": "Cinzas Recicladas",
+      "type": "Padrão",
+      "capacity_cost": 3.0,
+      "tags": [
+        "payoff",
+        "energia",
+        "condensacao"
+      ],
+      "calculation_channel": "resource_gain",
+      "bucket": "flat",
+      "operation_value": "+1 Energia (1x/turno)",
+      "description": "Personagem: Sempre que você detonar uma Condensação com sucesso, recupera 1 de Energia (máximo 1 vez por turno).",
+      "tactical_notes": "Reembolsa o custo da carta de Condensar Chamas, permitindo continuar atacando no mesmo turno."
+    },
+    {
+      "id": "insc_martelo_da_forja",
+      "name": "Martelo da Forja",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "brasa",
+        "perfuracao"
+      ],
+      "calculation_channel": "armor_shred",
+      "bucket": "more",
+      "operation_value": "50% Shred",
+      "description": "Personagem: Ataques que consomem 3 marcadores de Brasa ignoram 50% da Armadura do alvo.",
+      "tactical_notes": "Permite que ataques pesados penetrem com facilidade a armadura do Colosso e do Chefe."
+    },
+    {
+      "id": "insc_condutividade_termica",
+      "name": "Condutividade Térmica",
+      "type": "Padrão",
+      "capacity_cost": 2.0,
+      "tags": [
+        "residual",
+        "potencia"
+      ],
+      "calculation_channel": "prototype_dot",
+      "bucket": "flat",
+      "operation_value": "+2 Pontos de Potência",
+      "description": "Personagem: Todas as aplicações de Queimadura têm sua potência base aumentada em +2 por stack.",
+      "tactical_notes": "Aumenta drasticamente o dano basal de cartas que aplicam muitos stacks (como Combustão Dupla)."
+    }
+  ],
+  "deltas": [
+    {
+      "id": "delta_rachador_chamas",
+      "name": "Padrão Rachador (Split / Multihit)",
+      "category": "Behavior",
+      "slot": "behavior",
+      "compatible_cards": [
+        "pyro_golpe_faisca",
+        "pyro_labareda",
+        "pyro_golpe_brasa",
+        "pyro_golpe_contundente"
+      ],
+      "script_modification": "Repete o efeito principal da carta 3 vezes (Repeat = 3), dividindo o valor base em 40% por acerto (total 120% do dano base original). Adiciona a tag [multihit].",
+      "description": "Converte um ataque único em um golpe triplo de alta frequência."
+    },
+    {
+      "id": "delta_elo_defensivo",
+      "name": "Padrão Elo de Guarda (Ward Link)",
+      "category": "Behavior",
+      "slot": "behavior",
+      "compatible_cards": [
+        "pyro_golpe_faisca",
+        "pyro_labareda",
+        "pyro_chama_perfurante",
+        "pyro_golpe_brasa",
+        "pyro_golpe_contundente"
+      ],
+      "script_modification": "Adiciona um componente separado na carta: 'MODIFY_RESOURCE -> SELF -> block ADD 5' com tags [defense, block].",
+      "description": "Permite que um ataque conceda 5 de Escudo Persistente imediatamente após infligir dano."
+    },
+    {
+      "id": "delta_infusao_comburente",
+      "name": "Padrão Infusão Comburente (Burn Clause)",
+      "category": "Affinity",
+      "slot": "affinity",
+      "compatible_cards": [
+        "pyro_labareda",
+        "pyro_lanca_solar",
+        "pyro_varredura_termica",
+        "pyro_golpe_contundente"
+      ],
+      "script_modification": "Adiciona um componente: 'APPLY_STATUS -> TARGET -> Queimadura (stacks = 2, duration = 3, potency = 2)'.",
+      "description": "Insere uma cláusula de Queimadura em cartas que originalmente causavam apenas dano direto."
+    },
+    {
+      "id": "delta_otimizacao_energia",
+      "name": "Padrão Fluxo Otimizado (Efficiency)",
+      "category": "Behavior",
+      "slot": "behavior",
+      "compatible_cards": [
+        "pyro_lanca_solar",
+        "pyro_combustao_dupla",
+        "pyro_muralha_ignea",
+        "pyro_varredura_termica",
+        "pyro_arremesso_de_escombros"
+      ],
+      "script_modification": "Altera o componente de custo: 'resourceId = energy, amount = amount - 1' (reduz o custo em -1 energia, mínimo 1).",
+      "description": "Reduz o custo de energia da carta, permitindo jogá-la junto com defesas no mesmo turno."
+    },
+    {
+      "id": "delta_ressonancia_brasa",
+      "name": "Padrão Ressonância de Brasa (Forge Resonance)",
+      "category": "Behavior",
+      "slot": "behavior",
+      "compatible_cards": [
+        "pyro_golpe_faisca",
+        "pyro_labareda",
+        "pyro_golpe_brasa",
+        "pyro_lanca_solar"
+      ],
+      "script_modification": "Altera o multiplicador da mecânica Forja de Brasas nesta carta específica: cada Brasa passa a conceder +40% de dano base (em vez de +25%).",
+      "description": "Supercarrega a sinergia de retenção na carta modificada."
+    },
+    {
+      "id": "delta_estabilidade_ignea",
+      "name": "Padrão Fogo Estável (Stable / No-Critical)",
+      "category": "Behavior",
+      "slot": "behavior",
+      "compatible_cards": [
+        "pyro_golpe_faisca",
+        "pyro_labareda",
+        "pyro_chama_perfurante",
+        "pyro_lanca_solar",
+        "pyro_golpe_contundente"
+      ],
+      "script_modification": "Adiciona override: 'rule.no-critical = true' e aumenta o dano base flat da carta em +30% permanente.",
+      "description": "Remove a aleatoriedade de críticos em troca de um valor de dano base consistente e elevado."
+    }
+  ],
+  "enemies": [
+    {
+      "id": "inimigo_automato_batedor",
+      "name": "Autômato Batedor",
+      "type": "Comum",
+      "max_health": 55.0,
+      "armor_k": "10 (K=100, mitiga ~9%)",
+      "fire_resistance_k": "0 (Sem resistência elemental)",
+      "energy_per_turn": 3,
+      "deck_cards": "3x Golpe Rápido (Custo 1, 5 dano), 2x Guarda Mecânica (Custo 1, 6 escudo), 1x Sobrecarga (Custo 2, 10 dano)",
+      "gambit_patterns": "Turno 1: Telegrafa Golpe Rápido (5). Turno 2: Telegrafa Sobrecarga (10). Se Vida < 30%: prioriza Guarda Mecânica (6).",
+      "special_rules": "Nenhuma. Inimigo de calibração para introdução ao ciclo de combate e leitura de intenções."
+    },
+    {
+      "id": "inimigo_drone_duplo",
+      "name": "Drone de Lâminas Duplas",
+      "type": "Comum",
+      "max_health": 45.0,
+      "armor_k": "0 (Sem armadura física)",
+      "fire_resistance_k": "25 (K=100, mitiga ~20% de Fogo)",
+      "energy_per_turn": 3,
+      "deck_cards": "3x Corte Gêmeo (Custo 1, 3x2 multihit), 2x Manobra Evasiva (Custo 1, 5 escudo), 1x Flâmula Cortante (Custo 2, 4x3 multihit)",
+      "gambit_patterns": "Agressivo contínuo. Alterna entre 6 de dano multihit e 12 de dano pesado multihit a cada 2 turnos.",
+      "special_rules": "Multihit rápido. Recompensa o uso da nova carta Pancada com o Cabo (dano físico) ou acúmulo de escudo persistente."
+    },
+    {
+      "id": "inimigo_sentinela_pesada",
+      "name": "Sentinela Pesada",
+      "type": "Comum",
+      "max_health": 75.0,
+      "armor_k": "35 (K=100, mitiga ~26% de dano físico)",
+      "fire_resistance_k": "0 (Vulnerável a Fogo puro e DoT)",
+      "energy_per_turn": 3,
+      "deck_cards": "2x Esmagar (Custo 2, 14 dano pesado), 3x Blindagem Fortificada (Custo 1, 10 escudo), 2x Golpe Repulsor (Custo 1, 6 dano + 4 escudo)",
+      "gambit_patterns": "Turnos Ímpares: Ganha 10 a 14 de Escudo. Turnos Pares: Telegrafa Esmagar (14 dano bruto).",
+      "special_rules": "Ciclo 'Carregar e Disparar'. Ativa perfeitamente a carta reativa Aparar Ígneo no turno par e Punição da Hesitação no turno ímpar."
+    },
+    {
+      "id": "inimigo_colosso_ferro",
+      "name": "Colosso de Ferrofundido",
+      "type": "Elite",
+      "max_health": 120.0,
+      "armor_k": "50 (K=100, mitiga ~33% de dano físico)",
+      "fire_resistance_k": "35 (K=100, mitiga ~26% de dano de Fogo)",
+      "energy_per_turn": 3,
+      "deck_cards": "3x Pancada Sísmica (Custo 2, 16 dano), 3x Barreira Fundida (Custo 2, 18 escudo), 2x Sucção Térmica (Custo 1, 8 dano), 1x Carga Brutal (Custo 3, 24 dano)",
+      "gambit_patterns": "Gera escudos nos turnos 1 e 2. No Turno 3 telegrafa Carga Brutal (24 dano).",
+      "special_rules": "RELÓGIO DE COMBATE: A partir do Turno 6, ganha +4 de Força cumulativa por turno. Impede stall defensivo infinito."
+    },
+    {
+      "id": "chefe_guardiao_forja_fase1",
+      "name": "Guardião da Forja (Fase 1: O Martelo)",
+      "type": "Chefe_Fase1",
+      "max_health": 160.0,
+      "armor_k": "40 (K=100, mitiga ~28.5%)",
+      "fire_resistance_k": "25 (K=100, mitiga ~20%)",
+      "energy_per_turn": 3,
+      "deck_cards": "3x Martelo da Criação (Custo 2, 14 dano + 8 escudo), 3x Fole Protetor (Custo 1, 12 escudo), 2x Brasas Esparsas (Custo 1, 6 dano + 2 Queimadura)",
+      "gambit_patterns": "Turno 1: Fole Protetor. Turno 2: Martelo da Criação. Turno 3: Brasas Esparsas x2. Transiciona aos <=80 HP (50%).",
+      "special_rules": "SOFT-CAP DE DANO: Até 35 de dano no turno sofre 100% de dano; dano excedente acima de 35 sofre redução de 75% (Dano Efetivo = 35 + Excesso * 0.25). Recompensa combos fortes sem permitir OTK acidental."
+    },
+    {
+      "id": "chefe_guardiao_forja_fase2",
+      "name": "Guardião da Forja (Fase 2: A Fornalha Desperta)",
+      "type": "Chefe_Fase2",
+      "max_health": 80.0,
+      "armor_k": "20 (Armadura se rompe, mitiga ~16%)",
+      "fire_resistance_k": "45 (K=100, superaquecido, mitiga ~31%)",
+      "energy_per_turn": 3,
+      "deck_cards": "2x Erupção da Fornalha (Custo 3, 22 dano AoE + 4 Queimadura), 3x Impacto Candente (Custo 2, 15 dano), 2x Onda de Calor (Custo 1, 8 dano + detona Queimadura no herói), 1x Fusão de Emergência (Custo 2, 15 escudo)",
+      "gambit_patterns": "Transição: limpa debuffs e ganha 25 de escudo. Agressividade total. Turno 2 telegrafa Erupção (22 dano).",
+      "special_rules": "SOFT-CAP DE DANO (35 com 75% sobre excesso mantido) + RELÓGIO DA FORNALHA: A partir do Turno 7 de combate total, a fornalha colapsa causando 6 de dano perfurante direto na vida do herói por turno (ignora escudo). Impede stall defensivo passivo."
+    }
+  ],
+  "rules_and_metrics": [
+    {
+      "category": "Regra de Combate",
+      "parameter": "Energia Universal",
+      "value": "3 por turno (Herói e Inimigos)",
+      "description": "Ambos os lados operam sob o mesmo orçamento de ação de 3 energias, consumido por cartas de custo 1, 2 e 3.",
+      "remedy_if_failed": "Se o ritmo ficar truncado, testar cartas com custos decimais ou ações livres (custo 0 com cooldown de turnos)."
+    },
+    {
+      "category": "Regra de Combate",
+      "parameter": "Mão Retida e Deckbuilding",
+      "value": "Pool de 28 cartas; Deck montado de 20 cartas; Draw 2 por turno; Cap de 8 cartas",
+      "description": "O jogador seleciona 20 de 28 cartas, permitindo especialização em arquétipos (Brasa, DoT ou Escudo). Cartas não jogadas ficam na mão.",
+      "remedy_if_failed": "Se a mão entupir, aumentar draw para 3 ou criar ação descartar 1 para comprar 1."
+    },
+    {
+      "category": "Regra de Combate",
+      "parameter": "Escudo Persistente",
+      "value": "Não decai no fim do turno; Teto = 100% da Vida Máxima (100)",
+      "description": "O escudo acumula entre turnos para planejamento. O teto rígido de 100 impede empilhamento infinito.",
+      "remedy_if_failed": "Se a Batida de Escudo dominar, aplicar decaimento de 25% do escudo por turno ou introduzir ataques perfurantes nos mobs."
+    },
+    {
+      "category": "Regra de Combate",
+      "parameter": "Calibração de K (Mitigação)",
+      "value": "K = 100 padronizado para Armadura e Resistência",
+      "description": "K=100 calibra perfeitamente valores de 10 a 60 (R=35 dá 26% de mitigação, R=50 dá 33%). K=900 foi descartado por ser inaudível na escala de cartas.",
+      "remedy_if_failed": "Se a armadura parecer irrelevante, reduzir K para 75; se neutralizar demais o dano, aumentar K para 150."
+    },
+    {
+      "category": "Regra de Combate",
+      "parameter": "Mod de Assinatura: Forja de Brasas",
+      "value": "+1 Brasa em [Fogo, Ataque] retidos (máx 3; +25% dano base cada)",
+      "description": "Transforma retenção em decisão tática contínua: gastar pelo valor base agora ou investir para estourar depois.",
+      "remedy_if_failed": "Se a retenção for lenta demais, alterar para +35% por Brasa ou permitir que buffs de postura gerem 2 Brasas de uma vez."
+    },
+    {
+      "category": "Métrica de Validação",
+      "parameter": "Existe decisão real?",
+      "value": "Hipótese: Delta > 15% de valor entre as 3 melhores jogadas iniciais no MCTS",
+      "description": "Mede se a ordem das cartas jogadas altera significativamente o desfecho do combate ou se qualquer sequência produz o mesmo resultado.",
+      "remedy_if_failed": "Se Delta < 15%: as cartas estão muito parecidas numericamente. Diferenciar custos de energia e adicionar efeitos condicionais à intenção."
+    },
+    {
+      "category": "Métrica de Validação",
+      "parameter": "Defender domina?",
+      "value": "Hipótese: Turnos puramente defensivos < 40%; Duração média 4-7 turnos",
+      "description": "Mede se o bot ou jogador entra em loop de apenas gerar escudo e esperar sem atacar.",
+      "remedy_if_failed": "Se > 40%: ativar relógio de combate mais agressivo (Enrage Turno 5+) e reduzir multiplicador da Batida de Escudo para 50%."
+    },
+    {
+      "category": "Métrica de Validação",
+      "parameter": "O combate é trivial?",
+      "value": "Hipótese: TTK médio entre 4 e 7 turnos por combate",
+      "description": "Combates não podem morrer em 1-2 turnos (OTK) nem passar de 8 turnos (arrastado).",
+      "remedy_if_failed": "Se TTK < 4: endurecer o soft-cap do chefe ou aumentar HP de mobs comuns em 20%. Se TTK > 8: reduzir armaduras inimigas em 25%."
+    },
+    {
+      "category": "Métrica de Validação",
+      "parameter": "Habilidade importa?",
+      "value": "Hipótese: Win Rate do Bot Heurístico/MCTS > 80% vs Bot Ingênuo < 35%",
+      "description": "A mesma build executada com respeito a intenções e retenção de Brasas deve esmagar a execução aleatória.",
+      "remedy_if_failed": "Se a diferença for pequena (< 30%): o jogo está jogando sozinho por stats brutos; reduzir números passivos e aumentar impacto de combos."
+    },
+    {
+      "category": "Métrica de Validação",
+      "parameter": "Variedade de builds?",
+      "value": "Hipótese: 3 builds distintas vencem o Chefe da Forja (Brasa, DoT, Escudo)",
+      "description": "Verifica se os 3 arquétipos têm caminhos viáveis e se não existe uma 'única fechadura' obrigatória.",
+      "remedy_if_failed": "Se apenas 1 build vencer: o chefe tem viés contra os outros arquétipos; ajustar resistências específicas (ex: atenuar Resist. Fogo ou Armadura)."
+    },
+    {
+      "category": "Métrica de Validação",
+      "parameter": "A sorte decide?",
+      "value": "Hipótese: Dispersão de Win Rate entre lotes de 2.000 seeds < 10%",
+      "description": "Garante estabilidade estatística real rodando milhares de sementes determinísticas.",
+      "remedy_if_failed": "Se dispersão for alta: suavizar a curva de compra (adicionar mais cartas com compra de reposição como Escudo Solar e Oxigenação)."
+    }
+  ]
+}

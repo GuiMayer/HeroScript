@@ -1,0 +1,16 @@
+[
+  {
+    "test": "card_titles",
+    "exit_code": 0,
+    "checks": 157,
+    "elapsed_ms": 4728,
+    "diagnostics": []
+  },
+  {
+    "test": "programmer_art_lab",
+    "exit_code": 0,
+    "checks": 78,
+    "elapsed_ms": 76639,
+    "diagnostics": []
+  }
+]

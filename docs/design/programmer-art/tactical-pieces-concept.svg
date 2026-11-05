@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000">
+  <title>Peças táticas — conceito monolítico</title>
+  <desc>Cinco peças estáticas inspiradas em xadrez: herói, atacante, defensor, canalizador e enxame. Sem membros ou articulações. Paleta marfim, preto e vermelho.</desc>
+  <defs>
+    <!-- Each piece has a local 240×320 drawing area and a common baseline at y=300. -->
+    <g id="hero">
+      <path fill="#24241F" d="M78 42 120 18 162 42 153 98 137 111 145 202 167 246 183 260 183 274 197 284 197 300 43 300 43 284 57 274 57 260 73 246 95 202 103 111 87 98Z"/>
+      <path fill="#F2EBDD" d="M112 46H128V80H112Z"/>
+      <path fill="#BC3D27" d="M88 93H152L143 109H97Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M74 261H166M58 282H182"/>
+    </g>
+    <g id="striker">
+      <path fill="#24241F" d="M69 95 163 40 150 109 133 124 140 208 159 244 174 260 174 274 190 284 190 300 50 300 50 284 66 274 66 260 81 244 100 208 107 129 83 119Z"/>
+      <path fill="#F2EBDD" d="m96 96 43-25-5 14-34 20Z"/>
+      <path fill="#BC3D27" d="m88 117 53-18-7 20-32 11Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M78 261H162M64 282H176"/>
+    </g>
+    <g id="bulwark">
+      <path fill="#24241F" d="M57 95H88V115H105V95H135V115H152V95H183V160L165 174 174 238 188 258V274L205 284V300H35V284L52 274V258L66 238 75 174 57 160Z"/>
+      <path fill="#F2EBDD" d="M107 144H133V193H107Z"/>
+      <path fill="#BC3D27" d="M78 213H162L165 232H75Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M67 262H173M49 282H191"/>
+    </g>
+    <g id="channeler">
+      <circle cx="120" cy="92" r="61" fill="#24241F"/>
+      <circle cx="120" cy="92" r="34" fill="#F2EBDD"/>
+      <path fill="#24241F" d="M107 142H133L138 215 157 248 174 262V275L190 285V300H50V285L66 275V262L83 248 102 215Z"/>
+      <path fill="#BC3D27" d="m120 71 21 21-21 21-21-21Z"/>
+      <path fill="none" stroke="#F2EBDD" stroke-width="4" d="M78 263H162M64 282H176"/>
+    </g>
+    <g id="small-token">
+      <path fill="#24241F" d="M31 6H59L67 22 59 42H54L59 86 69 105V116H77V132H13V116H21V105L31 86 36 42H31L23 22Z"/>
+      <path fill="#BC3D27" d="M32 30H58L54 40H36Z"/>
+      <path stroke="#F2EBDD" stroke-width="3" d="M25 115H65"/>
+    </g>
+    <g id="swarm">
+      <use href="#small-token" transform="translate(0 168)"/>
+      <use href="#small-token" transform="translate(69 141) scale(1.2)"/>
+      <use href="#small-token" transform="translate(150 168)"/>
+    </g>
+  </defs>
+  <rect width="1800" height="1000" fill="#F2EBDD"/>
+  <g fill="#24241F" font-family="Consolas, 'Courier New', monospace">
+    <text x="72" y="72" font-size="30" letter-spacing="3">PEÇAS TÁTICAS</text>
+    <text x="72" y="105" font-size="15">CONCEITO 01 / MONOLÍTICAS / SEM ANIMAÇÃO CORPORAL</text>
+    <path d="M72 129H1728" fill="none" stroke="#24241F" stroke-width="1"/>
+    <text x="72" y="170" font-size="15">A identidade está no topo, na proporção e no recorte — não em membros ou rostos.</text>
+  </g>
+  <g>
+    <use href="#hero" x="120" y="230"/>
+    <use href="#striker" x="450" y="230"/>
+    <use href="#bulwark" x="780" y="230"/>
+    <use href="#channeler" x="1110" y="230"/>
+    <use href="#swarm" x="1440" y="230"/>
+  </g>
+  <g fill="#24241F" font-family="Consolas, 'Courier New', monospace" text-anchor="middle">
+    <g font-size="20">
+      <text x="240" y="581">01 HERÓI</text>
+      <text x="570" y="581">02 ATACANTE</text>
+      <text x="900" y="581">03 DEFENSOR</text>
+      <text x="1230" y="581">04 CANALIZADOR</text>
+      <text x="1560" y="581">05 ENXAME</text>
+    </g>
+    <g font-size="14">
+      <text x="240" y="615">Coroa angular · peça alta</text>
+      <text x="570" y="615">Cunha · corpo estreito</text>
+      <text x="900" y="615">Torre · base larga</text>
+      <text x="1230" y="615">Aro · núcleo suspenso</text>
+      <text x="1560" y="615">Três peões · uma entidade</text>
+    </g>
+  </g>
+  <path d="M72 660H1728" stroke="#24241F" stroke-width="1"/>
+  <text x="72" y="698" fill="#24241F" font-size="14" font-family="Consolas, 'Courier New', monospace">LEITURA EM ESCALA REDUZIDA</text>
+  <g>
+    <use href="#hero" transform="translate(207 717) scale(.275)"/>
+    <use href="#striker" transform="translate(537 717) scale(.275)"/>
+    <use href="#bulwark" transform="translate(867 717) scale(.275)"/>
+    <use href="#channeler" transform="translate(1197 717) scale(.275)"/>
+    <use href="#swarm" transform="translate(1527 717) scale(.275)"/>
+  </g>
+  <path d="M72 842H1728" stroke="#24241F" stroke-width="1"/>
+  <g fill="#24241F" font-family="Consolas, 'Courier New', monospace" font-size="15">
+    <text x="72" y="883">FORMA SÓLIDA</text>
+    <text x="72" y="910" font-size="13">Base comum. Sem pernas, braços ou juntas.</text>
+    <text x="655" y="883">DETALHE DE AUTÔMATO</text>
+    <text x="655" y="910" font-size="13">Encaixes, fendas e insertos vermelhos.</text>
+    <text x="1235" y="883">FEEDBACK DE COMBATE</text>
+    <text x="1235" y="910" font-size="13">Mover ou inclinar a peça inteira.</text>
+  </g>
+  <g transform="translate(72 952)">
+    <rect width="18" height="18" fill="#F2EBDD" stroke="#24241F"/>
+    <rect x="28" width="18" height="18" fill="#24241F"/>
+    <rect x="56" width="18" height="18" fill="#BC3D27"/>
+  </g>
+</svg>

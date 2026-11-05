@@ -1,8 +1,8 @@
 # Programmer art / marco do laboratório
 
-Data: 2026-10-23. Escopo desta entrega: etapas 1–4 do [plano](../../plans/PROGRAMMER_ART_VISUAL_REVAMP_PLAN.md).
+Data: 2026-10-23. Registro das etapas 1–4 do [plano](../../plans/PROGRAMMER_ART_VISUAL_REVAMP_PLAN.md) e da aplicação posterior do visual aprovado ao jogo.
 
-## Inventário e propriedade visual
+## Inventário inicial e propriedade visual
 
 | Aparência | Dono atual | Troca nesta entrega |
 | --- | --- | --- |
@@ -40,15 +40,15 @@ Para capturas, adicionar `-VisualTest programmer_art_lab -VisualOutputDirectory 
 
 ## Diretrizes de produção
 
-SVGs estáticos, cores planas, formas geométricas e três trilhas a 45°. Mapeamentos explícitos por ID e fallback neutro; sem sorteio, API ou interpretação de regras. O número de formas da ilustração é decorativo e não substitui os valores da carta.
+SVGs estáticos, cores planas e formas geométricas, sem trilhas decorativas nas artes das cartas. Mapeamentos explícitos por ID e fallback neutro; sem sorteio, API ou interpretação de regras. O número de formas da ilustração é decorativo e não substitui os valores da carta.
 
-O novo perfil é opt-in no laboratório. As configurações e os assets antigos continuam disponíveis para a run. Nenhum recurso já utilizado pelo combate deve ser sobrescrito nesta entrega.
+Na validação inicial o perfil era opt-in no laboratório. Depois da aprovação, os perfis dos menus e da run passaram a consumir o mesmo catálogo e acabamento, preservando suas medidas e os assets de cenário existentes.
 
 ## Etapas 2 e 3
 
 `ProgrammerArtProfile.create(base)` deriva um perfil sem duplicar fontes ou alterar métricas. A paleta fica no perfil, e `CardVisualStyle.keyline_style` seleciona entre a moldura anterior e marcas de registro. `CardView` continua sendo o único componente de carta: a variação muda somente o desenho passivo dentro do mesmo rect. Verificação do perfil: 161 checks de herança, mínimos dos estilos e preservação dos Resources de origem.
 
-O catálogo isolado fica em `data/labs/programmer_art_manifest.json`; os SVGs em `assets/programmer-art`. São 22 famílias, cada uma com três composições de carta 320×150 e um símbolo quadrado 128×128 (88 arquivos), com 94 associações explícitas de cartas. As amostras conhecidas têm associação explícita; conteúdo de mod desconhecido recebe um documento com núcleo geométrico neutro. O nome de placeholder impresso abaixo da arte é preservado.
+O catálogo, inicialmente isolado, agora fica em `data/programmer_art_manifest.json`; os SVGs em `assets/programmer-art`. São 22 famílias, cada uma com três arquivos de carta 320×150 e um símbolo quadrado 128×128 (88 arquivos), com 94 associações explícitas de cartas. As variantes foram unificadas após o pedido de retirar rotação e trilhas. As amostras conhecidas têm associação explícita; conteúdo de mod desconhecido recebe um documento com núcleo geométrico neutro. O nome de placeholder impresso abaixo da arte é preservado.
 
 `tools/build-programmer-art-assets.ps1` contém as receitas vetoriais; `-Check` verifica os arquivos produzidos. Não há geração em runtime, novas dependências ou consumo de RNG. As variações não codificam a quantidade real de acertos/stacks. Os ícones de objetos e atividades ficam preparados no catálogo, sem alterar os consumidores da run nesta etapa. Canvas e preenchimento dos símbolos de custo atuais permanecem intactos.
 
@@ -72,7 +72,38 @@ Certificação da rodada principal: dez suítes, 762 verificações distintas ap
 
 Rodada final após normalizar hashes de texto entre LF/CRLF: 42 verificações de geometria em headless e 35 verificações renderizadas dos efeitos, incluindo impacto, contorno e sheen sobre a carta real, sem diagnósticos. Evidência: [rendered-validation.json](rendered-validation.json). Os SVGs também passaram na verificação de reprodução do gerador.
 
-Limite: esta entrega certifica o laboratório e os componentes compartilhados nos testes isolados. Não foi aplicada a nova arte ao combate real nem realizada uma jornada online com a API. Essa expansão depende da validação visual deste marco e das etapas seguintes do plano.
+Limite da entrega inicial: as etapas 1–4 certificaram apenas o laboratório e os componentes compartilhados nos testes isolados. A aplicação posterior ao jogo está registrada abaixo.
+
+## Refinamento solicitado: linhas padronizadas da carta
+
+Após a validação do marco, foi solicitado reservar uma linha para os recursos e padronizar título/arte. `CardView` agora reserva uma área fixa para o título (altura configurável em `CardVisualStyle.title_line_height`), uma linha de custos alinhada à esquerda diretamente abaixo do nome e a altura de arte definida pelo estilo.
+
+`CardCostLine` contém a linha horizontal de recursos e alternativas. Custos extensos se ajustam proporcionalmente à largura disponível, sem quebra de linha nem distorção dos símbolos. Isso impede que recursos extras empurrem a arte. O componente é compartilhado pelo laboratório e combate; nenhuma regra ou animação foi alterada.
+
+O baseline original foi preservado. `programmer_art_rows_baseline.json` registra a nova anatomia autorizada; o teste de geometria continua comparando posição/tamanho externos da mão com a referência original em todos os 36 casos da matriz. [Captura com as linhas padronizadas](rows/lab-1920x1080.png).
+
+`card_face_rows.gd` cobre todas as amostras, dois perfis marfim, EN/PT, texto normal/ampliado e atualização para custos alternativos (544 verificações aprovadas). O teste também confere alinhamento da arte, permanência do componente durante reconciliação, custo contido em uma única linha e preservação dos modelos de entrada.
+
+Refinamento de arte: removida a rotação decorativa de ±8° aplicada pelo gerador e removidas as trilhas triplas das ilustrações. Os símbolos ficam orientados no espaço local da carta e acompanham somente a inclinação da mão. Os nomes dos arquivos e mapeamentos permanecem iguais; as variantes existentes passam a apontar para a mesma composição limpa por família. Circuitos da interface externa às artes permanecem intactos. `-AssetsOnly` permite regenerar os SVGs sem regravar o catálogo.
+
+Refinamento do nome: `CardTitle` conserva a área original de 24 unidades em todas as cartas, com fonte inicial 17, piso 12 para uma linha e piso 8 para duas linhas, configuráveis no estilo e acompanhando a escala de texto. Primeiro procura uma fonte que caiba em uma linha; se o piso ainda não couber, procura o maior tamanho que caiba em duas linhas dentro dos mesmos 24. A entrelinha é zero para permitir essa composição compacta. A medição usa o shaping nativo da Godot. Nomes excepcionalmente extensos mantêm reticências e leitura completa na inspeção. Não há processamento por frame: o ajuste responde à montagem, reconciliação, tema e largura disponíveis. [Captura com títulos adaptáveis](rows/adaptive-titles.png).
+
+`card_titles.gd`: 157 verificações aprovadas para nomes curtos, intermediários, longos, palavras extensas, EN/PT, escalas 1/1,2/1,6 e troca do nome sem recriar o Label. Conferem explicitamente o cabeçalho original de 24 unidades (arredondado ao pixel na escala escolhida), área constante, piso/teto de fonte, retorno ao tamanho máximo e dois modos de ajuste.
+
+Conferência final da correção compacta: 544 verificações de linhas da carta aprovadas. As execuções renderizada e headless produziram os mesmos digests nos 40 casos; a rodada final de comparação passou em 78 verificações, incluindo posição/tamanho externos da mão e fontes/configurações de movimento inalteradas. [Relatório de geometria](rows/geometry-validation.json).
+
+## Aplicação ao jogo
+
+Após aprovação, `ivory_theme.tres` e `ivory_run.tres` passaram a usar a paleta e o catálogo compartilhado de programmer art. Isso cobre o combate, coleções, atividades, loja, mapa, diálogos, menus, pausa, configurações, histórico, replay e loadout que usam esses contextos. Os dois estilos de carta usam as marcas de registro aprovadas. As medidas de cada perfil permanecem próprias: combate 248×360 / arte 64; laboratório 248×404 / arte 108. O título permanece nos 24 originais e o custo fica abaixo do nome.
+
+O catálogo saiu de `data/labs` e passou a `data/programmer_art_manifest.json`, consumido igualmente pelo laboratório e produção. Os ícones de inscrições também usam a família geométrica, preservando overrides de ícone explicitamente publicados no item. Os dois ornamentos `MenuCircuit` foram removidos do menu principal, sem alterar containers ou navegação. Os circuitos de outros painéis não foram removidos por este pedido.
+
+Atores, retratos e fundos mantêm suas associações e posições atuais; nenhuma nova composição de cenário foi criada nesta aplicação do visual aprovado. Regras, transporte, saves, animações e fluxo de ações permanecem com suas autoridades anteriores.
+
+Validação da aplicação: [608 verificações offline](game/offline-validation.json) de menus/pausa/configurações, coleções, loadout, contexto visual, lifecycle e paridade das animações; [239 verificações de contratos/geométrica/renderização da run](game/run-validation.json); [52 verificações renderizadas do menu](game/menu-validation.json). Nenhum diagnóstico de script/shader nessas rodadas. Capturas usam gateways de fixture e diretório de preferências isolado, sem modificar saves pessoais ou comprovar uma campanha na API real.
+
+Capturas finais: [menu sem circuitos](game/menu.png), [combate](game/combat.png), [mapa](game/map.png) e [diálogo](game/dialogue.png). A rodada renderizada da run cobre também pausa, recompensa e mão vazia em 1280×720, 1920×1080 e 2560×1080, em EN/PT. O jogo deve ser reaberto para carregar os Resources e o catálogo atualizados.
+
 
 ## Fundo geral compartilhado
 

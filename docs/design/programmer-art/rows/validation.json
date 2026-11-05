@@ -1,0 +1,30 @@
+[
+  {
+    "test": "card_face_rows",
+    "exit_code": 0,
+    "checks": 544,
+    "elapsed_ms": 21164,
+    "diagnostics": []
+  },
+  {
+    "test": "card_refresh_stability",
+    "exit_code": 0,
+    "checks": 34,
+    "elapsed_ms": 1225,
+    "diagnostics": []
+  },
+  {
+    "test": "card_animation_parity",
+    "exit_code": 0,
+    "checks": 22,
+    "elapsed_ms": 10509,
+    "diagnostics": []
+  },
+  {
+    "test": "programmer_art_lab",
+    "exit_code": 0,
+    "checks": 78,
+    "elapsed_ms": 7621,
+    "diagnostics": []
+  }
+]

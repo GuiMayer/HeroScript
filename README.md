@@ -38,7 +38,7 @@ conteúdo ficam em `data/configs/volatile-core`; a Godot somente apresenta os
 resultados da API. Consulte o [guia do core](docs/guides/volatile-core-godot.md)
 e os [contratos de conteúdo](docs/content/volatile-core-setting.md).
 
-Engine version **34**: snapshots antigos não são convertidos silenciosamente.
+Engine version **34** (`DeterministicContext.CurrentEngineVersion`): snapshots antigos não são convertidos silenciosamente.
 Guarde o conteúdo/revisão e a versão executável compatível para reproduzi-los.
 
 Os [fundamentos do mundo 1](docs/api/world-one-foundations.md) incluem recursos
@@ -81,7 +81,11 @@ cd .\examples\godot-engine-showcase
 ```
 
 O launcher compila e inicia a API em `http://127.0.0.1:5271`, usa persistência
-isolada em `.runtime/`, abre a Godot e encerra o processo da API ao sair.
+em `%APPDATA%\HeroScript\engine`, abre a Godot e encerra o processo da API que
+iniciou ao sair. Preferências ficam em `%APPDATA%\HeroScript`; a primeira
+abertura migra os dados antigos por cópia verificada, conservando os originais.
+Progressão e Continuar permanecem separados por setting. Consulte os
+[caminhos e regras de migração](examples/godot-engine-showcase/README.md#dados-locais-e-migração).
 
 Para validar a integração sem abrir uma janela:
 
@@ -214,7 +218,7 @@ HeroScript/
 │   ├── Core/                       # Domínio, aplicação e infraestrutura da engine
 │   ├── API/                        # API REST ASP.NET Core e contrato HTTP
 │   └── Mods/                       # Compilador de packages/settings data-only
-├── data/configs/                   # Settings JSON default e ascendant
+├── data/configs/                   # Packages/settings JSON, incluindo default, ascendant e volatile-core
 ├── examples/godot-engine-showcase/ # Demo Godot multi-setting
 ├── tests/
 │   ├── Core.Tests/                 # Regras, determinismo e persistência
@@ -240,8 +244,12 @@ dotnet test .\tests\Core.Tests\Core.Tests.csproj `
   --no-build --configuration Release
 
 dotnet test .\tests\API.Tests\API.Tests.csproj `
-  --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests" `
+  --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests&FullyQualifiedName!~AscendantWorldOneJourneyTests" `
   --no-build --configuration Release
+
+dotnet test .\tests\API.Tests\API.Tests.csproj `
+  --filter "FullyQualifiedName~AscendantWorldOneJourneyTests" `
+  --no-build --configuration Release -- RunConfiguration.TestSessionTimeout=600000
 
 dotnet test .\tests\API.Tests\API.Tests.csproj `
   --filter "FullyQualifiedName~WorldOneFoundationJourneyTests" `
@@ -252,7 +260,7 @@ dotnet test .\tests\API.Tests\API.Tests.csproj `
   --no-build --configuration Release -- RunConfiguration.TestSessionTimeout=600000
 ```
 
-As jornadas longas rodam separadamente, com orçamento de sessão explícito.
+As três jornadas longas rodam separadamente, com orçamento de sessão explícito.
 O gate restante inclui testes sem tags de categoria; eles não são omitidos da CI.
 
 Encerre uma API que esteja usando a saída `Release` antes de recompilar essa
@@ -261,6 +269,26 @@ mesma saída; no Windows, o processo em execução mantém os assemblies bloquea
 Os totais não são registrados manualmente no README porque mudam com frequência.
 O resultado atual deve ser obtido executando as suítes. Testes específicos da
 Godot estão documentados no [README da demo](examples/godot-engine-showcase/README.md).
+O workflow atual executa build e testes .NET; a bateria Godot ainda precisa
+ser executada localmente e não é um gate automatizado da CI.
+
+## Maturidade e limites de validação
+
+O loop single-player é funcional, mas a engine e o cliente seguem em estabilização.
+Produção incremental de conteúdo e uma fatia de arte final já são possíveis;
+isso não equivale à certificação de um jogo exportado e distribuído.
+
+- A [matriz REST mais recente](docs/plans/REST_LATENCY_REMAINING_BOTTLENECKS.md)
+  registrou 526 interações abaixo de 1 s, com maior interação de 802 ms na
+  máquina de teste. Não é uma garantia para qualquer hardware/conteúdo nem uma
+  medição do clique até a resposta renderizada na Godot.
+- A [auditoria de input](docs/architecture/CARD_INPUT_LIFECYCLE_AUDIT.md)
+  documenta correções de bloqueios e seus testes; sessões humanas prolongadas,
+  distribuição e hardware-alvo continuam exigindo validação.
+- O primeiro mundo é conteúdo alpha: os
+  [gates de balanceamento e playtest](docs/plans/ASCENDANT_WORLD_1_CONTENT_VALIDATION_REPORT.md)
+  não estão todos fechados. Relatórios registram a versão/data do ensaio,
+  não uma aprovação automática de mudanças posteriores.
 
 ## Segurança, persistência e operação
 

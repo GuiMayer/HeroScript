@@ -34,7 +34,53 @@ No PowerShell, a partir deste diretório:
 .\Start-Demo.ps1
 ```
 
-O launcher inicia a API em `http://127.0.0.1:5271`, guarda os dados de teste em `.runtime/`, abre a Godot e encerra apenas o processo que ele próprio iniciou. Também é possível abrir `project.godot` no editor depois de iniciar a API separadamente.
+O launcher inicia a API em `http://127.0.0.1:5271`, guarda os dados do jogador
+em `%APPDATA%\HeroScript`, abre a Godot e encerra apenas o processo que ele próprio
+iniciou. Também é possível abrir `project.godot` no editor e pressionar F5:
+no Windows, o menu verifica a API local e inicia o servidor em segundo plano
+se ele estiver desligado, aguardando readiness antes de conectar.
+
+A inicialização pelo editor reutiliza `Start-Demo.ps1 -ServerOnly -AutoStart`,
+o SDK .NET e os mesmos dados no AppData. Não abre outra Godot. O servidor criado
+fica vinculado ao processo do jogo e encerra junto dele; uma API previamente
+ligada é reutilizada e não é encerrada pelo cliente. Uma porta ocupada por um
+servidor desconhecido não é liberada à força pela inicialização automática.
+
+Esse recurso exige o checkout com `src/API` e o launcher; não equivale a um host
+empacotado no export final. Endpoints remotos continuam exigindo um servidor
+externo. Para desabilitar explicitamente, passe `--no-auto-server` nos argumentos
+do jogo. Testes offline com `--layout-smoke` nunca iniciam servidores.
+
+### Dados locais e migração
+
+```text
+%APPDATA%\HeroScript\
+  heroscript_showcase.cfg       preferências e referências de Continuar por setting
+  card_animation_profile.json  override opcional do laboratório de animação
+  logs\                        logs nativos da Godot
+  engine\
+    runs\                      commits, histórico e provas de progressão
+    content\                   revisões imutáveis usadas pelos saves
+    telemetry\                 diagnóstico operacional
+    migration-v1.json          inventário SHA-256 da migração inicial
+    legacy-logs\               logs antigos da API, se existirem
+  qa\<porta>\engine\           saves isolados das execuções em outras portas
+```
+
+Na primeira abertura pelo launcher, os diretórios `runs`, `content` e `telemetry`
+de `.runtime` são copiados e verificados antes de ativar o novo armazenamento.
+Preferências antigas em `%APPDATA%\Godot\app_userdata\HeroScript- Ember Archive`
+também são copiadas quando ainda não existe arquivo no destino. Os originais
+não são apagados. Conflitos com um destino desconhecido ou uma API gravando
+impedem a migração; não há sobrescrita silenciosa. Uma segunda abertura não
+reimporta saves antigos sobre progressão nova.
+
+A separação por setting é lógica, mantida pela autoridade da engine
+(`playerId + settingId`) e pelo índice de Continuar
+(`API + personagem + setting + modo`). Não se divide ou reescreve o journal por
+pastas de setting: isso preserva IDs, hashes, branches, replay e desbloqueios.
+Faça backup de `engine/runs` e `engine/content` juntos, além do `.cfg`.
+Packages JSON de autoria continuam no repositório, não no armazenamento do jogador.
 
 Antes de reutilizar uma API já aberta, o launcher verifica se ela publica os
 settings `default` e `ascendant`, `setting-scoped-profiles` e as capabilities dos
@@ -65,10 +111,12 @@ Para testar seleção de carta/alvo, idiomas, custos, animações, pause e repla
 .\Start-Demo.ps1 -UiSmoke -Port 5272
 ```
 
-Portas diferentes de 5271 usam `.runtime/qa-<porta>/`, isolando os dados da
+Portas diferentes de 5271 usam `%APPDATA%\HeroScript\qa\<porta>\engine`, isolando os dados da
 partida normal. O launcher usa a engine em Release. Se uma API já estiver
-rodando na porta escolhida, ela é reutilizada: reinicie-a para carregar mudanças
-no código da engine.
+rodando na porta escolhida, ela só é reutilizada se o launcher reconhecer seu
+processo e vínculo com o novo armazenamento. APIs antigas desta workspace são
+encerradas antes da migração/reinicialização; outros programas são recusados.
+Reinicie a API para carregar mudanças no código da engine.
 
 ## Apresentação do combate
 
@@ -112,11 +160,27 @@ Para equipamento real, crie/continue uma run Ascendant compatível e abra
 vinculada ao personagem atual da run, sem exemplos, presets ou seletor de personagem.
 Falhas mostram erro e recuperação, nunca um inventário fictício. Uma mudança de
 run/personagem exige reabrir a tela; respostas antigas não são reaproveitadas.
-Arraste/monte o rascunho, solicite **Preview draft** e então **Confirm equipment**.
+Arraste inscrições para equipar/trocar, ou clique no item e depois na posição
+para equipar diretamente, sem precisar encontrar outro botão abaixo da tela.
+A validação e a gravação são automáticas, sem botões de refresh, preview ou
+confirmação. **Clear draft** esvazia o equipamento e também salva a alteração.
+O layout marfim organiza inventário, inscrições equipadas e personagem em três
+colunas, com busca/filtros visuais, sigilos do catálogo existente, custo no canto
+e slots vazios em verde-acinzentado. A inscrição selecionada destaca os atributos
+que declara afetar, sem acrescentar bônus localmente. A tabela mostra os valores
+equipados; a inspeção conserva os detalhes de origem. Resoluções de 1280×720 a
+2560×1080 e texto ampliado são cobertos por `tests/loadout_editorial.gd`.
+`tests/loadout_input.gd` exerce cliques e arraste nativos. A regressão REST
+`tests/loadout_input_online.gd` exige uma API isolada na porta 61987, com dados
+de teste, e verifica gravação, remoção e replay. O gateway converte sequência e
+step recebidos como números JSON para inteiros antes de enviar a prévia.
+Essa adaptação também cobre contagens de cartas, IDs de transformação,
+restauração de histórico, cenários e comandos simulados, sem converter recursos
+ou outros decimais legítimos. Veja a [auditoria do contrato numérico](../../docs/architecture/API_NUMERIC_WIRE_CONTRACT.md).
 A engine calcula atributos e valida posse, slots, orçamento e janela; a Godot
-não soma valores no modo conectado. **Recover / refresh run** recupera uma
-resposta incerta pelo fluxo idempotente existente. Alterações pendentes pedem
-confirmação antes de sair ou descartar o rascunho.
+não soma valores no modo conectado. A tela lê o equipamento ao abrir e após
+salvar, sincroniza mudanças da sessão e recupera respostas incertas pelo fluxo
+idempotente existente. Uma proposta rejeitada não é apresentada como salva.
 
 O laboratório do menu principal continua separado em
 `scenes/inscription_loadout_lab.tscn`, com exemplos e seletores para testes.
@@ -410,6 +474,11 @@ Em **Configurações → Resolução da janela**, escolha presets de 1280×720 a
 3840×2160, incluindo **2560×1080** e 3440×1440 ultrawide. A escolha é salva.
 Em tela cheia, usa-se a resolução nativa do monitor; ao voltar ao modo janela,
 a resolução escolhida é restaurada, ajustada à área disponível se necessário.
+O monitor usado é lembrado nas preferências locais e restaurado antes de aplicar
+tela cheia. Mover a janela para outra tela atualiza essa preferência sem reconstruir
+a interface. A posição da tela no desktop ajuda a resolver mudanças de índice;
+se a tela não estiver disponível, usa-se uma tela válida e a janela é centralizada
+na área disponível. Essa identificação não é um ID físico persistente do monitor.
 O layout expande com a proporção da tela sem deformar os elementos, seguindo
 o [suporte a múltiplas resoluções da Godot](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html).
 
@@ -475,6 +544,7 @@ condensação genérica, múltiplos impactos e continuação causal. Transforma�
 confirmadas com before/after consultado na API; tooltip e inspector mostram o
 consumo e os procs. [Guia específico](../../docs/guides/volatile-core-godot.md).
 Teste adicional offline: `godot --headless --path . --script tests/volatile_core.gd`.
+
 
 ### Atributos durante o combate
 

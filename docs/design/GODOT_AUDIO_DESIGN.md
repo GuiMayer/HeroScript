@@ -2,11 +2,11 @@
 
 ## Direção
 
-Feedback curto, discreto e não contínuo: clique seco nos menus, textura de atrito
+Feedback curto, discreto e não contínuo: clique seco nos menus, manuseio de papel
 no uso/movimento de cartas, impacto mais encorpado no dano, madeira na proteção
 e vidro suave na recuperação. Confirmação de recompensa e erro têm identidade
 separada. Hover na mão usa um tick leve ao entrar em outra carta, com três
-variantes, intervalo de 65 ms e máximo de duas vozes. Movimento dentro da mesma
+variantes de 85 ms, intervalo de 65 ms e máximo de uma voz. Movimento dentro da mesma
 carta, foco programático, drag, pausa e modal não repetem o tick.
 Reconstrução de interface e fases vazias não produzem som.
 
@@ -19,7 +19,7 @@ o volume Music continua independente. Não se mantém o som ruim como fallback.
 
 - `data/audio_manifest.json`: eventos, variantes, ganhos, cooldown, máximo de
   instâncias por evento e associações visuais opcionais para ganhos de recursos.
-- `GameAudio`: carrega 23 samples no início, usa oito players prealocados e
+- `GameAudio`: carrega 26 samples no início, usa oito players prealocados e
   encaminha música/efeitos para buses separados. Limiter protege o bus SFX.
 - `CombatAudioPresenter`: converte aplicações publicadas em cues. Não calcula
   dano, não assume que health é o recurso de dano e não confunde custo com ataque.
@@ -36,9 +36,17 @@ gerador de waveform ocorre durante gameplay.
 ## Assets e licença
 
 Seleção dos packs oficiais [Interface Sounds](https://kenney.nl/assets/interface-sounds)
-e [Impact Sounds](https://kenney.nl/assets/impact-sounds), Kenney, CC0. As licenças
+[Impact Sounds](https://kenney.nl/assets/impact-sounds) e
+[Casino Audio 1.1](https://kenney.nl/assets/casino-audio), Kenney, CC0. As licenças
 originais acompanham os respectivos diretórios em `assets/audio`. Os clips
-selecionados são os arquivos OGG originais, sem alteração. A distribuição completa
+de interface e impacto são OGG originais, sem alteração. Os nove clips de cartas
+foram editados: hover a partir de `card-place` (85 ms), compra a partir de
+`card-slide` (200 ms) e uso a partir de `card-place` (260 ms). Foram removidos
+silêncio inicial e DC, aplicado downmix mono, fades curtos e normalização de pico.
+Não há loop, extensão temporal ou raspagem longa no hover. `provenance.json`
+registra fonte, offset, duração e hashes por clip; o script autoral é
+`tools/prepare-card-audio.py`. [Prévia das três variantes de hover](audio-cards/hover-preview.wav).
+A distribuição completa
 baixada fica somente em `.runtime/audio-packs`, não no jogo.
 
 [Kenney confirma uso comercial e atribuição opcional](https://kenney.nl/support).

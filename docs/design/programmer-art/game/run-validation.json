@@ -1,0 +1,23 @@
+[
+  {
+    "test": "ivory_run_contracts",
+    "exit_code": 0,
+    "checks": 88,
+    "elapsed_ms": 964,
+    "diagnostics": []
+  },
+  {
+    "test": "programmer_art_lab",
+    "exit_code": 0,
+    "checks": 78,
+    "elapsed_ms": 7611,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_run_visual",
+    "exit_code": 0,
+    "checks": 73,
+    "elapsed_ms": 15649,
+    "diagnostics": []
+  }
+]
