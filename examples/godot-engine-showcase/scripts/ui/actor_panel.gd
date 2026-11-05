@@ -28,6 +28,7 @@ var _authored_content_size: Vector2
 var _authored_target_size: Vector2
 var _authored_root_gap: int
 var _authored_content_gap: int
+@export var authored_battlefield_layout := false
 @export var compact_content_width := 264.0
 @export var compact_target_size := Vector2(76, 112)
 @export var battlefield_target_size := Vector2(180, 100)
@@ -131,10 +132,10 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		_root_content.add_theme_constant_override("separation", _authored_root_gap)
 		_content.add_theme_constant_override("separation", _authored_content_gap)
 		_root_content.vertical = not compact
-		if target_button.get_parent() != (_root_content if compact else _content):
+		if not authored_battlefield_layout and target_button.get_parent() != (_root_content if compact else _content):
 			target_button.reparent(_root_content if compact else _content)
-		if compact: _root_content.move_child(target_button, 0)
-		else: _content.move_child(target_button, _content.get_child_count() - 1)
+		if not authored_battlefield_layout and compact: _root_content.move_child(target_button, 0)
+		elif not authored_battlefield_layout: _content.move_child(target_button, _content.get_child_count() - 1)
 		if compact: _content.custom_minimum_size.x = compact_content_width
 		_intent.custom_minimum_size.y = battlefield_intent_height if battlefield else _authored_intent_height
 		_intent.max_lines_visible = 2 if compact or battlefield else 3
@@ -150,7 +151,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_surface.bg_color = Color.TRANSPARENT if battlefield else visual_context.styles.color("surface.actor")
 	var name_text: String = visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", "")))
 	_title.text = name_text
-	_title.visible = not (battlefield and visual_context.profile.compact_actor_hud)
+	_title.visible = authored_battlefield_layout or not (battlefield and visual_context.profile.compact_actor_hud)
 	_title.add_theme_color_override("font_color", visual_context.styles.INK)
 	var relation := str(actor.get("relationship", "Enemy" if hostile else "Ally"))
 	var affiliation := "YOUR SIDE" if relation == "Ally" else ("No intent revealed" if relation == "Enemy" else "NEUTRAL")

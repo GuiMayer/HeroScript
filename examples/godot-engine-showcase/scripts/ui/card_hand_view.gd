@@ -78,6 +78,7 @@ var _layout_card_style_key := ""
 var _inspection_anchor := ""
 var _hover_point := Vector2.INF
 var overview_enabled := true
+@export var toolbar_path := NodePath("Toolbar")
 var toolbar_external := false
 
 var _nodes_bound := false
@@ -90,7 +91,7 @@ func _init(context = null) -> void:
 func _bind_nodes() -> void:
 	if _nodes_bound: return
 	_nodes_bound = true
-	toolbar = get_node("Toolbar"); counter = toolbar.get_node("Counter")
+	toolbar = get_node(toolbar_path); counter = toolbar.get_node("Counter")
 	previous = toolbar.get_node("Previous"); next = toolbar.get_node("Next")
 	scroll = get_node("HandScroll"); surface = scroll.get_node("HandSlots")
 	hit_surface = surface.get_node("HandHitSurface"); hit_surface.hand = self

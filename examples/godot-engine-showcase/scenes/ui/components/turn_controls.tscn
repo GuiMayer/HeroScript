@@ -1,11 +1,14 @@
 [gd_scene format=3]
-
 [ext_resource type="Script" path="res://scripts/ui/components/turn_controls_view.gd" id="1_laa7j"]
 [ext_resource type="Texture2D" path="res://assets/ui-icons/advance.svg" id="2_ugs4n"]
 [ext_resource type="Script" path="res://scripts/ui/components/combat_keyline.gd" id="3_d8cva"]
 [ext_resource type="Texture2D" path="res://assets/ui-icons/cancel.svg" id="4_dmcc5"]
 [ext_resource type="Texture2D" path="res://assets/ui-icons/skip.svg" id="5_sg1js"]
 [ext_resource type="Texture2D" path="res://assets/ui-icons/arrow.svg" id="6_kivos"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/hand_tools.tscn" id="Tools"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_zone_controls.tscn" id="Piles"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/action_preview.tscn" id="Preview"]
+
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3c84j"]
 content_margin_left = 10.0
@@ -286,6 +289,11 @@ border_width_bottom = 2
 theme_override_constants/separation = 8
 script = ExtResource("1_laa7j")
 
+[node name="HandTools" parent="." instance=ExtResource("Tools")]
+layout_mode = 2
+[node name="ActionPreviewView" parent="." instance=ExtResource("Preview")]
+visible = false
+layout_mode = 2
 [node name="ContextActionSlot" type="CenterContainer" parent="."]
 custom_minimum_size = Vector2(48, 44)
 layout_mode = 2
@@ -421,6 +429,13 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("3_d8cva")
 
+[node name="PileControls" parent="." instance=ExtResource("Piles")]
+layout_mode = 2
+[node name="RightPileControls" parent="." instance=ExtResource("Piles")]
+layout_mode = 2
+[node name="EndTurnGap" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
 [node name="EndTurnButton" type="Button" parent="."]
 custom_minimum_size = Vector2(195, 62)
 layout_mode = 2

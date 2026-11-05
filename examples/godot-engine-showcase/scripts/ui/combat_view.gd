@@ -209,10 +209,10 @@ func _build_hand() -> void:
 		hand.reorder_drop_filter = _hand_drop_allowed
 		hand.visual_order_changed.connect(func(_ids): intent_requested.emit("_cancel_selection", []))
 	if not is_instance_valid(pile_controls):
-		pile_controls = get_node("OverlayDefinitions/PileControls")
+		pile_controls = get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/PileControls")
 		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	if not is_instance_valid(right_pile_controls):
-		right_pile_controls = get_node("OverlayDefinitions/RightPileControls")
+		right_pile_controls = get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/RightPileControls")
 		right_pile_controls.name = "RightPileControls"
 		right_pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	var zones: Array = zone_presenter.auxiliary_zones()
@@ -246,31 +246,23 @@ func _build_footer() -> void:
 	_turn_key = key.duplicate(true)
 	if not _footer_bound:
 		turn_view = bottom_hud.get_node("TurnControls")
-		bottom_hud.move_child(turn_view, bottom_hud.get_child_count() - 1)
 		turn_view.alignment = BoxContainer.ALIGNMENT_END
-		_feedback_column = get_node("OverlayDefinitions/ActionPreviewView")
+		_feedback_column = get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/ActionPreviewView")
 		_feedback_column.visual_context = visual_context
 		_feedback_column.mount(visual_context.translator.text("Select a card, then choose a highlighted target."))
 		_feedback_column.hide()
-		_feedback_column.owner = null; _feedback_column.reparent(turn_view, false)
-		turn_view.move_child(_feedback_column, 0)
 		detail_label = _feedback_column.detail_label; selection_label = _feedback_column.selection_label; queue_label = _feedback_column.queue_label
 		turn_view.next_requested.connect(_next_frame)
 		turn_view.skip_requested.connect(func(): intent_requested.emit("skip_presentation", []))
 		turn_view.cancel_requested.connect(_cancel_selection); turn_view.end_requested.connect(_end_turn)
 		turn_view.system_requested.connect(_execute_system)
-		pile_controls.owner = null; pile_controls.reparent(turn_view, false); turn_view.move_child(pile_controls, turn_view.get_child_count() - 1)
-		hand.toolbar.owner = null; hand.toolbar.reparent(turn_view, false); turn_view.move_child(hand.toolbar, 0)
-		right_pile_controls.owner = null; right_pile_controls.reparent(turn_view, false); turn_view.move_child(right_pile_controls, turn_view.get_child_count() - 2)
-		turn_view.move_child(pile_controls, right_pile_controls.get_index())
-		turn_view.move_child(turn_view.get_node("EndTurnButton"), turn_view.get_child_count() - 1)
 		hand.toolbar_external = true; hand.update_counter()
-		reconnect_button = get_node("OverlayDefinitions/Reconnect")
+		reconnect_button = get_node("FloatingCombatHUD/FloatingHUDHost/Reconnect")
 		reconnect_button.pressed.connect(_reconnect)
 		preload("res://scripts/ui/combat_chrome.gd").apply(reconnect_button, "tools", visual_context.translator.text("RECONNECT"), visual_context)
 		floating_hud.replace_slot("reconnect", reconnect_button)
 		reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT); reconnect_button.offset_right = layout_profile.reconnect_button_size.x; reconnect_button.offset_bottom = layout_profile.reconnect_button_size.y
-		candidate_panel = get_node("OverlayDefinitions/CandidatePanel")
+		candidate_panel = get_node("FloatingCombatHUD/FloatingHUDHost/CandidatePanel")
 		var surface: StyleBoxFlat = candidate_panel.get_theme_stylebox("panel").duplicate()
 		surface.bg_color = visual_context.styles.PANEL; surface.border_color = visual_context.styles.GOLD
 		candidate_panel.add_theme_stylebox_override("panel", surface)
@@ -289,7 +281,7 @@ func _build_character_sidebar() -> Control:
 	_ensure_floating_hud()
 	var view = character_sidebar
 	if not is_instance_valid(view):
-		view = get_node("OverlayDefinitions/CombatAttributesDrawer")
+		view = get_node("FloatingCombatHUD/FloatingHUDHost/CombatAttributesDrawer")
 		view.mount(visual_context)
 		view.open_changed.connect(func(value): character_sidebar_expanded = value)
 		floating_hud.replace_slot("sidebar", view)

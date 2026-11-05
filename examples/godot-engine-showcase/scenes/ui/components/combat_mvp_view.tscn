@@ -7,13 +7,15 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_candidates.tscn" id="Candidates"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_button.tscn" id="Button"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat/combat_attributes_drawer.tscn" id="Attributes"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/card_hand.tscn" id="Hand"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_hand.tscn" id="Hand"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/turn_controls.tscn" id="Turn"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield.tscn" id="Field"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/floating_hud.tscn" id="Floating"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_feedback.tscn" id="Feedback"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_combat_header.tscn" id="MvpHeader"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_arena.tscn" id="Arena"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/hand_tools.tscn" id="Tools"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield_actor.tscn" id="Actor"]
 [node name="CombatView" type="VBoxContainer"]
 size_flags_vertical = 3
 theme_override_constants/separation = 12
@@ -30,6 +32,7 @@ metadata/review_todo = "Show published equipped inscriptions only; review projec
 [node name="CombatBody" parent="." instance=ExtResource("Arena")]
 layout_mode = 2
 [node name="Battlefield" parent="CombatBody/CombatGameplay" instance=ExtResource("Field")]
+actor_scene = ExtResource("Actor")
 [node name="CombatBottomHUD" type="HBoxContainer" parent="CombatBody/CombatGameplay"]
 anchor_top = 1.0
 anchor_right = 1.0
@@ -58,19 +61,10 @@ layout_mode = 2
 layout_mode = 2
 size_flags_vertical = 8
 theme_override_constants/separation = 10
-[node name="EndTurnGap" type="Control" parent="CombatBody/CombatGameplay/CombatBottomHUD/TurnControls"]
-custom_minimum_size = Vector2(0, 22)
-layout_mode = 2
-mouse_filter = 2
 [node name="FloatingCombatHUD" parent="." instance=ExtResource("Floating")]
-[node name="OverlayDefinitions" type="Control" parent="."]
-visible = false
-[node name="PileControls" parent="OverlayDefinitions" instance=ExtResource("Piles")]
-[node name="RightPileControls" parent="OverlayDefinitions" instance=ExtResource("Piles")]
-[node name="ActionPreviewView" parent="OverlayDefinitions" instance=ExtResource("Preview")]
-[node name="CandidatePanel" parent="OverlayDefinitions" instance=ExtResource("Candidates")]
-[node name="Reconnect" parent="OverlayDefinitions" instance=ExtResource("Button")]
-[node name="CombatAttributesDrawer" parent="OverlayDefinitions" instance=ExtResource("Attributes")]
+[node name="CandidatePanel" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Candidates")]
+[node name="Reconnect" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Button")]
+[node name="CombatAttributesDrawer" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Attributes")]
 [node name="CombatLog" type="AcceptDialog" parent="."]
 size = Vector2i(700, 480)
 [node name="Scroll" type="ScrollContainer" parent="CombatLog"]
@@ -83,3 +77,7 @@ fit_content = true
 scroll_active = false
 
 [editable path="CombatBody"]
+
+
+[node name="EndTurnGap" parent="CombatBody/CombatGameplay/CombatBottomHUD/TurnControls"]
+custom_minimum_size = Vector2(0, 22)

@@ -40,26 +40,9 @@ func _build_hand() -> void:
 			if value.get("maximum") is float or value.get("maximum") is int: energy.text += " / " + visual_context.translator.number(value.maximum)
 	energy.visible = not energy.text.is_empty()
 
-func _build_footer() -> void:
-	super._build_footer()
-	turn_view.move_child(turn_view.get_node("EndTurnGap"), turn_view.get_child_count() - 2)
-
 func _build_battlefield() -> void:
 	super._build_battlefield()
 	battlefield_view.get_node("BattlefieldActors/Field/Divider").hide()
-	for panel in battlefield_view.panels.values():
-		var content: VBoxContainer = panel.get_node("%ActorContent")
-		content.custom_minimum_size.x = 280
-		content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		content.move_child(panel.get_node("%ActorIntentRow"), 0)
-		content.move_child(panel.target_button, 1)
-		var title: Label = panel.get_node("%ActorTitle")
-		title.show()
-		content.move_child(title, 2)
-		content.move_child(panel.get_node("%ActorResources"), 3)
-		content.move_child(panel.get_node("%ActorCounters"), 4)
-		content.move_child(panel.get_node("%ActorStatusBadges"), 5)
-		content.add_theme_constant_override("separation", 8)
 	var box := StyleBoxFlat.new()
 	box.bg_color = visual_context.styles.color("surface.raised")
 	box.border_color = visual_context.styles.color("stroke.panel")

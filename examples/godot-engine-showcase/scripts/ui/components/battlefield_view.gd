@@ -7,6 +7,7 @@ signal target_selected(actor_id: String)
 signal target_previewed(actor_id: String)
 signal preview_left
 signal layout_requested
+@export var actor_scene: PackedScene = preload("res://scenes/ui/components/actor_panel.tscn")
 var actor_scroll: ScrollContainer
 var targets := {}
 var panels := {}
@@ -27,7 +28,8 @@ func apply_model(actors: Array, presentation: Dictionary) -> void:
 	_sync_actors(actors, presentation)
 
 func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation: Dictionary) -> Control:
-	var panel := preload("res://scripts/ui/actor_panel.gd").create(visual_context)
+	var panel = actor_scene.instantiate()
+	panel.visual_context = visual_context
 	var id := str(actor.get("instanceId", ""))
 	panel.name = "ActorView_" + id.validate_node_name()
 	panel.setup(actor, hostile, presentation, intent, false, true)
