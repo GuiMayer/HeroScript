@@ -1,14 +1,17 @@
 extends SceneTree
 var failures := 0
+var hand: CardHandView
 func _init() -> void: call_deferred("run_checks")
 func check(ok: bool, label: String) -> void:
 	print("[PASS] " if ok else "[FAIL] ", label)
 	if not ok: failures += 1
 func settle() -> void:
 	for _i in 20: await process_frame
+	# Frame count is not elapsed tween time in headless runs. Compare settled poses.
+	if is_instance_valid(hand): await create_timer(hand.duration() + .05).timeout
 func run_checks() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").new()
-	var hand = preload("res://scripts/ui/card_hand_view.gd").create(context)
+	hand = preload("res://scripts/ui/card_hand_view.gd").create(context)
 	hand.size = Vector2(1100, 600); root.add_child(hand)
 	var first := Window.new(); var second := Window.new()
 	hand.add_child(first); hand.add_child(second)

@@ -13,7 +13,7 @@ Os passos abaixo contam selecionar o recurso/nó, alterar e salvar; pressupõem 
 | Fonte do custo no MVP | `data/themes/mvp_card_style.tres` | Selecionar o recurso, alterar `Cost Symbol Font Size`, salvar: 3 passos |
 | Fonte do custo nos demais settings | `data/themes/ivory_run_card_style.tres` | Mesmo percurso: 3 passos |
 | Ordem/espaço de Encerrar turno | `scenes/ui/components/turn_controls.tscn` | Selecionar `EndTurnButton` ou `EndTurnGap`, alterar ordem/mínimo, salvar: 3 passos |
-| Posição do conjunto de ações | `scenes/ui/components/combat_view.tscn` ou `combat_mvp_view.tscn` | Editar `CombatBottomHUD/TurnControls` e seu container; o script não o transfere mais para outro pai |
+| Posição do conjunto de ações | `scenes/ui/components/combat_view.tscn` ou `combat_mvp_view.tscn` | Na cena genérica, editar `CombatBottomHUD/TurnControls`. No MVP novo, editar `CanvasHost/ReferenceCanvas/TemporaryControls`; a mão fica separada em `HandHost/HandSection`. Os caminhos de binding aparecem no Inspector |
 | Novo ícone para um status existente/publicado | Asset + `scenes/ui/components/status_badge.tscn` | Importar asset, selecionar raiz, adicionar chave/Texture2D em `Icon Overrides`, salvar e conferir `Preview Status`: aproximadamente 5 passos |
 | Layout do ator/inimigo no MVP | `scenes/ui/components/battlefield_actor.tscn` | Reordenar/redimensionar os filhos de `ActorContent` e salvar; o script do MVP não os reorganiza |
 | Forma do nó da campanha | `scenes/ui/components/map_node.tscn` | Editar arte/glifo/legenda; a legenda usa âncoras relativas ao botão |
@@ -44,3 +44,9 @@ Não foram removidos laboratórios ou variantes de inscrições sem confirmaçã
 A revisão corrigiu a atribuição ao glifo do mapa e habilitou execução no editor da coleção de cartas, cenário de combate, peças de inscrição, traços decorativos e recursos de métricas de menu/chrome/efeitos. Não houve alteração de layout, fórmulas visuais ou durações. `modal_focus.gd` permanece deliberadamente apenas em runtime: é um auxiliar de restauração de foco de popups, não chamado pelas prévias.
 
 Validação desta revisão: 55 montagens de cenas no editor sem erros ou diagnósticos de teardown, além de 223 verificações de editabilidade, prévias, hover, mapa, efeitos de arte, inscrições e coleções em runtime. Os testes usam cópia isolada do projeto e não enviam comandos à API.
+
+## Composição MVP: primeira etapa da reconstrução
+
+A cena `combat_mvp_view.tscn` agora usa `CanvasHost/ReferenceCanvas`, sem `CombatBody` ou `Balance`. A largura e a posição relativa da mão são editáveis nas âncoras de `HandHost`; `Hand Bottom Inset` controla sua distância inferior. A altura é calculada pelo mínimo real do componente, preservando seus algoritmos. O contexto de tema e o estilo das cartas continuam os atuais. Os controles em `TemporaryControls` aguardam suas etapas visuais; não são um fallback para a árvore anterior.
+
+Consulte [a validação da etapa 1](../validation/MVP_COMBAT_REFERENCE_STAGE1.md). A etapa está implementada, aguardando aprovação visual antes de qualquer avanço.

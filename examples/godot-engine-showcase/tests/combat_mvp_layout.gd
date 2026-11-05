@@ -61,7 +61,7 @@ func _run() -> void:
 	check(screen.view.get_script().resource_path.ends_with("combat_mvp_view.gd"), "MVP uses layout variant with shared combat controller")
 	check(not screen.view.header_view.get_node("TimelineButton").visible, "MVP header hides timeline")
 	check(not screen.view.header_view.get_node("HeroName").text.is_empty(), "header identifies current hero")
-	check(screen.view.get_node("CombatBody").scene_file_path.ends_with("mvp_arena.tscn"), "MVP uses its own authored arena tree")
+	check(screen.view.has_node("CanvasHost/ReferenceCanvas") and not screen.view.has_node("CombatBody"), "MVP mounts its new authored canvas without the previous body")
 	for panel in screen.view.battlefield_view.panels.values():
 		check(panel.get_node("%ActorResources").get_index() > panel.target_button.get_index(), "resources appear below the artwork")
 	screen._choose_card("fixture-0")

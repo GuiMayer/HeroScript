@@ -1,9 +1,6 @@
 [gd_scene format=3]
 [ext_resource type="Script" path="res://scripts/ui/combat_mvp_view.gd" id="Script"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_header.tscn" id="Header"]
-[ext_resource type="PackedScene" path="res://scenes/ui/combat_composition.tscn" id="Composition"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/card_zone_controls.tscn" id="Piles"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/action_preview.tscn" id="Preview"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_combat_header.tscn" id="Header"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_candidates.tscn" id="Candidates"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat/combat_attributes_drawer.tscn" id="Attributes"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_hand.tscn" id="Hand"]
@@ -11,55 +8,69 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield.tscn" id="Field"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/floating_hud.tscn" id="Floating"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_feedback.tscn" id="Feedback"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_combat_header.tscn" id="MvpHeader"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_arena.tscn" id="Arena"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/hand_tools.tscn" id="Tools"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield_actor.tscn" id="Actor"]
 [node name="CombatView" type="VBoxContainer"]
 size_flags_vertical = 3
-theme_override_constants/separation = 12
 script = ExtResource("Script")
-composition_scene = ExtResource("Arena")
+battlefield_path = NodePath("CanvasHost/ReferenceCanvas/Battlefield")
+header_path = NodePath("CanvasHost/ReferenceCanvas/CombatHeader")
+hand_host_path = NodePath("CanvasHost/ReferenceCanvas/HandHost")
+hand_section_path = NodePath("CanvasHost/ReferenceCanvas/HandHost/HandSection")
+turn_controls_path = NodePath("CanvasHost/ReferenceCanvas/TemporaryControls")
+primary_piles_path = NodePath("CanvasHost/ReferenceCanvas/TemporaryControls/PileControls")
+secondary_piles_path = NodePath("CanvasHost/ReferenceCanvas/TemporaryControls/RightPileControls")
 [node name="CombatFeedback" parent="." instance=ExtResource("Feedback")]
-[node name="CombatHeader" parent="." instance=ExtResource("MvpHeader")]
-layout_mode = 2
-[node name="InscriptionStrip" type="HBoxContainer" parent="."]
-visible = false
-layout_mode = 2
-custom_minimum_size = Vector2(0, 28)
-metadata/review_todo = "Show published equipped inscriptions only; review projection."
-[node name="CombatBody" parent="." instance=ExtResource("Arena")]
-layout_mode = 2
-[node name="Battlefield" parent="CombatBody/CombatGameplay" instance=ExtResource("Field")]
-actor_scene = ExtResource("Actor")
-[node name="CombatBottomHUD" type="HBoxContainer" parent="CombatBody/CombatGameplay"]
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_vertical = 0
-mouse_filter = 2
-theme_override_constants/separation = 20
-[node name="Balance" type="Control" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
-layout_mode = 2
-mouse_filter = 2
-[node name="HandSection" type="VBoxContainer" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
+[node name="CanvasHost" type="Control" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 8
+size_flags_vertical = 3
+mouse_filter = 2
+[node name="ReferenceCanvas" type="Control" parent="CanvasHost"]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+[node name="CombatHeader" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Header")]
+layout_mode = 1
+anchor_right = 1.0
+[node name="Battlefield" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Field")]
+actor_scene = ExtResource("Actor")
+[node name="HandHost" type="Control" parent="CanvasHost/ReferenceCanvas"]
+layout_mode = 1
+anchor_left = 0.16
+anchor_top = 1.0
+anchor_right = 0.84
+anchor_bottom = 1.0
+offset_top = -440.0
+offset_bottom = -8.0
+grow_vertical = 0
+mouse_filter = 2
+[node name="HandSection" type="VBoxContainer" parent="CanvasHost/ReferenceCanvas/HandHost"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
 theme_override_constants/separation = 10
-[node name="Hint" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
+[node name="Hint" type="Label" parent="CanvasHost/ReferenceCanvas/HandHost/HandSection"]
 visible = false
 layout_mode = 2
-[node name="Energy" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
+[node name="Energy" type="Label" parent="CanvasHost/ReferenceCanvas/HandHost/HandSection"]
 layout_mode = 2
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 22
-[node name="CardHandView" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection" instance=ExtResource("Hand")]
+[node name="CardHandView" parent="CanvasHost/ReferenceCanvas/HandHost/HandSection" instance=ExtResource("Hand")]
 layout_mode = 2
-[node name="TurnControls" parent="CombatBody/CombatGameplay/CombatBottomHUD" instance=ExtResource("Turn")]
-layout_mode = 2
-size_flags_vertical = 8
-theme_override_constants/separation = 10
+toolbar_path = NodePath("../../../TemporaryControls/HandTools")
+[node name="TemporaryControls" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Turn")]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -210.0
+offset_top = -360.0
+grow_horizontal = 0
+grow_vertical = 0
+metadata/stage_note = "Functional controls awaiting their individually approved composition stages."
 [node name="FloatingCombatHUD" parent="." instance=ExtResource("Floating")]
 [node name="CandidatePanel" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Candidates")]
 [node name="Reconnect" type="Button" parent="FloatingCombatHUD/FloatingHUDHost"]
@@ -75,15 +86,7 @@ custom_minimum_size = Vector2(640, 400)
 size_flags_horizontal = 3
 fit_content = true
 scroll_active = false
-
-[editable path="CombatBody"]
-
-
-[node name="EndTurnGap" parent="CombatBody/CombatGameplay/CombatBottomHUD/TurnControls"]
-custom_minimum_size = Vector2(0, 22)
-
-[node name="Divider" parent="CombatBody/CombatGameplay/Battlefield/BattlefieldActors/Field"]
+[node name="Divider" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field"]
 visible = false
-[editable path="CombatBody/CombatGameplay/Battlefield"]
-
-[connection signal="pressed" from="CombatHeader/LogButton" to="." method="_open_combat_log"]
+[editable path="CanvasHost/ReferenceCanvas/Battlefield"]
+[connection signal="pressed" from="CanvasHost/ReferenceCanvas/CombatHeader/LogButton" to="." method="_open_combat_log"]

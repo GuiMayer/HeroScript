@@ -61,7 +61,7 @@ func _run() -> void:
 	check(screen.view.get_script().resource_path.ends_with("combat_mvp_view.gd"), "MVP uses layout variant with shared combat controller")
 	check(not screen.view.header_view.get_node("TimelineButton").visible, "MVP header hides timeline")
 	check(not screen.view.header_view.get_node("HeroName").text.is_empty(), "header identifies current hero")
-	check(screen.view.get_node("CombatBody").scene_file_path.ends_with("mvp_arena.tscn"), "MVP uses its own authored arena tree")
+	check(screen.view.has_node("CanvasHost/ReferenceCanvas") and not screen.view.has_node("CombatBody"), "MVP mounts its new authored canvas without the previous body")
 	for panel in screen.view.battlefield_view.panels.values():
 		check(panel.get_node("%ActorResources").get_index() > panel.target_button.get_index(), "resources appear below the artwork")
 	screen._choose_card("fixture-0")
@@ -81,6 +81,7 @@ func _run() -> void:
 		root.size = resolution
 		await settle()
 		check(screen.view.bottom_hud.get_global_rect().end.x <= screen.get_global_rect().end.x + 1, "right controls remain within viewport " + str(resolution))
+		print("[MVP GEOMETRY] ", resolution, " header=", screen.view.header_view.get_global_rect(), " pause=", screen.view.header_view.get_node("PauseButton").get_global_rect(), " host=", screen.view.gameplay_column.get_global_rect(), " hand=", hand.get_global_rect())
 		check(hand.order.size() == 5, "shared hand displays five preview cards")
 		var before: Rect2 = hand.get_global_rect()
 		screen._toggle_character_sidebar()
@@ -93,6 +94,15 @@ func _run() -> void:
 			for argument in OS.get_cmdline_user_args():
 				if argument.begins_with("--lab-output="):
 					root.get_texture().get_image().save_png(argument.trim_prefix("--lab-output=").path_join("mvp-%sx%s.png" % [resolution.x,resolution.y]))
+					if resolution == Vector2i(1920,1080):
+						var original_models: Array = hand.ordered_cards().map(func(card): return card.model.duplicate(true))
+						for count in [0,2]:
+							hand.sync_models(original_models.slice(0,count), "visual-%s" % count)
+							await settle()
+							await RenderingServer.frame_post_draw
+							root.get_texture().get_image().save_png(argument.trim_prefix("--lab-output=").path_join("mvp-%s-cards.png" % count))
+						hand.sync_models(original_models, "visual-restore")
+						await settle()
 	router.queue_free()
 	await process_frame
 	quit(1 if failures else 0)

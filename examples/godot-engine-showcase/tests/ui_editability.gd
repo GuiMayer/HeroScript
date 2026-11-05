@@ -7,10 +7,10 @@ func check(ok: bool, message: String) -> void:
 func run() -> void:
 	for path in ["combat_view", "combat_mvp_view"]:
 		var view = load("res://scenes/ui/components/" + path + ".tscn").instantiate()
-		var dock: Node = view.get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls")
+		var dock: Node = view.get_node(view.turn_controls_path)
 		check(dock.has_node("HandTools") and dock.has_node("PileControls") and dock.has_node("RightPileControls"), path + ": fixed controls are authored before setup")
 		check(view.has_node("FloatingCombatHUD/FloatingHUDHost/CombatAttributesDrawer"), path + ": reading overlay is authored in its final layer")
-		var hand = view.get_node("CombatBody/CombatGameplay/CombatBottomHUD/HandSection/CardHandView")
+		var hand = view.get_node(view.hand_section_path).get_node("CardHandView")
 		check(hand.get_node(hand.toolbar_path) == dock.get_node("HandTools"), path + ": hand tools use an explicit editable path")
 		view.free()
 	var standalone_hand = load("res://scenes/ui/components/card_hand.tscn").instantiate()

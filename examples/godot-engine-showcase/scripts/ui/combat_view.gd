@@ -13,6 +13,15 @@ var scenery
 @export_file("*.json") var preview_document := "res://data/labs/ui_editor_preview.json"
 @export var composition_scene: PackedScene = preload("res://scenes/ui/combat_composition.tscn")
 @export var layout_profile: Resource = preload("res://data/themes/bottom_preview.tres")
+@export_group("Scene bindings")
+@export_node_path("Control") var header_path := NodePath("CombatHeader")
+@export_node_path("Control") var hand_host_path := NodePath("CombatBody/CombatGameplay/CombatBottomHUD")
+@export_node_path("VBoxContainer") var hand_section_path := NodePath("CombatBody/CombatGameplay/CombatBottomHUD/HandSection")
+@export_node_path("Control") var turn_controls_path := NodePath("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls")
+@export_node_path("Control") var primary_piles_path := NodePath("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/PileControls")
+@export_node_path("Control") var secondary_piles_path := NodePath("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/RightPileControls")
+@export_node_path("Control") var battlefield_path := NodePath("CombatBody/CombatGameplay/Battlefield")
+@export_group("")
 var _pending_composition: Dictionary = {}
 var _feedback_column: Control
 var _interaction: Dictionary = {}
@@ -55,7 +64,7 @@ var selection_actions: HBoxContainer
 var animate_card_entry := true
 var render_epoch := 0
 var gameplay_column: Control
-var bottom_hud: HBoxContainer
+var bottom_hud: Control
 var battlefield_actors: ScrollContainer
 var floating_hud
 var candidate_panel: PanelContainer
@@ -91,7 +100,7 @@ func _refresh_structure() -> void:
 
 func _ensure_bottom_hud() -> void:
 	if is_instance_valid(bottom_hud): return
-	bottom_hud = gameplay_column.get_node("CombatBottomHUD")
+	bottom_hud = get_node(hand_host_path)
 	bottom_hud.minimum_size_changed.connect(_queue_gameplay_layout)
 
 
@@ -149,12 +158,12 @@ func _layout_gameplay() -> void:
 
 func _build_header() -> void:
 	if not is_instance_valid(header_view):
-		header_view = get_node("CombatHeader")
+		header_view = get_node(header_path)
 		header_view.name = "CombatHeader"
 		header_view.timeline_requested.connect(func(): intent_requested.emit("timeline", []))
 		header_view.tools_requested.connect(_open_zone_tools)
 		header_view.pause_requested.connect(func(): intent_requested.emit("pause", []))
-		move_child(header_view, 0)
+		header_view.get_parent().move_child(header_view, 0)
 		if is_instance_valid(header_view.tool_button): action_buttons.append(header_view.tool_button)
 	var row = header_view
 	row.visual_context = visual_context
@@ -170,7 +179,7 @@ func _build_header() -> void:
 
 func _build_battlefield() -> void:
 	if not is_instance_valid(battlefield_view):
-		battlefield_view = gameplay_column.get_node("Battlefield")
+		battlefield_view = get_node(battlefield_path)
 		battlefield_view.target_selected.connect(_select_target)
 		battlefield_view.target_previewed.connect(_show_target_preview)
 		battlefield_view.preview_left.connect(func(): if not selected_card.is_empty(): _show_preview(selected_card))
@@ -192,7 +201,7 @@ func _build_battlefield() -> void:
 
 func _build_hand() -> void:
 	if not is_instance_valid(hand_section):
-		hand_section = bottom_hud.get_node("HandSection")
+		hand_section = get_node(hand_section_path)
 		hint_label = hand_section.get_node("Hint")
 	if not is_instance_valid(hand):
 		hand = hand_section.get_node("CardHandView"); hand.mount(visual_context)
@@ -212,10 +221,10 @@ func _build_hand() -> void:
 		hand.reorder_drop_filter = _hand_drop_allowed
 		hand.visual_order_changed.connect(func(_ids): intent_requested.emit("_cancel_selection", []))
 	if not is_instance_valid(pile_controls):
-		pile_controls = get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/PileControls")
+		pile_controls = get_node(primary_piles_path)
 		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	if not is_instance_valid(right_pile_controls):
-		right_pile_controls = get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/RightPileControls")
+		right_pile_controls = get_node(secondary_piles_path)
 		right_pile_controls.name = "RightPileControls"
 		right_pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	var zones: Array = zone_presenter.auxiliary_zones()
@@ -248,9 +257,9 @@ func _build_footer() -> void:
 	if _footer_bound and key == _turn_key: return
 	_turn_key = key.duplicate(true)
 	if not _footer_bound:
-		turn_view = bottom_hud.get_node("TurnControls")
+		turn_view = get_node(turn_controls_path)
 		turn_view.alignment = BoxContainer.ALIGNMENT_END
-		_feedback_column = get_node("CombatBody/CombatGameplay/CombatBottomHUD/TurnControls/ActionPreviewView")
+		_feedback_column = turn_view.get_node("ActionPreviewView")
 		_feedback_column.visual_context = visual_context
 		_feedback_column.mount(visual_context.translator.text("Select a card, then choose a highlighted target."))
 		_feedback_column.hide()
@@ -635,6 +644,12 @@ func pile_buttons() -> Array[Button]:
 		if button is Button: result.append(button)
 	return result
 
+func _bind_composition() -> Control:
+	var body: Control = get_node("CombatBody")
+	gameplay_column = body.get_node("CombatGameplay")
+	gameplay_column.resized.connect(_queue_gameplay_layout)
+	return body
+
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
 	mount(context)
 	theme = context.theme
@@ -657,9 +672,7 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 		return
 	feedback = get_node("CombatFeedback"); feedback.mount(visual_context)
 	_build_header()
-	var body: HBoxContainer = get_node("CombatBody")
-	gameplay_column = body.get_node("CombatGameplay")
-	gameplay_column.resized.connect(_queue_gameplay_layout)
+	var body: Control = _bind_composition()
 	_ensure_bottom_hud()
 	_build_battlefield()
 	_build_hand()
@@ -669,7 +682,7 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 	visual_context.styles.apply_view_preferences(self)
 	_update_controls()
 	_queue_gameplay_layout()
-	if body.scene_file_path != composition_scene.resource_path:
+	if body != null and composition_scene != null and body.scene_file_path != composition_scene.resource_path:
 		replace_composition.call_deferred(composition_scene, layout_profile)
 
 func apply_interaction(state) -> void:
@@ -732,7 +745,7 @@ func show_editor_preview() -> void:
 	var context = ContextType.new()
 	var projection = Presenter.new(data.run, data.combat, [], context.translator, data.presentation, data.zones)
 	var zones = CardZonePresenter.new(data.zones, context.translator)
-	get_node("CombatBody/CombatGameplay/Battlefield").embedded_artwork = true
+	get_node(battlefield_path).embedded_artwork = true
 	apply_projection(data.presentation, projection, zones, {"run": data.run, "combat": data.combat, "actions": [], "zones": data.zones, "input_actor": "hero", "scope": "editor-preview", "setting": {}, "setting_id": "prototype-test"}, context)
 
 func _on_sidebar_open_changed(value: bool) -> void:
