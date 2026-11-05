@@ -522,6 +522,8 @@ func _notification(what: int) -> void:
 
 func _apply_emphasis() -> void:
 	if not is_inside_tree() or _layout.is_empty() or _syncing: return
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	var hover_seconds: float = policy.duration("hover", true)
 	var active: String = interaction.active_id()
 	for i in order.size():
 		var id := order[i]
@@ -536,10 +538,13 @@ func _apply_emphasis() -> void:
 		if _emphasis.has(id) and _emphasis[id].position == target and is_equal_approx(_emphasis[id].rotation, angle): continue
 		if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 		var tween: Tween = null
-		if duration() > 0 and is_inside_tree() and (not card.position.is_equal_approx(target) or not is_equal_approx(card.rotation, angle)):
+		if hover_seconds > 0 and is_inside_tree() and (not card.position.is_equal_approx(target) or not is_equal_approx(card.rotation, angle)):
 			tween = create_tween().set_parallel()
-			Retarget.append(tween, card, "position", target, duration())
-			Retarget.append(tween, card, "rotation", angle, duration())
+			# Start at the displayed pose, including an interrupted hover. Hover
+			# reverses immediately rather than carrying the layout's velocity.
+			Retarget.reset(card)
+			tween.tween_property(card, "position", target, hover_seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tween.tween_property(card, "rotation", angle, hover_seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		else: card.position = target; card.rotation = angle; Retarget.reset(card)
 		_emphasis[id] = {"position": target, "rotation": angle, "tween": tween}
 	_update_reading_proxy()
@@ -574,7 +579,9 @@ func _update_reading_proxy() -> void:
 	_reading_proxy.size = card.size
 	_reading_proxy.global_position = Vector2(clampf(resting.x, clip.position.x + visual_style.padding,
 		maxf(clip.position.x + visual_style.padding, clip.end.x - card.size.x - visual_style.padding)),
-		resting.y - visual_style.lift * visual_context.hand_emphasis)
+		card.global_position.y)
+	_reading_proxy.pivot_offset = card.pivot_offset
+	_reading_proxy.rotation = card.rotation
 	_reading_proxy.show()
 
 func pick(local_point: Vector2, stable := true) -> String:
@@ -741,6 +748,13 @@ func _cancel_reorder_preview() -> void:
 	arrangement.cancel()
 	if order != arrangement.confirmed: order = arrangement.confirmed.duplicate(); request_layout()
 func _process(delta: float) -> void:
+	# The clipped-card reading copy follows the animated pose, never the final
+	# hover endpoint (which made clipped cards appear to teleport).
+	if is_instance_valid(_reading_proxy) and _reading_proxy.visible:
+		var source: CardView = _cards.get(interaction.active_id())
+		if is_instance_valid(source):
+			_reading_proxy.global_position.y = source.global_position.y
+			_reading_proxy.rotation = source.rotation
 	_check_reorder_settled()
 	if not interaction.dragging or not is_instance_valid(_ghost): return
 	_auto_scroll_reorder(delta)

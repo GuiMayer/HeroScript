@@ -1,7 +1,7 @@
 extends RefCounted
 ## Visual JSON captured at a presentation boundary, independent of rule content.
 const PATH := "res://data/motion_manifest.json"
-const DEFAULTS := {"prepare": .075, "retain": .5, "draw": 1., "discard": 1., "staged_discard": .5, "create": 1., "destroy": 1., "exile_burn": .5, "stagger": 0., "batch_span": 0., "card_flight": .5, "card_entry": 1., "impact": 1., "float": 1., "zone_transfer": 1., "hand_transition": .11, "hover": .085, "watchdog": 12., "max_floats": 24, "max_transfers": 12}
+const DEFAULTS := {"prepare": .075, "retain": .5, "draw": 1., "discard": 1., "staged_discard": .5, "create": 1., "destroy": 1., "exile_burn": .5, "stagger": 0., "batch_span": 0., "card_flight": .5, "card_entry": 1., "impact": 1., "float": 1., "zone_transfer": 1., "hand_transition": .11, "hover": .18, "watchdog": 12., "max_floats": 24, "max_transfers": 12}
 const CURVES := {"linear": Tween.TRANS_LINEAR, "cubic": Tween.TRANS_CUBIC, "sine": Tween.TRANS_SINE, "quad": Tween.TRANS_QUAD}
 const EASES := {"in": Tween.EASE_IN, "out": Tween.EASE_OUT, "in_out": Tween.EASE_IN_OUT}
 const DEFAULT_EASINGS := {"card_flight": {"curve": "cubic", "ease": "out"}, "retain": {"curve": "cubic", "ease": "in_out"}, "zone_transfer": {"curve": "cubic", "ease": "in_out"}, "hover": {"curve": "cubic", "ease": "out"}, "card_entry": {"curve": "cubic", "ease": "out"}}
