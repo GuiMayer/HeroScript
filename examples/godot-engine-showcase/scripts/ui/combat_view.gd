@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/screen_view.gd"
 
 signal intent_requested(action: String, arguments: Array)
@@ -9,6 +10,7 @@ var zone_presenter
 var presentation: Dictionary
 var scenery_model: Dictionary = {}
 var scenery
+@export_file("*.json") var preview_document := "res://data/labs/ui_editor_preview.json"
 @export var composition_scene: PackedScene = preload("res://scenes/ui/combat_composition.tscn")
 @export var layout_profile: Resource = preload("res://data/themes/bottom_preview.tres")
 var _pending_composition: Dictionary = {}
@@ -69,6 +71,7 @@ var _footer_bound := false
 static func create():
 	return (load("res://scenes/ui/components/combat_view.tscn") as PackedScene).instantiate()
 func _ready() -> void:
+	_preview_if_isolated.call_deferred()
 	visibility_changed.connect(func():
 		if is_instance_valid(floating_hud): floating_hud.visible = is_visible_in_tree())
 	if is_instance_valid(floating_hud): floating_hud.visible = is_visible_in_tree()
@@ -719,3 +722,14 @@ func contains_battlefield_point(point: Vector2) -> bool:
 
 func dispose() -> void:
 	if feedback: feedback.dispose()
+
+func _preview_if_isolated() -> void:
+	if presenter == null and (Engine.is_editor_hint() or get_tree().current_scene == self): show_editor_preview()
+func show_editor_preview() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string(preview_document))
+	if not data is Dictionary: return
+	var context = ContextType.new()
+	var projection = Presenter.new(data.run, data.combat, [], context.translator, data.presentation, data.zones)
+	var zones = CardZonePresenter.new(data.zones, context.translator)
+	get_node("CombatBody/CombatGameplay/Battlefield").embedded_artwork = true
+	apply_projection(data.presentation, projection, zones, {"run": data.run, "combat": data.combat, "actions": [], "zones": data.zones, "input_actor": "hero", "scope": "editor-preview", "setting": {}, "setting_id": "prototype-test"}, context)

@@ -78,6 +78,7 @@ var _layout_card_style_key := ""
 var _inspection_anchor := ""
 var _hover_point := Vector2.INF
 var overview_enabled := true
+@export_file("*.json") var preview_document := "res://data/labs/ui_editor_preview.json"
 @export var toolbar_path := NodePath("Toolbar")
 var toolbar_external := false
 
@@ -114,6 +115,7 @@ func mount(context) -> void:
 			button.add_theme_stylebox_override(state, box)
 	if is_inside_tree() and not context.changed.is_connected(_preferences_changed): context.changed.connect(_preferences_changed)
 func _ready() -> void:
+	_preview_if_isolated.call_deferred()
 	mount(visual_context)
 	scroll.resized.connect(request_layout)
 	scroll.get_h_scroll_bar().value_changed.connect(func(_value): _update_counter())
@@ -877,3 +879,10 @@ func dispose() -> void:
 	_emphasis.clear()
 
 func _exit_tree() -> void: dispose()
+
+func _preview_if_isolated() -> void:
+	if order.is_empty() and (Engine.is_editor_hint() or get_tree().current_scene == self): show_editor_preview()
+func show_editor_preview() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string(preview_document))
+	if not data is Dictionary: return
+	sync_models(data.get("cards", []), "editor-preview", "No cards")

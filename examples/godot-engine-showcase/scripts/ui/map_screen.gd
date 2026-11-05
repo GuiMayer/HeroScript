@@ -104,3 +104,9 @@ func _auto_advance(ticket: Array) -> void:
 	if choice.is_empty(): choice = controller.forced_advance()
 	if choice.is_empty(): return
 	_intent("command", [controller.option_reference(choice)])
+
+func _ready() -> void:
+	_preview_if_isolated.call_deferred()
+func _preview_if_isolated() -> void:
+	if controller == null and get_tree().current_scene == self:
+		get_node("MapView").show_editor_preview()

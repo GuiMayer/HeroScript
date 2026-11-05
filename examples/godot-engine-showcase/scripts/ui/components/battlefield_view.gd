@@ -8,6 +8,7 @@ signal target_previewed(actor_id: String)
 signal preview_left
 signal layout_requested
 @export var actor_scene: PackedScene = preload("res://scenes/ui/components/actor_panel.tscn")
+@export var embedded_artwork := false
 var actor_scroll: ScrollContainer
 var targets := {}
 var panels := {}
@@ -32,7 +33,7 @@ func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation:
 	panel.visual_context = visual_context
 	var id := str(actor.get("instanceId", ""))
 	panel.name = "ActorView_" + id.validate_node_name()
-	panel.setup(actor, hostile, presentation, intent, false, true)
+	panel.setup(actor, hostile, presentation, intent, false, not embedded_artwork)
 	panel.minimum_size_changed.connect(func(): layout_requested.emit())
 	panel.target_selected.connect(target_selected.emit)
 	panel.target_button.mouse_entered.connect(func(): target_previewed.emit(id))

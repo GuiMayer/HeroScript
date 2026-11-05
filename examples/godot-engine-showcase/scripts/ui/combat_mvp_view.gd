@@ -1,3 +1,4 @@
+@tool
 extends "res://scripts/ui/combat_view.gd"
 ## Dedicated MVP composition; the shared controller retains all rule authority.
 @export var combat_theme: Resource = preload("res://data/themes/mvp_combat_theme.tres")

@@ -1,0 +1,293 @@
+{
+  "run": {
+    "settingId": "prototype-test",
+    "runId": "editor-preview",
+    "playerEntityId": "hero",
+    "sequence": 0,
+    "runDefinitionId": "editor_preview",
+    "currentNodeId": "entry",
+    "map": {
+      "nodes": [
+        {
+          "nodeId": "entry",
+          "nextNodeIds": [
+            "forge",
+            "battle"
+          ],
+          "activity": {
+            "type": "Encounter"
+          }
+        },
+        {
+          "nodeId": "forge",
+          "nextNodeIds": [
+            "boss"
+          ],
+          "activity": {
+            "type": "CardUpgrade"
+          }
+        },
+        {
+          "nodeId": "battle",
+          "nextNodeIds": [
+            "boss"
+          ],
+          "activity": {
+            "type": "Encounter"
+          }
+        },
+        {
+          "nodeId": "boss",
+          "nextNodeIds": [],
+          "activity": {
+            "type": "Encounter"
+          }
+        }
+      ],
+      "resolvedNodeIds": []
+    }
+  },
+  "combat": {
+    "combatId": "editor-preview",
+    "activeActorId": "hero",
+    "actors": [
+      {
+        "instanceId": "hero",
+        "definitionId": "spire_adept",
+        "sideId": "player",
+        "resources": {
+          "health": {
+            "current": 48,
+            "minimum": 0,
+            "maximum": 72
+          },
+          "energy": {
+            "current": 3,
+            "minimum": 0,
+            "maximum": 3
+          },
+          "block": {
+            "current": 8
+          }
+        },
+        "statuses": []
+      },
+      {
+        "instanceId": "enemy",
+        "definitionId": "spire_wisp",
+        "sideId": "enemy",
+        "resources": {
+          "health": {
+            "current": 32,
+            "minimum": 0,
+            "maximum": 72
+          },
+          "energy": {
+            "current": 3,
+            "minimum": 0,
+            "maximum": 3
+          },
+          "block": {
+            "current": 8
+          }
+        },
+        "statuses": []
+      }
+    ],
+    "activation": {
+      "round": 1,
+      "activeActorId": "hero",
+      "waitingForInput": true,
+      "intents": [
+        {
+          "actorId": "enemy",
+          "actionId": "Attack"
+        }
+      ]
+    },
+    "relationships": {
+      "sameSide": "Ally",
+      "differentSides": "Enemy"
+    }
+  },
+  "cards": [
+    {
+      "cardInstanceId": "preview-0",
+      "definitionId": "basic_attack",
+      "name": "Strike",
+      "effects": [
+        "Deal 8 damage."
+      ],
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "cardInstanceId": "preview-1",
+      "definitionId": "defend",
+      "name": "Guard",
+      "effects": [
+        "Gain 8 Block."
+      ],
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "cardInstanceId": "preview-2",
+      "definitionId": "fireball",
+      "name": "Fireball",
+      "effects": [
+        "Deal 10 damage."
+      ],
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "cardInstanceId": "preview-3",
+      "definitionId": "heal",
+      "name": "Recover",
+      "effects": [
+        "Restore 6 health."
+      ],
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "cardInstanceId": "preview-4",
+      "definitionId": "arcane_bolt",
+      "name": "Arcane Bolt",
+      "effects": [
+        "Deal 7 damage."
+      ],
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    }
+  ],
+  "zones": {
+    "zones": [
+      {
+        "zoneId": "hand",
+        "allowsCardPlay": true,
+        "contentsVisible": true,
+        "cards": [
+          {
+            "cardInstanceId": "preview-0",
+            "definitionId": "basic_attack",
+            "name": "Strike",
+            "effects": [
+              "Deal 8 damage."
+            ],
+            "costs": [
+              {
+                "resourceId": "energy",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "cardInstanceId": "preview-1",
+            "definitionId": "defend",
+            "name": "Guard",
+            "effects": [
+              "Gain 8 Block."
+            ],
+            "costs": [
+              {
+                "resourceId": "energy",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "cardInstanceId": "preview-2",
+            "definitionId": "fireball",
+            "name": "Fireball",
+            "effects": [
+              "Deal 10 damage."
+            ],
+            "costs": [
+              {
+                "resourceId": "energy",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "cardInstanceId": "preview-3",
+            "definitionId": "heal",
+            "name": "Recover",
+            "effects": [
+              "Restore 6 health."
+            ],
+            "costs": [
+              {
+                "resourceId": "energy",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "cardInstanceId": "preview-4",
+            "definitionId": "arcane_bolt",
+            "name": "Arcane Bolt",
+            "effects": [
+              "Deal 7 damage."
+            ],
+            "costs": [
+              {
+                "resourceId": "energy",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "count": 5
+      },
+      {
+        "zoneId": "draw",
+        "count": 12
+      },
+      {
+        "zoneId": "discard",
+        "count": 3
+      }
+    ]
+  },
+  "presentation": {
+    "resource_order": [
+      "health",
+      "block",
+      "energy"
+    ],
+    "resources": {
+      "health": {
+        "display": "bar"
+      },
+      "block": {
+        "display": "counter"
+      },
+      "energy": {
+        "display": "counter"
+      }
+    }
+  }
+}

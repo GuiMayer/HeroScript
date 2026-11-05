@@ -3,6 +3,7 @@ extends "res://scripts/ui/screen_view.gd"
 ## Read-only map inspection and explicit semantic actions. No rule evaluation.
 signal intent_requested(action: String, arguments: Array)
 const MapLayout = preload("res://scripts/presentation/map_layout.gd")
+@export_file("*.json") var preview_document := "res://data/labs/ui_editor_preview.json"
 var route
 var _scroll: ScrollContainer
 var _inspector: VBoxContainer
@@ -31,6 +32,7 @@ var _compartments_button: Button
 static func create():
 	return (load("res://scenes/ui/components/map_view.tscn") as PackedScene).instantiate()
 func _ready() -> void:
+	_preview_if_isolated.call_deferred()
 	if visual_context == null:
 		mount(ContextType.new()); theme = visual_context.theme
 	if not is_instance_valid(route): _build()
@@ -337,3 +339,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if Engine.is_editor_hint() or not is_visible_in_tree() or not event is InputEventKey or not event.pressed or event.echo: return
 	if event.keycode == KEY_HOME:
 		cancel_gesture(); _center_current(true); get_viewport().set_input_as_handled()
+
+func _preview_if_isolated() -> void:
+	if _presenter == null and (Engine.is_editor_hint() or get_tree().current_scene == self): show_editor_preview()
+func show_editor_preview() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string(preview_document))
+	if not data is Dictionary: return
+	var context = ContextType.new()
+	var projection = preload("res://scripts/presentation/activity_presenter.gd").new(data.run, [], data.presentation, context.translator)
+	apply_projection(data.run, [], projection, context)

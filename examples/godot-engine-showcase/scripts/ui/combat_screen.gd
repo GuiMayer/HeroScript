@@ -78,6 +78,7 @@ func setup(owner, data: Dictionary) -> void:
 	_resume_presentation.call_deferred()
 
 func _ready() -> void:
+	_preview_if_isolated.call_deferred()
 	_resume_presentation()
 func _resume_presentation() -> void:
 	# setup() normally runs before host.add_child(). Presentation requires live
@@ -603,3 +604,8 @@ func _render_inline_selection() -> void:
 			button.text = visual_context.translator.content_name(str(option))
 			button.pressed.connect(func(): inline_selection.cost(str(option)))
 			view.choices.add_child(button)
+
+func _preview_if_isolated() -> void:
+	if controller == null and get_tree().current_scene == self:
+		view = get_node("CombatView")
+		view.show_editor_preview()
