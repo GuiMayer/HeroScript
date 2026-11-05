@@ -1,3 +1,4 @@
+@tool
 class_name CombatFeedback
 extends Node
 ## Consumes frames from the existing cursor. Never owns a second playback queue.

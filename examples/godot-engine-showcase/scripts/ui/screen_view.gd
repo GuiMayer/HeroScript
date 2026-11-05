@@ -1,3 +1,4 @@
+@tool
 extends VBoxContainer
 ## Small view contract. Context contains only visual services, never a session.
 const ContextType = preload("res://scripts/ui/visual_context.gd")

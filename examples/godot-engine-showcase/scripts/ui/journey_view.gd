@@ -90,7 +90,7 @@ func _update_header() -> void:
 func _badge(id: String,text: String,color: Color,index: int,live: Array,hint := "",font_size := 0) -> void:
 	var label = _badges.get(id)
 	if not is_instance_valid(label):
-		label = preload("res://scenes/ui/components/activity_badge.tscn").instantiate()
+		label = Label.new()
 		label.name = "Badge_"+id.validate_node_name(); _header.get_node("Badges").add_child(label); _badges[id] = label
 	label.text = text; label.tooltip_text = hint; label.add_theme_color_override("font_color",color)
 	if font_size > 0: label.add_theme_font_size_override("font_size",font_size)

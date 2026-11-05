@@ -3,7 +3,6 @@ class_name CardDetailsView
 extends PanelContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
-const LineScene = preload("res://scenes/ui/components/card_detail_line.tscn")
 const RuleScene = preload("res://scenes/ui/components/card_rule_explanation.tscn")
 enum DisplayMode { INSPECTION, TOOLTIP }
 var visual_context: ContextType
@@ -59,7 +58,10 @@ func _detach(node: Node) -> void:
 func _clear(host: Node) -> void:
 	for child in host.get_children(): host.remove_child(child); child.queue_free()
 func _line(text: String, size := 14) -> Label:
-	var label: Label = LineScene.instantiate()
+	var label := Label.new()
+	label.theme_type_variation = &"CardDetailLine"
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.text = text; label.add_theme_font_size_override("font_size", size)
 	return label
 func _lines(host: Node, lines: Array) -> void:

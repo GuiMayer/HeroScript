@@ -4,7 +4,6 @@ extends PanelContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 const ResourceScene = preload("res://scenes/ui/components/resource_view.tscn")
 const BadgeScene = preload("res://scenes/ui/components/status_badge.tscn")
-const CounterScene = preload("res://scenes/ui/components/resource_counter.tscn")
 signal target_selected(actor_id: String)
 var visual_context: ContextType = ContextType.new()
 var portrait_view: Control
@@ -206,7 +205,9 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 			var key := "ResourceCounter_" + str(id).validate_node_name(); counters.append(key)
 			var counter = _counters.get_node_or_null(NodePath(key))
 			if counter == null:
-				counter = CounterScene.instantiate(); counter.name = key; _counters.add_child(counter)
+				counter = Label.new(); counter.theme_type_variation = &"ResourceCounter"
+				counter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				counter.name = key; _counters.add_child(counter)
 			counter.text = "%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)]
 			counter.add_theme_color_override("font_color", Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown")))
 			counter.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]

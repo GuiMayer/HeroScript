@@ -8,6 +8,7 @@ var visual_context: ContextType = ContextType.new()
 var model: Dictionary = {}
 
 @export var preview_status: Dictionary = {"statusId": "burn", "stacks": 4, "duration": 2}
+@export var icon_overrides: Dictionary[String, Texture2D] = {}
 var icon_rect: TextureRect
 var glyph_label: Label
 var stack_label: Label
@@ -48,6 +49,7 @@ func _apply_model() -> void:
 	var stacks: float = float(model.get("stacks", 1))
 	var duration: int = int(model.get("duration", 0))
 	var tone := _status_tone(status_id)
+	if icon_overrides.get(status_id) != null: tone.icon = icon_overrides[status_id]
 
 	# Preserve the scene's editable border widths, padding and corner radii.
 	_panel_style.bg_color = tone.bg

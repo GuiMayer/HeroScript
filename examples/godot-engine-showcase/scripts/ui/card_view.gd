@@ -132,7 +132,9 @@ func _clear_items(parent: Node) -> void:
 		parent.remove_child(child); child.queue_free()
 
 func _inline(value: String, point_size: int) -> Label:
-	var label = (load("res://scenes/ui/components/card_inline_label.tscn") as PackedScene).instantiate()
+	var label := Label.new()
+	label.theme_type_variation = &"CardInline"
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.text = value; label.add_theme_font_size_override("font_size", point_size)
 	label.add_theme_color_override("font_color", visual_context.styles.INK)
 	return label

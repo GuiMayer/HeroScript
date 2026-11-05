@@ -378,7 +378,8 @@ func _intent_for(actor_id: String) -> String:
 
 
 func _button(text: String, action: Callable, width := 0) -> Button:
-	var value: Button = preload("res://scenes/ui/components/combat_button.tscn").instantiate()
+	var value := Button.new()
+	value.theme_type_variation = &"SecondaryAction"
 	value.text = text; value.custom_minimum_size.x = width
 	value.custom_minimum_size.y = layout_profile.choice_button_height
 	value.pressed.connect(action)

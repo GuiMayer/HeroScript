@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ## Visual geometry and camera timing; availability comes exclusively from engine choices.
 @export var node_size := Vector2(112, 104)

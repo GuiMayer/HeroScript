@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ## Geometry only. No card limits, input rules or combat state.
 @export var layout_id := "bottom_preview"

@@ -1,3 +1,4 @@
+@tool
 extends Control
 ## One face-aware resolver for hover, click and tooltip; no gameplay authority.
 var hand

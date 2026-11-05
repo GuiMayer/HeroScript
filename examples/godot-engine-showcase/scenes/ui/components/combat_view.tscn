@@ -5,7 +5,6 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/card_zone_controls.tscn" id="Piles"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/action_preview.tscn" id="Preview"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_candidates.tscn" id="Candidates"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/combat_button.tscn" id="Button"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat/combat_attributes_drawer.tscn" id="Attributes"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_hand.tscn" id="Hand"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/turn_controls.tscn" id="Turn"]
@@ -51,7 +50,8 @@ layout_mode = 2
 
 [node name="FloatingCombatHUD" parent="." instance=ExtResource("Floating")]
 [node name="CandidatePanel" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Candidates")]
-[node name="Reconnect" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Button")]
+[node name="Reconnect" type="Button" parent="FloatingCombatHUD/FloatingHUDHost"]
+theme_type_variation = &"SecondaryAction"
 custom_minimum_size = Vector2(130,44)
 text = "RECONNECT"
 [node name="CombatAttributesDrawer" parent="FloatingCombatHUD/FloatingHUDHost" instance=ExtResource("Attributes")]

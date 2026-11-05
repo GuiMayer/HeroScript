@@ -128,7 +128,10 @@ func _attribute_sources() -> void:
 		group.get_node("Title").add_theme_color_override("font_color", shell.visual_context.styles.INK)
 		group.get_node("Values").text = I18n.text("Base: %s → Current: %s") % [I18n.number(stat.baseValue), I18n.number(stat.effectiveValue)]
 		for trace in stat.get("contributions", []):
-			var line = preload("res://scenes/ui/components/loadout/attribute_source_trace.tscn").instantiate()
+			var line := Label.new()
+			line.theme_type_variation = &"AttributeSourceTrace"
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			line.text = I18n.text(str(trace.get("sourceKind", "Source"))) + " · " + I18n.text("Input: %s → Output: %s") % [I18n.number(trace.get("input", 0)), I18n.number(trace.get("output", 0))] + (" · " + I18n.text("Not applied") if not trace.get("applied", true) else "")
 			group.get_node("Contributions").add_child(line)
 		group.get_node("Contributions").visible = group.get_node("Contributions").get_child_count() > 0

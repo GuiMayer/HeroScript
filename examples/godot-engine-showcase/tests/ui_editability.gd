@@ -16,4 +16,10 @@ func run() -> void:
 	var actor = load("res://scenes/ui/components/battlefield_actor.tscn").instantiate()
 	check(actor.authored_battlefield_layout and actor.get_node("%ActorTarget").get_index() < actor.get_node("%ActorResources").get_index(), "actor node order is defined by the scene")
 	actor.free()
+	var badge = load("res://scenes/ui/components/status_badge.tscn").instantiate()
+	var icon = load("res://assets/ivory/flame.svg")
+	badge.icon_overrides["custom_status"] = icon
+	badge.apply_status({"statusId": "custom_status", "stacks": 2})
+	check(badge.icon_rect.visible and badge.icon_rect.texture == icon, "new status icons can be assigned through the scene Inspector")
+	badge.free()
 	quit(1 if failures else 0)

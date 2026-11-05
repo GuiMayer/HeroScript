@@ -1,3 +1,4 @@
+@tool
 class_name FloatingCombatHUD
 extends CanvasLayer
 ## Non-modal reading/context overlays. Independent of battlefield layout and card z.

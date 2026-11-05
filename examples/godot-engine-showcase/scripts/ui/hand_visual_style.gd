@@ -1,3 +1,4 @@
+@tool
 class_name HandVisualStyle
 extends Resource
 ## Presentation only; never a pile capacity or a rule of gameplay.

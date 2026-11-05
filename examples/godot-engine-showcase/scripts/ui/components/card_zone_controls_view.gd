@@ -1,3 +1,4 @@
+@tool
 class_name CardZoneControlsView
 extends ScrollContainer
 signal zone_requested(address: Dictionary)

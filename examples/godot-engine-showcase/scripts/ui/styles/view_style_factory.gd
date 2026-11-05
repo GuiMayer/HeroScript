@@ -101,11 +101,14 @@ func build(high_contrast := false) -> Theme:
 		result.set_type_variation(variant, "Button")
 	result.set_stylebox("normal", "PrimaryAction", box(color("surface.primary_action"), profile.corner_radius, GOLD, 2))
 	result.set_color("font_color", "DangerAction", BLOOD)
-	for variant in ["ScreenTitle", "SectionTitle", "Caption"]:
+	for variant in ["ScreenTitle", "SectionTitle", "Caption", "ResourceCounter", "CardInline", "CardDetailLine", "AttributeSourceTrace"]:
 		result.set_type_variation(variant, "Label")
 	for variant in ["ScreenTitle", "SectionTitle"]:
 		if profile.title_font: result.set_font("font", variant, profile.title_font)
 	result.set_color("font_color", "Caption", MUTED)
+	for entry in [["ResourceCounter", 13], ["CardInline", 11], ["CardDetailLine", 14], ["AttributeSourceTrace", 14]]:
+		result.set_font_size("font_size", entry[0], roundi(float(entry[1]) * text_scale))
+		result.set_color("font_color", entry[0], INK)
 	if profile.printed_surfaces: _printed_controls(result, high_contrast)
 	return result
 
