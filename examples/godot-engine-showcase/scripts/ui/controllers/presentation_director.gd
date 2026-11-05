@@ -52,7 +52,8 @@ func _process(delta: float) -> void:
 	if handle != null:
 		handle.elapsed += delta
 		# Passive readers have no blocking visual executor; no artificial delay.
-		if not handle.claimed: handle.finish()
+		if handle.lost_owned_motion(): handle.finish("fallback")
+		elif not handle.claimed: handle.finish()
 		elif handle.elapsed > watchdog_seconds:
 			push_warning("Presentation watchdog settled a stalled visual handle")
 			handle.finish("fallback")

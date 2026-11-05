@@ -59,6 +59,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="Back" type="Button" parent="Header" unique_id=347616356]
+metadata/initial_focus = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
@@ -126,21 +127,24 @@ layout_mode = 2
 bbcode_enabled = true
 fit_content = true
 
-[node name="WatchReplayButton" type="Button" parent="Body/DetailsPanel/Information" unique_id=120461380]
+[node name="Actions" type="HFlowContainer" parent="Body/DetailsPanel/Information"]
+layout_mode = 2
+
+[node name="WatchReplayButton" type="Button" parent="Body/DetailsPanel/Information/Actions" unique_id=120461380]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
 disabled = true
 text = "WATCH REPLAY"
 
-[node name="VerifyButton" type="Button" parent="Body/DetailsPanel/Information" unique_id=328834194]
+[node name="VerifyButton" type="Button" parent="Body/DetailsPanel/Information/Actions" unique_id=328834194]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
 disabled = true
 text = "VERIFY INTEGRITY"
 
-[node name="ContinueButton" type="Button" parent="Body/DetailsPanel/Information" unique_id=1426480885]
+[node name="ContinueButton" type="Button" parent="Body/DetailsPanel/Information/Actions" unique_id=1426480885]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"

@@ -90,6 +90,8 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 			_camera_restore_from = ""
 		_center_current.call_deferred(progressed)
 func _build() -> void:
+	get_node("Header/CenterCurrent").text = visual_context.translator.text("Center")
+	get_node("Header/CenterCurrent").pressed.connect(func(): cancel_gesture(); _center_current(true))
 	_header = get_node("Header/MapTitle"); _resource_badges = get_node("MapResources")
 	_compartments_button = get_node("Header/UnifiedLoadoutButton")
 	_compartments_button.text = visual_context.translator.text("LOADOUT")
@@ -109,7 +111,7 @@ func _build() -> void:
 	_inspector = _inspector_panel.get_node("Margin/Stack/Scroll/Body")
 	_resume_button = _inspector_panel.get_node("Margin/Stack/MapResumeRun")
 	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))
-	_inspector.get_node("Actions/MapResumeDialogue").pressed.connect(func(): intent_requested.emit("resume_dialogue", []))
+	get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions/MapResumeDialogue").pressed.connect(func(): intent_requested.emit("resume_dialogue", []))
 	_inspector_toggle = _body.get_node("MapInspectorToggle")
 	_inspector_toggle.pressed.connect(func(): _set_inspector_open(not _inspector_open))
 	_body.resized.connect(_layout_inspector); _layout_inspector.call_deferred()
@@ -150,7 +152,7 @@ func _inspect(id: String) -> void:
 	var viewport := get_viewport() if is_inside_tree() else null
 	var old_focus: Control = viewport.gui_get_focus_owner() if viewport != null else null
 	var focus_name := str(old_focus.name) if old_focus != null and _inspector.is_ancestor_of(old_focus) else ""
-	var actions = _inspector.get_node("Actions")
+	var actions = get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions")
 	for child in actions.get_children():
 		if child.has_meta("map_action"): actions.remove_child(child); child.queue_free()
 	var information = _inspector.get_node("Information")
@@ -196,7 +198,7 @@ func _action(label: String, choice: Dictionary) -> void:
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.disabled = _locked
 	button.pressed.connect(func(): intent_requested.emit("command", [reference]))
-	var actions = _inspector.get_node("Actions")
+	var actions = get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions")
 	actions.add_child(button); actions.move_child(button, _action_buttons.size()); _action_buttons.append(button)
 func set_read_only(value: bool) -> void:
 	_locked = value
@@ -330,3 +332,8 @@ func dispose() -> void:
 	_camera_restore_from = ""
 	_stop_camera_motion()
 	cancel_gesture()
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree() or not event is InputEventKey or not event.pressed or event.echo: return
+	if event.keycode == KEY_HOME:
+		cancel_gesture(); _center_current(true); get_viewport().set_input_as_handled()

@@ -32,7 +32,7 @@ autowrap_mode = 3
 metadata/font_role = "caption"
 
 [node name="Verify" type="Button" parent="Row"]
-custom_minimum_size = Vector2(185, 48)
+custom_minimum_size = Vector2(110, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
 text = "VERIFY REPLAY"

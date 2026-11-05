@@ -53,9 +53,14 @@ content_margin_top = 6.0
 content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 0)
-border_color = Color(1, 1, 1, 0)
+border_color = Color(0.65, 0.2, 0.12, 1)
 metadata/background_role = ""
-metadata/border_role = ""
+metadata/border_role = "accent.primary"
+
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l3ytd"]
 content_margin_left = 10.0
@@ -103,9 +108,14 @@ content_margin_top = 6.0
 content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 0)
-border_color = Color(1, 1, 1, 0)
+border_color = Color(0.65, 0.2, 0.12, 1)
 metadata/background_role = ""
-metadata/border_role = ""
+metadata/border_role = "accent.primary"
+
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aakju"]
 content_margin_left = 10.0
@@ -153,9 +163,14 @@ content_margin_top = 6.0
 content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 0)
-border_color = Color(1, 1, 1, 0)
+border_color = Color(0.65, 0.2, 0.12, 1)
 metadata/background_role = ""
-metadata/border_role = ""
+metadata/border_role = "accent.primary"
+
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rkp38"]
 content_margin_left = 10.0
@@ -203,9 +218,14 @@ content_margin_top = 6.0
 content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 0)
-border_color = Color(1, 1, 1, 0)
+border_color = Color(0.65, 0.2, 0.12, 1)
 metadata/background_role = ""
-metadata/border_role = ""
+metadata/border_role = "accent.primary"
+
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oemfj"]
 content_margin_left = 10.0
@@ -253,11 +273,16 @@ content_margin_top = 6.0
 content_margin_right = 10.0
 content_margin_bottom = 6.0
 bg_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
-border_color = Color(1, 1, 1, 0)
+border_color = Color(0.65, 0.2, 0.12, 1)
 metadata/background_role = "accent.primary"
-metadata/border_role = ""
+metadata/border_role = "accent.primary"
 
-[node name="TurnControls" type="HBoxContainer"]
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+
+[node name="TurnControls" type="VBoxContainer"]
 theme_override_constants/separation = 8
 script = ExtResource("1_laa7j")
 

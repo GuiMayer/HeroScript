@@ -35,12 +35,12 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		mount(ContextType.new()); theme = visual_context.theme
 func _bind_nodes() -> void:
-	continue_button = get_node("Body/DetailsPanel/Information/ContinueButton")
+	continue_button = get_node("Body/DetailsPanel/Information/Actions/ContinueButton")
 	details = get_node("Body/DetailsPanel/Information/RunHistoryDetails")
 	list = get_node("Body/ArchivePanel/Archive/RunHistoryList")
-	replay_button = get_node("Body/DetailsPanel/Information/WatchReplayButton")
+	replay_button = get_node("Body/DetailsPanel/Information/Actions/WatchReplayButton")
 	unlock_summary = get_node("ProfileUnlockSummary")
-	verify_button = get_node("Body/DetailsPanel/Information/VerifyButton")
+	verify_button = get_node("Body/DetailsPanel/Information/Actions/VerifyButton")
 func setup(owner) -> void:
 	screen_context = ScreenContext.ensure(owner)
 	if _router == null: _router = owner
@@ -49,9 +49,9 @@ func setup(owner) -> void:
 	theme = visual_context.theme
 	get_node("Header/Back").text = I18n.text("BACK")
 	get_node("Header/Title").text = I18n.text("JOURNEY HISTORY")
-	get_node("Body/DetailsPanel/Information/ContinueButton").text = I18n.text("CONTINUE JOURNEY")
-	get_node("Body/DetailsPanel/Information/WatchReplayButton").text = I18n.text("WATCH REPLAY")
-	get_node("Body/DetailsPanel/Information/VerifyButton").text = I18n.text("VERIFY INTEGRITY")
+	get_node("Body/DetailsPanel/Information/Actions/ContinueButton").text = I18n.text("CONTINUE JOURNEY")
+	get_node("Body/DetailsPanel/Information/Actions/WatchReplayButton").text = I18n.text("WATCH REPLAY")
+	get_node("Body/DetailsPanel/Information/Actions/VerifyButton").text = I18n.text("VERIFY INTEGRITY")
 	get_node("Body/ArchivePanel/Archive/Heading").text = I18n.text("RECORDED JOURNEYS")
 	get_node("Description").text = I18n.text("Every journey is an immutable engine record. Inspect, verify or replay it without changing its outcome.")
 	get_node("SettingName").text = I18n.text(str(GameSession.selected_setting.get("displayName", GameSession.selected_setting_id)))
@@ -59,9 +59,9 @@ func setup(owner) -> void:
 		_connected = true
 		list.item_selected.connect(_select)
 		_wire_button(get_node("Header/Back"), func(): screen_context.back_to_menu())
-		_wire_button(get_node("Body/DetailsPanel/Information/WatchReplayButton"), _watch)
-		_wire_button(get_node("Body/DetailsPanel/Information/ContinueButton"), _continue)
-		_wire_button(get_node("Body/DetailsPanel/Information/VerifyButton"), _verify)
+		_wire_button(get_node("Body/DetailsPanel/Information/Actions/WatchReplayButton"), _watch)
+		_wire_button(get_node("Body/DetailsPanel/Information/Actions/ContinueButton"), _continue)
+		_wire_button(get_node("Body/DetailsPanel/Information/Actions/VerifyButton"), _verify)
 	call_deferred("_load")
 
 func _load() -> void:
@@ -112,6 +112,8 @@ func _select(index: int) -> void:
 	replay_button.disabled = id.is_empty() or int(selected.get("sequence", 0)) < 1
 	verify_button.disabled = replay_button.disabled
 	continue_button.disabled = str(selected.get("lifecycle", "")).to_lower() != "active"
+	continue_button.theme_type_variation = &"SecondaryAction" if continue_button.disabled else &"PrimaryAction"
+	replay_button.theme_type_variation = &"PrimaryAction" if continue_button.disabled else &"SecondaryAction"
 
 func _watch() -> void:
 	if selected.is_empty(): return
@@ -148,3 +150,12 @@ func _lifecycle(value: String) -> String:
 
 func _wire_button(value: Button, action: Callable) -> void:
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree() or not event.is_action_pressed("ui_cancel") or event.is_echo(): return
+	var viewport := get_viewport()
+	if viewport == null or get_tree().root.find_children("*", "Window", true, false).any(func(window): return window.visible and window.exclusive): return
+	var back := get_node_or_null("Header/Back") as Button
+	if is_instance_valid(back) and back.is_visible_in_tree() and not back.disabled:
+		viewport.set_input_as_handled()
+		back.pressed.emit()

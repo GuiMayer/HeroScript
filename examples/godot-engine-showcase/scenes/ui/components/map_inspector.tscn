@@ -67,8 +67,8 @@ metadata/text_role = "text.primary"
 layout_mode = 2
 custom_minimum_size = Vector2(260,0)
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 16
-metadata/font_role = "caption"
+theme_override_font_sizes/font_size = 18
+metadata/font_role = "body"
 theme_type_variation = &"Caption"
 autowrap_mode = 3
 
@@ -76,19 +76,23 @@ autowrap_mode = 3
 layout_mode = 2
 custom_minimum_size = Vector2(260,0)
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-metadata/font_role = "caption"
+theme_override_font_sizes/font_size = 18
+metadata/font_role = "body"
 theme_type_variation = &"Caption"
 autowrap_mode = 3
+
+metadata/text_role = "accent.primary"
 
 [node name="Benefit" type="Label" parent="Margin/Stack/Scroll/Body/Information"]
 layout_mode = 2
 custom_minimum_size = Vector2(260,0)
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 16
-metadata/font_role = "caption"
+theme_override_font_sizes/font_size = 18
+metadata/font_role = "body"
 theme_type_variation = &"Caption"
 autowrap_mode = 3
+
+metadata/text_role = "accent.positive"
 
 [node name="Description" type="Label" parent="Margin/Stack/Scroll/Body/Information"]
 layout_mode = 2
@@ -106,10 +110,10 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 metadata/font_role = "body"
 
-[node name="Actions" type="VBoxContainer" parent="Margin/Stack/Scroll/Body"]
+[node name="Actions" type="VBoxContainer" parent="Margin/Stack"]
 layout_mode = 2
 theme_override_constants/separation = 12
-[node name="MapResumeDialogue" type="Button" parent="Margin/Stack/Scroll/Body/Actions"]
+[node name="MapResumeDialogue" type="Button" parent="Margin/Stack/Actions"]
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0,48)

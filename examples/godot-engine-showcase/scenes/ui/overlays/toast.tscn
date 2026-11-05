@@ -1,4 +1,5 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/toast_view.gd" id="Script"]
 [sub_resource type="StyleBoxFlat" id="Surface"]
 resource_local_to_scene = true
 bg_color = Color(1,1,1,1)
@@ -14,7 +15,8 @@ border_width_left = 1
 border_width_right = 1
 border_width_top = 1
 border_width_bottom = 1
-[node name="Toast" type="Label"]
+[node name="Toast" type="PanelContainer"]
+script = ExtResource("Script")
 visible = false
 anchors_preset = 10
 anchor_left = 0.5
@@ -24,6 +26,15 @@ offset_top = 18.0
 offset_right = 260.0
 offset_bottom = 70.0
 mouse_filter = 2
+
+
+theme_override_styles/panel = SubResource("Surface")
+
+
+
+[node name="Message" type="Label" parent="."]
+layout_mode = 2
+mouse_filter = 2
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("Surface")
+autowrap_mode = 3

@@ -18,6 +18,9 @@ func bind(projection, scope: String, card_ids: Array) -> void:
 	presenter = projection
 	if state.scope != scope:
 		state.clear()
+		# The session owns the write lock across contexts. Do not carry a view's
+		# submission latch into a new scope, whose old completion is ignored.
+		state.submitting = false
 		_epoch += 1
 	state.scope = scope
 	if state.selected_card not in card_ids: state.clear()
@@ -63,7 +66,8 @@ func submit(candidate: Dictionary) -> bool:
 	state.submitting = true
 	changed.emit()
 	var accepted: bool = await _session.submit_candidate(candidate.duplicate(true))
-	if not _alive or ticket != _epoch: return false
+	if not _alive: return false
+	if ticket != _epoch: return accepted
 	state.submitting = false
 	if accepted: state.clear()
 	changed.emit()
@@ -85,7 +89,8 @@ func execute_zone_flow(payload: Dictionary) -> bool:
 	state.submitting = true
 	changed.emit()
 	var accepted: bool = await _session.execute_run_command("INVOKE_CARD_ZONE_FLOW", payload.duplicate(true), str(payload.get("flowId", "")))
-	if not _alive or ticket != _epoch: return false
+	if not _alive: return false
+	if ticket != _epoch: return accepted
 	state.submitting = false
 	if accepted: state.clear()
 	changed.emit()
@@ -95,7 +100,20 @@ func inspect_hand(targets: Array) -> Dictionary: return await _session.inspect_h
 func inspect_card(id: String) -> Dictionary: return await _session.inspect_card(id)
 func dispose() -> void:
 	_alive = false
+	state.submitting = false
+	presentation_pending = false
 	_epoch += 1
+
+func blocking_reasons() -> Array[String]:
+	var reasons: Array[String] = []
+	if not _alive: reasons.append("disposed")
+	if state.submitting: reasons.append("submitting")
+	if _session.busy: reasons.append("session_busy")
+	if not _session.synchronized: reasons.append("unsynchronized")
+	if presentation_pending: reasons.append("presentation_pending")
+	if _playback.has_blocking_work() if _playback.has_method("has_blocking_work") else _playback.has_frames(): reasons.append("animation")
+	if _paused.call(): reasons.append("paused")
+	return reasons
 
 
 func submit_option(reference_id: String, card_id: String) -> bool:

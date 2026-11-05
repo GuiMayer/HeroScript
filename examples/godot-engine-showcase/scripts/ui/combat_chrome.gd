@@ -23,6 +23,8 @@ static func apply(button: Button, id: String, label: String, context, primary :=
 		if state == "hover": fill = context.styles.color("surface.primary_hover" if primary else "surface.hover")
 		if state == "disabled": fill = context.styles.color("surface.disabled")
 		var box: StyleBoxFlat = context.styles.box(fill, 0)
+		if state == "focus":
+			box.border_color = context.styles.color("accent.primary"); box.set_border_width_all(2)
 		box.content_margin_left = 10; box.content_margin_right = 10; box.content_margin_top = 6; box.content_margin_bottom = 6
 		button.add_theme_stylebox_override(state, box)
 	for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]: button.add_theme_color_override(key, ink)

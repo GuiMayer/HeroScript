@@ -53,7 +53,7 @@ var selection_actions: HBoxContainer
 var animate_card_entry := true
 var render_epoch := 0
 var gameplay_column: Control
-var bottom_hud: VBoxContainer
+var bottom_hud: HBoxContainer
 var battlefield_actors: ScrollContainer
 var floating_hud
 var candidate_panel: PanelContainer
@@ -115,8 +115,8 @@ func _layout_gameplay() -> void:
 	var stage_metrics: Dictionary = preload("res://scripts/presentation/combat_layout_metrics.gd").stage_layout(
 		gameplay_column.size, height, hand_min_height, toolbar_height, turn_height, layout_profile)
 	if is_instance_valid(hand_section):
-		hand_section.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		hand_section.custom_minimum_size.x = float(stage_metrics.get("hand_width", 0.0))
+		hand_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hand_section.custom_minimum_size.x = 0.0
 	bottom_hud.offset_top = float(stage_metrics.get("bottom_hud_top", -height))
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
@@ -216,7 +216,7 @@ func _build_hand() -> void:
 		right_pile_controls.name = "RightPileControls"
 		right_pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	var zones: Array = zone_presenter.auxiliary_zones()
-	var right: Array = zones.filter(func(zone): return str(zone.get("presentation", {}).get("dock", "right" if str(zone.get("zoneId", "")) in ["discard", "exile"] else "left")) == "right")
+	var right: Array = zones.filter(func(zone): return str(zone.get("zoneId", "")) == "discard")
 	pile_controls.apply_model(zones.filter(func(zone): return zone not in right), visual_context)
 	right_pile_controls.apply_model(right, visual_context); right_pile_controls.visible = not right.is_empty()
 	_sync_hand_models()
@@ -240,14 +240,18 @@ func _empty_hand_state() -> Control:
 
 func _build_footer() -> void:
 	_ensure_floating_hud()
-	var key: Array = [_system_candidate(["PASS", "PASS_PRIORITY"]), visual_context.translator.locale, visual_context.action_label("end_turn"), visual_context.action_label("confirm_action")]
+	var pass_option := _visible_pass_candidate()
+	var key: Array = [pass_option, visual_context.translator.locale, visual_context.action_label("end_turn"), visual_context.action_label("confirm_action")]
 	if _footer_bound and key == _turn_key: return
 	_turn_key = key.duplicate(true)
 	if not _footer_bound:
 		turn_view = bottom_hud.get_node("TurnControls")
+		bottom_hud.move_child(turn_view, bottom_hud.get_child_count() - 1)
+		turn_view.alignment = BoxContainer.ALIGNMENT_END
 		_feedback_column = get_node("OverlayDefinitions/ActionPreviewView")
 		_feedback_column.visual_context = visual_context
 		_feedback_column.mount(visual_context.translator.text("Select a card, then choose a highlighted target."))
+		_feedback_column.hide()
 		_feedback_column.owner = null; _feedback_column.reparent(turn_view, false)
 		turn_view.move_child(_feedback_column, 0)
 		detail_label = _feedback_column.detail_label; selection_label = _feedback_column.selection_label; queue_label = _feedback_column.queue_label
@@ -255,9 +259,11 @@ func _build_footer() -> void:
 		turn_view.skip_requested.connect(func(): intent_requested.emit("skip_presentation", []))
 		turn_view.cancel_requested.connect(_cancel_selection); turn_view.end_requested.connect(_end_turn)
 		turn_view.system_requested.connect(_execute_system)
-		pile_controls.owner = null; pile_controls.reparent(turn_view, false); turn_view.move_child(pile_controls, 0)
-		hand.toolbar.owner = null; hand.toolbar.reparent(turn_view, false); turn_view.move_child(hand.toolbar, 1)
+		pile_controls.owner = null; pile_controls.reparent(turn_view, false); turn_view.move_child(pile_controls, turn_view.get_child_count() - 1)
+		hand.toolbar.owner = null; hand.toolbar.reparent(turn_view, false); turn_view.move_child(hand.toolbar, 0)
 		right_pile_controls.owner = null; right_pile_controls.reparent(turn_view, false); turn_view.move_child(right_pile_controls, turn_view.get_child_count() - 2)
+		turn_view.move_child(pile_controls, right_pile_controls.get_index())
+		turn_view.move_child(turn_view.get_node("EndTurnButton"), turn_view.get_child_count() - 1)
 		hand.toolbar_external = true; hand.update_counter()
 		reconnect_button = get_node("OverlayDefinitions/Reconnect")
 		reconnect_button.pressed.connect(_reconnect)
@@ -274,7 +280,7 @@ func _build_footer() -> void:
 		_footer_bound = true
 	for button in turn_view.buttons: action_buttons.erase(button)
 	turn_view.visual_context = visual_context
-	turn_view.mount(visual_context.translator, {"confirm_action": visual_context.action_label("confirm_action"), "end_turn": visual_context.action_label("end_turn")}, _system_candidate(["PASS", "PASS_PRIORITY"]))
+	turn_view.mount(visual_context.translator, {"confirm_action": visual_context.action_label("confirm_action"), "end_turn": visual_context.action_label("end_turn")}, pass_option)
 	next_frame_button = turn_view.next_frame_button; selection_actions = turn_view.selection_actions
 	action_buttons.append_array(turn_view.buttons); _apply_preview_composition()
 
@@ -357,6 +363,11 @@ func _candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
 
 func _system_candidate(action_types: Array) -> Dictionary:
 	return presenter.system_candidate(action_types)
+
+func _visible_pass_candidate() -> Dictionary:
+	var hidden: Array = presentation.get("hidden_system_actions", {}).get(visual_context.setting_id, [])
+	var actions: Array = ["PASS", "PASS_PRIORITY"].filter(func(action): return action not in hidden)
+	return _system_candidate(actions) if not actions.is_empty() else {}
 
 
 func _preview(candidate: Dictionary) -> String:
@@ -442,9 +453,11 @@ func _update_controls() -> void:
 	turn_view.skip_button.visible = _has_frames()
 	turn_view.skip_button.disabled = bool(_interaction.get("busy", false)) or submitting
 	selection_actions.visible = not selected_card.is_empty() and not _has_frames()
+	turn_view.get_node("ContextActionSlot").visible = next_frame_button.visible or selection_actions.visible
 	selection_label.text = visual_context.translator.text("PROCESSING…") if bool(_interaction.get("busy", false)) or submitting else (
-		visual_context.translator.text("Choose a highlighted target.") if not selected_card.is_empty() else "")
+		visual_context.translator.text("Choose a highlighted target. [Esc / Right-click to cancel]") if not selected_card.is_empty() else "")
 	selection_label.tooltip_text = selection_label.text
+	selection_label.add_theme_color_override("font_color", visual_context.styles.color("accent.primary" if not selected_card.is_empty() else "text.secondary"))
 	if bool(_interaction.get("busy", false)) or submitting: queue_label.text = selection_label.text
 	queue_label.tooltip_text = queue_label.text
 	for id in card_buttons:
@@ -560,14 +573,9 @@ func _try_apply_composition() -> void:
 
 func _apply_preview_composition() -> void:
 	if not is_instance_valid(_feedback_column): return
-	var parent: Control = floating_hud.host if layout_profile.preview_placement == "floating_left" else turn_view
-	if parent == floating_hud.host: floating_hud.replace_slot("preview", _feedback_column)
-	else:
-		floating_hud.take_slot("preview")
-		if _feedback_column.get_parent() != parent: _feedback_column.reparent(parent, false)
-	if parent == turn_view:
-		_feedback_column.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		turn_view.move_child(_feedback_column, 2)
+	floating_hud.take_slot("preview")
+	if _feedback_column.get_parent() != turn_view: _feedback_column.reparent(turn_view, false)
+	_feedback_column.hide()
 
 
 func _drop_card(id: String, point: Vector2) -> void:

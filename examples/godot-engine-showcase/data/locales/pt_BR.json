@@ -1048,7 +1048,23 @@
   "No relics acquired.": "Nenhuma relíquia adquirida.",
   "Inscriptions": "Inscrições",
   "Equipment information unavailable. Retry the read.": "Informações do equipamento indisponíveis. Tente carregar novamente.",
-  "Invalid loadout information.": "Informações do equipamento inválidas."
-,
-  "Current": "Atual"
+  "Invalid loadout information.": "Informações do equipamento inválidas.",
+  "Current": "Atual",
+  "Center": "Centralizar",
+  "Clear filters": "Limpar filtros",
+  "Synced": "Sincronizado",
+  "Saving…": "Salvando…",
+  "Attention — recovery required": "Atenção — recuperação necessária",
+  "No cards match. Clear filters to see your deck.": "Nenhuma carta corresponde. Limpe os filtros para ver o baralho.",
+  "No inscriptions match. Clear filters to see your inventory.": "Nenhuma inscrição corresponde. Limpe os filtros para ver o inventário.",
+  "Choose a highlighted target. [Esc / Right-click to cancel]": "Escolha um alvo destacado. [Esc / Clique direito para cancelar]",
+  "PREVIOUS FRAME": "QUADRO ANTERIOR",
+  "Definition preview — inspect published components for rules.": "Prévia da definição — consulte os componentes publicados para ver as regras.",
+  "Search content": "Buscar conteúdo",
+  "Show raw JSON": "Mostrar JSON bruto",
+  "Error": "Erro",
+  "Play card": "Jogar carta",
+  "Start encounter": "Iniciar encontro",
+  "Verify": "Verificar",
+  "Space": "Espaço"
 }

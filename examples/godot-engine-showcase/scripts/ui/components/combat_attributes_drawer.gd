@@ -39,7 +39,8 @@ func mount(context) -> void:
 		add_theme_stylebox_override("panel",_surface)
 	title_label.text = context.translator.text("Attributes")
 	title_label.add_theme_color_override("font_color",context.styles.INK)
-	toggle_button.tooltip_text = context.translator.text("Close")
+	toggle_button.tooltip_text = context.translator.text("Close") + " [" + context.action_label("open_character") + "]"
+	toggle_button.accessibility_name = context.translator.text("Close character attributes")
 	if not toggle_button.pressed.is_connected(_close): toggle_button.pressed.connect(_close)
 	attributes_view.mount(context)
 	content_scroll = attributes_view.scroll_container

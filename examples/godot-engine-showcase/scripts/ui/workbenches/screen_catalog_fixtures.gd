@@ -79,7 +79,7 @@ static func apply(view, kind: String, state: String, context) -> void:
 		"codex":
 			var list: ItemList = view.get_node("Columns/List")
 			if not empty: list.add_item("fixture_definition_with_extended_identifier" if long_text else "fixture_definition")
-			view.get_node("Columns/Detail").text = '{"definitionId":"fixture_definition"}' if not empty else ""
+			view.get_node("Columns/DetailScroll/DetailBody/FormattedDetail").text = '{"definitionId":"fixture_definition"}' if not empty else ""
 		"hand_lab":
 			var hand = view.get_node("Margin/Outer/Hand"); hand.mount(context)
 			var fixture = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/card_hand_lab.json"))

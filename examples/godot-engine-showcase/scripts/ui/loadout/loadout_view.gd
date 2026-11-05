@@ -52,6 +52,8 @@ func _ready() -> void:
 
 func mount(context) -> void:
 	var first_mount := visual_context == null
+	if first_mount and editorial_layout:
+		find_child("ClearFilters", true, false).pressed.connect(func(): _filter = "All"; search_field.text = ""; search_requested.emit(""))
 	visual_context = context; theme = context.theme
 	columns = find_child("LoadoutColumns", true, false)
 	inventory_grid = find_child("InscriptionInventory", true, false)
@@ -197,6 +199,10 @@ func present(model: Dictionary) -> void:
 		_inventory[item.instanceId].source_slot = str(model.assignments.find_key(item.instanceId)) if item.instanceId in model.assignments.values() else ""
 		_inventory[item.instanceId].visible = str(model.search).is_empty() or (title + " " + t.call(item.family) + " " + " ".join(item.tags)).to_lower().contains(str(model.search).to_lower())
 		if editorial_layout: _inventory[item.instanceId].visible = _inventory[item.instanceId].visible and preload("res://scripts/ui/loadout/inscription_visual_catalog.gd").matches(item, _filter)
+	if editorial_layout:
+		find_child("EmptyResults", true, false).visible = not _inventory.values().any(func(tile): return tile.visible)
+		find_child("EmptyResults", true, false).text = t.call("No inscriptions match. Clear filters to see your inventory.")
+		find_child("ClearFilters", true, false).text = t.call("Clear filters")
 	for index in model.slots.size():
 		var id: String = model.slots[index]
 		var item: Dictionary = items.get(model.assignments.get(id, ""), {})

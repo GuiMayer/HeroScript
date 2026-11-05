@@ -91,6 +91,7 @@ var _saved_api_url := ""
 var _api_override := false
 
 func _ready() -> void:
+	_migrate_legacy_preferences()
 	load_settings()
 	_saved_api_url = api_url
 	for argument in OS.get_cmdline_user_args():
@@ -109,6 +110,25 @@ func _ready() -> void:
 		monitor_watch.timeout.connect(_remember_monitor)
 		add_child(monitor_watch)
 		monitor_watch.start()
+
+func _migrate_legacy_preferences() -> void:
+	# Direct editor launches need the same first-run preference migration as the
+	# launcher. Isolated QA projects must never read or write the player's files.
+	if not OS.has_feature("windows") or OS.get_user_data_dir().get_file() != "HeroScript": return
+	var old_directory := OS.get_environment("APPDATA").path_join("Godot/app_userdata/HeroScript- Ember Archive")
+	for filename in ["heroscript_showcase.cfg", "card_animation_profile.json"]:
+		var destination := OS.get_user_data_dir().path_join(filename)
+		var old_path := old_directory.path_join(filename)
+		if FileAccess.file_exists(destination) or not FileAccess.file_exists(old_path): continue
+		var temporary := destination + ".migration.tmp"
+		if DirAccess.copy_absolute(old_path, temporary) != OK:
+			push_error("Could not copy legacy preferences; original retained: " + old_path)
+			continue
+		if FileAccess.get_sha256(old_path) != FileAccess.get_sha256(temporary):
+			push_error("Preference migration verification failed; original retained: " + old_path)
+			continue
+		if DirAccess.rename_absolute(temporary, destination) != OK:
+			push_error("Could not publish migrated preferences; original retained: " + old_path)
 
 func load_settings() -> void:
 	var config := ConfigFile.new()

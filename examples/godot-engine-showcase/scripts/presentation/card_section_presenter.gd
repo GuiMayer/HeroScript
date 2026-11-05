@@ -53,10 +53,11 @@ func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 	var labels: Dictionary = _appearance.get("card_tag_labels", {})
 	var weights := _published_weights(inspection.get("presentation", {}))
 	for tag in effective.get("tags", container.get("tags", [])):
+		if not labels.has(tag): continue
 		if weights.has(tag):
 			var weight: float = weights[tag]
 			var marker := "●●●" if weight >= 0.9 else ("●●○" if weight >= 0.75 else ("●○○" if weight > 0.0 else "○○○"))
-			var label: String = _i18n.text(str(labels[tag])) if labels.has(tag) else _i18n.content_name(str(tag))
+			var label: String = _i18n.text(str(labels[tag]))
 			tags.append("%s %s" % [label, marker])
 		elif labels.has(tag):
 			tags.append(_i18n.text(str(labels[tag])))

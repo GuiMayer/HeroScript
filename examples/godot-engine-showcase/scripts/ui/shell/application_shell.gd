@@ -8,7 +8,7 @@ const Layers = preload("res://scripts/ui/shell/overlay_layers.gd")
 var visual_context
 var run_scenery
 var host: MarginContainer
-var toast: Label
+var toast: PanelContainer
 var pause_layer: Control
 var pause_canvas: CanvasLayer
 var _previous_focus: WeakRef
@@ -25,13 +25,13 @@ func mount(context) -> void:
 	for side in ["left","right"]: host.add_theme_constant_override("margin_"+side,roundi(context.profile.screen_margin.x))
 	for side in ["top","bottom"]: host.add_theme_constant_override("margin_"+side,roundi(context.profile.screen_margin.y))
 	toast = get_node("%Toast")
-	if _toast_surface == null: _toast_surface = toast.get_theme_stylebox("normal").duplicate()
+	if _toast_surface == null: _toast_surface = toast.get_theme_stylebox("panel").duplicate()
 	_refresh_toast_style()
 func _refresh_toast_style() -> void:
 	_toast_surface.bg_color = visual_context.styles.color("surface.toast")
 	_toast_surface.border_color = visual_context.styles.EMBER
-	toast.add_theme_stylebox_override("normal",_toast_surface)
-	if toast.has_meta("base_style_normal"): toast.remove_meta("base_style_normal")
+	toast.add_theme_stylebox_override("panel",_toast_surface)
+	if toast.has_meta("base_style_panel"): toast.remove_meta("base_style_panel")
 	if toast.has_meta("visual_preferences_revision"): toast.remove_meta("visual_preferences_revision")
 	visual_context.styles.apply_view_preferences(toast,visual_context.text_scale,visual_context.high_contrast)
 func show_pause(abandon: Dictionary, conversation_history: Array = []) -> void:
@@ -112,8 +112,7 @@ func confirm_abandon(choice: Dictionary) -> void:
 	dialog.popup_centered(Vector2i(480, 190))
 func show_toast(message: String, error: bool) -> void:
 	if _toast_motion: _toast_motion.kill()
-	toast.text = message
-	toast.add_theme_color_override("font_color", AppTheme.BLOOD if error else AppTheme.INK)
+	toast.present(message, error, visual_context)
 	toast.visible = true
 	_toast_motion = create_tween()
 	_toast_motion.tween_interval(2.5)

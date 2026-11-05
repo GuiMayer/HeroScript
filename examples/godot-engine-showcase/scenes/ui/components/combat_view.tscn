@@ -22,7 +22,7 @@ layout_mode = 2
 [node name="CombatBody" parent="." instance=ExtResource("Composition")]
 layout_mode = 2
 [node name="Battlefield" parent="CombatBody/CombatGameplay" instance=ExtResource("Field")]
-[node name="CombatBottomHUD" type="VBoxContainer" parent="CombatBody/CombatGameplay"]
+[node name="CombatBottomHUD" type="HBoxContainer" parent="CombatBody/CombatGameplay"]
 layout_mode = 0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -32,6 +32,8 @@ mouse_filter = 2
 theme_override_constants/separation = 4
 [node name="HandSection" type="VBoxContainer" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
 theme_override_constants/separation = 0
 [node name="Hint" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
 visible = false

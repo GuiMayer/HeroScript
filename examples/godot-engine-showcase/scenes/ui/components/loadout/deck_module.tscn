@@ -44,7 +44,7 @@ size_flags_vertical = 3
 [node name="CardBody" type="VBoxContainer" parent="Body"]
 layout_mode = 2
 size_flags_vertical = 3
-[node name="Tools" type="HBoxContainer" parent="Body/CardBody"]
+[node name="Tools" type="HFlowContainer" parent="Body/CardBody"]
 layout_mode = 2
 [node name="Search" type="LineEdit" parent="Body/CardBody/Tools"]
 layout_mode = 2
@@ -94,3 +94,13 @@ theme_override_constants/v_separation = 12
 [node name="Parking" type="Control" parent="."]
 visible = false
 layout_mode = 2
+
+[node name="ClearFilters" type="Button" parent="Body/CardBody/Tools"]
+layout_mode = 2
+text = "Clear filters"
+custom_minimum_size = Vector2(100, 44)
+[node name="EmptyResults" type="Label" parent="Body/CardBody"]
+layout_mode = 2
+visible = false
+autowrap_mode = 3
+text = "No cards match. Clear filters to see your deck."

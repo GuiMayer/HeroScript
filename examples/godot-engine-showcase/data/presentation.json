@@ -1,6 +1,9 @@
 {
+  "hidden_system_actions": {
+    "prototype-test": ["PASS"]
+  },
   "intent_icons": {"Attack": "attack", "Guard": "guard", "Poison Spit": "unknown"},
-  "card_tag_labels": {"fire": "Fire", "poison": "Poison", "frost": "Frost", "ember": "Ember", "volatile": "Volatile"},
+  "card_tag_labels": {"fire": "Fire", "poison": "Poison", "frost": "Frost", "shadow": "Shadow", "void": "Void", "divine": "Divine", "lightning": "Lightning", "ember": "Ember"},
   "card_flow_labels": {"run.draw": "Draw", "run.discard": "Discard", "run.exhaust": "Exhaust", "card.played.to-discard": "Discard after play", "card.played.to-exhaust": "Exhaust after play"},
   "resource_order": [
     "health",

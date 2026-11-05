@@ -84,3 +84,13 @@ custom_minimum_size = Vector2(44, 44)
 layout_mode = 0
 theme_type_variation = &"SecondaryAction"
 text = "›"
+tooltip_text = "Show or hide route details"
+accessibility_name = "Route details"
+
+[node name="CenterCurrent" type="Button" parent="Header"]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "Center"
+tooltip_text = "Center on current node"
+accessibility_name = "Center on current node"

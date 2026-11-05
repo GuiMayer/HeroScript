@@ -38,6 +38,8 @@ func mount(context) -> void:
 		for index in 2: sort_picker.set_item_text(index, context.translator.text(["Name", "Resource cost"][index]))
 		return
 	_bound = true
+	get_node("Body/CardBody/Tools/ClearFilters").pressed.connect(_clear_filters)
+	get_node("Body/CardBody/Tools/ClearFilters").text = context.translator.text("Clear filters")
 	for path in ["res://data/presentation.json", "res://data/volatile_core_presentation.json", "res://data/world_one_presentation.json"]:
 		var overlay = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if not overlay is Dictionary: continue
@@ -97,6 +99,8 @@ func _render() -> void:
 	for id in _card_cache.keys():
 		if not id in instance_ids: _card_cache[id].queue_free(); _card_cache.erase(id)
 	for id in _sub_buttons: _sub_buttons[id].set_pressed_no_signal(id == subtab)
+	for entry in [["cards", "Cards", _model.get("cards", []).size()], ["compartments", "Compartments", _model.get("profile", {}).get("compartments", []).size()], ["modifiers", "Card modifiers", _model.get("modifierItems", {}).get("items", []).size()]]:
+		_sub_buttons[entry[0]].text = visual_context.translator.text(entry[1]) + " (%s)" % entry[2]
 	_sub_buttons.composition.visible = _model.get("composition", {}).get("enabled", false)
 	_sub_buttons.compartments.visible = _model.get("enabled", false)
 	_sub_buttons.modifiers.visible = not _model.get("modifierItems", {}).get("items", []).is_empty()
@@ -179,6 +183,13 @@ func _filter_cards() -> void:
 	for entry in _card_buttons:
 		var searchable: String = str(entry.model.name) + " " + str(entry.model.get("summary", "")) + " " + " ".join(entry.facts.get("tags", []))
 		entry.column.visible = (_search.is_empty() or searchable.to_lower().contains(_search.to_lower())) and (_tag.is_empty() or _tag in entry.facts.get("tags", [])) and (_resource.is_empty() or entry.model.get("costs", []).any(func(cost): return str(cost.get("resourceId", "")) == _resource))
+	get_node("Body/CardBody/EmptyResults").visible = not _card_buttons.any(func(entry): return entry.column.visible)
+	get_node("Body/CardBody/EmptyResults").text = visual_context.translator.text("No cards match. Clear filters to see your deck.")
+func _clear_filters() -> void:
+	_search = ""; _tag = ""; _resource = ""; _order = "name"
+	get_node("Body/CardBody/Tools/Search").text = ""
+	get_node("Body/CardBody/Tools/Sort").select(0)
+	_render()
 func _cost_key(model: Dictionary) -> String:
 	var tokens: Array = model.get("costs", []).duplicate(true)
 	tokens.sort_custom(func(a, b): return str(a.get("resourceId", "")) < str(b.get("resourceId", "")))

@@ -159,3 +159,11 @@ visible = false
 custom_minimum_size = Vector2(0,48)
 theme_type_variation = &"SecondaryAction"
 text = "Retry pending operation"
+
+[node name="SaveStatus" type="Label" parent="Margin/Page/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Synced"
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 15
+metadata/font_role = "caption"

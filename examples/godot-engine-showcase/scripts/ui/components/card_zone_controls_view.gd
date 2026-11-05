@@ -1,7 +1,7 @@
 class_name CardZoneControlsView
 extends ScrollContainer
 signal zone_requested(address: Dictionary)
-var _row: HBoxContainer
+var _row: VBoxContainer
 var _buttons := {}
 static func create() -> CardZoneControlsView:
 	return (load("res://scenes/ui/components/card_zone_controls.tscn") as PackedScene).instantiate()

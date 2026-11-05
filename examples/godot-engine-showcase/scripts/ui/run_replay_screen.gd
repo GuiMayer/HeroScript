@@ -156,3 +156,12 @@ func dispose() -> void:
 	if controller: controller.dispose()
 	if _inspection_ticket != null and not _inspection_ticket.done: _inspection_ticket.cancel()
 	if is_instance_valid(_inspection_dialog): _inspection_dialog.queue_free()
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree() or not event.is_action_pressed("ui_cancel") or event.is_echo(): return
+	var viewport := get_viewport()
+	if viewport == null or get_tree().root.find_children("*", "Window", true, false).any(func(window): return window.visible and window.exclusive): return
+	var back := get_node_or_null("RunReplayView/Header/Back") as Button
+	if is_instance_valid(back) and back.is_visible_in_tree() and not back.disabled:
+		viewport.set_input_as_handled()
+		back.pressed.emit()

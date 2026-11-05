@@ -1,2 +1,6 @@
 [gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/modal_focus.gd" id="FocusRestore"]
 [node name="ConfirmationDialog" type="ConfirmationDialog"]
+
+[node name="FocusRestore" type="Node" parent="."]
+script = ExtResource("FocusRestore")

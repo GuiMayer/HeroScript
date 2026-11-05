@@ -1,4 +1,5 @@
 [gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/modal_focus.gd" id="FocusRestore"]
 
 [node name="AttributeSources" type="AcceptDialog"]
 title = "Attribute sources"
@@ -10,3 +11,6 @@ horizontal_scroll_mode = 0
 [node name="Body" type="VBoxContainer" parent="Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="FocusRestore" type="Node" parent="."]
+script = ExtResource("FocusRestore")

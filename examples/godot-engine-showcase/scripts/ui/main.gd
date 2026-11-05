@@ -9,7 +9,7 @@ var screen_context: ScreenContext
 var shell
 var host: MarginContainer:
 	get: return shell.host
-var toast: Label:
+var toast: PanelContainer:
 	get: return shell.toast
 var pause_layer: Control:
 	get: return shell.pause_layer if shell else null
@@ -196,7 +196,9 @@ func _menu_action(action: String) -> void:
 		"codex": show_codex()
 		"settings": show_settings()
 		"loadout_lab": show_loadout_lab()
-		"quit": get_tree().quit()
+		"quit":
+			Preferences.save(false)
+			get_tree().quit()
 
 func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
 	var before := JSON.stringify(Preferences.resume_index.runs)

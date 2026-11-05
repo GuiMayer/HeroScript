@@ -172,18 +172,30 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 15
 metadata/font_role = "body"
 
-[node name="CostLine" type="Control" parent="CardFaceMargin/Column"]
+[node name="CostLine" type="Control" parent="CardFaceMargin/Column/CardHeader"]
 unique_name_in_owner = true
 layout_mode = 2
 script = ExtResource("cost")
-custom_minimum_size = Vector2(0,24)
+custom_minimum_size = Vector2(30,24)
 mouse_filter = 2
 
-[node name="Cost" type="HBoxContainer" parent="CardFaceMargin/Column/CostLine"]
+[node name="Cost" type="HBoxContainer" parent="CardFaceMargin/Column/CardHeader/CostLine"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 3
+
+[node name="IdentityTags" type="Label" parent="CardFaceMargin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+mouse_filter = 2
+clip_text = true
+autowrap_mode = 0
+text_overrun_behavior = 3
+theme_type_variation = "Caption"
+theme_override_font_sizes/font_size = 11
+metadata/font_role = "caption"
 
 [node name="Art" type="PanelContainer" parent="CardFaceMargin/Column"]
 unique_name_in_owner = true
@@ -234,19 +246,6 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = "Caption"
 theme_override_font_sizes/font_size = 10
-metadata/font_role = "caption"
-
-[node name="IdentityTags" type="Label" parent="CardFaceMargin/Column"]
-unique_name_in_owner = true
-layout_mode = 2
-visible = false
-mouse_filter = 2
-custom_minimum_size = Vector2(160,0)
-clip_text = true
-autowrap_mode = 0
-text_overrun_behavior = 3
-theme_type_variation = "Caption"
-theme_override_font_sizes/font_size = 11
 metadata/font_role = "caption"
 
 [node name="Requirements" type="VBoxContainer" parent="CardFaceMargin/Column"]

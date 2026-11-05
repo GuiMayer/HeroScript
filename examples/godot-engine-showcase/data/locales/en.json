@@ -839,7 +839,23 @@
   "Equipment was not changed.": "Equipment was not changed.",
   "No relics acquired.": "No relics acquired.",
   "Equipment information unavailable. Retry the read.": "Equipment information unavailable. Retry the read.",
-  "Invalid loadout information.": "Invalid loadout information."
-,
-  "Character attributes": "Character attributes"
+  "Invalid loadout information.": "Invalid loadout information.",
+  "Character attributes": "Character attributes",
+  "Center": "Center",
+  "Clear filters": "Clear filters",
+  "Synced": "Synced",
+  "Saving…": "Saving…",
+  "Attention — recovery required": "Attention — recovery required",
+  "No cards match. Clear filters to see your deck.": "No cards match. Clear filters to see your deck.",
+  "No inscriptions match. Clear filters to see your inventory.": "No inscriptions match. Clear filters to see your inventory.",
+  "Choose a highlighted target. [Esc / Right-click to cancel]": "Choose a highlighted target. [Esc / Right-click to cancel]",
+  "PREVIOUS FRAME": "PREVIOUS FRAME",
+  "Definition preview — inspect published components for rules.": "Definition preview — inspect published components for rules.",
+  "Search content": "Search content",
+  "Show raw JSON": "Show raw JSON",
+  "Error": "Error",
+  "Play card": "Play card",
+  "Start encounter": "Start encounter",
+  "Verify": "Verify",
+  "Space": "Space"
 }

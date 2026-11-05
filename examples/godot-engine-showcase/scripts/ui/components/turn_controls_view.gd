@@ -1,6 +1,6 @@
 @tool
 class_name TurnControlsView
-extends HBoxContainer
+extends VBoxContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType = ContextType.new()
 signal next_requested
@@ -32,6 +32,7 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 		pass_button.pressed.connect(func(): system_requested.emit(_pass_option.duplicate(true)))
 		end.pressed.connect(end_requested.emit); _bound = true
 	buttons.assign([cancel, end]); pass_button.visible = not _pass_option.is_empty()
+	get_node("SystemActionSlot").visible = pass_button.visible
 	if not _pass_option.is_empty(): buttons.insert(1,pass_button)
 	var pass_label := "PASS PRIORITY" if str(_pass_option.get("command", {}).get("actionType", "")) == "PASS_PRIORITY" else "PASS"
 	for entry in [[next_frame_button,"advance",translator.text("NEXT ANIMATION  [%s]") % str(labels["confirm_action"]),false,true], [cancel,"cancel",translator.text("CANCEL SELECTION"),false,true], [skip_button,"skip",translator.text("Skip presentation"),false,true], [pass_button,"arrow",translator.text(pass_label),false,true], [end,"arrow",translator.text("END TURN  [%s]") % str(labels["end_turn"]),true,false]]:

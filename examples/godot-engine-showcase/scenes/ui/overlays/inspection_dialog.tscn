@@ -1,4 +1,5 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/modal_focus.gd" id="FocusRestore"]
 [ext_resource type="Script" path="res://scripts/ui/inspection_dialog.gd" id="1"]
 [node name="InspectionDialog" type="AcceptDialog"]
 min_size = Vector2i(650,420)
@@ -28,3 +29,6 @@ selection_enabled = true
 unique_name_in_owner = true
 layout_mode = 2
 visible = false
+
+[node name="FocusRestore" type="Node" parent="."]
+script = ExtResource("FocusRestore")

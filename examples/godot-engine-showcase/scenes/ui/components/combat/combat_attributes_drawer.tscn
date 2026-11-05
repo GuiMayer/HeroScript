@@ -36,8 +36,10 @@ metadata/text_role = "text.primary"
 [node name="CharacterSidebarToggle" type="Button" parent="Column/Toolbar"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(36,48)
+custom_minimum_size = Vector2(44,48)
 text = "×"
+tooltip_text = "Close character attributes [I]"
+accessibility_name = "Close character attributes"
 focus_mode = 2
 theme_type_variation = &"SecondaryAction"
 [node name="LoadoutCharacterAttributes" parent="Column" instance=ExtResource("2")]

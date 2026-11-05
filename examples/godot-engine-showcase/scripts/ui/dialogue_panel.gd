@@ -39,6 +39,7 @@ func apply_model(data: Dictionary) -> void:
 	_speaker.text = str(model.get("speaker", "")); _speaker.visible = not _speaker.text.is_empty()
 	_portrait.visual_context = visual_context
 	_portrait.setup("portraits", str(model.get("portrait", "")))
+	_portrait.visible = not str(model.get("portrait", "")).is_empty()
 	var key := JSON.stringify([model.get("options", []), visual_context.presentation_key()])
 	if key != _choices_key:
 		_choices_key = key
@@ -55,7 +56,7 @@ func apply_model(data: Dictionary) -> void:
 					if not target.disabled: choice_requested.emit(target.get_meta("dialogue_command").duplicate(true)))
 			_choices.move_child(row, live.size()-1)
 			var button: Button = row.get_node("Choose")
-			button.text = str(option.text)
+			button.text = ("[%s] " % (live.size()) if live.size() <= 9 else "") + str(option.text)
 			if not str(option.cost).is_empty(): button.text += "   ·   " + str(option.cost)
 			button.set_meta("engine_disabled", not bool(option.available))
 			button.set_meta("dialogue_command", option.command.duplicate(true))
@@ -72,7 +73,7 @@ func _sync_reading() -> void:
 	if _speech.text != reading.text(): _speech.text = reading.text()
 	_speech.visible_characters = -1 if reading.fully_revealed() else int(reading.revealed)
 	_next.visible = not reading.fully_revealed() or not reading.last_page()
-	_next.text = visual_context.translator.text("Reveal text" if not reading.fully_revealed() else "Next page") + " · %s/%s" % [reading.page + 1, reading.pages.size()]
+	_next.text = visual_context.translator.text("Reveal text" if not reading.fully_revealed() else "Next page") + " · %s/%s · [%s]" % [reading.page + 1, reading.pages.size(), visual_context.translator.text("Space")]
 	_choices.visible = reading.fully_revealed() and reading.last_page()
 	for button in choice_buttons: button.disabled = _locked or not _choices.visible or bool(button.get_meta("engine_disabled", false))
 func set_read_only(value: bool) -> void: _locked = value; _sync_reading()
@@ -81,3 +82,15 @@ func _process(delta: float) -> void:
 	reading.revealed += delta * 45.; _sync_reading()
 func capture_local_state() -> Dictionary: return reading.capture()
 func restore_local_state(state: Dictionary) -> void: reading.restore(state); _sync_reading()
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or _locked or not is_visible_in_tree() or not event is InputEventKey or not event.pressed or event.echo: return
+	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed: return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit: return
+	if event.keycode == KEY_SPACE and _next.visible:
+		advance_reading(); get_viewport().set_input_as_handled()
+	elif event.keycode >= KEY_1 and event.keycode <= KEY_9:
+		var index: int = int(event.keycode) - KEY_1
+		if index < choice_buttons.size() and not choice_buttons[index].disabled:
+			choice_buttons[index].pressed.emit(); get_viewport().set_input_as_handled()

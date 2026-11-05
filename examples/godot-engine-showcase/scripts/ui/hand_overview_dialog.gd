@@ -44,3 +44,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
+
+func _ready() -> void:
+	add_child(preload("res://scripts/ui/components/modal_focus.gd").new())

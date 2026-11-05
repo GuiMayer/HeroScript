@@ -64,3 +64,13 @@ func dispose() -> void:
 	if feedback: feedback.dispose()
 	_finish("cancelled")
 func _exit_tree() -> void: dispose()
+
+func seek_cursor(cursor: int) -> void:
+	# Local inspection only; never submits a command or changes the run head.
+	if playback == null: return
+	feedback.clear_cosmetics()
+	var target := clampi(cursor, 0, playback.total)
+	var frames: Array = playback.frames
+	for index in target:
+		if frames[index].get("stateAfter") is Dictionary: history.apply_frame_snapshot(frames[index].stateAfter)
+	playback.index = target

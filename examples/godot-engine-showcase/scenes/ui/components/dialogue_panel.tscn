@@ -28,7 +28,7 @@ script = ExtResource("3_ourlo")
 
 [node name="Stage" type="HBoxContainer" parent="." unique_id=1404918216]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 
 [node name="Portrait" type="TextureRect" parent="Stage" unique_id=852526122]
 custom_minimum_size = Vector2(160, 150)

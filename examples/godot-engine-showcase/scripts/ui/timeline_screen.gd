@@ -82,6 +82,7 @@ func setup(owner) -> void:
 	get_node("Body/DetailsPanel/Information/PlaybackControls/Restart").text = I18n.text("RESTART ANIMATIONS")
 	get_node("Body/DetailsPanel/Information/PlaybackControls/Inspect").text = I18n.text("Show engine details")
 	get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton").text = I18n.text("NEXT FRAME")
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousFrame").text = I18n.text("PREVIOUS FRAME")
 	get_node("Body/DetailsPanel/Information/BranchControls/BranchButton").text = I18n.text("BRANCH HERE")
 	get_node("Body/DetailsPanel/Information/BranchControls/Simulate").text = I18n.text("SIMULATE CURRENT STATE")
 	get_node("Body/DetailsPanel/Information/BranchControls/Verify").text = I18n.text("VERIFY REPLAY")
@@ -104,6 +105,7 @@ func setup(owner) -> void:
 		_wire_button(get_node("Body/ArchivePanel/Archive/ActivateButton"), _activate_selected)
 		_wire_button(get_node("Body/DetailsPanel/Information/BranchControls/BranchButton"), _branch)
 		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/NextButton"), _next_frame)
+		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousFrame"), _previous_frame)
 		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/Restart"), _restart_frames)
 		_wire_button(get_node("Body/DetailsPanel/Information/PlaybackControls/Inspect"), _inspect_raw)
 		_wire_button(get_node("Body/DetailsPanel/Information/BranchControls/Simulate"), _simulate)
@@ -129,7 +131,7 @@ func _load() -> void:
 	entries = model.entries()
 	list.clear()
 	for entry in entries:
-		list.add_item("#%03d • %s %s • %s" % [int(entry.runSequence), I18n.text("Turn"), int(entry.get("turn", 0)), str(entry.get("commandType", ""))])
+		list.add_item("#%03d • %s %s • %s" % [int(entry.runSequence), I18n.text("Turn"), int(entry.get("turn", 0)), I18n.text(str(entry.get("commandType", "")).replace("_", " ").capitalize())])
 	scrubber.max_value = maxi(entries.size() - 1, 0)
 	more_button.disabled = response.data.get("items", []).is_empty()
 	if selected_sequence < 0 and not entries.is_empty(): _select(entries.size() - 1)
@@ -178,6 +180,7 @@ func _select(index: int) -> void:
 	_load_causal_events(ticket, selected_sequence)
 	frame_text.text = I18n.text("Saved state loaded. Frame playback only changes this inspector.")
 	next_button.disabled = not playback.has_frames()
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousFrame").disabled = playback.index <= 1
 
 func _mount_history(commit: Dictionary) -> void:
 	if is_instance_valid(_history_widget): _history_widget.dispose(); _history_widget.queue_free()
@@ -190,11 +193,13 @@ func _next_frame() -> void:
 	if not is_instance_valid(_history_widget): return
 	_history_widget.director.advance()
 	next_button.disabled = not playback.has_frames()
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousFrame").disabled = playback.index <= 1
 
 func _restart_frames() -> void:
 	if _history_commit.is_empty(): return
 	_mount_history(_history_commit)
 	next_button.disabled = not playback.has_frames()
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousFrame").disabled = playback.index <= 1
 	frame_text.text = I18n.text("Saved state loaded. Frame playback only changes this inspector.")
 
 func _load_tree() -> void:
@@ -303,3 +308,20 @@ func _load_causal_events(ticket: int, sequence: int) -> void:
 	_causal_view = preload("res://scripts/ui/gameplay_event_view.gd").create()
 	history_view.add_child(_causal_view)
 	_causal_view.present(batch if batch is Dictionary else {}, I18n.locale)
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree() or not event.is_action_pressed("ui_cancel") or event.is_echo(): return
+	var viewport := get_viewport()
+	if viewport == null or get_tree().root.find_children("*", "Window", true, false).any(func(window): return window.visible and window.exclusive): return
+	var back := get_node_or_null("Header/Back") as Button
+	if is_instance_valid(back) and back.is_visible_in_tree() and not back.disabled:
+		viewport.set_input_as_handled()
+		back.pressed.emit()
+
+func _previous_frame() -> void:
+	if playback == null or _history_commit.is_empty() or playback.index <= 1: return
+	var cursor: int = maxi(0, playback.index - 1)
+	_mount_history(_history_commit)
+	_history_widget.seek_cursor(cursor)
+	next_button.disabled = not playback.has_frames()
+	get_node("Body/DetailsPanel/Information/PlaybackControls/PreviousFrame").disabled = playback.index <= 1

@@ -391,3 +391,13 @@ layout_mode = 2
 theme_override_constants/separation = 10
 script = ExtResource("5_qhh4f")
 editorial_layout = true
+
+[node name="ClearFilters" type="Button" parent="LoadoutColumns/InventoryPanel/VBoxContainer0/VBoxContainer2"]
+layout_mode = 2
+custom_minimum_size = Vector2(100, 44)
+text = "Clear filters"
+[node name="EmptyResults" type="Label" parent="LoadoutColumns/InventoryPanel/VBoxContainer0/VBoxContainer2"]
+layout_mode = 2
+visible = false
+autowrap_mode = 3
+text = "No inscriptions match. Clear filters to see your inventory."

@@ -1,4 +1,5 @@
 [gd_scene format=3]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_view.tscn" id="CardPreview"]
 
 [ext_resource type="Script" path="res://scripts/ui/codex_screen.gd" id="1_03ym5"]
 
@@ -36,6 +37,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="Menu" type="Button" parent="Header" unique_id=1303065078]
+metadata/initial_focus = true
 custom_minimum_size = Vector2(120, 42)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
@@ -58,8 +60,36 @@ size_flags_vertical = 3
 custom_minimum_size = Vector2(310, 0)
 layout_mode = 2
 
-[node name="Detail" type="TextEdit" parent="Columns" unique_id=1291983211]
+[node name="DetailScroll" type="ScrollContainer" parent="Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+[node name="DetailBody" type="VBoxContainer" parent="Columns/DetailScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Detail" type="TextEdit" parent="Columns/DetailScroll/DetailBody" unique_id=1291983211]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 300)
 editable = false
 wrap_mode = 1
+
+[node name="Search" type="LineEdit" parent="."]
+layout_mode = 2
+placeholder_text = "Search content"
+[node name="FoundCount" type="Label" parent="."]
+layout_mode = 2
+[node name="RawToggle" type="CheckButton" parent="."]
+layout_mode = 2
+text = "Show raw JSON"
+[node name="FormattedDetail" type="RichTextLabel" parent="Columns/DetailScroll/DetailBody"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 220)
+fit_content = true
+bbcode_enabled = false
+
+[node name="CardPreview" parent="Columns/DetailScroll/DetailBody" instance=ExtResource("CardPreview")]
+visible = false
+size_flags_vertical = 0

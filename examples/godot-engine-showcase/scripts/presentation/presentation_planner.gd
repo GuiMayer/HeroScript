@@ -3,7 +3,12 @@ extends RefCounted
 static func plan(engine_frames: Array) -> Array:
 	var result: Array = []
 	for frame_index in engine_frames.size():
+		if not engine_frames[frame_index] is Dictionary: continue
 		var frame: Dictionary = engine_frames[frame_index].duplicate(true)
+		for field in ["effectSteps", "applications", "cardZoneSteps"]:
+			frame[field] = frame[field].filter(func(value): return value is Dictionary) if frame.get(field) is Array else []
+		for application in frame.applications:
+			application["cardZoneSteps"] = application.cardZoneSteps.filter(func(value): return value is Dictionary) if application.get("cardZoneSteps") is Array else []
 		var condensed := {}; var parents := {}
 		for step in frame.get("effectSteps", []):
 			var identity: Dictionary = step.get("identity", {}) if step.get("identity") is Dictionary else {}

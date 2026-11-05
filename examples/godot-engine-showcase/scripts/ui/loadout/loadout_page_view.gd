@@ -97,3 +97,10 @@ func _responsive() -> void:
 		if attributes_panel.get_parent() != body:
 			attributes_panel.owner = null; attributes_panel.reparent(body); attributes_panel.owner = self
 		attributes_panel.visible = true
+
+func set_save_status(busy: bool, uncertain: bool) -> void:
+	get_node("%SaveStatus").text = tr_text("Attention — recovery required" if uncertain else ("Saving…" if busy else "Synced"))
+func present_counts(counts: Dictionary) -> void:
+	for entry in preload("res://scripts/ui/loadout/module_catalog.gd").entries():
+		var suffix := " (%s)" % counts[entry.id] if counts.has(entry.id) else ""
+		buttons[entry.id].text = tr_text(entry.label) + suffix

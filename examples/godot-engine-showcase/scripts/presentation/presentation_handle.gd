@@ -21,6 +21,10 @@ func own(tween: Tween) -> void:
 	claimed = true
 	_tweens.append(tween)
 func cleanup(action: Callable) -> void: _cleanup.append(action)
+func lost_owned_motion() -> bool:
+	# Tween.kill()/freeing its bound node does not deliver normal completion.
+	# An invalid owned tween must not leave a claimed handle waiting forever.
+	return not done and not _tweens.is_empty() and _tweens.all(func(tween): return tween == null or not tween.is_valid())
 func join(operations: Array) -> void:
 	var running: Array = operations.filter(func(tween): return tween is Tween and tween.is_valid() and tween.is_running())
 	if running.is_empty(): hit(); finish(); return

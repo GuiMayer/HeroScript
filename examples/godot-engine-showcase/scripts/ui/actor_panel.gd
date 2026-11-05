@@ -53,6 +53,9 @@ func _ready() -> void:
 
 func _bind_nodes() -> void:
 	_root_content = get_node("%ActorRootContent")
+	_root_content.mouse_filter = Control.MOUSE_FILTER_PASS
+	for control in _root_content.find_children("*", "Control", true, false):
+		if not control is BaseButton: control.mouse_filter = Control.MOUSE_FILTER_PASS
 	_content = get_node("%ActorContent")
 	_title = get_node("%ActorTitle")
 	_intent = get_node("%ActorIntention")
@@ -224,3 +227,8 @@ func fit_battlefield_height(available: float) -> void:
 	for child in _battlefield_content.get_children():
 		if child != target_button and child is Control and child.visible: fixed += child.get_combined_minimum_size().y
 	target_button.custom_minimum_size.y = clampf(available - fixed - 1, 60, visual_context.profile.actor_art_max_height)
+
+func _gui_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_instance_valid(target_button) or target_button.disabled: return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		accept_event(); _on_target_pressed()

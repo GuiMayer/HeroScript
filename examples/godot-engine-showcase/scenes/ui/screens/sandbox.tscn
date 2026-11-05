@@ -72,6 +72,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="Menu" type="Button" parent="Header" unique_id=661729982]
+metadata/initial_focus = true
 custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"

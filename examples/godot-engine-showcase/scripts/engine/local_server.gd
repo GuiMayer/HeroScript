@@ -3,7 +3,7 @@ extends Node
 signal progress_changed(phase: String)
 var starting := false
 var launcher_pid := -1
-var startup_timeout_seconds := 120.0
+var startup_timeout_seconds := 300.0
 var _demo_root := ""
 var _player_data_root := ""
 var _arguments: PackedStringArray

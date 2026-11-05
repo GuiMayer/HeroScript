@@ -32,7 +32,8 @@ func load_receipt(receipt: Dictionary) -> void:
 	clear()
 	var state := preload("res://scripts/presentation/presentation_envelope.gd").dictionary(receipt.get("state"))
 	var resolution = state.get("resolution")
-	_frames = presentation_frames(resolution.get("frames", [])) if resolution is Dictionary else []
+	var frames_data = resolution.get("frames") if resolution is Dictionary else null
+	_frames = presentation_frames(frames_data) if frames_data is Array else []
 	index = 0
 
 static func presentation_frames(engine_frames: Array) -> Array:

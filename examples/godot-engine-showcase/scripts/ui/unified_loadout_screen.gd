@@ -76,6 +76,7 @@ func _render() -> void:
 	if not usable: _present_attributes({"name": "", "attributes": []})
 	_inscriptions_empty.visible = usable and controller.inscriptions == null
 	for button in shell.buttons.values(): button.disabled = not usable
+	shell.set_save_status(controller.busy or session.has_pending_command, controller.uncertain or controller.read_error)
 	shell.set_feedback(controller.message if usable else "Run or character changed. Reopen loadout.", controller.uncertain or controller.read_error)
 	inscriptions_view.visible = controller.inscriptions != null and shell.active_tab == "inscriptions" and usable
 	if controller.inscriptions != null and usable:
@@ -99,6 +100,7 @@ func _render() -> void:
 	elif controller.inscriptions == null: _present_attributes({"name": "", "attributes": []})
 	if is_instance_valid(supports_view): supports_view.present(controller.support if usable else {}, not controller.editable())
 	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null and usable else 0, "cards": controller.deck_cards.size() if usable else 0, "relics": controller.relics if usable else []}
+	shell.present_counts({"inscriptions": ("%s/%s" % [summary.equipped, controller.inscriptions.snapshot().get("slots", []).size()]) if controller.inscriptions != null else summary.equipped, "deck": summary.cards, "relics": summary.relics.size()})
 	if is_instance_valid(overview_view): overview_view.present(summary)
 	if is_instance_valid(relics_view): relics_view.present(summary)
 func _back() -> void:

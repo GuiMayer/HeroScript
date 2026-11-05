@@ -12,6 +12,8 @@ config_version=5
 
 config/name="HeroScript: Ember Archive"
 run/main_scene="res://main.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="HeroScript"
 config/features=PackedStringArray("4.7")
 
 [autoload]
@@ -31,9 +33,6 @@ window/size/window_width_override=1280
 window/size/window_height_override=800
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-
-[environment]
-
 
 [input]
 

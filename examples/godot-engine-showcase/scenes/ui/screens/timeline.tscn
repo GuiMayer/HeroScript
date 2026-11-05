@@ -59,6 +59,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="Back" type="Button" parent="Header" unique_id=169154644]
+metadata/initial_focus = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
@@ -187,3 +188,9 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"SecondaryAction"
 text = "VERIFY REPLAY"
+
+[node name="PreviousFrame" type="Button" parent="Body/DetailsPanel/Information/PlaybackControls"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "PREVIOUS FRAME"
+theme_type_variation = &"SecondaryAction"
