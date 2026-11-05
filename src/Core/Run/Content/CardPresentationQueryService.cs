@@ -80,7 +80,7 @@ public sealed class CardPresentationQueryService(IRunQueryService runs, IContent
                 : DeckCompartments.DeckCompartmentComposition.Resolve(run, runtime, definition, subject.Instance, effectiveCards);
             if (composed.IsFailure) return Result<CardPresentationBatch>.Failure(composed.Error);
             var facts = CardBasePresentationProjector.Project(definition, composed.Value, subject.Identity,
-                new() { RunId = run.RunId, RunSequence = run.Sequence, ContentRevision = run.Determinism.ContentRevision });
+                new() { RunId = run.RunId, RunSequence = run.Sequence, ContentRevision = run.Determinism.ContentRevision }, runtime);
             if (facts.IsFailure) return Result<CardPresentationBatch>.Failure(facts.Error);
             if (combat != null && actorId != null && subject.Instance != null)
             {

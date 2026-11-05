@@ -92,13 +92,25 @@ public sealed record CardPresentationFacts
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<CardComponentContributionTrace>? ComponentContributions { get; init; }
     public ImmutableArray<CardValueExplanation> Explanations { get; init; } = [];
+    public ImmutableArray<CardRuleReference> ReferencedRules { get; init; } = [];
     public ImmutableArray<CardImpactExplanation> Impacts { get; init; } = [];
     public bool ImpactsTruncated { get; init; }
     public string Fingerprint { get; init; } = string.Empty;
 }
 
 public sealed record CardScalingAttribute(string BindingId, string ComponentId, string AttributeId,
-    CalculationEntityScope Scope, string Bucket, bool Eligible, string? InactiveReason, float? CurrentValue);
+    CalculationEntityScope Scope, string Bucket, bool Eligible, string? InactiveReason, float? CurrentValue)
+{
+    public float Scale { get; init; } = 1;
+    public float Offset { get; init; }
+    public CalculationBucketOperation Operation { get; init; }
+    public string? ResourceField { get; init; }
+    public float? ContributionValue { get; init; }
+    public bool Applied { get; init; }
+}
+public sealed record CardRuleInfluence(string Channel, float? Value);
+public sealed record CardRuleReference(string Kind, string DefinitionId, string Name, string Description,
+    ImmutableArray<CardRuleInfluence> Influences);
 public sealed record CardValueExplanation
 {
     public string EffectPath { get; init; } = string.Empty;

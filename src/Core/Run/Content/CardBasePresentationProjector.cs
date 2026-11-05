@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Common;
 using Core.Determinism;
 using Core.Effects;
+using Core.Content;
 
 namespace Core.Run.Content;
 
@@ -16,7 +17,7 @@ public static class CardBasePresentationProjector
     };
 
     public static Result<CardPresentationFacts> Project(CompiledCardDefinition original, EffectiveCardDefinition composed,
-        CardPresentationIdentity identity, CardPresentationVersion version)
+        CardPresentationIdentity identity, CardPresentationVersion version, ContentRuntime? runtime = null)
     {
         var valid = identity.Validate();
         if (valid.IsFailure) return Result<CardPresentationFacts>.Failure(valid.Error);
@@ -52,7 +53,8 @@ public static class CardBasePresentationProjector
             RuleOverrides = composed.All<CardEffectRuleOverrideComponentDefinition>().ToImmutableArray(),
             Influences = composed.All<CardInfluenceComponentDefinition>().ToImmutableArray(),
             PermanentChanges = composed.UpgradeTrace.ToImmutableArray(),
-            ComponentContributions = composed.ComponentContributions
+            ComponentContributions = composed.ComponentContributions,
+            ReferencedRules = runtime == null ? [] : CardRuleReferenceProjector.Read(runtime, effects)
         };
         return Result<CardPresentationFacts>.Success(facts with { Fingerprint = CanonicalJson.ComputeHash(facts) });
     }

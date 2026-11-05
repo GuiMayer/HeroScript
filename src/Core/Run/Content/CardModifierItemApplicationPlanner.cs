@@ -57,8 +57,8 @@ public sealed class CardModifierItemApplicationPlanner(IContentRuntimeResolver r
         var identity = new CardPresentationIdentity { Kind = CardPresentationSubjectKind.Transformation,
             DefinitionId = card.DefinitionId, CardInstanceId = cardId };
         var version = new CardPresentationVersion { RunId = run.RunId, RunSequence = run.Sequence, ContentRevision = run.Determinism.ContentRevision };
-        var beforeFacts = CardBasePresentationProjector.Project(compiled.Value, before.Value, identity, version);
-        var afterFacts = CardBasePresentationProjector.Project(compiled.Value, after.Value, identity, version);
+        var beforeFacts = CardBasePresentationProjector.Project(compiled.Value, before.Value, identity, version, active.Value);
+        var afterFacts = CardBasePresentationProjector.Project(compiled.Value, after.Value, identity, version, active.Value);
         if (beforeFacts.IsFailure) return Fail(beforeFacts.Error);
         if (afterFacts.IsFailure) return Fail(afterFacts.Error);
         var used = item with { State = definition.Value.Use == CardModifierItemUse.Consume ? CardModifierItemState.Consumed : CardModifierItemState.Bound,

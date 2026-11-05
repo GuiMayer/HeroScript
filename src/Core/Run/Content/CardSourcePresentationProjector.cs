@@ -6,6 +6,7 @@ using Core.Content;
 using Core.Determinism;
 using Core.Effects;
 using Core.Math;
+using Core.Resources;
 
 namespace Core.Run.Content;
 
@@ -77,7 +78,7 @@ public sealed class CardSourcePresentationProjector(IContentRuntimeResolver runt
                     profile.Value.ResourceInfluenceBindings.Any(binding => binding.Scope == CalculationEntityScope.Target));
                 string? unavailable = numeric.InputQuantityId != null ? "transported_quantity_required" :
                     !profile.Value.Stages.IsEmpty && sourceIds.IsEmpty || unscopedTarget ? "source_scope_not_declared" : null;
-                var attributes = Attributes(profile.Value, sourceIds, tags, actor);
+                var attributes = Attributes(profile.Value, sourceIds, tags, actor, string.IsNullOrWhiteSpace(numeric.Channel) ? profile.Value.Channel : numeric.Channel);
                 CalculationResult? calculation = null;
                 if (unavailable == null)
                 {
@@ -91,6 +92,11 @@ public sealed class CardSourcePresentationProjector(IContentRuntimeResolver runt
                 }
                 parameters.Add(parameter with { Values = parameter.Values with { Source = calculation?.Value,
                     UnitId = numeric.UnitId, UnresolvedReason = unavailable } });
+                attributes = attributes.Select(attribute => {
+                    var contribution = calculation?.Buckets.SelectMany(bucket => bucket.Contributions)
+                        .FirstOrDefault(value => value.InfluenceId == attribute.BindingId && value.Applied);
+                    return attribute with { Applied = contribution != null, ContributionValue = contribution?.Value };
+                }).ToImmutableArray();
                 explanations.Add(new() { EffectPath = presented.EffectPath, Parameter = parameter.Parameter, Attributes = attributes,
                     Buckets = calculation?.Buckets.Take(64).Select(bucket => bucket with { Contributions = bucket.Contributions.Take(64).ToArray() }).ToImmutableArray() ?? [],
                     ContextTags = tags.Order(StringComparer.Ordinal).ToImmutableArray(), ConditionPassed = condition, ConditionExpression = effect.Condition,
@@ -107,17 +113,31 @@ public sealed class CardSourcePresentationProjector(IContentRuntimeResolver runt
     }
 
     private static ImmutableArray<CardScalingAttribute> Attributes(CalculationPipelineDefinition profile,
-        ImmutableArray<string> stageIds, IReadOnlySet<string> tags, CombatActorState actor) => profile.StatInfluenceBindings
+        ImmutableArray<string> stageIds, IReadOnlySet<string> tags, CombatActorState actor, string channel) => profile.StatInfluenceBindings
         .Where(binding => binding.Scope == CalculationEntityScope.Actor && (stageIds.IsEmpty ||
             profile.Buckets.Any(bucket => bucket.BucketId == binding.Bucket && stageIds.Contains(bucket.StageId!))))
         .OrderBy(binding => binding.BindingId, StringComparer.Ordinal).Select(binding => {
-            var eligible = binding.RequiredTags.All(tags.Contains) && !binding.ExcludedTags.Any(tags.Contains);
+            var eligible = binding.Channel == channel && binding.RequiredTags.All(tags.Contains) && !binding.ExcludedTags.Any(tags.Contains);
             var stats = actor.Component<StatEntityComponentState>(binding.ComponentId);
             float? value = stats?.Values.TryGetValue(binding.ValueId, out var raw) == true ? raw :
                 binding.MissingValue == MissingResourcePolicy.Zero ? binding.DefaultValue : null;
             return new CardScalingAttribute(binding.BindingId, binding.ComponentId, binding.ValueId, binding.Scope,
-                binding.Bucket, eligible, eligible ? value == null ? "attribute_not_present" : null : "tags_do_not_match", value);
-        }).ToImmutableArray();
+                binding.Bucket, eligible, eligible ? value == null ? "attribute_not_present" : null : "tags_do_not_match", value) {
+                Scale = binding.Scale, Offset = binding.Offset,
+                Operation = profile.Buckets.FirstOrDefault(bucket => bucket.BucketId == binding.Bucket)?.Operation ?? CalculationBucketOperation.Add };
+        }).Concat(profile.ResourceInfluenceBindings.Where(binding => binding.Scope == CalculationEntityScope.Actor &&
+            (stageIds.IsEmpty || profile.Buckets.Any(bucket => bucket.BucketId == binding.Bucket && stageIds.Contains(bucket.StageId!))))
+            .OrderBy(binding => binding.BindingId, StringComparer.Ordinal).Select(binding => {
+                var eligible = binding.Channel == channel && binding.RequiredTags.All(tags.Contains) && !binding.ExcludedTags.Any(tags.Contains);
+                var resource = actor.GetResource(binding.ResourceId);
+                float? value = resource == null ? binding.MissingResource == MissingResourcePolicy.Zero ? 0 : null : binding.Field switch {
+                    ResourceValueField.Current => resource.Current, ResourceValueField.Minimum => resource.Minimum,
+                    ResourceValueField.Maximum => resource.Maximum, _ => null };
+                return new CardScalingAttribute(binding.BindingId, "resources", binding.ResourceId, binding.Scope, binding.Bucket,
+                    eligible, eligible ? value == null ? "resource_not_present" : null : "tags_do_not_match", value) {
+                    Scale = binding.Scale, Offset = binding.Offset, ResourceField = binding.Field.ToString(),
+                    Operation = profile.Buckets.FirstOrDefault(bucket => bucket.BucketId == binding.Bucket)?.Operation ?? CalculationBucketOperation.Add };
+            })).ToImmutableArray();
 
     internal static ImmutableArray<CardCalculationSource> Sources(CalculationResult calculation, CalculationPipelineDefinition profile,
         EffectiveCardDefinition card, RunState run, CombatState combat)

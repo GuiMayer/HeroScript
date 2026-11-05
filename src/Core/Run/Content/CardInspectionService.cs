@@ -319,7 +319,7 @@ public sealed class CardInspectionService : ICardInspectionService, ICacheServic
                 new() { Kind = CardPresentationSubjectKind.Instance, DefinitionId = instance.DefinitionId,
                     CardInstanceId = instance.CardInstanceId },
                 new() { RunId = run.RunId, RunSequence = run.Sequence,
-                    ContentRevision = run.Determinism.ContentRevision });
+                    ContentRevision = run.Determinism.ContentRevision }, runtime.Value);
             if (baseline.IsFailure) return Result<CardInspectionResult>.Failure(baseline.Error);
             var source = _presentation.Project(baseline.Value, effective.Value, run, combat, actorId);
             if (source.IsFailure) return Result<CardInspectionResult>.Failure(source.Error);
