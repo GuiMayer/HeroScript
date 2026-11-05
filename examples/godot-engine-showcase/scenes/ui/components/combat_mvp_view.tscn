@@ -89,4 +89,6 @@ scroll_active = false
 [node name="Divider" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field"]
 visible = false
 [editable path="CanvasHost/ReferenceCanvas/Battlefield"]
-[connection signal="pressed" from="CanvasHost/ReferenceCanvas/CombatHeader/LogButton" to="." method="_open_combat_log"]
+[connection signal="log_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_open_combat_log"]
+[connection signal="inspection_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_on_header_inspection_requested"]
+[connection signal="pause_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_on_header_pause_requested"]

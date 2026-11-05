@@ -7,6 +7,7 @@ signal timeline_requested
 signal tools_requested
 signal pause_requested
 var tool_button: Button
+var support_label: Label
 var _model := {}
 var _context_key := ""
 var _bound := false
@@ -25,6 +26,7 @@ func apply_model(model: Dictionary) -> void:
 	if _model == model and _context_key == context_key: return
 	_context_key = context_key; _model = model.duplicate(true)
 	tool_button = get_node("ZoneToolsButton")
+	support_label = get_node("Spacer/SupportStatus")
 	get_node("Round").text = str(model.round); get_node("Round").tooltip_text = str(model.context)
 	for entry in [["TimelineButton", "timeline", str(model.timeline) + " [" + visual_context.action_label("open_timeline") + "]", true], ["ZoneToolsButton", "tools", str(model.tools), true], ["PauseButton", "pause", str(model.pause) + " [" + visual_context.action_label("pause_game") + "]", false]]:
 		if not has_node(entry[0]): continue

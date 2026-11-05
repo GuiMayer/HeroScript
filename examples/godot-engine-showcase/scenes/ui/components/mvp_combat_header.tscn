@@ -1,31 +1,124 @@
 [gd_scene format=3]
-[ext_resource type="Script" path="res://scripts/ui/components/combat_header_view.gd" id="Script"]
-[node name="CombatHeader" type="HBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
-theme_override_constants/separation = 24
+[ext_resource type="Script" path="res://scripts/ui/components/mvp_combat_header_view.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/scenery_art_slot.tscn" id="Art"]
+[ext_resource type="Script" path="res://scripts/ui/components/combat_keyline.gd" id="Keyline"]
+[node name="CombatHeader" type="Control"]
+custom_minimum_size = Vector2(0, 88)
+anchor_right = 1.0
+mouse_filter = 2
 script = ExtResource("Script")
-[node name="HeroName" type="Label" parent="."]
-custom_minimum_size = Vector2(220, 0)
-theme_override_font_sizes/font_size = 24
-[node name="Round" type="Label" parent="."]
-theme_override_font_sizes/font_size = 22
-[node name="ActiveTurn" type="Label" parent="."]
-theme_override_font_sizes/font_size = 16
-[node name="Spacer" type="Control" parent="."]
+[node name="ActiveIdentity" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchor_right = 0.34
+anchor_bottom = 1.0
+offset_right = -16.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+[node name="PortraitFrame" type="PanelContainer" parent="ActiveIdentity"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 88)
+size_flags_vertical = 4
+mouse_filter = 2
+[node name="Portrait" parent="ActiveIdentity/PortraitFrame" instance=ExtResource("Art")]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="IdentityText" type="VBoxContainer" parent="ActiveIdentity"]
+layout_mode = 2
 size_flags_horizontal = 3
-[node name="SupportStatus" type="Label" parent="Spacer"]
-[node name="TimelineButton" type="Button" parent="."]
+alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 6
+[node name="ActorName" type="Label" parent="ActiveIdentity/IdentityText"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Ember Adept"
+text_overrun_behavior = 3
+clip_text = true
+mouse_filter = 1
+[node name="SupportStatus" type="Label" parent="ActiveIdentity/IdentityText"]
+unique_name_in_owner = true
 visible = false
-[node name="ZoneToolsButton" type="Button" parent="."]
-visible = false
-[node name="LogButton" type="Button" parent="."]
+layout_mode = 2
+theme_type_variation = &"Caption"
+theme_override_font_sizes/font_size = 14
+text_overrun_behavior = 3
+clip_text = true
+mouse_filter = 1
+[node name="RoundAndTurn" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.38
+anchor_right = 0.62
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_constants/separation = 6
+[node name="RoundPlate" type="PanelContainer" parent="RoundAndTurn"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 56)
+mouse_filter = 2
+[node name="Round" type="Label" parent="RoundAndTurn/RoundPlate"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "ROUND 1"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+clip_text = true
+mouse_filter = 1
+[node name="ActiveTurn" type="Label" parent="RoundAndTurn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Turn: Ember Adept"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+clip_text = true
+mouse_filter = 1
+[node name="HeaderActions" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.68
+anchor_right = 1.0
+anchor_bottom = 1.0
+alignment = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+[node name="LogButton" type="Button" parent="HeaderActions"]
+unique_name_in_owner = true
+layout_mode = 2
 custom_minimum_size = Vector2(100, 44)
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"SecondaryAction"
 text = "Combat log"
-[node name="PauseButton" type="Button" parent="."]
+clip_text = true
+[node name="InspectButton" type="Button" parent="HeaderActions"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+size_flags_vertical = 0
+theme_type_variation = &"SecondaryAction"
+disabled = true
+clip_text = true
+[node name="CircuitKeyline" type="Control" parent="HeaderActions/InspectButton"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("Keyline")
+[node name="PauseButton" type="Button" parent="HeaderActions"]
+unique_name_in_owner = true
+layout_mode = 2
 custom_minimum_size = Vector2(100, 44)
-
-[connection signal="pressed" from="TimelineButton" to="." method="_on_timeline_pressed"]
-
-[connection signal="pressed" from="ZoneToolsButton" to="." method="_on_tools_pressed"]
-
-[connection signal="pressed" from="PauseButton" to="." method="_on_pause_pressed"]
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"SecondaryAction"
+clip_text = true
+[node name="CircuitKeyline" type="Control" parent="HeaderActions/PauseButton"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("Keyline")
+[connection signal="pressed" from="HeaderActions/LogButton" to="." method="_on_log_pressed"]
+[connection signal="pressed" from="HeaderActions/InspectButton" to="." method="_on_inspect_pressed"]
+[connection signal="pressed" from="HeaderActions/PauseButton" to="." method="_on_pause_pressed"]

@@ -168,7 +168,7 @@ func _build_header() -> void:
 	var row = header_view
 	row.visual_context = visual_context
 	row.apply_model(presenter.header_model({"open_timeline": visual_context.action_label("open_timeline")}).to_dictionary())
-	var support_label: Label = row.get_node("Spacer/SupportStatus")
+	var support_label: Label = row.support_label
 	var support = _run_snapshot.get("supportCombat")
 	support_label.visible = support is Dictionary
 	if support is Dictionary:

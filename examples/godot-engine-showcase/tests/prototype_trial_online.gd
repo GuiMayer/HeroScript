@@ -40,7 +40,7 @@ func run() -> void:
 		check(await wait_until(func(): return session.synchronized and not router.host.get_child(0).controller.locked()), "animation executor releases the next tactical input")
 	check(session.run.get("supportCombat", {}).get("remainingOwnerActivations") == 3, "support cadence is published after its third-activation action")
 	var screen = router.host.get_child(0)
-	check(screen.view.header_view.get_node("Spacer/SupportStatus").visible, "same combat component displays the configured support")
+	check(screen.view.header_view.support_label.visible, "same combat component displays the configured support")
 	root.get_node("Playback").clear(); router.queue_free()
 	for _frame in 8: await process_frame
 	prefs.api_url = previous; prefs.changed.emit(); root.get_node("GameAudio").shutdown()

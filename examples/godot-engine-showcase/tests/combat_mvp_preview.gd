@@ -23,6 +23,10 @@ func _run() -> void:
 	var prior := {"scale": prefs.text_scale, "motion": prefs.reduced_motion, "locale": i18n.locale,
 		"run": session._run, "combat": session._combat, "zones": session._card_zones,
 		"actions": session._legal_actions, "gateway": session._gateway, "attributes": session._character_attributes}
+	for argument in OS.get_cmdline_user_args():
+		if argument == "--capture-phase=pt_BR":
+			prefs.locale = "pt_BR"
+			i18n.set_locale("pt_BR")
 	prefs.reduced_motion = true
 	session.configure(InspectionFixture.new())
 	session.synchronized = true
@@ -59,8 +63,8 @@ func _run() -> void:
 
 	check(screen.scene_file_path.ends_with("combat_mvp.tscn"), "MVP run selects dedicated screen")
 	check(screen.view.get_script().resource_path.ends_with("combat_mvp_view.gd"), "MVP uses layout variant with shared combat controller")
-	check(not screen.view.header_view.get_node("TimelineButton").visible, "MVP header hides timeline")
-	check(not screen.view.header_view.get_node("HeroName").text.is_empty(), "header identifies current hero")
+	check(not screen.view.header_view.has_node("TimelineButton"), "MVP header has no timeline compatibility node")
+	check(not screen.view.header_view.actor_name_label.text.is_empty(), "header identifies the active actor")
 	check(screen.view.has_node("CanvasHost/ReferenceCanvas") and not screen.view.has_node("CombatBody"), "MVP mounts its new authored canvas without the previous body")
 	for panel in screen.view.battlefield_view.panels.values():
 		check(panel.get_node("%ActorResources").get_index() > panel.target_button.get_index(), "resources appear below the artwork")
@@ -81,7 +85,7 @@ func _run() -> void:
 		root.size = resolution
 		await settle()
 		check(screen.view.bottom_hud.get_global_rect().end.x <= screen.get_global_rect().end.x + 1, "right controls remain within viewport " + str(resolution))
-		print("[MVP GEOMETRY] ", resolution, " header=", screen.view.header_view.get_global_rect(), " pause=", screen.view.header_view.get_node("PauseButton").get_global_rect(), " host=", screen.view.gameplay_column.get_global_rect(), " hand=", hand.get_global_rect())
+		print("[MVP GEOMETRY] ", resolution, " header=", screen.view.header_view.get_global_rect(), " pause=", screen.view.header_view.pause_button.get_global_rect(), " host=", screen.view.gameplay_column.get_global_rect(), " hand=", hand.get_global_rect())
 		check(hand.order.size() == 5, "shared hand displays five preview cards")
 		var before: Rect2 = hand.get_global_rect()
 		screen._toggle_character_sidebar()

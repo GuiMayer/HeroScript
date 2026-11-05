@@ -1,6 +1,6 @@
 # Reconstrução da composição de combate MVP — validação visual por etapa
 
-Atualizado em: 2026-11-05. Estado: etapa 1 implementada, aguardando aprovação visual; etapas 2–7 não iniciadas.
+Atualizado em: 2026-11-05. Estado: etapa 1 aprovada; etapa 2 implementada, aguardando aprovação visual; etapas 3–7 não iniciadas.
 
 ## Direção aprovada e substituição do plano anterior
 
@@ -218,8 +218,8 @@ Preparação, bindings e testes fazem parte da etapa visual correspondente. Não
 
 | Etapa | Implementação | Commit/evidência | Aprovação visual |
 | --- | --- | --- | --- |
-| 1 — Base e mão | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE1.md) | Aguardando aprovação do usuário |
-| 2 — Cabeçalho | Pendente | — | Aguardando etapa anterior |
+| 1 — Base e mão | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE1.md) | Aprovada pelo usuário em 2026-11-05 |
+| 2 — Cabeçalho | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE2.md) | Aguardando aprovação do usuário |
 | 3 — Pilhas | Pendente | — | Aguardando etapa anterior |
 | 4 — Campo e atores | Pendente | — | Aguardando etapa anterior |
 | 5 — Energia e End Turn | Pendente | — | Aguardando etapa anterior |

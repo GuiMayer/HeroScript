@@ -33,7 +33,7 @@ func run() -> void:
 	check(await wait_until(func(): return router.current_screen == "combat" and not router.host.get_child(0).controller.locked()), "combat uses normal presentation executor and releases input")
 	if failures: quit(1); return
 	var screen = router.host.get_child(0)
-	var label: Label = screen.view.header_view.get_node("Spacer/SupportStatus")
+	var label: Label = screen.view.header_view.support_label
 	check(label.visible and label.text.contains("3"), "floating header status displays engine-owned cadence without shifting controls")
 	for activation in 3:
 		check(await session.execute_combat_command("END_TURN", {"actorId": "player"}), "canonical actor activation %s completes through REST" % str(activation + 1))

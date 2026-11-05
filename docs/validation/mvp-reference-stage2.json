@@ -1,0 +1,237 @@
+{
+  "stage": 2,
+  "status": "implemented-awaiting-visual-approval",
+  "baselineCommit": "4b71c177",
+  "godot": "4.7.2.stable.steam.ed1daf0bf",
+  "scope": "isolated offline production projections; no live API certification",
+  "tests": [
+    {
+      "test": "mvp_reference_header",
+      "exit_code": 0,
+      "checks": 116,
+      "elapsed_ms": 7563,
+      "diagnostics": []
+    },
+    {
+      "test": "mvp_reference_base",
+      "exit_code": 0,
+      "checks": 89,
+      "elapsed_ms": 6134,
+      "diagnostics": []
+    },
+    {
+      "test": "editor_tool_scenes",
+      "exit_code": 0,
+      "checks": 55,
+      "elapsed_ms": 11306,
+      "diagnostics": []
+    },
+    {
+      "test": "ui_standalone_preview",
+      "exit_code": 0,
+      "checks": 8,
+      "elapsed_ms": 3710,
+      "diagnostics": []
+    },
+    {
+      "test": "ui_editability",
+      "exit_code": 0,
+      "checks": 11,
+      "elapsed_ms": 1399,
+      "diagnostics": []
+    },
+    {
+      "test": "ui_authored_signals",
+      "exit_code": 0,
+      "checks": 2,
+      "elapsed_ms": 940,
+      "diagnostics": []
+    },
+    {
+      "test": "combat_mvp_layout",
+      "exit_code": 0,
+      "checks": 23,
+      "elapsed_ms": 4918,
+      "diagnostics": []
+    },
+    {
+      "test": "combat_stage_layout",
+      "exit_code": 0,
+      "checks": 515,
+      "elapsed_ms": 16637,
+      "diagnostics": [
+        "WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).",
+        "ERROR: 2 resources still in use at exit (run with --verbose for details)."
+      ]
+    },
+    {
+      "test": "combat_controller",
+      "exit_code": 0,
+      "checks": 13,
+      "elapsed_ms": 663,
+      "diagnostics": []
+    },
+    {
+      "test": "combat_collaborators",
+      "exit_code": 0,
+      "checks": 12,
+      "elapsed_ms": 572,
+      "diagnostics": []
+    },
+    {
+      "test": "hand_selection",
+      "exit_code": 0,
+      "checks": 19,
+      "elapsed_ms": 2518,
+      "diagnostics": []
+    },
+    {
+      "test": "hand_hover_motion",
+      "exit_code": 0,
+      "checks": 8,
+      "elapsed_ms": 2236,
+      "diagnostics": []
+    },
+    {
+      "test": "card_presentation",
+      "exit_code": 0,
+      "checks": 89,
+      "elapsed_ms": 1776,
+      "diagnostics": []
+    },
+    {
+      "test": "card_cost_layout",
+      "exit_code": 0,
+      "checks": 14,
+      "elapsed_ms": 848,
+      "diagnostics": []
+    },
+    {
+      "test": "animation_contracts",
+      "exit_code": 0,
+      "checks": 8,
+      "elapsed_ms": 845,
+      "diagnostics": []
+    },
+    {
+      "test": "turn_hand_cycle",
+      "exit_code": 0,
+      "checks": 15,
+      "elapsed_ms": 2707,
+      "diagnostics": []
+    },
+    {
+      "test": "card_draw_pose",
+      "exit_code": 0,
+      "checks": 106,
+      "elapsed_ms": 6312,
+      "diagnostics": []
+    },
+    {
+      "test": "inline_card_selection",
+      "exit_code": 0,
+      "checks": 14,
+      "elapsed_ms": 570,
+      "diagnostics": []
+    },
+    {
+      "test": "card_payment",
+      "exit_code": 0,
+      "checks": 10,
+      "elapsed_ms": 841,
+      "diagnostics": []
+    },
+    {
+      "test": "pause_layers",
+      "exit_code": 0,
+      "checks": 24,
+      "elapsed_ms": 4406,
+      "diagnostics": []
+    },
+    {
+      "test": "ui_reconciliation",
+      "exit_code": 0,
+      "checks": 4,
+      "elapsed_ms": 3818,
+      "diagnostics": []
+    },
+    {
+      "test": "combat_mvp_preview",
+      "exit_code": 0,
+      "checks": 23,
+      "elapsed_ms": 8700,
+      "diagnostics": []
+    }
+  ],
+  "additionalPortugueseCapture": {
+    "test": "combat_mvp_preview",
+    "exit_code": 0,
+    "checks": 23,
+    "elapsed_ms": 10099,
+    "diagnostics": []
+  },
+  "protectedFiles": [
+    {
+      "file": "examples/godot-engine-showcase/scenes/ui/components/card_view.tscn",
+      "unchanged": true,
+      "sha256": "6822c9e49a3c2f6f1dada9377864a095f1f226e9edcc6c65534488f272fa5a3c"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scenes/ui/components/card_cost_symbol.tscn",
+      "unchanged": true,
+      "sha256": "60d482b50719f144ce5ca7598c1b7e252bf7152ae6c560fbb7d570972421b67a"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scenes/ui/components/combat_hand.tscn",
+      "unchanged": true,
+      "sha256": "9f3716152f712b58433a10e3f3833e458d8b7dd34c415558447a05e6dee92466"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_view.gd",
+      "unchanged": true,
+      "sha256": "2acc7a5a6130bb5fbfa896de4ed567bd6953896a6022c0330cf4ad220b377f80"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_hand_view.gd",
+      "unchanged": true,
+      "sha256": "28663e38a5d727537b52d3924c60c15072e953f06c715f5b82b21287664e2b2e"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_layout.gd",
+      "unchanged": true,
+      "sha256": "1d74f650707117352f81f44d3bf7d25a178aa4cf4395beedb752912fadd59123"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_visual_style.gd",
+      "unchanged": true,
+      "sha256": "ee6b20989fe147476ca1c23837b715d360953338e478510c9e4c226edc090329"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_use_motion.gd",
+      "unchanged": true,
+      "sha256": "d297ae711044bb779d6aaf967b08c42622668fc3c2063c22ae959e4d2041ae3f"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_zone_motion.gd",
+      "unchanged": true,
+      "sha256": "ed52e837ab4244c72f29faa83d041e63bd76cea2300493d22641d8da19473f16"
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/presentation/motion_policy.gd",
+      "unchanged": true,
+      "sha256": "92425092f165baeb133151ee1df007f93a21a7fef4d59294fe35a1c66a8e2894"
+    },
+    {
+      "file": "examples/godot-engine-showcase/data/themes/mvp_card_style.tres",
+      "unchanged": true,
+      "sha256": "fc5ee2c75f83f6cb312be800bb632cae755e8da57f31e9f06a37c1f910d64fd4"
+    }
+  ],
+  "baselineTeardownDiagnostic": "WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).\n   at: cleanup (core/object/object.cpp:2536)\nERROR: 2 resources still in use at exit (run with --verbose for details).\n   at: clear (core/io/resource.cpp:822)\n",
+  "captures": [
+    ".runtime/mvp-reference-stage2/after/mvp-1920x1080.png",
+    ".runtime/mvp-reference-stage2/after/mvp-1280x800.png",
+    ".runtime/mvp-reference-stage2/after/mvp-2560x1080.png",
+    ".runtime/mvp-reference-stage2/pt-BR/mvp-1920x1080.png"
+  ]
+}

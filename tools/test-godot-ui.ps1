@@ -12,7 +12,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout', 'loadout_editorial', 'loadout_input', 'api_request_numbers', 'combat_controller', 'combat_input_soak', 'card_cost_layout', 'window_monitor', 'local_server') }
-if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components', 'editor_tool_scenes', 'mvp_reference_base') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components', 'editor_tool_scenes', 'mvp_reference_base', 'mvp_reference_header') }
 $workspace = Split-Path $PSScriptRoot -Parent
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('card_transit_counter', 'shared_canvas_theme', 'combat_attributes_drawer') }
 if (-not $PSBoundParameters.ContainsKey('Tests')) {

@@ -13,16 +13,52 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 	super.apply_projection(data, combat_presenter, cards_presenter, facts, local_context)
 
 func _build_header() -> void:
-	super._build_header()
-	header_view.get_node("HeroName").text = presenter.actor_name(_input_actor)
-	header_view.get_node("TimelineButton").hide()
-	var active: String = str(_combat_snapshot.get("activation", {}).get("activeActorId", _combat_snapshot.get("activeActorId", "")))
-	header_view.get_node("ActiveTurn").text = visual_context.translator.text("Turn: %s") % presenter.actor_name(active) if not active.is_empty() else ""
-	var button: Button = header_view.get_node("LogButton")
-	button.text = visual_context.translator.text("Combat log")
+	_present_header(presenter, _combat_snapshot)
+
+func _present_header(projection, combat_state: Dictionary) -> void:
+	if not is_instance_valid(header_view):
+		header_view = get_node(header_path)
+		header_view.minimum_size_changed.connect(_queue_gameplay_layout)
+	var active: String = str(combat_state.get("activation", {}).get("activeActorId", combat_state.get("activeActorId", "")))
+	var identity: Dictionary = {}
+	for actor in projection.actors():
+		if str(actor.get("instanceId", "")) == (active if not active.is_empty() else _input_actor): identity = actor; break
+	var support = _run_snapshot.get("supportCombat")
+	var support_text := ""
+	var support_hint := ""
+	if support is Dictionary and not str(support.get("supportId", "")).is_empty() and (support.get("remainingOwnerActivations") is float or support.get("remainingOwnerActivations") is int):
+		support_text = visual_context.translator.text("%s · %s activations remaining") % [visual_context.translator.content_name(str(support.get("supportId", ""))), str(int(support.remainingOwnerActivations))]
+		support_hint = visual_context.translator.content_name(str(support.get("routineId", "")))
+	var model: Dictionary = projection.header_model({}).to_dictionary()
+	header_view.apply_model({"actorName": projection.actor_name(str(identity.get("instanceId", ""))),
+		"actorDefinitionId": str(identity.get("definitionId", "")), "round": model.round,
+		"turn": visual_context.translator.text("Turn: %s") % projection.actor_name(active) if not active.is_empty() else "",
+		"support": support_text, "supportHint": support_hint, "log": visual_context.translator.text("Combat log"),
+		"pause": "%s [%s]" % [str(model.pause), visual_context.action_label("pause_game")],
+		"inspect": "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]}, visual_context)
+	_refresh_header_inspection()
+
+func _refresh_header_inspection(_id := "") -> void:
+	if not is_instance_valid(header_view): return
+	var id: String = hand.active_card_id() if is_instance_valid(hand) else ""
+	header_view.set_inspection_available(not id.is_empty() and hand.is_card_pickable(id))
+
+func _on_header_pause_requested() -> void: intent_requested.emit("pause", [])
+func _on_header_inspection_requested() -> void:
+	if is_instance_valid(hand) and not hand.reading_modal and not hand.interaction.dragging:
+		_inspect_instance(hand.active_card_id())
+
+func _update_controls() -> void:
+	super._update_controls()
+	_refresh_header_inspection()
 
 func _build_hand() -> void:
 	super._build_hand()
+	# The same inspection action is now in the header, not duplicated in the dock.
+	hand.toolbar.get_node("HandInspectButton").hide()
+	if not hand.card_previewed.is_connected(_refresh_header_inspection): hand.card_previewed.connect(_refresh_header_inspection)
+	if not hand.card_hovered.is_connected(_refresh_header_inspection): hand.card_hovered.connect(_refresh_header_inspection)
+	_refresh_header_inspection()
 	var energy: Label = hand_section.get_node("Energy")
 	energy.text = ""
 	for actor in _combat_snapshot.get("actors", []):
@@ -55,8 +91,10 @@ func _layout_gameplay() -> void:
 	bottom_hud.offset_top = -height - hand_bottom_inset
 	bottom_hud.offset_bottom = -hand_bottom_inset
 	if is_instance_valid(header_view):
-		header_view.position = Vector2.ZERO
-		header_view.size = Vector2(fitted.x, header_view.get_combined_minimum_size().y)
+		header_view.offset_left = 0.0
+		header_view.offset_right = 0.0
+		header_view.offset_top = 0.0
+		header_view.offset_bottom = header_view.get_combined_minimum_size().y
 	if is_instance_valid(battlefield_actors):
 		battlefield_actors.offset_top = header_view.size.y + battlefield_top_gap
 		battlefield_actors.offset_bottom = bottom_hud.offset_top - arena_gap
@@ -73,6 +111,11 @@ func _layout_gameplay() -> void:
 			candidate_panel.offset_bottom = -height
 			candidate_panel.offset_top = -height - layout_profile.candidate_height
 			candidate_panel.offset_right = layout_profile.candidate_width
+
+func present_combat_snapshot(state: Dictionary) -> void:
+	super.present_combat_snapshot(state)
+	var projection = Presenter.new(_run_snapshot, state, [], visual_context.translator, presentation)
+	_present_header(projection, state)
 
 func present_frame(frame: Dictionary, index: int, total: int) -> void:
 	super.present_frame(frame, index, total)

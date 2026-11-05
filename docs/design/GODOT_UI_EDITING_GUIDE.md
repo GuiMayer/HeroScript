@@ -49,4 +49,10 @@ Validação desta revisão: 55 montagens de cenas no editor sem erros ou diagnó
 
 A cena `combat_mvp_view.tscn` agora usa `CanvasHost/ReferenceCanvas`, sem `CombatBody` ou `Balance`. A largura e a posição relativa da mão são editáveis nas âncoras de `HandHost`; `Hand Bottom Inset` controla sua distância inferior. A altura é calculada pelo mínimo real do componente, preservando seus algoritmos. O contexto de tema e o estilo das cartas continuam os atuais. Os controles em `TemporaryControls` aguardam suas etapas visuais; não são um fallback para a árvore anterior.
 
-Consulte [a validação da etapa 1](../validation/MVP_COMBAT_REFERENCE_STAGE1.md). A etapa está implementada, aguardando aprovação visual antes de qualquer avanço.
+Consulte [a validação da etapa 1](../validation/MVP_COMBAT_REFERENCE_STAGE1.md). A etapa 1 foi aprovada; o cabeçalho da etapa 2 aguarda aprovação visual.
+
+## Cabeçalho MVP: etapa 2
+
+Abra `scenes/ui/components/mvp_combat_header.tscn`. As âncoras de `ActiveIdentity`, `RoundAndTurn` e `HeaderActions` definem suas posições relativas; o centro da rodada independe das larguras laterais. Edite o retrato em `PortraitFrame` e o texto nos nós de nomes únicos. `Preview Model` oferece dados locais para editor/F6. O script apenas aplica dados/tema e calcula a altura mínima necessária ao conteúdo; não troca a hierarquia. Os três sinais de ação ficam nas cenas, e a inspeção usa o componente existente.
+
+[Validação da etapa 2](../validation/MVP_COMBAT_REFERENCE_STAGE2.md). As pilhas permanecem na posição provisória até aprovação e execução da etapa 3.
