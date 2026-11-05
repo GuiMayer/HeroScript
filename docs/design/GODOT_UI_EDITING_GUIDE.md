@@ -36,3 +36,11 @@ Conexões fixas de cabeçalho e controles de turno estão nos `.tscn` e aparecem
 Os seis templates removidos eram Labels/botão sem comportamento: `card_inline_label`, `card_detail_line`, `resource_counter`, `combat_button`, `activity_badge` e `attribute_source_trace`. Seu conteúdo é variável e suas fontes agora usam variantes do Theme ou a política de carta existente. O símbolo de custo, tooltip, carta, status e recurso continuam componentes porque têm comportamento ou reutilização próprios.
 
 Não foram removidos laboratórios ou variantes de inscrições sem confirmação de sua finalidade.
+
+## Regressão de placeholders no editor
+
+`tools/test-godot-ui.ps1 -Tests editor_tool_scenes` inicia o editor headless e monta as cenas de UI cujas raízes executam com `@tool`. O teste inspeciona também os scripts dos descendentes e exercita a aquisição do cenário de combate. A mão externa é coberta dentro das cenas de combate; não deve ser montada sem seu toolbar.
+
+A revisão corrigiu a atribuição ao glifo do mapa e habilitou execução no editor da coleção de cartas, cenário de combate, peças de inscrição, traços decorativos e recursos de métricas de menu/chrome/efeitos. Não houve alteração de layout, fórmulas visuais ou durações. `modal_focus.gd` permanece deliberadamente apenas em runtime: é um auxiliar de restauração de foco de popups, não chamado pelas prévias.
+
+Validação desta revisão: 55 montagens de cenas no editor sem erros ou diagnósticos de teardown, além de 223 verificações de editabilidade, prévias, hover, mapa, efeitos de arte, inscrições e coleções em runtime. Os testes usam cópia isolada do projeto e não enviam comandos à API.

@@ -1,3 +1,4 @@
+@tool
 extends Control
 ## Static parallel offset polylines. No input, minimum-size or frame processing.
 @export_range(1, 8) var tracks := 5

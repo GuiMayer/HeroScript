@@ -1,3 +1,4 @@
+@tool
 extends Resource
 @export var icon_size := 28
 @export var corner_cut := 8.0

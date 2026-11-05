@@ -1,3 +1,4 @@
+@tool
 class_name CombatSceneryView
 extends Control
 ## Artwork only. Actor positions follow UI anchors without owning targets or rules.

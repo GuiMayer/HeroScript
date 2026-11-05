@@ -1,3 +1,4 @@
+@tool
 extends Control
 ## Small native map symbols; authored non-placeholder art still takes precedence.
 var kind := ""

@@ -1,3 +1,4 @@
+@tool
 class_name CardCollectionView
 extends VBoxContainer
 ## Read-only collection, not a second playable hand.

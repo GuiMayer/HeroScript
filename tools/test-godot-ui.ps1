@@ -12,7 +12,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout', 'loadout_editorial', 'loadout_input', 'api_request_numbers', 'combat_controller', 'combat_input_soak', 'card_cost_layout', 'window_monitor', 'local_server') }
-if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components', 'editor_tool_scenes') }
 $workspace = Split-Path $PSScriptRoot -Parent
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('card_transit_counter', 'shared_canvas_theme', 'combat_attributes_drawer') }
 if (-not $PSBoundParameters.ContainsKey('Tests')) {
@@ -64,6 +64,7 @@ foreach ($test in $testNames) {
         if ($VisualPhase) { $arguments += "--capture-phase=$VisualPhase" }
         if ($VisualResolution) { $arguments = @('--resolution',$VisualResolution) + $arguments + "--capture-resolution=$VisualResolution" }
     }
+    elseif ($test -eq 'editor_tool_scenes') { $arguments += @('--editor','res://tests/editor_tool_scenes.tscn','--','--editor-ui-regression') }
     elseif ($test -eq 'import') { $arguments += @('--editor','--import','--quit') }
     else { $arguments += @('--script',"res://tests/$test.gd",'--','--layout-smoke') }
     if ($ApiUrl -and $test -ne 'import') { $arguments += "--api-url=$ApiUrl" }

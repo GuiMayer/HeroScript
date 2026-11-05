@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ## Presentation only. Shared palette, never resource semantics or gameplay values.
 @export var impact_color := Color("#b83d24")

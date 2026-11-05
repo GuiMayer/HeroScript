@@ -1,3 +1,4 @@
+@tool
 extends Resource
 ## Menu geometry only; no settings selection, persistence or gameplay rules.
 @export var content_width := 1080.0

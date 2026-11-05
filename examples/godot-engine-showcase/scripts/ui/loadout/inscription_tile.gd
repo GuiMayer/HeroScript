@@ -1,3 +1,4 @@
+@tool
 class_name InscriptionTile
 extends Button
 ## Native drag/drop presentation only. Payloads belong to one live view revision.
