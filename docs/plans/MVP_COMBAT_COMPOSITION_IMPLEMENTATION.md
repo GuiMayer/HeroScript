@@ -50,3 +50,9 @@ Prioridade 16:9. As reservas laterais equivalentes centralizam a mÃ£o enquanto
 - Renderização da variante em 1920×1080, 1280×800 e 2560×1080 aprovada pelo runner; captura 1920×1080 inspecionada visualmente.
 - Mão de 12 cartas utiliza a rolagem do componente atual. A revisão da faixa visível/empilhamento continua no backlog acima.
 - O teste usa projeções locais; não certifica comandos HTTP ou o fluxo completo de uma run com a API.
+
+## Reconstrução da composição
+
+A primeira variante copiava a árvore anterior e não representava uma reconstrução suficiente. Foi substituída por uma árvore específica com cabeçalho `mvp_combat_header.tscn`, arena `mvp_arena.tscn`, faixa inferior de mão/energia e coluna de pilhas/ações. Os componentes de ator são reorganizados para intenção, arte, nome, recursos e status; o divisor decorativo central foi removido. Cartas usam métricas locais do MVP (212×300) sem modificar o perfil dos outros settings. Os valores e opções continuam publicados pela engine e tratados pelo controlador compartilhado.
+
+A nova certificação inclui seleção de carta, seleção de alvo, opções de custo, cancelamento e abertura do registro: 23 verificações no MVP, 515 na composição anterior, 13 no controlador e 14 na seleção de custos. A renderização com cinco cartas foi inspecionada em 1920×1080; o runner também produziu 1280×800 e 2560×1080. Isso não substitui a certificação HTTP pendente.

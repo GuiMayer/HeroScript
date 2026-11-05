@@ -14,7 +14,7 @@ func settle() -> void:
 	for _i in 12: await process_frame
 func _actor(id: String, definition: String, side: String) -> Dictionary:
 	return {"instanceId": id, "definitionId": definition, "sideId": side, "resources": {
-		"health": {"current": 48, "maximum": 72}, "block": {"current": 8, "maximum": 999},
+		"health": {"current": 48, "minimum": 0, "maximum": 72}, "block": {"current": 8, "maximum": 999},
 		"energy": {"current": 3, "maximum": 3}, "mana": {"current": 5, "maximum": 8}}, "statuses": []}
 func _run() -> void:
 	var prefs = root.get_node("Preferences")
@@ -61,6 +61,19 @@ func _run() -> void:
 	check(screen.view.get_script().resource_path.ends_with("combat_mvp_view.gd"), "MVP uses layout variant with shared combat controller")
 	check(not screen.view.header_view.get_node("TimelineButton").visible, "MVP header hides timeline")
 	check(not screen.view.header_view.get_node("HeroName").text.is_empty(), "header identifies current hero")
+	check(screen.view.get_node("CombatBody").scene_file_path.ends_with("mvp_arena.tscn"), "MVP uses its own authored arena tree")
+	for panel in screen.view.battlefield_view.panels.values():
+		check(panel.get_node("%ActorResources").get_index() > panel.target_button.get_index(), "resources appear below the artwork")
+	screen._choose_card("fixture-0")
+	check(screen.selected_card == "fixture-0", "shared input controller selects the card")
+	screen._select_target("wisp")
+	await settle()
+	check(screen.view.candidate_panel.visible and session._run.sequence == 1, "targeting uses published cost options without mutating engine state")
+	screen._cancel_selection()
+	check(screen.selected_card.is_empty(), "shared cancellation clears selection")
+	screen.view._open_combat_log()
+	check(screen.view.get_node("CombatLog").visible, "combat log control opens the event panel")
+	screen.view.get_node("CombatLog").hide()
 	var registry = load("res://scripts/ui/scene_registry.gd")
 	check(registry.combat_route({"settingId": "ascendant"}, "prototype-test") == "combat", "actual run setting overrides menu selection")
 	check(registry.combat_route({"settingId": "prototype-test"}, "default") == "combat_mvp", "continuing MVP selects correct scene")
@@ -74,6 +87,8 @@ func _run() -> void:
 		await settle()
 		check(hand.get_global_rect() == before, "attribute overlay does not move hand")
 		if DisplayServer.get_name() != "headless":
+			screen._toggle_character_sidebar()
+			await settle()
 			await RenderingServer.frame_post_draw
 			for argument in OS.get_cmdline_user_args():
 				if argument.begins_with("--lab-output="):
