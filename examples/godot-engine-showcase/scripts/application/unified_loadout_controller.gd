@@ -76,6 +76,8 @@ func edit_inscription(method: String, args: Array = []) -> void:
 		_finish("Equipment changed. Synchronizing…"); return
 	var candidate = preload("res://scripts/application/loadout_workspace.gd").new()
 	if not candidate.accept(response.data): _finish("Loadout unavailable."); return
+	if not candidate.source.get("canEquip", false):
+		_finish(candidate.equipment_lock_reason()); return
 	candidate.selected_slot = inscriptions.selected_slot; candidate.selected_item = inscriptions.selected_item
 	candidate.callv(method, args)
 	if not candidate.dirty(): _finish("No equipment changes."); return

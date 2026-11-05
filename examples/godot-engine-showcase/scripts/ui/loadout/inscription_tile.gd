@@ -9,6 +9,7 @@ var source_slot := ""
 var drag_scope: int
 var revision := ""
 var known_items: Array = []
+var equipment_enabled := true
 var drop_color := Color("286853")
 
 static func create(editorial := true) -> InscriptionTile:
@@ -19,7 +20,7 @@ func _ready() -> void:
 	set_process(false)
 
 func drag_payload() -> Variant:
-	if item_id.is_empty(): return null
+	if not equipment_enabled or item_id.is_empty(): return null
 	return {"kind": "inscription_draft", "scope": drag_scope, "revision": revision,
 		"item": item_id, "source": source_slot}
 
@@ -37,7 +38,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	return data
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	return not slot_id.is_empty() and data is Dictionary \
+	return equipment_enabled and not slot_id.is_empty() and data is Dictionary \
 		and data.get("kind") == "inscription_draft" and data.get("scope") == drag_scope \
 		and data.get("revision") == revision and data.get("item") in known_items \
 		and data.get("source") is String and data.get("source") != slot_id

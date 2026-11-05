@@ -52,6 +52,11 @@ func accept_preview(value: Dictionary, ticket: int, captured: Dictionary) -> boo
 	preview = value.duplicate(true); message = "Authoritative preview ready."
 	return true
 func can_confirm() -> bool: return dirty() and not preview.is_empty() and source.get("canEquip", false)
+func equipment_lock_reason() -> String:
+	if source.get("canEquip", false): return ""
+	if source.get("policy", {}).get("equipmentWindows", []) == ["OutsideCombat"]:
+		return "Inscriptions can only be changed outside combat. Finish the encounter to equip them."
+	return "Equipment cannot be changed here under the current game mode rules."
 func equipment_positions() -> Array:
 	var policy: Dictionary = source.get("policy", {})
 	if not policy.get("capacityOnly", false):
@@ -90,5 +95,5 @@ func snapshot() -> Dictionary:
 		"assignments": assignments.duplicate(true), "selectedItem": selected_item, "selectedSlot": selected_slot,
 		"usedCapacity": current.get("usedCapacity", 0), "capacity": source.get("policy", {}).get("capacity", 0),
 		"overBudget": false, "presets": [], "presetIndex": -1, "search": search,
-		"status": message if not message.is_empty() else current.get("attributesUnavailableReason", ""), "canEdit": source.get("canEquip", false), "attributesReady": (not dirty() or not preview.is_empty()) and current.get("attributes") is Dictionary,
+		"status": equipment_lock_reason() if not source.get("canEquip", false) else (message if not message.is_empty() else current.get("attributesUnavailableReason", "")), "canEdit": source.get("canEquip", false), "attributesReady": (not dirty() or not preview.is_empty()) and current.get("attributes") is Dictionary,
 		"character": {"name": source.get("actorId", ""), "attributes": attributes, "remote": true}}

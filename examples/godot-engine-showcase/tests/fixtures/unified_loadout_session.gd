@@ -3,6 +3,7 @@ signal changed
 signal release
 var has_pending_command := false
 var busy := false
+var can_equip := true
 var hold_preview := false
 var reject_preview := false
 var uncertain_next := false
@@ -46,7 +47,7 @@ func loadout_context_matches(value: Dictionary) -> bool:
 	return value.get("runId") == run.runId and value.get("runSequence") == run.sequence and value.get("expectedStep") == run.step and value.get("contentRevision") == run.contentRevision
 func snapshot() -> Dictionary:
 	return {"runId": run.runId, "actorId": run.playerEntityId, "runSequence": run.sequence, "expectedStep": run.step, "contentRevision": run.contentRevision,
-		"inventoryId": "actor:hero", "canEquip": true, "usedCapacity": assignments.size() * 3,
+		"inventoryId": "actor:hero", "canEquip": can_equip, "usedCapacity": assignments.size() * 3,
 		"policy": {"capacity": 12, "slots": [{"slotId": "one"}]}, "assignments": assignments.duplicate(true),
 		"items": [{"instance": {"instanceId": "owned"}, "definition": {"inscriptionId": "focus", "equipmentCost": 3, "presentation": {"name": "Actual inscription"}}}],
 		"attributes": {"attributes": [{"attributeId": "critical_chance", "displayName": "Critical chance", "unit": "percent", "baseValue": 0, "effectiveValue": 150}]}}

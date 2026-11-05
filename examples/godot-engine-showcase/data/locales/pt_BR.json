@@ -1069,5 +1069,7 @@
   "Play card": "Jogar carta",
   "Start encounter": "Iniciar encontro",
   "Verify": "Verificar",
-  "Space": "Espaço"
+  "Space": "Espaço",
+  "Inscriptions can only be changed outside combat. Finish the encounter to equip them.": "As inscrições só podem ser trocadas fora do combate. Termine o encontro para equipá-las.",
+  "Equipment cannot be changed here under the current game mode rules.": "As regras do modo atual não permitem trocar o equipamento aqui."
 }

@@ -31,5 +31,19 @@ func _run() -> void:
 	screen.controller.move_card("card-one", "utility")
 	await process_frame
 	check(session.commits.size() == 3 and session.allocations.is_empty(), "rejected component composition never commits")
+	session.can_equip = false
+	session.assignments.clear(); session.run.sequence += 1
+	await screen.controller.refresh()
+	check(screen.inscriptions_view._inventory.owned.drag_payload() == null, "closed equipment window keeps inspection available but prevents dragging")
+	check(not screen.inscriptions_view._positions.one._can_drop_data(Vector2.ZERO, {"kind": "inscription_draft", "scope": screen.inscriptions_view._positions.one.drag_scope, "revision": screen.inscriptions_view._positions.one.revision, "item": "owned", "source": ""}), "closed equipment window rejects drops")
+	var preview_count: int = session.previews
+	screen._select_item("owned"); screen._select_slot("one")
+	await process_frame
+	check(session.previews == preview_count and session.commits.size() == 3 and screen.controller.message == "Equipment cannot be changed here under the current game mode rules.", "fresh authoritative equipment lock explains the refusal without preview or write")
+	session.can_equip = true; session.reject_preview = false
+	await screen.controller.refresh()
+	screen._select_item("owned"); screen._select_slot("one")
+	await process_frame; await process_frame
+	check(session.commits.size() == 4 and session.assignments == {"one": "owned"}, "equipment works again immediately when the authoritative window reopens")
 	screen.queue_free(); await process_frame
 	quit(1 if failures else 0)

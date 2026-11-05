@@ -220,6 +220,7 @@ func present(model: Dictionary) -> void:
 		_positions[id].item_id = model.assignments.get(id, "")
 		_positions[id].source_slot = id
 	for tile in _inventory.values() + _positions.values():
+		tile.equipment_enabled = model.get("canEdit", true)
 		tile.drag_scope = hash(model.get("contextKey", get_instance_id()))
 		tile.revision = JSON.stringify(model.assignments)
 		tile.known_items = items.keys()
