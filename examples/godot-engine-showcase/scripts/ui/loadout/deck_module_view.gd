@@ -79,7 +79,10 @@ func _button(key: String, callback: Callable) -> Button:
 	button.text = visual_context.translator.text(key); button.pressed.connect(callback); return button
 func present(model: Dictionary) -> void:
 	_model = model.duplicate(true)
-	var data := model.duplicate(true); data.erase("busy"); data.erase("context")
+	# Disabled compartments legitimately publish profile: null. Dictionary.get's
+	# default only handles a missing key; normalize the owned presentation copy.
+	if _model.get("profile") == null: _model["profile"] = {}
+	var data := _model.duplicate(true); data.erase("busy"); data.erase("context")
 	var signature := JSON.stringify(data)
 	if signature != _signature: _signature = signature; _render()
 	for action in _actions: if is_instance_valid(action): action.disabled = model.get("busy", false) or not model.get("canChange", false)
