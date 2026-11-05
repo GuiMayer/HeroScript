@@ -17,7 +17,9 @@
           "prototype_scorch",
           "prototype_soak",
           "prototype_coolant",
-          "prototype_condense"
+          "prototype_condense",
+          "pyro_golpe_brasa",
+          "pyro_barreira_cinzas"
         ],
         "startingCardIds": [
           "prototype_strike",
@@ -25,10 +27,10 @@
           "prototype_strike",
           "prototype_strike",
           "prototype_guard",
-          "prototype_guard",
+          "pyro_barreira_cinzas",
           "prototype_guard",
           "prototype_scorch",
-          "prototype_scorch",
+          "pyro_golpe_brasa",
           "prototype_scorch",
           "prototype_soak",
           "prototype_soak",

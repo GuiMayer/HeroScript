@@ -1,0 +1,27 @@
+{
+  "thin_slice_guard": {
+    "gambitId": "thin_slice_guard", "displayName": "Guarda Mecânica", "priority": 200,
+    "predicates": [{ "expression": "actor_resource_health_percent", "maximum": 0.299999 }],
+    "action": { "actionType": "POWER", "actionId": "thin_slice_guard", "targetSelector": { "strategy": "Self" } },
+    "intent": { "displayName": "Guarda Mecânica", "description": "Ganha 6 de bloqueio.", "telegraphType": "Defend" }
+  },
+  "thin_slice_overload": {
+    "gambitId": "thin_slice_overload", "displayName": "Sobrecarga", "priority": 100,
+    "predicates": [{ "expression": "turn % 2", "minimum": 0, "maximum": 0 }],
+    "action": { "actionType": "POWER", "actionId": "thin_slice_overload",
+      "targetSelector": { "strategy": "HighestResource", "relationship": "Enemy", "resourceId": "health" } },
+    "intent": { "displayName": "Sobrecarga", "description": "Causa 10 de dano.", "telegraphType": "HeavyAttack" }
+  },
+  "thin_slice_probe": {
+    "gambitId": "thin_slice_probe",
+    "displayName": "Golpe Rápido",
+    "priority": 100,
+    "predicates": [{ "expression": "turn % 2", "minimum": 1, "maximum": 1 }],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "thin_slice_probe",
+      "targetSelector": { "strategy": "HighestResource", "relationship": "Enemy", "resourceId": "health" }
+    },
+    "intent": { "displayName": "Golpe Rápido", "description": "Causa 5 de dano.", "telegraphType": "Attack" }
+  }
+}

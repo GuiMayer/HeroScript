@@ -1,0 +1,50 @@
+{
+  "delta_rachador_chamas_item": {
+    "itemId": "delta_rachador_chamas_item",
+    "upgradeId": "delta_rachador_chamas",
+    "presentation": {
+      "name": "Padrão Rachador (Split / Multihit)",
+      "description": "Converte um ataque único em um golpe triplo de alta frequência."
+    }
+  },
+  "delta_elo_defensivo_item": {
+    "itemId": "delta_elo_defensivo_item",
+    "upgradeId": "delta_elo_defensivo",
+    "presentation": {
+      "name": "Padrão Elo de Guarda (Ward Link)",
+      "description": "Permite que um ataque conceda 5 de Escudo Persistente imediatamente após infligir dano."
+    }
+  },
+  "delta_infusao_comburente_item": {
+    "itemId": "delta_infusao_comburente_item",
+    "upgradeId": "delta_infusao_comburente",
+    "presentation": {
+      "name": "Padrão Infusão Comburente (Burn Clause)",
+      "description": "Insere uma cláusula de Queimadura em cartas que originalmente causavam apenas dano direto."
+    }
+  },
+  "delta_otimizacao_energia_item": {
+    "itemId": "delta_otimizacao_energia_item",
+    "upgradeId": "delta_otimizacao_energia",
+    "presentation": {
+      "name": "Padrão Fluxo Otimizado (Efficiency)",
+      "description": "Reduz o custo de energia da carta, permitindo jogá-la junto com defesas no mesmo turno."
+    }
+  },
+  "delta_ressonancia_brasa_item": {
+    "itemId": "delta_ressonancia_brasa_item",
+    "upgradeId": "delta_ressonancia_brasa",
+    "presentation": {
+      "name": "Padrão Ressonância de Brasa (Forge Resonance)",
+      "description": "Supercarrega a sinergia de retenção na carta modificada."
+    }
+  },
+  "delta_estabilidade_ignea_item": {
+    "itemId": "delta_estabilidade_ignea_item",
+    "upgradeId": "delta_estabilidade_ignea",
+    "presentation": {
+      "name": "Padrão Fogo Estável (Stable / No-Critical)",
+      "description": "Remove a aleatoriedade de críticos em troca de um valor de dano base consistente e elevado."
+    }
+  }
+}

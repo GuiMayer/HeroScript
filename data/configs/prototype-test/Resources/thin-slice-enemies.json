@@ -1,0 +1,15 @@
+{
+  "inimigo_automato_batedor": {
+    "definitionId": "inimigo_automato_batedor",
+    "displayName": "Autômato Batedor",
+    "components": [
+      { "type": "resources", "componentId": "resources", "pools": {
+        "health": { "current": 55, "max": 55 },
+        "energy": { "current": 3, "max": 3 },
+        "block": { "current": 0, "max": 999 }
+      } },
+      { "type": "stats", "componentId": "stats", "values": { "armor": 10, "critical_chance": 0, "critical_damage": 100 } },
+      { "type": "abilities", "componentId": "abilities", "abilityIds": ["thin_slice_probe", "thin_slice_overload", "thin_slice_guard"] }
+    ]
+  }
+}

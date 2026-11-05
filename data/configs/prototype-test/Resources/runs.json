@@ -15,10 +15,10 @@
       "prototype_strike",
       "prototype_strike",
       "prototype_guard",
-      "prototype_guard",
+      "pyro_barreira_cinzas",
       "prototype_guard",
       "prototype_scorch",
-      "prototype_scorch",
+      "pyro_golpe_brasa",
       "prototype_scorch",
       "prototype_soak",
       "prototype_soak",
@@ -72,7 +72,7 @@
         ],
         "metadata": {
           "displayName": "Thermal trial",
-          "description": "Retain cards, manage Heat and prepare a combined release."
+          "description": "Retain cards and prepare a combined release."
         }
       },
       {
@@ -188,10 +188,10 @@
       "prototype_strike",
       "prototype_strike",
       "prototype_guard",
-      "prototype_guard",
+      "pyro_barreira_cinzas",
       "prototype_guard",
       "prototype_scorch",
-      "prototype_scorch",
+      "pyro_golpe_brasa",
       "prototype_scorch",
       "prototype_soak",
       "prototype_soak",
@@ -243,13 +243,15 @@
               },
               {
                 "instanceId": "enemy_0",
-                "definitionId": "prototype_scout",
+                "definitionId": "inimigo_automato_batedor",
                 "sideId": "opposition",
                 "controllerBinding": {
                   "kind": "AI",
                   "policyId": "gambit",
                   "decisionIds": [
-                    "prototype_enemy_probe"
+                    "thin_slice_guard",
+                    "thin_slice_overload",
+                    "thin_slice_probe"
                   ]
                 }
               }

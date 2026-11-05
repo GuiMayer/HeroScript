@@ -1,0 +1,485 @@
+{
+  "mod_forja_de_brasas": {
+    "inscriptionId": "mod_forja_de_brasas",
+    "equipmentCost": 0,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 0,
+        "influenceValues": {
+          "prototype.mod_forja_de_brasas": 0.25
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "forja_de_brasas",
+        "influence": {
+          "influenceId": "prototype.mod_forja_de_brasas",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 0.25,
+          "subjectKeyCondition": {
+            "keys": [
+              "assinatura",
+              "fogo",
+              "brasa",
+              "retencao"
+            ],
+            "requiredKeys": [
+              "assinatura"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Mod de Assinatura: Forja de Brasas",
+      "description": "Mecânica de Assinatura do Piromaníaco. No final do turno, cada carta com tags [Fogo, Ataque] retida na mão ganha +1 marcador de Brasa (máx 3). Cada Brasa concede +25% de dano base cumulativo (1 brasa = +25%, 2 brasas = +50%, 3 brasas = +75%). Todos os marcadores são consumidos ao jogar a carta."
+    }
+  },
+  "insc_chama_ardente": {
+    "inscriptionId": "insc_chama_ardente",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_chama_ardente": 0.002
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "chama_ardente",
+        "influence": {
+          "influenceId": "prototype.insc_chama_ardente",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.002,
+          "subjectKeyCondition": {
+            "keys": [
+              "fogo",
+              "dano"
+            ],
+            "requiredKeys": [
+              "fogo"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Chama Ardente",
+      "description": "Personagem: +20% de dano aumentado em todos os efeitos com a tag [Fogo]."
+    }
+  },
+  "insc_ferro_temperado": {
+    "inscriptionId": "insc_ferro_temperado",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_ferro_temperado": 0.002
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "ferro_temperado",
+        "influence": {
+          "influenceId": "prototype.insc_ferro_temperado",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.002,
+          "subjectKeyCondition": {
+            "keys": [
+              "defesa",
+              "escudo"
+            ],
+            "requiredKeys": [
+              "defesa"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Ferro Temperado",
+      "description": "Personagem: +20% de eficiência na geração de Escudo em cartas [Defesa]."
+    }
+  },
+  "insc_combustao_prolongada": {
+    "inscriptionId": "insc_combustao_prolongada",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_combustao_prolongada": 1.0
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "combustao_prolongada",
+        "influence": {
+          "influenceId": "prototype.insc_combustao_prolongada",
+          "channel": "status_duration",
+          "bucket": "flat",
+          "value": 1.0,
+          "subjectKeyCondition": {
+            "keys": [
+              "residual",
+              "queimadura"
+            ],
+            "requiredKeys": [
+              "residual"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Combustão Prolongada",
+      "description": "Personagem: Todos os efeitos de Queimadura aplicados têm sua duração aumentada em +1 turno."
+    }
+  },
+  "insc_baluarte_adamantino": {
+    "inscriptionId": "insc_baluarte_adamantino",
+    "equipmentCost": 3,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 3,
+        "influenceValues": {
+          "prototype.insc_baluarte_adamantino": 0.015
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "baluarte_adamantino",
+        "influence": {
+          "influenceId": "prototype.insc_baluarte_adamantino",
+          "channel": "resource_cap",
+          "bucket": "flat",
+          "value": 0.015,
+          "subjectKeyCondition": {
+            "keys": [
+              "defesa",
+              "teto_escudo"
+            ],
+            "requiredKeys": [
+              "defesa"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Baluarte Adamantino",
+      "description": "Personagem: O teto máximo de Escudo Persistente é aumentado de 100% para 150% da sua Vida Máxima (máx 150 de Escudo para 100 HP)."
+    }
+  },
+  "insc_resistencia_ignea": {
+    "inscriptionId": "insc_resistencia_ignea",
+    "equipmentCost": 1,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 1,
+        "influenceValues": {
+          "prototype.insc_resistencia_ignea": 0.3
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "resistencia_ignea",
+        "influence": {
+          "influenceId": "prototype.insc_resistencia_ignea",
+          "channel": "elemental_resistance",
+          "bucket": "flat",
+          "value": 0.3,
+          "subjectKeyCondition": {
+            "keys": [
+              "resistencia",
+              "fogo"
+            ],
+            "requiredKeys": [
+              "resistencia"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Resistência Ígnea",
+      "description": "Personagem: Concede 30 pontos de Resistência a Fogo (mitiga dano de fogo via fórmula R/(R+100), reduzindo ~23% do dano de fogo recebido)."
+    }
+  },
+  "insc_couraca_pesada": {
+    "inscriptionId": "insc_couraca_pesada",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_couraca_pesada": 0.4
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "couraca_pesada",
+        "influence": {
+          "influenceId": "prototype.insc_couraca_pesada",
+          "channel": "armor",
+          "bucket": "flat",
+          "value": 0.4,
+          "subjectKeyCondition": {
+            "keys": [
+              "armadura",
+              "mitigacao"
+            ],
+            "requiredKeys": [
+              "armadura"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Couraça Pesada",
+      "description": "Personagem: Concede 40 pontos de Armadura geral contra ataques físicos (mitiga ~28.5% do dano físico recebido antes do escudo)."
+    }
+  },
+  "insc_precisao_termica": {
+    "inscriptionId": "insc_precisao_termica",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_precisao_termica": 0.25
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "precisao_termica",
+        "influence": {
+          "influenceId": "prototype.insc_precisao_termica",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 0.25,
+          "subjectKeyCondition": {
+            "keys": [
+              "critico",
+              "chance"
+            ],
+            "requiredKeys": [
+              "critico"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Precisão Térmica",
+      "description": "Personagem: +25 pontos percentuais de chance de acerto crítico em ataques de Fogo."
+    }
+  },
+  "insc_impacto_devastador": {
+    "inscriptionId": "insc_impacto_devastador",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_impacto_devastador": 0.003
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "impacto_devastador",
+        "influence": {
+          "influenceId": "prototype.insc_impacto_devastador",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "value": 0.003,
+          "subjectKeyCondition": {
+            "keys": [
+              "critico",
+              "multiplicador"
+            ],
+            "requiredKeys": [
+              "critico"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Impacto Devastador",
+      "description": "Personagem: +30 pontos percentuais de bônus de dano crítico por tier de sucesso."
+    }
+  },
+  "insc_cinzas_recicladas": {
+    "inscriptionId": "insc_cinzas_recicladas",
+    "equipmentCost": 3,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 3,
+        "influenceValues": {
+          "prototype.insc_cinzas_recicladas": 1.0
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "cinzas_recicladas",
+        "influence": {
+          "influenceId": "prototype.insc_cinzas_recicladas",
+          "channel": "resource_gain",
+          "bucket": "flat",
+          "value": 1.0,
+          "subjectKeyCondition": {
+            "keys": [
+              "payoff",
+              "energia",
+              "condensacao"
+            ],
+            "requiredKeys": [
+              "payoff"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Cinzas Recicladas",
+      "description": "Personagem: Sempre que você detonar uma Condensação com sucesso, recupera 1 de Energia (máximo 1 vez por turno)."
+    }
+  },
+  "insc_martelo_da_forja": {
+    "inscriptionId": "insc_martelo_da_forja",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_martelo_da_forja": 0.5
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "martelo_da_forja",
+        "influence": {
+          "influenceId": "prototype.insc_martelo_da_forja",
+          "channel": "armor_shred",
+          "bucket": "more",
+          "value": 0.5,
+          "subjectKeyCondition": {
+            "keys": [
+              "brasa",
+              "perfuracao"
+            ],
+            "requiredKeys": [
+              "brasa"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Martelo da Forja",
+      "description": "Personagem: Ataques que consomem 3 marcadores de Brasa ignoram 50% da Armadura do alvo."
+    }
+  },
+  "insc_condutividade_termica": {
+    "inscriptionId": "insc_condutividade_termica",
+    "equipmentCost": 2,
+    "polarity": "neutral",
+    "rank": 1,
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 2,
+        "influenceValues": {
+          "prototype.insc_condutividade_termica": 0.02
+        }
+      }
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "condutividade_termica",
+        "influence": {
+          "influenceId": "prototype.insc_condutividade_termica",
+          "channel": "prototype_dot",
+          "bucket": "flat",
+          "value": 0.02,
+          "subjectKeyCondition": {
+            "keys": [
+              "residual",
+              "potencia"
+            ],
+            "requiredKeys": [
+              "residual"
+            ],
+            "minimumCount": 1
+          }
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Condutividade Térmica",
+      "description": "Personagem: Todas as aplicações de Queimadura têm sua potência base aumentada em +2 por stack."
+    }
+  }
+}

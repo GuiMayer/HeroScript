@@ -1,26 +1,4 @@
 {
-  "heat": {
-    "resourceId": "heat",
-    "displayName": "Heat",
-    "shortName": "HT",
-    "category": "TACTICAL",
-    "defaultMin": 0,
-    "defaultMax": 100,
-    "defaultCurrent": 0,
-    "canBeNegative": false,
-    "canExceedMax": false,
-    "regeneration": {
-      "enabled": true,
-      "amountPerTurn": -10,
-      "timing": "END_TURN",
-      "calculationChannel": "resource_delta",
-      "calculationPipelineId": "signed_resource_delta"
-    },
-    "tags": [
-      "thermal",
-      "character"
-    ]
-  },
   "parts": {
     "resourceId": "parts",
     "displayName": "Parts",

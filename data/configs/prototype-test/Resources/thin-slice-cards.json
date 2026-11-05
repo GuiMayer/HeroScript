@@ -1,0 +1,31 @@
+{
+  "pyro_golpe_brasa": {
+    "cardId": "pyro_golpe_brasa",
+    "rarity": "Uncommon",
+    "tags": ["attack", "fire", "prototype"],
+    "metadata": { "displayName": "Golpe da Forja", "artKey": "placeholder.pyro_golpe_brasa" },
+    "components": [
+      { "type": "cost", "componentId": "cost", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] } },
+      { "type": "effect", "componentId": "main", "order": 20,
+        "effect": { "effectId": "pyro_golpe_brasa.main", "type": "DAMAGE", "target": "TARGET",
+          "targetResource": "health", "flatValue": 14, "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount", "tags": ["damage", "attack", "fire"] } },
+      { "type": "targeting", "componentId": "targeting", "order": 80, "target": "TARGET", "minimumTargets": 1, "maximumTargets": 1 },
+      { "type": "disposition", "componentId": "disposition", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  },
+  "pyro_barreira_cinzas": {
+    "cardId": "pyro_barreira_cinzas",
+    "rarity": "Common",
+    "tags": ["skill", "defense", "fire", "prototype"],
+    "metadata": { "displayName": "Barreira de Cinzas", "artKey": "placeholder.pyro_barreira_cinzas" },
+    "components": [
+      { "type": "cost", "componentId": "cost", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] } },
+      { "type": "effect", "componentId": "main", "order": 20,
+        "effect": { "effectId": "pyro_barreira_cinzas.main", "type": "MODIFY_RESOURCE", "target": "SELF",
+          "targetResource": "block", "operation": "ADD", "flatValue": 8, "tags": ["defense", "block"] } },
+      { "type": "targeting", "componentId": "targeting", "order": 80, "target": "SELF", "minimumTargets": 0, "maximumTargets": 0, "allowSelf": true },
+      { "type": "disposition", "componentId": "disposition", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  }
+}

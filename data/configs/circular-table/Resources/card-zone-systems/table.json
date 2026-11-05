@@ -18,7 +18,7 @@
         "ordering": "Ordered",
         "allowsCardPlay": true,
         "visibility": {
-          "contents": "Owner",
+          "contents": "All",
           "order": "Visible"
         }
       },

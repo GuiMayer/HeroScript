@@ -1,0 +1,34 @@
+{
+  "thin_slice_overload": {
+    "actionId": "thin_slice_overload", "displayName": "Sobrecarga", "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [{ "effectId": "thin_slice_overload.damage", "type": "DAMAGE", "target": "TARGET",
+      "targetResource": "health", "flatValue": 10, "calculationChannel": "effect_amount",
+      "calculationPipelineId": "prototype_direct_amount", "tags": ["damage", "attack", "enemy"] }],
+    "requiresTarget": true, "multiTarget": false, "cooldown": 0, "tags": ["enemy"]
+  },
+  "thin_slice_guard": {
+    "actionId": "thin_slice_guard", "displayName": "Guarda Mecânica", "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [{ "effectId": "thin_slice_guard.block", "type": "MODIFY_RESOURCE",
+      "target": "SELF", "targetResource": "block", "operation": "ADD", "flatValue": 6,
+      "tags": ["defense", "block"] }],
+    "requiresTarget": false, "multiTarget": false, "cooldown": 0, "tags": ["enemy", "defense"]
+  },
+  "thin_slice_probe": {
+    "actionId": "thin_slice_probe",
+    "displayName": "Golpe Rápido",
+    "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [
+      { "effectId": "thin_slice_probe.damage", "type": "DAMAGE", "target": "TARGET",
+        "targetResource": "health", "flatValue": 5,
+        "calculationChannel": "effect_amount", "calculationPipelineId": "prototype_direct_amount",
+        "tags": ["damage", "attack", "enemy"] }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["enemy"]
+  }
+}

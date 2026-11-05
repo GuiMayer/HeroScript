@@ -180,6 +180,18 @@
           "allowCondition": "1 - source.resources.wild_color_token.current",
           "failureCode": "COLOR_REQUIRED",
           "messageKey": "uno.color_required"
+        },
+        {
+          "ruleId": "duel.resolve-debt",
+          "commands": [
+            "END_TURN",
+            "PASS"
+          ],
+          "actorScope": "All",
+          "inputs": [],
+          "allowCondition": "1 - source.resources.uno_draw2_due.current",
+          "failureCode": "DEBT_REQUIRED",
+          "messageKey": "uno.debt_required"
         }
       ]
     }

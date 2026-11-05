@@ -1,0 +1,92 @@
+{
+  "delta_rachador_chamas": {
+    "upgradeId": "delta_rachador_chamas",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "rachador_chamas"
+        ]
+      }
+    ]
+  },
+  "delta_elo_defensivo": {
+    "upgradeId": "delta_elo_defensivo",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "elo_defensivo"
+        ]
+      }
+    ]
+  },
+  "delta_infusao_comburente": {
+    "upgradeId": "delta_infusao_comburente",
+    "category": "Affinity",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "infusao_comburente"
+        ]
+      }
+    ]
+  },
+  "delta_otimizacao_energia": {
+    "upgradeId": "delta_otimizacao_energia",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "otimizacao_energia"
+        ]
+      }
+    ]
+  },
+  "delta_ressonancia_brasa": {
+    "upgradeId": "delta_ressonancia_brasa",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "ressonancia_brasa"
+        ]
+      }
+    ]
+  },
+  "delta_estabilidade_ignea": {
+    "upgradeId": "delta_estabilidade_ignea",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "estabilidade_ignea"
+        ]
+      }
+    ]
+  }
+}

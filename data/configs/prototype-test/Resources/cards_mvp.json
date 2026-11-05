@@ -1,0 +1,2551 @@
+{
+  "pyro_golpe_faisca": {
+    "cardId": "pyro_golpe_faisca",
+    "rarity": "Básica",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Golpe de Faísca",
+      "nameKey": "card.pyro_golpe_faisca",
+      "artKey": "placeholder.pyro_golpe_faisca",
+      "ruleText": "Causa 7 de dano de Fogo. Aplica 1 stack de Queimadura (2 de dano residual).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_golpe_faisca.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 7,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_labareda": {
+    "cardId": "pyro_labareda",
+    "rarity": "Básica",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Labareda",
+      "nameKey": "card.pyro_labareda",
+      "artKey": "placeholder.pyro_labareda",
+      "ruleText": "Causa 9 de dano direto de Fogo.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_labareda.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 9,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_chama_perfurante": {
+    "cardId": "pyro_chama_perfurante",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Chama Perfurante",
+      "nameKey": "card.pyro_chama_perfurante",
+      "artKey": "placeholder.pyro_chama_perfurante",
+      "ruleText": "Causa 6 de dano de Fogo. Ignora a Armadura do alvo (não sofre mitigação por K).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_chama_perfurante.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 6,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_combustao_dupla": {
+    "cardId": "pyro_combustao_dupla",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Combustão Dupla",
+      "nameKey": "card.pyro_combustao_dupla",
+      "artKey": "placeholder.pyro_combustao_dupla",
+      "ruleText": "Causa 6 de dano de Fogo 2 vezes (total 12). Aplica 2 stacks de Queimadura.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_combustao_dupla.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 6,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_golpe_brasa": {
+    "cardId": "pyro_golpe_brasa",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Golpe da Forja",
+      "nameKey": "card.pyro_golpe_brasa",
+      "artKey": "placeholder.pyro_golpe_brasa",
+      "ruleText": "Causa 14 de dano de Fogo. Se consumiu pelo menos 2 Brasas, aplica 3 stacks de Queimadura.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_golpe_brasa.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 14,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_lanca_solar": {
+    "cardId": "pyro_lanca_solar",
+    "rarity": "Rara",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Lança Solar",
+      "nameKey": "card.pyro_lanca_solar",
+      "artKey": "placeholder.pyro_lanca_solar",
+      "ruleText": "Causa 22 de dano pesado de Fogo. Consome todo o seu turno (3 energias).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_lanca_solar.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 22,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_varredura_termica": {
+    "cardId": "pyro_varredura_termica",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Varredura Térmica",
+      "nameKey": "card.pyro_varredura_termica",
+      "artKey": "placeholder.pyro_varredura_termica",
+      "ruleText": "Causa 10 de dano de Fogo a TODOS os inimigos. Aplica 1 Queimadura em cada.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_varredura_termica.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 10,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_impacto_cindico": {
+    "cardId": "pyro_impacto_cindico",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Impacto Cíndico",
+      "nameKey": "card.pyro_impacto_cindico",
+      "artKey": "placeholder.pyro_impacto_cindico",
+      "ruleText": "Causa 8 de dano. Se o alvo tiver Queimadura ativa, você ganha 8 de Escudo Persistente.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_impacto_cindico.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_golpe_contundente": {
+    "cardId": "pyro_golpe_contundente",
+    "rarity": "Básica",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Pancada com o Cabo",
+      "nameKey": "card.pyro_golpe_contundente",
+      "artKey": "placeholder.pyro_golpe_contundente",
+      "ruleText": "Causa 8 de dano FÍSICO direto (ignora resistências elementais a Fogo).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_golpe_contundente.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_arremesso_de_escombros": {
+    "cardId": "pyro_arremesso_de_escombros",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Projétil de Cascalho",
+      "nameKey": "card.pyro_arremesso_de_escombros",
+      "artKey": "placeholder.pyro_arremesso_de_escombros",
+      "ruleText": "Causa 12 de dano Físico. Se o alvo tiver Escudo ativo, destrói 50% do escudo remanescente.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_arremesso_de_escombros.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 12,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_punicao_temeraria": {
+    "cardId": "pyro_punicao_temeraria",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Punição da Hesitação",
+      "nameKey": "card.pyro_punicao_temeraria",
+      "artKey": "placeholder.pyro_punicao_temeraria",
+      "ruleText": "Causa 9 de dano de Fogo. Se a intenção visível do alvo NÃO for um ataque neste turno, causa +11 de dano extra (total 20).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_punicao_temeraria.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 9,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_brasas_persistentes": {
+    "cardId": "pyro_brasas_persistentes",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Brasas Rasteiras",
+      "nameKey": "card.pyro_brasas_persistentes",
+      "artKey": "placeholder.pyro_brasas_persistentes",
+      "ruleText": "Causa 5 de dano de Fogo e aplica 2 Queimaduras. NÃO consome seus marcadores de Brasa ao ser jogada.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_brasas_persistentes.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 5,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_chama_devoradora": {
+    "cardId": "pyro_chama_devoradora",
+    "rarity": "Rara",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Chama Devoradora",
+      "nameKey": "card.pyro_chama_devoradora",
+      "artKey": "placeholder.pyro_chama_devoradora",
+      "ruleText": "Causa 10 de dano de Fogo. Se o alvo tiver 3 ou mais stacks de Queimadura, cura o Herói em 5 de Vida.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_chama_devoradora.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 10,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_incinerar_defesas": {
+    "cardId": "pyro_incinerar_defesas",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Incinerar Defesas",
+      "nameKey": "card.pyro_incinerar_defesas",
+      "artKey": "placeholder.pyro_incinerar_defesas",
+      "ruleText": "Causa 4 de dano de Fogo. Reduz a Armadura e Resistência a Fogo do alvo em -20 pontos por 2 turnos.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_incinerar_defesas.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_barreira_cinzas": {
+    "cardId": "pyro_barreira_cinzas",
+    "rarity": "Básica",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Barreira de Cinzas",
+      "nameKey": "card.pyro_barreira_cinzas",
+      "artKey": "placeholder.pyro_barreira_cinzas",
+      "ruleText": "Ganha 8 de Escudo Persistente (não decai no fim do turno, respeita teto de 100% Vida Máxima).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_muralha_ignea": {
+    "cardId": "pyro_muralha_ignea",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Muralha Ígnea",
+      "nameKey": "card.pyro_muralha_ignea",
+      "artKey": "placeholder.pyro_muralha_ignea",
+      "ruleText": "Ganha 16 de Escudo Persistente.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_postura_brasa": {
+    "cardId": "pyro_postura_brasa",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Postura da Brasa",
+      "nameKey": "card.pyro_postura_brasa",
+      "artKey": "placeholder.pyro_postura_brasa",
+      "ruleText": "Ganha 6 de Escudo Persistente. Adiciona imediatamente +1 marcador de Brasa a todas as cartas de Ataque de Fogo na sua mão.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_escudo_reativo": {
+    "cardId": "pyro_escudo_reativo",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Escudo Reativo",
+      "nameKey": "card.pyro_escudo_reativo",
+      "artKey": "placeholder.pyro_escudo_reativo",
+      "ruleText": "Ganha 7 de Escudo Persistente. Na próxima vez que receber dano neste turno, aplica 2 Queimaduras no agressor.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_escudo_solar": {
+    "cardId": "pyro_escudo_solar",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Escudo Solar",
+      "nameKey": "card.pyro_escudo_solar",
+      "artKey": "placeholder.pyro_escudo_solar",
+      "ruleText": "Ganha 12 de Escudo Persistente. Compra 1 carta.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_aparar_ignito": {
+    "cardId": "pyro_aparar_ignito",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Aparar Ígneo",
+      "nameKey": "card.pyro_aparar_ignito",
+      "artKey": "placeholder.pyro_aparar_ignito",
+      "ruleText": "Ganha 8 de Escudo Persistente. Se a intenção do atacante for um Ataque Pesado (>12 dano), reflete 50% do dano mitigado como Fogo.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_purga_termica": {
+    "cardId": "pyro_purga_termica",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Purga Térmica",
+      "nameKey": "card.pyro_purga_termica",
+      "artKey": "placeholder.pyro_purga_termica",
+      "ruleText": "Remove todos os debuffs do Herói. Para cada debuff removido, ganha 6 de Escudo e adiciona 1 Brasa em uma carta de ataque na mão.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_catalisador_ignito": {
+    "cardId": "pyro_catalisador_ignito",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Catalisador Ígnito",
+      "nameKey": "card.pyro_catalisador_ignito",
+      "artKey": "placeholder.pyro_catalisador_ignito",
+      "ruleText": "A próxima carta de Ataque jogada neste turno custa -1 de Energia (mínimo 0).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_oxigenacao": {
+    "cardId": "pyro_oxigenacao",
+    "rarity": "Comum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Oxigenação",
+      "nameKey": "card.pyro_oxigenacao",
+      "artKey": "placeholder.pyro_oxigenacao",
+      "ruleText": "Compra 2 cartas. Limite de mão é temporariamente aumentado em +1 neste turno.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_foco_piromantico": {
+    "cardId": "pyro_foco_piromantico",
+    "rarity": "Rara",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Foco Piromântico",
+      "nameKey": "card.pyro_foco_piromantico",
+      "artKey": "placeholder.pyro_foco_piromantico",
+      "ruleText": "Pelo resto do combate, todas as suas cartas de Fogo causam +25% de dano aumentado (bucket increased).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_condensar_chamas": {
+    "cardId": "pyro_condensar_chamas",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Condensar Chamas",
+      "nameKey": "card.pyro_condensar_chamas",
+      "artKey": "placeholder.pyro_condensar_chamas",
+      "ruleText": "Consome TODOS os stacks de Queimadura no alvo e causa imediatamente todo o dano residual restante em um único impacto concentrado.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_impacto_de_escudo": {
+    "cardId": "pyro_impacto_de_escudo",
+    "rarity": "Incomum",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Batida de Escudo Flamejante",
+      "nameKey": "card.pyro_impacto_de_escudo",
+      "artKey": "placeholder.pyro_impacto_de_escudo",
+      "ruleText": "Causa dano de Fogo igual a 75% do seu Escudo Persistente atual (máximo de 75 de dano). Não consome o seu escudo.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_supernova": {
+    "cardId": "pyro_supernova",
+    "rarity": "Rara",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Supernova",
+      "nameKey": "card.pyro_supernova",
+      "artKey": "placeholder.pyro_supernova",
+      "ruleText": "Causa 25 de dano de Fogo. Se consumiu 3 marcadores de Brasa (retida por 3 turnos): causa +50% de dano extra (total 56 de dano) e Atordoa o alvo por 1 turno.",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "pyro_supernova.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "fire"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 25,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "pyro_forja_eterna": {
+    "cardId": "pyro_forja_eterna",
+    "rarity": "Rara",
+    "basePrices": [],
+    "tags": [
+      "fogo",
+      "prototype",
+      "pyromancer"
+    ],
+    "metadata": {
+      "displayName": "Forja Eterna",
+      "nameKey": "card.pyro_forja_eterna",
+      "artKey": "placeholder.pyro_forja_eterna",
+      "ruleText": "Ganha 10 de Escudo Persistente. Dobra os marcadores de Brasa de todas as cartas na sua mão (respeitando o teto de 3).",
+      "signatureInteraction": ""
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  }
+}

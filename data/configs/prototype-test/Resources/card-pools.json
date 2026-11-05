@@ -7,7 +7,9 @@
       "prototype_scorch",
       "prototype_soak",
       "prototype_coolant",
-      "prototype_condense"
+      "prototype_condense",
+      "pyro_golpe_brasa",
+      "pyro_barreira_cinzas"
     ]
   }
 }

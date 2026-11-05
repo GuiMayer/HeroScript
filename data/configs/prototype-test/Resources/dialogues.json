@@ -18,9 +18,9 @@
           }
         },
         "text": {
-          "text": "Keep useful cards between activations. Heat boosts Fire potency, but at 100 you must cool down. Change your build outside combat; losing an encounter preserves the campaign.",
+          "text": "Keep useful cards between activations. Change your build outside combat; losing an encounter preserves the campaign.",
           "translations": {
-            "pt_BR": "Guarde cartas úteis entre ativações. Calor aumenta a potência de Fogo, mas no limite 100 você precisa resfriar. Altere a build fora do combate; perder um encontro preserva a campanha."
+            "pt_BR": "Guarde cartas úteis entre ativações. Altere a build fora do combate; perder um encontro preserva a campanha."
           }
         },
         "choices": [

@@ -1,0 +1,278 @@
+{
+  "prototype_hero": {
+    "definitionId": "prototype_hero",
+    "displayName": "Piromaníaco (Herói)",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 100,
+            "max": 100
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 100,
+            "canExceedMax": false
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "fire_resistance": 0,
+          "strength": 0,
+          "critical_chance": 5,
+          "critical_damage": 150
+        }
+      }
+    ]
+  },
+  "inimigo_automato_batedor": {
+    "definitionId": "inimigo_automato_batedor",
+    "displayName": "Autômato Batedor",
+    "enemyType": "Comum",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 55,
+            "max": 55
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 10,
+          "fire_resistance": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      }
+    ],
+    "specialRules": {
+      "ruleText": "Nenhuma. Inimigo de calibração para introdução ao ciclo de combate e leitura de intenções.",
+      "deckSummary": "3x Golpe Rápido (Custo 1, 5 dano), 2x Guarda Mecânica (Custo 1, 6 escudo), 1x Sobrecarga (Custo 2, 10 dano)",
+      "gambitSummary": "Turno 1: Telegrafa Golpe Rápido (5). Turno 2: Telegrafa Sobrecarga (10). Se Vida < 30%: prioriza Guarda Mecânica (6)."
+    }
+  },
+  "inimigo_drone_duplo": {
+    "definitionId": "inimigo_drone_duplo",
+    "displayName": "Drone de Lâminas Duplas",
+    "enemyType": "Comum",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 45,
+            "max": 45
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "fire_resistance": 25,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      }
+    ],
+    "specialRules": {
+      "ruleText": "Multihit rápido. Recompensa o uso da nova carta Pancada com o Cabo (dano físico) ou acúmulo de escudo persistente.",
+      "deckSummary": "3x Corte Gêmeo (Custo 1, 3x2 multihit), 2x Manobra Evasiva (Custo 1, 5 escudo), 1x Flâmula Cortante (Custo 2, 4x3 multihit)",
+      "gambitSummary": "Agressivo contínuo. Alterna entre 6 de dano multihit e 12 de dano pesado multihit a cada 2 turnos."
+    }
+  },
+  "inimigo_sentinela_pesada": {
+    "definitionId": "inimigo_sentinela_pesada",
+    "displayName": "Sentinela Pesada",
+    "enemyType": "Comum",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 75,
+            "max": 75
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 35,
+          "fire_resistance": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      }
+    ],
+    "specialRules": {
+      "ruleText": "Ciclo 'Carregar e Disparar'. Ativa perfeitamente a carta reativa Aparar Ígneo no turno par e Punição da Hesitação no turno ímpar.",
+      "deckSummary": "2x Esmagar (Custo 2, 14 dano pesado), 3x Blindagem Fortificada (Custo 1, 10 escudo), 2x Golpe Repulsor (Custo 1, 6 dano + 4 escudo)",
+      "gambitSummary": "Turnos Ímpares: Ganha 10 a 14 de Escudo. Turnos Pares: Telegrafa Esmagar (14 dano bruto)."
+    }
+  },
+  "inimigo_colosso_ferro": {
+    "definitionId": "inimigo_colosso_ferro",
+    "displayName": "Colosso de Ferrofundido",
+    "enemyType": "Elite",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 120,
+            "max": 120
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 50,
+          "fire_resistance": 35,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      }
+    ],
+    "specialRules": {
+      "ruleText": "RELÓGIO DE COMBATE: A partir do Turno 6, ganha +4 de Força cumulativa por turno. Impede stall defensivo infinito.",
+      "deckSummary": "3x Pancada Sísmica (Custo 2, 16 dano), 3x Barreira Fundida (Custo 2, 18 escudo), 2x Sucção Térmica (Custo 1, 8 dano), 1x Carga Brutal (Custo 3, 24 dano)",
+      "gambitSummary": "Gera escudos nos turnos 1 e 2. No Turno 3 telegrafa Carga Brutal (24 dano)."
+    }
+  },
+  "chefe_guardiao_forja_fase1": {
+    "definitionId": "chefe_guardiao_forja_fase1",
+    "displayName": "Guardião da Forja (Fase 1: O Martelo)",
+    "enemyType": "Chefe_Fase1",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 160,
+            "max": 160
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 40,
+          "fire_resistance": 25,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      }
+    ],
+    "specialRules": {
+      "ruleText": "SOFT-CAP DE DANO: Até 35 de dano no turno sofre 100% de dano; dano excedente acima de 35 sofre redução de 75% (Dano Efetivo = 35 + Excesso * 0.25). Recompensa combos fortes sem permitir OTK acidental.",
+      "deckSummary": "3x Martelo da Criação (Custo 2, 14 dano + 8 escudo), 3x Fole Protetor (Custo 1, 12 escudo), 2x Brasas Esparsas (Custo 1, 6 dano + 2 Queimadura)",
+      "gambitSummary": "Turno 1: Fole Protetor. Turno 2: Martelo da Criação. Turno 3: Brasas Esparsas x2. Transiciona aos <=80 HP (50%)."
+    }
+  },
+  "chefe_guardiao_forja_fase2": {
+    "definitionId": "chefe_guardiao_forja_fase2",
+    "displayName": "Guardião da Forja (Fase 2: A Fornalha Desperta)",
+    "enemyType": "Chefe_Fase2",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 80,
+            "max": 80
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 20,
+          "fire_resistance": 45,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      }
+    ],
+    "specialRules": {
+      "ruleText": "SOFT-CAP DE DANO (35 com 75% sobre excesso mantido) + RELÓGIO DA FORNALHA: A partir do Turno 7 de combate total, a fornalha colapsa causando 6 de dano perfurante direto na vida do herói por turno (ignora escudo). Impede stall defensivo passivo.",
+      "deckSummary": "2x Erupção da Fornalha (Custo 3, 22 dano AoE + 4 Queimadura), 3x Impacto Candente (Custo 2, 15 dano), 2x Onda de Calor (Custo 1, 8 dano + detona Queimadura no herói), 1x Fusão de Emergência (Custo 2, 15 escudo)",
+      "gambitSummary": "Transição: limpa debuffs e ganha 25 de escudo. Agressividade total. Turno 2 telegrafa Erupção (22 dano)."
+    }
+  }
+}

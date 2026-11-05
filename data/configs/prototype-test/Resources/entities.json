@@ -11,17 +11,13 @@
             "current": 100,
             "max": 100
           },
-          "heat": {
-            "current": 0,
-            "max": 100
-          },
           "energy": {
             "current": 3,
             "max": 3
           },
           "block": {
             "current": 0,
-            "max": 999
+            "max": 100
           }
         }
       },

@@ -14,6 +14,17 @@
     }
   ],
   "content": [
+    { "schemaVersion": 1, "operation": "patch", "sourcePath": "Resources/persistent-block-patch.json", "target": { "packageId": "heroscript.base", "kind": "resources", "artifactPath": "resources/block.json", "definitionId": "block" }, "expectedHash": "0e9015d08e9b80bb5dad7ae7697c072820e5d905f940752218d4aadb4ab4d700" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "entities", "sourcePath": "Resources/thin-slice-enemies.json", "artifactPath": "entities/prototype-thin-slice.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "actions", "sourcePath": "Resources/thin-slice-actions.json", "artifactPath": "actions/prototype-thin-slice.json" },
+    { "schemaVersion": 1, "operation": "definition", "kind": "gambits", "sourcePath": "Resources/thin-slice-gambits.json", "artifactPath": "gambits/prototype-thin-slice.json" },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "cards",
+      "sourcePath": "Resources/thin-slice-cards.json",
+      "artifactPath": "cards/prototype-thin-slice.json"
+    },
     {
       "schemaVersion": 1,
       "operation": "definition",

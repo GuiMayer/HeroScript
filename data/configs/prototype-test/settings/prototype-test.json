@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "settingId": "prototype-test",
   "displayName": "Tactical campaign MVP",
-  "description": "Three-encounter tactical chapter: persistent builds, Heat, retained hand, Void/Necro payments, inscriptions and support.",
+  "description": "Three-encounter tactical chapter: persistent builds, retained hand, Void/Necro payments, inscriptions and support.",
   "launch": {
     "runDefinitionId": "prototype_chapter",
     "playerEntityId": "player",
