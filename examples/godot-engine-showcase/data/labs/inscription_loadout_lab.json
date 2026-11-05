@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
   "authority": "VisualFixture",
+  "reserveIdentitySlot": true,
+  "identitySlotId": "identity",
   "capacity": 12,
   "slots": [
     "trace_1",

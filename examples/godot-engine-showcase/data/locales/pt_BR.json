@@ -1071,5 +1071,9 @@
   "Verify": "Verificar",
   "Space": "Espaço",
   "Inscriptions can only be changed outside combat. Finish the encounter to equip them.": "As inscrições só podem ser trocadas fora do combate. Termine o encontro para equipá-las.",
-  "Equipment cannot be changed here under the current game mode rules.": "As regras do modo atual não permitem trocar o equipamento aqui."
+  "Equipment cannot be changed here under the current game mode rules.": "As regras do modo atual não permitem trocar o equipamento aqui.",
+  "CHARACTER IDENTITY MOD": "MOD DE IDENTIDADE DO PERSONAGEM",
+  "COMMON INSCRIPTIONS": "INSCRIÇÕES COMUNS",
+  "Character identity mod": "Mod de identidade do personagem",
+  "Reserved for this character\nNo identity mod is defined in this content revision.": "Reservado ao personagem\nEsta revisão de conteúdo não define um mod de identidade."
 }

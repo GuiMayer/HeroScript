@@ -25,9 +25,12 @@ var relics: Array = []
 var attributes := {}
 var info_ready := false
 var read_error := false
+var inscription_layout: Dictionary = {}
 
 func _init(owner) -> void:
 	session = owner; identity = context()
+	var presentation: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/presentation.json"))
+	inscription_layout = presentation.get("loadout_layouts", {}).get(str(identity[2]), {}).duplicate(true)
 	session.changed.connect(_session_changed)
 func context() -> Array:
 	var run: Dictionary = session.run
@@ -45,6 +48,7 @@ func refresh() -> void:
 	if not current(): _reading = false; changed.emit(); return
 	if response.get("ok", false) and response.get("data") is Dictionary and valid(response.data):
 		var candidate = preload("res://scripts/application/loadout_workspace.gd").new()
+		candidate.layout = inscription_layout.duplicate(true)
 		if candidate.accept(response.data):
 			if inscriptions != null:
 				candidate.selected_item = inscriptions.selected_item; candidate.selected_slot = inscriptions.selected_slot; candidate.search = inscriptions.search
@@ -75,6 +79,7 @@ func edit_inscription(method: String, args: Array = []) -> void:
 	if not response.get("ok", false) or not response.get("data") is Dictionary or not valid(response.data):
 		_finish("Equipment changed. Synchronizing…"); return
 	var candidate = preload("res://scripts/application/loadout_workspace.gd").new()
+	candidate.layout = inscription_layout.duplicate(true)
 	if not candidate.accept(response.data): _finish("Loadout unavailable."); return
 	if not candidate.source.get("canEquip", false):
 		_finish(candidate.equipment_lock_reason()); return

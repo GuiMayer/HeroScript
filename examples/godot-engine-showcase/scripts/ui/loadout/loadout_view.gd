@@ -41,6 +41,7 @@ var _inventory_panel: PanelContainer
 var _identity: Array = []
 var _authority_note: Label
 var _authored_font_sizes := {}
+var identity_slots: GridContainer
 
 static func create(editorial := false) -> InscriptionLoadoutView:
 	var path := "res://scenes/ui/components/loadout/inscriptions_" + ("editorial" if editorial else "workbench") + ".tscn"
@@ -59,6 +60,7 @@ func mount(context) -> void:
 	inventory_grid = find_child("InscriptionInventory", true, false)
 	inventory_scroll = find_child("InscriptionInventoryScroll", true, false)
 	slot_grid = find_child("InscriptionSlots", true, false)
+	identity_slots = find_child("IdentitySlots", true, false)
 	preset_picker = find_child("LoadoutPresetPicker", true, false)
 	search_field = find_child("InscriptionSearch", true, false)
 	capacity_label = find_child("LoadoutCapacity", true, false)
@@ -143,14 +145,22 @@ func _tile_text(button: Button, title: String, subtitle: String, active: bool, e
 func present(model: Dictionary) -> void:
 	_model = model.duplicate(true)
 	var t: Callable = visual_context.translator.text
-	var identity: Array = [model.items.map(func(item): return item.instanceId), model.slots, model.get("contextKey", [])]
+	var identity_slot := str(model.get("identitySlotId", ""))
+	var identity: Array = [model.items.map(func(item): return item.instanceId), model.slots, model.get("contextKey", []), identity_slot]
 	if _choices_built and identity != _identity:
 		for child in inventory_grid.get_children(): inventory_grid.remove_child(child); child.queue_free()
 		for child in slot_grid.get_children(): slot_grid.remove_child(child); child.queue_free()
+		if identity_slots != null:
+			for child in identity_slots.get_children(): identity_slots.remove_child(child); child.queue_free()
 		_inventory.clear(); _positions.clear(); preset_picker.clear(); _choices_built = false
 	_identity = identity
 	var remote: bool = model.get("authority") == "REST"
 	var live: bool = model.get("liveEquipment", false)
+	if identity_slots != null:
+		var show_identity: bool = model.get("reserveIdentitySlot", false) or identity_slot in model.slots
+		identity_slots.get_parent().visible = show_identity
+		find_child("CommonSlotsTitle", true, false).visible = show_identity
+		find_child("IdentityPlaceholder", true, false).visible = not identity_slot in model.slots
 	for key in _filter_buttons: _filter_buttons[key].set_pressed_no_signal(key == _filter)
 	_authority_note.text = t.call("Engine loadout. Changes require preview and confirmation.") if remote else t.call("Visual prototype only. No items, attributes or runs are changed.")
 	if live: _authority_note.text = t.call("Equipment and character attributes update automatically.")
@@ -173,7 +183,8 @@ func present(model: Dictionary) -> void:
 		for slot in model.slots:
 			var id: String = slot
 			var button := _tile("LoadoutSlot_" + id, 104, func(): slot_requested.emit(id))
-			slot_grid.add_child(button)
+			if id == identity_slot and identity_slots != null: identity_slots.add_child(button)
+			else: slot_grid.add_child(button)
 			_positions[id] = button
 	if int(model.presetIndex) >= 0: preset_picker.select(int(model.presetIndex))
 	var items := {}
@@ -207,11 +218,13 @@ func present(model: Dictionary) -> void:
 		var id: String = model.slots[index]
 		var item: Dictionary = items.get(model.assignments.get(id, ""), {})
 		var title: String = "+  " + t.call("Empty position") if item.is_empty() else t.call(item.name)
-		var subtitle: String = t.call("Position %s") % (index + 1)
+		var common_index: int = index + 1 - (1 if identity_slot in model.slots and index > model.slots.find(identity_slot) else 0)
+		var position_label: String = t.call("Character identity mod") if id == identity_slot else t.call("Position %s") % common_index
+		var subtitle: String = position_label
 		subtitle += " · " + t.call("Drop here") if item.is_empty() else " · %s %s" % [visual_context.translator.number(item.cost), t.call("points")]
 		_tile_text(_positions[id], title, subtitle, model.selectedSlot == id, item.is_empty())
 		if editorial_layout:
-			_positions[id].find_child("TileSubtitle", true, false).text = t.call("Drop here") if item.is_empty() else t.call("Position %s") % (index + 1)
+			_positions[id].find_child("TileSubtitle", true, false).text = position_label if id == identity_slot or not item.is_empty() else t.call("Drop here")
 			if not item.is_empty():
 				_positions[id].find_child("InscriptionSigil", true, false).texture = preload("res://scripts/ui/loadout/inscription_visual_catalog.gd").texture(item)
 				_positions[id].find_child("InscriptionCost", true, false).text = visual_context.translator.number(item.cost)

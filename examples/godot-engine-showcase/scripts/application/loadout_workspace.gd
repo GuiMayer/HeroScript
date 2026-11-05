@@ -8,6 +8,8 @@ var search := ""
 var preview: Dictionary = {}
 var generation := 0
 var message := ""
+## Display affordances only; the server still validates positions, capacity and compatibility.
+var layout: Dictionary = {}
 
 func accept(snapshot: Dictionary) -> bool:
 	if not snapshot.get("items") is Array or not snapshot.get("policy") is Dictionary or not snapshot.get("assignments") is Dictionary: return false
@@ -63,9 +65,12 @@ func equipment_positions() -> Array:
 		return policy.get("slots", []).map(func(slot): return str(slot.slotId))
 	var positions: Array = assignments.keys()
 	positions.sort()
-	if positions.size() < source.get("items", []).size():
+	var minimum := clampi(int(layout.get("minimumCommonPositions", 0)), 0, 64)
+	var count := maxi(positions.size(), minimum)
+	if positions.size() < source.get("items", []).size(): count = maxi(count, positions.size() + 1)
+	while positions.size() < count:
 		var index := 1
-		while assignments.has("capacity_%d" % index):
+		while "capacity_%d" % index in positions:
 			index += 1
 		positions.append("capacity_%d" % index)
 	return positions
@@ -77,7 +82,7 @@ func snapshot() -> Dictionary:
 		var definition: Dictionary = row.definition
 		var presentation: Dictionary = definition.get("presentation", {})
 		items.append({"instanceId": str(row.instance.instanceId), "name": presentation.get("name", definition.inscriptionId),
-			"family": "Character inscription", "rarity": presentation.get("rarity", "common"), "cost": row.get("effectiveEquipmentCost", definition.equipmentCost),
+			"family": presentation.get("family", "Character inscription"), "rarity": presentation.get("rarity", "common"), "cost": row.get("effectiveEquipmentCost", definition.equipmentCost),
 			"rank": definition.get("rank", 0), "polarity": definition.get("polarity", ""),
 			"tags": definition.get("tags", []), "attributeBonuses": [], "tradeoffs": [],
 			"icon": presentation.get("icon", ""), "attributeIds": definition.get("attributeBonuses", []).map(func(bonus): return str(bonus.get("attributeId", ""))),
@@ -91,6 +96,7 @@ func snapshot() -> Dictionary:
 			"base": baseline, "value": stat.effectiveValue, "change": float(stat.effectiveValue) - baseline,
 			"format": "percent" if stat.unit in ["percent", "%"] else "number", "sources": [], "contextTags": stat.get("contextTags", [])})
 	return {"authority": "REST", "contextKey": [source.get("runId"), source.get("actorId"), source.get("inventoryId"), source.get("contentRevision")],
+		"reserveIdentitySlot": layout.get("reserveIdentitySlot", false), "identitySlotId": layout.get("identitySlotId", ""),
 		"slots": equipment_positions(), "items": items,
 		"assignments": assignments.duplicate(true), "selectedItem": selected_item, "selectedSlot": selected_slot,
 		"usedCapacity": current.get("usedCapacity", 0), "capacity": source.get("policy", {}).get("capacity", 0),

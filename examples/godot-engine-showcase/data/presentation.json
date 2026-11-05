@@ -1,4 +1,7 @@
 {
+  "loadout_layouts": {
+    "prototype-test": { "minimumCommonPositions": 6, "reserveIdentitySlot": true, "identitySlotId": "identity" }
+  },
   "hidden_system_actions": {
     "prototype-test": ["PASS"]
   },

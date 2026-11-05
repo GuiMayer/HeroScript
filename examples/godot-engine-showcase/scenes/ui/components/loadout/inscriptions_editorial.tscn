@@ -305,6 +305,32 @@ theme_override_styles/background = SubResource("StyleBoxFlat_ruarh")
 theme_override_styles/fill = SubResource("StyleBoxFlat_wlmkj")
 show_percentage = false
 
+[node name="CharacterIdentity" type="VBoxContainer" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="IdentityTitle" type="Label" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0/CharacterIdentity"]
+layout_mode = 2
+text = "CHARACTER IDENTITY MOD"
+metadata/source_text = "CHARACTER IDENTITY MOD"
+
+[node name="IdentitySlots" type="GridContainer" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0/CharacterIdentity"]
+layout_mode = 2
+
+[node name="IdentityPlaceholder" type="Button" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0/CharacterIdentity"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+disabled = true
+text = "Reserved for this character\nNo identity mod is defined in this content revision."
+metadata/source_text = "Reserved for this character\nNo identity mod is defined in this content revision."
+
+[node name="CommonSlotsTitle" type="Label" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0"]
+visible = false
+layout_mode = 2
+text = "COMMON INSCRIPTIONS"
+metadata/source_text = "COMMON INSCRIPTIONS"
+
 [node name="InscriptionSlots" type="GridContainer" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0"]
 layout_mode = 2
 theme_override_constants/h_separation = 12

@@ -85,6 +85,7 @@ func snapshot() -> Dictionary:
 		used += float(item.cost)
 		contributions.append(item.duplicate(true))
 	return {"authority": "VisualFixture", "slots": _fixture.get("slots", []).duplicate(),
+		"reserveIdentitySlot": _fixture.get("reserveIdentitySlot", false), "identitySlotId": _fixture.get("identitySlotId", ""),
 		"items": _items.values().duplicate(true), "assignments": _assignments.duplicate(),
 		"selectedItem": selected_item, "selectedSlot": selected_slot,
 		"usedCapacity": used, "capacity": _fixture.get("capacity", 0),
