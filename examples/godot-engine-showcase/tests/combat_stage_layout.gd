@@ -56,6 +56,28 @@ func _run() -> void:
 	await settle()
 	var screen = router.host.get_child(0)
 	var hand = screen.view.hand
+	var payment_requests: Array = []
+	screen.inline_selection.preview_requested.disconnect(screen._preview_inline_selection)
+	screen.inline_selection.preview_requested.connect(func(command, _ticket): payment_requests.append(command))
+	# Exercise the production input routes without invoking gameplay or REST.
+	for cancel_with_escape in [false, true]:
+		screen.controller.select_card("fixture-0")
+		screen.inline_selection.command = {"cardInstanceId": "fixture-0"}
+		screen.inline_selection.snapshot = {"evaluation": {"paymentRequirements": [{"componentId": "cost-or-effect", "paymentId": "choose-card", "count": 1, "eligibleCardIds": ["fixture-1"]}]}}
+		screen._render_inline_selection()
+		check(hand.card_for("fixture-0").get_meta("awaiting_card_selection", false), "inline selection gives the originating hand card a dedicated highlight")
+		hand.interaction.pointer_active = true
+		screen._on_intent("card_hover", ["fixture-1"])
+		check(screen.inline_selection.active and screen.selected_card == "fixture-0", "hovering a payment candidate preserves the originating action")
+		screen._choose_card("fixture-1")
+		check(payment_requests.back().paymentSelections[0].cardInstanceIds == ["fixture-1"] and screen.selected_card == "fixture-0", "clicking another hand card selects it for the cost or effect without playing it")
+		if cancel_with_escape:
+			var escape := InputEventKey.new()
+			escape.keycode = KEY_ESCAPE; escape.pressed = true
+			root.push_input(escape, true)
+		else: screen._choose_card("fixture-0")
+		check(not screen.inline_selection.active and screen.selected_card.is_empty(), "Escape or a second click on the origin cancels inline selection")
+		check(not hand.card_for("fixture-0").get_meta("awaiting_card_selection", false), "cancel removes the pending-selection highlight")
 	check(not screen.view.character_sidebar.visible, "character details start collapsed, leaving enemy intents unobstructed")
 	screen._toggle_character_sidebar()
 	await settle()

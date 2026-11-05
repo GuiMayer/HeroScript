@@ -24,6 +24,7 @@ var _scenery_key := ""
 var _zone_reading_states: Dictionary = {}
 var _collection_dialog: Window
 var _collection_loading := false
+var inline_selection = preload("res://scripts/ui/controllers/inline_card_selection.gd").new()
 var _prepared_card: Dictionary = {}
 var _interaction_trace = preload("res://scripts/presentation/interaction_trace.gd").new()
 func interaction_metrics() -> Dictionary: return _interaction_trace.snapshot()
@@ -47,6 +48,11 @@ var submitting: bool:
 	get: return controller.state.submitting if controller else false
 
 func setup(owner, data: Dictionary) -> void:
+	inline_selection.preview_requested.connect(_preview_inline_selection)
+	inline_selection.changed.connect(_render_inline_selection)
+	inline_selection.ready.connect(func(preview):
+		if GameSession.payment_context_matches(preview.get("version", {})):
+			_play_candidate({"source": "Card", "command": preview.command, "costs": preview.evaluation.get("costs", []), "applications": preview.get("applications", [])}, preview))
 	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
 	screen_context = ScreenContext.ensure(owner)
 	router = screen_context.router if screen_context.router != null else owner
@@ -131,7 +137,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 			var id := str(arguments[0])
 			# Pointer browsing cancels targeting, but never chooses or plays the next card.
 			# Keyboard/controller focus uses card_previewed, not this pointer-only intent.
-			if view.hand.interaction.pointer_active and not view.hand.interaction.dragging and not _locked() \
+			if not inline_selection.active and view.hand.interaction.pointer_active and not view.hand.interaction.dragging and not _locked() \
 					and not id.is_empty() and not selected_card.is_empty() and selected_card != id:
 				if controller.cancel():
 					view.clear_choices()
@@ -145,6 +151,8 @@ func _on_intent(action: String, arguments: Array) -> void:
 	elif action == "pause": screen_context.navigation.toggle_pause()
 	elif action == "skip_presentation": presentation_driver.skip()
 	elif action == "select_card":
+		if inline_selection.active:
+			_choose_card(str(arguments[0])); return
 		if controller.select_card(str(arguments[0])):
 			GameAudio.select_card()
 			view.clear_choices(); view.show_preview(str(arguments[0])); _update_controls()
@@ -161,6 +169,9 @@ func _update_controls() -> void:
 	if not is_instance_valid(view): return
 	view.card_buttons = view.hand.cards()
 	view.apply_interaction(controller.interaction_model().to_dictionary())
+	if inline_selection.active:
+		if selected_card != str(inline_selection.command.get("cardInstanceId", "")): inline_selection.cancel()
+		else: _render_inline_selection()
 	if is_instance_valid(_collection_dialog):
 		var address: Dictionary = _collection_dialog.collection.model.address
 		var zone: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").find(GameSession.card_zones, address)
@@ -403,6 +414,7 @@ func apply_interaction(_state) -> void: _update_controls()
 func capture_local_state() -> Dictionary: return view.capture_local_state()
 func restore_local_state(state: Dictionary) -> void: view.restore_local_state(state)
 func dispose() -> void:
+	inline_selection.cancel()
 	if _receipt_departure != null: _receipt_departure.finish("cancelled"); _receipt_departure = null
 	if _transits != null: _transits.dispose(); _transits = null
 	if is_instance_valid(_collection_dialog): _collection_dialog.queue_free()
@@ -433,6 +445,8 @@ func _drop_card(id: String, point: Vector2) -> void:
 
 
 func _select_target(actor_id: String) -> void:
+	if inline_selection.active:
+		inline_selection.target(actor_id); return
 	var matches: Array = controller.target_options(actor_id)
 	if not matches.is_empty(): _offer_candidates(matches)
 
@@ -491,6 +505,10 @@ func _next_frame() -> void:
 func _choose_card(id: String) -> void:
 	if _locked():
 		return
+	if inline_selection.active:
+		if id == str(inline_selection.command.get("cardInstanceId", "")): _cancel_selection()
+		else: inline_selection.pick(id)
+		return
 	if presenter.requires_payment(id):
 		if controller.select_card(id): _open_payment(id)
 		return
@@ -509,6 +527,7 @@ func _choose_card(id: String) -> void:
 
 func _cancel_selection() -> void:
 	if not controller.cancel(): return
+	inline_selection.cancel()
 	GameAudio.cancel()
 	view.reset_preview()
 	_update_controls()
@@ -553,27 +572,34 @@ func _execute_zone_flow(payload: Dictionary) -> void:
 	if is_inside_tree() and accepted and not Playback.has_blocking_work(): screen_context.open_game()
 
 func _open_payment(id: String) -> void:
-	var opening_context := [GameSession.replay_context(), GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.combat.get("combatId"), GameSession.combat.get("step")]
-	var dialog = preload("res://scenes/ui/overlays/card_payment.tscn").instantiate()
-	add_child(dialog); dialog.mount(visual_context, presenter.appearance())
-	var actors := {}
-	for actor in presenter.actors():
-		var actor_id := str(actor.get("instanceId", "")); actors[actor_id] = presenter.actor_name(actor_id)
-	dialog.actor_names = actors
-	dialog.command = {"actorId": GameSession.input_actor_id(), "actionType": "PLAY_CARD", "cardInstanceId": id, "targetIds": []}
-	dialog.preview_requested.connect(func(intent, generation):
-		var response: Dictionary = await GameSession.preview_card_payment(intent)
-		if is_instance_valid(dialog):
-			if int(response.get("status", 0)) == 409: dialog.cancel_selection()
-			else: dialog.accept(response, generation))
-	dialog.play_requested.connect(func(preview):
-		if not GameSession.payment_context_matches(preview.get("version", {})): return
-		_play_candidate({"source": "Card", "command": preview.command, "costs": preview.evaluation.get("costs", []), "applications": preview.get("applications", [])}, preview))
-	dialog.canceled.connect(func(): _cancel_selection())
-	var guard = func():
-		if is_instance_valid(dialog) and opening_context != [GameSession.replay_context(), GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.combat.get("combatId"), GameSession.combat.get("step")]:
-			dialog.cancel_selection()
-	GameSession.changed.connect(guard)
-	dialog.tree_exiting.connect(func(): if GameSession.changed.is_connected(guard): GameSession.changed.disconnect(guard))
-	dialog.popup_centered(Vector2i(mini(1120, int(get_viewport_rect().size.x * 0.9)), mini(780, int(get_viewport_rect().size.y * 0.9))))
-	dialog.refresh_preview()
+	inline_selection.start({"actorId": GameSession.input_actor_id(), "actionType": "PLAY_CARD", "cardInstanceId": id, "targetIds": []})
+
+func _preview_inline_selection(intent: Dictionary, ticket: int) -> void:
+	var response: Dictionary = await GameSession.preview_card_payment(intent)
+	if is_inside_tree(): inline_selection.accept(response, ticket)
+
+func _render_inline_selection() -> void:
+	if not is_instance_valid(view): return
+	var eligible: Array = []
+	var chosen: Array = []
+	for requirement in inline_selection.requirements():
+		eligible.append_array(requirement.get("eligibleCardIds", []))
+	for ids in inline_selection.chosen.values(): chosen.append_array(ids)
+	for id in view.hand.order:
+		var card = view.hand.card_for(id)
+		card.set_meta("awaiting_card_selection", inline_selection.active and id == str(inline_selection.command.get("cardInstanceId", "")))
+		card.set_meta("card_selection_eligible", inline_selection.active and id in eligible)
+		card.set_meta("card_selection_chosen", inline_selection.active and id in chosen)
+		card.get_node("PrintedKeyline").queue_redraw()
+	view.clear_choices()
+	if not inline_selection.active: return
+	for id in view.target_buttons:
+		view.target_buttons[id].disabled = _locked() or id not in inline_selection.snapshot.get("evaluation", {}).get("legalTargetIds", [])
+	var options: Array = inline_selection.snapshot.get("evaluation", {}).get("affordableCostOptionIds", [])
+	if options.size() > 1 and not inline_selection.command.has("costOptionId"):
+		view.candidate_panel.show()
+		for option in options:
+			var button := Button.new()
+			button.text = visual_context.translator.content_name(str(option))
+			button.pressed.connect(func(): inline_selection.cost(str(option)))
+			view.choices.add_child(button)
