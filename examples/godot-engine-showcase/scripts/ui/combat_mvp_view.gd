@@ -24,7 +24,7 @@ func _build_hand() -> void:
 func _build_footer() -> void:
 	super._build_footer()
 	var gap: Control = turn_view.get_node("EndTurnGap")
-	turn_view.move_child(gap, turn_view.get_node("EndTurnButton").get_index())
+	turn_view.move_child(gap, turn_view.get_child_count() - 2)
 
 func _layout_gameplay() -> void:
 	super._layout_gameplay()

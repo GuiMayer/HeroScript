@@ -311,14 +311,15 @@ func show_map() -> void:
 	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("map"); screen.setup(self, presentation); host.add_child(screen)
 
 func show_combat() -> void:
+	var combat_route: String = preload("res://scripts/ui/scene_registry.gd").combat_route(GameSession.run, GameSession.selected_setting_id)
 	if current_screen == "combat" and host.get_child_count() == 1:
 		var existing = host.get_child(0)
-		if existing.has_method("refresh_state"):
+		if existing.has_method("refresh_state") and existing.scene_file_path == preload("res://scripts/ui/scene_registry.gd").ROUTES[combat_route].resource_path:
 			existing.refresh_state(presentation)
 			return
 	current_screen = "combat"
 	_clear_host()
-	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate(preload("res://scripts/ui/scene_registry.gd").combat_route(GameSession.run, GameSession.selected_setting_id))
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate(combat_route)
 	screen.setup(self, presentation)
 	host.add_child(screen)
 
