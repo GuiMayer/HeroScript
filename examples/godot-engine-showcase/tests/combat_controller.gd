@@ -47,6 +47,12 @@ func _run() -> void:
 	session.hold = true
 	controller.submit(a)
 	check(controller.state.submitting and not await controller.submit(a), "double submission blocked while waiting")
+	controller.bind(projection, "same-view-new-input-actor", ["c"])
+	session.release.emit()
+	check(not controller.state.submitting and not controller.locked(), "context rebind during an accepted command cannot orphan the submission gate")
+	session.hold = false
+	check(await controller.submit(a), "next published command is usable after a context transition")
+	session.hold = true; controller.submit(a)
 	controller.dispose()
 	session.release.emit()
 	check(not controller.select_card("c"), "disposed controller rejects input and late completion")

@@ -11,11 +11,12 @@ param(
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
 $ErrorActionPreference = 'Stop'
-if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout', 'loadout_editorial', 'loadout_input', 'api_request_numbers', 'combat_controller', 'combat_input_soak', 'card_cost_layout', 'window_monitor', 'local_server') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components') }
 $workspace = Split-Path $PSScriptRoot -Parent
-if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('shared_canvas_theme', 'combat_attributes_drawer') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('card_transit_counter', 'shared_canvas_theme', 'combat_attributes_drawer') }
 if (-not $PSBoundParameters.ContainsKey('Tests')) {
-    $Tests += @('run_screen_lifecycle', 'replay_lifecycle', 'activity_map_completion', 'map_auto_completion', 'map_completion_status', 'map_topology_refresh', 'map_camera_motion', 'first_combat_map_transition', 'art_effects', 'art_effect_lab')
+    $Tests += @('run_screen_lifecycle', 'replay_lifecycle', 'activity_map_completion', 'map_auto_completion', 'map_completion_status', 'map_topology_refresh', 'map_camera_motion', 'first_combat_map_transition', 'art_effects', 'art_effect_lab', 'card_draw_pose', 'tactical_pieces')
 }
 $source = Join-Path $workspace 'examples/godot-engine-showcase'
 $taskId = [Guid]::NewGuid().ToString('N')
@@ -40,7 +41,9 @@ Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object {
     Copy-Item -LiteralPath $_.FullName -Destination $destination
 }
 $configPath = Join-Path $project 'project.godot'
-$config = [IO.File]::ReadAllText($configPath).Replace('[application]', "[application]`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"HeroScript-ui-refactor-$taskId`"")
+$config = [IO.File]::ReadAllText($configPath)
+$config = [regex]::Replace($config, '(?m)^config/(use_custom_user_dir|custom_user_dir_name)=.*\r?\n?', '')
+$config = $config.Replace('[application]', "[application]`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"HeroScript-ui-refactor-$taskId`"")
 [IO.File]::WriteAllText($configPath, $config)
 $results = [Collections.Generic.List[object]]::new()
 if ($VisualTest) {

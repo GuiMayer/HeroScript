@@ -5,7 +5,7 @@ func check(ok: bool, message: String) -> void:
 	print("[PASS] " if ok else "[FAIL] ", message)
 	if not ok: failures += 1
 func run() -> void:
-	var path := "res://data/labs/programmer_art_manifest.json"
+	var path := "res://data/programmer_art_manifest.json"
 	var catalog = preload("res://scripts/presentation/art_catalog.gd")
 	var manifest: Dictionary = catalog.manifest(path)
 	var original: Dictionary = catalog.manifest("res://data/ivory_run_art_manifest.json")

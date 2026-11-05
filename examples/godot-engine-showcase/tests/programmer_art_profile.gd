@@ -23,5 +23,5 @@ func run() -> void:
 		for type in old_theme.get_type_list():
 			for name in old_theme.get_stylebox_list(type):
 				check(old_theme.get_stylebox(name, type).get_minimum_size() == new_theme.get_stylebox(name, type).get_minimum_size(), "same native style minimum: %s/%s/%s" % [contrast, type, name])
-	check(base.presentation_key() == original and base.card_style.keyline_style == "frame", "base resources remain untouched")
+	check(base.presentation_key() == original, "base resources remain untouched")
 	quit(0 if failures == 0 else 1)

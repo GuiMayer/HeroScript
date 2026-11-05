@@ -4,7 +4,8 @@ var failures := 0
 var output := ""
 var capture := false
 var records: Dictionary = {}
-const BASELINE := "res://data/labs/programmer_art_baseline.json"
+var details: Dictionary = {}
+const BASELINE := "res://data/labs/programmer_art_rows_baseline.json"
 func _init() -> void: call_deferred("run")
 func check(ok: bool, label: String) -> void:
 	print("[PASS] " if ok else "[FAIL] ", label)
@@ -41,6 +42,7 @@ func run() -> void:
 	# Neutralize entrance only for reproducible measurement; production stays intact.
 	root.get_node("Preferences").reduced_motion = true
 	var expected: Dictionary = {} if capture else JSON.parse_string(FileAccess.get_file_as_string(BASELINE))
+	var original: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/labs/programmer_art_baseline.json"))
 	for dimensions in [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1080)]:
 		root.size = dimensions
 		root.content_scale_size = dimensions
@@ -56,6 +58,11 @@ func run() -> void:
 					var rows := geometry(lab)
 					records[key] = {"digest": JSON.stringify(rows).sha256_text(), "controls": rows.size(), "hand_position": pair(lab.hand.global_position), "hand_size": pair(lab.hand.size)}
 					check(capture or records[key].digest == expected.get("cases", {}).get(key, {}).get("digest"), "geometry unchanged: " + key)
+					var same_hand := true
+					for metric in ["hand_position", "hand_size"]:
+						for axis in range(2):
+							same_hand = same_hand and is_equal_approx(records[key][metric][axis], float(original.cases[key][metric][axis]))
+					check(same_hand, "original outer hand geometry preserved: " + key)
 					if not output.is_empty() and DisplayServer.get_name() != "headless" and language == "en" and scale == 1.0 and amount == 5:
 						await RenderingServer.frame_post_draw
 						root.get_texture().get_image().save_png(output.path_join("lab-%sx%s.png" % [dimensions.x, dimensions.y]))
@@ -67,6 +74,7 @@ func run() -> void:
 		await settle()
 		var key := "preset/" + str(preset)
 		var rows := geometry(lab)
+		details[key] = rows
 		records[key] = {"digest": JSON.stringify(rows).sha256_text(), "controls": rows.size()}
 		check(capture or records[key].digest == expected.get("cases", {}).get(key, {}).get("digest"), "preset geometry unchanged: " + str(preset))
 		if not output.is_empty() and DisplayServer.get_name() != "headless":
@@ -77,6 +85,8 @@ func run() -> void:
 	if not output.is_empty():
 		var file := FileAccess.open(output.path_join("geometry.json"), FileAccess.WRITE)
 		file.store_string(JSON.stringify({"cases": records, "motion_sources": motion_sources()}, "\t"))
+		var detail_file := FileAccess.open(output.path_join("preset-geometry.json"), FileAccess.WRITE)
+		detail_file.store_string(JSON.stringify(details, "\t"))
 	lab.queue_free()
 	await settle()
 	root.size = original_size

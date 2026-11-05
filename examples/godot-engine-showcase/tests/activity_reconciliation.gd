@@ -3,6 +3,8 @@ var failures := 0
 class FakeSession extends RefCounted:
 	var busy := false
 	var calls: Array = []
+	var assessment: Dictionary = {}
+	func preview_transformation(_choice: Dictionary) -> Dictionary: return assessment.duplicate(true)
 	func submit_activity(choice: Dictionary) -> bool:
 		calls.append(choice.duplicate(true))
 		return false
@@ -62,6 +64,47 @@ func _run() -> void:
 	offer_card.grab_focus()
 	check(offer_card.has_focus() and not offer_card.chosen, "explicit keyboard focus remains available without selecting an offer")
 	check(not offer_card.model.costsKnown and str(offer_card.model.cost).is_empty() and screen.find_child("AcquisitionPrice", true, false).text.contains("30"), "acquisition price stays outside the face; missing play cost is unknown, never invented")
+	var facts := {"identity": {"kind": "Instance", "definitionId": "w1_strike", "cardInstanceId": "first"}, "rarity": "Common", "costs": [],
+		"effects": [{"effectPath": "main", "definition": {"type": "DAMAGE", "target": "TARGET", "targetResource": "health", "flatValue": 999},
+		"parameters": [{"parameter": "Amount", "values": {"original": 6, "composedBase": 6}}]}]}
+	var neighbor: Dictionary = facts.duplicate(true)
+	neighbor.identity.cardInstanceId = "second"
+	neighbor.effects[0].parameters[0].values.composedBase = 30
+	session._card_presentations = {"runId": session.run.runId, "runSequence": session.run.sequence, "contentRevision": session.run.get("contentRevision", ""), "cards": [neighbor, facts]}
+	session._available_commands = [{"type": "UPGRADE_CARD", "validPayload": {"options": [
+		{"cardInstanceId": "first", "cardDefinitionId": "w1_strike", "upgradeId": "w1_ranked_edge", "costs": []}]}}]
+	screen.refresh_state(router.presentation)
+	await settle()
+	offer_card = screen.view.choice_buttons.filter(func(item): return item is CardView)[0]
+	check(offer_card.model.has("presentationFacts") and offer_card.model.summary.contains("6"), "forge card displays canonical effects instead of the upgrade name or placeholder")
+	check(offer_card.model.presentationFacts.identity.cardInstanceId == "first", "forge binds the exact card instance, never a same-definition neighbor")
+	var after: Dictionary = facts.duplicate(true)
+	after.effects[0].parameters[0].values.composedBase = 9
+	fake.assessment = {"isCompatible": true, "beforePresentation": facts, "afterPresentation": after}
+	var models: Array = screen.presenter.transformation_models(fake.assessment)
+	check(models.size() == 2 and models[0].summary.contains("6") and models[1].summary.contains("9"), "upgrade comparison uses published before/after quantities, not raw definition values")
+	check(screen.presenter.transformation_models({"before": {"components": []}, "after": {"components": []}}).is_empty(), "raw effective definitions cannot masquerade as canonical presentation facts")
+	screen.controller.bind(session.run, session.activity_choices())
+	await screen._confirm_choice(session.activity_choices()[0], screen.presenter.offer(session.activity_choices()[0]), "UPGRADE")
+	await settle()
+	var dialogs: Array = screen.find_children("*", "ConfirmationDialog", true, false)
+	check(dialogs.size() == 1, "upgrade opens a confirmation rather than applying immediately")
+	var comparison_cards: Array = dialogs[0].find_children("*", "Button", true, false).filter(func(item): return item is CardView)
+	check(comparison_cards.size() == 2 and not dialogs[0].get_ok_button().disabled, "upgrade confirmation shows two real card components with effects")
+	check(comparison_cards.all(func(card): return not card.chosen and not card.has_focus()), "comparison cards are not auto-selected")
+	check(dialogs[0].size.x <= root.size.x and dialogs[0].size.y <= root.size.y, "comparison fits viewport")
+	dialogs[0].hide()
+	await settle()
+	var item := {"itemDefinitionId": "fire", "presentation": {"name": "Fire imprint", "description": "Apply 1 Scorch."}}
+	session._modifier_items = {"runId": session.run.runId, "runSequence": session.run.sequence, "catalog": [item]}
+	session._available_commands = [{"type": "ACQUIRE_CARD_MODIFIER_ITEM", "validPayload": {"itemDefinitionIds": ["fire"]}}]
+	screen.refresh_state(router.presentation)
+	await settle()
+	check(screen.find_children("*", "Label", true, false).any(func(label): return label.text == "Apply 1 Scorch."), "modifier effect is visible in the offer without hovering")
+	var item_presenter = load("res://scripts/presentation/activity_presenter.gd").new({}, [], {}, root.get_node("I18n"), [],
+		{"items": [{"definition": item, "instance": {"itemInstanceId": "owned"}}]})
+	var applied: Dictionary = item_presenter.offer({"type": "APPLY_CARD_MODIFIER_ITEM", "subjectId": "owned", "payload": {"itemInstanceId": "owned", "cardInstanceId": "first"}})
+	check(applied.name == "Fire imprint" and applied.summary == "Apply 1 Scorch.", "apply confirmation resolves the item's own description, not its instance ID")
 	router.queue_free()
 	await settle()
 	root.get_node("GameAudio").shutdown()

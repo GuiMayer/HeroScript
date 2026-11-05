@@ -16,6 +16,37 @@ namespace API.Tests.Integration;
 public sealed partial class PrototypeTrialTests
 {
     [Fact]
+    public async Task ThinSliceCardsUsePublishedCostsAndEffectsDeterministically()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var game = new GameEngineClientSimulator(client);
+        var id = await game.StartRunAsync("prototype-test", "prototype_trial", "player", 8815, "prototype_campaign");
+        await game.StartCombatAsync("player", ["enemy_0"], runId: id, heroDefinitionId: "prototype_hero", enemyDefinitionId: "prototype_target");
+        var source = factory.Services.GetRequiredService<IRunQueryService>().GetRun(id).Value;
+        var executor = factory.Services.GetRequiredService<ICardPlayExecutor>();
+        foreach (var (definition, target, resource, expected, cost) in new[]
+        {
+            ("pyro_golpe_brasa", "enemy_0", "health", -14f, 2f),
+            ("pyro_barreira_cinzas", "player", "block", 8f, 1f)
+        })
+        {
+            var run = Arrange(source, definition);
+            var before = CanonicalJson.ComputeHash(run);
+            var request = Request(run, definition, target == "player" ? [] : ["enemy_0"]);
+            var result = executor.Execute(request);
+            Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            var original = run.GetActiveEncounter()!.Combat;
+            Assert.Equal(expected, result.Value.Combat.GetActor(target)!.ResourceState.Current(resource) -
+                original.GetActor(target)!.ResourceState.Current(resource));
+            Assert.Equal(cost, original.GetActor("player")!.ResourceState.Current("energy") -
+                result.Value.Combat.GetActor("player")!.ResourceState.Current("energy"));
+            Assert.Equal(before, CanonicalJson.ComputeHash(run));
+            Assert.Equal(result.Value.ResolutionFingerprint, executor.Execute(request).Value.ResolutionFingerprint);
+        }
+    }
+
+    [Fact]
     public async Task EquippedStyleInscriptionsApplyOnlyToMatchingCards()
     {
         using var factory = new TestWebApplicationFactory();
@@ -101,21 +132,17 @@ public sealed partial class PrototypeTrialTests
             Assert.Equal(expected, encounter.Combat.GetActor("enemy_0")!.ResourceState.Current("health") - result.Value.Combat.GetActor("enemy_0")!.ResourceState.Current("health"));
             Assert.Equal(result.Value.ResolutionFingerprint, executor.Execute(Request(run, "prototype_strike")).Value.ResolutionFingerprint);
         }
-        var cooled = SetResource(SetHeat(Arrange(source, "prototype_coolant"), 10), "health", 80);
+        var cooled = SetResource(Arrange(source, "prototype_coolant"), "health", 80);
         var cooling = executor.Execute(Request(cooled, "prototype_coolant", []));
         Assert.True(cooling.IsSuccess, cooling.IsFailure ? cooling.Error : null);
-        Assert.Equal(0, cooling.Value.Combat.GetActor("player")!.ResourceState.Current("heat"));
+        Assert.False(cooling.Value.Combat.GetActor("player")!.ResourceState.Resources.ContainsKey("heat"));
         Assert.Equal(84, cooling.Value.Combat.GetActor("player")!.ResourceState.Current("health"));
         Assert.Equal(0, cooling.Value.Combat.GetActor("player")!.ResourceState.Current("block"));
         Assert.Equal(original, CanonicalJson.ComputeHash(source));
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(60)]
-    [InlineData(85)]
-    [InlineData(100)]
-    public async Task PublishedHeatCaptureAndWetReleaseUseOnePipelineWithoutRescalingStoredPotency(int heat)
+    [Fact]
+    public async Task PublishedWetReleaseUsesCapturedPotencyWithoutHeat()
     {
         using var factory = new TestWebApplicationFactory(); using var client = factory.CreateClient();
         var game = new GameEngineClientSimulator(client);
@@ -128,24 +155,16 @@ public sealed partial class PrototypeTrialTests
         var run = Arrange(authoritative, "prototype_scorch", "prototype_soak", "prototype_void_condense", "prototype_strike");
         var executor = factory.Services.GetRequiredService<ICardPlayExecutor>();
         run = Use(executor, run, "prototype_soak");
-        run = SetHeat(run, heat);
         var before = CanonicalJson.ComputeHash(run);
         var result = executor.Execute(Request(run, "prototype_scorch"));
-        if (heat == 100)
-        {
-            Assert.True(result.IsFailure);
-            Assert.Equal(before, CanonicalJson.ComputeHash(run));
-        }
-        else
-        {
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+            Assert.Equal(before, CanonicalJson.ComputeHash(run));
             run = Accept(run, result.Value);
             var burn = Assert.Single(run.GetActiveEncounter()!.Combat.StatusEffects["enemy_0"], status => status.StatusId == "prototype_burn");
             var potency = Assert.Single(burn.PayloadLots).Parameters["potency"].Snapshot!.Value;
-            Assert.Equal(2 * (1 + (heat + 15) * 0.005f), potency, 4);
+            Assert.Equal(2, potency, 4);
             Assert.Equal(2, burn.Stacks);
             Assert.Contains(run.GetActiveEncounter()!.Combat.StatusEffects["enemy_0"], status => status.StatusId == "prototype_wet" && status.IsActive);
-            run = SetHeat(run, 100);
             var health = run.GetActiveEncounter()!.Combat.GetActor("enemy_0")!.ResourceState.Current("health");
             var fee = run.Deck.Topology.GetZone("hand", "$run")!.InstanceIds.Single(id => run.Deck.Topology.Instances[id].DefinitionId == "prototype_strike");
             var request = Request(run, "prototype_void_condense") with { PaymentSelections = [new("cost", "fuel", [fee])] };
@@ -154,9 +173,8 @@ public sealed partial class PrototypeTrialTests
             var expected = MathF.Round(potency * 2 * 1.25f, MidpointRounding.AwayFromZero);
             Assert.Equal(expected, health - output.Value.Combat.GetActor("enemy_0")!.ResourceState.Current("health"));
             Assert.DoesNotContain(output.Value.Combat.StatusEffects.GetValueOrDefault("enemy_0", []), status => status.StatusId == "prototype_burn" && status.IsActive && status.Stacks > 0);
-            Assert.Equal(100, output.Value.Combat.GetActor("player")!.ResourceState.Current("heat"));
+            Assert.False(output.Value.Combat.GetActor("player")!.ResourceState.Resources.ContainsKey("heat"));
             Assert.Equal(output.Value.ResolutionFingerprint, executor.Execute(request).Value.ResolutionFingerprint);
-        }
         Assert.Equal(parentHash, CanonicalJson.ComputeHash(reads.GetRun(id).Value));
     }
 
@@ -191,7 +209,6 @@ public sealed partial class PrototypeTrialTests
         return candidate with { Encounters = candidate.Encounters.SetItem(candidate.Encounters.Length - 1,
             candidate.Encounters[^1] with { Combat = result.Combat }) };
     }
-    private static RunState SetHeat(RunState run, float heat) => SetResource(run, "heat", heat);
     private static RunState SetResource(RunState run, string resource, float value)
     {
         var encounter = run.GetActiveEncounter()!;

@@ -21,6 +21,7 @@ func _run() -> void:
 	check(Server.startup_error_key("unknown").contains("launcher"), "unknown startup failure falls back to the generic error")
 	var server := Server.new()
 	root.add_child(server)
+	check(server.startup_timeout_seconds >= 300.0, "cold builds can exceed two minutes without abandoning startup")
 	check((await server.ensure_started("http://remote.example:5271")).ok and server.launcher_pid == -1, "remote configuration delegates to ordinary connection without creating a process")
 	server.queue_free()
 	root.get_node("GameAudio").shutdown()

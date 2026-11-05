@@ -29,7 +29,7 @@ func _run():
 	var tabs = codex.get_node("TabsScroll/Tabs")
 	tabs.get_child(3).pressed.emit()
 	check(tabs.get_child_count() == codex.KINDS.size() and codex.requested == ["cards","status-effects"], "codex template tabs request the published content kinds exactly once")
-	codex.current_items = [{"definitionId":"entry","components":{"value":2}}]; codex._select_item(0)
+	codex.current_items = [{"definitionId":"entry","components":{"value":2}}]; codex._filter_items(); codex._select_item(0)
 	check(codex.detail.text.contains('"value": 2') and not codex.detail.editable, "codex native details remain read only")
 	sandbox.queue_free(); codex.queue_free(); owner.free(); await process_frame
 	probe = null; await process_frame

@@ -5,6 +5,9 @@ class ReplayGateway extends RefCounted:
 	signal connect_released
 	var session
 	var connects := 0
+	func read_run(_id: String) -> Dictionary:
+		# A saved bookmark may outlive a fixture run, just as in a real profile.
+		return {"ok": false, "status": 404, "error": "Fixture run not found"}
 	func connect_engine() -> Dictionary:
 		connects += 1
 		await connect_released

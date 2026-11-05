@@ -36,6 +36,12 @@ func _run() -> void:
 		cursor.load_receipt(nullable)
 		check(not cursor.has_blocking_work(), "absent animation facts create no frames or blocking duration")
 	cursor.free()
+	var nullable_cursor = preload("res://scripts/presentation/playback.gd").new()
+	for frames in [null, [null, {"effectSteps": null, "applications": null, "cardZoneSteps": null}]]:
+		nullable_cursor.load_receipt({"state": {"resolution": {"frames": frames}}})
+		while nullable_cursor.has_frames(): nullable_cursor.advance()
+		check(not nullable_cursor.has_blocking_work(), "nullable optional animation collections cannot orphan the presentation pipeline")
+	nullable_cursor.free()
 	var steps := [{"instanceIds": ["visible", "hidden"], "sourceOrderBefore": ["hidden", "visible"]}]
 	var zones := {"zones": [{"contentsVisible": true, "cards": [{"cardInstanceId": "visible"}]}]}
 	var projected: Array = Envelope.visible_zone_steps(steps, [zones])

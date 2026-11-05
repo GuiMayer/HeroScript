@@ -10,6 +10,17 @@ func run_checks() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").new()
 	var hand = preload("res://scripts/ui/card_hand_view.gd").create(context)
 	hand.size = Vector2(1100, 600); root.add_child(hand)
+	var first := Window.new(); var second := Window.new()
+	hand.add_child(first); hand.add_child(second)
+	hand.track_reading_modal(first); first.show(); hand.track_reading_modal(second); second.show()
+	first.hide()
+	check(hand.reading_modal, "closing one inspector cannot release another active modal")
+	second.hide()
+	check(not hand.reading_modal, "hiding the last inspector releases hand input without requiring node destruction")
+	first.show()
+	check(hand.reading_modal, "reopened inspector blocks gestures again")
+	first.queue_free(); second.queue_free(); await settle()
+	check(not hand.reading_modal, "destroyed inspector leaves no sticky modal lock")
 	var old := {"cardInstanceId": "old", "name": "Outgoing", "summary": "Base effect"}
 	var keep := {"cardInstanceId": "keep", "name": "Retained", "summary": "Base effect"}
 	var fresh := {"cardInstanceId": "fresh", "name": "Incoming", "summary": "Base effect"}

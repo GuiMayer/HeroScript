@@ -29,6 +29,6 @@ func run() -> void:
 	var confirmation = load("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate()
 	check(confirmation is ConfirmationDialog, "Confirmation template retains the native dialog contract")
 	var toast = load("res://scenes/ui/overlays/toast.tscn").instantiate()
-	check(toast is Label and toast.mouse_filter == Control.MOUSE_FILTER_IGNORE and not toast.visible, "Toast template is passive and initially hidden")
+	check(toast is PanelContainer and toast.mouse_filter == Control.MOUSE_FILTER_IGNORE and not toast.visible, "Toast template is passive and initially hidden")
 	for view in [dialog, history, confirmation, toast]: view.free()
 	quit(1 if failures else 0)

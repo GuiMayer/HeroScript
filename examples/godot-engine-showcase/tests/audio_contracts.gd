@@ -10,7 +10,7 @@ func _run() -> void:
 	var catalog: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(audio.MANIFEST))
 	check(audio._voices.size() == 8, "bounded pool preallocated once")
 	check(audio._music.stream == null, "old generated background tone removed")
-	check(audio._streams.size() == 23, "selected licensed samples loaded once")
+	check(audio._streams.size() == 26, "selected licensed samples loaded once")
 	for event_id in catalog.events:
 		var event: Dictionary = catalog.events[event_id]
 		check(not event.clips.is_empty() and event.gain_db <= -10 and event.cooldown_ms >= 60, "event has restrained mix and rate limit: " + event_id)
@@ -42,6 +42,12 @@ func _run() -> void:
 	check(is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("SFX"))), .7) and is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))), .2), "music and effect gains remain independent")
 	var count: int = audio._voices.size()
 	check(audio._events.card_hover.clips.size() == 3 and audio._events.card_hover.cooldown_ms == 65, "hover has soft variants and rapid-sweep rate limit")
+	check(audio._events.card_hover.max_instances == 1, "short paper hover never layers into a sustained scrape")
+	for event_id in ["card_hover", "card_move", "card_play"]:
+		var durations := {"card_hover": .11, "card_move": .23, "card_play": .29}
+		for path in audio._events[event_id].clips:
+			var stream = audio._streams.get(path)
+			check(path.begins_with("res://assets/audio/kenney-cards/") and stream != null and stream.get_length() > .03 and stream.get_length() <= durations[event_id] and not stream.loop, "card/paper one-shot has a bounded short duration: " + path)
 	check(audio.play_event("card_hover") and not audio.play_event("card_hover"), "hover accepts entry but suppresses bursts")
 	var context = load("res://scripts/ui/visual_context.gd").new()
 	var zone := {"zoneId": "hand", "ownerId": "hero", "scopeId": "combat", "contentsVisible": true, "orderVisible": true, "count": 2, "cards": [{"cardInstanceId": "a", "definitionId": "basic_attack"}, {"cardInstanceId": "b", "definitionId": "defend"}]}
@@ -51,7 +57,9 @@ func _run() -> void:
 	root.add_child(hand); hand.size = Vector2(1000, 500); hand.sync_models(model.cards, "hover-test")
 	for i in 8: await process_frame
 	var hovered: Array = []
-	hand.card_hovered.connect(func(id): hovered.append(id))
+	var target_hovers: Array = []
+	hand.card_hover_entered.connect(func(id): hovered.append(id))
+	hand.card_hovered.connect(func(id): target_hovers.append(id))
 	hand.interaction.hovered = ""
 	var motion := InputEventMouseMotion.new()
 	motion.position = hand._layout.hitRects[0].get_center() - Vector2(hand.scroll.scroll_horizontal, 0)
@@ -62,12 +70,22 @@ func _run() -> void:
 	check(hovered == ["a", "b"] and hand.interaction.selected.is_empty(), "crossing cards emits new hover without selecting")
 	hand._focus("a")
 	check(hovered == ["a", "b"], "programmatic focus is not pointer hover")
+	for repeat in 6:
+		hand.pointer_input(motion)
+		hand._focus("b")
+	check(hovered == ["a", "b"], "focus reconciliation while staying over the same card never repeats hover audio")
+	check(target_hovers.size() == 8, "pointer resumption still updates targeting independently from audio")
 	hand.reading_modal = true; hand.interaction.hovered = ""
 	hand.pointer_input(motion)
 	check(hovered == ["a", "b"], "reading modal suppresses hover feedback")
 	hand.reading_modal = false; hand.interaction.hovered = ""; hand.interaction.dragging = true
 	hand.pointer_input(motion)
 	check(hovered == ["a", "b"], "dragging suppresses hover chatter")
+	hand.interaction.dragging = false
+	motion.position = Vector2(-20, -20); hand.pointer_input(motion)
+	motion.position = hand._layout.hitRects[1].get_center() - Vector2(hand.scroll.scroll_horizontal, 0)
+	hand.pointer_input(motion); hand.pointer_input(motion)
+	check(hovered == ["a", "b", "b"], "leaving and reentering the same card emits exactly one new hover sound")
 	hand.queue_free(); await process_frame
 	for i in 100: audio.play_event("impact")
 	check(audio._voices.size() == count, "burst never allocates extra players")

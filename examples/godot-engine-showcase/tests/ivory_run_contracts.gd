@@ -8,16 +8,20 @@ func _run() -> void:
 	var context = load("res://scripts/ui/visual_context.gd").new(null, {}, load("res://data/themes/ivory_run.tres"))
 	context.set_scenery_profile(load("res://data/themes/ivory_scenery.tres"))
 	check(context.profile.printed_surfaces and context.card_style == load("res://data/themes/ivory_run_card_style.tres"), "run reuses the approved printed card anatomy")
+	check(context.profile.art_manifest == "res://data/programmer_art_manifest.json" and context.card_style.keyline_style == "registration", "gameplay opts into the approved catalogue and card finish")
+	check(context.card_style.card_size == Vector2(248, 360) and context.card_style.art_height == 64.0 and context.card_style.title_line_height == 24.0, "gameplay keeps its card, art and original title-slot dimensions")
+	var menu_profile: Resource = load("res://data/themes/ivory_theme.tres")
+	check(menu_profile.art_manifest == context.profile.art_manifest and menu_profile.card_style.keyline_style == "registration", "menu, pause and loadout profile shares the approved catalogue and finish")
 	check(context.styles.color("surface.canvas") == Color.WHITE and context.scenery_profile.ambient_style == "paper", "white canvas preserves the independent paper scenery style")
 	var actors := ["spire_adept", "spire_wisp", "spire_sentinel", "unknown-mod-actor"]
 	for id in actors:
 		var slot: Dictionary = context.resolve_art("actors", id)
 		var texture = load("res://scripts/presentation/art_catalog.gd").texture_for(slot)
-		check(texture != null and str(slot.path).begins_with("res://assets/ivory/"), "native printed actor/fallback art resolves: " + id)
+		check(texture != null and str(slot.path).begins_with("res://assets/tactical-pieces/"), "native tactical actor/fallback art resolves: " + id)
 	var prior: Resource = context.scenery_profile
 	var expected_cards := {
 		"basic_attack": "card_strike",
-		"arcane_bolt": "card_strike",
+		"arcane_bolt": "card_precision",
 		"ascendant_strike": "card_strike",
 		"ascendant_fracture": "card_strike",
 		"expose_weakness": "card_strike",
@@ -82,14 +86,15 @@ func _run() -> void:
 	var textures: Dictionary = {}
 	for id in expected_cards:
 		var slot: Dictionary = context.resolve_art("cards", id)
-		check(slot.key == expected_cards[id] and not str(slot.path).ends_with("/unknown.svg") and load("res://scripts/presentation/art_catalog.gd").texture_for(slot) != null, "authored card has imported art: " + id)
+		var family: String = {"card_defend": "guard", "card_heal": "recovery", "card_spark": "energy", "core_strike": "multihit", "core_guard": "guard", "core_heal": "recovery", "core_charge_card": "charge", "core_release": "release", "core_recover": "recover", "core_empower_card": "empower"}.get(expected_cards[id], str(expected_cards[id]).trim_prefix("card_"))
+		check(str(slot.path).begins_with("res://assets/programmer-art/") and str(slot.path).get_file().begins_with(family + "-") and load("res://scripts/presentation/art_catalog.gd").texture_for(slot) != null, "authored card has imported art: " + id)
 		textures[str(slot.path)] = true
 	check(textures.size() >= 10, "catalog offers distinct visual families rather than one shared placeholder")
-	var lab_manifest := "res://data/labs/ivory_art_manifest.json"
+	var lab_manifest: String = load("res://data/themes/ivory_theme.tres").art_manifest
 	for id in ["basic_attack", "defend", "fireball", "heal", "arcane_bolt", "core_strike", "core_guard", "core_heal", "core_charge_card", "core_release", "core_recover", "core_empower_card"]:
 		var lab: Dictionary = load("res://scripts/presentation/art_catalog.gd").resolve("cards", id, lab_manifest)
 		check(context.resolve_art("cards", id).path == lab.path, "run preserves laboratory art: " + id)
-	check(str(context.resolve_art("cards", "unknown-mod-card").path).ends_with("/unknown.svg"), "unknown mod content retains safe generic fallback")
+	check(str(context.resolve_art("cards", "unknown-mod-card").path).ends_with("/unknown-1.svg"), "unknown mod content retains safe generic fallback")
 	check(context.resource_appearance("energy", {"color": "#eeee00"}).color == "#7e4b15", "profile resource palette overrides presentation tone without changing resource semantics")
 	check(context.resource_appearance("custom", {"color": "#123456", "display": "counter"}) == {"color": "#123456", "display": "counter"}, "unknown resources preserve authored presentation")
 	context.profile = load("res://data/themes/preserved.tres")

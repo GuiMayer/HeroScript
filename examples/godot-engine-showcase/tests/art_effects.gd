@@ -21,7 +21,7 @@ func _run() -> void:
 	var rect: Rect2 = art.get_global_rect()
 	var player = art.effect_player()
 	check(art.get_script() == load("res://scripts/ui/art_slot.gd"),"lab uses the production actor art component")
-	check(art.texture.resource_path.begins_with("res://assets/ivory/"),"actor preview resolves the actual ivory combat scenery catalog")
+	check(art.texture.resource_path.begins_with("res://assets/tactical-pieces/"),"actor preview resolves the actual tactical combat scenery catalog")
 	if not output.is_empty() and DisplayServer.get_name() != "headless":
 		await RenderingServer.frame_post_draw
 		var before_image: Image = panel.get_texture().get_image()

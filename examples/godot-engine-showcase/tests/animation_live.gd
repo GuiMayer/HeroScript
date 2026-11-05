@@ -183,6 +183,19 @@ func _run() -> void:
 	check(session.synchronized and session.run.sequence == 2 and fixture.sends == 1 and screen.view.hand.card_for("played") == null,
 		"read-only recovery settles the same accepted command without another flight/send")
 	screen.presentation_driver.skip(); await settle()
+	# Recovery can observe a newer head, not the receipt's original revision.
+	fixture = Fixture.new(); fixture.fail_refresh = true; session.configure(fixture)
+	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
+	session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
+	session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
+	router.show_combat(); await settle(); screen = router.host.get_child(0)
+	await screen._play_candidate(screen.presenter.candidate_for_card("played"))
+	fixture.fail_refresh = false; fixture.superseded = true
+	await screen._reconnect(); await settle()
+	check(session.synchronized and fixture.sends == 1 and screen._receipt_departure == null and screen._transits == null and not screen.controller.locked(), "recovery to a newer head discards stale borrowed faces and releases all input gates without resending")
+	await screen._play_candidate(screen.presenter.candidate_for_card("remaining")); await settle()
+	check(fixture.sends == 2 and not screen.controller.locked(), "card after superseded recovery is usable in the same view")
+	screen.presentation_driver.skip(); await settle()
 	fixture = Fixture.new(); fixture.held = true; fixture.retained = true; session.configure(fixture)
 	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
 	session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
@@ -206,6 +219,16 @@ func _run() -> void:
 	await screen._play_candidate(screen.presenter.candidate_for_card("remaining")); await settle()
 	check(fixture.sends == 2 and session.synchronized and not cursor.has_blocking_work(), "the next valid command completes its accepted flight after supersession without orphan locks")
 	screen.presentation_driver.skip(); await settle()
+	# Settlement may precede the session becoming idle. A single deferred retry
+	# is not a completion protocol: the same mounted screen must recover later.
+	session._operation = "refreshing"
+	screen.controller.presentation_pending = true
+	screen._on_settled("completed", cursor.generation)
+	await settle()
+	check(screen.controller.locked(), "settled cosmetics never bypass an in-flight canonical refresh")
+	session._operation = "idle"; session.operation_changed.emit("idle")
+	await settle()
+	check(not screen.controller.presentation_pending and not screen.controller.locked(), "settlement waits for idle and then releases the same combat view without menu navigation")
 	# Legal JSON null must not strand either session submission or hand playback.
 	for missing_combat in [false, true]:
 		fixture = Fixture.new(); fixture.null_resolution = true; fixture.null_receipt_combat = missing_combat
@@ -232,6 +255,16 @@ func _run() -> void:
 	check(not cursor.has_blocking_work(), "reduced motion does not require manual clicks for absent animations")
 	await settle()
 	check(router.current_screen != "combat" and not cursor.has_blocking_work(), "terminal navigation occurs only after presentation settles")
+	# A receipt may arrive before main mounts the combat scene (START_ENCOUNTER).
+	fixture = Fixture.new(); session.configure(fixture)
+	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)
+	session._legal_actions = fixture.read_legal_actions("", "").data.candidates; session.synchronized = true
+	session._card_evaluation_context = session._evaluation_context(session.run, session.combat)
+	var initial: Dictionary = session.capture_view_snapshot()
+	var opening = preload("res://scripts/presentation/presentation_envelope.gd").build({"sequence": fixture.state.sequence, "state": {"combat": fixture.combat, "resolution": {"frames": [{"transitionType": "activation-start"}]}}}, initial, initial, [])
+	cursor.load_envelope(opening)
+	router.show_combat(); await settle(); screen = router.host.get_child(0)
+	check(cursor.dispatch_ready and not cursor.has_blocking_work() and not screen.controller.locked(), "opening receipt queued before scene entry is activated on mount, not stranded by setup outside the tree")
 	# Destroying a view during a flight must not execute its deferred navigation.
 	fixture = Fixture.new(); session.configure(fixture)
 	session._run = fixture.state.duplicate(true); session._combat = fixture.combat.duplicate(true); session._card_zones = fixture.zones.duplicate(true)

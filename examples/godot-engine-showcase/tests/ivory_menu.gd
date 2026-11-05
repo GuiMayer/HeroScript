@@ -55,6 +55,7 @@ func _run() -> void:
 	await settle()
 	check(AppTheme.profile == router.MenuProfile and router.get_node("MenuPaper").visible and not router.shell.run_scenery.background.visible and not router.shell.run_scenery.background.is_processing(), "main menu opts into static ivory paper; old particles stop")
 	var view = router.host.get_child(0)
+	check(view.find_child("MenuCircuit0", true, false) == null and view.find_child("MenuCircuit1", true, false) == null, "main menu has no decorative circuit lines in normal mode")
 	check(view.name == "MainMenuView" and view.setting_selector.item_count == 3 and str(view.setting_selector.get_item_metadata(view.setting_selector.selected)) == "ascendant", "passive menu preserves all published settings and active selection")
 	check(view.continue_button.disabled and router.continuation_run_id.is_empty(), "empty selected-setting history keeps Continue disabled")
 	var actions: Array[String] = []
@@ -118,7 +119,7 @@ func _run() -> void:
 	prefs.high_contrast = true
 	router._apply_preferences()
 	await settle()
-	check(retained.get_node("MenuCircuit0").simplified and retained.get_node("MenuCircuit1").simplified, "high contrast removes passive circuits")
+	check(retained.find_child("MenuCircuit0", true, false) == null and retained.find_child("MenuCircuit1", true, false) == null, "main menu contains no circuit ornaments, including in high contrast")
 	await capture(router, "high-contrast", "pt_BR")
 	prefs.high_contrast = false
 	router._apply_preferences()
@@ -127,7 +128,7 @@ func _run() -> void:
 	await settle()
 	check(router.host.find_child("SettingSelector", true, false).disabled and router.host.find_child("HistoryButton", true, false).disabled, "offline setting/history state remains honest")
 	router.show_error("Offline fixture — no engine request was made.")
-	check(router.toast.get_theme_stylebox("normal").bg_color == AppTheme.color("surface.toast"), "menu notices inherit paper instead of a stale dark background")
+	check(router.toast.get_theme_stylebox("panel").bg_color == AppTheme.color("surface.toast"), "menu notices inherit paper instead of a stale dark background")
 	await capture(router, "offline", "pt_BR")
 	router.host.find_child("SettingsButton", true, false).pressed.emit()
 	await settle()

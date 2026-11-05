@@ -83,4 +83,8 @@ func _run() -> void:
 	lab.set_preset(0); await settle(); lab.motion_lab.play(draw, lab.models)
 	lab.queue_free(); await settle()
 	check(not is_instance_valid(lab), "destroying a batch cleans the director and transit owners")
-	root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)
+	root.get_node("GameAudio").shutdown()
+	# Audio-thread playback releases asynchronously after stop. This grace period
+	# is test teardown only; it must not become a gameplay or animation delay.
+	await create_timer(.08).timeout
+	quit(0 if failures == 0 else 1)

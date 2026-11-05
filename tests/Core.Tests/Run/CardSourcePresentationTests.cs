@@ -46,7 +46,7 @@ public sealed class CardSourcePresentationTests
         var combat = new CombatState { CombatId = Guid.NewGuid(), Determinism = determinism,
             Actors = new Dictionary<string, CombatActorState> { ["hero"] = hero, ["enemy"] = enemy } };
         var baseline = CardBasePresentationProjector.Project(card, effective, new() { Kind = CardPresentationSubjectKind.Instance,
-            DefinitionId = cardId, CardInstanceId = effective.CardInstanceId }, new() { ContentRevision = runtime.Manifest.Revision }).Value;
+            DefinitionId = cardId, CardInstanceId = effective.CardInstanceId }, new() { ContentRevision = runtime.Manifest.Revision }, runtime: runtime).Value;
         return new(runtime, new(runtimes.Object, formulas, engine, providers), new(formulas, new ImmutableEffectProcessor(), runtimes.Object, engine, providers),
             baseline, effective, run, combat);
     }
@@ -64,6 +64,11 @@ public sealed class CardSourcePresentationTests
         Assert.True(numeric.Source > numeric.ComposedBase);
         var explanation = result.Value.Explanations[0];
         Assert.Contains(explanation.Attributes, attribute => attribute.AttributeId == "weapon_damage" && attribute.Eligible);
+        var scaling = Assert.Single(explanation.Attributes, attribute => attribute.AttributeId == "weapon_damage");
+        Assert.True(scaling.Applied);
+        Assert.Equal(.5f, scaling.ContributionValue);
+        Assert.Equal(1, scaling.Scale);
+        Assert.Equal(CalculationBucketOperation.AddPercent, scaling.Operation);
         Assert.Contains(explanation.Sources, source => source.AttributeId == "weapon_damage" && source.Value == .5f);
         Assert.All(explanation.Buckets, bucket => Assert.Equal("w1_origin", bucket.StageId));
         var executed = fixture.Executor.Execute(new() { Run = fixture.Run, Combat = fixture.Combat, Card = fixture.Card,
@@ -78,6 +83,25 @@ public sealed class CardSourcePresentationTests
         Assert.NotEmpty(withImpacts.Impacts);
         Assert.All(withImpacts.Impacts, impact => Assert.Equal("enemy", impact.TargetEntityId));
         Assert.Equal(before, CanonicalJson.ComputeHash(new { fixture.Run, fixture.Combat, fixture.Card }));
+    }
+
+    [Fact]
+    public async Task ReferencedRulesComeFromPinnedContentWithoutChangingState()
+    {
+        foreach (var id in new[] { "w1_focus", "w1_reserve", "w1_release_guard" })
+        {
+            var fixture = await Create(id);
+            var before = CanonicalJson.ComputeHash(new { fixture.Run, fixture.Combat, fixture.Card });
+            var reference = Assert.Single(fixture.Base.ReferencedRules);
+            Assert.Equal(id, reference.DefinitionId);
+            Assert.Equal(id == "w1_release_guard" ? "recipe" : "status", reference.Kind);
+            if (id == "w1_focus")
+                Assert.Contains(reference.Influences, influence => influence.Channel == "critical_chance" && influence.Value == 80);
+            var source = fixture.Projector.Project(fixture.Base, fixture.Card, fixture.Run, fixture.Combat, "hero");
+            Assert.True(source.IsSuccess, source.IsFailure ? source.Error : null);
+            Assert.Equal(CanonicalJson.ComputeHash(fixture.Base.ReferencedRules), CanonicalJson.ComputeHash(source.Value.ReferencedRules));
+            Assert.Equal(before, CanonicalJson.ComputeHash(new { fixture.Run, fixture.Combat, fixture.Card }));
+        }
     }
 
     [Fact]

@@ -35,5 +35,16 @@ func _run() -> void:
 	check(not cursor.has_blocking_work() and outcomes[-1] == "fallback", "broken executor has a bounded safe fallback")
 	cursor.load_receipt({"state": {"resolution": {"frames": [{"transitionType": "activation-start"}]}}}); director._process(.01)
 	check(cursor.index == 1, "empty lifecycle facts do not request a manual confirmation")
+	options.auto_animations = true
+	var motion_target := Control.new(); root.add_child(motion_target)
+	var motions: Array = []
+	cursor.executor = func(_frame, handle):
+		var tween := motion_target.create_tween(); tween.tween_interval(20.)
+		handle.own(tween); motions.append(tween)
+		tween.finished.connect(func(): handle.finish(), CONNECT_ONE_SHOT)
+	cursor.load_receipt({"state": {"resolution": {"frames": [{}]}}}); director._process(.01)
+	motions[-1].kill(); director._process(.01)
+	check(not cursor.has_blocking_work() and outcomes[-1] == "fallback", "killed tween releases its claimed visual handle without waiting for watchdog or a manual button")
+	motion_target.queue_free()
 	director.dispose(); director.free(); cursor.free()
 	root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

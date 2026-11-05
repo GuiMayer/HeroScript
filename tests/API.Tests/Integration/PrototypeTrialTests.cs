@@ -111,7 +111,7 @@ public sealed partial class PrototypeTrialTests
         var combat = run.GetActiveEncounter()!.Combat;
         Assert.Single(combat.ActionHistory, action => action.ActorId == "$support::player" && action.PowerId == "prototype_mark");
         Assert.Contains(combat.StatusEffects["enemy_0"], status => status.Definition.StatusId == "prototype_wet");
-        Assert.Equal(0, combat.GetActor("player")!.ResourceState.Current("heat"));
+        Assert.False(combat.GetActor("player")!.ResourceState.Resources.ContainsKey("heat"));
         var cardId = run.Deck.Topology.GetZone("hand", "$run")!.InstanceIds.First(card => run.Deck.Topology.Instances[card].DefinitionId == "prototype_strike");
         using var played = await client.PostAsJsonAsync($"/api/v1/combats/{combatId}/commands", new
         {
@@ -120,10 +120,10 @@ public sealed partial class PrototypeTrialTests
         });
         Assert.True(played.IsSuccessStatusCode, await played.Content.ReadAsStringAsync());
         run = runs.GetRun(id).Value;
-        Assert.Equal(10, run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("heat"));
+        Assert.False(run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Resources.ContainsKey("heat"));
         Assert.Equal(2, run.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("energy"));
         await EndTurn(client, runs, id, combatId);
-        Assert.Equal(0, runs.GetRun(id).Value.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("heat"));
+        Assert.False(runs.GetRun(id).Value.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Resources.ContainsKey("heat"));
         Assert.Equal(3, runs.GetRun(id).Value.GetActiveEncounter()!.Combat.GetActor("player")!.ResourceState.Current("energy"));
         Assert.Equal(27, initial.Deck.Topology.Instances.Count);
         Assert.Null(initial.ActiveEncounterId);
