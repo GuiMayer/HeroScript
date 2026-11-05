@@ -1,6 +1,44 @@
 extends Node
 
 signal changed
+signal video_preview_changed
+var _video_previous := {}
+var _video_ticket := 0
+var video_deadline := 0
+var _applied_monitor := -2
+func video_snapshot() -> Dictionary:
+	return {"fullscreen": fullscreen, "lock_aspect_16_9": lock_aspect_16_9, "window_resolution": window_resolution, "window_monitor": window_monitor, "window_monitor_position": window_monitor_position}
+func preview_video(values: Dictionary) -> void:
+	if _video_previous.is_empty():
+		_video_previous = video_snapshot()
+		_video_previous["actual_size"] = get_tree().root.size
+		_video_previous["actual_position"] = get_tree().root.position
+	for key in values:
+		if key in ["fullscreen", "lock_aspect_16_9", "window_resolution", "window_monitor"]: set(key, values[key])
+	if values.has("window_monitor") and DisplayServer.get_name() != "headless":
+		window_monitor_position = DisplayServer.screen_get_position(window_monitor)
+	apply_window()
+	_video_ticket += 1
+	var ticket := _video_ticket
+	video_deadline = Time.get_ticks_msec() + 15000
+	video_preview_changed.emit()
+	await get_tree().create_timer(15.0, true, false, true).timeout
+	if ticket == _video_ticket: revert_video()
+func confirm_video() -> void:
+	if _video_previous.is_empty(): return
+	_video_previous.clear(); _video_ticket += 1; video_deadline = 0
+	save()
+	video_preview_changed.emit()
+func revert_video() -> void:
+	if _video_previous.is_empty(): return
+	var previous := _video_previous.duplicate()
+	_video_previous.clear(); _video_ticket += 1; video_deadline = 0
+	for key in video_snapshot(): set(key, previous[key])
+	apply_window()
+	if not fullscreen:
+		get_tree().root.size = previous.actual_size
+		get_tree().root.position = previous.actual_position
+	video_preview_changed.emit()
 
 const SAVE_PATH := "user://heroscript_showcase.cfg"
 const Schema = preload("res://scripts/ui/styles/settings_schema.gd")
@@ -24,8 +62,12 @@ const RESOLUTIONS := [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1366, 7
 	Vector2i(1440, 900), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(1920, 1200),
 	Vector2i(2560, 1080), Vector2i(2560, 1440), Vector2i(3440, 1440), Vector2i(3840, 2160)]
 var window_resolution := DEFAULT_RESOLUTION
+var lock_aspect_16_9 := false
+var _applied_aspect = null
 var _applied_resolution := Vector2i.ZERO
 var _applied_fullscreen = null
+var window_monitor := -1
+var window_monitor_position = null
 
 var master_volume := 0.80
 var music_volume := 0.42
@@ -59,6 +101,14 @@ func _ready() -> void:
 				_api_override = true
 	apply_window()
 	apply_audio()
+	if DisplayServer.get_name() != "headless":
+		get_tree().root.close_requested.connect(_remember_monitor)
+		var monitor_watch := Timer.new()
+		monitor_watch.wait_time = 0.75
+		monitor_watch.process_mode = Node.PROCESS_MODE_ALWAYS
+		monitor_watch.timeout.connect(_remember_monitor)
+		add_child(monitor_watch)
+		monitor_watch.start()
 
 func load_settings() -> void:
 	var config := ConfigFile.new()
@@ -78,9 +128,15 @@ func load_settings() -> void:
 	reveal_text_gradually = _read_option(config, "accessibility", "reveal_text_gradually", "reveal_text_gradually", false)
 	auto_animations = _read_option(config, "game", "auto_animations", "auto_animations", true)
 	fullscreen = _read_option(config, "video", "fullscreen", "fullscreen", false)
+	lock_aspect_16_9 = _read_option(config, "video", "lock_aspect_16_9", "lock_aspect_16_9", false)
+	var saved_monitor = config.get_value("video", "monitor", -1)
+	window_monitor = saved_monitor if saved_monitor is int and saved_monitor >= -1 and saved_monitor < 256 else -1
+	var saved_position = config.get_value("video", "monitor_position") if config.has_section_key("video", "monitor_position") else null
+	window_monitor_position = saved_position if saved_position is Vector2i else null
 	window_resolution = Vector2i(_read_dimension(config, "width", DEFAULT_RESOLUTION.x),
 		_read_dimension(config, "height", DEFAULT_RESOLUTION.y))
 	if not valid_resolution(window_resolution): window_resolution = DEFAULT_RESOLUTION
+	if lock_aspect_16_9 and not is_16_9(window_resolution): window_resolution = Vector2i(1280, 720)
 	high_contrast = _read_option(config, "video", "high_contrast", "high_contrast", false)
 	var saved_url = config.get_value("network", "api_url", DEFAULT_API_URL)
 	api_url = normalize_api_url(saved_url) if saved_url is String else ""
@@ -139,6 +195,8 @@ static func _valid_button(value) -> bool:
 	return value is int and value >= 0 and value < JOY_BUTTON_MAX and value not in RESERVED_BUTTONS
 
 func save(notify := true) -> void:
+	if lock_aspect_16_9 and not is_16_9(window_resolution): window_resolution = Vector2i(1280, 720)
+	_capture_monitor()
 	var config := ConfigFile.new()
 	config.set_value("video", "text_scale", clampf(text_scale, .9, 1.2))
 	config.set_value("audio", "master", master_volume)
@@ -153,6 +211,9 @@ func save(notify := true) -> void:
 	config.set_value("accessibility", "reveal_text_gradually", reveal_text_gradually)
 	config.set_value("game", "auto_animations", auto_animations)
 	config.set_value("video", "fullscreen", fullscreen)
+	config.set_value("video", "lock_aspect_16_9", lock_aspect_16_9)
+	config.set_value("video", "monitor", window_monitor)
+	if window_monitor_position is Vector2i: config.set_value("video", "monitor_position", window_monitor_position)
 	config.set_value("video", "width", window_resolution.x)
 	config.set_value("video", "height", window_resolution.y)
 	config.set_value("video", "high_contrast", high_contrast)
@@ -164,6 +225,13 @@ func save(notify := true) -> void:
 	for action in ACTIONS:
 		config.set_value("input", action, action_key(action))
 		config.set_value("gamepad", action, action_button(action))
+	# Audio/session saves during the confirmation countdown retain confirmed video.
+	if not _video_previous.is_empty():
+		for pair in [["fullscreen", "fullscreen"], ["lock_aspect_16_9", "lock_aspect_16_9"], ["monitor", "window_monitor"], ["monitor_position", "window_monitor_position"]]:
+			if _video_previous[pair[1]] != null: config.set_value("video", pair[0], _video_previous[pair[1]])
+			elif config.has_section_key("video", pair[0]): config.erase_section_key("video", pair[0])
+		config.set_value("video", "width", _video_previous.window_resolution.x)
+		config.set_value("video", "height", _video_previous.window_resolution.y)
 	config.save(SAVE_PATH)
 	if notify:
 		apply_window()
@@ -176,27 +244,67 @@ func save_session() -> void:
 
 func apply_window() -> void:
 	# Audio/input saves must not reset a manually resized or maximized window.
-	if _applied_fullscreen == fullscreen and _applied_resolution == window_resolution: return
+	if lock_aspect_16_9 and not is_16_9(window_resolution): window_resolution = Vector2i(1280, 720)
+	if _applied_fullscreen == fullscreen and _applied_resolution == window_resolution and _applied_aspect == lock_aspect_16_9 and _applied_monitor == window_monitor: return
+	var first_apply := _applied_fullscreen == null
+	var monitor_changed := _applied_monitor != window_monitor
 	_applied_fullscreen = fullscreen
 	_applied_resolution = window_resolution
+	_applied_aspect = lock_aspect_16_9
 	var window := get_tree().root
 	window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-	window.content_scale_size = Vector2i(1440, 900)
+	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP if lock_aspect_16_9 else Window.CONTENT_SCALE_ASPECT_EXPAND
+	window.content_scale_size = Vector2i(1440, 810) if lock_aspect_16_9 else Vector2i(1440, 900)
 	window.min_size = Vector2i(960, 540)
+	if (first_apply or monitor_changed) and DisplayServer.get_name() != "headless":
+		var positions: Array = []
+		for index in DisplayServer.get_screen_count(): positions.append(DisplayServer.screen_get_position(index))
+		window.current_screen = resolve_monitor(window_monitor, window_monitor_position, positions, window.current_screen)
 	window.mode = Window.MODE_FULLSCREEN if fullscreen else Window.MODE_WINDOWED
 	if not fullscreen:
 		var requested := window_resolution
 		if DisplayServer.get_name() != "headless":
 			var area := DisplayServer.screen_get_usable_rect(window.current_screen)
 			requested = fit_window(requested, area.size - Vector2i(32, 64))
+			if lock_aspect_16_9:
+				var unit := maxi(1, mini(requested.x / 16, requested.y / 9))
+				requested = Vector2i(unit * 16, unit * 9)
 			window.size = requested
 			window.position = area.position + (area.size - requested) / 2
 		else:
 			window.size = requested
+	_capture_monitor()
+	_applied_monitor = window_monitor
+
+static func resolve_monitor(saved_index: int, saved_position, positions: Array, fallback: int) -> int:
+	if positions.is_empty(): return 0
+	if saved_position is Vector2i:
+		var matched := positions.find(saved_position)
+		if matched >= 0: return matched
+	if saved_index >= 0 and saved_index < positions.size(): return saved_index
+	return fallback if fallback >= 0 and fallback < positions.size() else 0
+
+func _capture_monitor() -> bool:
+	if DisplayServer.get_name() == "headless" or not is_inside_tree(): return false
+	var current := get_tree().root.current_screen
+	if current < 0 or current >= DisplayServer.get_screen_count(): return false
+	var origin := DisplayServer.screen_get_position(current)
+	if window_monitor == current and window_monitor_position == origin: return false
+	window_monitor = current
+	window_monitor_position = origin
+	return true
+
+func _remember_monitor() -> void:
+	# Moving between monitors persists without reapplying video or rebuilding UI.
+	if _capture_monitor():
+		_applied_monitor = window_monitor
+		save(false)
 
 static func valid_resolution(value: Vector2i) -> bool:
 	return value.x >= 960 and value.y >= 540 and value.x <= 7680 and value.y <= 4320
+
+static func is_16_9(value: Vector2i) -> bool:
+	return value.x * 9 == value.y * 16
 
 static func fit_window(requested: Vector2i, available: Vector2i) -> Vector2i:
 	var ratio := minf(1.0, minf(float(available.x) / requested.x, float(available.y) / requested.y))
@@ -208,10 +316,11 @@ func resolution_options() -> Array:
 	for value in [native, window_resolution]:
 		if valid_resolution(value) and value not in options: options.append(value)
 	options.sort_custom(func(a, b): return a.x < b.x or (a.x == b.x and a.y < b.y))
+	if lock_aspect_16_9: options = options.filter(func(value): return is_16_9(value))
 	return options
 
 func set_resolution(value: Vector2i, persist := true) -> bool:
-	if not valid_resolution(value): return false
+	if not valid_resolution(value) or (lock_aspect_16_9 and not is_16_9(value)): return false
 	window_resolution = value
 	if persist: save()
 	else: apply_window()

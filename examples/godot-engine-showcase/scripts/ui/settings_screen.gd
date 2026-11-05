@@ -132,24 +132,71 @@ func _build_audio_page() -> void:
 			func(value): controller.set_option(key, value, false), spec[1])
 
 func _build_display_page() -> void:
-	_toggle_control(controller.read("fullscreen"), func(value):
-		controller.set_option("fullscreen", value, false)
-		controller.commit()
-		_mark_saved()
-		if is_instance_valid(resolution_selector): resolution_selector.disabled = value,
-		"FullscreenToggle", false)
+	var monitor: OptionButton = find_child("MonitorSelector", true, false)
+	monitor.clear()
+	for index in maxi(1, DisplayServer.get_screen_count()):
+		var dimensions := DisplayServer.screen_get_size(index) if DisplayServer.get_name() != "headless" else Vector2i(1920, 1080)
+		monitor.add_item("%s %s — %s × %s" % [I18n.text("Monitor"), index + 1, dimensions.x, dimensions.y])
+	monitor.item_selected.connect(func(index): Preferences.preview_video({"window_monitor": index}))
+	var mode: OptionButton = find_child("DisplayModeSelector", true, false)
+	mode.clear()
+	mode.add_item(I18n.text("Windowed")); mode.add_item(I18n.text("Borderless fullscreen"))
+	mode.item_selected.connect(func(index): Preferences.preview_video({"fullscreen": index == 1}))
+	var aspect: OptionButton = find_child("AspectRatioSelector", true, false)
+	aspect.clear()
+	aspect.add_item(I18n.text("Automatic")); aspect.add_item("16:9")
+	aspect.item_selected.connect(func(index): Preferences.preview_video({"lock_aspect_16_9": index == 1}))
 	resolution_selector = find_child("ResolutionSelector", true, false)
+	resolution_selector.item_selected.connect(func(index):
+		Preferences.preview_video({"window_resolution": resolution_selector.get_item_metadata(index)}))
+	var dialog: ConfirmationDialog = get_node("VideoConfirmation")
+	dialog.title = I18n.text("Keep these display settings?")
+	dialog.ok_button_text = I18n.text("Keep changes")
+	dialog.cancel_button_text = I18n.text("Revert")
+	dialog.confirmed.connect(Preferences.confirm_video)
+	dialog.canceled.connect(Preferences.revert_video)
+	Preferences.video_preview_changed.connect(_sync_video_controls)
+	_sync_video_controls()
+
+func _process(_delta: float) -> void:
+	if Engine.is_editor_hint() or not is_instance_valid(controller): return
+	if Preferences.video_deadline > 0:
+		get_node("VideoConfirmation").dialog_text = I18n.text("Reverting in %s seconds.") % maxi(0, ceili((Preferences.video_deadline - Time.get_ticks_msec()) / 1000.0))
+
+func _exit_tree() -> void:
+	if Engine.is_editor_hint(): return
+	if Preferences.video_preview_changed.is_connected(_sync_video_controls): Preferences.video_preview_changed.disconnect(_sync_video_controls)
+	Preferences.revert_video()
+
+func _sync_video_controls() -> void:
+	if not is_inside_tree(): return
+	var monitor: OptionButton = find_child("MonitorSelector", true, false)
+	monitor.select(clampi(Preferences.window_monitor, 0, monitor.item_count - 1))
+	find_child("DisplayModeSelector", true, false).select(1 if Preferences.fullscreen else 0)
+	find_child("AspectRatioSelector", true, false).select(1 if Preferences.lock_aspect_16_9 else 0)
+	_populate_resolutions()
+	var dialog: ConfirmationDialog = get_node("VideoConfirmation")
+	if Preferences.video_deadline > 0:
+		dialog.dialog_text = I18n.text("Reverting in %s seconds.") % 15
+		dialog.popup_centered()
+	else:
+		dialog.hide()
+		_mark_saved()
+
+func _populate_resolutions() -> void:
+	if not is_instance_valid(resolution_selector): return
 	resolution_selector.clear()
+	if Preferences.fullscreen:
+		var dimensions := DisplayServer.screen_get_size(get_tree().root.current_screen) if DisplayServer.get_name() != "headless" else Vector2i(1920, 1080)
+		resolution_selector.add_item("%s — %s × %s" % [I18n.text("Automatic"), dimensions.x, dimensions.y])
+		resolution_selector.disabled = true
+		return
 	var resolutions: Array[Vector2i] = controller.resolution_options()
 	for resolution in resolutions:
 		resolution_selector.add_item("%s × %s" % [resolution.x, resolution.y])
 		resolution_selector.set_item_metadata(resolution_selector.item_count - 1, resolution)
 	resolution_selector.select(resolutions.find(controller.read("window_resolution")))
-	resolution_selector.disabled = controller.read("fullscreen")
-	resolution_selector.item_selected.connect(func(index):
-		controller.set_resolution(resolution_selector.get_item_metadata(index))
-		_mark_saved())
-
+	resolution_selector.disabled = false
 func _build_accessibility_page() -> void:
 	_slider_control(controller.read("text_scale"), .9, 1.2, .05, _format_percent,
 		func(value): controller.set_option("text_scale", value, false), "TextScaleSlider")
