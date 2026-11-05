@@ -53,3 +53,11 @@ Capturas podem ser geradas pelo teste `unified_loadout_layout` em um renderer re
 `unified_loadout_online.gd` exige **API isolada em 127.0.0.1:61989**, com diretórios de persistência próprios e perfil de ferramentas `dev_modder` para verificar replay. O teste recusa as portas normais do jogador; cria runs de QA em Ascendant e Deck Workshop e verifica autosave, navegação, reentrada e replay. Passe `-ApiUrl http://127.0.0.1:61989` ao runner. Não aponte os diretórios dessa API para saves reais.
 
 Presets da build inteira e companions funcionais continuam fora do escopo. Autorizações de edição e disponibilidade de conteúdo permanecem definidas pelo setting e pelo servidor.
+
+## Identidade e seis posições comuns do MVP
+
+A aba de inscrições separa o mod de identidade do personagem da grade de seis posições comuns. A configuração visual fica em `data/presentation.json`, em `loadout_layouts`; ela não altera compatibilidade, capacidade nem janelas de equipamento. Os contratos autoritativos estão em [Inscrições](../content/inscriptions.md#identidade-do-personagem-e-posições-comuns-no-mvp).
+
+Arrastar uma inscrição ou escolher item → posição usa preview → comando → releitura confirmada, com salvamento automático. Fora da janela permitida, a inspeção permanece disponível, mas o arraste e os destinos deixam de aceitar equipamento; o motivo aparece na aba. No MVP atual é necessário terminar o combate antes de trocar inscrições. O orçamento continua visível e separado da contagem de posições.
+
+O laboratório reutiliza a mesma seção de identidade e a mesma grade. Quando sua fixture não define um mod de identidade, mostra o espaço reservado explicitamente, sem inventar equipamento. `inscription_slot_layout.gd` cobre a disposição e o sexto destino; `inscription_identity_online.gd` cobre trocas de identidade, equipamento comum, salvamento e replay pela API isolada em `127.0.0.1:61989`.

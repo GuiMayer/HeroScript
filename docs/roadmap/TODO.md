@@ -20,10 +20,18 @@ Não houve nova execução de testes nem benchmark para produzir este backlog. A
 | 8 | UI-08 | Média | Certificação visual | Legibilidade, acessibilidade e resoluções |
 | 9 | REL-01 | Média; obrigatória antes de distribuir | Certificação | Exportação Godot e servidor em instalação limpa |
 | 10 | GAME-01 | Após estabilizar o fluxo | Playtest | Compreensão e equilíbrio do capítulo |
+| 11 | CONTENT-01 | Média | Correção de conteúdo de teste | Run do `reward-lab` falha ao montar o baralho inicial |
 
 Não foi confirmado um novo bloqueador crítico na revisão que originou esta lista. Falhas reproduzidas durante UI-01 devem ser registradas e priorizadas conforme o impacto real.
 
 ## Pendências ativas
+
+### CONTENT-01 — Corrigir a preparação do baralho do reward-lab
+
+- [ ] Alinhar os grupos de cartas possuídas e o baralho inicial da run `reward_build_lab_run`.
+- [ ] Reexecutar as três variantes de `PrototypeBuildWorkshopTests.CharacterEquipmentAndReserveMutationsRemainSeparateAndDurable`.
+
+**Evidência adicional de 2026-11-05:** a regressão ampliada da entrega de inscrições retorna HTTP 400 ao criar a run, antes de ler ou equipar inscrições: `Missing owned starting card in group hero: pyro_barreira_cinzas`. As três variantes falharam nesse mesmo ponto. Esse conteúdo não foi corrigido pela entrega de slots de identidade. O MVP foi validado separadamente: 40 testes de inscrições no Core, 9 testes de API (MVP, identidade e durabilidade), 383 verificações offline da Godot e duas execuções de 8 verificações da Godot com API isolada; trocas de identidade, destino comum, salvamento e replay passaram.
 
 ### UI-01 — Certificar o fluxo atual com API real
 
