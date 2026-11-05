@@ -12,88 +12,74 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield.tscn" id="Field"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/floating_hud.tscn" id="Floating"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_feedback.tscn" id="Feedback"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_combat_header.tscn" id="MvpHeader"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/mvp_arena.tscn" id="Arena"]
 [node name="CombatView" type="VBoxContainer"]
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 script = ExtResource("Script")
+composition_scene = ExtResource("Arena")
 [node name="CombatFeedback" parent="." instance=ExtResource("Feedback")]
-[node name="CombatHeader" parent="." instance=ExtResource("Header")]
+[node name="CombatHeader" parent="." instance=ExtResource("MvpHeader")]
 layout_mode = 2
 [node name="InscriptionStrip" type="HBoxContainer" parent="."]
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 28)
-metadata/review_todo = "Review published inscription projection and overflow before enabling."
-[node name="CombatBody" parent="." instance=ExtResource("Composition")]
+metadata/review_todo = "Show published equipped inscriptions only; review projection."
+[node name="CombatBody" parent="." instance=ExtResource("Arena")]
 layout_mode = 2
 [node name="Battlefield" parent="CombatBody/CombatGameplay" instance=ExtResource("Field")]
 [node name="CombatBottomHUD" type="HBoxContainer" parent="CombatBody/CombatGameplay"]
-layout_mode = 0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_vertical = 0
 mouse_filter = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 20
+[node name="Balance" type="Control" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
+layout_mode = 2
+mouse_filter = 2
 [node name="HandSection" type="VBoxContainer" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
-theme_override_constants/separation = 0
+theme_override_constants/separation = 10
 [node name="Hint" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
 visible = false
 layout_mode = 2
-custom_minimum_size = Vector2(260,0)
-theme_type_variation = &"Caption"
-theme_override_font_sizes/font_size = 13
-clip_text = true
-text_overrun_behavior = 3
+[node name="Energy" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
 [node name="CardHandView" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection" instance=ExtResource("Hand")]
 layout_mode = 2
 [node name="TurnControls" parent="CombatBody/CombatGameplay/CombatBottomHUD" instance=ExtResource("Turn")]
 layout_mode = 2
-
+size_flags_vertical = 8
+theme_override_constants/separation = 10
+[node name="EndTurnGap" type="Control" parent="CombatBody/CombatGameplay/CombatBottomHUD/TurnControls"]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+mouse_filter = 2
 [node name="FloatingCombatHUD" parent="." instance=ExtResource("Floating")]
 [node name="OverlayDefinitions" type="Control" parent="."]
 visible = false
-layout_mode = 2
 [node name="PileControls" parent="OverlayDefinitions" instance=ExtResource("Piles")]
 [node name="RightPileControls" parent="OverlayDefinitions" instance=ExtResource("Piles")]
 [node name="ActionPreviewView" parent="OverlayDefinitions" instance=ExtResource("Preview")]
 [node name="CandidatePanel" parent="OverlayDefinitions" instance=ExtResource("Candidates")]
 [node name="Reconnect" parent="OverlayDefinitions" instance=ExtResource("Button")]
-custom_minimum_size = Vector2(130,44)
-text = "RECONNECT"
 [node name="CombatAttributesDrawer" parent="OverlayDefinitions" instance=ExtResource("Attributes")]
+[node name="CombatLog" type="AcceptDialog" parent="."]
+size = Vector2i(700, 480)
+[node name="Scroll" type="ScrollContainer" parent="CombatLog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+[node name="Events" type="RichTextLabel" parent="CombatLog/Scroll"]
+custom_minimum_size = Vector2(640, 400)
+size_flags_horizontal = 3
+fit_content = true
+scroll_active = false
 
 [editable path="CombatBody"]
-
-[node name="HeroName" type="Label" parent="CombatHeader"]
-layout_mode = 2
-text_overrun_behavior = 3
-custom_minimum_size = Vector2(180, 0)
-
-[node name="Energy" type="Label" parent="CombatBody/CombatGameplay/CombatBottomHUD/HandSection"]
-layout_mode = 2
-horizontal_alignment = 1
-
-[node name="Balance" type="Control" parent="CombatBody/CombatGameplay/CombatBottomHUD"]
-layout_mode = 2
-mouse_filter = 2
-
-[node name="EndTurnGap" type="Control" parent="CombatBody/CombatGameplay/CombatBottomHUD/TurnControls"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 20)
-mouse_filter = 2
-
-[node name="EnemyDetailsSlot" type="Control" parent="OverlayDefinitions"]
-visible = false
-metadata/review_todo = "Review known enemy information projection."
-
-[node name="CompanionSlot" type="Control" parent="OverlayDefinitions"]
-visible = false
-metadata/review_todo = "Review companion targeting and published cooldown data."
-
-[node name="ResultPreviewSlot" type="Control" parent="OverlayDefinitions"]
-visible = false
-metadata/review_todo = "Review engine result preview contract."

@@ -1,0 +1,13 @@
+[gd_scene format=3]
+[node name="CombatBody" type="HBoxContainer"]
+size_flags_vertical = 3
+[node name="CombatGameplay" type="Control" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+[node name="ArenaFrame" type="Panel" parent="CombatGameplay"]
+z_index = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2

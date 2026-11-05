@@ -1,4 +1,7 @@
 {
+  "Turn: %s": "Turno: %s",
+  "Combat log": "Registro de combate",
+  "No events recorded in this view.": "Nenhum evento registrado nesta tela.",
   "Content aspect ratio": "Proporção do conteúdo",
   "Display mode": "Modo de exibição",
   "Windowed": "Janela",
