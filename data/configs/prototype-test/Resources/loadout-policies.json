@@ -27,5 +27,82 @@
     "equipmentWindows": [
       "OutsideCombat"
     ]
+  },
+  "prototype_character_inscriptions": {
+    "loadoutPolicyId": "prototype_character_inscriptions",
+    "inventoryScope": "Actor",
+    "capacity": 6,
+    "allowDuplicateDefinitions": false,
+    "revisionMigration": "RebindCompatible",
+    "maximumInventoryEntries": 64,
+    "capacityOnly": false,
+    "slots": [
+      {
+        "slotId": "identity",
+        "requiredTags": [
+          "identity",
+          "character:prototype_hero"
+        ]
+      },
+      {
+        "slotId": "capacity_1",
+        "requiredTags": [
+          "common"
+        ]
+      },
+      {
+        "slotId": "capacity_2",
+        "requiredTags": [
+          "common"
+        ]
+      },
+      {
+        "slotId": "capacity_3",
+        "requiredTags": [
+          "common"
+        ]
+      },
+      {
+        "slotId": "capacity_4",
+        "requiredTags": [
+          "common"
+        ]
+      },
+      {
+        "slotId": "capacity_5",
+        "requiredTags": [
+          "common"
+        ]
+      },
+      {
+        "slotId": "capacity_6",
+        "requiredTags": [
+          "common"
+        ]
+      }
+    ],
+    "inscriptionIds": [
+      "prototype_fire_mastery",
+      "prototype_fire_focus",
+      "prototype_void_fusion",
+      "prototype_focus",
+      "prototype_ward",
+      "prototype_edge",
+      "prototype_identity_focus",
+      "prototype_identity_ward"
+    ],
+    "startingInscriptionIds": [
+      "prototype_fire_focus",
+      "prototype_void_fusion",
+      "prototype_fire_mastery",
+      "prototype_focus",
+      "prototype_ward",
+      "prototype_edge",
+      "prototype_identity_focus",
+      "prototype_identity_ward"
+    ],
+    "equipmentWindows": [
+      "OutsideCombat"
+    ]
   }
 }

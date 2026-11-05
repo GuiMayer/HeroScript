@@ -4,7 +4,15 @@
     "equipmentCost": 2,
     "polarity": "fire",
     "rank": 1,
-    "ranks": [{ "rank": 1, "equipmentCost": 3, "influenceValues": { "prototype.fire_mastery": 0.5 } }],
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 3,
+        "influenceValues": {
+          "prototype.fire_mastery": 0.5
+        }
+      }
+    ],
     "attributeBonuses": [
       {
         "attributeId": "fire_mastery",
@@ -13,18 +21,40 @@
           "channel": "effect_amount",
           "bucket": "increased",
           "value": 0.25,
-          "subjectKeyCondition": { "keys": ["fire"], "requiredKeys": ["fire"], "minimumCount": 1 }
+          "subjectKeyCondition": {
+            "keys": [
+              "fire"
+            ],
+            "requiredKeys": [
+              "fire"
+            ],
+            "minimumCount": 1
+          }
         }
       }
     ],
-    "presentation": { "name": "Fire mastery", "description": "Raises the Fire scaling cap by 50 percentage points." }
+    "presentation": {
+      "name": "Fire mastery",
+      "description": "Raises the Fire scaling cap by 50 percentage points."
+    },
+    "tags": [
+      "common"
+    ]
   },
   "prototype_fire_focus": {
     "inscriptionId": "prototype_fire_focus",
     "equipmentCost": 2,
     "polarity": "fire",
     "rank": 1,
-    "ranks": [{ "rank": 1, "equipmentCost": 3, "influenceValues": { "prototype.fire_focus": 1.25 } }],
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 3,
+        "influenceValues": {
+          "prototype.fire_focus": 1.25
+        }
+      }
+    ],
     "attributeBonuses": [
       {
         "attributeId": "fire_focus",
@@ -34,22 +64,42 @@
           "bucket": "more",
           "value": 1.15,
           "subjectKeyCondition": {
-            "keys": ["fire", "void", "shadow"],
-            "requiredKeys": ["fire"],
+            "keys": [
+              "fire",
+              "void",
+              "shadow"
+            ],
+            "requiredKeys": [
+              "fire"
+            ],
             "minimumCount": 1,
             "maximumCount": 1
           }
         }
       }
     ],
-    "presentation": { "name": "Fire focus", "description": "25% more effect amount for Fire cards with exactly one thematic tag." }
+    "presentation": {
+      "name": "Fire focus",
+      "description": "25% more effect amount for Fire cards with exactly one thematic tag."
+    },
+    "tags": [
+      "common"
+    ]
   },
   "prototype_void_fusion": {
     "inscriptionId": "prototype_void_fusion",
     "equipmentCost": 2,
     "polarity": "void",
     "rank": 1,
-    "ranks": [{ "rank": 1, "equipmentCost": 3, "influenceValues": { "prototype.void_fusion": 1.2 } }],
+    "ranks": [
+      {
+        "rank": 1,
+        "equipmentCost": 3,
+        "influenceValues": {
+          "prototype.void_fusion": 1.2
+        }
+      }
+    ],
     "attributeBonuses": [
       {
         "attributeId": "void_fusion",
@@ -59,20 +109,33 @@
           "bucket": "more",
           "value": 1.1,
           "subjectKeyCondition": {
-            "keys": ["fire", "void", "shadow"],
-            "requiredKeys": ["void"],
+            "keys": [
+              "fire",
+              "void",
+              "shadow"
+            ],
+            "requiredKeys": [
+              "void"
+            ],
             "minimumCount": 2
           }
         }
       }
     ],
-    "presentation": { "name": "Void fusion", "description": "20% more effect amount for Void cards with at least two thematic tags." }
+    "presentation": {
+      "name": "Void fusion",
+      "description": "20% more effect amount for Void cards with at least two thematic tags."
+    },
+    "tags": [
+      "common"
+    ]
   },
   "prototype_focus": {
     "inscriptionId": "prototype_focus",
     "equipmentCost": 3,
     "tags": [
-      "critical"
+      "critical",
+      "common"
     ],
     "attributeBonuses": [
       {
@@ -96,7 +159,8 @@
     "inscriptionId": "prototype_ward",
     "equipmentCost": 3,
     "tags": [
-      "defense"
+      "defense",
+      "common"
     ],
     "attributeBonuses": [
       {
@@ -124,7 +188,8 @@
     "inscriptionId": "prototype_edge",
     "equipmentCost": 3,
     "tags": [
-      "attack"
+      "attack",
+      "common"
     ],
     "attributeBonuses": [
       {
@@ -147,5 +212,67 @@
       "description": "Character: +20% increased attack damage.",
       "rarity": "common"
     }
+  },
+  "prototype_identity_focus": {
+    "inscriptionId": "prototype_identity_focus",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:prototype_hero"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "prototype_identity_focus.bonus",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 30
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Thermal operator: Focused identity",
+      "description": "Character identity mod. Character: +30 percentage points of critical chance.",
+      "rarity": "uncommon",
+      "family": "Character identity mod"
+    },
+    "allowedActorDefinitionIds": [
+      "prototype_hero"
+    ]
+  },
+  "prototype_identity_ward": {
+    "inscriptionId": "prototype_identity_ward",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:prototype_hero"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "prototype_identity_ward.bonus",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Thermal operator: Warding identity",
+      "description": "Character identity mod. Character: +20% increased Block generation on eligible defense effects.",
+      "rarity": "common",
+      "family": "Character identity mod"
+    },
+    "allowedActorDefinitionIds": [
+      "prototype_hero"
+    ]
   }
 }

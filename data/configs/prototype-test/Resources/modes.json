@@ -53,7 +53,7 @@
     "effectResolutionPolicyId": "prototype_effect_rules",
     "deckCompositionPolicyId": "prototype_build",
     "supportLoadoutPolicyId": "prototype_supports",
-    "loadoutPolicyId": "prototype_inscriptions"
+    "loadoutPolicyId": "prototype_character_inscriptions"
   },
   "prototype_test": {
     "modeId": "prototype_test",
@@ -109,7 +109,7 @@
     "effectResolutionPolicyId": "prototype_effect_rules",
     "deckCompositionPolicyId": "prototype_build",
     "supportLoadoutPolicyId": "prototype_supports",
-    "loadoutPolicyId": "prototype_inscriptions"
+    "loadoutPolicyId": "prototype_character_inscriptions"
   },
   "prototype_chapter": {
     "modeId": "prototype_chapter",
@@ -165,6 +165,6 @@
     "effectResolutionPolicyId": "prototype_effect_rules",
     "deckCompositionPolicyId": "prototype_build",
     "supportLoadoutPolicyId": "prototype_supports",
-    "loadoutPolicyId": "prototype_inscriptions"
+    "loadoutPolicyId": "prototype_character_inscriptions"
   }
 }

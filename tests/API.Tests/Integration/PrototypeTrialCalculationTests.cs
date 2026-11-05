@@ -69,8 +69,8 @@ public sealed partial class PrototypeTrialTests
             ("prototype_necro_bolt", "prototype_void_fusion", "prototype.void_fusion", "prototype.fire_focus")
         })
         {
-            var draft = new[] { "prototype_fire_focus", style }.ToDictionary(
-                definition => definition, definition => inventory.Items.Single(item => item.DefinitionId == definition).InstanceId);
+            var draft = new[] { "prototype_fire_focus", style }.Select((definition, index) => (definition, index)).ToDictionary(
+                entry => $"capacity_{entry.index + 1}", entry => inventory.Items.Single(item => item.DefinitionId == entry.definition).InstanceId);
             var equipped = planner.Plan(initial, "player", draft);
             Assert.True(equipped.IsSuccess, equipped.IsFailure ? equipped.Error : null);
             var run = Arrange(combatRun with { Loadouts = equipped.Value.Candidate.Loadouts }, card, "prototype_strike");
