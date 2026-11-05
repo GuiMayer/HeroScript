@@ -318,7 +318,7 @@ func show_combat() -> void:
 			return
 	current_screen = "combat"
 	_clear_host()
-	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate("combat")
+	var screen = preload("res://scripts/ui/scene_registry.gd").instantiate(preload("res://scripts/ui/scene_registry.gd").combat_route(GameSession.run, GameSession.selected_setting_id))
 	screen.setup(self, presentation)
 	host.add_child(screen)
 
