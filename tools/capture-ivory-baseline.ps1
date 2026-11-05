@@ -22,7 +22,9 @@ Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object {
     Copy-Item -LiteralPath $_.FullName -Destination $destination
 }
 $configPath = Join-Path $project 'project.godot'
-$config = [IO.File]::ReadAllText($configPath).Replace('[application]', "[application]`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"HeroScript-ivory-baseline-$taskId`"")
+$config = [IO.File]::ReadAllText($configPath)
+$config = [regex]::Replace($config, '(?m)^config/(use_custom_user_dir|custom_user_dir_name)=.*\r?\n?', '')
+$config = $config.Replace('[application]', "[application]`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"HeroScript-ivory-baseline-$taskId`"")
 [IO.File]::WriteAllText($configPath, $config)
 
 function Invoke-BaselineProcess([string]$Name, [string[]]$Arguments) {

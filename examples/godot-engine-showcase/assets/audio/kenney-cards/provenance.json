@@ -1,0 +1,116 @@
+{
+  "pack": "Kenney Casino Audio 1.1",
+  "license": "CC0-1.0",
+  "source": "https://kenney.nl/assets/casino-audio",
+  "edits": "mono, onset trim, duration cap, DC removal, short fades, peak normalization; no loop or time stretch",
+  "clips": [
+    {
+      "event": "hover",
+      "file": "card-hover-1.ogg",
+      "source": "card-place-1.ogg",
+      "sourceSha256": "d8f26c33a665dcbdcc6f632f6050bc9dd548feb0d4942d4547615926d3926810",
+      "sourceOffsetSeconds": 0.155578,
+      "durationSeconds": 0.085011,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.61967,
+      "sha256": "c35c06b616586f210f88195b1ec0032596fd2f6bd355cd28b310efe84187f4cb"
+    },
+    {
+      "event": "hover",
+      "file": "card-hover-2.ogg",
+      "source": "card-place-2.ogg",
+      "sourceSha256": "903d5050718595e87864dd755643b476ab1a5533080dcc2dddc72570d33ba9f8",
+      "sourceOffsetSeconds": 0.146871,
+      "durationSeconds": 0.085011,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.58546,
+      "sha256": "9e36c7b3e0da35e718d82c072517d69487d6dccda3d5690946d2ee57c31025a5"
+    },
+    {
+      "event": "hover",
+      "file": "card-hover-3.ogg",
+      "source": "card-place-4.ogg",
+      "sourceSha256": "18e3ba713b7259605fd27cdc048085ed56cf86b32403f070b6cb125019f77183",
+      "sourceOffsetSeconds": 0.314853,
+      "durationSeconds": 0.085011,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.59847,
+      "sha256": "b4527665b79d146d74a2a7a7f87d19b5eb1bc1f2818ce46928ca3dcb331e8d76"
+    },
+    {
+      "event": "draw",
+      "file": "card-draw-1.ogg",
+      "source": "card-slide-2.ogg",
+      "sourceSha256": "e674a1679ec87b507047fe012d068ad2c412125f56186f0e732684705c2a6888",
+      "sourceOffsetSeconds": 0.062132,
+      "durationSeconds": 0.2,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.83289,
+      "sha256": "90a9ba32971f8fa9ef4b5cf0e4ba87d6b667d5721c361ac2c9d8774c420098c2"
+    },
+    {
+      "event": "draw",
+      "file": "card-draw-2.ogg",
+      "source": "card-slide-4.ogg",
+      "sourceSha256": "b9c82bcdbe6b7d00a06e2546bd2683a9ab082ca5fd090a42882f33eddd925b7f",
+      "sourceOffsetSeconds": 0.100317,
+      "durationSeconds": 0.2,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.80158,
+      "sha256": "fbb2a6e44f6794f58082653ef7723bb54fc7a11377e9535fcb18ead9d8ccbbf7"
+    },
+    {
+      "event": "draw",
+      "file": "card-draw-3.ogg",
+      "source": "card-slide-6.ogg",
+      "sourceSha256": "be85da181ac879c20cb667d0f9f156dbdc236d3751737ad27359a15e946430a0",
+      "sourceOffsetSeconds": 0.164785,
+      "durationSeconds": 0.2,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.7854,
+      "sha256": "a37b48362c9c0faaffa936a079cbeb6b0523fd4300e66d7e6521020beded5f41"
+    },
+    {
+      "event": "play",
+      "file": "card-play-1.ogg",
+      "source": "card-place-1.ogg",
+      "sourceSha256": "d8f26c33a665dcbdcc6f632f6050bc9dd548feb0d4942d4547615926d3926810",
+      "sourceOffsetSeconds": 0.155578,
+      "durationSeconds": 0.26,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.7825,
+      "sha256": "160b97f22e390c723bc21bc7c8e4311b27de6fda008d377b9be22aa603448bf6"
+    },
+    {
+      "event": "play",
+      "file": "card-play-2.ogg",
+      "source": "card-place-3.ogg",
+      "sourceSha256": "1d988631a6e5201ed1bb0d728f2e43a3ec79401258426858793598044ac95841",
+      "sourceOffsetSeconds": 0.384626,
+      "durationSeconds": 0.26,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.7506,
+      "sha256": "13207f3535a5abc3cecd4f75d8ceded7f01bdb2117f16231d989aa0905ba538c"
+    },
+    {
+      "event": "play",
+      "file": "card-play-3.ogg",
+      "source": "card-place-4.ogg",
+      "sourceSha256": "18e3ba713b7259605fd27cdc048085ed56cf86b32403f070b6cb125019f77183",
+      "sourceOffsetSeconds": 0.314853,
+      "durationSeconds": 0.26,
+      "sampleRate": 44100,
+      "channels": 1,
+      "peak": 0.71907,
+      "sha256": "4854d904999858f6fb320799a1b39cbe792c86af342393e2717ae6370054e628"
+    }
+  ]
+}

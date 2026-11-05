@@ -26,30 +26,31 @@
     },
     "card_hover": {
       "clips": [
-        "res://assets/audio/kenney-interface/scroll_001.ogg",
-        "res://assets/audio/kenney-interface/scroll_002.ogg",
-        "res://assets/audio/kenney-interface/scroll_003.ogg"
+        "res://assets/audio/kenney-cards/card-hover-1.ogg",
+        "res://assets/audio/kenney-cards/card-hover-2.ogg",
+        "res://assets/audio/kenney-cards/card-hover-3.ogg"
       ],
-      "gain_db": -21,
+      "gain_db": -18,
       "cooldown_ms": 65,
-      "max_instances": 2
+      "max_instances": 1
     },
     "card_play": {
       "clips": [
-        "res://assets/audio/kenney-interface/scratch_001.ogg",
-        "res://assets/audio/kenney-interface/scratch_002.ogg",
-        "res://assets/audio/kenney-interface/scratch_003.ogg"
+        "res://assets/audio/kenney-cards/card-play-1.ogg",
+        "res://assets/audio/kenney-cards/card-play-2.ogg",
+        "res://assets/audio/kenney-cards/card-play-3.ogg"
       ],
-      "gain_db": -15,
+      "gain_db": -16,
       "cooldown_ms": 100,
       "max_instances": 2
     },
     "card_move": {
       "clips": [
-        "res://assets/audio/kenney-interface/scratch_002.ogg",
-        "res://assets/audio/kenney-interface/scratch_003.ogg"
+        "res://assets/audio/kenney-cards/card-draw-1.ogg",
+        "res://assets/audio/kenney-cards/card-draw-2.ogg",
+        "res://assets/audio/kenney-cards/card-draw-3.ogg"
       ],
-      "gain_db": -22,
+      "gain_db": -21,
       "cooldown_ms": 150,
       "max_instances": 1
     },

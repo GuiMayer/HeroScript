@@ -1,4 +1,4 @@
-param([switch]$Check)
+param([switch]$Check, [switch]$AssetsOnly)
 $ErrorActionPreference = 'Stop'
 $project = Join-Path (Split-Path $PSScriptRoot -Parent) 'examples/godot-engine-showcase'
 $assetRoot = Join-Path $project 'assets/programmer-art'
@@ -31,13 +31,9 @@ $shapes = [ordered]@{
 $generated = [ordered]@{}
 foreach ($family in $shapes.Keys) {
     foreach ($variant in 0..2) {
-        $angle = @(-8, 0, 8)[$variant]
-        $trace = @(
-            '<path d="M18 42H59L82 65H101M18 47H57L80 70H101M18 52H55L78 75H101"/>',
-            '<path d="M18 103H59L82 80H101M18 108H61L84 85H101M18 113H63L86 90H101"/>',
-            '<path d="M219 75H238L261 98H302M219 80H236L259 103H302M219 85H234L257 108H302"/>'
-        )[$variant]
-        $body = '<g fill="none" stroke="#5b574f" stroke-width="1">' + $trace + '</g><g transform="rotate(' + $angle + ' 160 75)">' + $shapes[$family] + '</g>'
+        # Keep published filenames stable. All art is upright in card-local space;
+        # the hand alone controls card rotation. No decorative circuit tracks.
+        $body = $shapes[$family]
         $generated["$family-$variant.svg"] = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150">' + $body + '</svg>' + "`n"
     }
     $generated["icon-$family.svg"] = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="85 0 150 150">' + $shapes[$family] + '</svg>' + "`n"
@@ -72,7 +68,7 @@ foreach ($category in @('relics','inscriptions','modifier_items')) {
 }
 $manifest.slots['modifier_fire'] = @{path='res://assets/programmer-art/icon-fire.svg';placeholder=$true}
 $manifest.categories.modifier_items.fire = 'modifier_fire'
-$manifestPath = Join-Path $project 'data/labs/programmer_art_manifest.json'
+$manifestPath = Join-Path $project 'data/programmer_art_manifest.json'
 $manifestText = ($manifest | ConvertTo-Json -Depth 30) + "`n"
 if ($Check) {
     foreach ($name in $generated.Keys) {
@@ -88,5 +84,5 @@ if ($Check) {
 }
 New-Item -ItemType Directory -Force -Path $assetRoot | Out-Null
 foreach ($name in $generated.Keys) { [IO.File]::WriteAllText((Join-Path $assetRoot $name), $generated[$name]) }
-[IO.File]::WriteAllText($manifestPath, $manifestText)
+if (-not $AssetsOnly) { [IO.File]::WriteAllText($manifestPath, $manifestText) }
 Write-Host "Generated $($generated.Count) SVG assets and isolated laboratory catalogue."
