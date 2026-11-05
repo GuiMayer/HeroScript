@@ -468,3 +468,13 @@ anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("3_d8cva")
+
+[connection signal="pressed" from="ContextActionSlot/NextAnimation" to="." method="_on_next_pressed"]
+
+[connection signal="pressed" from="SkipPresentationButton" to="." method="_on_skip_pressed"]
+
+[connection signal="pressed" from="ContextActionSlot/SelectionActions/CancelSelection" to="." method="_on_cancel_pressed"]
+
+[connection signal="pressed" from="EndTurnButton" to="." method="_on_end_pressed"]
+
+[connection signal="pressed" from="SystemActionSlot/Pass" to="." method="_on_pass_pressed"]

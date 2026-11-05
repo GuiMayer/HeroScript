@@ -290,3 +290,9 @@ vertical_alignment = 1
 theme_override_font_sizes/font_size = 15
 clip_text = true
 text_overrun_behavior = 3
+
+[connection signal="pressed" from="TimelineButton" to="." method="_on_timeline_pressed"]
+
+[connection signal="pressed" from="ZoneToolsButton" to="." method="_on_tools_pressed"]
+
+[connection signal="pressed" from="PauseButton" to="." method="_on_pause_pressed"]

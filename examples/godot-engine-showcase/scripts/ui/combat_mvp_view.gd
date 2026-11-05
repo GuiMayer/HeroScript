@@ -18,7 +18,6 @@ func _build_header() -> void:
 	header_view.get_node("ActiveTurn").text = visual_context.translator.text("Turn: %s") % presenter.actor_name(active) if not active.is_empty() else ""
 	var button: Button = header_view.get_node("LogButton")
 	button.text = visual_context.translator.text("Combat log")
-	if not button.pressed.is_connected(_open_combat_log): button.pressed.connect(_open_combat_log)
 
 func _build_hand() -> void:
 	super._build_hand()

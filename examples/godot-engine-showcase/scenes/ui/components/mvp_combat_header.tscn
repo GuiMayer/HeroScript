@@ -23,3 +23,9 @@ custom_minimum_size = Vector2(100, 44)
 text = "Combat log"
 [node name="PauseButton" type="Button" parent="."]
 custom_minimum_size = Vector2(100, 44)
+
+[connection signal="pressed" from="TimelineButton" to="." method="_on_timeline_pressed"]
+
+[connection signal="pressed" from="ZoneToolsButton" to="." method="_on_tools_pressed"]
+
+[connection signal="pressed" from="PauseButton" to="." method="_on_pause_pressed"]

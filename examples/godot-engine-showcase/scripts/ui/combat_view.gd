@@ -286,7 +286,7 @@ func _build_character_sidebar() -> Control:
 	if not is_instance_valid(view):
 		view = get_node("FloatingCombatHUD/FloatingHUDHost/CombatAttributesDrawer")
 		view.mount(visual_context)
-		view.open_changed.connect(func(value): character_sidebar_expanded = value)
+		view.open_changed.connect(_on_sidebar_open_changed)
 		floating_hud.replace_slot("sidebar", view)
 	view.visual_context = visual_context
 	view.present({"presentation": presentation, "run": _run_snapshot, "combat": _combat_snapshot,
@@ -733,3 +733,6 @@ func show_editor_preview() -> void:
 	var zones = CardZonePresenter.new(data.zones, context.translator)
 	get_node("CombatBody/CombatGameplay/Battlefield").embedded_artwork = true
 	apply_projection(data.presentation, projection, zones, {"run": data.run, "combat": data.combat, "actions": [], "zones": data.zones, "input_actor": "hero", "scope": "editor-preview", "setting": {}, "setting_id": "prototype-test"}, context)
+
+func _on_sidebar_open_changed(value: bool) -> void:
+	character_sidebar_expanded = value

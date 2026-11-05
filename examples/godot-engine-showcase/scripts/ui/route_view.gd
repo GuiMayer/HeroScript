@@ -42,12 +42,10 @@ func setup(route: Array) -> void:
 		if button == null:
 			button = preload("res://scenes/ui/components/map_node.tscn").instantiate()
 			button.name = "Stop_" + id.validate_node_name()
-			button.pressed.connect(func():
-				if not suppress_activation: inspection_requested.emit(str(button.get_meta("node_id", ""))))
-			button.focus_entered.connect(func():
-				var target := str(button.get_meta("node_id", ""))
-				focus_requested.emit(target))
-			button.mouse_entered.connect(func(): hover_changed.emit(str(button.get_meta("node_id", "")))); button.mouse_exited.connect(func(): hover_changed.emit(""))
+			button.pressed.connect(_on_node_pressed.bind(id))
+			button.focus_entered.connect(_on_node_focused.bind(id))
+			button.mouse_entered.connect(_on_node_hovered.bind(id))
+			button.mouse_exited.connect(_on_node_hover_ended)
 			add_child(button)
 			buttons[id] = button
 		button.set_meta("travel", node.travel.duplicate(true))
@@ -165,3 +163,9 @@ func _draw() -> void:
 		if not markers.has(str(node.get("id", ""))): continue
 		if not _highlight_kind.is_empty() and str(node.get("kind", "")) == _highlight_kind:
 			draw_rect(Rect2(buttons[str(node.id)].position, buttons[str(node.id)].size).grow(5), visual_context.styles.color("text.primary"), false, 3, true)
+
+func _on_node_pressed(id: String) -> void:
+	if not suppress_activation: inspection_requested.emit(id)
+func _on_node_focused(id: String) -> void: focus_requested.emit(id)
+func _on_node_hovered(id: String) -> void: hover_changed.emit(id)
+func _on_node_hover_ended() -> void: hover_changed.emit("")

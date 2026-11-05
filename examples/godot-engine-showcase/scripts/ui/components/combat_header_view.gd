@@ -25,11 +25,12 @@ func apply_model(model: Dictionary) -> void:
 	if _model == model and _context_key == context_key: return
 	_context_key = context_key; _model = model.duplicate(true)
 	tool_button = get_node("ZoneToolsButton")
-	if not _bound:
-		get_node("TimelineButton").pressed.connect(timeline_requested.emit)
-		tool_button.pressed.connect(tools_requested.emit)
-		get_node("PauseButton").pressed.connect(pause_requested.emit); _bound = true
 	get_node("Round").text = str(model.round); get_node("Round").tooltip_text = str(model.context)
 	for entry in [["TimelineButton", "timeline", str(model.timeline) + " [" + visual_context.action_label("open_timeline") + "]", true], ["ZoneToolsButton", "tools", str(model.tools), true], ["PauseButton", "pause", str(model.pause) + " [" + visual_context.action_label("pause_game") + "]", false]]:
+		if not has_node(entry[0]): continue
 		preload("res://scripts/ui/combat_chrome.gd").apply(get_node(entry[0]), entry[1], entry[2], visual_context, false, entry[3] and not wide)
 	tool_button.visible = bool(model.allow_tools)
+
+func _on_timeline_pressed() -> void: timeline_requested.emit()
+func _on_tools_pressed() -> void: tools_requested.emit()
+func _on_pause_pressed() -> void: pause_requested.emit()
