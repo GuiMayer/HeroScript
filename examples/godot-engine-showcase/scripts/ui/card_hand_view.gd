@@ -468,13 +468,22 @@ func request_layout() -> void:
 	if _layout_pending: return
 	_layout_pending = true
 	_relayout.call_deferred()
+func _visual_style_key() -> String:
+	# Editor hot reload may retain a placeholder from before the resource was @tool.
+	# Exported properties remain readable; avoid invoking a method on that instance.
+	var values := {}
+	for property in visual_style.get_property_list():
+		if int(property.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			values[str(property.name)] = visual_style.get(property.name)
+	return JSON.stringify(values)
+
 func _relayout() -> void:
 	_layout_pending = false
 	if not is_inside_tree(): return
 	relayout_count += 1
 	var default_style = visual_context.card_style
 	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
-	var policy_key: String = default_style.presentation_key() + visual_style.presentation_key() + resolved_hand_mode()
+	var policy_key: String = default_style.presentation_key() + _visual_style_key() + resolved_hand_mode()
 	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key:
 		_reserved_card_size = Vector2.ZERO; custom_minimum_size.y = 0
 	_layout_card_style_key = policy_key
