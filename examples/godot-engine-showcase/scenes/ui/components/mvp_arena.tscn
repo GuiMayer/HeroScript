@@ -1,4 +1,10 @@
 [gd_scene format=3]
+[sub_resource type="StyleBoxFlat" id="ArenaSurface"]
+bg_color = Color(0.96, 0.965, 0.97, 1)
+border_width_bottom = 1
+border_color = Color(0.83, 0.85, 0.87, 1)
+metadata/background_role = "surface.raised"
+metadata/border_role = "stroke.panel"
 [node name="CombatBody" type="HBoxContainer"]
 size_flags_vertical = 3
 [node name="CombatGameplay" type="Control" parent="."]
@@ -11,3 +17,5 @@ z_index = -1
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
+
+theme_override_styles/panel = SubResource("ArenaSurface")

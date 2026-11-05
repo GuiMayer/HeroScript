@@ -1,0 +1,39 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/styles/visual_theme_profile.gd" id="1"]
+[ext_resource type="FontFile" path="res://assets/fonts/cinzel/Cinzel.ttf" id="2"]
+[ext_resource type="FontFile" path="res://assets/fonts/source-sans-3/SourceSans3.ttf" id="3"]
+[ext_resource type="Resource" path="res://data/themes/mvp_card_style.tres" id="4"]
+[ext_resource type="Resource" path="res://data/themes/shared_palette.tres" id="Palette"]
+
+[sub_resource type="FontVariation" id="Body"]
+base_font = ExtResource("3")
+variation_opentype = {
+2003265652: 500.0
+}
+
+[sub_resource type="FontVariation" id="Title"]
+base_font = ExtResource("2")
+variation_opentype = {
+2003265652: 600.0
+}
+
+[resource]
+script = ExtResource("1")
+profile_id = "mvp_combat"
+palette = ExtResource("Palette")
+corner_radius = 2
+body_font = SubResource("Body")
+title_font = SubResource("Title")
+printed_surfaces = true
+resource_color_overrides = {
+"block": "#60646c",
+"energy": "#7e4b15",
+"gold": "#7e4b15",
+"health": "#9e343d",
+"mana": "#445c8f"
+}
+actor_art_max_height = 240.0
+compact_actor_hud = true
+card_style = ExtResource("4")
+art_manifest = "res://data/programmer_art_manifest.json"

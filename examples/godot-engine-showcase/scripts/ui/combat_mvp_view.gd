@@ -1,19 +1,11 @@
 extends "res://scripts/ui/combat_view.gd"
 ## Dedicated MVP composition; the shared controller retains all rule authority.
-var _local_profile: Resource
+@export var combat_theme: Resource = preload("res://data/themes/mvp_combat_theme.tres")
+@export var arena_gap := 20.0
 var _log_entries: Array[String] = []
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
-	if _local_profile == null:
-		_local_profile = context.profile.duplicate(true)
-		_local_profile.actor_art_max_height = 240.0
-		_local_profile.card_style = context.card_style.duplicate(true)
-		_local_profile.card_style.card_size = Vector2(212, 300)
-		_local_profile.card_style.art_height = 52.0
-		_local_profile.card_style.title_font_size = 18
-		_local_profile.card_style.rules_font_size = 16
-		_local_profile.printed_surfaces = true
-	var local_context = context.derive(_local_profile)
+	var local_context = context.derive(combat_theme)
 	local_context.hand_arrangements = context.hand_arrangements
 	super.apply_projection(data, combat_presenter, cards_presenter, facts, local_context)
 
@@ -40,20 +32,11 @@ func _build_hand() -> void:
 			if value.get("maximum") is float or value.get("maximum") is int: energy.text += " / " + visual_context.translator.number(value.maximum)
 	energy.visible = not energy.text.is_empty()
 
-func _build_battlefield() -> void:
-	super._build_battlefield()
-	battlefield_view.get_node("BattlefieldActors/Field/Divider").hide()
-	var box := StyleBoxFlat.new()
-	box.bg_color = visual_context.styles.color("surface.raised")
-	box.border_color = visual_context.styles.color("stroke.panel")
-	box.border_width_bottom = 1
-	gameplay_column.get_node("ArenaFrame").add_theme_stylebox_override("panel", box)
-
 func _layout_gameplay() -> void:
 	super._layout_gameplay()
 	if not is_instance_valid(bottom_hud) or not is_instance_valid(turn_view): return
 	bottom_hud.get_node("Balance").custom_minimum_size.x = turn_view.get_combined_minimum_size().x
-	gameplay_column.get_node("ArenaFrame").offset_bottom = bottom_hud.offset_top - 20
+	gameplay_column.get_node("ArenaFrame").offset_bottom = bottom_hud.offset_top - arena_gap
 
 func present_frame(frame: Dictionary, index: int, total: int) -> void:
 	super.present_frame(frame, index, total)

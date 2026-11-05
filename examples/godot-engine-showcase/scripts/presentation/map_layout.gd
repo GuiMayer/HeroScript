@@ -97,10 +97,10 @@ func calculate(nodes: Array, profile: Resource) -> Dictionary:
 			var path: PackedVector2Array
 			if id == target:
 				var right: float = rects[id].end.x + 8
-				path = PackedVector2Array([origin, origin + Vector2(0,12), Vector2(right,origin.y+12), Vector2(right,destination.y-12), destination-Vector2(0,12), destination])
+				path = PackedVector2Array([origin, origin + Vector2(0,profile.edge_stub_length), Vector2(right,origin.y+profile.edge_stub_length), Vector2(right,destination.y-profile.edge_stub_length), destination-Vector2(0,profile.edge_stub_length), destination])
 			elif returning:
 				var outside: float = profile.padding.x * .5
-				path = PackedVector2Array([origin, origin+Vector2(0,12), Vector2(outside,origin.y+12), Vector2(outside,destination.y-12), destination-Vector2(0,12), destination])
+				path = PackedVector2Array([origin, origin+Vector2(0,profile.edge_stub_length), Vector2(outside,origin.y+profile.edge_stub_length), Vector2(outside,destination.y-profile.edge_stub_length), destination-Vector2(0,profile.edge_stub_length), destination])
 			else:
 				path = PackedVector2Array([origin, origin + Vector2(0, profile.layer_gap * .5), destination - Vector2(0, profile.layer_gap * .5), destination])
 			edges.append({"from": id, "to": target, "return": returning, "path": path})

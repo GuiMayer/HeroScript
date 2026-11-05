@@ -12,6 +12,7 @@ extends Resource
 @export var padding := Vector2(24, 20)
 @export var lane_gap := 16.0
 @export var layer_gap := 32.0
+@export var edge_stub_length := 12.0
 @export var maximum_panel_width := 620.0
 @export var panel_width_ratio := .4
 @export var inspector_compact_breakpoint := 1000.0

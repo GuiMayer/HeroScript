@@ -56,8 +56,6 @@ func setup(route: Array) -> void:
 		button.size = layout_profile.hit_size
 		button.text = ""
 		var caption: Label = button.get_node("Caption")
-		caption.position = Vector2((layout_profile.hit_size.x - layout_profile.node_size.x) * .5, layout_profile.hit_size.y + layout_profile.caption_gap)
-		caption.size = Vector2(layout_profile.node_size.x, layout_profile.caption_height)
 		# Location and completion are independent: returning keeps both states.
 		var state_label := "● " if node.current else ""
 		if node.resolved: state_label += "✓ "

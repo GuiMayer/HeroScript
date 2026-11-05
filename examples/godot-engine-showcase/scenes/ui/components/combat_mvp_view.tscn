@@ -81,3 +81,7 @@ scroll_active = false
 
 [node name="EndTurnGap" parent="CombatBody/CombatGameplay/CombatBottomHUD/TurnControls"]
 custom_minimum_size = Vector2(0, 22)
+
+[node name="Divider" parent="CombatBody/CombatGameplay/Battlefield/BattlefieldActors/Field"]
+visible = false
+[editable path="CombatBody/CombatGameplay/Battlefield"]
