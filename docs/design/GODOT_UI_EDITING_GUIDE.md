@@ -77,4 +77,14 @@ Abra `scenes/ui/components/combat_mvp_view.tscn`:
 - `CanvasHost/ReferenceCanvas/EnergyIndicator` (`energy_indicator_path`) posiciona o indicador de energia centralizado horizontalmente acima de `HandHost`.
 - `CanvasHost/ReferenceCanvas/EndTurnAndContextActions` (`turn_controls_path`, substituindo `TemporaryControls`) isola `EndTurnButton` no canto inferior direito fora de `HandHost`, mantendo `NextAnimation`, `SkipPresentationButton` e `CancelSelection` visíveis apenas nos estados aplicáveis.
 
-[Validação da etapa 5](../validation/MVP_COMBAT_REFERENCE_STAGE5.md). As janelas flutuantes e overlays permanecem na etapa 6 após aprovação visual da etapa 5.
+[Validação da etapa 5](../validation/MVP_COMBAT_REFERENCE_STAGE5.md). A etapa 5 foi aprovada; as janelas flutuantes e overlays da etapa 6 aguardam aprovação visual.
+
+## Janelas flutuantes e overlays alinhados: etapa 6
+
+Em `scenes/ui/components/combat_mvp_view.tscn` e `scripts/ui/combat_mvp_view.gd`:
+- `FloatingCombatHUD/FloatingHUDHost` (`layer = 5`) hospeda `CombatAttributesDrawer`, `CandidatePanel` e `Reconnect`, ajustados ao retângulo global de `ReferenceCanvas` (`gameplay_column`).
+- `CandidatePanel` fica centralizado sobre `HandHost` e acima de `EnergyIndicator`, sem sobrepor `PileRail` nem `EndTurnAndContextActions`.
+- `Reconnect` fica posicionado abaixo de `CombatHeader` no canto superior direito da arena, sem cobrir `ActiveIdentity`.
+- `InspectionDialog`, `CardZoneDialog` e `CombatLog` usam `hand.track_reading_modal(dialog)` e restauram o foco ao controle de origem ao fechar; `PauseCanvas` (`layer = 10`) permanece acima de todos os overlays de combate e `Escape` cancela modais/seleção/gaveta antes de abrir `Pause`.
+
+[Validação da etapa 6](../validation/MVP_COMBAT_REFERENCE_STAGE6.md). A revisão final e certificação completa permanecem na etapa 7 após aprovação visual da etapa 6.

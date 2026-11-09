@@ -1,6 +1,6 @@
 # Composição MVP — etapa 5: energia central e Encerrar turno no canto inferior direito
 
-Data: 2026-11-09. **Etapas 1, 2, 3 e 4 aprovadas. Etapa 5 implementada, aguardando aprovação visual. Etapas 6–7 não iniciadas.**
+Data: 2026-11-09. **Etapas 1, 2, 3, 4 e 5 aprovadas. Etapa 6 implementada, aguardando aprovação visual. Etapa 7 não iniciada.**
 
 Guia: [plano de composição](../plans/MVP_COMBAT_REFERENCE_HUD_REBUILD_PLAN.md). Evidências: [testes, arquivos protegidos e capturas](mvp-reference-stage5.json).
 

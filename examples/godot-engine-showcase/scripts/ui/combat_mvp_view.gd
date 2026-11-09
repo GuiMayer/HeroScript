@@ -13,6 +13,8 @@ extends "res://scripts/ui/combat_view.gd"
 @export var turn_bottom_inset := 18.0
 var energy_indicator: Label
 var _log_entries: Array[String] = []
+var _log_return_focus: WeakRef
+var _drawer_return_focus: WeakRef
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
 	var local_context = context.derive(combat_theme)
@@ -224,10 +226,42 @@ func _layout_gameplay() -> void:
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
 		if is_instance_valid(character_sidebar):
 			character_sidebar.fit_bounds(gameplay_column.get_global_rect(), layout_profile.sidebar_width, layout_profile.sidebar_height)
+		if is_instance_valid(reconnect_button):
+			var rec_width := maxf(layout_profile.reconnect_button_size.x, reconnect_button.get_combined_minimum_size().x)
+			var rec_height := maxf(layout_profile.reconnect_button_size.y, reconnect_button.get_combined_minimum_size().y)
+			var rec_top: float = (float(header_view.offset_bottom) if is_instance_valid(header_view) else 80.0) + 8.0
+			reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+			reconnect_button.offset_left = maxf(rail_right + battlefield_left_gap, fitted.x - battlefield_right_inset - rec_width)
+			reconnect_button.offset_right = reconnect_button.offset_left + rec_width
+			reconnect_button.offset_top = rec_top
+			reconnect_button.offset_bottom = rec_top + rec_height
 		if is_instance_valid(candidate_panel):
-			candidate_panel.offset_bottom = -height
-			candidate_panel.offset_top = -height - layout_profile.candidate_height
-			candidate_panel.offset_right = layout_profile.candidate_width
+			var cand_left_min: float = rail_right + battlefield_left_gap
+			var cand_right_max: float = fitted.x * bottom_hud.anchor_right if is_instance_valid(bottom_hud) else (fitted.x - 220.0)
+			var cand_avail: float = maxf(240.0, cand_right_max - cand_left_min)
+			var cand_width: float = minf(layout_profile.candidate_width, cand_avail)
+			var cand_left: float = clampf((fitted.x - cand_width) * 0.5, cand_left_min, maxf(cand_left_min, cand_right_max - cand_width))
+			var cand_bottom: float = minf(energy_top - 8.0, first_card_top - fitted.y - 8.0)
+			candidate_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+			candidate_panel.offset_left = cand_left
+			candidate_panel.offset_right = cand_left + cand_width
+			candidate_panel.offset_bottom = cand_bottom
+			candidate_panel.offset_top = cand_bottom - layout_profile.candidate_height
+
+func _on_sidebar_open_changed(value: bool) -> void:
+	super._on_sidebar_open_changed(value)
+	var viewport := get_viewport()
+	if viewport == null: return
+	if value:
+		var focused := viewport.gui_get_focus_owner()
+		if is_instance_valid(focused) and (not is_instance_valid(character_sidebar) or not character_sidebar.is_ancestor_of(focused)):
+			_drawer_return_focus = weakref(focused)
+	else:
+		var target: Control = _drawer_return_focus.get_ref() if _drawer_return_focus != null else null
+		_drawer_return_focus = null
+		var current_focus := viewport.gui_get_focus_owner()
+		if current_focus == null and is_instance_valid(target) and target.is_inside_tree() and target.is_visible_in_tree():
+			target.grab_focus()
 
 func present_combat_snapshot(state: Dictionary) -> void:
 	super.present_combat_snapshot(state)
@@ -242,8 +276,32 @@ func present_frame(frame: Dictionary, index: int, total: int) -> void:
 		if _log_entries.size() > 200: _log_entries.pop_front()
 
 func _open_combat_log() -> void:
+	if not is_inside_tree() or get_tree().paused or (is_instance_valid(hand) and hand.reading_modal): return
 	var dialog: AcceptDialog = get_node("CombatLog")
+	var viewport := get_viewport()
+	var current_focus := viewport.gui_get_focus_owner() if viewport != null else null
+	if is_instance_valid(current_focus):
+		_log_return_focus = weakref(current_focus)
+	elif is_instance_valid(header_view) and is_instance_valid(header_view.log_button):
+		_log_return_focus = weakref(header_view.log_button)
+	else:
+		_log_return_focus = null
+	if not dialog.has_meta("mvp_log_bound"):
+		dialog.set_meta("mvp_log_bound", true)
+		dialog.visibility_changed.connect(func():
+			if not dialog.visible: _restore_combat_log_focus.call_deferred())
 	dialog.theme = visual_context.theme
 	dialog.title = visual_context.translator.text("Combat log")
+	dialog.ok_button_text = visual_context.translator.text("CLOSE")
 	dialog.get_node("Scroll/Events").text = "\n\n".join(_log_entries) if not _log_entries.is_empty() else visual_context.translator.text("No events recorded in this view.")
+	if is_instance_valid(hand): hand.track_reading_modal(dialog)
 	dialog.popup_centered_clamped(Vector2i(700, 480), .9)
+
+func _restore_combat_log_focus() -> void:
+	if not is_inside_tree() or get_tree().paused: return
+	var target: Control = _log_return_focus.get_ref() if _log_return_focus != null else null
+	_log_return_focus = null
+	if is_instance_valid(target) and target.is_inside_tree() and target.is_visible_in_tree():
+		target.grab_focus()
+	elif is_instance_valid(header_view) and is_instance_valid(header_view.log_button) and header_view.log_button.is_inside_tree():
+		header_view.log_button.grab_focus()
