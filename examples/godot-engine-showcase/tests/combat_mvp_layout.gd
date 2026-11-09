@@ -48,8 +48,10 @@ func _run() -> void:
 		session._legal_actions.append({"source": "Card", "command": {"cardInstanceId": "fixture-%s" % i,
 			"actionType": "PLAY_CARD", "targetIds": ["wisp"], "costOptionId": "alternate"}, "costs": [{"resourceId": "mana", "amount": 2}]})
 	session._card_zones = {"zones": [{"zoneId": "custom-play", "allowsCardPlay": true, "contentsVisible": true,
-		"cards": cards, "count": 5}, {"zoneId": "draw", "count": 8, "presentation": {"labelKey": "Draw pile"}},
-		{"zoneId": "discard", "count": 2, "presentation": {"labelKey": "Discard pile"}}]}
+		"cards": cards, "count": 5}, {"zoneId": "draw", "ownerId": "hero", "scopeId": "layout-combat", "count": 8, "presentation": {"slot": "draw_pile", "labelKey": "Draw pile"}},
+		{"zoneId": "banish", "ownerId": "hero", "scopeId": "layout-combat", "count": 1, "presentation": {"slot": "exile_pile", "labelKey": "Exile"}},
+		{"zoneId": "discard", "ownerId": "hero", "scopeId": "layout-combat", "count": 2, "presentation": {"slot": "discard_pile", "labelKey": "Discard pile"}},
+		{"zoneId": "owned", "ownerId": "$run", "scopeId": null, "count": 4, "presentation": {"displayName": "Collection / reserve"}}]}
 	var router = load("res://main.tscn").instantiate()
 	root.add_child(router)
 	router.show_combat()

@@ -16,5 +16,7 @@ static func build(zone: Dictionary, presenter, translator) -> Dictionary:
 			models.append(model)
 	if not bool(zone.get("orderVisible", false)):
 		models.sort_custom(func(a, b): return str(a.definitionId) + str(a.cardInstanceId) < str(b.definitionId) + str(b.cardInstanceId))
-	return {"address": address(zone), "label": translator.text(str(zone.get("presentation", {}).get("labelKey", zone.get("zoneId", "")))),
+	var presentation: Dictionary = zone.get("presentation", {}) if zone.get("presentation") is Dictionary else {}
+	var label_key := str(presentation.get("labelKey", presentation.get("displayName", zone.get("zoneId", ""))))
+	return {"address": address(zone), "label": translator.text(label_key),
 		"count": int(zone.get("count", 0)), "visible": bool(zone.get("contentsVisible", false)), "ordered": bool(zone.get("orderVisible", false)), "cards": models}

@@ -264,11 +264,50 @@
       },
       {
         "zoneId": "draw",
-        "count": 12
+        "ownerId": "hero",
+        "scopeId": "editor-preview",
+        "contentsVisible": true,
+        "orderVisible": false,
+        "count": 12,
+        "presentation": {
+          "slot": "draw_pile",
+          "labelKey": "Draw pile"
+        }
+      },
+      {
+        "zoneId": "banish",
+        "ownerId": "hero",
+        "scopeId": "editor-preview",
+        "contentsVisible": true,
+        "orderVisible": true,
+        "count": 1,
+        "presentation": {
+          "slot": "exile_pile",
+          "labelKey": "Exile"
+        }
       },
       {
         "zoneId": "discard",
-        "count": 3
+        "ownerId": "hero",
+        "scopeId": "editor-preview",
+        "contentsVisible": true,
+        "orderVisible": true,
+        "count": 3,
+        "presentation": {
+          "slot": "discard_pile",
+          "labelKey": "Discard pile"
+        }
+      },
+      {
+        "zoneId": "owned",
+        "ownerId": "$run",
+        "scopeId": null,
+        "contentsVisible": true,
+        "orderVisible": true,
+        "count": 4,
+        "presentation": {
+          "displayName": "Collection / reserve"
+        }
       }
     ]
   },

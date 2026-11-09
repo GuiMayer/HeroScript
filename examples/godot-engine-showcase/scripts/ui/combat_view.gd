@@ -220,18 +220,24 @@ func _build_hand() -> void:
 		hand.drag_ended.connect(_restore_drag_targets)
 		hand.reorder_drop_filter = _hand_drop_allowed
 		hand.visual_order_changed.connect(func(_ids): intent_requested.emit("_cancel_selection", []))
+	_build_piles()
+	_sync_hand_models()
+
+
+func _build_piles() -> void:
 	if not is_instance_valid(pile_controls):
 		pile_controls = get_node(primary_piles_path)
 		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
-	if not is_instance_valid(right_pile_controls):
+	if not is_instance_valid(right_pile_controls) and not secondary_piles_path.is_empty():
 		right_pile_controls = get_node(secondary_piles_path)
 		right_pile_controls.name = "RightPileControls"
 		right_pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	var zones: Array = zone_presenter.auxiliary_zones()
-	var right: Array = zones.filter(func(zone): return str(zone.get("zoneId", "")) == "discard")
+	var right: Array = zones.filter(func(zone): return str(zone.get("zoneId", "")) == "discard") if is_instance_valid(right_pile_controls) else []
 	pile_controls.apply_model(zones.filter(func(zone): return zone not in right), visual_context)
-	right_pile_controls.apply_model(right, visual_context); right_pile_controls.visible = not right.is_empty()
-	_sync_hand_models()
+	if is_instance_valid(right_pile_controls):
+		right_pile_controls.apply_model(right, visual_context)
+		right_pile_controls.visible = not right.is_empty()
 
 
 func _sync_hand_models() -> void:

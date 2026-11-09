@@ -55,4 +55,10 @@ Consulte [a validação da etapa 1](../validation/MVP_COMBAT_REFERENCE_STAGE1.md
 
 Abra `scenes/ui/components/mvp_combat_header.tscn`. As âncoras de `ActiveIdentity`, `RoundAndTurn` e `HeaderActions` definem suas posições relativas; o centro da rodada independe das larguras laterais. Edite o retrato em `PortraitFrame` e o texto nos nós de nomes únicos. `Preview Model` oferece dados locais para editor/F6. O script apenas aplica dados/tema e calcula a altura mínima necessária ao conteúdo; não troca a hierarquia. Os três sinais de ação ficam nas cenas, e a inspeção usa o componente existente.
 
-[Validação da etapa 2](../validation/MVP_COMBAT_REFERENCE_STAGE2.md). As pilhas permanecem na posição provisória até aprovação e execução da etapa 3.
+[Validação da etapa 2](../validation/MVP_COMBAT_REFERENCE_STAGE2.md). A etapa 2 foi aprovada; a coluna de pilhas da etapa 3 aguarda aprovação visual.
+
+## Pilhas na coluna esquerda: etapa 3
+
+Em `scenes/ui/components/combat_mvp_view.tscn`, a coluna de pilhas é o nó `CanvasHost/ReferenceCanvas/PileRail` (instância de `card_zone_controls.tscn`), referenciado por `primary_piles_path`. As âncoras de `PileRail` definem a faixa vertical e a largura da coluna à esquerda da mão (`HandHost`), enquanto `TemporaryControls` à direita mantém apenas controles que aguardam as próximas etapas. A ordem vertical no MVP (`Draw`, `Exile`, `Discard`, `Owned Deck`) é aplicada em `combat_mvp_view.gd` sobre as zonas auxiliares publicadas sem somar zonas no cliente.
+
+[Validação da etapa 3](../validation/MVP_COMBAT_REFERENCE_STAGE3.md). O campo de batalha e os atores permanecem na disposição anterior até aprovação e execução da etapa 4.

@@ -1,6 +1,6 @@
 # Composição MVP — etapa 2: cabeçalho
 
-Data: 2026-11-05. **Etapa 1 aprovada. Etapa 2 implementada, aguardando aprovação visual. Etapas 3–7 não iniciadas.**
+Data: 2026-11-05. **Etapas 1 e 2 aprovadas. Etapa 3 implementada, aguardando aprovação visual. Etapas 4–7 não iniciadas.**
 
 Guia: [plano de composição](../plans/MVP_COMBAT_REFERENCE_HUD_REBUILD_PLAN.md). Evidências: [testes, arquivos protegidos e limites](mvp-reference-stage2.json).
 

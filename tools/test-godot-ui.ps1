@@ -12,7 +12,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_pool', 'compact_session', 'rest_transport_latency', 'inscription_loadout_lab', 'inscription_rest_workspace', 'run_loadout', 'loadout_editorial', 'loadout_input', 'api_request_numbers', 'combat_controller', 'combat_input_soak', 'card_cost_layout', 'window_monitor', 'local_server') }
-if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components', 'editor_tool_scenes', 'mvp_reference_base', 'mvp_reference_header', 'loadout_optional_sections', 'inscription_slot_layout') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components', 'editor_tool_scenes', 'mvp_reference_base', 'mvp_reference_header', 'mvp_reference_piles', 'loadout_optional_sections', 'inscription_slot_layout') }
 $workspace = Split-Path $PSScriptRoot -Parent
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('card_transit_counter', 'shared_canvas_theme', 'combat_attributes_drawer') }
 if (-not $PSBoundParameters.ContainsKey('Tests')) {
@@ -32,10 +32,11 @@ if ($ReuseProject) {
     $taskId = Split-Path $project -Leaf
 }
 New-Item -ItemType Directory -Path $project -Force | Out-Null
+$sourcePrefix = [IO.Path]::GetFullPath($source).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object {
-    [IO.Path]::GetRelativePath($source, $_.FullName) -notmatch '(^|[\\/])(\.godot|\.runtime|tests[\\/]output)[\\/]'
+    $_.FullName.Substring($sourcePrefix.Length) -notmatch '(^|[\\/])(\.godot|\.runtime|tests[\\/]output)[\\/]'
 } | ForEach-Object {
-    $relative = [IO.Path]::GetRelativePath($source, $_.FullName)
+    $relative = $_.FullName.Substring($sourcePrefix.Length)
     $destination = Join-Path $project $relative
     New-Item -ItemType Directory -Path (Split-Path $destination -Parent) -Force | Out-Null
     Copy-Item -LiteralPath $_.FullName -Destination $destination
@@ -74,17 +75,18 @@ foreach ($test in $testNames) {
         Stop-Process -Id $process.Id
         throw "Timeout in $test; logs: $project"
     }
-    $process.WaitForExit()
+    $null = $process.WaitForExit()
+    $exitCode = if ($null -ne $process.ExitCode) { [int]$process.ExitCode } else { 0 }
     $lines = @(Get-Content -LiteralPath $stdout) + @(Get-Content -LiteralPath $stderr)
     # Godot reports retained process-wide script resources as an ERROR at exit.
     # Keep that diagnostic in the report, separate from functional/script/RID
     # errors. Certification must inspect it, not infer clean teardown from exit 0.
-    $errors = @($lines | Where-Object { $_ -match 'ERROR:|Parse Error:|\[FAIL\]' -and $_ -notmatch '^ERROR: \d+ resources still in use at exit' })
-    $result = [ordered]@{test=$test;exit_code=$process.ExitCode;checks=@($lines | Where-Object { $_ -match '^\[PASS\]' }).Count;
-        elapsed_ms=$watch.ElapsedMilliseconds;diagnostics=@($lines | Where-Object { $_ -match 'WARNING:|ERROR:|leaked|still in use|\[FAIL\]' })}
+    $errors = @($lines | Where-Object { $_ -match 'ERROR:|Parse Error:|\[FAIL\]' -and $_ -notmatch '^ERROR: \d+ resources still in use at exit' } | ForEach-Object { "$_" })
+    $result = [ordered]@{test=$test;exit_code=$exitCode;checks=@($lines | Where-Object { $_ -match '^\[PASS\]' }).Count;
+        elapsed_ms=$watch.ElapsedMilliseconds;diagnostics=@($lines | Where-Object { $_ -match 'WARNING:|ERROR:|leaked|still in use|\[FAIL\]' } | ForEach-Object { "$_" })}
     $results.Add($result)
     Write-Host "$test : exit=$($result.exit_code), checks=$($result.checks), elapsed=$($result.elapsed_ms)ms"
-    if ($process.ExitCode -ne 0 -or $errors.Count -gt 0) {
+    if ($exitCode -ne 0 -or $errors.Count -gt 0) {
         $lines | Select-Object -Last 45 | ForEach-Object { Write-Host $_ }
         $results | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $project 'validation.json')
         throw "Validation failed: $test; logs: $project"

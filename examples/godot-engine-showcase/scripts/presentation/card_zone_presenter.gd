@@ -48,7 +48,7 @@ func auxiliary_zones() -> Array:
 
 func zone_label(zone: Dictionary) -> String:
 	var presentation = zone.get("presentation", {})
-	var label_key := str(presentation.get("labelKey", zone.get("zoneId", "")) if presentation is Dictionary else zone.get("zoneId", ""))
+	var label_key := str(presentation.get("labelKey", presentation.get("displayName", zone.get("zoneId", ""))) if presentation is Dictionary else zone.get("zoneId", ""))
 	return _i18n.text(label_key)
 
 func zone_cards(zone_id: String) -> Array:

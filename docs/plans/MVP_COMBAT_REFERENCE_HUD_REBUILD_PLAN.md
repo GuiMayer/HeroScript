@@ -219,8 +219,8 @@ Preparação, bindings e testes fazem parte da etapa visual correspondente. Não
 | Etapa | Implementação | Commit/evidência | Aprovação visual |
 | --- | --- | --- | --- |
 | 1 — Base e mão | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE1.md) | Aprovada pelo usuário em 2026-11-05 |
-| 2 — Cabeçalho | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE2.md) | Aguardando aprovação do usuário |
-| 3 — Pilhas | Pendente | — | Aguardando etapa anterior |
+| 2 — Cabeçalho | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE2.md) | Aprovada pelo usuário em 2026-11-09 |
+| 3 — Pilhas | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE3.md) | Aguardando aprovação do usuário |
 | 4 — Campo e atores | Pendente | — | Aguardando etapa anterior |
 | 5 — Energia e End Turn | Pendente | — | Aguardando etapa anterior |
 | 6 — Overlays | Pendente | — | Aguardando etapa anterior |

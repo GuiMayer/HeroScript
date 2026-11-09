@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/floating_hud.tscn" id="Floating"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/combat_feedback.tscn" id="Feedback"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/battlefield_actor.tscn" id="Actor"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_zone_controls.tscn" id="Piles"]
 [node name="CombatView" type="VBoxContainer"]
 size_flags_vertical = 3
 script = ExtResource("Script")
@@ -17,8 +18,8 @@ header_path = NodePath("CanvasHost/ReferenceCanvas/CombatHeader")
 hand_host_path = NodePath("CanvasHost/ReferenceCanvas/HandHost")
 hand_section_path = NodePath("CanvasHost/ReferenceCanvas/HandHost/HandSection")
 turn_controls_path = NodePath("CanvasHost/ReferenceCanvas/TemporaryControls")
-primary_piles_path = NodePath("CanvasHost/ReferenceCanvas/TemporaryControls/PileControls")
-secondary_piles_path = NodePath("CanvasHost/ReferenceCanvas/TemporaryControls/RightPileControls")
+primary_piles_path = NodePath("CanvasHost/ReferenceCanvas/PileRail")
+secondary_piles_path = NodePath("")
 [node name="CombatFeedback" parent="." instance=ExtResource("Feedback")]
 [node name="CanvasHost" type="Control" parent="."]
 layout_mode = 2
@@ -35,6 +36,12 @@ layout_mode = 1
 anchor_right = 1.0
 [node name="Battlefield" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Field")]
 actor_scene = ExtResource("Actor")
+[node name="PileRail" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Piles")]
+layout_mode = 1
+anchor_top = 0.38
+anchor_right = 0.11
+anchor_bottom = 0.99
+offset_left = 18.0
 [node name="HandHost" type="Control" parent="CanvasHost/ReferenceCanvas"]
 layout_mode = 1
 anchor_left = 0.16

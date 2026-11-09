@@ -52,6 +52,40 @@ func _update_controls() -> void:
 	super._update_controls()
 	_refresh_header_inspection()
 
+func _build_piles() -> void:
+	if not is_instance_valid(pile_controls):
+		pile_controls = get_node(primary_piles_path)
+		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
+	var dock: Node = get_node_or_null(turn_controls_path)
+	if is_instance_valid(dock):
+		for legacy in ["PileControls", "RightPileControls"]:
+			var node: Control = dock.get_node_or_null(legacy)
+			if is_instance_valid(node): node.hide()
+	var raw: Array = zone_presenter.auxiliary_zones()
+	var ordered: Array = []
+	for rank in 5:
+		for zone in raw:
+			if _pile_rank(zone) == rank: ordered.append(zone)
+	pile_controls.apply_model(ordered, visual_context)
+	pile_controls.visible = not ordered.is_empty()
+
+static func _pile_rank(zone: Dictionary) -> int:
+	var presentation: Dictionary = zone.get("presentation", {}) if zone.get("presentation") is Dictionary else {}
+	var slot := str(presentation.get("slot", ""))
+	var id := str(zone.get("zoneId", ""))
+	if slot == "draw_pile" or id in ["draw", "deck"]: return 0
+	if slot == "exile_pile" or id in ["exile", "banish"]: return 1
+	if slot == "discard_pile" or id == "discard": return 2
+	if slot == "owned_deck" or id == "owned": return 3
+	return 4
+
+func _input(event: InputEvent) -> void:
+	if not is_inside_tree() or get_tree().paused or not is_visible_in_tree() or hand.reading_modal: return
+	if event is InputEventMouseMotion and is_instance_valid(pile_controls) and pile_controls.is_visible_in_tree():
+		if is_instance_valid(character_sidebar) and not character_sidebar.expanded and event.position.y >= pile_controls.global_position.y - 12.0:
+			return
+	super._input(event)
+
 func _build_hand() -> void:
 	super._build_hand()
 	# The same inspection action is now in the header, not duplicated in the dock.
@@ -95,6 +129,11 @@ func _layout_gameplay() -> void:
 		header_view.offset_right = 0.0
 		header_view.offset_top = 0.0
 		header_view.offset_bottom = header_view.get_combined_minimum_size().y
+	if is_instance_valid(pile_controls):
+		pile_controls.offset_left = 18.0
+		pile_controls.offset_right = maxf(0.0, maxf(pile_controls.get_combined_minimum_size().x, 148.0) + 18.0 - fitted.x * pile_controls.anchor_right)
+		pile_controls.offset_top = maxf(0.0, header_view.offset_bottom + battlefield_top_gap - fitted.y * pile_controls.anchor_top)
+		pile_controls.offset_bottom = -hand_bottom_inset + fitted.y * (1.0 - pile_controls.anchor_bottom)
 	if is_instance_valid(battlefield_actors):
 		battlefield_actors.offset_top = header_view.size.y + battlefield_top_gap
 		battlefield_actors.offset_bottom = bottom_hud.offset_top - arena_gap
