@@ -36,6 +36,19 @@ layout_mode = 1
 anchor_right = 1.0
 [node name="Battlefield" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Field")]
 actor_scene = ExtResource("Actor")
+[node name="BattlefieldActors" parent="CanvasHost/ReferenceCanvas/Battlefield" index="0"]
+offset_left = 228.0
+offset_top = 128.0
+offset_right = -24.0
+offset_bottom = -460.0
+[node name="Field" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors" index="0"]
+theme_override_constants/separation = 36
+[node name="Allies" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field" index="0"]
+theme_override_constants/separation = 16
+[node name="Divider" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field" index="1"]
+visible = false
+[node name="Opponents" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field" index="2"]
+theme_override_constants/separation = 16
 [node name="PileRail" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Piles")]
 layout_mode = 1
 anchor_top = 0.38
@@ -93,8 +106,6 @@ custom_minimum_size = Vector2(640, 400)
 size_flags_horizontal = 3
 fit_content = true
 scroll_active = false
-[node name="Divider" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field"]
-visible = false
 [editable path="CanvasHost/ReferenceCanvas/Battlefield"]
 [connection signal="log_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_open_combat_log"]
 [connection signal="inspection_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_on_header_inspection_requested"]

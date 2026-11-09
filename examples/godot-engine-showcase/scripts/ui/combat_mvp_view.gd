@@ -5,6 +5,8 @@ extends "res://scripts/ui/combat_view.gd"
 @export var arena_gap := 20.0
 @export var hand_bottom_inset := 8.0
 @export var battlefield_top_gap := 12.0
+@export var battlefield_left_gap := 20.0
+@export var battlefield_right_inset := 24.0
 var _log_entries: Array[String] = []
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
@@ -129,16 +131,34 @@ func _layout_gameplay() -> void:
 		header_view.offset_right = 0.0
 		header_view.offset_top = 0.0
 		header_view.offset_bottom = header_view.get_combined_minimum_size().y
+	var rail_right := 18.0
 	if is_instance_valid(pile_controls):
+		var rail_width := maxf(pile_controls.get_combined_minimum_size().x, 148.0)
 		pile_controls.offset_left = 18.0
-		pile_controls.offset_right = maxf(0.0, maxf(pile_controls.get_combined_minimum_size().x, 148.0) + 18.0 - fitted.x * pile_controls.anchor_right)
+		pile_controls.offset_right = maxf(0.0, rail_width + 18.0 - fitted.x * pile_controls.anchor_right)
 		pile_controls.offset_top = maxf(0.0, header_view.offset_bottom + battlefield_top_gap - fitted.y * pile_controls.anchor_top)
 		pile_controls.offset_bottom = -hand_bottom_inset + fitted.y * (1.0 - pile_controls.anchor_bottom)
+		if pile_controls.visible:
+			rail_right = maxf(fitted.x * pile_controls.anchor_right + pile_controls.offset_right, 18.0 + rail_width)
 	if is_instance_valid(battlefield_actors):
-		battlefield_actors.offset_top = header_view.size.y + battlefield_top_gap
-		battlefield_actors.offset_bottom = bottom_hud.offset_top - arena_gap
+		battlefield_actors.offset_left = rail_right + battlefield_left_gap
+		battlefield_actors.offset_right = -battlefield_right_inset
+		battlefield_actors.offset_top = header_view.offset_bottom + battlefield_top_gap
+		var first_card_top := fitted.y + bottom_hud.offset_top
+		if is_instance_valid(hand) and is_instance_valid(hand.scroll):
+			first_card_top = (hand.scroll.global_position.y - gameplay_column.global_position.y) + hand.visual_style.padding
+		var bottom_limit := minf(bottom_hud.offset_top - arena_gap, first_card_top - fitted.y - 8.0)
+		var min_stage_height := 180.0
 		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
-			actor.fit_battlefield_height(battlefield_actors.size.y)
+			if actor.has_method("minimum_battlefield_height"):
+				min_stage_height = maxf(min_stage_height, actor.minimum_battlefield_height())
+		if fitted.y + bottom_limit - battlefield_actors.offset_top < min_stage_height:
+			bottom_limit = minf(first_card_top - fitted.y - 4.0, battlefield_actors.offset_top + min_stage_height - fitted.y)
+		battlefield_actors.offset_bottom = bottom_limit
+		var available_height := fitted.y + battlefield_actors.offset_bottom - battlefield_actors.offset_top
+		if battlefield_actors.get_h_scroll_bar().visible: available_height -= battlefield_actors.get_h_scroll_bar().size.y
+		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
+			actor.fit_battlefield_height(available_height)
 	if is_instance_valid(turn_view):
 		turn_view.offset_left = -turn_view.get_combined_minimum_size().x
 		turn_view.offset_top = -turn_view.get_combined_minimum_size().y

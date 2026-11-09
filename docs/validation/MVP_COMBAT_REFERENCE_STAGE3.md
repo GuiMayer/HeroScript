@@ -1,6 +1,6 @@
 # Composição MVP — etapa 3: pilhas em coluna à esquerda
 
-Data: 2026-11-09. **Etapas 1 e 2 aprovadas. Etapa 3 implementada, aguardando aprovação visual. Etapas 4–7 não iniciadas.**
+Data: 2026-11-09. **Etapas 1, 2 e 3 aprovadas. Etapa 4 implementada, aguardando aprovação visual. Etapas 5–7 não iniciadas.**
 
 Guia: [plano de composição](../plans/MVP_COMBAT_REFERENCE_HUD_REBUILD_PLAN.md). Evidências: [testes, arquivos protegidos e capturas](mvp-reference-stage3.json).
 

@@ -15,7 +15,7 @@ Os passos abaixo contam selecionar o recurso/nó, alterar e salvar; pressupõem 
 | Ordem/espaço de Encerrar turno | `scenes/ui/components/turn_controls.tscn` | Selecionar `EndTurnButton` ou `EndTurnGap`, alterar ordem/mínimo, salvar: 3 passos |
 | Posição do conjunto de ações | `scenes/ui/components/combat_view.tscn` ou `combat_mvp_view.tscn` | Na cena genérica, editar `CombatBottomHUD/TurnControls`. No MVP novo, editar `CanvasHost/ReferenceCanvas/TemporaryControls`; a mão fica separada em `HandHost/HandSection`. Os caminhos de binding aparecem no Inspector |
 | Novo ícone para um status existente/publicado | Asset + `scenes/ui/components/status_badge.tscn` | Importar asset, selecionar raiz, adicionar chave/Texture2D em `Icon Overrides`, salvar e conferir `Preview Status`: aproximadamente 5 passos |
-| Layout do ator/inimigo no MVP | `scenes/ui/components/battlefield_actor.tscn` | Reordenar/redimensionar os filhos de `ActorContent` e salvar; o script do MVP não os reorganiza |
+| Layout do ator/inimigo no MVP | `scenes/ui/components/battlefield_actor.tscn` | Editar `%ActorTarget` (arte livre) e `%ActorPlate` (`PlateContent` com título, recursos, contadores, status e intenção) em `ActorContent` e salvar; larguras de arte e placa são independentes |
 | Forma do nó da campanha | `scenes/ui/components/map_node.tscn` | Editar arte/glifo/legenda; a legenda usa âncoras relativas ao botão |
 | Espaçamento do grafo | Perfil `Map Layout Profile` da `route_view.tscn` | Alterar dimensões, margens e desvio das arestas no Inspector |
 
@@ -61,4 +61,12 @@ Abra `scenes/ui/components/mvp_combat_header.tscn`. As âncoras de `ActiveIdenti
 
 Em `scenes/ui/components/combat_mvp_view.tscn`, a coluna de pilhas é o nó `CanvasHost/ReferenceCanvas/PileRail` (instância de `card_zone_controls.tscn`), referenciado por `primary_piles_path`. As âncoras de `PileRail` definem a faixa vertical e a largura da coluna à esquerda da mão (`HandHost`), enquanto `TemporaryControls` à direita mantém apenas controles que aguardam as próximas etapas. A ordem vertical no MVP (`Draw`, `Exile`, `Discard`, `Owned Deck`) é aplicada em `combat_mvp_view.gd` sobre as zonas auxiliares publicadas sem somar zonas no cliente.
 
-[Validação da etapa 3](../validation/MVP_COMBAT_REFERENCE_STAGE3.md). O campo de batalha e os atores permanecem na disposição anterior até aprovação e execução da etapa 4.
+[Validação da etapa 3](../validation/MVP_COMBAT_REFERENCE_STAGE3.md). A etapa 3 foi aprovada; o campo de batalha e as placas compactas da etapa 4 aguardam aprovação visual.
+
+## Campo de batalha e placas compactas: etapa 4
+
+Abra `scenes/ui/components/battlefield_actor.tscn` e `scenes/ui/components/combat_mvp_view.tscn`:
+- Em `battlefield_actor.tscn`, `%ActorTarget` (`%ActorArtworkAnchor`) fica livre no topo de `%ActorContent` (com `ActorPanel` externo transparente), enquanto `%ActorPlate` (`PanelContainer` abaixo da arte) agrupa `%ActorTitle`, `%ActorResources`, `%ActorCounters`, `%ActorStatusBadges` e `%ActorIntentRow` com superfície e borda do tema atual. As larguras mínimas de `%ActorTarget` e `%ActorPlate` são independentes.
+- Em `combat_mvp_view.tscn`, `Battlefield/BattlefieldActors` posiciona as equipes `Allies` (esquerda) e `Opponents` (direita) à direita de `PileRail`, abaixo de `CombatHeader` e acima das cartas em `HandHost`.
+
+[Validação da etapa 4](../validation/MVP_COMBAT_REFERENCE_STAGE4.md). Energia central e botão Encerrar turno permanecem nos hosts provisórios atuais até aprovação e execução da etapa 5.

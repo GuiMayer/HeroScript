@@ -8,6 +8,8 @@ signal target_selected(actor_id: String)
 var visual_context: ContextType = ContextType.new()
 var portrait_view: Control
 var target_button: Button
+var plate: PanelContainer
+var _plate_surface: StyleBoxFlat
 var _battlefield_content: VBoxContainer
 var _projection := []
 var _model: Dictionary = {}
@@ -66,6 +68,10 @@ func _bind_nodes() -> void:
 	_statuses = get_node("%ActorStatusBadges")
 	target_button = get_node("%ActorTarget")
 	portrait_view = get_node("%ActorArtworkAnchor")
+	plate = get_node_or_null("%ActorPlate")
+	if is_instance_valid(plate) and _plate_surface == null:
+		_plate_surface = plate.get_theme_stylebox("panel").duplicate()
+		plate.add_theme_stylebox_override("panel", _plate_surface)
 	if not target_button.pressed.is_connected(_on_target_pressed): target_button.pressed.connect(_on_target_pressed)
 	if _surface == null:
 		_authored_content_size = _content.custom_minimum_size
@@ -120,7 +126,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_bind_nodes()
 	theme = visual_context.theme
 	_model = {"actor": actor.duplicate(true), "hostile": hostile, "presentation": presentation.duplicate(true), "intent": intent, "compact": compact, "battlefield": battlefield}
-	_battlefield_content = _content if battlefield else null
+	_battlefield_content = _content if (battlefield or authored_battlefield_layout) else null
 	var mode := str(compact) + str(battlefield)
 	if mode != _layout_mode:
 		_layout_mode = mode
@@ -140,16 +146,23 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		_intent.max_lines_visible = 2 if compact or battlefield else 3
 		if compact: target_button.custom_minimum_size = compact_target_size
 		elif battlefield: target_button.custom_minimum_size = battlefield_target_size
-		target_button.size_flags_vertical = Control.SIZE_EXPAND_FILL if battlefield else Control.SIZE_FILL
+		target_button.size_flags_vertical = Control.SIZE_EXPAND_FILL if (battlefield or authored_battlefield_layout) else Control.SIZE_FILL
 		if battlefield:
 			_surface.content_margin_top = battlefield_margin_vertical; _surface.content_margin_bottom = battlefield_margin_vertical
 			_root_content.add_theme_constant_override("separation", 0)
 			_content.add_theme_constant_override("separation", battlefield_content_gap)
 		elif compact:
 			_surface.content_margin_top = compact_margin_vertical; _surface.content_margin_bottom = compact_margin_vertical
-	_surface.bg_color = Color.TRANSPARENT if battlefield else visual_context.styles.color("surface.actor")
+	_surface.bg_color = Color.TRANSPARENT if (battlefield or authored_battlefield_layout) else visual_context.styles.color("surface.actor")
+	if is_instance_valid(plate) and _plate_surface != null:
+		_plate_surface.bg_color = visual_context.styles.color("surface.actor")
+		_plate_surface.border_color = visual_context.styles.color("stroke.panel")
+		_plate_surface.set_corner_radius_all(visual_context.profile.corner_radius if visual_context.profile.printed_surfaces else 6)
+		_plate_surface.set_meta("background_role", "surface.actor")
+		_plate_surface.set_meta("border_role", "stroke.panel")
 	var name_text: String = visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", "")))
 	_title.text = name_text
+	_title.tooltip_text = name_text
 	_title.visible = authored_battlefield_layout or not (battlefield and visual_context.profile.compact_actor_hud)
 	_title.add_theme_color_override("font_color", visual_context.styles.INK)
 	var relation := str(actor.get("relationship", "Enemy" if hostile else "Ally"))
@@ -157,10 +170,10 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)
 	_intent.tooltip_text = _intent.text
 	_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
-	_intent_row.visible = not (battlefield and visual_context.profile.compact_actor_hud) or hostile or relation == "Neutral" or not intent.is_empty()
-	_intent_icon.visible = battlefield and visual_context.profile.compact_actor_hud and hostile
+	_intent_row.visible = (not intent.is_empty() or hostile or relation == "Neutral") if authored_battlefield_layout else (not (battlefield and visual_context.profile.compact_actor_hud) or hostile or relation == "Neutral" or not intent.is_empty())
+	_intent_icon.visible = (battlefield or authored_battlefield_layout) and visual_context.profile.compact_actor_hud and (hostile or not intent.is_empty())
 	_intent_icon.texture = preload("res://scripts/ui/combat_chrome.gd").texture(str(actor.get("intentIconId", "unknown")))
-	_intent_icon.modulate = visual_context.styles.GOLD
+	_intent_icon.modulate = visual_context.styles.GOLD if hostile else visual_context.styles.TEAL
 	_sync_resources(actor.get("resources", {}), presentation)
 	var live_statuses: Array[String] = []
 	var statuses: Array = actor.get("statuses", []).filter(func(status): return status.get("isActive", true))
@@ -213,11 +226,22 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 			counter.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]
 			_counters.move_child(counter, counters.size() - 1)
 	_prune(_resources, bars); _prune(_counters, counters)
+	_resources.visible = not bars.is_empty()
+	_counters.visible = not counters.is_empty()
 
 func _prune(parent: Node, live: Array[String]) -> void:
 	for child in parent.get_children():
 		if str(child.name) not in live:
 			parent.remove_child(child); child.queue_free()
+
+func minimum_battlefield_height() -> float:
+	if not is_instance_valid(_battlefield_content): return 120.0
+	var panel_style := get_theme_stylebox("panel")
+	var fixed := panel_style.get_minimum_size().y
+	fixed += _battlefield_content.get_theme_constant("separation") * (_battlefield_content.get_child_count() - 1)
+	for child in _battlefield_content.get_children():
+		if child != target_button and child is Control and child.visible: fixed += child.get_combined_minimum_size().y
+	return fixed + 64.0
 
 func fit_battlefield_height(available: float) -> void:
 	if not is_instance_valid(_battlefield_content): return
