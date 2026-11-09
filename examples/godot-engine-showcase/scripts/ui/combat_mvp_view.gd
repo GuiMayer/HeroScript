@@ -2,11 +2,16 @@
 extends "res://scripts/ui/combat_view.gd"
 ## Dedicated MVP composition; the shared controller retains all rule authority.
 @export var combat_theme: Resource = preload("res://data/themes/mvp_combat_theme.tres")
+@export_node_path("Label") var energy_indicator_path := NodePath("CanvasHost/ReferenceCanvas/EnergyIndicator")
 @export var arena_gap := 20.0
 @export var hand_bottom_inset := 8.0
+@export var energy_hand_gap := 10.0
 @export var battlefield_top_gap := 12.0
 @export var battlefield_left_gap := 20.0
 @export var battlefield_right_inset := 24.0
+@export var turn_right_inset := 24.0
+@export var turn_bottom_inset := 18.0
+var energy_indicator: Label
 var _log_entries: Array[String] = []
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
@@ -53,6 +58,21 @@ func _on_header_inspection_requested() -> void:
 func _update_controls() -> void:
 	super._update_controls()
 	_refresh_header_inspection()
+	_sync_turn_dock_visibility()
+
+func _sync_turn_dock_visibility() -> void:
+	if not is_instance_valid(hand) or not is_instance_valid(hand.toolbar): return
+	var has_visible_tool := false
+	for child in hand.toolbar.get_children():
+		if child is Control and child.visible:
+			has_visible_tool = true
+			break
+	hand.toolbar.visible = has_visible_tool
+	if is_instance_valid(turn_view):
+		var gap: Control = turn_view.get_node_or_null("EndTurnGap")
+		if is_instance_valid(gap):
+			gap.visible = has_visible_tool or turn_view.get_node("ContextActionSlot").visible or turn_view.skip_button.visible or turn_view.get_node("SystemActionSlot").visible
+		_layout_turn_controls()
 
 func _build_piles() -> void:
 	if not is_instance_valid(pile_controls):
@@ -95,16 +115,42 @@ func _build_hand() -> void:
 	if not hand.card_previewed.is_connected(_refresh_header_inspection): hand.card_previewed.connect(_refresh_header_inspection)
 	if not hand.card_hovered.is_connected(_refresh_header_inspection): hand.card_hovered.connect(_refresh_header_inspection)
 	_refresh_header_inspection()
-	var energy: Label = hand_section.get_node("Energy")
-	energy.text = ""
-	for actor in _combat_snapshot.get("actors", []):
+	_present_energy(_combat_snapshot)
+	_sync_turn_dock_visibility()
+
+func _present_energy(combat_state: Dictionary) -> void:
+	if not is_instance_valid(energy_indicator):
+		energy_indicator = get_node(energy_indicator_path)
+		energy_indicator.minimum_size_changed.connect(_queue_gameplay_layout)
+	energy_indicator.text = ""
+	energy_indicator.tooltip_text = ""
+	for actor in combat_state.get("actors", []):
 		if str(actor.get("instanceId", "")) != _input_actor: continue
 		var resources: Dictionary = actor.get("resources", {})
 		if resources.get("energy") is Dictionary:
 			var value: Dictionary = resources.energy
-			energy.text = "◇  %s  %s" % [visual_context.translator.content_name("energy"), visual_context.translator.number(value.get("current", 0))]
-			if value.get("maximum") is float or value.get("maximum") is int: energy.text += " / " + visual_context.translator.number(value.maximum)
-	energy.visible = not energy.text.is_empty()
+			var current_text: String = visual_context.translator.number(float(value.get("current", 0)))
+			var name_text: String = visual_context.translator.content_name("energy")
+			energy_indicator.text = "◇  %s  %s" % [name_text, current_text]
+			if value.get("maximum") is float or value.get("maximum") is int:
+				energy_indicator.text += " / " + visual_context.translator.number(float(value.maximum))
+			energy_indicator.tooltip_text = energy_indicator.text.trim_prefix("◇  ")
+		break
+	energy_indicator.visible = not energy_indicator.text.is_empty()
+
+func _layout_turn_controls() -> void:
+	if not is_instance_valid(turn_view) or not is_instance_valid(gameplay_column): return
+	var min_size: Vector2 = turn_view.get_combined_minimum_size()
+	var inset_x := minf(turn_right_inset, maxf(10.0, gameplay_column.size.x * 0.0125))
+	var inset_y := minf(turn_bottom_inset, maxf(8.0, gameplay_column.size.y * 0.016))
+	if is_instance_valid(bottom_hud):
+		var available_right := gameplay_column.size.x * (1.0 - bottom_hud.anchor_right)
+		if min_size.x + inset_x + 4.0 > available_right:
+			inset_x = maxf(4.0, available_right - min_size.x - 4.0)
+	turn_view.offset_right = -inset_x
+	turn_view.offset_bottom = -inset_y
+	turn_view.offset_left = -min_size.x - inset_x
+	turn_view.offset_top = -min_size.y - inset_y
 
 func _bind_composition() -> Control:
 	gameplay_column = get_node("CanvasHost/ReferenceCanvas")
@@ -126,11 +172,30 @@ func _layout_gameplay() -> void:
 	var height: float = hand_section.get_combined_minimum_size().y
 	bottom_hud.offset_top = -height - hand_bottom_inset
 	bottom_hud.offset_bottom = -hand_bottom_inset
+	var first_card_top := fitted.y + bottom_hud.offset_top
+	if is_instance_valid(hand) and is_instance_valid(hand.scroll):
+		first_card_top = (hand.scroll.global_position.y - gameplay_column.global_position.y) + hand.visual_style.padding
 	if is_instance_valid(header_view):
 		header_view.offset_left = 0.0
 		header_view.offset_right = 0.0
 		header_view.offset_top = 0.0
 		header_view.offset_bottom = header_view.get_combined_minimum_size().y
+	var min_stage_height := 180.0
+	if is_instance_valid(battlefield_actors):
+		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
+			if actor.has_method("minimum_battlefield_height"):
+				min_stage_height = maxf(min_stage_height, actor.minimum_battlefield_height())
+	var energy_top := bottom_hud.offset_top
+	if is_instance_valid(energy_indicator):
+		var energy_height := maxf(energy_indicator.get_combined_minimum_size().y, 26.0)
+		var gap := 2.0 if fitted.y < 860.0 else energy_hand_gap
+		var energy_base := bottom_hud.offset_top
+		if fitted.y < 860.0:
+			energy_base = maxf(bottom_hud.offset_top, first_card_top - fitted.y + 4.0)
+		energy_indicator.offset_bottom = energy_base - gap
+		energy_indicator.offset_top = energy_indicator.offset_bottom - energy_height
+		if energy_indicator.visible:
+			energy_top = energy_indicator.offset_top
 	var rail_right := 18.0
 	if is_instance_valid(pile_controls):
 		var rail_width := maxf(pile_controls.get_combined_minimum_size().x, 148.0)
@@ -141,27 +206,20 @@ func _layout_gameplay() -> void:
 		if pile_controls.visible:
 			rail_right = maxf(fitted.x * pile_controls.anchor_right + pile_controls.offset_right, 18.0 + rail_width)
 	if is_instance_valid(battlefield_actors):
+		var top_gap := 0.0 if fitted.y < 860.0 else battlefield_top_gap
 		battlefield_actors.offset_left = rail_right + battlefield_left_gap
 		battlefield_actors.offset_right = -battlefield_right_inset
-		battlefield_actors.offset_top = header_view.offset_bottom + battlefield_top_gap
-		var first_card_top := fitted.y + bottom_hud.offset_top
-		if is_instance_valid(hand) and is_instance_valid(hand.scroll):
-			first_card_top = (hand.scroll.global_position.y - gameplay_column.global_position.y) + hand.visual_style.padding
-		var bottom_limit := minf(bottom_hud.offset_top - arena_gap, first_card_top - fitted.y - 8.0)
-		var min_stage_height := 180.0
-		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
-			if actor.has_method("minimum_battlefield_height"):
-				min_stage_height = maxf(min_stage_height, actor.minimum_battlefield_height())
+		battlefield_actors.offset_top = header_view.offset_bottom + top_gap
+		var bottom_limit := minf(energy_top - arena_gap, first_card_top - fitted.y - 8.0)
+		var hard_ceiling := first_card_top - fitted.y - 2.0
 		if fitted.y + bottom_limit - battlefield_actors.offset_top < min_stage_height:
-			bottom_limit = minf(first_card_top - fitted.y - 4.0, battlefield_actors.offset_top + min_stage_height - fitted.y)
+			bottom_limit = minf(hard_ceiling, battlefield_actors.offset_top + min_stage_height - fitted.y)
 		battlefield_actors.offset_bottom = bottom_limit
 		var available_height := fitted.y + battlefield_actors.offset_bottom - battlefield_actors.offset_top
 		if battlefield_actors.get_h_scroll_bar().visible: available_height -= battlefield_actors.get_h_scroll_bar().size.y
 		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
 			actor.fit_battlefield_height(available_height)
-	if is_instance_valid(turn_view):
-		turn_view.offset_left = -turn_view.get_combined_minimum_size().x
-		turn_view.offset_top = -turn_view.get_combined_minimum_size().y
+	_sync_turn_dock_visibility()
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
 		if is_instance_valid(character_sidebar):
@@ -175,6 +233,7 @@ func present_combat_snapshot(state: Dictionary) -> void:
 	super.present_combat_snapshot(state)
 	var projection = Presenter.new(_run_snapshot, state, [], visual_context.translator, presentation)
 	_present_header(projection, state)
+	_present_energy(state)
 
 func present_frame(frame: Dictionary, index: int, total: int) -> void:
 	super.present_frame(frame, index, total)

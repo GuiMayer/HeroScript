@@ -1,6 +1,6 @@
 # Reconstrução da composição de combate MVP — validação visual por etapa
 
-Atualizado em: 2026-11-09. Estado: etapas 1, 2 e 3 aprovadas; etapa 4 implementada, aguardando aprovação visual; etapas 5–7 não iniciadas.
+Atualizado em: 2026-11-09. Estado: etapas 1, 2, 3 e 4 aprovadas; etapa 5 implementada, aguardando aprovação visual; etapas 6–7 não iniciadas.
 
 ## Direção aprovada e substituição do plano anterior
 
@@ -221,8 +221,8 @@ Preparação, bindings e testes fazem parte da etapa visual correspondente. Não
 | 1 — Base e mão | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE1.md) | Aprovada pelo usuário em 2026-11-05 |
 | 2 — Cabeçalho | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE2.md) | Aprovada pelo usuário em 2026-11-09 |
 | 3 — Pilhas | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE3.md) | Aprovada pelo usuário em 2026-11-09 |
-| 4 — Campo e atores | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE4.md) | Aguardando aprovação do usuário |
-| 5 — Energia e End Turn | Pendente | — | Aguardando etapa anterior |
+| 4 — Campo e atores | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE4.md) | Aprovada pelo usuário em 2026-11-09 |
+| 5 — Energia e End Turn | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE5.md) | Aguardando aprovação do usuário |
 | 6 — Overlays | Pendente | — | Aguardando etapa anterior |
 | 7 — Conjunto final | Pendente | — | Aguardando etapa anterior |
 

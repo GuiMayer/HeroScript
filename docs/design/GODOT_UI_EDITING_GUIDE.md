@@ -13,7 +13,7 @@ Os passos abaixo contam selecionar o recurso/nó, alterar e salvar; pressupõem 
 | Fonte do custo no MVP | `data/themes/mvp_card_style.tres` | Selecionar o recurso, alterar `Cost Symbol Font Size`, salvar: 3 passos |
 | Fonte do custo nos demais settings | `data/themes/ivory_run_card_style.tres` | Mesmo percurso: 3 passos |
 | Ordem/espaço de Encerrar turno | `scenes/ui/components/turn_controls.tscn` | Selecionar `EndTurnButton` ou `EndTurnGap`, alterar ordem/mínimo, salvar: 3 passos |
-| Posição do conjunto de ações | `scenes/ui/components/combat_view.tscn` ou `combat_mvp_view.tscn` | Na cena genérica, editar `CombatBottomHUD/TurnControls`. No MVP novo, editar `CanvasHost/ReferenceCanvas/TemporaryControls`; a mão fica separada em `HandHost/HandSection`. Os caminhos de binding aparecem no Inspector |
+| Posição do conjunto de ações | `scenes/ui/components/combat_view.tscn` ou `combat_mvp_view.tscn` | Na cena genérica, editar `CombatBottomHUD/TurnControls`. No MVP novo, editar `CanvasHost/ReferenceCanvas/EndTurnAndContextActions` e `CanvasHost/ReferenceCanvas/EnergyIndicator`; a mão fica separada em `HandHost/HandSection`. Os caminhos de binding aparecem no Inspector |
 | Novo ícone para um status existente/publicado | Asset + `scenes/ui/components/status_badge.tscn` | Importar asset, selecionar raiz, adicionar chave/Texture2D em `Icon Overrides`, salvar e conferir `Preview Status`: aproximadamente 5 passos |
 | Layout do ator/inimigo no MVP | `scenes/ui/components/battlefield_actor.tscn` | Editar `%ActorTarget` (arte livre) e `%ActorPlate` (`PlateContent` com título, recursos, contadores, status e intenção) em `ActorContent` e salvar; larguras de arte e placa são independentes |
 | Forma do nó da campanha | `scenes/ui/components/map_node.tscn` | Editar arte/glifo/legenda; a legenda usa âncoras relativas ao botão |
@@ -69,4 +69,12 @@ Abra `scenes/ui/components/battlefield_actor.tscn` e `scenes/ui/components/comba
 - Em `battlefield_actor.tscn`, `%ActorTarget` (`%ActorArtworkAnchor`) fica livre no topo de `%ActorContent` (com `ActorPanel` externo transparente), enquanto `%ActorPlate` (`PanelContainer` abaixo da arte) agrupa `%ActorTitle`, `%ActorResources`, `%ActorCounters`, `%ActorStatusBadges` e `%ActorIntentRow` com superfície e borda do tema atual. As larguras mínimas de `%ActorTarget` e `%ActorPlate` são independentes.
 - Em `combat_mvp_view.tscn`, `Battlefield/BattlefieldActors` posiciona as equipes `Allies` (esquerda) e `Opponents` (direita) à direita de `PileRail`, abaixo de `CombatHeader` e acima das cartas em `HandHost`.
 
-[Validação da etapa 4](../validation/MVP_COMBAT_REFERENCE_STAGE4.md). Energia central e botão Encerrar turno permanecem nos hosts provisórios atuais até aprovação e execução da etapa 5.
+[Validação da etapa 4](../validation/MVP_COMBAT_REFERENCE_STAGE4.md). A etapa 4 foi aprovada; a energia central e o botão Encerrar turno da etapa 5 aguardam aprovação visual.
+
+## Energia central e Encerrar turno: etapa 5
+
+Abra `scenes/ui/components/combat_mvp_view.tscn`:
+- `CanvasHost/ReferenceCanvas/EnergyIndicator` (`energy_indicator_path`) posiciona o indicador de energia centralizado horizontalmente acima de `HandHost`.
+- `CanvasHost/ReferenceCanvas/EndTurnAndContextActions` (`turn_controls_path`, substituindo `TemporaryControls`) isola `EndTurnButton` no canto inferior direito fora de `HandHost`, mantendo `NextAnimation`, `SkipPresentationButton` e `CancelSelection` visíveis apenas nos estados aplicáveis.
+
+[Validação da etapa 5](../validation/MVP_COMBAT_REFERENCE_STAGE5.md). As janelas flutuantes e overlays permanecem na etapa 6 após aprovação visual da etapa 5.

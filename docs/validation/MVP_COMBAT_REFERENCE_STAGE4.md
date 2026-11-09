@@ -1,6 +1,6 @@
 # Composição MVP — etapa 4: campo de batalha e arte separada das informações
 
-Data: 2026-11-09. **Etapas 1, 2 e 3 aprovadas. Etapa 4 implementada, aguardando aprovação visual. Etapas 5–7 não iniciadas.**
+Data: 2026-11-09. **Etapas 1, 2, 3 e 4 aprovadas. Etapa 5 implementada, aguardando aprovação visual. Etapas 6–7 não iniciadas.**
 
 Guia: [plano de composição](../plans/MVP_COMBAT_REFERENCE_HUD_REBUILD_PLAN.md). Evidências: [testes, arquivos protegidos e capturas](mvp-reference-stage4.json).
 
