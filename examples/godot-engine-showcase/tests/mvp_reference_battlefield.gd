@@ -135,13 +135,26 @@ func run() -> void:
 					var first_card_top: float = view.hand.scroll.get_global_rect().position.y + view.hand.visual_style.padding
 					check(actors_rect.position.x >= rail_rect.end.x - 1.0, "battlefield stays to the right of PileRail: " + tag)
 					check(actors_rect.position.y >= header_rect.end.y - 1.0 and actors_rect.end.y <= first_card_top + 1.0, "battlefield stays between CombatHeader and raised hand cards: " + tag)
-					check(not view.battlefield_actors.get_v_scroll_bar().visible, "battlefield actors fit vertically without vertical scrollbar: " + tag)
+					var vbar: VScrollBar = view.battlefield_actors.get_v_scroll_bar()
+					var clipped: bool = vbar.visible
+					if clipped:
+						# At the largest accessibility scale, keep text and artwork readable
+						# and allow the field to scroll instead of drawing over the hand.
+						check(view.battlefield_actors.clip_contents and view.battlefield_actors.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED and vbar.max_value > vbar.page, "overflow is clipped and scrollable: " + tag)
+						view.battlefield_actors.scroll_vertical = int(vbar.max_value - vbar.page)
+						await settle()
+						check(view.battlefield_actors.scroll_vertical > 0, "scroll reaches lower actor details: " + tag)
+						view.battlefield_actors.scroll_vertical = 0
+						await settle()
+					else:
+						check(not vbar.visible, "battlefield actors fit without vertical scrolling: " + tag)
 					check(stage.allies.get_global_rect().end.x <= stage.opponents.get_global_rect().position.x + 1.0, "allies stay on the left and opponents on the right: " + tag)
 					for panel in stage.panels.values():
 						var t_rect: Rect2 = panel.target_button.get_global_rect()
 						var p_rect: Rect2 = panel.plate.get_global_rect()
 						check(t_rect.end.y <= p_rect.position.y + 2.0, "free-standing artwork stays above compact info plate: " + tag)
-						check(p_rect.end.y <= first_card_top + 2.0, "compact info plate stays above raised hand cards: " + tag)
+						var visible_plate: Rect2 = p_rect.intersection(actors_rect) if clipped else p_rect
+						check(visible_plate.end.y <= first_card_top + 2.0, "visible part of compact plate stays above raised hand cards: " + tag)
 
 	# 3. Verify honest data rules: no invented companion HP when only supportCombat exists, no fabricated ally intent row when ally has no intent, and explicit unrevealed state when enemy has no published intent.
 	i18n.set_locale("en")

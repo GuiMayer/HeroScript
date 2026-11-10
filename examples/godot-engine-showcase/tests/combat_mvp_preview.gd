@@ -27,6 +27,11 @@ func _run() -> void:
 		if argument == "--capture-phase=pt_BR":
 			prefs.locale = "pt_BR"
 			i18n.set_locale("pt_BR")
+		elif argument == "--capture-phase=pt_BR_160":
+			prefs.locale = "pt_BR"
+			i18n.set_locale("pt_BR")
+			prefs.text_scale = 1.6
+			prefs.changed.emit()
 	prefs.reduced_motion = true
 	session.configure(InspectionFixture.new())
 	session.synchronized = true
@@ -83,11 +88,14 @@ func _run() -> void:
 	var registry = load("res://scripts/ui/scene_registry.gd")
 	check(registry.combat_route({"settingId": "ascendant"}, "prototype-test") == "combat", "actual run setting overrides menu selection")
 	check(registry.combat_route({"settingId": "prototype-test"}, "default") == "combat_mvp", "continuing MVP selects correct scene")
-	for resolution in [Vector2i(1920,1080), Vector2i(1280,800), Vector2i(2560,1080)]:
+	for resolution in [Vector2i(1920,1080), Vector2i(1280,720), Vector2i(1280,800), Vector2i(2560,1080)]:
 		root.size = resolution
 		await settle()
 		check(screen.view.bottom_hud.get_global_rect().end.x <= screen.get_global_rect().end.x + 1, "right controls remain within viewport " + str(resolution))
 		print("[MVP GEOMETRY] ", resolution, " header=", screen.view.header_view.get_global_rect(), " pause=", screen.view.header_view.pause_button.get_global_rect(), " host=", screen.view.gameplay_column.get_global_rect(), " hand=", hand.get_global_rect())
+		if prefs.text_scale >= 1.6:
+			for pile in screen.view.pile_controls.get_node("Zones").get_children():
+				print("[MVP PILE] ", resolution, " text=", pile.text.replace("\n", "/"), " size=", pile.size, " minimum=", pile.get_combined_minimum_size(), " clip=", pile.clip_text)
 		check(hand.order.size() == 5, "shared hand displays five preview cards")
 		var before: Rect2 = hand.get_global_rect()
 		screen._toggle_character_sidebar()
@@ -102,8 +110,13 @@ func _run() -> void:
 					root.get_texture().get_image().save_png(argument.trim_prefix("--lab-output=").path_join("mvp-%sx%s.png" % [resolution.x,resolution.y]))
 					if resolution == Vector2i(1920,1080):
 						var original_models: Array = hand.ordered_cards().map(func(card): return card.model.duplicate(true))
-						for count in [0,2]:
-							hand.sync_models(original_models.slice(0,count), "visual-%s" % count)
+						for count in [0,1,2,10,12]:
+							var sample_models: Array = []
+							for idx in count:
+								var m: Dictionary = original_models[idx % original_models.size()].duplicate(true)
+								m.cardInstanceId = "visual-%s-%s" % [count, idx]
+								sample_models.append(m)
+							hand.sync_models(sample_models, "visual-%s" % count)
 							await settle()
 							await RenderingServer.frame_post_draw
 							root.get_texture().get_image().save_png(argument.trim_prefix("--lab-output=").path_join("mvp-%s-cards.png" % count))

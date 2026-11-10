@@ -19,6 +19,14 @@ var _drawer_return_focus: WeakRef
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
 	var local_context = context.derive(combat_theme)
 	local_context.hand_arrangements = context.hand_arrangements
+	# Existing cards retain their context across projections. Rebind when text
+	# scaling changes so a resumed view and newly created cards agree.
+	if is_instance_valid(hand) and not is_equal_approx(hand.visual_context.text_scale, local_context.text_scale):
+		hand.mount(local_context)
+		for card in hand.ordered_cards():
+			card.visual_context = local_context
+			card.configure(card.model)
+		hand.request_layout()
 	super.apply_projection(data, combat_presenter, cards_presenter, facts, local_context)
 
 func _build_header() -> void:
@@ -45,6 +53,10 @@ func _present_header(projection, combat_state: Dictionary) -> void:
 		"support": support_text, "supportHint": support_hint, "log": visual_context.translator.text("Combat log"),
 		"pause": "%s [%s]" % [str(model.pause), visual_context.action_label("pause_game")],
 		"inspect": "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]}, visual_context)
+	var actions: Control = header_view.get_node("HeaderActions")
+	actions.anchor_left = 0.62 if visual_context.text_scale > 1.25 else 0.68
+	header_view.log_button.clip_text = visual_context.text_scale <= 1.25
+	header_view.pause_button.clip_text = visual_context.text_scale <= 1.25
 	_refresh_header_inspection()
 
 func _refresh_header_inspection(_id := "") -> void:
@@ -91,6 +103,21 @@ func _build_piles() -> void:
 		for zone in raw:
 			if _pile_rank(zone) == rank: ordered.append(zone)
 	pile_controls.apply_model(ordered, visual_context)
+	var rail_min_width := 140.0
+	for button in pile_controls.get_node("Zones").get_children():
+		if button is Button:
+			button.clip_text = visual_context.text_scale <= 1.25
+			rail_min_width = maxf(rail_min_width, button.get_combined_minimum_size().x)
+			if visual_context.text_scale > 1.25:
+				var font: Font = button.get_theme_font("font")
+				var font_size: int = button.get_theme_font_size("font_size")
+				var text_width := 0.0
+				for line in button.text.split("\n"):
+					text_width = maxf(text_width, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+				var icon_width := float(button.icon.get_width()) if button.icon != null else 0.0
+				var padding: float = button.get_theme_stylebox("normal").get_minimum_size().x
+				rail_min_width = maxf(rail_min_width, ceilf(text_width + icon_width + padding + 12.0))
+	pile_controls.custom_minimum_size.x = rail_min_width
 	pile_controls.visible = not ordered.is_empty()
 
 static func _pile_rank(zone: Dictionary) -> int:
@@ -114,6 +141,9 @@ func _build_hand() -> void:
 	super._build_hand()
 	# The same inspection action is now in the header, not duplicated in the dock.
 	hand.toolbar.get_node("HandInspectButton").hide()
+	for child in hand.toolbar.get_children():
+		if child is Control and not child.visibility_changed.is_connected(_sync_turn_dock_visibility):
+			child.visibility_changed.connect(_sync_turn_dock_visibility)
 	if not hand.card_previewed.is_connected(_refresh_header_inspection): hand.card_previewed.connect(_refresh_header_inspection)
 	if not hand.card_hovered.is_connected(_refresh_header_inspection): hand.card_hovered.connect(_refresh_header_inspection)
 	_refresh_header_inspection()

@@ -30,6 +30,9 @@ Não foi confirmado um novo bloqueador crítico na revisão que originou esta li
 - [ ] Executar ingresso na run, combate, seleção de alvo, pagamento com cartas e cancelamento.
 - [ ] Exercitar pause durante apresentação, conclusão da atividade, retorno ao mapa, salvamento e retomada por setting.
 - [ ] Registrar revisão do código/conteúdo, ambiente, testes, resultados e falhas reproduzidas, usando stores isolados.
+- [ ] Verificar seleção visual de custos que usam cartas fora da mão. A seleção inline e o exílio foram exercitados com API real, mas o caso originado no descarte usou o ID publicado diretamente no controlador; isso ainda não comprova que o jogador consegue selecionar pela coleção.
+
+A etapa 7 da composição cobre a vitória e retomada do primeiro encontro MVP, pagamento em mão, replay e outro setting; a jornada completa do capítulo continua pendente. Ver [evidências e limites](../validation/MVP_COMBAT_REFERENCE_STAGE7.md).
 
 **Conclusão:** o percurso termina sem bloqueios de input, duplicação de comandos ou alterações indevidas de estado. As verificações de replay e imutabilidade permanecem válidas. Certificações anteriores não são descartadas; falta cobrir a composição após as alterações recentes.
 

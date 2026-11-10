@@ -223,8 +223,8 @@ Preparação, bindings e testes fazem parte da etapa visual correspondente. Não
 | 3 — Pilhas | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE3.md) | Aprovada pelo usuário em 2026-11-09 |
 | 4 — Campo e atores | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE4.md) | Aprovada pelo usuário em 2026-11-09 |
 | 5 — Energia e End Turn | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE5.md) | Aprovada pelo usuário em 2026-11-09 |
-| 6 — Overlays | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE6.md) | Aguardando aprovação do usuário |
-| 7 — Conjunto final | Pendente | — | Aguardando etapa anterior |
+| 6 — Overlays | Implementada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE6.md) | Prosseguimento para etapa 7 solicitado pelo usuário |
+| 7 — Conjunto final | Implementada e verificada | [Validação e capturas](../validation/MVP_COMBAT_REFERENCE_STAGE7.md) | Aguardando aprovação visual final |
 
 ## Fora do escopo
 

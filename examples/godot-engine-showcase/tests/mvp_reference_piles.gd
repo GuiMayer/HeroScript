@@ -140,6 +140,15 @@ func run() -> void:
 				check(canvas.encloses(rail_rect) and rail_rect.position.y >= header_rect.end.y and rail_rect.end.x <= hand_rect.position.x, "PileRail stays in left column below header and left of hand: " + label)
 				var buttons: Array[Button] = view.pile_buttons()
 				check(buttons.size() == 4, "exactly four auxiliary pile buttons are mounted: " + label)
+				if scale > 1.25:
+					for button in buttons:
+						var font: Font = button.get_theme_font("font")
+						var width := 0.0
+						for line in button.text.split("\n"):
+							width = maxf(width, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, button.get_theme_font_size("font_size")).x)
+						var icon_width: float = button.icon.get_width() if button.icon != null else 0.0
+						var margin: float = button.get_theme_stylebox("normal").get_minimum_size().x
+						check(not button.clip_text and button.size.x + 1.0 >= width + icon_width + margin, "large-text pile label fits alongside its icon: " + label)
 				check(buttons.map(func(b): return str(b.get_meta("zone_address").get("zoneId", ""))) == ["draw", "banish", "discard", "owned"], "column order is Draw, Exile, Discard, Owned: " + label)
 				for idx in buttons.size() - 1:
 					check(buttons[idx].get_global_rect().end.y <= buttons[idx + 1].get_global_rect().position.y + 1.0, "pile buttons stack vertically without overlap: %s #%s" % [label, idx])
