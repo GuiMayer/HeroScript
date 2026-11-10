@@ -52,6 +52,8 @@ func setup(owner, data: Dictionary) -> void:
 	inline_selection.changed.connect(_render_inline_selection)
 	inline_selection.ready.connect(func(preview):
 		if GameSession.payment_context_matches(preview.get("version", {})):
+			if is_instance_valid(_collection_dialog) and _collection_dialog.visible:
+				_collection_dialog.hide(); _collection_dialog.queue_free()
 			_play_candidate({"source": "Card", "command": preview.command, "costs": preview.evaluation.get("costs", []), "applications": preview.get("applications", [])}, preview))
 	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
 	screen_context = ScreenContext.ensure(owner)
@@ -201,7 +203,8 @@ func _open_collection(address: Dictionary) -> void:
 	_collection_dialog = dialog; dialog.setup(model); add_child(dialog)
 	dialog.set_meta("context", presenter.context_key()); dialog.set_meta("zone_snapshot", zone)
 	dialog.collection.restore_local_state(_zone_reading_states.get(scope, {}))
-	dialog.card_requested.connect(func(id): _inspect_collection_card(dialog, id))
+	dialog.card_requested.connect(func(id): _collection_card_requested(dialog, id))
+	_update_collection_selection()
 	dialog.tree_exiting.connect(func():
 		if _zone_reading_states.size() >= 16: _zone_reading_states.erase(_zone_reading_states.keys()[0])
 		_zone_reading_states[scope] = dialog.capture_local_state()
@@ -209,6 +212,20 @@ func _open_collection(address: Dictionary) -> void:
 			if button.get_meta("zone_address") == address and button.is_inside_tree(): button.grab_focus())
 	view.hand.track_reading_modal(dialog); dialog.popup_centered_clamped(Vector2i(1100, 720), .9)
 	GameAudio.play_event("open")
+func _collection_card_requested(dialog, id: String) -> void:
+	if not is_instance_valid(dialog) or not dialog.visible or not dialog.collection.cards.has(id): return
+	if inline_selection.active and inline_selection.requirements().any(func(item): return id in item.get("eligibleCardIds", [])):
+		inline_selection.pick(id)
+	else:
+		_inspect_collection_card(dialog, id)
+
+func _update_collection_selection() -> void:
+	if not is_instance_valid(_collection_dialog) or not is_instance_valid(_collection_dialog.collection): return
+	var eligible: Array = []
+	var chosen: Array = []
+	for requirement in inline_selection.requirements(): eligible.append_array(requirement.get("eligibleCardIds", []))
+	for ids in inline_selection.chosen.values(): chosen.append_array(ids)
+	_collection_dialog.collection.set_selection_state(inline_selection.active, eligible, chosen)
 func _inspect_collection_card(dialog, id: String) -> void:
 	if not is_instance_valid(dialog) or not dialog.collection.cards.has(id): return
 	var scope := presenter.context_key()
@@ -581,6 +598,7 @@ func _preview_inline_selection(intent: Dictionary, ticket: int) -> void:
 
 func _render_inline_selection() -> void:
 	if not is_instance_valid(view): return
+	_update_collection_selection()
 	var eligible: Array = []
 	var chosen: Array = []
 	for requirement in inline_selection.requirements():

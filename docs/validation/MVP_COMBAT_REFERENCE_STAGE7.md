@@ -23,3 +23,10 @@ Os testes de seleção de pagamento e jornada não executam operações contra o
 ## Reprodução
 
 Use `tools/test-godot-ui.ps1` com os nomes acima e uma cópia de QA importada. Os testes `*_online` exigem API isolada em `http://127.0.0.1:61989`; use `-ApiUrl` apontando para ela. Para capturas, use `-VisualTest combat_mvp_preview -VisualOutputDirectory <pasta>`; acrescente `-VisualPhase pt_BR_160` para escala de 160%.
+
+## Complemento — seleção no descarte e importação limpa (10/11/2026)
+
+- Uma cópia isolada sem importação prévia passou pela importação e pela montagem de 55 cenas no editor. Outras três importações limpas também passaram durante a investigação. A falha anterior foi uma violação de acesso nativa (`0xC0000005`) no executável da Godot; sem símbolos suficientes, sua causa exata continua desconhecida. A abertura direta do editor ainda pode ser afetada.
+- O validador `tools/test-godot-ui.ps1` preserva os registros e tenta uma única vez em outra cópia limpa quando encontra especificamente essa falha nativa. Uma segunda falha ou outros erros continuam reprovando a execução. `tools/test-godot-import-recovery.ps1` verifica a recuperação e o limite de tentativas; isso mitiga a automação, mas não corrige o executável da Godot.
+- Com API real isolada, `mvp_stage7_payment_online` passou 25 verificações tanto em execução sem janela quanto gráfica. O teste abre a coleção de descarte, verifica as opções elegíveis, seleciona e desmarca uma carta, usa entrada de ponteiro para selecioná-la e confirma seu envio ao exílio e a validade do replay. A captura da coleção foi inspecionada visualmente.
+- Na mesma cópia limpa, passaram `card_collections` (13 verificações), `inline_card_selection` (14), `mvp_reference_overlays` (84) e `editor_tool_scenes` (55). A validação não comprova a interação para todas as demais zonas possíveis.

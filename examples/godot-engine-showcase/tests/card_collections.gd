@@ -25,6 +25,13 @@ func _run() -> void:
 	var requests: Array = []; dialog.card_requested.connect(func(id): requests.append(id))
 	dialog.collection.cards.a.pressed.emit()
 	check(requests == ["a"] and dialog.collection.cards.size() == 2, "shared card faces emit only a read request")
+	var untouched := JSON.stringify(model)
+	dialog.collection.set_selection_state(true, ["a", "not-visible"], ["a"])
+	check(dialog.collection.cards.a.get_meta("card_selection_eligible", false) and dialog.collection.cards.a.get_meta("card_selection_chosen", false), "published eligible card shows its selected state")
+	check(not dialog.collection.cards.z.get_meta("card_selection_eligible", false) and not dialog.collection.cards.has("not-visible"), "other cards remain inspectable and hidden identities are not exposed")
+	dialog.collection.set_selection_state(false)
+	check(not dialog.collection.cards.a.get_meta("card_selection_eligible", true) and not dialog.collection.cards.a.get_meta("card_selection_chosen", true), "leaving selection clears collection highlights")
+	check(JSON.stringify(model) == untouched, "selection styling never changes the authoritative collection model")
 	dialog.collection._search.text = "defend"; dialog.collection._filter(); await process_frame
 	check(dialog.collection.cards.z.visible and not dialog.collection.cards.a.visible, "collection search is local")
 	check(root.get_node("GameServices").diagnostics().is_empty(), "opening/filtering a collection needs no HTTP or command")

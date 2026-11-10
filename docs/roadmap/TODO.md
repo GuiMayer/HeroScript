@@ -30,7 +30,8 @@ Não foi confirmado um novo bloqueador crítico na revisão que originou esta li
 - [ ] Executar ingresso na run, combate, seleção de alvo, pagamento com cartas e cancelamento.
 - [ ] Exercitar pause durante apresentação, conclusão da atividade, retorno ao mapa, salvamento e retomada por setting.
 - [ ] Registrar revisão do código/conteúdo, ambiente, testes, resultados e falhas reproduzidas, usando stores isolados.
-- [ ] Verificar seleção visual de custos que usam cartas fora da mão. A seleção inline e o exílio foram exercitados com API real, mas o caso originado no descarte usou o ID publicado diretamente no controlador; isso ainda não comprova que o jogador consegue selecionar pela coleção.
+- [x] Validar seleção visual de custo no descarte com API real, incluindo alternância da seleção, exílio e replay.
+- [ ] Verificar a seleção visual de custos em outras zonas visíveis configuradas, além do descarte.
 
 A etapa 7 da composição cobre a vitória e retomada do primeiro encontro MVP, pagamento em mão, replay e outro setting; a jornada completa do capítulo continua pendente. Ver [evidências e limites](../validation/MVP_COMBAT_REFERENCE_STAGE7.md).
 
@@ -41,6 +42,7 @@ Referências: [composição MVP](../plans/MVP_COMBAT_COMPOSITION_IMPLEMENTATION.
 ### UI-02 — Executar regressões Godot na CI
 
 - [ ] Preparar ambiente reproduzível com versão fixada da Godot e importação limpa.
+- [ ] Investigar a violação de acesso nativa intermitente na importação da Godot: a automação repete uma vez em cópia limpa e preserva os registros, mas a causa exata não foi identificada e a abertura direta do editor permanece sem essa recuperação.
 - [ ] Incluir montagem no editor, mão, navegação e integração essencial em jobs apropriados.
 - [ ] Publicar logs de falha e tornar erros de script/placeholders impeditivos para aprovação.
 

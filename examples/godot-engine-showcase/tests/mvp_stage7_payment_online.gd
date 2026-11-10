@@ -51,11 +51,42 @@ func run() -> void:
 		before = int(session.run.sequence)
 		screen._choose_card(spent_origin)
 		check(await wait_until(func(): return screen.inline_selection.active and not screen.inline_selection.snapshot.is_empty()), "second inline preview is available")
+		var pile_buttons: Array = screen.view.pile_buttons().filter(func(button): return button.get_meta("zone_address", {}).get("zoneId") == "discard")
+		check(pile_buttons.size() == 1, "discard pile is available through the combat interface")
+		if pile_buttons.is_empty(): quit(1); return
+		pile_buttons[0].pressed.emit()
+		check(await wait_until(func(): return is_instance_valid(screen._collection_dialog) and screen._collection_dialog.visible), "open the real discard collection")
+		if failures: quit(1); return
+		var dialog = screen._collection_dialog
+		check(dialog.collection.cards.has(fee) and dialog.collection.cards[fee].get_meta("card_selection_eligible", false), "published eligible card is highlighted in discard")
+		if DisplayServer.get_name() != "headless":
+			for argument in OS.get_cmdline_user_args():
+				if argument.begins_with("--lab-output="):
+					await RenderingServer.frame_post_draw
+					check(dialog.get_texture().get_image().save_png(argument.trim_prefix("--lab-output=").path_join("discard-selection.png")) == OK, "capture discard selection with real API")
+		dialog.collection.cards[fee].pressed.emit()
+		check(await wait_until(func(): return screen.inline_selection.chosen.values().any(func(ids): return fee in ids)), "select the card through its collection button")
+		check(int(session.run.sequence) == before, "incomplete payment selection does not commit")
+		dialog.collection.cards[fee].pressed.emit()
+		check(await wait_until(func(): return not screen.inline_selection.chosen.values().any(func(ids): return fee in ids)), "click again to remove the selected cost")
+		var dialog_ref: WeakRef = weakref(dialog)
+		dialog.confirmed.emit()
+		check(await wait_until(func(): return dialog_ref.get_ref() == null), "close collection before choosing a target")
 		screen._select_target("enemy_0")
 		check(await wait_until(func(): return screen.inline_selection.command.get("targetIds", []) == ["enemy_0"] and not screen.inline_selection.requirements().is_empty()), "discard payment requirements are published")
-		# Exercise the shared inline-selection controller with the exact card ID;
-		# this does not claim that the collection UI exposes selection from discard.
-		screen.inline_selection.pick(fee)
+		pile_buttons[0].pressed.emit()
+		check(await wait_until(func(): return is_instance_valid(screen._collection_dialog) and screen._collection_dialog.visible and screen._collection_dialog.collection.cards.has(fee)), "reopen discard to choose the cost")
+		if failures: quit(1); return
+		var final_dialog = screen._collection_dialog
+		var fee_card: Control = final_dialog.collection.cards[fee]
+		for _frame in 8: await process_frame
+		var point: Vector2 = fee_card.get_global_rect().get_center()
+		var window_id: int = final_dialog.get_window_id()
+		var motion := InputEventMouseMotion.new(); motion.position = point; motion.window_id = window_id; Input.parse_input_event(motion)
+		await process_frame
+		var press := InputEventMouseButton.new(); press.button_index = MOUSE_BUTTON_LEFT; press.position = point; press.window_id = window_id; press.pressed = true; Input.parse_input_event(press)
+		await process_frame
+		var release := InputEventMouseButton.new(); release.button_index = MOUSE_BUTTON_LEFT; release.position = point; release.window_id = window_id; release.pressed = false; Input.parse_input_event(release)
 		check(await wait_until(func(): return int(session.run.sequence) == before + 1 and not session.busy and not session.has_pending_command), "discard payment commits once")
 		var exile: Array = session.card_zones.get("zones", []).filter(func(zone): return str(zone.get("zoneId", "")) == "exhaust")
 		check(not exile.is_empty() and exile[0].get("cards", []).any(func(card): return str(card.cardInstanceId) == fee), "discarded fee moves to exile")

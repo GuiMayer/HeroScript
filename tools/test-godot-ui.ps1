@@ -8,6 +8,8 @@ param(
     [string]$ReuseProject = '',
     [switch]$VerboseGodot,
     [int]$TimeoutSeconds = 180,
+    [switch]$ImportRecoveryAttempted,
+    [string]$PreviousImportCrash = '',
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
 $ErrorActionPreference = 'Stop'
@@ -47,6 +49,10 @@ $config = [regex]::Replace($config, '(?m)^config/(use_custom_user_dir|custom_use
 $config = $config.Replace('[application]', "[application]`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"HeroScript-ui-refactor-$taskId`"")
 [IO.File]::WriteAllText($configPath, $config)
 $results = [Collections.Generic.List[object]]::new()
+if ($PreviousImportCrash) {
+    $results.Add([ordered]@{test='import_crashed_attempt';exit_code=-1073741819;checks=0;
+        diagnostics=@("Native Godot access violation during clean import; original logs: $PreviousImportCrash")})
+}
 if ($VisualTest) {
     if (-not $VisualOutputDirectory) { throw 'VisualOutputDirectory is required for a rendered test.' }
     $VisualOutputDirectory = [IO.Path]::GetFullPath($VisualOutputDirectory)
@@ -87,6 +93,16 @@ foreach ($test in $testNames) {
     $results.Add($result)
     Write-Host "$test : exit=$($result.exit_code), checks=$($result.checks), elapsed=$($result.elapsed_ms)ms"
     if ($exitCode -ne 0 -or $errors.Count -gt 0) {
+        if ($test -eq 'import' -and -not $ReuseProject -and -not $ImportRecoveryAttempted -and $exitCode -eq -1073741819) {
+            $results | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $project 'validation.json')
+            Write-Warning "Godot crashed during clean import (0xc0000005). Original logs: $project. Retrying once in a new isolated project."
+            $retryParameters = @{}
+            foreach ($key in $PSBoundParameters.Keys) { $retryParameters[$key] = $PSBoundParameters[$key] }
+            $retryParameters['ImportRecoveryAttempted'] = $true
+            $retryParameters['PreviousImportCrash'] = $project
+            & $PSCommandPath @retryParameters
+            return
+        }
         $lines | Select-Object -Last 45 | ForEach-Object { Write-Host $_ }
         $results | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $project 'validation.json')
         throw "Validation failed: $test; logs: $project"

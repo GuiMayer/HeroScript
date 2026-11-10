@@ -1,7 +1,7 @@
 @tool
 class_name CardCollectionView
 extends VBoxContainer
-## Read-only collection, not a second playable hand.
+## Collection inspection and presentation of selections authorized by the caller.
 signal card_requested(id: String)
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 var visual_context: ContextType
@@ -13,6 +13,9 @@ var _scroll: ScrollContainer
 var _grid: GridContainer
 var _message: Label
 var _back: TextureRect
+var _selection_active := false
+var _selection_eligible: Array = []
+var _selection_chosen: Array = []
 func _init(context = null) -> void:
 	visual_context = context if context != null else ContextType.new()
 static func create(context = null) -> CardCollectionView:
@@ -56,6 +59,23 @@ func apply_model(data: Dictionary) -> void:
 		if id not in live: _grid.remove_child(cards[id]); cards[id].queue_free(); cards.erase(id)
 	_filter(); _columns(); _columns.call_deferred()
 	visual_context.styles.apply_view_preferences(self)
+	_apply_selection_state()
+func set_selection_state(active: bool, eligible: Array = [], chosen: Array = []) -> void:
+	_selection_active = active
+	_selection_eligible = eligible.duplicate()
+	_selection_chosen = chosen.duplicate()
+	if is_instance_valid(_message): _apply_selection_state()
+func _apply_selection_state() -> void:
+	if _selection_active and model.get("visible", false):
+		_message.text = visual_context.translator.text("Select a highlighted card, or inspect another card.")
+	else:
+		_message.text = visual_context.translator.text("Contents hidden") if not model.get("visible", false) else (visual_context.translator.text("Empty") if model.get("count", 0) == 0 else visual_context.translator.text("Published order" if model.get("ordered", false) else "Order hidden — sorted catalog"))
+	for id in cards:
+		var card: Control = cards[id]
+		card.set_meta("card_selection_eligible", _selection_active and id in _selection_eligible)
+		card.set_meta("card_selection_chosen", _selection_active and id in _selection_chosen)
+		var keyline = card.get_node_or_null("PrintedKeyline")
+		if keyline != null: keyline.queue_redraw()
 func _columns() -> void:
 	var width: float = visual_context.card_style.effective_size(visual_context.text_scale).x
 	_grid.columns = maxi(1, floori((maxf(_scroll.size.x, _scroll.custom_minimum_size.x) - 20.) / (width + 16.)))
