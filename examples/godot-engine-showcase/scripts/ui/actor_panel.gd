@@ -105,7 +105,8 @@ func resource_view(resource_id: String) -> Control:
 func resource_counter(resource_id: String) -> Control:
 	var key := "ResourceCounter_" + resource_id.validate_node_name()
 	if _counters != null and _counters.has_node(NodePath(key)):
-		return _counters.get_node(NodePath(key))
+		var node = _counters.get_node(NodePath(key))
+		return node.get_node("Value") if node.has_node("Value") else node
 	return find_child(key, true, false) as Control
 
 func status_badge(status_id: String) -> Control:
@@ -205,13 +206,14 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 		if id not in ordered: ordered.append(id)
 	var bars: Array[String] = []; var counters: Array[String] = []
 	for id in ordered:
-		if not resources.has(id): continue
+		if not resources.has(id) or (authored_battlefield_layout and str(id) == "energy"): continue
 		var appearance: Dictionary = visual_context.resource_appearance(str(id), presentation.get("resources", {}).get(id, {}))
+		if authored_battlefield_layout and str(id) == "health" and not appearance.has("color"): appearance["color"] = "#c33232"
 		if str(appearance.get("display", "bar")) == "bar":
 			var key := "Resource_" + str(id).validate_node_name(); bars.append(key)
 			var resource = _resources.get_node_or_null(NodePath(key))
 			if resource == null:
-				resource = ResourceScene.instantiate(); resource.name = key; _resources.add_child(resource)
+				resource = (preload("res://scenes/ui/components/mvp_health_bar.tscn") if authored_battlefield_layout and str(id) == "health" else ResourceScene).instantiate(); resource.name = key; _resources.add_child(resource)
 			resource.visual_context = visual_context
 			resource.setup(id, resources[id], appearance)
 			_resources.move_child(resource, bars.size() - 1)
@@ -219,11 +221,13 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 			var key := "ResourceCounter_" + str(id).validate_node_name(); counters.append(key)
 			var counter = _counters.get_node_or_null(NodePath(key))
 			if counter == null:
-				counter = Label.new(); counter.theme_type_variation = &"ResourceCounter"
-				counter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				counter = preload("res://scenes/ui/components/mvp_shield_counter.tscn").instantiate() if authored_battlefield_layout and str(id) == "block" else Label.new()
+				if counter is Label: counter.theme_type_variation = &"ResourceCounter"
+				counter.mouse_filter = Control.MOUSE_FILTER_PASS if counter is HBoxContainer else Control.MOUSE_FILTER_IGNORE
 				counter.name = key; _counters.add_child(counter)
-			counter.text = "%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)]
-			counter.add_theme_color_override("font_color", Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown")))
+			var counter_label: Label = counter.get_node("Value") if counter.has_node("Value") else counter
+			counter_label.text = "%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)]
+			counter_label.add_theme_color_override("font_color", Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown")))
 			counter.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]
 			_counters.move_child(counter, counters.size() - 1)
 	_prune(_resources, bars); _prune(_counters, counters)
