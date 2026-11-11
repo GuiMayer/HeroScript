@@ -28,6 +28,39 @@ func run() -> void:
 	actor.statuses = [{"statusId": "burn", "stacks": 2, "isActive": true}, {"statusId": "unknown_status", "stacks": 0, "isActive": false}]
 	panel.setup(actor, false, presentation, "", false, true)
 	check(panel.status_badge("burn").stack_label.text == "2" and panel.status_badge("unknown_status") == null, "status counts update and inactive effects disappear")
+	actor.resources.block.current = 0
+	actor.statuses = [
+		{"statusId": "wet", "stacks": 9},
+		{"statusId": "vulnerable", "stacks": 12, "duration": 2, "description": "Takes more damage."},
+		{"statusId": "strength", "stacks": 12},
+		{"statusId": "focus", "stacks": 1},
+		{"statusId": "burn", "stacks": 2},
+	]
+	panel.setup(actor, false, presentation, "", false, true)
+	await process_frame
+	check(panel.resource_counter("block").text == "0 Block", "published zero remains visible")
+	var inspect_button: Button = panel.find_child("InspectEffects", true, false)
+	check(inspect_button.text == "+2" and panel.status_badge("burn").visible and not panel.status_badge("wet").visible, "status order is stable and overflow has a count")
+	inspect_button.grab_focus()
+	check(root.gui_get_focus_owner() == inspect_button, "effects inspection can receive navigation focus")
+	inspect_button.pressed.emit()
+	await process_frame
+	var dialog: AcceptDialog = panel.find_children("*", "AcceptDialog", false, false)[0]
+	var detail: String = dialog.get_child(1).text
+	check(dialog.visible and "12" in detail and "Duration: 2 turns" in detail and "Takes more damage." in detail, "inspection includes hidden effects and available details")
+	dialog.hide()
+	await process_frame
+	check(root.gui_get_focus_owner() == inspect_button, "closing inspection restores navigation focus")
+	var enlarged = preload("res://scripts/ui/visual_context.gd").new(null, {"text_scale": 1.6}, context.profile)
+	panel.visual_context = enlarged
+	panel.setup(actor, false, presentation, "", false, true)
+	for frame in 3: await process_frame
+	var two_digit_badge = panel.status_badge("strength")
+	check(two_digit_badge.stack_label.text == "12" and is_equal_approx(two_digit_badge.size.x, two_digit_badge.size.y), "enlarged badge stays square and retains both digits")
+	check(two_digit_badge.icon_rect.get_global_rect().end.y <= two_digit_badge.stack_label.get_global_rect().position.y, "status count does not overlap the icon at enlarged text size")
+	actor.resources.erase("block")
+	panel.setup(actor, false, presentation, "", false, true)
+	check(panel.resource_counter("block") == null, "absent shield does not appear as zero")
 	var old_panel = load("res://scenes/ui/components/actor_panel.tscn").instantiate()
 	old_panel.visual_context = context; root.add_child(old_panel); old_panel.setup(actor, false, presentation, "")
 	check(old_panel.resource_counter("energy") != null and not old_panel.status_badge("burn").mvp_icons, "legacy actor panel retains its original presentation")
