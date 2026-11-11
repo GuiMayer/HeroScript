@@ -187,6 +187,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		var badge = _statuses.get_node_or_null(NodePath(key))
 		if badge == null:
 			badge = BadgeScene.instantiate(); badge.name = key; _statuses.add_child(badge)
+		badge.mvp_icons = authored_battlefield_layout
 		badge.apply_status(data, visual_context)
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()

@@ -8,6 +8,7 @@ var visual_context: ContextType = ContextType.new()
 var model: Dictionary = {}
 
 @export var preview_status: Dictionary = {"statusId": "burn", "stacks": 4, "duration": 2}
+@export var mvp_icons := false
 @export var icon_overrides: Dictionary[String, Texture2D] = {}
 var icon_rect: TextureRect
 var glyph_label: Label
@@ -49,7 +50,8 @@ func _apply_model() -> void:
 	var stacks: float = float(model.get("stacks", 1))
 	var duration: int = int(model.get("duration", 0))
 	var tone := _status_tone(status_id)
-	if icon_overrides.get(status_id) != null: tone.icon = icon_overrides[status_id]
+	if mvp_icons: tone.icon = _mvp_icon(status_id)
+	elif icon_overrides.get(status_id) != null: tone.icon = icon_overrides[status_id]
 
 	# Preserve the scene's editable border widths, padding and corner radii.
 	_panel_style.bg_color = tone.bg
@@ -69,7 +71,7 @@ func _apply_model() -> void:
 		glyph_label.visible = true
 		icon_rect.visible = false
 
-	if stacks > 1:
+	if stacks > 1 or mvp_icons:
 		var count_str := str(roundi(stacks))
 		if visual_context != null and visual_context.translator != null:
 			count_str = visual_context.translator.number(stacks)
@@ -176,3 +178,17 @@ func _status_tone(status_id: String) -> Dictionary:
 		icon_tex = load(icon_path)
 
 	return {"border": border, "bg": bg, "accent": accent, "icon": icon_tex, "glyph": glyph}
+
+func _mvp_icon(status_id: String) -> Texture2D:
+	var sid := status_id.to_lower()
+	var path := "res://assets/game-icons/lorc/aura.svg"
+	if "burn" in sid or "fire" in sid or "flame" in sid or "heat" in sid or "calor" in sid or "ignit" in sid: path = "res://assets/game-icons/sbed/burn.svg"
+	elif "wet" in sid or "water" in sid or "frost" in sid or "chill" in sid or "ice" in sid or "freeze" in sid: path = "res://assets/game-icons/sbed/water-drop.svg"
+	elif "poison" in sid or "toxic" in sid or "venom" in sid or "acid" in sid or "blight" in sid: path = "res://assets/game-icons/sbed/poison.svg"
+	elif "bleed" in sid or "blood" in sid or "hemorrhag" in sid: path = "res://assets/game-icons/lorc/bleeding-wound.svg"
+	elif "shield" in sid or "guard" in sid or "armor" in sid or "block" in sid or "barr" in sid: path = "res://assets/game-icons/sbed/shield.svg"
+	elif "vuln" in sid or "fragil" in sid or "weak" in sid: path = "res://assets/game-icons/lorc/broken-shield.svg"
+	elif "strength" in sid or "power" in sid or "fury" in sid or "rage" in sid: path = "res://assets/game-icons/lorc/muscle-up.svg"
+	elif "focus" in sid or "precis" in sid: path = "res://assets/game-icons/lorc/target-shot.svg"
+	elif "condens" in sid or "spark" in sid or "shock" in sid: path = "res://assets/game-icons/lorc/burning-embers.svg"
+	return load(path)
