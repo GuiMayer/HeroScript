@@ -178,6 +178,7 @@ layout_mode = 2
 
 [node name="VBoxContainer2" type="VBoxContainer" parent="LoadoutColumns/InventoryPanel/VBoxContainer0"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 14
 
 [node name="InscriptionSearch" type="LineEdit" parent="LoadoutColumns/InventoryPanel/VBoxContainer0/VBoxContainer2"]
@@ -238,8 +239,9 @@ text = "Utility"
 metadata/source_text = "Utility"
 
 [node name="InscriptionInventoryScroll" type="ScrollContainer" parent="LoadoutColumns/InventoryPanel/VBoxContainer0/VBoxContainer2"]
-custom_minimum_size = Vector2(0, 410)
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
+size_flags_vertical = 3
 follow_focus = true
 horizontal_scroll_mode = 0
 

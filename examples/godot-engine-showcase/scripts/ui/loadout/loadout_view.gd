@@ -122,6 +122,12 @@ func _tile(node_name: String, minimum_height: float, callback: Callable) -> Butt
 	button.inscription_dropped.connect(drop_requested.emit)
 	button.name = node_name
 	button.custom_minimum_size = Vector2(90 if editorial_layout else 130, 168 * visual_context.text_scale if editorial_layout else minimum_height)
+	if editorial_layout and shared_attributes and node_name.begins_with("LoadoutSlot_"):
+		button.custom_minimum_size.y = 76 * visual_context.text_scale
+		button.find_child("InscriptionSigil", true, false).custom_minimum_size.y = 20 * visual_context.text_scale
+		var margin: MarginContainer = button.get_node("MarginContainer0")
+		for edge in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + edge, 3)
+		button.get_node("MarginContainer0/VBoxContainer0").add_theme_constant_override("separation", 1)
 	button.pressed.connect(callback)
 	for entry in [["TileTitle", "text.primary"], ["TileSubtitle", "text.secondary"], ["InscriptionCost", "text.primary"]]:
 		var label = button.find_child(entry[0], true, false)
@@ -269,6 +275,7 @@ func present(model: Dictionary) -> void:
 		for stat in character.attributes:
 			if str(stat.id) in ["fire_bonus", "poison_bonus", "cold_bonus", "lightning_bonus"] or stat.get("contextTags", []).any(func(tag): return tag in ["fire", "poison", "cold", "lightning"]): stat.group = "Tag bonuses"
 	character["highlightedAttributeIds"] = selected.get("attributeIds", selected.get("attributeBonuses", []).map(func(bonus): return str(bonus.get("attributeId", ""))))
+	details.tooltip_text = details.text
 	if attributes_view != null:
 		attributes_view.present(character)
 		attributes_view.visible = model.get("attributesReady", true)
@@ -282,11 +289,15 @@ func _bonus_lines(item: Dictionary, stats: Dictionary) -> Array[String]:
 func _responsive() -> void:
 	if visual_context == null or columns == null: return
 	if editorial_layout:
-		columns.vertical = size.x < 980 * minf(visual_context.text_scale, 1.15)
+		columns.vertical = not shared_attributes and size.x < 980 * minf(visual_context.text_scale, 1.15)
 		for rule in _separators: rule.visible = not columns.vertical
-		inventory_scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - 490, 200, 650)
+		inventory_scroll.custom_minimum_size.y = 100 if shared_attributes else clampf(get_viewport_rect().size.y - 490, 200, 650)
+		if shared_attributes:
+			details.fit_content = false
+			details.custom_minimum_size.y = 48
+			find_child("IdentityPlaceholder", true, false).custom_minimum_size.y = 56
 		inventory_grid.columns = 3 if _inventory_panel.size.x >= 315 else 2
-		slot_grid.columns = 3 if size.x >= 1050 else 2
+		slot_grid.columns = 3 if shared_attributes or size.x >= 1050 else 2
 		return
 	columns.vertical = size.x < 1060
 	inventory_scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y - 340, 280, 500)
