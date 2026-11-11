@@ -8,9 +8,10 @@ custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
 mouse_filter = 2
 texture = ExtResource("1")
-modulate = Color(0.48, 0.66, 0.79, 1)
+modulate = Color(0.35, 0.54, 0.72, 1)
 expand_mode = 1
 stretch_mode = 5
 [node name="Value" type="Label" parent="."]
+theme_type_variation = &"ResourceCounter"
 layout_mode = 2
 mouse_filter = 2

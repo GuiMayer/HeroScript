@@ -210,6 +210,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 		if not resources.has(id) or (authored_battlefield_layout and str(id) == "energy"): continue
 		var appearance: Dictionary = visual_context.resource_appearance(str(id), presentation.get("resources", {}).get(id, {}))
 		if authored_battlefield_layout and str(id) == "health" and not appearance.has("color"): appearance["color"] = "#c33232"
+		if authored_battlefield_layout and str(id) == "block": appearance["display"] = "counter"
 		if str(appearance.get("display", "bar")) == "bar":
 			var key := "Resource_" + str(id).validate_node_name(); bars.append(key)
 			var resource = _resources.get_node_or_null(NodePath(key))
@@ -217,6 +218,9 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 				resource = (preload("res://scenes/ui/components/mvp_health_bar.tscn") if authored_battlefield_layout and str(id) == "health" else ResourceScene).instantiate(); resource.name = key; _resources.add_child(resource)
 			resource.visual_context = visual_context
 			resource.setup(id, resources[id], appearance)
+			if authored_battlefield_layout and str(id) == "health":
+				resource.amount.add_theme_font_size_override("font_size", roundi(15 * visual_context.text_scale))
+				resource.amount.get_parent().custom_minimum_size.y = resource.amount.get_minimum_size().y + 4
 			_resources.move_child(resource, bars.size() - 1)
 		else:
 			var key := "ResourceCounter_" + str(id).validate_node_name(); counters.append(key)
@@ -228,8 +232,12 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 				counter.name = key; _counters.add_child(counter)
 			var counter_label: Label = counter.get_node("Value") if counter.has_node("Value") else counter
 			counter_label.text = "%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)]
-			counter_label.add_theme_color_override("font_color", Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown")))
-			counter.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]
+			var ink := Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown"))
+			if counter is HBoxContainer: ink = visual_context.styles.INK
+			counter_label.add_theme_color_override("font_color", ink)
+			counter.tooltip_text = counter_label.text
+			if resources[id].has("maximum"):
+				counter.tooltip_text += " / " + visual_context.translator.number(float(resources[id].maximum))
 			_counters.move_child(counter, counters.size() - 1)
 	_prune(_resources, bars); _prune(_counters, counters)
 	_resources.visible = not bars.is_empty()
