@@ -351,6 +351,13 @@ fit_content = true
 scroll_active = false
 selection_enabled = true
 
+[node name="ShowInscriptionDetails" type="Button" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"SecondaryAction"
+text = "INSCRIPTION DETAILS"
+metadata/source_text = "INSCRIPTION DETAILS"
+
 [node name="HBoxContainer6" type="HBoxContainer" parent="LoadoutColumns/PanelContainer2/VBoxContainer0/VBoxContainer0"]
 layout_mode = 2
 

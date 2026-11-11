@@ -87,6 +87,13 @@ func mount(context) -> void:
 		attributes_view = find_child("LoadoutCharacterAttributes", true, false)
 		if attributes_view != null: attributes_view.mount(context)
 	_translate(self)
+	if editorial_layout and shared_attributes:
+		capacity_label.add_theme_font_size_override("font_size", roundi(16 * context.text_scale))
+		for name in ["IdentityTitle", "CommonSlotsTitle"]:
+			find_child(name, true, false).add_theme_font_size_override("font_size", roundi(14 * context.text_scale))
+		var placeholder: Button = find_child("IdentityPlaceholder", true, false)
+		placeholder.add_theme_font_size_override("font_size", roundi(13 * context.text_scale))
+		placeholder.clip_text = true
 	search_field.placeholder_text = context.translator.text("Search inscriptions")
 	if first_mount:
 		for style_name in ["background", "fill"]: capacity_meter.add_theme_stylebox_override(style_name, capacity_meter.get_theme_stylebox(style_name).duplicate())
@@ -95,6 +102,8 @@ func mount(context) -> void:
 		equip_button.pressed.connect(equip_requested.emit)
 		remove_button.pressed.connect(remove_requested.emit)
 		find_child("LoadoutClearButton", true, false).pressed.connect(clear_requested.emit)
+		if editorial_layout and shared_attributes:
+			find_child("ShowInscriptionDetails", true, false).pressed.connect(_show_details)
 		find_child("LoadoutRestoreButton", true, false).pressed.connect(restore_requested.emit)
 		var back = find_child("LoadoutBackButton", true, false)
 		if back != null: back.pressed.connect(back_requested.emit)
@@ -105,6 +114,15 @@ func mount(context) -> void:
 			_filter_buttons[key] = filter
 	if not resized.is_connected(_responsive): resized.connect(_responsive)
 	_responsive.call_deferred()
+
+func _show_details() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = visual_context.translator.text("INSCRIPTION DETAILS")
+	dialog.dialog_text = details.text
+	add_child(dialog)
+	dialog.close_requested.connect(dialog.queue_free)
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.popup_centered()
 
 func _translate(node: Node) -> void:
 	if node.has_meta("source_text"):
@@ -123,11 +141,13 @@ func _tile(node_name: String, minimum_height: float, callback: Callable) -> Butt
 	button.name = node_name
 	button.custom_minimum_size = Vector2(90 if editorial_layout else 130, 168 * visual_context.text_scale if editorial_layout else minimum_height)
 	if editorial_layout and shared_attributes and node_name.begins_with("LoadoutSlot_"):
-		button.custom_minimum_size.y = 76 * visual_context.text_scale
-		button.find_child("InscriptionSigil", true, false).custom_minimum_size.y = 20 * visual_context.text_scale
+		button.custom_minimum_size.y = 44 * visual_context.text_scale
+		button.find_child("InscriptionSigil", true, false).custom_minimum_size.y = 16 * visual_context.text_scale
 		var margin: MarginContainer = button.get_node("MarginContainer0")
 		for edge in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + edge, 3)
 		button.get_node("MarginContainer0/VBoxContainer0").add_theme_constant_override("separation", 1)
+		button.find_child("TileSubtitle", true, false).hide()
+		button.find_child("TileTitle", true, false).max_lines_visible = 1
 	button.pressed.connect(callback)
 	for entry in [["TileTitle", "text.primary"], ["TileSubtitle", "text.secondary"], ["InscriptionCost", "text.primary"]]:
 		var label = button.find_child(entry[0], true, false)
@@ -260,6 +280,9 @@ func present(model: Dictionary) -> void:
 		equip_button.visible = not str(model.selectedItem).is_empty() and not str(model.selectedSlot).is_empty()
 		remove_button.visible = model.assignments.has(model.selectedSlot)
 		warning.visible = not warning.text.is_empty()
+		if shared_attributes:
+			details.hide()
+			find_child("ShowInscriptionDetails", true, false).visible = not selected.is_empty()
 	details.text = t.call("Choose an inscription to inspect its benefits and tradeoffs.")
 	if not selected.is_empty():
 		var lines: Array[String] = [t.call(selected.name), t.call("Character attribute bonuses")]
@@ -293,9 +316,11 @@ func _responsive() -> void:
 		for rule in _separators: rule.visible = not columns.vertical
 		inventory_scroll.custom_minimum_size.y = 100 if shared_attributes else clampf(get_viewport_rect().size.y - 490, 200, 650)
 		if shared_attributes:
-			details.fit_content = false
-			details.custom_minimum_size.y = 48
-			find_child("IdentityPlaceholder", true, false).custom_minimum_size.y = 56
+			find_child("IdentityPlaceholder", true, false).custom_minimum_size.y = 36
+			find_child("CharacterIdentity", true, false).add_theme_constant_override("separation", 2)
+			slot_grid.get_parent().add_theme_constant_override("separation", 4)
+			slot_grid.add_theme_constant_override("v_separation", 4)
+			find_child("LoadoutInteractionHint", true, false).hide()
 		inventory_grid.columns = 3 if _inventory_panel.size.x >= 315 else 2
 		slot_grid.columns = 3 if shared_attributes or size.x >= 1050 else 2
 		return
