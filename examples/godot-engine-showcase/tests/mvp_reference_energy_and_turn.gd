@@ -169,7 +169,7 @@ func run() -> void:
 	present(view, snap, context_en, {"locked": false, "has_frames": false, "selected_card": ""})
 	await settle()
 	check(end_btn.visible and not end_btn.disabled, "EndTurnButton is visible and enabled when END_TURN is published and unlocked")
-	check(end_btn.text == "END TURN  [E]" and end_btn.tooltip_text == "END TURN  [E]", "EndTurnButton displays its label and shortcut")
+	check(end_btn.text == "END TURN" and end_btn.tooltip_text == "END TURN", "EndTurnButton displays its label without the shortcut")
 	check(not next_btn.visible and not skip_btn.visible and not cancel_box.visible and not turn_node.get_node("ContextActionSlot").visible, "advance/skip/cancel are hidden when idle with no selected card or frames")
 	check(not preview_panel.visible and not pass_slot.visible, "ActionPreviewView and Pass remain hidden in MVP")
 	check(not view.hand.toolbar.visible, "HandTools stays hidden when no overflow pagination buttons are visible (<= 5 cards)")

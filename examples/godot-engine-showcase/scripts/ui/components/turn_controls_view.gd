@@ -2,6 +2,7 @@
 class_name TurnControlsView
 extends VBoxContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
+@export var show_end_turn_shortcut := true
 var visual_context: ContextType = ContextType.new()
 signal next_requested
 signal skip_requested
@@ -30,8 +31,9 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	buttons.assign([cancel, end]); pass_button.visible = not _pass_option.is_empty()
 	get_node("SystemActionSlot").visible = pass_button.visible
 	if not _pass_option.is_empty(): buttons.insert(1,pass_button)
+	var end_label: String = translator.text("END TURN  [%s]") % str(labels["end_turn"]) if show_end_turn_shortcut else translator.text("END TURN")
 	var pass_label := "PASS PRIORITY" if str(_pass_option.get("command", {}).get("actionType", "")) == "PASS_PRIORITY" else "PASS"
-	for entry in [[next_frame_button,"advance",translator.text("NEXT ANIMATION  [%s]") % str(labels["confirm_action"]),false,true], [cancel,"cancel",translator.text("CANCEL SELECTION"),false,true], [skip_button,"skip",translator.text("Skip presentation"),false,true], [pass_button,"arrow",translator.text(pass_label),false,true], [end,"arrow",translator.text("END TURN  [%s]") % str(labels["end_turn"]),true,false]]:
+	for entry in [[next_frame_button,"advance",translator.text("NEXT ANIMATION  [%s]") % str(labels["confirm_action"]),false,true], [cancel,"cancel",translator.text("CANCEL SELECTION"),false,true], [skip_button,"skip",translator.text("Skip presentation"),false,true], [pass_button,"arrow",translator.text(pass_label),false,true], [end,"arrow",end_label,true,false]]:
 		preload("res://scripts/ui/combat_chrome.gd").apply(entry[0],entry[1],entry[2],visual_context,entry[3],entry[4])
 
 func _on_next_pressed() -> void: next_requested.emit()

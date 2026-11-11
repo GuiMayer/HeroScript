@@ -93,6 +93,7 @@ layout_mode = 2
 layout_mode = 2
 toolbar_path = NodePath("../../../EndTurnAndContextActions/HandTools")
 [node name="EndTurnAndContextActions" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Turn")]
+show_end_turn_shortcut = false
 layout_mode = 1
 anchor_left = 1.0
 anchor_top = 1.0
