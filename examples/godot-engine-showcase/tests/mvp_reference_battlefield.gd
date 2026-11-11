@@ -175,6 +175,7 @@ func run() -> void:
 	var mystery_panel: ActorPanel = view.battlefield_view.panels["mystery_enemy"]
 	check(not hero_panel.get_node("%ActorIntentRow").visible, "ally without a published intent hides the intent row instead of showing redundant filler")
 	check(mystery_panel.get_node("%ActorIntentRow").visible and mystery_panel.get_node("%ActorIntention").text == "No intent revealed", "enemy without a published intent shows honest unrevealed state without inventing an action")
+	check(not mystery_panel.get_node("%IntentSymbol").visible, "enemy without a known intent icon does not display a question mark")
 	check(hero_panel.get_node("%ActorTitle").text_overrun_behavior == TextServer.OVERRUN_TRIM_ELLIPSIS and hero_panel.get_node("%ActorTitle").tooltip_text.contains("Exceptionally Long Hero Name"), "long actor names trim cleanly with full tooltip")
 
 	# 4. Verify damage, healing, counter updates, status badge lifecycle, and actor removal on the battlefield.

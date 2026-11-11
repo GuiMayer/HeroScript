@@ -61,6 +61,7 @@ size_flags_vertical = 3
 theme_override_styles/panel = SubResource("Surface")
 script = ExtResource("1_actor")
 authored_battlefield_layout = true
+hide_unknown_intent_icon = true
 battlefield_target_size = Vector2(184, 140)
 battlefield_intent_height = 22.0
 battlefield_content_gap = 6

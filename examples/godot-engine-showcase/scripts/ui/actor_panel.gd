@@ -30,6 +30,7 @@ var _authored_target_size: Vector2
 var _authored_root_gap: int
 var _authored_content_gap: int
 @export var authored_battlefield_layout := false
+@export var hide_unknown_intent_icon := false
 @export var compact_content_width := 264.0
 @export var compact_target_size := Vector2(76, 112)
 @export var battlefield_target_size := Vector2(180, 100)
@@ -171,7 +172,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_intent.tooltip_text = _intent.text
 	_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
 	_intent_row.visible = (not intent.is_empty() or hostile or relation == "Neutral") if authored_battlefield_layout else (not (battlefield and visual_context.profile.compact_actor_hud) or hostile or relation == "Neutral" or not intent.is_empty())
-	_intent_icon.visible = (battlefield or authored_battlefield_layout) and visual_context.profile.compact_actor_hud and (hostile or not intent.is_empty())
+	_intent_icon.visible = (battlefield or authored_battlefield_layout) and visual_context.profile.compact_actor_hud and (hostile or not intent.is_empty()) and not (hide_unknown_intent_icon and str(actor.get("intentIconId", "unknown")) == "unknown")
 	_intent_icon.texture = preload("res://scripts/ui/combat_chrome.gd").texture(str(actor.get("intentIconId", "unknown")))
 	_intent_icon.modulate = visual_context.styles.GOLD if hostile else visual_context.styles.TEAL
 	_sync_resources(actor.get("resources", {}), presentation)
