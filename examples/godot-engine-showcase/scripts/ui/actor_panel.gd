@@ -3,6 +3,7 @@ class_name ActorPanel
 extends PanelContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 const ResourceScene = preload("res://scenes/ui/components/resource_view.tscn")
+const MAX_VISIBLE_EFFECTS := 3
 const BadgeScene = preload("res://scenes/ui/components/status_badge.tscn")
 signal target_selected(actor_id: String)
 var visual_context: ContextType = ContextType.new()
@@ -22,6 +23,10 @@ var _intent_icon: TextureRect
 var _resources: VBoxContainer
 var _counters: HFlowContainer
 var _statuses: HFlowContainer
+var _effects_button: Button
+var _effects_dialog: AcceptDialog
+var _effects_text: RichTextLabel
+var _effect_details: Array[String] = []
 var _surface: StyleBoxFlat
 var _authored_surface: StyleBoxFlat
 var _layout_mode := ""
@@ -179,6 +184,9 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_sync_resources(actor.get("resources", {}), presentation)
 	var live_statuses: Array[String] = []
 	var statuses: Array = actor.get("statuses", []).filter(func(status): return status.get("isActive", true))
+	if authored_battlefield_layout:
+		statuses.sort_custom(_status_precedes)
+		_effect_details.clear()
 	for index in statuses.size():
 		var data: Dictionary = statuses[index]
 		var key := "StatusBadge_" + str(data.get("statusId", "status")).validate_node_name()
@@ -189,6 +197,13 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 			badge = BadgeScene.instantiate(); badge.name = key; _statuses.add_child(badge)
 		badge.mvp_icons = authored_battlefield_layout
 		badge.apply_status(data, visual_context)
+		if authored_battlefield_layout:
+			_effect_details.append(badge.tooltip_text)
+			badge.visible = index < MAX_VISIBLE_EFFECTS
+			_statuses.move_child(badge, index)
+	if authored_battlefield_layout:
+		_sync_effects_button(statuses.size())
+		live_statuses.append(str(_effects_button.name))
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()
 	target_button.tooltip_text = name_text + "\n" + _intent.text + "\n" + visual_context.translator.text("Choose a highlighted target.")
@@ -200,6 +215,49 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		style.bg_color = visual_context.styles.color("surface.target_hover")
 		style.border_color = visual_context.styles.GOLD
 		target_button.add_theme_stylebox_override(state, style)
+
+func _status_precedes(left: Dictionary, right: Dictionary) -> bool:
+	var left_id := str(left.get("statusId", ""))
+	var right_id := str(right.get("statusId", ""))
+	if left_id != right_id: return left_id < right_id
+	return str(left.get("instanceId", "")) < str(right.get("instanceId", ""))
+
+func _sync_effects_button(count: int) -> void:
+	if not is_instance_valid(_effects_button):
+		_effects_button = Button.new()
+		_effects_button.name = "InspectEffects"
+		_effects_button.theme_type_variation = &"SecondaryAction"
+		_effects_button.pressed.connect(_open_effects)
+		_statuses.add_child(_effects_button)
+	_statuses.move_child(_effects_button, -1)
+	var title: String = visual_context.translator.text("Active effects")
+	_effects_button.text = "+%d" % (count - MAX_VISIBLE_EFFECTS) if count > MAX_VISIBLE_EFFECTS else title
+	_effects_button.accessibility_name = "%s: %s (%d)" % [_title.text, title, count]
+	_effects_button.tooltip_text = _effects_button.accessibility_name
+	_effects_button.visible = count > 0
+	if is_instance_valid(_effects_dialog):
+		_effects_text.text = "\n\n".join(_effect_details)
+		if count == 0: _effects_dialog.hide()
+
+func _open_effects() -> void:
+	if _effect_details.is_empty(): return
+	if not is_instance_valid(_effects_dialog):
+		_effects_dialog = AcceptDialog.new()
+		_effects_dialog.transient = true
+		_effects_dialog.exclusive = true
+		var restore := Node.new()
+		restore.set_script(preload("res://scripts/ui/components/modal_focus.gd"))
+		_effects_dialog.add_child(restore)
+		_effects_text = RichTextLabel.new()
+		_effects_text.selection_enabled = true
+		_effects_text.focus_mode = Control.FOCUS_ALL
+		_effects_dialog.add_child(_effects_text)
+		add_child(_effects_dialog)
+	_effects_dialog.title = "%s - %s" % [_title.text, visual_context.translator.text("Active effects")]
+	_effects_text.add_theme_font_size_override("normal_font_size", roundi(16 * visual_context.text_scale))
+	_effects_text.text = "\n\n".join(_effect_details)
+	_effects_dialog.popup_centered_clamped(Vector2i(480, 320))
+	_effects_text.grab_focus()
 
 func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 	var ordered: Array = presentation.get("resource_order", []).duplicate()

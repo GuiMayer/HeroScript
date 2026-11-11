@@ -14,6 +14,7 @@ var icon_rect: TextureRect
 var glyph_label: Label
 var stack_label: Label
 var _panel_style: StyleBoxFlat
+var _mvp_content: VBoxContainer
 
 func _ready() -> void:
 	_bind_nodes()
@@ -80,13 +81,15 @@ func _apply_model() -> void:
 	else:
 		stack_label.visible = false
 
+	if mvp_icons: _layout_mvp_badge()
+
 	# Rich Tooltip
 	var title_text := status_id.capitalize()
 	if visual_context != null and visual_context.translator != null:
 		title_text = visual_context.translator.content_name(status_id)
 
 	var tooltip_lines: Array[String] = []
-	if stacks > 1:
+	if stacks > 1 or mvp_icons:
 		tooltip_lines.append("%s (×%s)" % [title_text, stack_label.text])
 	else:
 		tooltip_lines.append(title_text)
@@ -97,11 +100,31 @@ func _apply_model() -> void:
 			dur_text = visual_context.translator.text("Duration: %s turns") % duration
 		tooltip_lines.append(dur_text)
 
+	elif duration == -1 and mvp_icons:
+		tooltip_lines.append(visual_context.translator.text("Permanent effect"))
+
 	var desc := str(model.get("description", ""))
 	if not desc.is_empty():
 		tooltip_lines.append(desc)
 
 	tooltip_text = "\n".join(tooltip_lines)
+
+func _layout_mvp_badge() -> void:
+	if _mvp_content == null:
+		_mvp_content = VBoxContainer.new()
+		_mvp_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_mvp_content.add_theme_constant_override("separation", 0)
+		get_node("Margin").add_child(_mvp_content)
+		icon_rect.reparent(_mvp_content, false)
+		stack_label.reparent(_mvp_content, false)
+	var scale_factor := visual_context.text_scale
+	var icon_size := roundf(16 * scale_factor)
+	icon_rect.custom_minimum_size = Vector2(icon_size, icon_size)
+	stack_label.add_theme_font_size_override("font_size", roundi(12 * scale_factor))
+	stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var side := maxf(roundf(38 * scale_factor), _mvp_content.get_combined_minimum_size().x + 6)
+	custom_minimum_size = Vector2(side, side)
+	_mvp_content.alignment = BoxContainer.ALIGNMENT_CENTER
 
 func _status_tone(status_id: String) -> Dictionary:
 	var sid := status_id.to_lower()
