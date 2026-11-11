@@ -6,6 +6,7 @@ theme_override_constants/separation = 4
 [node name="Icon" type="TextureRect" parent="."]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 texture = ExtResource("1")
 modulate = Color(0.35, 0.54, 0.72, 1)
