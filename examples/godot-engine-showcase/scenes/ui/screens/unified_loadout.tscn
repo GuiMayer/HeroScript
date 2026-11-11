@@ -18,16 +18,18 @@ script = ExtResource("Script")
 
 [node name="LoadoutPage" parent="." instance=ExtResource("Page")]
 
-[node name="InscriptionsScroll" type="ScrollContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost"]
+[node name="InscriptionsPanel" type="Control" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost"]
 layout_mode = 0
-horizontal_scroll_mode = 0
-follow_focus = true
 
-[node name="InscriptionBody" type="VBoxContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsScroll"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="InscriptionBody" type="VBoxContainer" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="InscriptionsUnavailable" type="Label" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsScroll/InscriptionBody"]
+[node name="InscriptionsUnavailable" type="Label" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsPanel/InscriptionBody"]
 layout_mode = 2
 custom_minimum_size = Vector2(600,0)
 theme_type_variation = &"Caption"
@@ -37,7 +39,7 @@ text = "Inscriptions are not available for this character or setting."
 
 [node name="ClearEquipment" parent="." instance=ExtResource("Confirm")]
 
-[node name="Inscriptions" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsScroll/InscriptionBody" instance=ExtResource("Inscriptions")]
+[node name="Inscriptions" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost/InscriptionsPanel/InscriptionBody" instance=ExtResource("Inscriptions")]
 shared_attributes = true
 
 [node name="Overview" parent="LoadoutPage/Margin/Page/Body/LoadoutModuleHost" instance=ExtResource("Overview")]
