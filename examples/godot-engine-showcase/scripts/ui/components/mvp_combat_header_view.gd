@@ -6,7 +6,7 @@ signal inspection_requested
 signal pause_requested
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 const Chrome = preload("res://scripts/ui/combat_chrome.gd")
-@export var preview_model: Dictionary = {"actorName": "Ember Adept", "actorDefinitionId": "spire_adept", "round": "ROUND 1", "turn": "Turn: Ember Adept", "support": "", "supportHint": "", "log": "Combat log", "pause": "PAUSE [Escape]", "inspect": "Inspect card [V]"}
+@export var preview_model: Dictionary = {"actorName": "Ember Adept", "actorDefinitionId": "spire_adept", "round": "ROUND 1", "turn": "Turn: Ember Adept", "support": "", "supportHint": "", "log": "Combat log", "pause": "PAUSE", "inspect": "Inspect card [V]"}
 var visual_context = ContextType.new()
 var actor_name_label: Label
 var round_label: Label

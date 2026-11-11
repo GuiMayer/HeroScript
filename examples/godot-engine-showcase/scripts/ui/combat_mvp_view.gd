@@ -51,7 +51,7 @@ func _present_header(projection, combat_state: Dictionary) -> void:
 		"actorDefinitionId": str(identity.get("definitionId", "")), "round": model.round,
 		"turn": visual_context.translator.text("Turn: %s") % projection.actor_name(active) if not active.is_empty() else "",
 		"support": support_text, "supportHint": support_hint, "log": visual_context.translator.text("Combat log"),
-		"pause": "%s [%s]" % [str(model.pause), visual_context.action_label("pause_game")],
+		"pause": str(model.pause),
 		"inspect": "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]}, visual_context)
 	var actions: Control = header_view.get_node("HeaderActions")
 	actions.anchor_left = 0.62 if visual_context.text_scale > 1.25 else 0.68
