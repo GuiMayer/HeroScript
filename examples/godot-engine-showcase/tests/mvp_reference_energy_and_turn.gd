@@ -203,7 +203,7 @@ func run() -> void:
 	var context_remapped = Context.new(i18n, {"text_scale": 1.0, "reduced_motion": true, "action_labels": {"end_turn": "R", "confirm_action": "G", "pause_game": "P", "inspect_card": "Q"}}, profile)
 	present(view, snap, context_remapped, {"locked": false, "has_frames": true, "selected_card": ""})
 	await settle()
-	check(end_btn.text.contains("[R]") and end_btn.tooltip_text.contains("[R]"), "remapped end_turn shortcut updates EndTurnButton text and tooltip in pt_BR")
+	check(end_btn.text == "ENCERRAR TURNO" and end_btn.tooltip_text == "ENCERRAR TURNO", "localized EndTurnButton omits the remapped shortcut")
 	check(next_btn.tooltip_text.contains("[G]"), "remapped confirm_action shortcut updates NextAnimation tooltip in pt_BR")
 	check(energy_node.text == "◇  Energia  3 / 3", "EnergyIndicator localizes resource name in pt_BR")
 
@@ -317,7 +317,7 @@ func run() -> void:
 	check(prefs.remap_event("end_turn", _key_event(KEY_R), false) == "", "remapping end_turn to KEY_R succeeds")
 	screen.refresh_state(router.presentation)
 	await settle(6)
-	check(live_end_btn.text.contains("[R]"), "live EndTurnButton reflects remapped shortcut [R]")
+	check(not live_end_btn.text.contains("[R]"), "live EndTurnButton omits the remapped shortcut")
 	var intents: Array = []
 	mvp_view.intent_requested.connect(func(action, _args): intents.append(action))
 	press_key(KEY_R)

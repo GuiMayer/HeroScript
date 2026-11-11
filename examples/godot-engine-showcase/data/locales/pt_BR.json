@@ -424,6 +424,7 @@
   "NEXT ANIMATION  [%s]": "PRÓXIMO FRAME  [%s]",
   "PASS PRIORITY": "PASSAR PRIORIDADE",
   "END TURN  [%s]": "ENCERRAR TURNO  [%s]",
+  "END TURN": "ENCERRAR TURNO",
   "Target: %s": "Alvo: %s",
   "This card cannot be played right now.": "A engine não considera esta carta legal agora.",
   "Pass priority": "Passar prioridade",
