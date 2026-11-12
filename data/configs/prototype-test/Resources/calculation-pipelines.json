@@ -46,22 +46,24 @@
           "subjectKeys": [
             "fire",
             "void",
-            "shadow"
+            "shadow",
+            "divine"
           ],
           "weightBySubjectCount": [
             1,
-            0.8,
-            0.65
+            0.6,
+            0.45
           ],
           "influenceGroups": {
             "prototype.scaling.fire": "fire",
             "prototype.fire_mastery": "fire",
             "prototype.scaling.void": "void",
-            "prototype.scaling.shadow": "shadow"
+            "prototype.scaling.shadow": "shadow",
+            "prototype.scaling.divine": "divine",
+            "prototype.fire_mastery.bonus": "fire"
           },
           "groups": {
             "fire": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               },
@@ -70,17 +72,16 @@
               }
             },
             "void": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
             },
             "shadow": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
-            }
+            },
+            "divine": {}
           }
         }
       },
@@ -215,6 +216,15 @@
           "ignore_armor"
         ],
         "missingValue": "Zero"
+      },
+      {
+        "bindingId": "prototype.scaling.divine",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "divine_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "missingValue": "Ignore"
       }
     ],
     "resourceInfluenceBindings": [
@@ -288,22 +298,24 @@
           "subjectKeys": [
             "fire",
             "void",
-            "shadow"
+            "shadow",
+            "divine"
           ],
           "weightBySubjectCount": [
             1,
-            0.8,
-            0.65
+            0.6,
+            0.45
           ],
           "influenceGroups": {
             "prototype.scaling.fire": "fire",
             "prototype.fire_mastery": "fire",
             "prototype.scaling.void": "void",
-            "prototype.scaling.shadow": "shadow"
+            "prototype.scaling.shadow": "shadow",
+            "prototype.scaling.divine": "divine",
+            "prototype.fire_mastery.bonus": "fire"
           },
           "groups": {
             "fire": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               },
@@ -312,17 +324,16 @@
               }
             },
             "void": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
             },
             "shadow": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
-            }
+            },
+            "divine": {}
           }
         }
       },
@@ -464,6 +475,15 @@
           "ignore_armor"
         ],
         "missingValue": "Zero"
+      },
+      {
+        "bindingId": "prototype.scaling.divine",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "divine_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "missingValue": "Ignore"
       }
     ],
     "resourceInfluenceBindings": [
@@ -537,37 +557,37 @@
           "subjectKeys": [
             "fire",
             "void",
-            "shadow"
+            "shadow",
+            "divine"
           ],
           "weightBySubjectCount": [
             1,
-            0.8,
-            0.65
+            0.6,
+            0.45
           ],
           "influenceGroups": {
             "prototype.scaling.fire": "fire",
             "prototype.scaling.void": "void",
-            "prototype.scaling.shadow": "shadow"
+            "prototype.scaling.shadow": "shadow",
+            "prototype.scaling.divine": "divine"
           },
           "groups": {
             "fire": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
             },
             "void": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
             },
             "shadow": {
-              "formula": "PROTOTYPE_THEME_RETURN",
               "parameters": {
                 "cap": 1
               }
-            }
+            },
+            "divine": {}
           }
         }
       },
@@ -673,6 +693,15 @@
           "ignore_armor"
         ],
         "missingValue": "Zero"
+      },
+      {
+        "bindingId": "prototype.scaling.divine",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "divine_scaling",
+        "channel": "prototype_dot",
+        "bucket": "increased",
+        "missingValue": "Ignore"
       }
     ],
     "resourceInfluenceBindings": [

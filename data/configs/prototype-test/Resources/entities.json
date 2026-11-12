@@ -35,7 +35,8 @@
           "block_efficiency": 0,
           "armor": 0,
           "critical_chance": 15,
-          "critical_damage": 100
+          "critical_damage": 100,
+          "divine_scaling": 0
         }
       }
     ]

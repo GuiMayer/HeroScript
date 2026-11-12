@@ -31,11 +31,29 @@
             "minimumCount": 1
           }
         }
+      },
+      {
+        "attributeId": "fire_mastery",
+        "influence": {
+          "influenceId": "prototype.fire_mastery.bonus",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "subjectKeyCondition": {
+            "keys": [
+              "fire"
+            ],
+            "requiredKeys": [
+              "fire"
+            ],
+            "minimumCount": 1
+          }
+        }
       }
     ],
     "presentation": {
       "name": "Fire mastery",
-      "description": "Raises the Fire scaling cap by 50 percentage points."
+      "description": "Character: +25% increased Fire scaling."
     },
     "tags": [
       "common"
