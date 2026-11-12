@@ -38,6 +38,7 @@ func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation:
 	panel.target_selected.connect(target_selected.emit)
 	panel.target_button.mouse_entered.connect(func(): target_previewed.emit(id))
 	panel.target_button.focus_entered.connect(func(): target_previewed.emit(id))
+	panel.target_button.focus_exited.connect(func(): preview_left.emit())
 	panel.target_button.mouse_exited.connect(func():
 		preview_left.emit())
 	panels[id] = panel

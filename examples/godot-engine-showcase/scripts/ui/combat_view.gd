@@ -182,7 +182,10 @@ func _build_battlefield() -> void:
 		battlefield_view = get_node(battlefield_path)
 		battlefield_view.target_selected.connect(_select_target)
 		battlefield_view.target_previewed.connect(_show_target_preview)
-		battlefield_view.preview_left.connect(func(): if not selected_card.is_empty(): _show_preview(selected_card))
+		battlefield_view.preview_left.connect(func():
+			if not selected_card.is_empty():
+				_restore_drag_targets()
+				_show_preview(selected_card))
 		battlefield_view.layout_requested.connect(_queue_gameplay_layout)
 		battlefield_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		gameplay_column.move_child(battlefield_view, 0)
