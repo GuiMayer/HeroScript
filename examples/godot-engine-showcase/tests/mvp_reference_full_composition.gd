@@ -233,9 +233,9 @@ func run() -> void:
 					check(is_equal_approx(canvas_rect.size.x / canvas_rect.size.y, 16.0 / 9.0) and view.get_global_rect().encloses(canvas_rect), "16:9 canvas fits within viewport: " + tag)
 					check(absf(canvas_rect.get_center().x - view.get_global_rect().get_center().x) <= 1.0 and absf(canvas_rect.get_center().y - view.get_global_rect().get_center().y) <= 1.0, "canvas stays centered: " + tag)
 					check(canvas_rect.encloses(header_rect) and header_rect.end.y <= piles_rect.position.y + 1.0 and header_rect.end.y <= actors_rect.position.y + 1.0, "header stays at top above piles and battlefield: " + tag)
-					check(piles_rect.end.x <= actors_rect.position.x + 1.0 and piles_rect.end.x <= hand_rect.position.x + 1.0, "pile rail stays on the left of battlefield and hand: " + tag)
+					check(not piles_rect.intersects(actors_rect) and piles_rect.end.x <= hand_rect.position.x + 1.0, "draw stays beside the hand and clear of the battlefield: " + tag)
 					check(turn_rect.position.x >= hand_rect.end.x - 1.0 and canvas_rect.encloses(end_rect), "EndTurn stays isolated on bottom-right: " + tag)
-					check(absf(energy_rect.get_center().x - canvas_rect.get_center().x) <= 2.0, "EnergyIndicator stays horizontally centered: " + tag)
+					check(absf(energy_rect.get_center().x - (canvas_rect.position.x + view.battlefield_axis_x())) <= 2.0, "EnergyIndicator follows the battlefield axis: " + tag)
 
 					# Check card counts 0, 1, 2, 5, 10, 12 at 1920x1080 and 1280x720 for standard team.
 					if team_cfg.name == "1v2_standard" and resolution in [Vector2i(1920, 1080), Vector2i(1280, 720)]:

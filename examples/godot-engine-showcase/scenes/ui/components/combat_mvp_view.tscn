@@ -45,6 +45,7 @@ offset_bottom = -460.0
 [node name="Field" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors" index="0"]
 theme_override_constants/separation = 36
 [node name="Allies" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field" index="0"]
+size_flags_stretch_ratio = 0.8
 theme_override_constants/separation = 16
 [node name="Divider" parent="CanvasHost/ReferenceCanvas/Battlefield/BattlefieldActors/Field" index="1"]
 visible = false

@@ -226,7 +226,13 @@ func run() -> void:
 				var actors_rect: Rect2 = view.battlefield_actors.get_global_rect()
 				var first_card_top: float = view.hand.scroll.get_global_rect().position.y + view.hand.visual_style.padding
 				var non_hover_card_top: float = first_card_top + view.hand.visual_style.lift
-				check(absf(energy_rect.get_center().x - canvas_rect.get_center().x) <= 2.0, "EnergyIndicator is horizontally centered on ReferenceCanvas: " + tag)
+				check(absf(energy_rect.get_center().x - (canvas_rect.position.x + view.battlefield_axis_x())) <= 2.0, "EnergyIndicator follows the battlefield axis: " + tag)
+				var round_center: float = view.header_view.get_node("RoundAndTurn").get_global_rect().get_center().x
+				check(absf(round_center - energy_rect.get_center().x) <= 2.0, "round and energy share the same axis: " + tag)
+				var allies: Rect2 = view.battlefield_view.allies.get_global_rect()
+				var opponents: Rect2 = view.battlefield_view.opponents.get_global_rect()
+				var gap_center := (allies.end.x + opponents.position.x) * 0.5
+				check(absf(round_center - gap_center) <= 2.0, "shared axis bisects the gap between teams: " + tag)
 				check(energy_rect.end.y <= non_hover_card_top + 1.0, "EnergyIndicator sits above hand cards: " + tag)
 				check(actors_rect.end.y <= first_card_top + 2.0, "battlefield actors stay above raised hand cards: " + tag)
 				check(turn_rect.position.x >= hand_rect.end.x - 1.0, "EndTurnAndContextActions stays to the right of HandHost without overlap: " + tag)

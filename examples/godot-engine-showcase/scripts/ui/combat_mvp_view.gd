@@ -243,8 +243,8 @@ func _layout_gameplay() -> void:
 		rail_right = pile_controls.position.x + pile_controls.size.x
 	if is_instance_valid(battlefield_actors):
 		var top_gap := 0.0 if fitted.y < 860.0 else battlefield_top_gap
-		battlefield_actors.offset_left = rail_right + battlefield_left_gap
-		battlefield_actors.offset_right = -battlefield_right_inset
+		battlefield_actors.offset_left = fitted.x * 0.075
+		battlefield_actors.offset_right = -fitted.x * 0.08
 		battlefield_actors.offset_top = header_view.offset_bottom + top_gap
 		var bottom_limit := minf(energy_top - arena_gap, first_card_top - fitted.y - 8.0)
 		var hard_ceiling := first_card_top - fitted.y - 2.0
@@ -276,7 +276,7 @@ func _layout_gameplay() -> void:
 	if is_instance_valid(right_pile_controls) and right_pile_controls.visible and is_instance_valid(turn_view):
 		var pile_height: float = right_pile_controls.get_node("Zones").get_combined_minimum_size().y
 		_fit_pile_group(right_pile_controls, turn_view.position.x, turn_view.position.y - pile_height - 8.0, turn_view.size.x, pile_height)
-	_layout_deck_pile()
+	_layout_battlefield_axis()
 			var cand_width: float = minf(layout_profile.candidate_width, cand_avail)
 			var cand_left: float = clampf((fitted.x - cand_width) * 0.5, cand_left_min, maxf(cand_left_min, cand_right_max - cand_width))
 			var cand_bottom: float = minf(energy_top - 8.0, first_card_top - fitted.y - 8.0)
@@ -304,6 +304,39 @@ func _on_sidebar_open_changed(value: bool) -> void:
 func present_combat_snapshot(state: Dictionary) -> void:
 	super.present_combat_snapshot(state)
 	var projection = Presenter.new(_run_snapshot, state, [], visual_context.translator, presentation)
+func battlefield_axis_x() -> float:
+	var fallback: float = gameplay_column.size.x * 0.5
+	if not is_instance_valid(battlefield_view): return fallback
+	var allies: Control = battlefield_view.allies
+	var opponents: Control = battlefield_view.opponents
+	if not is_instance_valid(allies) or not is_instance_valid(opponents): return fallback
+	if allies.get_child_count() == 0 or opponents.get_child_count() == 0: return fallback
+	var left_edge := allies.get_global_rect().end.x
+	var right_edge := opponents.get_global_rect().position.x
+	var visible_field: Rect2 = battlefield_actors.get_global_rect()
+	var midpoint := (left_edge + right_edge) * 0.5
+	if midpoint < visible_field.position.x or midpoint > visible_field.end.x: return fallback
+	return (gameplay_column.get_global_transform().affine_inverse() * Vector2(midpoint, gameplay_column.global_position.y)).x
+
+func _layout_battlefield_axis() -> void:
+	if not is_instance_valid(header_view): return
+	if is_instance_valid(battlefield_view):
+		for team in [battlefield_view.allies, battlefield_view.opponents]:
+			if is_instance_valid(team) and not team.item_rect_changed.is_connected(_layout_battlefield_axis):
+				team.item_rect_changed.connect(_layout_battlefield_axis, CONNECT_DEFERRED)
+	var axis := battlefield_axis_x()
+	var width: float = gameplay_column.size.x
+	var round_group: Control = header_view.get_node("RoundAndTurn")
+	var actions: Control = header_view.get_node("HeaderActions")
+	var half_width := minf(width * 0.12, maxf(0.0, actions.position.x - axis - 8.0))
+	round_group.offset_left = axis - half_width - width * round_group.anchor_left
+	round_group.offset_right = axis + half_width - width * round_group.anchor_right
+	if is_instance_valid(energy_indicator):
+		var shift := axis - width * 0.5
+		energy_indicator.offset_left = shift
+		energy_indicator.offset_right = shift
+	_layout_deck_pile()
+
 func _layout_deck_pile() -> void:
 	if not is_instance_valid(header_view): return
 	var deck: Control = gameplay_column.get_node("DeckPile")

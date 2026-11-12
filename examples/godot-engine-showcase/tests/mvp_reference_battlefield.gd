@@ -133,7 +133,7 @@ func run() -> void:
 					var rail_rect: Rect2 = view.pile_controls.get_global_rect()
 					var hand_rect: Rect2 = view.bottom_hud.get_global_rect()
 					var first_card_top: float = view.hand.scroll.get_global_rect().position.y + view.hand.visual_style.padding
-					check(actors_rect.position.x >= rail_rect.end.x - 1.0, "battlefield stays to the right of PileRail: " + tag)
+					check(not actors_rect.intersects(rail_rect), "battlefield stays clear of the draw pile: " + tag)
 					check(actors_rect.position.y >= header_rect.end.y - 1.0 and actors_rect.end.y <= first_card_top + 1.0, "battlefield stays between CombatHeader and raised hand cards: " + tag)
 					var vbar: VScrollBar = view.battlefield_actors.get_v_scroll_bar()
 					var clipped: bool = vbar.visible
