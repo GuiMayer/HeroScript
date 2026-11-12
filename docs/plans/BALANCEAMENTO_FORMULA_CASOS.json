@@ -1,0 +1,350 @@
+[
+  {
+    "name": "fire_0.2",
+    "request": {
+      "calculationId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "baseValue": 10,
+      "subjectKeys": [
+        "fire"
+      ],
+      "influences": [
+        {
+          "influenceId": "fire",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "flat",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "value": 5
+        },
+        {
+          "influenceId": "more",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.1
+        }
+      ]
+    },
+    "pipeline": {
+      "pipelineId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 1,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 2,
+          "operation": "AddPercent",
+          "grouping": {
+            "subjectKeys": [
+              "fire",
+              "divine",
+              "void"
+            ],
+            "weightBySubjectCount": [
+              1,
+              0.6,
+              0.45
+            ],
+            "influenceGroups": {
+              "fire": "fire",
+              "divine": "divine",
+              "void": "void"
+            },
+            "groups": {
+              "fire": {},
+              "divine": {},
+              "void": {}
+            }
+          }
+        },
+        {
+          "bucketId": "more",
+          "order": 3,
+          "operation": "Multiply"
+        }
+      ]
+    }
+  },
+  {
+    "name": "fire_divine_0.2_0.2",
+    "request": {
+      "calculationId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "baseValue": 10,
+      "subjectKeys": [
+        "fire",
+        "divine"
+      ],
+      "influences": [
+        {
+          "influenceId": "fire",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "divine",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "flat",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "value": 5
+        },
+        {
+          "influenceId": "more",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.1
+        }
+      ]
+    },
+    "pipeline": {
+      "pipelineId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 1,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 2,
+          "operation": "AddPercent",
+          "grouping": {
+            "subjectKeys": [
+              "fire",
+              "divine",
+              "void"
+            ],
+            "weightBySubjectCount": [
+              1,
+              0.6,
+              0.45
+            ],
+            "influenceGroups": {
+              "fire": "fire",
+              "divine": "divine",
+              "void": "void"
+            },
+            "groups": {
+              "fire": {},
+              "divine": {},
+              "void": {}
+            }
+          }
+        },
+        {
+          "bucketId": "more",
+          "order": 3,
+          "operation": "Multiply"
+        }
+      ]
+    }
+  },
+  {
+    "name": "fire_divine_void_0.2_0.2_0.2",
+    "request": {
+      "calculationId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "baseValue": 10,
+      "subjectKeys": [
+        "fire",
+        "divine",
+        "void"
+      ],
+      "influences": [
+        {
+          "influenceId": "fire",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "divine",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "void",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2
+        },
+        {
+          "influenceId": "flat",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "value": 5
+        },
+        {
+          "influenceId": "more",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.1
+        }
+      ]
+    },
+    "pipeline": {
+      "pipelineId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 1,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 2,
+          "operation": "AddPercent",
+          "grouping": {
+            "subjectKeys": [
+              "fire",
+              "divine",
+              "void"
+            ],
+            "weightBySubjectCount": [
+              1,
+              0.6,
+              0.45
+            ],
+            "influenceGroups": {
+              "fire": "fire",
+              "divine": "divine",
+              "void": "void"
+            },
+            "groups": {
+              "fire": {},
+              "divine": {},
+              "void": {}
+            }
+          }
+        },
+        {
+          "bucketId": "more",
+          "order": 3,
+          "operation": "Multiply"
+        }
+      ]
+    }
+  },
+  {
+    "name": "fire_divine_0.3_0.1",
+    "request": {
+      "calculationId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "baseValue": 10,
+      "subjectKeys": [
+        "fire",
+        "divine"
+      ],
+      "influences": [
+        {
+          "influenceId": "fire",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.3
+        },
+        {
+          "influenceId": "divine",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.1
+        },
+        {
+          "influenceId": "flat",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "value": 5
+        },
+        {
+          "influenceId": "more",
+          "sourceId": "actor",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.1
+        }
+      ]
+    },
+    "pipeline": {
+      "pipelineId": "thematic",
+      "channel": "effect_amount",
+      "unitId": "points",
+      "buckets": [
+        {
+          "bucketId": "flat",
+          "order": 1,
+          "operation": "Add"
+        },
+        {
+          "bucketId": "increased",
+          "order": 2,
+          "operation": "AddPercent",
+          "grouping": {
+            "subjectKeys": [
+              "fire",
+              "divine",
+              "void"
+            ],
+            "weightBySubjectCount": [
+              1,
+              0.6,
+              0.45
+            ],
+            "influenceGroups": {
+              "fire": "fire",
+              "divine": "divine",
+              "void": "void"
+            },
+            "groups": {
+              "fire": {},
+              "divine": {},
+              "void": {}
+            }
+          }
+        },
+        {
+          "bucketId": "more",
+          "order": 3,
+          "operation": "Multiply"
+        }
+      ]
+    }
+  }
+]
