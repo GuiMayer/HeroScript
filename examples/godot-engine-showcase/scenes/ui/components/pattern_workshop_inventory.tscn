@@ -7,49 +7,128 @@ theme_override_constants/separation = 16
 [node name="ItemsColumn" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(220, 0)
-size_flags_horizontal = 3
 [node name="Title" type="Label" parent="ItemsColumn"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
 [node name="Items" type="ItemList" parent="ItemsColumn"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 260)
+custom_minimum_size = Vector2(0, 200)
 size_flags_vertical = 3
 [node name="Description" type="Label" parent="ItemsColumn"]
 layout_mode = 2
 autowrap_mode = 3
 [node name="CardsColumn" type="VBoxContainer" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
 size_flags_horizontal = 3
 [node name="Title" type="Label" parent="CardsColumn"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
-[node name="Cards" type="ItemList" parent="CardsColumn"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 260)
-size_flags_vertical = 3
 [node name="Hint" type="Label" parent="CardsColumn"]
 layout_mode = 2
 autowrap_mode = 3
-[node name="PreviewColumn" type="VBoxContainer" parent="."]
+[node name="Cards" type="HFlowContainer" parent="CardsColumn"]
 layout_mode = 2
-size_flags_horizontal = 3
-[node name="Title" type="Label" parent="PreviewColumn"]
-layout_mode = 2
-theme_type_variation = &"SectionTitle"
-[node name="CardScroll" type="ScrollContainer" parent="PreviewColumn"]
-layout_mode = 2
-custom_minimum_size = Vector2(260, 300)
-size_flags_vertical = 3
-[node name="Card" parent="PreviewColumn/CardScroll" instance=ExtResource("Card")]
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+[node name="Slot1" type="VBoxContainer" parent="CardsColumn/Cards"]
 visible = false
 layout_mode = 2
-mouse_filter = 2
-focus_mode = 0
+[node name="Card" parent="CardsColumn/Cards/Slot1" instance=ExtResource("Card")]
+layout_mode = 2
 animate_entry = false
-[node name="Preview" type="Button" parent="PreviewColumn"]
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot1"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot2" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot2" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot2"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot3" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot3" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot3"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot4" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot4" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot4"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot5" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot5" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot5"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot6" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot6" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot6"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot7" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot7" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot7"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Slot8" type="VBoxContainer" parent="CardsColumn/Cards"]
+visible = false
+layout_mode = 2
+[node name="Card" parent="CardsColumn/Cards/Slot8" instance=ExtResource("Card")]
+layout_mode = 2
+animate_entry = false
+[node name="Status" type="Label" parent="CardsColumn/Cards/Slot8"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+[node name="Paging" type="HBoxContainer" parent="CardsColumn"]
+layout_mode = 2
+[node name="Previous" type="Button" parent="CardsColumn/Paging"]
+layout_mode = 2
+[node name="Page" type="Label" parent="CardsColumn/Paging"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+[node name="Next" type="Button" parent="CardsColumn/Paging"]
+layout_mode = 2
+[node name="Preview" type="Button" parent="CardsColumn"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 48)
 theme_type_variation = &"PrimaryAction"
 disabled = true
+[node name="Reason" type="PopupPanel" parent="."]
+[node name="Message" type="Label" parent="Reason"]
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 348.0
+offset_bottom = 80.0
+autowrap_mode = 3

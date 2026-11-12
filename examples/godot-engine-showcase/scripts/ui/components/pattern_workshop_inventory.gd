@@ -1,6 +1,6 @@
 @tool
 extends HBoxContainer
-## ItemList rows are data; every control and the card preview are authored in the scene.
+## All card slots and controls are authored in the scene; pages support any deck size.
 signal choice_requested(reference: String)
 var _context
 var _snapshot: Dictionary = {}
@@ -12,20 +12,29 @@ var selected_pattern_name := ""
 var selected_card_name := ""
 var _bound := false
 var _editable := true
+var _item_index := -1
+var _page := 0
+var _rows: Array = []
+
 func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: Dictionary, context, editable := true) -> void:
 	_context = context; theme = context.theme; _editable = editable
 	_snapshot = snapshot.duplicate(true); _choices = choices.duplicate(true)
 	_facts = facts.duplicate(true); _appearance = appearance.duplicate(true)
 	if not _bound:
 		get_node("ItemsColumn/Items").item_selected.connect(_select_item)
-		get_node("CardsColumn/Cards").item_selected.connect(_select_card)
-		get_node("PreviewColumn/Preview").pressed.connect(func():
+		get_node("CardsColumn/Preview").pressed.connect(func():
 			if not _reference.is_empty(): choice_requested.emit(_reference))
+		get_node("CardsColumn/Paging/Previous").pressed.connect(func(): _page -= 1; _reference = ""; _render_cards())
+		get_node("CardsColumn/Paging/Next").pressed.connect(func(): _page += 1; _reference = ""; _render_cards())
+		for i in 8:
+			var slot_index := i
+			get_node("CardsColumn/Cards/Slot%d/Card" % (i + 1)).pressed.connect(func(): _select_card(_page * 8 + slot_index))
 		_bound = true
 	get_node("ItemsColumn/Title").text = context.translator.text("Modifier items")
-	get_node("CardsColumn/Title").text = context.translator.text("Compatible cards")
-	get_node("PreviewColumn/Title").text = context.translator.text("Card preview")
-	get_node("PreviewColumn/Preview").text = context.translator.text("Compare and apply")
+	get_node("CardsColumn/Title").text = context.translator.text("Your cards")
+	get_node("CardsColumn/Preview").text = context.translator.text("Compare and apply")
+	get_node("CardsColumn/Paging/Previous").text = context.translator.text("Previous")
+	get_node("CardsColumn/Paging/Next").text = context.translator.text("Next")
 	get_node("ItemsColumn/Description").text = context.translator.text("Select an item, then a card.") if not snapshot.get("items", []).is_empty() else context.translator.text("No modifier items owned.")
 	var list: ItemList = get_node("ItemsColumn/Items"); list.clear()
 	for item in _snapshot.get("items", []):
@@ -36,57 +45,74 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 		if state != "Available": label += " · " + context.translator.text("Applied" if state == "Bound" else "Unavailable")
 		var index := list.add_item(label)
 		list.set_item_tooltip(index, preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, context.translator))
-	_clear_card_selection()
-func _clear_card_selection() -> void:
-	_reference = ""
-	selected_card_name = ""
-	get_node("CardsColumn/Cards").clear()
-	get_node("CardsColumn/Hint").text = _context.translator.text("Select an item, then a card.")
-	get_node("PreviewColumn/CardScroll/Card").hide()
-	get_node("PreviewColumn/Preview").disabled = true
+	_item_index = -1; _page = 0; _reference = ""; selected_pattern_name = ""; selected_card_name = ""
+	_rebuild_cards()
+
 func _select_item(index: int) -> void:
 	if index < 0 or index >= _snapshot.get("items", []).size(): return
-	_clear_card_selection()
-	var item: Dictionary = _snapshot.get("items", [])[index]
+	_item_index = index; _page = 0; _reference = ""; selected_card_name = ""
+	var item: Dictionary = _snapshot.items[index]
 	var definition: Dictionary = item.get("definition", {})
 	var definition_id := str(definition.get("itemDefinitionId", ""))
 	selected_pattern_name = _context.translator.content_name(definition_id, str(definition.get("presentation", {}).get("name", definition_id)))
-	get_node("ItemsColumn/Description").text = preload("res://scripts/presentation/activity_presenter.gd").modifier_description(item.get("definition", {}), _context.translator)
-	var list: ItemList = get_node("CardsColumn/Cards")
-	var rows: Array = []
-	var totals := {}
-	for compatibility in item.get("cards", []):
-		var id := str(compatibility.get("cardInstanceId", ""))
-		var facts: Array = _facts.filter(func(value): return str(value.get("identity", {}).get("cardInstanceId", "")) == id)
+	get_node("ItemsColumn/Description").text = preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, _context.translator)
+	_rebuild_cards()
+
+func _rebuild_cards() -> void:
+	_rows.clear()
+	var item: Dictionary = _snapshot.items[_item_index] if _item_index >= 0 else {}
+	var facts_presenter = preload("res://scripts/presentation/card_facts_presenter.gd").new(_context.translator, _appearance)
+	for fact in _facts:
+		var id := str(fact.get("identity", {}).get("cardInstanceId", ""))
+		if id.is_empty(): continue
+		var matches: Array = item.get("cards", []).filter(func(value): return str(value.get("cardInstanceId", "")) == id)
+		var compatibility: Dictionary = matches[0] if matches.size() == 1 else {}
 		var options: Array = _choices.filter(func(choice): return str(choice.get("type", "")) == "APPLY_CARD_MODIFIER_ITEM" and str(choice.get("payload", {}).get("itemInstanceId", "")) == str(item.get("instance", {}).get("itemInstanceId", "")) and str(choice.get("payload", {}).get("cardInstanceId", "")) == id)
-		var model: Dictionary = preload("res://scripts/presentation/card_facts_presenter.gd").new(_context.translator, _appearance).project(facts[0]) if not facts.is_empty() else {}
-		var name: String = str(model.get("name", _context.translator.text("Card details unavailable")))
-		var valid := str(item.get("instance", {}).get("state", "")) == "Available" and bool(compatibility.get("compatible", false)) and options.size() == 1 and not facts.is_empty()
-		var reason: String = str(compatibility.get("reason", ""))
+		var valid := _item_index >= 0 and str(item.get("instance", {}).get("state", "")) == "Available" and bool(compatibility.get("compatible", false)) and options.size() == 1
+		var reason := str(compatibility.get("reason", ""))
 		if reason.is_empty() and not valid: reason = "Card details or application are unavailable."
-		var reference: String = preload("res://scripts/presentation/activity_presenter.gd").option_reference(options[0]) if valid else ""
-		rows.append({"name": name, "model": model, "reference": reference, "reason": reason, "valid": valid})
-		if not facts.is_empty(): totals[name] = int(totals.get(name, 0)) + 1
-	var ordinal := {}
-	for row in rows:
-		var name: String = row.name
-		if int(totals.get(name, 0)) > 1:
-			ordinal[name] = int(ordinal.get(name, 0)) + 1
-			name += " · " + (_context.translator.text("Copy %s of %s") % [ordinal[name], totals[name]])
-		if not row.valid: name += " · " + _context.translator.text("Unavailable")
-		elif bool(row.model.get("upgraded", false)): name += " · " + _context.translator.text("Modified")
-		var card_index := list.add_item(name)
-		list.set_item_tooltip(card_index, _context.translator.text(str(row.reason)))
-		list.set_item_metadata(card_index, row)
-	get_node("CardsColumn/Hint").text = _context.translator.text("Select a card to preview the change.") if list.item_count > 0 else _context.translator.text("No cards are available for this pattern.")
+		_rows.append({"model": facts_presenter.project(fact), "valid": valid, "reason": reason, "reference": preload("res://scripts/presentation/activity_presenter.gd").option_reference(options[0]) if valid else ""})
+	_render_cards()
+
+func _render_cards() -> void:
+	_page = clampi(_page, 0, maxi(0, ceili(float(_rows.size()) / 8.0) - 1))
+	get_node("CardsColumn/Hint").text = _context.translator.text("Select an item, then a card.") if _item_index < 0 else _context.translator.text("Select a card to preview the change.")
+	get_node("CardsColumn/Preview").disabled = _reference.is_empty() or not _editable
+	for i in 8:
+		var slot = get_node("CardsColumn/Cards/Slot%d" % (i + 1))
+		var index := _page * 8 + i
+		slot.visible = index < _rows.size()
+		if not slot.visible: continue
+		var row: Dictionary = _rows[index]
+		var card = slot.get_node("Card"); card.visual_context = _context; card.configure(row.model)
+		card.modulate = Color(0.55, 0.55, 0.55, 1) if _item_index >= 0 and not row.valid else Color.WHITE
+		card.tooltip_text = _reason_text(str(row.reason)) if _item_index >= 0 and not row.valid else str(row.model.get("name", ""))
+		slot.get_node("Status").text = _context.translator.text("Unavailable — click for reason") if _item_index >= 0 and not row.valid else ""
+	var pages := maxi(1, ceili(float(_rows.size()) / 8.0))
+	get_node("CardsColumn/Paging/Page").text = "%d / %d" % [_page + 1, pages]
+	get_node("CardsColumn/Paging/Previous").disabled = _page == 0
+	get_node("CardsColumn/Paging/Next").disabled = _page + 1 >= pages
+	get_node("CardsColumn/Paging").visible = pages > 1
+
 func _select_card(index: int) -> void:
-	if index < 0 or index >= get_node("CardsColumn/Cards").item_count: return
-	var entry: Dictionary = get_node("CardsColumn/Cards").get_item_metadata(index)
-	_reference = str(entry.get("reference", ""))
-	selected_card_name = get_node("CardsColumn/Cards").get_item_text(index)
-	var card = get_node("PreviewColumn/CardScroll/Card")
-	if entry.model.is_empty(): card.hide()
-	else:
-		card.visual_context = _context; card.configure(entry.model); card.show()
-	get_node("CardsColumn/Hint").text = _context.translator.text(str(entry.reason)) if not bool(entry.valid) else _context.translator.text("Select Compare and apply to review the change." if _editable else "Synchronize the game before applying a pattern.")
-	get_node("PreviewColumn/Preview").disabled = _reference.is_empty() or not _editable
+	if index < 0 or index >= _rows.size(): return
+	var entry: Dictionary = _rows[index]
+	if _item_index < 0 or not entry.valid:
+		_reference = ""; get_node("CardsColumn/Preview").disabled = true
+		var popup: PopupPanel = get_node("Reason")
+		popup.get_node("Message").text = _context.translator.text("Select an item, then a card.") if _item_index < 0 else _reason_text(str(entry.reason))
+		var card: Control = get_node("CardsColumn/Cards/Slot%d/Card" % (index % 8 + 1))
+		popup.popup(Rect2i(Vector2i(card.get_screen_position()), Vector2i(360, 100)))
+		return
+	_reference = str(entry.reference); selected_card_name = str(entry.model.get("name", ""))
+	_render_cards()
+	get_node("CardsColumn/Cards/Slot%d/Status" % (index % 8 + 1)).text = _context.translator.text("Selected")
+	get_node("CardsColumn/Hint").text = _context.translator.text("Select Compare and apply to review the change." if _editable else "Synchronize the game before applying a pattern.")
+	get_node("CardsColumn/Preview").disabled = not _editable
+
+func _reason_text(reason: String) -> String:
+	if reason.begins_with("Upgrade application limit reached:"):
+		return _context.translator.text("This card has reached the application limit for this pattern.")
+	if reason.begins_with("Upgrade ") and reason.contains(" does not apply to "):
+		return _context.translator.text("This pattern cannot be applied to this card.")
+	return _context.translator.text(reason)

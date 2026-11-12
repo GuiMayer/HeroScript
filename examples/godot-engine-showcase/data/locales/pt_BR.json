@@ -1,4 +1,10 @@
 {
+  "Your cards": "Suas cartas",
+  "Unavailable — click for reason": "Indisponível — clique para saber o motivo",
+  "Card unavailable": "Carta indisponível",
+  "Previous": "Anterior",
+  "This card has reached the application limit for this pattern.": "Esta carta atingiu o limite de aplicações deste padrão.",
+  "This pattern cannot be applied to this card.": "Este padrão não pode ser aplicado a esta carta.",
   "Choose a pattern to acquire.": "Escolha um padrão para adquirir.",
   "Balance unavailable; affordability cannot be verified.": "Saldo indisponível; não é possível verificar os recursos.",
   "Applied": "Aplicado",
