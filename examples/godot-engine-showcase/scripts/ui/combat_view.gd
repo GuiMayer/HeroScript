@@ -704,6 +704,8 @@ func present_combat_snapshot(state: Dictionary) -> void:
 	# This is an engine-published intermediate snapshot, never a reconstructed state.
 	var projection = preload("res://scripts/presentation/combat_presenter.gd").new(_run_snapshot, state, [], visual_context.translator, presentation)
 	var actors: Array = projection.combat_model(_input_actor).read("actors")
+	if is_instance_valid(character_sidebar):
+		character_sidebar.present({"run": _run_snapshot, "actors": projection.actors(), "input_actor": _input_actor, "attributes": _attribute_snapshot}, visual_context)
 	battlefield_view.apply_model(actors, presentation)
 	if is_instance_valid(scenery):
 		scenery.apply_model(actors, str(scenery_model.get("backgroundId", "combat")), visual_context)

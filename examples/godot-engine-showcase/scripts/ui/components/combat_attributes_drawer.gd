@@ -39,11 +39,12 @@ func mount(context) -> void:
 		add_theme_stylebox_override("panel",_surface)
 	title_label.text = context.translator.text("Attributes")
 	title_label.add_theme_color_override("font_color",context.styles.INK)
-	toggle_button.tooltip_text = context.translator.text("Close") + " [" + context.action_label("open_character") + "]"
+	toggle_button.tooltip_text = context.translator.text("Close")
 	toggle_button.accessibility_name = context.translator.text("Close character attributes")
 	if not toggle_button.pressed.is_connected(_close): toggle_button.pressed.connect(_close)
 	attributes_view.mount(context)
 	content_scroll = attributes_view.scroll_container
+	content_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	if first_mount and not Engine.is_editor_hint(): hide()
 func _close() -> void: set_open(false)
 
@@ -56,7 +57,7 @@ func present(model: Dictionary, context) -> void:
 	if has_meta("visual_preferences_revision"): remove_meta("visual_preferences_revision")
 	add_theme_stylebox_override("panel",_surface)
 	attributes_view.visual_context = context
-	title_label.text = "%s [%s]" % [context.translator.text("Attributes"), context.action_label("open_character")]
+	title_label.text = context.translator.text("Attributes")
 	var actors: Array = model.get("actors", [])
 	var player_id := str(model.get("run", {}).get("playerEntityId", ""))
 	var actor: Dictionary = {}
@@ -72,6 +73,9 @@ func present(model: Dictionary, context) -> void:
 	if str(facts.get("actorId", "")) != str(actor.get("instanceId", "")): facts = {}
 	var display_name: String = context.translator.content_name(str(actor.get("definitionId", player_id)), str(actor.get("displayName", actor.get("definitionId", player_id))))
 	var character := Presenter.character(facts, display_name, actor.get("resources", {}), context.translator)
+	var portrait = attributes_view.get_node("%Portrait")
+	portrait.rebind_context(context)
+	portrait.setup("actors", str(actor.get("definitionId", "")))
 	var key := [character, context.presentation_key()]
 	if key == _projection: return
 	_projection = key.duplicate(true)
