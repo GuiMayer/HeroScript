@@ -18,3 +18,11 @@ theme_type_variation = &"Caption"
 theme_override_font_sizes/font_size = 14
 clip_text = true
 text_overrun_behavior = 3
+
+[node name="Decompile" type="Button" parent="."]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+theme_type_variation = &"SecondaryAction"
+expand_icon = true
+theme_override_constants/icon_max_width = 22

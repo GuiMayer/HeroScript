@@ -41,8 +41,16 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	action_panel.get_node("Primary").visible = not choices.is_empty()
 	choice_buttons.clear(); var live: Array = []; var primary_index := 0; var secondary_index := 0
 	if choices.is_empty(): choice_buttons.append(action_panel.get_node("Waiting/RefreshActionsButton"))
+	var decompile_choices := {}
+	for choice in choices:
+		if str(choice.get("type", "")) == "DECOMPOSE_CARD_REWARD":
+			var key_id := JSON.stringify([choice.get("payload", {}).get("selectionInstanceId"), choice.get("subjectId")])
+			decompile_choices[key_id] = choice
 	for choice in choices:
 		var type := str(choice.type)
+		if type == "DECOMPOSE_CARD_REWARD" and choices.any(func(candidate):
+			return str(candidate.get("type", "")) == "PICK_CARD_REWARD" and candidate.get("subjectId") == choice.get("subjectId") and candidate.get("payload", {}).get("selectionInstanceId") == choice.get("payload", {}).get("selectionInstanceId")):
+			continue
 		if type in ["CHOOSE_DIALOGUE_OPTION","ABANDON_RUN","APPLY_CARD_MODIFIER_ITEM","ADVANCE_NODE"]: continue
 		var reference: String = presenter.option_reference(choice)
 		var model: Dictionary = presenter.offer(choice)
@@ -76,6 +84,27 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 			model["availability"] = label; var price := str(model.get("acquisitionPrice",model.cost))
 			model["cost"] = ""; model["costsKnown"] = model.has("presentationFacts"); model["costUnknownLabel"] = context.translator.text("Cost unavailable")
 			button.visual_context = context; button.configure(model)
+			var decompile_button: Button = entry.get_node("Decompile")
+			entry.move_child(decompile_button, 1)
+			var reward_key := JSON.stringify([choice.get("payload", {}).get("selectionInstanceId"), choice.get("subjectId")])
+			var decompile: Dictionary = decompile_choices.get(reward_key, {}) if type == "PICK_CARD_REWARD" else {}
+			decompile_button.visible = not decompile.is_empty()
+			if not decompile.is_empty():
+				var decompile_ref: String = presenter.option_reference(decompile)
+				var decompile_model: Dictionary = presenter.offer(decompile)
+				var decompile_label: String = presenter.choice_label(decompile, decompile_model)
+				decompile_button.text = context.translator.text("Decompile")
+				if not str(decompile_model.get("rewardText", "")).is_empty():
+					decompile_button.text += " · " + str(decompile_model.rewardText)
+				decompile_button.tooltip_text = decompile_label
+				decompile_button.accessibility_name = decompile_label
+				decompile_button.icon = load("res://assets/game-icons/lorc/recycle.svg")
+				for icon_state in ["normal", "hover", "pressed", "focus"]:
+					decompile_button.add_theme_color_override("icon_" + icon_state + "_color", context.styles.INK)
+				decompile_button.set_meta("activity_choice", true)
+				decompile_button.set_meta("decompile_reference", decompile_ref)
+				if not decompile_button.pressed.is_connected(_decompile_pressed.bind(decompile_button)):
+					decompile_button.pressed.connect(_decompile_pressed.bind(decompile_button))
 			entry.get_node("Variant").visible = choice.has("variantId")
 			entry.get_node("Variant").text = context.translator.content_name(str(choice.get("variantId","")))
 			var destination := str(model.get("rewardDestination", ""))
@@ -98,6 +127,8 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	if not choices.is_empty():
 		_collect_choices(action_panel.get_node("Primary")); _collect_choices(action_panel.get_node("Secondary"))
 	context.styles.apply_view_preferences(self)
+func _decompile_pressed(button: Button) -> void:
+	_confirm_ref(str(button.get_meta("decompile_reference", "")))
 func _collect_choices(node: Node) -> void:
 	if node is Button and node.get_meta("activity_choice",false): choice_buttons.append(node)
 	for child in node.get_children(): _collect_choices(child)

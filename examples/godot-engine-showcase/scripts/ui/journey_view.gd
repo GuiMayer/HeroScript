@@ -97,7 +97,7 @@ func _badge(id: String,text: String,color: Color,index: int,live: Array,hint := 
 	_header.get_node("Badges").move_child(label,index); live.append(id)
 func _update_summary(node: Dictionary) -> void:
 	var kind := str(node.get("activity",{}).get("type","Unknown"))
-	var art = _summary.get_node("Row/Art"); art.rebind_context(visual_context); art.setup("activities",kind)
+	var art = _summary.get_node("Row/Art"); art.visible = kind != "CardSelection"; art.rebind_context(visual_context); art.setup("activities",kind)
 	var content = _summary.get_node("Row/Content")
 	content.get_node("Kind").text = visual_context.translator.content_name(kind).to_upper()
 	content.get_node("Title").text = presenter.node_name(str(node.get("nodeId","")))
