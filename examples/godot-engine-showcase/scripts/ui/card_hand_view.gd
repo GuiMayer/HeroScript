@@ -75,6 +75,8 @@ var _syncing := false
 @export_range(0.25, 1.0) var card_display_scale := 1.0
 @export var flush_bottom := false
 var _reserved_card_size := Vector2.ZERO
+var _last_nonempty_height := 0.0
+var _last_nonempty_flush := false
 var _layout_text_scale := -1.0
 var _layout_card_style_key := ""
 var _inspection_anchor := ""
@@ -487,7 +489,7 @@ func _relayout() -> void:
 	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
 	var policy_key: String = default_style.presentation_key() + _visual_style_key() + resolved_hand_mode() + str(card_display_scale)
 	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key:
-		_reserved_card_size = Vector2.ZERO; custom_minimum_size.y = 0
+		_reserved_card_size = Vector2.ZERO; _last_nonempty_height = 0.0; custom_minimum_size.y = 0
 	_layout_card_style_key = policy_key
 	_layout_text_scale = visual_context.text_scale
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
@@ -503,6 +505,18 @@ func _relayout() -> void:
 			var half_height := (absf(cos(angle)) * dimensions.y + absf(sin(angle)) * dimensions.x) * 0.5
 			bottom = maxf(bottom, _layout.positions[index].y + dimensions.y * 0.5 + half_height)
 		_layout.height = ceilf(bottom)
+	if flush_bottom:
+		if order.is_empty():
+			if _last_nonempty_height > 0.0:
+				_layout.height = _last_nonempty_height
+				flush = _last_nonempty_flush
+			else:
+				var single := Layout.calculate(1, maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
+				_layout.height = ceilf(single.positions[0].y + dimensions.y)
+				flush = true
+		else:
+			_last_nonempty_height = _layout.height
+			_last_nonempty_flush = flush
 	scroll.custom_minimum_size.y = _layout.height + (0 if flush else 12)
 	surface.custom_minimum_size = Vector2(_layout.extent, _layout.height)
 	# Reserve the scroll chrome even when the native bar toggles during layout.

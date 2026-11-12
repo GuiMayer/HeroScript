@@ -49,6 +49,33 @@ func run() -> void:
 				var selected: String = hand.order.back()
 				var point: Vector2 = hand.card_for(selected).get_global_transform() * (hand.card_for(selected).size * .5)
 				check(hand.pick_global(point, false) == selected, "hit surface resolves the visible card after canvas fitting " + str(bounds))
+		var single_model: Array = [source_models[0].duplicate(true)]
+		hand.sync_models(single_model, "empty-stability", "Your hand is empty.")
+		await settle()
+		var occupied_hand: Rect2 = hand.get_global_rect()
+		var occupied_energy: Rect2 = view.energy_indicator.get_global_rect()
+		var occupied_field: Rect2 = view.battlefield_actors.get_global_rect()
+		hand.sync_models([], "empty-stability", "Your hand is empty.")
+		await settle()
+		check(hand.get_global_rect().is_equal_approx(occupied_hand), "empty hand preserves reserved area " + str(bounds))
+		check(view.energy_indicator.get_global_rect().is_equal_approx(occupied_energy), "empty hand does not move energy " + str(bounds))
+		check(view.battlefield_actors.get_global_rect().is_equal_approx(occupied_field), "empty hand does not resize battlefield " + str(bounds))
+		hand.sync_models(single_model, "empty-stability", "Your hand is empty.")
+		await settle()
+		check(hand.get_global_rect().is_equal_approx(occupied_hand), "drawing again preserves the hand area " + str(bounds))
+		var several_models: Array = []
+		for index in 5:
+			var item: Dictionary = source_models[index % source_models.size()].duplicate(true)
+			item.cardInstanceId = "stable-%s" % index
+			several_models.append(item)
+		hand.sync_models(several_models, "empty-stability", "Your hand is empty.")
+		await settle()
+		var full_hand: Rect2 = hand.get_global_rect()
+		var full_energy: Rect2 = view.energy_indicator.get_global_rect()
+		var full_field: Rect2 = view.battlefield_actors.get_global_rect()
+		hand.sync_models([], "empty-stability", "Your hand is empty.")
+		await settle()
+		check(hand.get_global_rect().is_equal_approx(full_hand) and view.energy_indicator.get_global_rect().is_equal_approx(full_energy) and view.battlefield_actors.get_global_rect().is_equal_approx(full_field), "emptying a full hand keeps combat layout stable " + str(bounds))
 		var bottom: float = hand.get_global_rect().end.y
 		view._build_hand()
 		view._layout_gameplay()
