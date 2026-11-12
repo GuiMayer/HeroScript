@@ -74,6 +74,18 @@ func run() -> void:
 	var context = Context.new(null, {"reduced_motion": true}, profile)
 	present(view, snapshot, context)
 	await settle()
+	var portrait_button: Button = view.header_view.get_node("%AttributesButton")
+	var baseline_hand: Vector2 = view.hand.global_position
+	portrait_button.pressed.emit(); await settle()
+	check(view.character_sidebar_expanded and view.character_sidebar.visible, "portrait opens character attributes")
+	check(view.character_sidebar.get_global_rect().position.y >= view.header_view.get_global_rect().end.y, "attributes appear below the header")
+	check(view.hand.global_position == baseline_hand, "floating attributes do not move the hand")
+	portrait_button.pressed.emit(); await settle()
+	check(not view.character_sidebar_expanded, "portrait closes character attributes")
+	view.character_sidebar.set_open(true, true)
+	portrait_button.pressed.emit(); await settle()
+	check(view.character_sidebar_expanded and not view.character_sidebar._hover_open, "click pins attributes already opened by edge hover")
+	view.character_sidebar.set_open(false); await settle()
 	var hand_position: Vector2 = view.hand.global_position
 	var card_ids: Array = view.hand.ordered_cards().map(func(card): return card.get_instance_id())
 	var enemy: Dictionary = snapshot.combat.actors[1]

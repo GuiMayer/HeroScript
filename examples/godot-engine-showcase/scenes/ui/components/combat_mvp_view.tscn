@@ -124,6 +124,7 @@ size_flags_horizontal = 3
 fit_content = true
 scroll_active = false
 [editable path="CanvasHost/ReferenceCanvas/Battlefield"]
+[connection signal="attributes_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_on_header_attributes_requested"]
 [connection signal="log_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_open_combat_log"]
 [connection signal="inspection_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_on_header_inspection_requested"]
 [connection signal="pause_requested" from="CanvasHost/ReferenceCanvas/CombatHeader" to="." method="_on_header_pause_requested"]

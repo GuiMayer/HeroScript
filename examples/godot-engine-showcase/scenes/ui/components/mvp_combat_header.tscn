@@ -22,6 +22,17 @@ mouse_filter = 2
 [node name="Portrait" parent="ActiveIdentity/PortraitFrame" instance=ExtResource("Art")]
 unique_name_in_owner = true
 layout_mode = 2
+[node name="AttributesButton" type="Button" parent="ActiveIdentity/PortraitFrame"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true
+tooltip_text = "Character attributes"
+accessibility_name = "Character attributes"
 [node name="IdentityText" type="VBoxContainer" parent="ActiveIdentity"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -119,6 +130,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("Keyline")
+[connection signal="pressed" from="ActiveIdentity/PortraitFrame/AttributesButton" to="." method="_on_attributes_pressed"]
 [connection signal="pressed" from="HeaderActions/LogButton" to="." method="_on_log_pressed"]
 [connection signal="pressed" from="HeaderActions/InspectButton" to="." method="_on_inspect_pressed"]
 [connection signal="pressed" from="HeaderActions/PauseButton" to="." method="_on_pause_pressed"]

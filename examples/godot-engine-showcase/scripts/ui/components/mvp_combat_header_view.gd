@@ -1,6 +1,7 @@
 @tool
 extends Control
 ## Three independent visual regions; receives published display data only.
+signal attributes_requested
 signal log_requested
 signal inspection_requested
 signal pause_requested
@@ -13,6 +14,7 @@ var round_label: Label
 var active_turn_label: Label
 var support_label: Label
 var portrait: TextureRect
+var attributes_button: Button
 var log_button: Button
 var inspect_button: Button
 var pause_button: Button
@@ -25,6 +27,7 @@ func _bind_nodes() -> void:
 	active_turn_label = get_node("%ActiveTurn")
 	support_label = get_node("%SupportStatus")
 	portrait = get_node("%Portrait")
+	attributes_button = get_node("%AttributesButton")
 	log_button = get_node("%LogButton")
 	inspect_button = get_node("%InspectButton")
 	pause_button = get_node("%PauseButton")
@@ -54,6 +57,8 @@ func apply_model(model: Dictionary, context = null) -> void:
 	active_turn_label.visible = not active_turn_label.text.is_empty()
 	support_label.text = str(model.get("support", "")); support_label.tooltip_text = str(model.get("supportHint", ""))
 	support_label.visible = not support_label.text.is_empty()
+	attributes_button.tooltip_text = visual_context.translator.text("Character attributes")
+	attributes_button.accessibility_name = visual_context.translator.text("Character attributes")
 	portrait.rebind_context(visual_context)
 	portrait.setup("actors", str(model.get("actorDefinitionId", "")))
 	log_button.text = str(model.get("log", "")); log_button.tooltip_text = log_button.text; log_button.accessibility_name = log_button.text
@@ -64,6 +69,7 @@ func apply_model(model: Dictionary, context = null) -> void:
 func set_inspection_available(value: bool) -> void:
 	_bind_nodes(); inspect_button.disabled = not value
 func presentation_model() -> Dictionary: return _model.duplicate(true)
+func _on_attributes_pressed() -> void: attributes_requested.emit()
 func _on_log_pressed() -> void: log_requested.emit()
 func _on_inspect_pressed() -> void:
 	if not inspect_button.disabled: inspection_requested.emit()

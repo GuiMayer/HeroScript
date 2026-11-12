@@ -32,6 +32,20 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 		hand.request_layout()
 	super.apply_projection(data, combat_presenter, cards_presenter, facts, local_context)
 
+func _build_character_sidebar() -> Control:
+	var sidebar := super._build_character_sidebar()
+	_position_character_sidebar()
+	return sidebar
+
+func _position_character_sidebar() -> void:
+	if not is_instance_valid(character_sidebar) or not is_instance_valid(header_view): return
+	var parent := character_sidebar.get_parent() as Control
+	if parent == null: return
+	var header_bottom: float = header_view.get_global_rect().end.y
+	character_sidebar.position.y = header_bottom - parent.global_position.y + 8.0
+	var available: float = parent.get_global_rect().end.y - character_sidebar.global_position.y
+	character_sidebar.size.y = maxf(180.0, minf(layout_profile.sidebar_height, available))
+
 func _build_header() -> void:
 	_present_header(presenter, _combat_snapshot)
 
@@ -66,6 +80,9 @@ func _refresh_header_inspection(_id := "") -> void:
 	if not is_instance_valid(header_view): return
 	var id: String = hand.active_card_id() if is_instance_valid(hand) else ""
 	header_view.set_inspection_available(not id.is_empty() and hand.is_card_pickable(id))
+
+func _on_header_attributes_requested() -> void:
+	if is_instance_valid(character_sidebar): character_sidebar.toggle_from_button()
 
 func _on_header_pause_requested() -> void: intent_requested.emit("pause", [])
 func _on_header_inspection_requested() -> void:
@@ -144,6 +161,8 @@ func _input(event: InputEvent) -> void:
 
 func _build_hand() -> void:
 	super._build_hand()
+	if not hand_section.minimum_size_changed.is_connected(_queue_gameplay_layout):
+		hand_section.minimum_size_changed.connect(_queue_gameplay_layout)
 	# The same inspection action is now in the header, not duplicated in the dock.
 	hand.toolbar.get_node("HandInspectButton").hide()
 	for child in hand.toolbar.get_children():
@@ -161,8 +180,6 @@ func _present_energy(combat_state: Dictionary) -> void:
 		energy_indicator.minimum_size_changed.connect(_queue_gameplay_layout)
 	energy_indicator.text = ""
 	energy_indicator.tooltip_text = ""
-	if not hand_section.minimum_size_changed.is_connected(_queue_gameplay_layout):
-		hand_section.minimum_size_changed.connect(_queue_gameplay_layout)
 	for actor in combat_state.get("actors", []):
 		if str(actor.get("instanceId", "")) != _input_actor: continue
 		var resources: Dictionary = actor.get("resources", {})
@@ -256,10 +273,15 @@ func _layout_gameplay() -> void:
 		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
 			actor.fit_battlefield_height(available_height)
 	_sync_turn_dock_visibility()
+	if is_instance_valid(right_pile_controls) and right_pile_controls.visible and is_instance_valid(turn_view):
+		var pile_height: float = right_pile_controls.get_node("Zones").get_combined_minimum_size().y
+		_fit_pile_group(right_pile_controls, turn_view.position.x, turn_view.position.y - pile_height - 8.0, turn_view.size.x, pile_height)
+	_layout_battlefield_axis()
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
 		if is_instance_valid(character_sidebar):
 			character_sidebar.fit_bounds(gameplay_column.get_global_rect(), layout_profile.sidebar_width, layout_profile.sidebar_height)
+			_position_character_sidebar()
 		if is_instance_valid(reconnect_button):
 			var rec_width := maxf(layout_profile.reconnect_button_size.x, reconnect_button.get_combined_minimum_size().x)
 			var rec_height := maxf(layout_profile.reconnect_button_size.y, reconnect_button.get_combined_minimum_size().y)
@@ -273,10 +295,6 @@ func _layout_gameplay() -> void:
 			var cand_left_min: float = rail_right + battlefield_left_gap
 			var cand_right_max: float = fitted.x * bottom_hud.anchor_right if is_instance_valid(bottom_hud) else (fitted.x - 220.0)
 			var cand_avail: float = maxf(240.0, cand_right_max - cand_left_min)
-	if is_instance_valid(right_pile_controls) and right_pile_controls.visible and is_instance_valid(turn_view):
-		var pile_height: float = right_pile_controls.get_node("Zones").get_combined_minimum_size().y
-		_fit_pile_group(right_pile_controls, turn_view.position.x, turn_view.position.y - pile_height - 8.0, turn_view.size.x, pile_height)
-	_layout_battlefield_axis()
 			var cand_width: float = minf(layout_profile.candidate_width, cand_avail)
 			var cand_left: float = clampf((fitted.x - cand_width) * 0.5, cand_left_min, maxf(cand_left_min, cand_right_max - cand_width))
 			var cand_bottom: float = minf(energy_top - 8.0, first_card_top - fitted.y - 8.0)
@@ -286,24 +304,6 @@ func _layout_gameplay() -> void:
 			candidate_panel.offset_bottom = cand_bottom
 			candidate_panel.offset_top = cand_bottom - layout_profile.candidate_height
 
-func _on_sidebar_open_changed(value: bool) -> void:
-	super._on_sidebar_open_changed(value)
-	var viewport := get_viewport()
-	if viewport == null: return
-	if value:
-		var focused := viewport.gui_get_focus_owner()
-		if is_instance_valid(focused) and (not is_instance_valid(character_sidebar) or not character_sidebar.is_ancestor_of(focused)):
-			_drawer_return_focus = weakref(focused)
-	else:
-		var target: Control = _drawer_return_focus.get_ref() if _drawer_return_focus != null else null
-		_drawer_return_focus = null
-		var current_focus := viewport.gui_get_focus_owner()
-		if current_focus == null and is_instance_valid(target) and target.is_inside_tree() and target.is_visible_in_tree():
-			target.grab_focus()
-
-func present_combat_snapshot(state: Dictionary) -> void:
-	super.present_combat_snapshot(state)
-	var projection = Presenter.new(_run_snapshot, state, [], visual_context.translator, presentation)
 func battlefield_axis_x() -> float:
 	var fallback: float = gameplay_column.size.x * 0.5
 	if not is_instance_valid(battlefield_view): return fallback
@@ -351,6 +351,24 @@ func _layout_deck_pile() -> void:
 		identity_right = deck.position.x - gap
 	identity.offset_right = identity_right - header_view.size.x * identity.anchor_right
 
+func _on_sidebar_open_changed(value: bool) -> void:
+	super._on_sidebar_open_changed(value)
+	var viewport := get_viewport()
+	if viewport == null: return
+	if value:
+		var focused := viewport.gui_get_focus_owner()
+		if is_instance_valid(focused) and (not is_instance_valid(character_sidebar) or not character_sidebar.is_ancestor_of(focused)):
+			_drawer_return_focus = weakref(focused)
+	else:
+		var target: Control = _drawer_return_focus.get_ref() if _drawer_return_focus != null else null
+		_drawer_return_focus = null
+		var current_focus := viewport.gui_get_focus_owner()
+		if current_focus == null and is_instance_valid(target) and target.is_inside_tree() and target.is_visible_in_tree():
+			target.grab_focus()
+
+func present_combat_snapshot(state: Dictionary) -> void:
+	super.present_combat_snapshot(state)
+	var projection = Presenter.new(_run_snapshot, state, [], visual_context.translator, presentation)
 	_present_header(projection, state)
 	_present_energy(state)
 

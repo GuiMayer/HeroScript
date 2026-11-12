@@ -110,6 +110,13 @@ func set_open(value: bool, by_hover := false) -> void:
 	_tween.tween_property(self, "openness", target, transition_seconds * absf(target - openness))
 	_tween.tween_callback(func(): visible = expanded)
 
+func toggle_from_button() -> void:
+	# A click on the portrait pins a drawer that was opened by edge hover.
+	if expanded and _hover_open:
+		_hover_open = false
+	else:
+		set_open(not expanded)
+
 func pointer_moved(point: Vector2) -> void:
 	if point.x > 40: _edge_armed = true
 	if not expanded and _edge_armed and point.x >= 0 and point.x <= 20:
