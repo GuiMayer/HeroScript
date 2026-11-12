@@ -120,6 +120,8 @@
     "Inspecionar custo efetivo e influências de cada inscrição na revisão ativa; textos e valores brutos aparentam divergência.",
     "Validar suporte a Divino em atributos, pipelines e exibição antes de alterar cartas.",
     "Inventariar mecânicas suportadas por engine e interface antes de propor cartas.",
-    "A linha de base não inclui cálculo de DPS nem prediz taxa de vitória."
+    "A linha de base não inclui cálculo de DPS nem prediz taxa de vitória.",
+    "O teste API EquippedStyleInscriptionsApplyOnlyToMatchingCards exige o parâmetro cap=1.5 do escalonamento anterior; atualizar validação ao substituir a fórmula, sem modificar a engine.",
+    "Escudo acrescentado por padrão em carta sem Divino: verificar como aplicar escalonamento Divino ao efeito sem contaminar o escalonamento do dano da carta; a seleção de subjectKeys utiliza as tags da carta."
   ]
 }
