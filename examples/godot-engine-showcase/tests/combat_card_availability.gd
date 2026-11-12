@@ -1,0 +1,18 @@
+extends SceneTree
+func _initialize() -> void: call_deferred("run")
+func run() -> void:
+	var card = preload("res://scenes/ui/components/card_view.tscn").instantiate()
+	root.add_child(card)
+	card.configure(card.preview_data)
+	card.set_combat_availability(true, true)
+	assert(card.get_node("CombatAvailability").visible)
+	assert(card.accessibility_description == "Available to play")
+	assert(card.get_node("CombatAvailability").get_theme_stylebox("panel").border_width_left == 4)
+	card.set_combat_availability(true, false)
+	assert(card.accessibility_description == "No legal action available")
+	assert(card.get_node("CombatAvailability").get_theme_stylebox("panel").border_width_left == 2)
+	card.set_combat_availability(false, false)
+	assert(not card.get_node("CombatAvailability").visible)
+	card.queue_free()
+	print("PASS: availability distinguishes legal actions and hides while unknown")
+	quit()

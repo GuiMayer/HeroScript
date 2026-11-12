@@ -476,6 +476,7 @@ func _update_controls() -> void:
 		card.disabled = false # Still focusable for reading; activation is gated by the hand/screen.
 		# Playability is explained in preview/inspection; preserve the face's semantic colors.
 		card.modulate = Color.WHITE
+		card.set_combat_availability(not locked, not _candidates(str(id)).is_empty())
 		card.select_card(id == selected_card)
 	for button in action_buttons:
 		button.disabled = locked or (button.has_meta("selection_only") and selected_card.is_empty()) or \

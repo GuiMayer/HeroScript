@@ -8,6 +8,32 @@ var motion: Tween
 var chosen := false
 var model: Dictionary = {}
 
+func set_combat_availability(known: bool, available: bool) -> void:
+	var outline := get_node_or_null("CombatAvailability") as Panel
+	if outline == null:
+		outline = Panel.new(); outline.name = "CombatAvailability"
+		outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(outline)
+		outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	outline.visible = known
+	var previous_tooltip := str(get_meta("combat_tooltip", ""))
+	var base_tooltip := str(get_meta("combat_base_tooltip", "")) if tooltip_text == previous_tooltip else tooltip_text
+	set_meta("combat_base_tooltip", base_tooltip)
+	if not known:
+		tooltip_text = base_tooltip
+		set_meta("combat_tooltip", tooltip_text)
+		accessibility_description = ""
+		return
+	var border := StyleBoxFlat.new()
+	border.bg_color = Color.TRANSPARENT
+	border.border_color = visual_context.styles.color("accent.primary") if available else visual_context.styles.color("text.secondary")
+	border.set_border_width_all(4 if available else 2)
+	border.set_corner_radius_all(visual_style.face_radius)
+	outline.add_theme_stylebox_override("panel", border)
+	accessibility_description = visual_context.translator.text("Available to play" if available else "No legal action available")
+	tooltip_text = base_tooltip + "\n" + accessibility_description
+	set_meta("combat_tooltip", tooltip_text)
+
 func reconcile_from(other) -> void:
 	if visual_context != other.visual_context: _configuration_key = ""
 	visual_context = other.visual_context
