@@ -23,8 +23,7 @@ func run() -> void:
 	var screen = router.host.get_child(0)
 	check(router.current_screen == "activity" and screen.workshop.visible and not screen.view.visible, "workshop is rendered as full activity")
 	var offer = screen.workshop.get_node("ContentScroll/Content/Offers/Offer1/Column")
-	offer.get_node("Select").pressed.emit()
-	var acquire: Button = offer.get_node("AcquireSlot/Acquire")
+	var acquire: Button = offer.get_node("Acquire")
 	acquire.grab_focus(); await process_frame
 	acquire.pressed.emit(); await process_frame
 	check(screen.workshop.get_node("PurchaseConfirm").visible, "purchase confirmation is displayed")
