@@ -14,6 +14,7 @@ var _offers: Array = []
 var _selected := -1
 var _inventory_open := false
 var _completed := false
+var _editable := true
 var _pending_apply := ""
 var _bound := false
 
@@ -34,8 +35,8 @@ func bind() -> void:
 	get_node("ContentScroll/Content/Inventory").choice_requested.connect(func(reference): preview_requested.emit(reference))
 	_bound = true
 
-func present(run: Dictionary, choices: Array, projection, visual_context, item_snapshot: Dictionary, facts: Array, appearance: Dictionary) -> void:
-	bind(); context = visual_context; theme = context.theme; presenter = projection
+func present(run: Dictionary, choices: Array, projection, visual_context, item_snapshot: Dictionary, facts: Array, appearance: Dictionary, editable := true) -> void:
+	bind(); context = visual_context; theme = context.theme; presenter = projection; _editable = editable
 	if _choices != choices or _run.get("sequence") != run.get("sequence") or _run.get("runId") != run.get("runId"):
 		_selected = -1
 		_pending_apply = ""
@@ -73,7 +74,7 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 	get_node("Footer/Purchase").text = t.text("Acquire pattern")
 	get_node("Footer/Purchase").visible = not _inventory_open and not _offers.is_empty()
 	get_node("Footer/Continue").text = t.text("Apply later and continue") if _completed else t.text("Leave workshop")
-	get_node("Footer/Continue").disabled = not _choices.any(func(choice): return str(choice.get("type", "")) == "RESOLVE_NODE")
+	get_node("Footer/Continue").disabled = not _editable or not _choices.any(func(choice): return str(choice.get("type", "")) == "RESOLVE_NODE")
 	_refresh_selection()
 	context.styles.apply_view_preferences(self)
 
@@ -98,11 +99,11 @@ func _refresh_selection() -> void:
 		if not pool is Dictionary or not pool.has("current"): known = false; continue
 		if float(pool.current) < float(cost.get("amount", 0)): can_afford = false
 	label.text = context.translator.text("Insufficient resources") if known and not can_afford else str(model.name) + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
-	button.disabled = known and not can_afford
+	button.disabled = not _editable or (known and not can_afford)
 
 func _toggle_inventory() -> void:
 	_inventory_open = not _inventory_open
-	present(_run, _choices, presenter, context, _items, _facts, _appearance)
+	present(_run, _choices, presenter, context, _items, _facts, _appearance, _editable)
 var _items: Dictionary = {}
 var _facts: Array = []
 var _appearance: Dictionary = {}

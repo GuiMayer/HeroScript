@@ -22,6 +22,10 @@ func run() -> void:
 	run.resources.parts.current = 3
 	view.present(run, choices, presenter, context, catalog, [], {})
 	check(not view.get_node("Footer/Purchase").disabled, "affordable purchase becomes available")
+	view.present(run, choices, presenter, context, catalog, [], {}, false)
+	check(view.get_node("Footer/Purchase").disabled and view.get_node("Footer/Continue").disabled, "unsynchronized workshop stays read-only")
+	view.present(run, choices, presenter, context, catalog, [], {}, true)
+
 	var emitted: Array = []
 	view.purchase_requested.connect(func(ref): emitted.append(ref))
 	view.get_node("Footer/Purchase").pressed.emit()

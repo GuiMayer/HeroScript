@@ -63,7 +63,7 @@ func _render(data: Dictionary) -> void:
 	workshop.visible = is_workshop
 	if is_workshop:
 		workshop.update_inventory(GameSession.modifier_items, GameSession.card_presentations, presentation)
-		workshop.present(run, choices, presenter, visual_context, GameSession.modifier_items, GameSession.card_presentations, presentation)
+		workshop.present(run, choices, presenter, visual_context, GameSession.modifier_items, GameSession.card_presentations, presentation, GameSession.synchronized and not GameSession.busy)
 	view.set_compartments_available(not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	var workflow_key: Array = [run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0), choices]
 	if workflow_key != _workflow_key:
@@ -201,12 +201,12 @@ func _workshop_map() -> void:
 
 func _workshop_execute(reference: String) -> void:
 	var choice: Dictionary = controller.choice_for(reference)
-	if choice.is_empty() or GameSession.busy: return
+	if choice.is_empty() or GameSession.busy or not GameSession.synchronized: return
 	await _execute(choice)
 
 func _workshop_preview(reference: String) -> void:
 	var choice: Dictionary = controller.choice_for(reference)
-	if choice.is_empty() or GameSession.busy: return
+	if choice.is_empty() or GameSession.busy or not GameSession.synchronized: return
 	var assessment: Dictionary = await controller.preview_transformation(choice)
 	if not is_inside_tree(): return
 	var models: Array = presenter.transformation_models(assessment)
