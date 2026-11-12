@@ -23,9 +23,9 @@ func bind() -> void:
 	for i in 3:
 		var index := i
 		get_node("ContentScroll/Content/Offers/Offer%d/Column/Select" % (i + 1)).pressed.connect(func(): _select(index))
+		get_node("ContentScroll/Content/Offers/Offer%d/Column/Acquire" % (i + 1)).pressed.connect(_confirm_purchase)
 	get_node("Header/Map").pressed.connect(func(): map_requested.emit())
 	get_node("Footer/Manage").pressed.connect(_toggle_inventory)
-	get_node("Footer/Purchase").pressed.connect(_confirm_purchase)
 	get_node("Footer/Continue").pressed.connect(_confirm_leave)
 	get_node("PurchaseConfirm").confirmed.connect(func():
 		if _selected >= 0 and _selected < _offers.size(): purchase_requested.emit(presenter.option_reference(_offers[_selected])))
@@ -66,13 +66,12 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 		offer.get_node("Column/Description").text = str(model.summary) if str(model.category) == "modifier_items" else t.text("Effect description unavailable. Inspect a compatible card before applying.")
 		offer.get_node("Column/Cost").text = (t.text("Cost: %s") % str(model.cost)) if not str(model.cost).is_empty() else t.text("Cost unavailable")
 		offer.get_node("Column/Select").text = t.text("Selected") if i == _selected else t.text("Select")
+		offer.get_node("Column/Acquire").text = t.text("Acquire pattern")
 	get_node("ContentScroll/Content/Offers").visible = not _inventory_open and not _offers.is_empty()
 	var inventory = get_node("ContentScroll/Content/Inventory")
 	inventory.visible = _inventory_open
 	if _inventory_open: inventory.configure(item_snapshot, choices, facts, appearance, context, _editable)
 	get_node("Footer/Manage").text = t.text("Back to workshop" if _completed else "Back to patterns") if _inventory_open else t.text("Apply now" if _completed else "Manage card modifiers")
-	get_node("Footer/Purchase").text = t.text("Acquire pattern")
-	get_node("Footer/Purchase").visible = not _inventory_open and not _offers.is_empty()
 	get_node("Footer/Continue").text = t.text("Apply later and continue") if _completed else t.text("Leave workshop")
 	get_node("Footer/Continue").disabled = not _editable or not _choices.any(func(choice): return str(choice.get("type", "")) == "RESOLVE_NODE")
 	_refresh_selection()
@@ -80,26 +79,42 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 
 func _select(index: int) -> void:
 	_selected = index
-	for i in 3:
-		get_node("ContentScroll/Content/Offers/Offer%d/Column/Select" % (i + 1)).text = context.translator.text("Selected" if i == index else "Select")
 	_refresh_selection()
 
 func _refresh_selection() -> void:
 	var label: Label = get_node("Footer/Selection")
-	var button: Button = get_node("Footer/Purchase")
-	if _selected < 0 or _selected >= _offers.size():
-		label.text = context.translator.text("Select a pattern to see its cost.") if not _offers.is_empty() else ""
-		button.disabled = true; return
-	var model: Dictionary = presenter.offer(_offers[_selected])
+	var valid := _selected >= 0 and _selected < _offers.size()
 	var can_afford := true
 	var known := true
-	var costs: Array = _offers[_selected].get("costs", presenter.current_node().get("activity", {}).get("parameters", {}).get("costs", []))
-	for cost in costs:
-		var pool = _run.get("resources", {}).get(str(cost.get("resourceId", "")), {})
-		if not pool is Dictionary or not pool.has("current"): known = false; continue
-		if float(pool.current) < float(cost.get("amount", 0)): can_afford = false
-	label.text = context.translator.text("Insufficient resources") if known and not can_afford else str(model.name) + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
-	button.disabled = not _editable or (known and not can_afford)
+	if valid:
+		var costs: Array = _offers[_selected].get("costs", presenter.current_node().get("activity", {}).get("parameters", {}).get("costs", []))
+		for cost in costs:
+			var pool = _run.get("resources", {}).get(str(cost.get("resourceId", "")), {})
+			if not pool is Dictionary or not pool.has("current"): known = false; continue
+			if float(pool.current) < float(cost.get("amount", 0)): can_afford = false
+		var model: Dictionary = presenter.offer(_offers[_selected])
+		label.text = context.translator.text("Insufficient resources") if known and not can_afford else context.translator.text("Selected pattern: %s") % str(model.name)
+	else:
+		label.text = context.translator.text("Select a pattern to review it.") if not _offers.is_empty() else ""
+	for i in 3:
+		var offer: PanelContainer = get_node("ContentScroll/Content/Offers/Offer%d" % (i + 1))
+		var selected := valid and i == _selected
+		offer.get_node("Column/Select").text = context.translator.text("Selected" if selected else "Select")
+		var acquire: Button = offer.get_node("Column/Acquire")
+		acquire.visible = selected and not _inventory_open
+		acquire.disabled = not _editable or (known and not can_afford)
+		if i < _offers.size():
+			var offer_model: Dictionary = presenter.offer(_offers[i])
+			var cost_text := (context.translator.text("Cost: %s") % str(offer_model.cost)) if not str(offer_model.cost).is_empty() else context.translator.text("Cost unavailable")
+			offer.get_node("Column/Cost").text = cost_text + (" · " + context.translator.text("Insufficient resources") if selected and known and not can_afford else "")
+		if selected:
+			var box = offer.get_theme_stylebox("panel").duplicate()
+			if box is StyleBoxFlat:
+				box.border_color = context.styles.color("accent.primary")
+				box.set_border_width_all(3)
+				offer.add_theme_stylebox_override("panel", box)
+		else:
+			offer.remove_theme_stylebox_override("panel")
 
 func _toggle_inventory() -> void:
 	_inventory_open = not _inventory_open
@@ -115,7 +130,7 @@ func _confirm_purchase() -> void:
 	var model: Dictionary = presenter.offer(_offers[_selected])
 	var dialog: ConfirmationDialog = get_node("PurchaseConfirm")
 	dialog.title = context.translator.text("Confirm choice")
-	dialog.dialog_text = str(model.name) + "\n" + str(model.summary) + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")
+	dialog.dialog_text = str(model.name) + "\n" + str(model.summary) + ("\n" + context.translator.text("Cost: %s") % str(model.cost) if not str(model.cost).is_empty() else "") + "\n" + get_node("Balance").text
 	dialog.popup_centered_clamped(Vector2i(500, 260), 0.9)
 
 func _confirm_leave() -> void:

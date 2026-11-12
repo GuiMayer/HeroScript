@@ -18,17 +18,17 @@ func run() -> void:
 	var first = view.get_node("ContentScroll/Content/Offers/Offer1/Column")
 	check(first.get_node("Title").text == "Split" and first.get_node("Description").text == "Three hits." and first.get_node("Cost").text.contains("3"), "offer displays authored name, effect and price")
 	first.get_node("Select").pressed.emit()
-	check(view.get_node("Footer/Purchase").disabled and view.get_node("Footer/Selection").text == "Insufficient resources", "insufficient balance prevents purchase and explains why")
+	check(first.get_node("Acquire").disabled and view.get_node("Footer/Selection").text == "Insufficient resources", "insufficient balance prevents purchase and explains why")
 	run.resources.parts.current = 3
 	view.present(run, choices, presenter, context, catalog, [], {})
-	check(not view.get_node("Footer/Purchase").disabled, "affordable purchase becomes available")
+	check(not first.get_node("Acquire").disabled, "affordable purchase becomes available")
 	view.present(run, choices, presenter, context, catalog, [], {}, false)
-	check(view.get_node("Footer/Purchase").disabled and view.get_node("Footer/Continue").disabled, "unsynchronized workshop stays read-only")
+	check(first.get_node("Acquire").disabled and view.get_node("Footer/Continue").disabled, "unsynchronized workshop stays read-only")
 	view.present(run, choices, presenter, context, catalog, [], {}, true)
 
 	var emitted: Array = []
 	view.purchase_requested.connect(func(ref): emitted.append(ref))
-	view.get_node("Footer/Purchase").pressed.emit()
+	first.get_node("Acquire").pressed.emit()
 	check(view.get_node("PurchaseConfirm").visible and emitted.is_empty(), "purchase asks for confirmation before submitting")
 	view.get_node("PurchaseConfirm").confirmed.emit()
 	check(emitted == [presenter.option_reference(choices[0])], "confirmation emits the exact published offer")
@@ -37,7 +37,7 @@ func run() -> void:
 	check(route.resolve_route(run, {}, complete_choices) == "activity", "completed workshop remains accessible until resolved")
 	run["completedActivityNodeIds"] = ["workshop"]
 	view.present(run, complete_choices, presenter, context, catalog, [], {})
-	check(view.get_node("Notice").text.contains("complete") and not view.get_node("Footer/Purchase").visible, "completed workshop offers apply later and continue without another purchase")
+	check(view.get_node("Notice").text.contains("complete") and not view.get_node("ContentScroll/Content/Offers").visible, "completed workshop offers apply later and continue without another purchase")
 	view.get_node("Footer/Manage").pressed.emit()
 	check(view.get_node("ContentScroll/Content/Inventory").visible, "modifier inventory opens inside workshop")
 	var applications: Array = []

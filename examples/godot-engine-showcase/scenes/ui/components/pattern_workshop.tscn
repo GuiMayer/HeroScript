@@ -62,10 +62,6 @@ autowrap_mode = 3
 layout_mode = 2
 custom_minimum_size = Vector2(180, 48)
 theme_type_variation = &"SecondaryAction"
-[node name="Purchase" type="Button" parent="Footer"]
-layout_mode = 2
-custom_minimum_size = Vector2(180, 48)
-theme_type_variation = &"PrimaryAction"
 [node name="Continue" type="Button" parent="Footer"]
 layout_mode = 2
 custom_minimum_size = Vector2(140, 48)
