@@ -5,7 +5,6 @@ signal purchase_requested(reference: String)
 signal apply_requested(reference: String)
 signal preview_requested(reference: String)
 signal resolve_requested
-signal map_requested
 var context
 var presenter
 var _run: Dictionary = {}
@@ -23,7 +22,6 @@ func bind() -> void:
 	for i in 3:
 		var index := i
 		get_node("ContentScroll/Content/Offers/Offer%d/Column/Acquire" % (i + 1)).pressed.connect(func(): _confirm_purchase(index))
-	get_node("Header/Map").pressed.connect(func(): map_requested.emit())
 	get_node("Footer/Manage").pressed.connect(_toggle_inventory)
 	get_node("Footer/Continue").pressed.connect(_confirm_leave)
 	get_node("PurchaseConfirm").confirmed.connect(func():
@@ -48,7 +46,6 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 	if _selected >= _offers.size(): _selected = -1
 	var t = context.translator
 	get_node("Header/Title").text = t.text("Pattern workshop")
-	get_node("Header/Map").text = t.text("MAP")
 	var parts: Dictionary = _run.get("resources", {}).get("parts", {})
 	get_node("Balance").text = (t.text("Available Parts: %s") % t.number(float(parts.current))) if parts.has("current") else t.text("Parts balance unavailable")
 	if not _offers.is_empty():
@@ -56,7 +53,7 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 	elif _completed:
 		get_node("Notice").text = t.text("This workshop is complete. You can apply an acquired pattern now or later.")
 	else:
-		get_node("Notice").text = t.text("Workshop offers are unavailable. Check the connection or return to the map.")
+		get_node("Notice").text = t.text("Workshop offers are unavailable. Check the connection.")
 	for i in 3:
 		var offer = get_node("ContentScroll/Content/Offers/Offer%d" % (i + 1))
 		offer.visible = i < _offers.size() and not _inventory_open

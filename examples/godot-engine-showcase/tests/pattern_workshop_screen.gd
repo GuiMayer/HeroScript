@@ -22,6 +22,7 @@ func run() -> void:
 	for i in 10: await process_frame
 	var screen = router.host.get_child(0)
 	check(router.current_screen == "activity" and screen.workshop.visible and not screen.view.visible, "workshop is rendered as full activity")
+	check(not screen.workshop.has_node("Header/Map"), "workshop has no separate map button")
 	var offer = screen.workshop.get_node("ContentScroll/Content/Offers/Offer1/Column")
 	var acquire: Button = offer.get_node("Acquire")
 	acquire.grab_focus(); await process_frame

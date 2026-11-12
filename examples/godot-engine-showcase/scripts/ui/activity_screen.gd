@@ -37,7 +37,6 @@ func setup(owner, data: Dictionary) -> void:
 	workshop.apply_requested.connect(_workshop_execute)
 	workshop.preview_requested.connect(_workshop_preview)
 	workshop.resolve_requested.connect(_workshop_resolve)
-	workshop.map_requested.connect(_workshop_map)
 	view = get_node("JourneyView")
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	view.intent_requested.connect(_on_intent)
@@ -195,9 +194,6 @@ func _maybe_auto_advance(ticket := -1) -> void:
 	elif ticket < 0 or ticket == render_epoch:
 		for button in view.choice_buttons: button.disabled = false
 
-
-func _workshop_map() -> void:
-	if not GameSession.busy and not get_tree().paused: screen_context.navigation.show_map()
 
 func _workshop_execute(reference: String) -> void:
 	var choice: Dictionary = controller.choice_for(reference)
