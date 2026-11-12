@@ -58,3 +58,10 @@ Revisão heurística da tela de ofertas, estado após aquisição, seleção de 
 - [Microsoft Xbox Accessibility Guideline 103](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/103) — não depender somente de cor para transmitir estados.
 - [Game Accessibility Guidelines: contraste](https://gameaccessibilityguidelines.com/provide-high-contrast-between-text-ui-and-background/) — contraste do texto e controles sobre o fundo.
 - [Google Playables: boas práticas de design](https://developers.google.com/youtube/gaming/playables/certification/best_practices_design) — legibilidade e navegação por teclado. Seus números de tamanho de toque são direcionados ao contexto do Playables, não uma exigência direta deste jogo para desktop.
+
+## Verificações realizadas
+
+- Capturas gráficas com projeções simuladas: ofertas e seleção em 1280×720 e 1920×1080, estado após compra, lista de cartas e comparação, incluindo texto em 160%. A campanha aberta do jogador não foi modificada.
+- Pela paleta compartilhada, o contraste calculado é 16,1:1 para texto principal sobre branco, 5,94:1 para texto secundário sobre branco e 5,59:1 para branco sobre a ação principal. São medições das cores da paleta, não uma auditoria de cada pixel/estado do jogo.
+- Passaram os testes de seleção e preço, saldo insuficiente ou preço não publicado, confirmação e cancelamento, foco após cancelamento, estado adquirido, cópias de cartas, incompatibilidade acessível, comparação, navegação do mapa e interfaces relacionadas. Os testes de integração REST do motor dos três padrões também passaram na execução anterior; o motor não foi alterado nesta etapa.
+- Limitação: não foi executada uma partida completa da interface conectada a um servidor isolado, nem um estudo com jogadores. Os dados gráficos usados aqui são simulados. A verificação `world_one` permanece com uma expectativa independente desatualizada de 30 cartas para um catálogo com 57.

@@ -215,6 +215,7 @@ func _workshop_preview(reference: String) -> void:
 	workshop.show_comparison(reference, models)
 
 func _workshop_resolve() -> void:
+	if GameSession.busy or not GameSession.synchronized: return
 	var matches: Array = GameSession.activity_choices().filter(func(choice):
 		return str(choice.get("type", "")) == "RESOLVE_NODE" and str(choice.get("payload", {}).get("currentNodeId", "")) == str(GameSession.run.get("currentNodeId", "")))
 	if matches.size() == 1: await _execute(matches[0])

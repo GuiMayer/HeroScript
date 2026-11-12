@@ -108,14 +108,20 @@ func _refresh_selection() -> void:
 	var valid := _selected >= 0 and _selected < _offers.size()
 	var can_afford := true
 	var known := true
+	var price_known := false
 	if valid:
-		var costs: Array = _offers[_selected].get("costs", presenter.current_node().get("activity", {}).get("parameters", {}).get("costs", []))
+		var parameters: Dictionary = presenter.current_node().get("activity", {}).get("parameters", {})
+		price_known = _offers[_selected].has("costs") or parameters.has("costs")
+		var costs: Array = _offers[_selected].get("costs", parameters.get("costs", []))
 		for cost in costs:
 			var pool = _run.get("resources", {}).get(str(cost.get("resourceId", "")), {})
 			if not pool is Dictionary or not pool.has("current"): known = false; continue
 			if float(pool.current) < float(cost.get("amount", 0)): can_afford = false
 		var model: Dictionary = presenter.offer(_offers[_selected])
-		label.text = context.translator.text("Insufficient resources") if known and not can_afford else context.translator.text("Selected pattern: %s") % str(model.name)
+		if not price_known: label.text = context.translator.text("Cost unavailable")
+		elif not known: label.text = context.translator.text("Balance unavailable; affordability cannot be verified.")
+		elif not can_afford: label.text = context.translator.text("Insufficient resources")
+		else: label.text = context.translator.text("Selected pattern: %s") % str(model.name)
 	else:
 		label.text = context.translator.text("Select a pattern to review it.") if not _offers.is_empty() else ""
 	for i in 3:
@@ -124,7 +130,7 @@ func _refresh_selection() -> void:
 		offer.get_node("Column/Select").text = context.translator.text("Selected" if selected else "Select")
 		var acquire: Button = offer.get_node("Column/AcquireSlot/Acquire")
 		acquire.visible = selected and not _inventory_open
-		acquire.disabled = not _editable or (known and not can_afford)
+		acquire.disabled = not _editable or not price_known or (known and not can_afford)
 		if i < _offers.size():
 			var offer_model: Dictionary = presenter.offer(_offers[i])
 			var cost_text: String = (context.translator.text("Cost: %s") % str(offer_model.cost)) if not str(offer_model.cost).is_empty() else context.translator.text("Cost unavailable")
@@ -149,6 +155,7 @@ func update_inventory(items: Dictionary, facts: Array, appearance: Dictionary) -
 
 func _confirm_purchase() -> void:
 	if _selected < 0 or _selected >= _offers.size(): return
+	if get_node("ContentScroll/Content/Offers/Offer%d/Column/AcquireSlot/Acquire" % (_selected + 1)).disabled: return
 	var model: Dictionary = presenter.offer(_offers[_selected])
 	var dialog: ConfirmationDialog = get_node("PurchaseConfirm")
 	dialog.title = context.translator.text("Confirm choice")
@@ -158,6 +165,7 @@ func _confirm_purchase() -> void:
 	dialog.popup_centered_clamped(Vector2i(500, 260), 0.9)
 
 func _confirm_leave() -> void:
+	if get_node("Footer/Continue").disabled: return
 	var dialog: ConfirmationDialog = get_node("LeaveConfirm")
 	dialog.title = context.translator.text("Leave workshop")
 	dialog.ok_button_text = context.translator.text("Continue" if _completed else "Leave workshop")

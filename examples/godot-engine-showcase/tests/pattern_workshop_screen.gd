@@ -22,6 +22,16 @@ func run() -> void:
 	for i in 10: await process_frame
 	var screen = router.host.get_child(0)
 	check(router.current_screen == "activity" and screen.workshop.visible and not screen.view.visible, "workshop is rendered as full activity")
+	var offer = screen.workshop.get_node("ContentScroll/Content/Offers/Offer1/Column")
+	offer.get_node("Select").pressed.emit()
+	var acquire: Button = offer.get_node("AcquireSlot/Acquire")
+	acquire.grab_focus(); await process_frame
+	acquire.pressed.emit(); await process_frame
+	check(screen.workshop.get_node("PurchaseConfirm").visible, "purchase confirmation is displayed")
+	screen.workshop.get_node("PurchaseConfirm").hide()
+	for i in 4: await process_frame
+	check(acquire.has_focus(), "cancelling purchase returns keyboard focus to the same action")
+
 	var fake := Fixture.new(); fake.run = session.run; fake.choices = session.activity_choices()
 	screen.controller.dispose(); screen.controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(fake); screen.controller.bind(fake.run, fake.choices)
 	await screen._workshop_resolve()

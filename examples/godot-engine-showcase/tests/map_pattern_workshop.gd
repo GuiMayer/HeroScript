@@ -22,6 +22,15 @@ func run() -> void:
 	run.resources.parts.current = 3
 	view.present(run, choices, presenter, context, catalog, [], {})
 	check(not first.get_node("AcquireSlot/Acquire").disabled, "affordable purchase becomes available")
+	var no_price_run := run.duplicate(true); no_price_run.map.nodes[0].activity.parameters.erase("costs")
+	var no_price_choices: Array = choices.duplicate(true); no_price_choices[0].erase("costs"); no_price_choices[1].erase("costs")
+	var no_price_presenter = preload("res://scripts/presentation/activity_presenter.gd").new(no_price_run, no_price_choices, {}, context.translator, [], catalog)
+	view.present(no_price_run, no_price_choices, no_price_presenter, context, catalog, [], {})
+	first.get_node("Select").pressed.emit()
+	check(first.get_node("AcquireSlot/Acquire").disabled and view.get_node("Footer/Selection").text == "Cost unavailable", "unknown purchase price cannot be confirmed")
+	view.present(run, choices, presenter, context, catalog, [], {})
+	first.get_node("Select").pressed.emit()
+
 	view.present(run, choices, presenter, context, catalog, [], {}, false)
 	check(first.get_node("AcquireSlot/Acquire").disabled and view.get_node("Footer/Continue").disabled, "unsynchronized workshop stays read-only")
 	view.present(run, choices, presenter, context, catalog, [], {}, true)
