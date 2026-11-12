@@ -82,7 +82,13 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 	var label: Label = preload("res://scenes/ui/components/floating_effect_label.tscn").instantiate()
 	label.tree_exiting.connect(func():
 		if _active_lanes.has(target): _active_lanes[target].erase(lane), CONNECT_ONE_SHOT)
-	label.text = "%s%s %s" % ["+" if delta > 0 else "", visual_context.translator.number(delta), visual_context.translator.content_name(str(application.get("resourceId", "")))] if previous != null else visual_context.translator.content_name(str(application.get("statusId", application.get("modifierId", ""))))
+	var name_id := str(application.get("resourceId", ""))
+	if name_id.is_empty(): name_id = str(application.get("statusId", application.get("modifierId", "")))
+	var effect_name: String = visual_context.translator.content_name(name_id)
+	label.text = ("%s%s %s" % ["+" if delta > 0 else "", visual_context.translator.number(delta), effect_name]).strip_edges() if previous != null and current != null else effect_name
+	label.add_theme_font_size_override("font_size", roundi(22 * visual_context.text_scale))
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 4)
 	if kind == "payment": label.text = visual_context.translator.text("Cost") + " " + label.text
 	else:
 		var cue: Dictionary = visual_context.motion.cue(kind)

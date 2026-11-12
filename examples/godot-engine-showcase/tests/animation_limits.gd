@@ -18,6 +18,12 @@ func _run() -> void:
 	var before := JSON.stringify(frame)
 	feedback.present(frame, 0, 1, presenter, {"hero": portrait})
 	check(feedback.effects.get_child_count() <= 6 and JSON.stringify(frame) == before, "1000 facts retain exact data while decorative text stays bounded")
+	feedback.clear_cosmetics()
+	var status_frame := {"applications": [{"effectType": "APPLY_STATUS", "targetEntityId": "hero", "statusId": "burn", "previousValue": 1, "currentValue": 3}]}
+	feedback.present(status_frame, 0, 1, presenter, {"hero": portrait})
+	var status_label: Label = feedback.effects.get_child(0)
+	check(status_label.text.contains("2") and status_label.text.to_lower().contains("burn"), "status change identifies both the effect and its recorded change")
+	check(status_label.get_theme_constant("outline_size") == 4, "floating outcomes retain readable outlined text")
 	feedback.dispose(); for _frame in 8: await process_frame
 	check(feedback.effects.get_child_count() == 0, "settling releases every decorative node")
 	feedback.queue_free(); portrait.queue_free()
