@@ -122,10 +122,13 @@ func _probe_engine() -> void:
 		show_error(I18n.error(startup))
 		if current_screen == "menu": _show_main_menu()
 		return
-	if await GameSession.connect_engine(Preferences.selected_setting_id):
-		Preferences.selected_setting_id = GameSession.selected_setting_id
+	var preferred_setting: String = Preferences.selected_setting_id
+	if await GameSession.connect_engine(preferred_setting):
 		visual_context.setting_id = GameSession.selected_setting_id
-		Preferences.save_session()
+		# The server may temporarily omit the preferred setting. Keep the last
+		# explicit selection so a later connection can restore it.
+		if GameSession.selected_setting_id == preferred_setting:
+			Preferences.save_session()
 	_probing_engine = false
 	if current_screen == "menu":
 		_show_main_menu()
@@ -220,6 +223,9 @@ func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
 func _select_setting_from_menu(index: int, selector: OptionButton) -> void:
 	var setting_id := str(selector.get_item_metadata(index))
 	if setting_id == GameSession.selected_setting_id:
+		if Preferences.selected_setting_id != setting_id:
+			Preferences.selected_setting_id = setting_id
+			Preferences.save_session()
 		return
 	if not GameSession.select_setting(setting_id):
 		for item in selector.item_count:
