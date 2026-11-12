@@ -3,6 +3,7 @@ extends "res://scripts/ui/screen_view.gd"
 const JourneyView = preload("res://scripts/ui/journey_view.gd")
 const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
 var view: JourneyView
+var workshop: Control
 var controller
 var _router
 var _screen_context
@@ -30,6 +31,13 @@ func setup(owner, data: Dictionary) -> void:
 	if _router == null: _router = owner
 	mount(screen_context.visual_context)
 	controller = preload("res://scripts/ui/controllers/activity_controller.gd").new(GameSession)
+	workshop = get_node("PatternWorkshop")
+	workshop.bind()
+	workshop.purchase_requested.connect(_workshop_execute)
+	workshop.apply_requested.connect(_workshop_execute)
+	workshop.preview_requested.connect(_workshop_preview)
+	workshop.resolve_requested.connect(_workshop_resolve)
+	workshop.map_requested.connect(_workshop_map)
 	view = get_node("JourneyView")
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	view.intent_requested.connect(_on_intent)
@@ -40,6 +48,7 @@ func _render(data: Dictionary) -> void:
 	var run: Dictionary = GameSession.run
 	var choices: Array = GameSession.activity_choices()
 	var zones: Dictionary = GameSession.card_zones
+	var is_workshop: bool = preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(run)
 	controller.bind(run, choices)
 	var key: Array = [run, choices, zones, data, visual_context.presentation_key(), GameSession.card_presentations, GameSession.modifier_items]
 	if key != _projection_key:
@@ -47,8 +56,14 @@ func _render(data: Dictionary) -> void:
 		key[3] = presentation
 		_projection_key = key; render_epoch += 1
 		presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, presentation, I18n, GameSession.card_presentations, GameSession.modifier_items)
-		view.apply_projection(run, choices, zones, presentation, presenter, visual_context,
-			not GameSession.command("EDIT_DECK_LOADOUT").is_empty() or not GameSession.command("APPLY_LOADOUT").is_empty() or not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
+		if not is_workshop:
+			view.apply_projection(run, choices, zones, presentation, presenter, visual_context,
+				not GameSession.command("EDIT_DECK_LOADOUT").is_empty() or not GameSession.command("APPLY_LOADOUT").is_empty() or not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
+	view.visible = not is_workshop
+	workshop.visible = is_workshop
+	if is_workshop:
+		workshop.update_inventory(GameSession.modifier_items, GameSession.card_presentations, presentation)
+		workshop.present(run, choices, presenter, visual_context, GameSession.modifier_items, GameSession.card_presentations, presentation)
 	view.set_compartments_available(not GameSession.command("APPLY_DECK_COMPARTMENTS").is_empty())
 	var workflow_key: Array = [run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0), choices]
 	if workflow_key != _workflow_key:
@@ -78,6 +93,8 @@ func _on_intent(action: String, arguments: Array) -> void:
 func apply_model(model) -> void: refresh_state(model)
 func _return_to_map() -> void:
 	if not is_inside_tree() or get_tree().paused: return
+	if preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(GameSession.run):
+		screen_context.navigation.show_map(); return
 	if await controller.finish_for_map() and is_inside_tree(): screen_context.navigation.show_map()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
@@ -162,7 +179,7 @@ func _recover_actions() -> void:
 
 
 func _maybe_auto_advance(ticket := -1) -> void:
-	if screen_context.dialogue_return_barrier: return
+	if screen_context.dialogue_return_barrier or preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(GameSession.run): return
 	if (ticket >= 0 and ticket != render_epoch) or controller.auto_advancing or not is_inside_tree() or \
 		screen_context.current_screen != "activity" or GameSession.busy or get_tree().paused:
 		return
@@ -178,6 +195,29 @@ func _maybe_auto_advance(ticket := -1) -> void:
 	elif ticket < 0 or ticket == render_epoch:
 		for button in view.choice_buttons: button.disabled = false
 
+
+func _workshop_map() -> void:
+	if not GameSession.busy and not get_tree().paused: screen_context.navigation.show_map()
+
+func _workshop_execute(reference: String) -> void:
+	var choice: Dictionary = controller.choice_for(reference)
+	if choice.is_empty() or GameSession.busy: return
+	await _execute(choice)
+
+func _workshop_preview(reference: String) -> void:
+	var choice: Dictionary = controller.choice_for(reference)
+	if choice.is_empty() or GameSession.busy: return
+	var assessment: Dictionary = await controller.preview_transformation(choice)
+	if not is_inside_tree(): return
+	var models: Array = presenter.transformation_models(assessment)
+	if not bool(assessment.get("isCompatible", false)) or models.size() != 2:
+		screen_context.show_toast(I18n.text("Detailed inspection is unavailable.")); return
+	workshop.show_comparison(reference, models)
+
+func _workshop_resolve() -> void:
+	var matches: Array = GameSession.activity_choices().filter(func(choice):
+		return str(choice.get("type", "")) == "RESOLVE_NODE" and str(choice.get("payload", {}).get("currentNodeId", "")) == str(GameSession.run.get("currentNodeId", "")))
+	if matches.size() == 1: await _execute(matches[0])
 
 func _verify() -> void:
 	if controller.verifying: return

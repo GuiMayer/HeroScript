@@ -110,12 +110,19 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 metadata/font_role = "body"
 
-[node name="Actions" type="VBoxContainer" parent="Margin/Stack"]
+[node name="Actions" type="VBoxContainer" parent="Margin/Stack/Scroll/Body"]
 layout_mode = 2
 theme_override_constants/separation = 12
-[node name="MapResumeDialogue" type="Button" parent="Margin/Stack/Actions"]
+[node name="MapResumeDialogue" type="Button" parent="Margin/Stack/Scroll/Body/Actions"]
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0,48)
 theme_type_variation = &"SecondaryAction"
 text = "Resume conversation"
+
+[node name="MapResumeWorkshop" type="Button" parent="Margin/Stack/Scroll/Body/Actions"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0,48)
+theme_type_variation = &"SecondaryAction"
+text = "Open Pattern Workshop"

@@ -1,4 +1,10 @@
 {
+  "prototype_split_item": {"en": "Split pattern", "pt_BR": "Padrão de divisão"},
+  "prototype_split_item.description": {"en": "Repeats this card's main effect three times, sharing its original amount across hits.", "pt_BR": "Repete o efeito principal da carta três vezes, dividindo o valor original entre os golpes."},
+  "prototype_ward_link_item": {"en": "Guard pattern", "pt_BR": "Padrão de guarda"},
+  "prototype_ward_link_item.description": {"en": "Adds a separate effect: gain 4 base Block after this card's other effects.", "pt_BR": "Adiciona um efeito separado: recebe 4 de bloqueio base após os outros efeitos da carta."},
+  "prototype_stable_item": {"en": "Stable pattern", "pt_BR": "Padrão estável"},
+  "prototype_stable_item.description": {"en": "Prevents this card's damage effects from rolling critical tiers.", "pt_BR": "Impede que os efeitos de dano desta carta produzam níveis críticos."},
   "prototype_void": {
 	"en": "Void module",
 	"pt_BR": "Módulo Void"

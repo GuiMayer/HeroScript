@@ -98,6 +98,7 @@ func _store_reading() -> void:
 	if not is_instance_valid(view): return
 	screen_context.navigation.save_map_reading_state(_scope, view.capture_local_state())
 func _auto_advance(ticket: Array) -> void:
+	if preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(GameSession.run): return
 	if not _alive or ticket != _workflow_key or screen_context.dialogue_return_barrier or screen_context.current_screen != "map" or get_tree().paused or GameSession.busy or not GameSession.synchronized: return
 	var choice: Dictionary = controller.only_completion()
 	if not choice.is_empty() and str(choice.get("payload", {}).get("currentNodeId", "")) != str(GameSession.run.get("currentNodeId", "")): return

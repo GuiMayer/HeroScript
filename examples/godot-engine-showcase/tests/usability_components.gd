@@ -32,7 +32,7 @@ func run() -> void:
 	codex.free()
 	var map = load("res://scenes/ui/components/map_view.tscn").instantiate()
 	check(map.has_node("Header/CenterCurrent"), "Map provides an explicit center action")
-	check(map.has_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions"), "Travel actions remain outside scrolling details")
+	check(map.has_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Scroll/Body/Actions"), "Map actions remain reachable with the node details")
 	map.free()
 	var first := {"combatId":"archived", "actors":[{"instanceId":"hero", "definitionId":"spire_adept", "resources":{"custom":{"current":1,"maximum":10}}}]}
 	var last := first.duplicate(true); last.actors[0].resources.custom.current = 2

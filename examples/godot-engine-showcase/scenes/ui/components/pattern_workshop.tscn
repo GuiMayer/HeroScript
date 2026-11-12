@@ -1,0 +1,75 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/pattern_workshop_view.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/pattern_workshop_offer.tscn" id="Offer"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_modifier_inventory.tscn" id="Inventory"]
+[ext_resource type="PackedScene" path="res://scenes/ui/overlays/confirmation_dialog.tscn" id="Confirm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/overlays/transformation_confirmation.tscn" id="Compare"]
+[node name="PatternWorkshop" type="VBoxContainer"]
+visible = false
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+script = ExtResource("Script")
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ScreenTitle"
+text = "Pattern workshop"
+[node name="Map" type="Button" parent="Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 48)
+theme_type_variation = &"SecondaryAction"
+text = "MAP"
+[node name="Balance" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+[node name="Notice" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"Caption"
+[node name="ContentScroll" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+[node name="Content" type="VBoxContainer" parent="ContentScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+[node name="Offers" type="HFlowContainer" parent="ContentScroll/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+[node name="Offer1" parent="ContentScroll/Content/Offers" instance=ExtResource("Offer")]
+layout_mode = 2
+[node name="Offer2" parent="ContentScroll/Content/Offers" instance=ExtResource("Offer")]
+layout_mode = 2
+[node name="Offer3" parent="ContentScroll/Content/Offers" instance=ExtResource("Offer")]
+layout_mode = 2
+[node name="Inventory" parent="ContentScroll/Content" instance=ExtResource("Inventory")]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(0, 480)
+[node name="Footer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 12
+[node name="Selection" type="Label" parent="Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+vertical_alignment = 1
+autowrap_mode = 3
+[node name="Manage" type="Button" parent="Footer"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 48)
+theme_type_variation = &"SecondaryAction"
+[node name="Purchase" type="Button" parent="Footer"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 48)
+theme_type_variation = &"PrimaryAction"
+[node name="Continue" type="Button" parent="Footer"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 48)
+theme_type_variation = &"SecondaryAction"
+[node name="PurchaseConfirm" parent="." instance=ExtResource("Confirm")]
+[node name="LeaveConfirm" parent="." instance=ExtResource("Confirm")]
+[node name="Compare" parent="." instance=ExtResource("Compare")]

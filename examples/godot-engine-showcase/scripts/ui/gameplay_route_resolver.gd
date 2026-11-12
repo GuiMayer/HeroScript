@@ -28,6 +28,18 @@ static func has_dialogue_activity(run: Dictionary) -> bool:
 	return false
 
 
+static func is_mvp_workshop(run: Dictionary) -> bool:
+	if str(run.get("settingId", "")) != "prototype-test" or str(run.get("lifecycle", "Active")).to_lower() != "active": return false
+	var id := str(run.get("currentNodeId", ""))
+	if id in run.get("map", {}).get("resolvedNodeIds", []): return false
+	for node in run.get("map", {}).get("nodes", []):
+		if str(node.get("nodeId", "")) != id: continue
+		var activity: Dictionary = node.get("activity", {})
+		var ids: Array = activity.get("parameters", {}).get("modifierItemIds", [])
+		return str(activity.get("type", "")) == "CardUpgrade" and not ids.is_empty() and ids.size() <= 3
+	return false
+
+
 static func resolve_route(run: Dictionary, combat: Dictionary, choices: Array) -> String:
 	if run.is_empty():
 		return "menu"
@@ -38,6 +50,8 @@ static func resolve_route(run: Dictionary, combat: Dictionary, choices: Array) -
 		return "activity"
 	if has_dialogue_activity(run):
 		return "dialogue"
+	if is_mvp_workshop(run):
+		return "activity"
 	var types: Array = choices.map(func(choice): return str(choice.get("type", "")))
 	var detailed := types.any(func(type): return type in DETAILED_ACTIVITY_CHOICES)
 	return "activity" if detailed or str(run.get("lifecycle", "Active")).to_lower() != "active" else "map"

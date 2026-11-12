@@ -87,7 +87,7 @@ func _run() -> void:
 	screen.controller.bind(session.run, session.activity_choices())
 	await screen._confirm_choice(session.activity_choices()[0], screen.presenter.offer(session.activity_choices()[0]), "UPGRADE")
 	await settle()
-	var dialogs: Array = screen.find_children("*", "ConfirmationDialog", true, false)
+	var dialogs: Array = screen.find_children("*", "ConfirmationDialog", true, false).filter(func(dialog): return dialog.visible)
 	check(dialogs.size() == 1, "upgrade opens a confirmation rather than applying immediately")
 	var comparison_cards: Array = dialogs[0].find_children("*", "Button", true, false).filter(func(item): return item is CardView)
 	check(comparison_cards.size() == 2 and not dialogs[0].get_ok_button().disabled, "upgrade confirmation shows two real card components with effects")

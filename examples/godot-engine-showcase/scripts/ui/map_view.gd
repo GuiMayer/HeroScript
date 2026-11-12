@@ -113,7 +113,8 @@ func _build() -> void:
 	_inspector = _inspector_panel.get_node("Margin/Stack/Scroll/Body")
 	_resume_button = _inspector_panel.get_node("Margin/Stack/MapResumeRun")
 	_resume_button.pressed.connect(func(): intent_requested.emit("resume_run", []))
-	get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions/MapResumeDialogue").pressed.connect(func(): intent_requested.emit("resume_dialogue", []))
+	get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Scroll/Body/Actions/MapResumeDialogue").pressed.connect(func(): intent_requested.emit("resume_dialogue", []))
+	get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Scroll/Body/Actions/MapResumeWorkshop").pressed.connect(func(): intent_requested.emit("resume_run", []))
 	_inspector_toggle = _body.get_node("MapInspectorToggle")
 	_inspector_toggle.pressed.connect(func(): _set_inspector_open(not _inspector_open))
 	_body.resized.connect(_layout_inspector); _layout_inspector.call_deferred()
@@ -138,7 +139,7 @@ func _layout_inspector() -> void:
 func _usable_size() -> Vector2: return _scroll.size
 
 func set_resume_target(target: String) -> void:
-	_resume_button.visible = target in ["activity", "combat", "dialogue"]
+	_resume_button.visible = target in ["activity", "combat", "dialogue"] and not preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(_run)
 	var label := "Resume conversation" if target == "dialogue" else ("Return to combat" if target == "combat" else "Return to activity")
 	_resume_button.text = visual_context.translator.text(label)
 
@@ -146,7 +147,7 @@ func _inspect(id: String) -> void:
 	_selected = id
 	navigation.inspect(id)
 	route.set_selection(id)
-	var projection: Array = [id, route.nodes, _choices, _run.get("dialogues", []), visual_context.presentation_key()]
+	var projection: Array = [id, route.nodes, _choices, _run.get("dialogues", []), _presenter.presentation_key(), visual_context.presentation_key()]
 	if projection == _inspector_key: return
 	_inspector_key = projection.duplicate(true)
 	# Screens are projected before the router attaches them to the scene tree.
@@ -154,11 +155,11 @@ func _inspect(id: String) -> void:
 	var viewport := get_viewport() if is_inside_tree() else null
 	var old_focus: Control = viewport.gui_get_focus_owner() if viewport != null else null
 	var focus_name := str(old_focus.name) if old_focus != null and _inspector.is_ancestor_of(old_focus) else ""
-	var actions = get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions")
+	var actions = get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Scroll/Body/Actions")
 	for child in actions.get_children():
 		if child.has_meta("map_action"): actions.remove_child(child); child.queue_free()
 	var information = _inspector.get_node("Information")
-	information.hide(); actions.hide(); actions.get_node("MapResumeDialogue").hide()
+	information.hide(); actions.hide(); actions.get_node("MapResumeDialogue").hide(); actions.get_node("MapResumeWorkshop").hide()
 	_action_buttons.clear()
 	var matches: Array = route.nodes.filter(func(node): return str(node.id) == id)
 	if matches.is_empty(): return
@@ -178,16 +179,22 @@ func _inspect(id: String) -> void:
 	information.get_node("Status").text = " · ".join(statuses)
 	if not node.travel.is_empty(): _action(visual_context.translator.text("TRAVEL"), node.travel)
 	if node.current:
+		var workshop := preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(_run)
 		for choice in _choices:
 			var type := str(choice.get("type", ""))
-			if type in ["ADVANCE_NODE", "ABANDON_RUN"]: continue
-			if type == "CHOOSE_DIALOGUE_OPTION": continue
-			_action(_presenter.choice_label(choice), choice)
+			if type in ["ADVANCE_NODE", "ABANDON_RUN", "CHOOSE_DIALOGUE_OPTION"]: continue
+			if workshop and type in ["ACQUIRE_CARD_MODIFIER_ITEM", "APPLY_CARD_MODIFIER_ITEM", "RESOLVE_NODE"]: continue
+			var model: Dictionary = _presenter.offer(choice)
+			_action(_presenter.choice_label(choice, model), choice)
+		if workshop:
+			var workshop_button: Button = actions.get_node("MapResumeWorkshop")
+			workshop_button.text = visual_context.translator.text("Open Pattern Workshop")
+			workshop_button.visible = true
 		var active_dialogue: bool = _run.get("dialogues", []).any(func(item): return str(item.get("activityNodeId", "")) == id and not bool(item.get("completed", false)))
 		if str(node.kind) == "Dialogue" and not node.resolved and active_dialogue:
 			actions.get_node("MapResumeDialogue").text = visual_context.translator.text("Resume conversation")
 			actions.get_node("MapResumeDialogue").show()
-	actions.visible = not _action_buttons.is_empty() or actions.get_node("MapResumeDialogue").visible
+	actions.visible = not _action_buttons.is_empty() or actions.get_node("MapResumeDialogue").visible or actions.get_node("MapResumeWorkshop").visible
 	visual_context.styles.apply_view_preferences(_inspector)
 	if not focus_name.is_empty():
 		var replacement := _inspector.find_child(focus_name, true, false)
@@ -200,7 +207,7 @@ func _action(label: String, choice: Dictionary) -> void:
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.disabled = _locked
 	button.pressed.connect(func(): intent_requested.emit("command", [reference]))
-	var actions = get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Actions")
+	var actions = get_node("MapWorkspace/MapFloatingInspector/Margin/Stack/Scroll/Body/Actions")
 	actions.add_child(button); actions.move_child(button, _action_buttons.size()); _action_buttons.append(button)
 func set_read_only(value: bool) -> void:
 	_locked = value
