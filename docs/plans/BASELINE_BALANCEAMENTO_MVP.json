@@ -1,0 +1,125 @@
+{
+  "escopo": "prototype-test/prototype_chapter: composição inicial, módulo Vazio, sem inscrições equipadas",
+  "metodo": "Soma de dano direto base impresso dividida pelas 20 instâncias; ignora jogabilidade, escolhas, pagamentos, DoT, crítico, modificadores, defesa e arredondamento. Não representa dano por turno.",
+  "cartas": [
+    {
+      "id": "prototype_strike",
+      "quantidade": 4,
+      "dano_direto_base": 8.0,
+      "energia": 1,
+      "observacoes": []
+    },
+    {
+      "id": "prototype_guard",
+      "quantidade": 2,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": []
+    },
+    {
+      "id": "pyro_barreira_cinzas",
+      "quantidade": 1,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": []
+    },
+    {
+      "id": "prototype_scorch",
+      "quantidade": 2,
+      "dano_direto_base": 4.0,
+      "energia": 1,
+      "observacoes": [
+        "APPLY_STATUS"
+      ]
+    },
+    {
+      "id": "pyro_golpe_brasa",
+      "quantidade": 1,
+      "dano_direto_base": 14.0,
+      "energia": 2,
+      "observacoes": []
+    },
+    {
+      "id": "prototype_soak",
+      "quantidade": 2,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": [
+        "APPLY_STATUS"
+      ]
+    },
+    {
+      "id": "prototype_coolant",
+      "quantidade": 2,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": []
+    },
+    {
+      "id": "prototype_condense",
+      "quantidade": 1,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": [
+        "CONDENSE_STACKS"
+      ]
+    },
+    {
+      "id": "prototype_void_bolt",
+      "quantidade": 2,
+      "dano_direto_base": 8.0,
+      "energia": 1,
+      "observacoes": [
+        "pagamento adicional de carta"
+      ]
+    },
+    {
+      "id": "prototype_void_guard",
+      "quantidade": 2,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": [
+        "pagamento adicional de carta"
+      ]
+    },
+    {
+      "id": "prototype_void_condense",
+      "quantidade": 1,
+      "dano_direto_base": 0.0,
+      "energia": 1,
+      "observacoes": [
+        "pagamento adicional de carta",
+        "CONDENSE_STACKS"
+      ]
+    }
+  ],
+  "instancias": 20,
+  "soma_dano_direto_base": 70.0,
+  "media_dano_direto_base_por_carta": 3.5,
+  "valor_esperado_dano_impresso_em_5_cartas_aleatorias": 17.5,
+  "inimigos_vida": [
+    {
+      "id": "inimigo_automato_batedor",
+      "vida": 55
+    },
+    {
+      "id": "prototype_duelist",
+      "vida": 60
+    },
+    {
+      "id": "prototype_swarm",
+      "vida": 42
+    },
+    {
+      "id": "prototype_warden",
+      "vida": 150
+    }
+  ],
+  "pendencias": [
+    "Medir engine autoritativa por build legal com inscrições, progressão, escolha de jogadas, sementes, efeitos temporais e defesas antes de balancear inimigos.",
+    "Inspecionar custo efetivo e influências de cada inscrição na revisão ativa; textos e valores brutos aparentam divergência.",
+    "Validar suporte a Divino em atributos, pipelines e exibição antes de alterar cartas.",
+    "Inventariar mecânicas suportadas por engine e interface antes de propor cartas.",
+    "A linha de base não inclui cálculo de DPS nem prediz taxa de vitória."
+  ]
+}
