@@ -159,6 +159,17 @@ func run() -> void:
 	check(buttons[2].get_meta("zone_address") == {"zoneId": "discard", "ownerId": "hero", "scopeId": "combat-1"}, "Discard retains full zone address")
 	check(buttons[3].get_meta("zone_address") == {"zoneId": "owned", "ownerId": "$run", "scopeId": null}, "Owned retains full run-scoped address without fabricating sum")
 	check(buttons[0].text.ends_with("\n12") and buttons[1].text.ends_with("\n1") and buttons[2].text.ends_with("\n3") and buttons[3].text.ends_with("\n4"), "pile buttons show published counts without summing zones")
+	var floating_counts: Array = snapshot.zones.zones.duplicate(true)
+	for zone in floating_counts: zone.count = float(zone.get("count", 0))
+	var context_zones = preload("res://scripts/presentation/card_zone_presenter.gd").new({"zones": floating_counts}, base_context.translator)
+	var saved_presenter = view.zone_presenter
+	view.zone_presenter = context_zones
+	view._build_piles()
+	for button in view.pile_buttons():
+		var count_text: String = button.text.get_slice("\n", 1)
+		check(count_text.is_valid_int() and button.tooltip_text.ends_with(count_text), "JSON numeric counts render as integers in labels and tooltips")
+	view.zone_presenter = saved_presenter
+	view._build_piles()
 	check(buttons[1].icon == preload("res://scripts/ui/combat_chrome.gd").texture("exile"), "banish/exile_pile uses the exile icon")
 	check(buttons[3].tooltip_text.begins_with("Collection / reserve · 4"), "owned zone uses published displayName")
 

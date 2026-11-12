@@ -29,8 +29,9 @@ func apply_model(zones: Array, context) -> void:
 		var icon_id: String = str(presentation.get("iconId", default_icon))
 		var default_short := "Exile" if slot == "exile_pile" else str({"draw": "Draw", "discard": "Discard", "exile": "Exile", "banish": "Exile", "owned": "Deck"}.get(address.zoneId, label_key))
 		var short_label: String = context.translator.text(str(presentation.get("shortLabelKey", default_short)))
-		preload("res://scripts/ui/combat_chrome.gd").apply(button, icon_id, "%s\n%s" % [short_label, zone.get("count", 0)], context)
-		button.tooltip_text = "%s · %s" % [label, zone.get("count", 0)]; button.accessibility_name = button.tooltip_text
+		var count := int(zone.get("count", 0))
+		preload("res://scripts/ui/combat_chrome.gd").apply(button, icon_id, "%s\n%s" % [short_label, count], context)
+		button.tooltip_text = "%s · %s" % [label, count]; button.accessibility_name = button.tooltip_text
 		button.expand_icon = false; button.clip_text = true; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	for key in _buttons.keys():
 		if key not in live:
