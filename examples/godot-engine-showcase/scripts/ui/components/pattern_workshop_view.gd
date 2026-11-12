@@ -160,7 +160,7 @@ func _confirm_purchase() -> void:
 	var dialog: ConfirmationDialog = get_node("PurchaseConfirm")
 	dialog.title = context.translator.text("Confirm choice")
 	dialog.ok_button_text = context.translator.text("Confirm purchase")
-	dialog.cancel_button_text = context.translator.text("Cancel")
+	dialog.cancel_button_text = context.translator.text("CANCEL")
 	dialog.dialog_text = str(model.name) + "\n" + str(model.summary) + ("\n" + context.translator.text("Cost: %s") % str(model.cost) if not str(model.cost).is_empty() else "") + "\n" + get_node("Balance").text
 	dialog.popup_centered_clamped(Vector2i(500, 260), 0.9)
 
@@ -168,8 +168,8 @@ func _confirm_leave() -> void:
 	if get_node("Footer/Continue").disabled: return
 	var dialog: ConfirmationDialog = get_node("LeaveConfirm")
 	dialog.title = context.translator.text("Leave workshop")
-	dialog.ok_button_text = context.translator.text("Continue" if _completed else "Leave workshop")
-	dialog.cancel_button_text = context.translator.text("Cancel")
+	dialog.ok_button_text = context.translator.text("CONTINUE" if _completed else "Leave workshop")
+	dialog.cancel_button_text = context.translator.text("CANCEL")
 	dialog.dialog_text = context.translator.text("Continue from the workshop?") if _completed else context.translator.text("Leave without buying a pattern?")
 	dialog.popup_centered_clamped(Vector2i(440, 220), 0.9)
 
@@ -178,7 +178,7 @@ func show_comparison(reference: String, models: Array) -> void:
 	var dialog: ConfirmationDialog = get_node("Compare")
 	dialog.title = context.translator.text("Confirm choice")
 	dialog.ok_button_text = context.translator.text("Apply pattern")
-	dialog.cancel_button_text = context.translator.text("Cancel")
+	dialog.cancel_button_text = context.translator.text("CANCEL")
 	var content = dialog.get_node("Content"); content.show()
 	var inventory = get_node("ContentScroll/Content/Inventory")
 	content.get_node("Description").text = context.translator.text("Pattern: %s · Card: %s\nReview the changes before confirming.") % [inventory.selected_pattern_name, inventory.selected_card_name]
