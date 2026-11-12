@@ -165,7 +165,8 @@ func show_comparison(reference: String, models: Array) -> void:
 	var dialog: ConfirmationDialog = get_node("Compare")
 	dialog.title = context.translator.text("Confirm choice")
 	var content = dialog.get_node("Content"); content.show()
-	content.get_node("Description").text = context.translator.text("Apply this pattern to the selected card?")
+	var inventory = get_node("ContentScroll/Content/Inventory")
+	content.get_node("Description").text = context.translator.text("Pattern: %s · Card: %s\nReview the changes before confirming.") % [inventory.selected_pattern_name, inventory.selected_card_name]
 	for i in 2:
 		var column = content.get_node("Scroll/Comparison/" + ("Before" if i == 0 else "After"))
 		column.get_node("Title").text = context.translator.text("Before" if i == 0 else "After")

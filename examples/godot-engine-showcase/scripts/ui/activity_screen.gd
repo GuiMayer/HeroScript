@@ -211,7 +211,7 @@ func _workshop_preview(reference: String) -> void:
 	if not is_inside_tree(): return
 	var models: Array = presenter.transformation_models(assessment)
 	if not bool(assessment.get("isCompatible", false)) or models.size() != 2:
-		screen_context.show_toast(I18n.text("Detailed inspection is unavailable.")); return
+		screen_context.show_toast(I18n.text("Comparison unavailable. Check the connection and try again.")); return
 	workshop.show_comparison(reference, models)
 
 func _workshop_resolve() -> void:

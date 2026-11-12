@@ -1,4 +1,11 @@
 {
+  "Synchronize the game before applying a pattern.": "Sincronize o jogo antes de aplicar um padrão.",
+  "Copy %s of %s": "Cópia %s de %s",
+  "Modified": "Modificada",
+  "Card details or application are unavailable.": "Detalhes da carta ou aplicação indisponíveis.",
+  "Select Compare and apply to review the change.": "Selecione Comparar e aplicar para revisar a alteração.",
+  "Pattern: %s · Card: %s\nReview the changes before confirming.": "Padrão: %s · Carta: %s\nRevise as alterações antes de confirmar.",
+  "Comparison unavailable. Check the connection and try again.": "Comparação indisponível. Verifique a conexão e tente novamente.",
   "Acquired pattern details unavailable": "Detalhes do padrão adquirido indisponíveis",
   "Open your modifiers to check the inventory.": "Abra os modificadores para consultar o inventário.",
   "Acquired: %s": "Adquirido: %s",
