@@ -13,3 +13,10 @@ Amostra visual: cena `tests/combat_mvp_preview.gd`, projeção offline em portug
 ## Pontos a verificar nas próximas etapas
 
 A amostra visual revela cartas bastante sobrepostas e texto pequeno em 1280×720; preservar tamanho e disposição aprovados e priorizar inspeção e feedback de disponibilidade. Validar também bloqueio, cura, status, múltiplos efeitos, foco, modo reduzido e interrupções com testes específicos. Fotografias de eventos animados e uma sessão conectada ainda são necessárias para avaliar ritmo real.
+
+## Validação posterior à implementação
+
+- Captura gráfica inspecionada em 1920×1080: contornos de disponibilidade aparecem sem deslocar a mão; a amostra offline apresenta aviso de conexão esperado do simulador.
+- Testes de disponibilidade, combate MVP, pilhas, energia/turno, sobreposições, limites do feedback e mão passaram. O teste gráfico de animação passou incluindo pausa, cancelamento, exílio configurado e movimento reduzido.
+- O teste de animação agora fornece o método de conexão do simulador e compara a direção do exílio à preferência de animação ativa; nenhuma preferência é alterada.
+- Não foi realizada partida conectada ao servidor. Prévia numérica adicional depende de dados autoritativos disponíveis e não foi inventada. Transições de mão e movimento entre pilhas existentes foram preservados; não foi adicionada camada residual de vida.

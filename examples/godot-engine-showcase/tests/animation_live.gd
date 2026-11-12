@@ -23,6 +23,7 @@ class Fixture extends RefCounted:
 	var combat := {"combatId": "combat", "step": 1, "status": "ACTIVE", "activeActorId": "hero", "actors": [{"instanceId": "hero", "definitionId": "spire_adept", "sideId": "player", "resources": {}}]}
 	var zones := {"zones": [{"zoneId": "custom", "allowsCardPlay": true, "contentsVisible": true, "count": 2, "cards": [
 		{"cardInstanceId": "played", "definitionId": "basic_attack"}, {"cardInstanceId": "remaining", "definitionId": "defend"}]}]}
+	func connect_engine() -> Dictionary: return {"ok": false, "status": 503, "error": "Offline animation fixture"}
 	func candidate_payload(command: Dictionary) -> Dictionary: return command.duplicate(true)
 	func prepare_command(_scope: String, _id: String, _type: String, payload: Dictionary, _sequence: int, _step: int) -> Dictionary: return {"payload": payload.duplicate(true)}
 	func send_prepared(_command: Dictionary) -> Dictionary:
@@ -151,7 +152,9 @@ func _run() -> void:
 	var burn = screen.view.feedback.effects.find_child("CardBurnView", true, false)
 	check(burn != null and screen._receipt_motion_started == 0, "published exile flow starts a center burn without an extra departure flight")
 	if burn != null:
-		check(burn.burn_material.get_shader_parameter("direction") == 0, "live exile uses the center variant")
+		var burn_config: Dictionary = screen._active_motion.cue("card_flows").get("card.played.to-exhaust", {})
+		var expected_direction := 1 if str(burn_config.get("direction", "center")) == "edges" else 0
+		check(burn.burn_material.get_shader_parameter("direction") == expected_direction, "live exile uses the configured variant")
 		var started := Time.get_ticks_usec()
 		while cursor.has_blocking_work(): await process_frame
 		var duration := (Time.get_ticks_usec() - started) / 1000000.0
