@@ -2,6 +2,7 @@
 class_name CardZoneControlsView
 extends ScrollContainer
 signal zone_requested(address: Dictionary)
+const PILE_ICONS := {"draw": preload("res://assets/game-icons/faithtoken/card-draw.svg"), "discard": preload("res://assets/game-icons/faithtoken/card-discard.svg"), "exile": preload("res://assets/game-icons/delapouite/card-burn.svg"), "pile": preload("res://assets/game-icons/delapouite/stack.svg")}
 var _row: VBoxContainer
 var _buttons := {}
 static func create() -> CardZoneControlsView:
@@ -33,6 +34,48 @@ func apply_model(zones: Array, context) -> void:
 		preload("res://scripts/ui/combat_chrome.gd").apply(button, icon_id, "%s\n%s" % [short_label, count], context)
 		button.tooltip_text = "%s · %s" % [label, count]; button.accessibility_name = button.tooltip_text
 		button.expand_icon = false; button.clip_text = true; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_apply_pile_style(button, default_icon, short_label, count, context)
 	for key in _buttons.keys():
 		if key not in live:
 			_row.remove_child(_buttons[key]); _buttons[key].queue_free(); _buttons.erase(key)
+
+func _apply_pile_style(button: Button, icon_id: String, label: String, count: int, context) -> void:
+	button.icon = null
+	button.text = ""
+	var icon := button.get_node_or_null("PileIcon") as TextureRect
+	if icon == null:
+		icon = TextureRect.new(); icon.name = "PileIcon"
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		button.add_child(icon)
+		icon.anchor_top = 0.5; icon.anchor_bottom = 0.5
+		icon.offset_left = 8; icon.offset_right = 50; icon.offset_top = -21; icon.offset_bottom = 21
+		var badge := PanelContainer.new(); badge.name = "CountBadge"
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var background := StyleBoxFlat.new(); background.bg_color = Color(0.04, 0.04, 0.05, 0.96)
+		background.set_corner_radius_all(4)
+		badge.add_theme_stylebox_override("panel", background)
+		icon.add_child(badge)
+		badge.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		badge.offset_left = -21; badge.offset_right = 21; badge.offset_top = -11; badge.offset_bottom = 11
+		var number := Label.new(); number.name = "Count"
+		number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		number.add_theme_font_size_override("font_size", 16)
+		number.add_theme_color_override("font_color", Color.WHITE)
+		badge.add_child(number)
+		var title := Label.new(); title.name = "PileLabel"
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		title.clip_text = true
+		button.add_child(title)
+		title.anchor_right = 1.0; title.anchor_bottom = 1.0
+		title.offset_left = 56; title.offset_right = -6
+	icon.texture = PILE_ICONS.get(icon_id, PILE_ICONS.pile)
+	icon.self_modulate = context.styles.color("text.primary")
+	button.get_node("PileLabel").add_theme_color_override("font_color", context.styles.color("text.primary"))
+	icon.get_node("CountBadge/Count").text = str(count)
+	button.get_node("PileLabel").text = label
