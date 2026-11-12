@@ -46,6 +46,6 @@ Preservar regras de preço, compatibilidade, persistência e resultado no motor;
 
 ## Registro de implementação
 
-- Tela de atividade e ofertas usam nós declarados nas cenas do Godot; a aplicação reutiliza a coleção e a comparação de cartas existentes.
+- Tela de atividade e ofertas usam nós declarados nas cenas do Godot; a aplicação usa listas e prévia declaradas em cena, além da comparação de cartas existente.
 - Compra e aplicação usam referências e prévias publicadas pelo motor; visitas ao mapa não encerram automaticamente o workshop.
 - Verificadas capturas em 1280×720 com tamanho normal e texto em 160%, incluindo estado após a compra; executados testes offline de interface e testes de integração do motor. Ainda é necessária uma partida completa conectada para confirmar todo o percurso do capítulo.

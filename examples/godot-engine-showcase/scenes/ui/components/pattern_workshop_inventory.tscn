@@ -1,0 +1,55 @@
+[gd_scene format=3]
+[ext_resource type="Script" path="res://scripts/ui/components/pattern_workshop_inventory.gd" id="Script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/card_view.tscn" id="Card"]
+[node name="PatternWorkshopInventory" type="HBoxContainer"]
+script = ExtResource("Script")
+theme_override_constants/separation = 16
+[node name="ItemsColumn" type="VBoxContainer" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+size_flags_horizontal = 3
+[node name="Title" type="Label" parent="ItemsColumn"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+[node name="Items" type="ItemList" parent="ItemsColumn"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 260)
+size_flags_vertical = 3
+[node name="Description" type="Label" parent="ItemsColumn"]
+layout_mode = 2
+autowrap_mode = 3
+[node name="CardsColumn" type="VBoxContainer" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+size_flags_horizontal = 3
+[node name="Title" type="Label" parent="CardsColumn"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+[node name="Cards" type="ItemList" parent="CardsColumn"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 260)
+size_flags_vertical = 3
+[node name="Hint" type="Label" parent="CardsColumn"]
+layout_mode = 2
+autowrap_mode = 3
+[node name="PreviewColumn" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Title" type="Label" parent="PreviewColumn"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+[node name="CardScroll" type="ScrollContainer" parent="PreviewColumn"]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 300)
+size_flags_vertical = 3
+[node name="Card" parent="PreviewColumn/CardScroll" instance=ExtResource("Card")]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+focus_mode = 0
+animate_entry = false
+[node name="Preview" type="Button" parent="PreviewColumn"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"PrimaryAction"
+disabled = true

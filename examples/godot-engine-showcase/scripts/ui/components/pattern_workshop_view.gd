@@ -69,7 +69,7 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 	get_node("ContentScroll/Content/Offers").visible = not _inventory_open and not _offers.is_empty()
 	var inventory = get_node("ContentScroll/Content/Inventory")
 	inventory.visible = _inventory_open
-	if _inventory_open: inventory.configure(item_snapshot, choices, facts, appearance, context)
+	if _inventory_open: inventory.configure(item_snapshot, choices, facts, appearance, context, _editable)
 	get_node("Footer/Manage").text = t.text("Back to workshop" if _completed else "Back to patterns") if _inventory_open else t.text("Apply now" if _completed else "Manage card modifiers")
 	get_node("Footer/Purchase").text = t.text("Acquire pattern")
 	get_node("Footer/Purchase").visible = not _inventory_open and not _offers.is_empty()

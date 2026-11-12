@@ -1,7 +1,7 @@
 [gd_scene format=3]
 [ext_resource type="Script" path="res://scripts/ui/components/pattern_workshop_view.gd" id="Script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/pattern_workshop_offer.tscn" id="Offer"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/card_modifier_inventory.tscn" id="Inventory"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/pattern_workshop_inventory.tscn" id="Inventory"]
 [ext_resource type="PackedScene" path="res://scenes/ui/overlays/confirmation_dialog.tscn" id="Confirm"]
 [ext_resource type="PackedScene" path="res://scenes/ui/overlays/transformation_confirmation.tscn" id="Compare"]
 [node name="PatternWorkshop" type="VBoxContainer"]
