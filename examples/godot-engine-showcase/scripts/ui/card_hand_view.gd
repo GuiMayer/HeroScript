@@ -573,7 +573,7 @@ func _apply_emphasis() -> void:
 		var target := Vector2(0, -visual_style.lift * visual_context.hand_emphasis / card_display_scale) if raised else Vector2.ZERO
 		var angle: float = 0 if raised else _layout.rotations[i]
 		var card: CardView = _cards[id]
-		_slots[id].z_index = 100 if raised else (50 if id == interaction.selected else mini(i, 40))
+		_slots[id].z_index = 100 if raised else (50 if id == interaction.selected else mini(order.size() - 1 - i, 40))
 		if _emphasis.has(id) and _emphasis[id].position == target and is_equal_approx(_emphasis[id].rotation, angle): continue
 		if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 		var tween: Tween = null

@@ -26,7 +26,7 @@ func point_for(hand, index: int) -> Vector2:
 	var id: String = hand.order[index]
 	var card: Control = hand.card_for(id)
 	for y in [card.size.y - 12, card.size.y * .5, 16.0]:
-		for x in range(12, int(card.size.x), 12):
+		for x in range(int(card.size.x) - 12, 0, -12):
 			var point: Vector2 = card.get_global_transform() * Vector2(x, y)
 			if not hand.scroll.get_global_rect().has_point(point): continue
 			var covered := false
@@ -76,6 +76,16 @@ func _run() -> void:
 		"identical snapshot preserves instance, face and configuration")
 	check(hand.relayout_count == layouts, "identical snapshot causes zero relayouts")
 	check(hand._layout.step < card.size.x and hand._layout.step >= hand.visual_style.minimum_step, "adaptive hand overlaps with a minimum selectable strip")
+	for i in hand.order.size() - 1:
+		var current: Control = hand.card_for(hand.order[i])
+		var cost: Control = current.get_node("CardFaceMargin/Column/CardHeader/CostLine/Cost")
+		var cost_center: Vector2 = cost.get_global_transform() * (cost.size * .5)
+		var hidden := false
+		for other in hand.order:
+			if other == hand.order[i] or hand._slots[other].z_index <= hand._slots[hand.order[i]].z_index: continue
+			var neighbor: Control = hand.card_for(other)
+			if Rect2(Vector2.ZERO, neighbor.size).has_point(neighbor.get_global_transform().affine_inverse() * cost_center): hidden = true; break
+		check(not hidden, "resting card cost remains visible in the fan: %s" % i)
 	var font: int = face.get_theme_font_size("normal_font_size")
 	var neighbors: Array = hand.order.map(func(id): return hand._slots[id].position)
 	var point := point_for(hand, 2)
