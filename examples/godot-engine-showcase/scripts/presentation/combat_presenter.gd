@@ -24,8 +24,11 @@ func accept_presentations(cards: Array) -> void:
 	if not (cards is Array): return
 	for facts in cards:
 		if not (facts is Dictionary): continue
-		if facts.get("version") is Dictionary and session_identity != null and not session_identity.matches_version(facts.get("version")):
-			continue
+		if facts.get("version") is Dictionary and session_identity != null:
+			var version: Dictionary = facts.version.duplicate()
+			for key in ["runId", "runSequence", "sequence", "combatId", "combatStep", "contentRevision"]:
+				if version.has(key) and version[key] == null: version.erase(key)
+			if not session_identity.matches_version(version): continue
 		var identity_dict: Dictionary = facts.get("identity", {}) if facts.get("identity") is Dictionary else {}
 		var id := str(identity_dict.get("cardInstanceId", "")) if identity_dict.get("cardInstanceId") is String else ""
 		if not id.is_empty(): _base_facts[id] = facts.duplicate(true)

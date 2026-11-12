@@ -197,6 +197,7 @@ func _open_collection(address: Dictionary) -> void:
 	var collection_presenter = Presenter.new(_run_snapshot, _combat_snapshot, GameSession.legal_actions,
 		visual_context.translator, presentation, _zone_snapshot)
 	collection_presenter.accept_presentations(facts.data.get("cards", []))
+	collection_presenter.accept_evaluations(GameSession.card_evaluations)
 	var model: Dictionary = preload("res://scripts/presentation/card_collection_presenter.gd").build(zone, collection_presenter, visual_context.translator)
 	var scope := JSON.stringify([GameSession.selected_setting_id, _run_snapshot.get("runId"), _run_snapshot.get("branchId"), _combat_snapshot.get("combatId"), address])
 	var dialog = preload("res://scripts/ui/card_zone_dialog.gd").create(visual_context)

@@ -29,6 +29,16 @@ func _run() -> void:
 			var dialog = screen._collection_dialog
 			check(dialog.collection.cards.size() == zones[0].cards.size() and screen.view.find_child("HandOverviewButton", true, false) == null, "faces replace list and overview is absent " + setting)
 			var id: String = str(zones[0].cards[0].cardInstanceId)
+			var facts: Dictionary = await session.load_collection_presentations()
+			var facts_by_id := {}
+			for fact in facts.data.get("cards", []):
+				facts_by_id[str(fact.get("identity", {}).get("cardInstanceId", ""))] = fact
+			var cards_with_effects := 0
+			for card_id in dialog.collection.cards:
+				if not facts_by_id.get(str(card_id), {}).get("effects", []).is_empty():
+					cards_with_effects += 1
+					check(not dialog.collection.cards[card_id].model.get("effectRows", []).is_empty(), "collection renders published effects before inspection " + setting)
+			check(cards_with_effects > 0, "collection fixture contains published effects " + setting)
 			dialog.collection.cards[id].pressed.emit()
 			for _attempt in 200:
 				await create_timer(.025).timeout
