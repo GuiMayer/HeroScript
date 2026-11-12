@@ -94,34 +94,36 @@ func _sync_turn_dock_visibility() -> void:
 func _build_piles() -> void:
 	if not is_instance_valid(pile_controls):
 		pile_controls = get_node(primary_piles_path)
-		pile_controls.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
+		right_pile_controls = get_node(secondary_piles_path)
+		for group in [pile_controls, right_pile_controls, get_node("CanvasHost/ReferenceCanvas/DeckPile")]:
+			group.zone_requested.connect(func(address): _inspect_pile("", str(address.zoneId), address))
 	var dock: Node = get_node_or_null(turn_controls_path)
 	if is_instance_valid(dock):
 		for legacy in ["PileControls", "RightPileControls"]:
 			var node: Control = dock.get_node_or_null(legacy)
 			if is_instance_valid(node): node.hide()
 	var raw: Array = zone_presenter.auxiliary_zones()
-	var ordered: Array = []
+	var left: Array = []
+	var right: Array = []
+	var deck: Array = []
 	for rank in 5:
 		for zone in raw:
-			if _pile_rank(zone) == rank: ordered.append(zone)
-	pile_controls.apply_model(ordered, visual_context)
-	var rail_min_width := 140.0
-	for button in pile_controls.get_node("Zones").get_children():
-		if button is Button:
-			button.clip_text = visual_context.text_scale <= 1.25
-			rail_min_width = maxf(rail_min_width, button.get_combined_minimum_size().x)
-			if visual_context.text_scale > 1.25:
-				var font: Font = button.get_theme_font("font")
-				var font_size: int = button.get_theme_font_size("font_size")
-				var text_width := 0.0
-				for line in button.text.split("\n"):
-					text_width = maxf(text_width, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
-				var icon_width := float(button.icon.get_width()) if button.icon != null else 0.0
-				var padding: float = button.get_theme_stylebox("normal").get_minimum_size().x
-				rail_min_width = maxf(rail_min_width, ceilf(text_width + icon_width + padding + 12.0))
-	pile_controls.custom_minimum_size.x = rail_min_width
-	pile_controls.visible = not ordered.is_empty()
+			if _pile_rank(zone) != rank: continue
+			match rank:
+				1, 2: right.append(zone)
+				3: deck.append(zone)
+				_: left.append(zone)
+	_apply_pile_group(pile_controls, left)
+	_apply_pile_group(right_pile_controls, right)
+	_apply_pile_group(get_node("CanvasHost/ReferenceCanvas/DeckPile"), deck)
+
+func _apply_pile_group(group: Control, zones: Array) -> void:
+	group.apply_model(zones, visual_context)
+	group.visible = not zones.is_empty()
+
+func _fit_pile_group(group: Control, x: float, y: float, width: float, height: float) -> void:
+	group.position = Vector2(x, y)
+	group.size = Vector2(width, height)
 
 static func _pile_rank(zone: Dictionary) -> int:
 	var presentation: Dictionary = zone.get("presentation", {}) if zone.get("presentation") is Dictionary else {}
@@ -234,14 +236,11 @@ func _layout_gameplay() -> void:
 		if energy_indicator.visible:
 			energy_top = energy_indicator.offset_top
 	var rail_right := 18.0
-	if is_instance_valid(pile_controls):
-		var rail_width := maxf(pile_controls.get_combined_minimum_size().x, 148.0)
-		pile_controls.offset_left = 18.0
-		pile_controls.offset_right = maxf(0.0, rail_width + 18.0 - fitted.x * pile_controls.anchor_right)
-		pile_controls.offset_top = maxf(0.0, header_view.offset_bottom + battlefield_top_gap - fitted.y * pile_controls.anchor_top)
-		pile_controls.offset_bottom = -hand_bottom_inset + fitted.y * (1.0 - pile_controls.anchor_bottom)
-		if pile_controls.visible:
-			rail_right = maxf(fitted.x * pile_controls.anchor_right + pile_controls.offset_right, 18.0 + rail_width)
+	if is_instance_valid(pile_controls) and pile_controls.visible:
+		var pile_height: float = pile_controls.get_node("Zones").get_combined_minimum_size().y
+		var pile_width := maxf(140.0, fitted.x * bottom_hud.anchor_left - 30.0)
+		_fit_pile_group(pile_controls, 18.0, fitted.y - pile_height - turn_bottom_inset, pile_width, pile_height)
+		rail_right = pile_controls.position.x + pile_controls.size.x
 	if is_instance_valid(battlefield_actors):
 		var top_gap := 0.0 if fitted.y < 860.0 else battlefield_top_gap
 		battlefield_actors.offset_left = rail_right + battlefield_left_gap
@@ -274,6 +273,10 @@ func _layout_gameplay() -> void:
 			var cand_left_min: float = rail_right + battlefield_left_gap
 			var cand_right_max: float = fitted.x * bottom_hud.anchor_right if is_instance_valid(bottom_hud) else (fitted.x - 220.0)
 			var cand_avail: float = maxf(240.0, cand_right_max - cand_left_min)
+	if is_instance_valid(right_pile_controls) and right_pile_controls.visible and is_instance_valid(turn_view):
+		var pile_height: float = right_pile_controls.get_node("Zones").get_combined_minimum_size().y
+		_fit_pile_group(right_pile_controls, turn_view.position.x, turn_view.position.y - pile_height - 8.0, turn_view.size.x, pile_height)
+	_layout_deck_pile()
 			var cand_width: float = minf(layout_profile.candidate_width, cand_avail)
 			var cand_left: float = clampf((fitted.x - cand_width) * 0.5, cand_left_min, maxf(cand_left_min, cand_right_max - cand_width))
 			var cand_bottom: float = minf(energy_top - 8.0, first_card_top - fitted.y - 8.0)
@@ -301,6 +304,20 @@ func _on_sidebar_open_changed(value: bool) -> void:
 func present_combat_snapshot(state: Dictionary) -> void:
 	super.present_combat_snapshot(state)
 	var projection = Presenter.new(_run_snapshot, state, [], visual_context.translator, presentation)
+func _layout_deck_pile() -> void:
+	if not is_instance_valid(header_view): return
+	var deck: Control = gameplay_column.get_node("DeckPile")
+	var identity: Control = header_view.get_node("ActiveIdentity")
+	var round_group: Control = header_view.get_node("RoundAndTurn")
+	var gap := 8.0
+	var identity_right := round_group.position.x - gap
+	if deck.visible:
+		var deck_height: float = deck.get_node("Zones").get_combined_minimum_size().y
+		var deck_width := 140.0
+		_fit_pile_group(deck, identity_right - deck_width, (header_view.size.y - deck_height) * 0.5, deck_width, deck_height)
+		identity_right = deck.position.x - gap
+	identity.offset_right = identity_right - header_view.size.x * identity.anchor_right
+
 	_present_header(projection, state)
 	_present_energy(state)
 
