@@ -68,6 +68,27 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 		offer.get_node("Column/Select").text = t.text("Selected") if i == _selected else t.text("Select")
 		offer.get_node("Column/Acquire").text = t.text("Acquire pattern")
 	get_node("ContentScroll/Content/Offers").visible = not _inventory_open and not _offers.is_empty()
+	var acquired = get_node("ContentScroll/Content/Acquired")
+	acquired.visible = _completed and not _inventory_open
+	if acquired.visible:
+		var chosen: Dictionary = {}
+		for entry in item_snapshot.get("items", []):
+			var instance: Dictionary = entry.get("instance", {})
+			if str(instance.get("acquisitionSource", "")) != "node:" + str(_run.get("currentNodeId", "")): continue
+			if chosen.is_empty() or int(instance.get("acquisitionSequence", -1)) > int(chosen.get("instance", {}).get("acquisitionSequence", -1)):
+				chosen = entry
+		if chosen.is_empty():
+			acquired.get_node("Column/Title").text = t.text("Acquired pattern details unavailable")
+			acquired.get_node("Column/Description").text = ""
+			acquired.get_node("Column/Status").text = t.text("Open your modifiers to check the inventory.")
+		else:
+			var definition: Dictionary = chosen.get("definition", {})
+			var id := str(definition.get("itemDefinitionId", ""))
+			var name: String = t.content_name(id, str(definition.get("presentation", {}).get("name", id)))
+			acquired.get_node("Column/Title").text = t.text("Acquired: %s") % name
+			acquired.get_node("Column/Description").text = preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, t)
+			var state := str(chosen.get("instance", {}).get("state", ""))
+			acquired.get_node("Column/Status").text = t.text("This pattern has been applied to a card.") if state == "Bound" else (t.text("Not applied yet. Choose a compatible card, now or later.") if state == "Available" else t.text("Check this pattern in your inventory."))
 	var inventory = get_node("ContentScroll/Content/Inventory")
 	inventory.visible = _inventory_open
 	if _inventory_open: inventory.configure(item_snapshot, choices, facts, appearance, context, _editable)
@@ -105,7 +126,7 @@ func _refresh_selection() -> void:
 		acquire.disabled = not _editable or (known and not can_afford)
 		if i < _offers.size():
 			var offer_model: Dictionary = presenter.offer(_offers[i])
-			var cost_text := (context.translator.text("Cost: %s") % str(offer_model.cost)) if not str(offer_model.cost).is_empty() else context.translator.text("Cost unavailable")
+			var cost_text: String = (context.translator.text("Cost: %s") % str(offer_model.cost)) if not str(offer_model.cost).is_empty() else context.translator.text("Cost unavailable")
 			offer.get_node("Column/Cost").text = cost_text + (" · " + context.translator.text("Insufficient resources") if selected and known and not can_afford else "")
 		if selected:
 			var box = offer.get_theme_stylebox("panel").duplicate()

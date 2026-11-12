@@ -46,6 +46,23 @@ layout_mode = 2
 layout_mode = 2
 [node name="Offer3" parent="ContentScroll/Content/Offers" instance=ExtResource("Offer")]
 layout_mode = 2
+[node name="Acquired" type="PanelContainer" parent="ContentScroll/Content"]
+visible = false
+layout_mode = 2
+[node name="Column" type="VBoxContainer" parent="ContentScroll/Content/Acquired"]
+layout_mode = 2
+theme_override_constants/separation = 10
+[node name="Title" type="Label" parent="ContentScroll/Content/Acquired/Column"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+autowrap_mode = 3
+[node name="Description" type="Label" parent="ContentScroll/Content/Acquired/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+autowrap_mode = 3
+[node name="Status" type="Label" parent="ContentScroll/Content/Acquired/Column"]
+layout_mode = 2
+autowrap_mode = 3
 [node name="Inventory" parent="ContentScroll/Content" instance=ExtResource("Inventory")]
 visible = false
 layout_mode = 2

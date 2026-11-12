@@ -1,4 +1,10 @@
 {
+  "Acquired pattern details unavailable": "Detalhes do padrão adquirido indisponíveis",
+  "Open your modifiers to check the inventory.": "Abra os modificadores para consultar o inventário.",
+  "Acquired: %s": "Adquirido: %s",
+  "This pattern has been applied to a card.": "Este padrão já foi aplicado a uma carta.",
+  "Not applied yet. Choose a compatible card, now or later.": "Ainda não foi aplicado. Escolha uma carta compatível agora ou depois.",
+  "Check this pattern in your inventory.": "Consulte este padrão no inventário.",
   "Select a pattern to review it.": "Selecione um padrão para revisar sua escolha.",
   "Selected pattern: %s": "Padrão selecionado: %s",
   "Compatible cards": "Cartas compatíveis",

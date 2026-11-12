@@ -36,8 +36,10 @@ func run() -> void:
 	var complete_choices: Array = choices.filter(func(c): return c.type == "RESOLVE_NODE")
 	check(route.resolve_route(run, {}, complete_choices) == "activity", "completed workshop remains accessible until resolved")
 	run["completedActivityNodeIds"] = ["workshop"]
+	catalog.items = [{"instance": {"itemInstanceId": "new", "state": "Available", "acquisitionSource": "node:workshop", "acquisitionSequence": 2}, "definition": catalog.catalog[0], "cards": []}]
 	view.present(run, complete_choices, presenter, context, catalog, [], {})
 	check(view.get_node("Notice").text.contains("complete") and not view.get_node("ContentScroll/Content/Offers").visible, "completed workshop offers apply later and continue without another purchase")
+	check(view.get_node("ContentScroll/Content/Acquired/Column/Title").text.contains("Split") and view.get_node("ContentScroll/Content/Acquired/Column/Status").text.contains("Not applied"), "completed workshop identifies acquired pattern and unapplied state")
 	view.get_node("Footer/Manage").pressed.emit()
 	check(view.get_node("ContentScroll/Content/Inventory").visible, "modifier inventory opens inside workshop")
 	var applications: Array = []
