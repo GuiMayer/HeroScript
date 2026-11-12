@@ -87,6 +87,11 @@ func offer(choice: Dictionary) -> Dictionary:
 	if choice.has("costs"):
 		costs = choice.costs.duplicate(true)
 		has_cost = true
+	if type == "ACQUIRE_CARD_MODIFIER_ITEM" and not has_cost:
+		var parameters: Dictionary = current_node().get("activity", {}).get("parameters", {})
+		if parameters.has("costs"):
+			costs = parameters.costs.duplicate(true)
+			has_cost = true
 	if type == "BUY_SHOP_ITEM":
 		for shop in _run.get("shops", []):
 			if str(shop.get("shopInstanceId", "")) != str(choice.payload.get("shopInstanceId", "")): continue
