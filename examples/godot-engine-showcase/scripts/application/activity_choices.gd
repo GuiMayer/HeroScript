@@ -19,7 +19,13 @@ static func build(run: Dictionary, commands: Array) -> Array:
 			"ACQUIRE_CARD_MODIFIER_ITEM":
 				for id in valid.get("itemDefinitionIds", []):
 					var choice := _choice(type, {"itemDefinitionId": id}, str(id), "modifier_item")
-					if valid.has("costs"): choice["costs"] = valid.costs.duplicate(true)
+					if valid.has("costs"):
+						choice["costs"] = []
+						for cost in valid.costs:
+							var normalized: Dictionary = cost.duplicate(true)
+							if not normalized.has("resourceId") and normalized.has("ResourceId"): normalized["resourceId"] = normalized.ResourceId
+							if not normalized.has("amount") and normalized.has("Amount"): normalized["amount"] = normalized.Amount
+							choice.costs.append(normalized)
 					choices.append(choice)
 			"APPLY_CARD_MODIFIER_ITEM":
 				for option in valid.get("options", []): choices.append(_choice(type, option, str(option.get("itemInstanceId", "")), "modifier_item", true))

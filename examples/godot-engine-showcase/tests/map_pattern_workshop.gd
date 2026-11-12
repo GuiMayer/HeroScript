@@ -7,7 +7,7 @@ func check(value: bool, message: String) -> void:
 func run() -> void:
 	var context = preload("res://scripts/ui/visual_context.gd").new()
 	var run := {"settingId": "prototype-test", "runId": "test", "currentNodeId": "workshop", "resources": {"parts": {"current": 2}}, "map": {"resolvedNodeIds": [], "nodes": [{"nodeId": "workshop", "activity": {"type": "CardUpgrade", "parameters": {"modifierItemIds": ["split", "guard"], "costs": [{"resourceId": "parts", "amount": 3}]}}, "metadata": {"displayName": "Pattern workshop", "description": "Choose one modifier or leave."}, "nextNodeIds": []}]}}
-	var commands := [{"type": "ACQUIRE_CARD_MODIFIER_ITEM", "validPayload": {"itemDefinitionIds": ["split", "guard"], "costs": [{"resourceId": "parts", "amount": 3}]}}, {"type": "RESOLVE_NODE", "validPayload": {"currentNodeId": "workshop"}}]
+	var commands := [{"type": "ACQUIRE_CARD_MODIFIER_ITEM", "validPayload": {"itemDefinitionIds": ["split", "guard"], "costs": [{"ResourceId": "parts", "Amount": 3}]}}, {"type": "RESOLVE_NODE", "validPayload": {"currentNodeId": "workshop"}}]
 	var choices: Array = preload("res://scripts/application/activity_choices.gd").build(run, commands)
 	var catalog := {"items": [], "catalog": [{"itemDefinitionId": "split", "presentation": {"name": "Split", "description": "Three hits."}}, {"itemDefinitionId": "guard", "presentation": {"name": "Guard", "description": "Gain block."}}]}
 	var presenter = preload("res://scripts/presentation/activity_presenter.gd").new(run, choices, {}, context.translator, [], catalog)
@@ -16,11 +16,15 @@ func run() -> void:
 	var view = preload("res://scenes/ui/components/pattern_workshop.tscn").instantiate(); root.add_child(view)
 	view.update_inventory(catalog, [], {}); view.present(run, choices, presenter, context, catalog, [], {})
 	var first = view.get_node("ContentScroll/Content/Offers/Offer1/Column")
-	check(first.get_node("Title").text == "Split" and first.get_node("Description").text == "Three hits." and first.get_node("Cost").text.contains("3"), "offer displays authored name, effect and price")
+	check(first.get_node("Title").text == "Split" and first.get_node("Description").text == "Three hits." and first.get_node("Cost").text.contains("3") and first.get_node("Cost").text.to_lower().contains("parts"), "server cost displays its amount and resource")
+	check(view.get_node("Balance").text.contains("2") and not first.get_node("Cost").text.contains("Balance unavailable"), "server cost is matched to the available balance")
 	check(first.get_node("Acquire").disabled and first.get_node("Cost").text.contains("Insufficient resources"), "insufficient balance prevents purchase and explains why")
 	run.resources.parts.current = 3
 	view.present(run, choices, presenter, context, catalog, [], {})
 	check(not first.get_node("Acquire").disabled, "affordable purchase becomes available")
+	var camel_commands: Array = commands.duplicate(true); camel_commands[0].validPayload.costs = [{"resourceId": "parts", "amount": 3}]
+	var camel_choices: Array = preload("res://scripts/application/activity_choices.gd").build(run, camel_commands)
+	check(camel_choices[0].costs[0].resourceId == "parts" and camel_choices[0].costs[0].amount == 3, "camel-case costs remain supported")
 	var no_price_run := run.duplicate(true); no_price_run.map.nodes[0].activity.parameters.erase("costs")
 	var no_price_choices: Array = choices.duplicate(true); no_price_choices[0].erase("costs"); no_price_choices[1].erase("costs")
 	var no_price_presenter = preload("res://scripts/presentation/activity_presenter.gd").new(no_price_run, no_price_choices, {}, context.translator, [], catalog)
