@@ -28,4 +28,10 @@ func run() -> void:
 	inventory.configure({"items": [item]}, choices, [facts, duplicate], {}, context, false)
 	items.item_selected.emit(0); cards.item_selected.emit(0)
 	check(inventory.get_node("PreviewColumn/Preview").disabled, "unsynchronized inventory remains read-only")
+	var applied: Dictionary = item.duplicate(true); applied.instance.state = "Bound"
+	inventory.configure({"items": [applied]}, choices, [facts, duplicate], {}, context)
+	check(items.get_item_text(0).contains("Applied"), "bound item exposes its state without relying on disabled color")
+	items.item_selected.emit(0); cards.item_selected.emit(0)
+	check(inventory.get_node("PreviewColumn/Preview").disabled, "bound item cannot be applied again even if a stale choice is present")
+
 	inventory.queue_free(); await process_frame; root.get_node("GameAudio").shutdown(); quit(1 if failures else 0)

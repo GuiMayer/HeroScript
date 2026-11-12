@@ -1,4 +1,10 @@
 {
+  "Applied": "Aplicado",
+  "Confirm purchase": "Confirmar compra",
+  "Apply pattern": "Aplicar padrão",
+  "Changes shown: %s": "Alterações exibidas: %s",
+  "effects": "efeitos",
+  "costs": "custos",
   "Synchronize the game before applying a pattern.": "Sincronize o jogo antes de aplicar um padrão.",
   "Copy %s of %s": "Cópia %s de %s",
   "Modified": "Modificada",

@@ -41,6 +41,7 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 		_selected = -1
 		_pending_apply = ""
 		get_node("PurchaseConfirm").hide()
+		get_node("LeaveConfirm").hide()
 		get_node("Compare").hide()
 	_run = run.duplicate(true); _choices = choices.duplicate(true)
 	_completed = str(_run.get("currentNodeId", "")) in _run.get("completedActivityNodeIds", [])
@@ -151,12 +152,16 @@ func _confirm_purchase() -> void:
 	var model: Dictionary = presenter.offer(_offers[_selected])
 	var dialog: ConfirmationDialog = get_node("PurchaseConfirm")
 	dialog.title = context.translator.text("Confirm choice")
+	dialog.ok_button_text = context.translator.text("Confirm purchase")
+	dialog.cancel_button_text = context.translator.text("Cancel")
 	dialog.dialog_text = str(model.name) + "\n" + str(model.summary) + ("\n" + context.translator.text("Cost: %s") % str(model.cost) if not str(model.cost).is_empty() else "") + "\n" + get_node("Balance").text
 	dialog.popup_centered_clamped(Vector2i(500, 260), 0.9)
 
 func _confirm_leave() -> void:
 	var dialog: ConfirmationDialog = get_node("LeaveConfirm")
 	dialog.title = context.translator.text("Leave workshop")
+	dialog.ok_button_text = context.translator.text("Continue" if _completed else "Leave workshop")
+	dialog.cancel_button_text = context.translator.text("Cancel")
 	dialog.dialog_text = context.translator.text("Continue from the workshop?") if _completed else context.translator.text("Leave without buying a pattern?")
 	dialog.popup_centered_clamped(Vector2i(440, 220), 0.9)
 
@@ -164,9 +169,15 @@ func show_comparison(reference: String, models: Array) -> void:
 	_pending_apply = reference
 	var dialog: ConfirmationDialog = get_node("Compare")
 	dialog.title = context.translator.text("Confirm choice")
+	dialog.ok_button_text = context.translator.text("Apply pattern")
+	dialog.cancel_button_text = context.translator.text("Cancel")
 	var content = dialog.get_node("Content"); content.show()
 	var inventory = get_node("ContentScroll/Content/Inventory")
 	content.get_node("Description").text = context.translator.text("Pattern: %s · Card: %s\nReview the changes before confirming.") % [inventory.selected_pattern_name, inventory.selected_card_name]
+	var changes: Array[String] = []
+	if str(models[0].get("summary", "")) != str(models[1].get("summary", "")): changes.append(context.translator.text("effects"))
+	if models[0].get("costs", []) != models[1].get("costs", []): changes.append(context.translator.text("costs"))
+	if not changes.is_empty(): content.get_node("Description").text += "\n" + (context.translator.text("Changes shown: %s") % ", ".join(changes))
 	for i in 2:
 		var column = content.get_node("Scroll/Comparison/" + ("Before" if i == 0 else "After"))
 		column.get_node("Title").text = context.translator.text("Before" if i == 0 else "After")

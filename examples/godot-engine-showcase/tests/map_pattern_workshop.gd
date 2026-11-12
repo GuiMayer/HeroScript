@@ -45,8 +45,10 @@ func run() -> void:
 	var applications: Array = []
 	view.apply_requested.connect(func(ref): applications.append(ref))
 	var sample: Dictionary = view.get_node("Compare/Content/Scroll/Comparison/Before/Card").preview_data
-	view.show_comparison("valid-reference", [sample, sample])
+	var after: Dictionary = sample.duplicate(true); after["summary"] = "Changed effect"
+	view.show_comparison("valid-reference", [sample, after])
 	check(view.get_node("Compare").visible and applications.is_empty(), "preview opens without applying a pattern")
+	check(view.get_node("Compare/Content/Description").text.contains("effects") and view.get_node("Compare").ok_button_text == "Apply pattern", "comparison identifies changed effects and explicit confirmation")
 	view.get_node("Compare").confirmed.emit()
 	check(applications == ["valid-reference"], "comparison confirmation applies exactly the selected reference")
 

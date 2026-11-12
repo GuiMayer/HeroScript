@@ -32,8 +32,9 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 		var definition: Dictionary = item.get("definition", {})
 		var id := str(definition.get("itemDefinitionId", ""))
 		var label: String = context.translator.content_name(id, str(definition.get("presentation", {}).get("name", id)))
+		var state := str(item.get("instance", {}).get("state", ""))
+		if state != "Available": label += " · " + context.translator.text("Applied" if state == "Bound" else "Unavailable")
 		var index := list.add_item(label)
-		list.set_item_disabled(index, str(item.get("instance", {}).get("state", "")) != "Available")
 		list.set_item_tooltip(index, preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, context.translator))
 	_clear_card_selection()
 func _clear_card_selection() -> void:
@@ -44,6 +45,7 @@ func _clear_card_selection() -> void:
 	get_node("PreviewColumn/CardScroll/Card").hide()
 	get_node("PreviewColumn/Preview").disabled = true
 func _select_item(index: int) -> void:
+	if index < 0 or index >= _snapshot.get("items", []).size(): return
 	_clear_card_selection()
 	var item: Dictionary = _snapshot.get("items", [])[index]
 	var definition: Dictionary = item.get("definition", {})
@@ -59,7 +61,7 @@ func _select_item(index: int) -> void:
 		var options: Array = _choices.filter(func(choice): return str(choice.get("type", "")) == "APPLY_CARD_MODIFIER_ITEM" and str(choice.get("payload", {}).get("itemInstanceId", "")) == str(item.get("instance", {}).get("itemInstanceId", "")) and str(choice.get("payload", {}).get("cardInstanceId", "")) == id)
 		var model: Dictionary = preload("res://scripts/presentation/card_facts_presenter.gd").new(_context.translator, _appearance).project(facts[0]) if not facts.is_empty() else {}
 		var name: String = str(model.get("name", _context.translator.text("Card details unavailable")))
-		var valid := bool(compatibility.get("compatible", false)) and options.size() == 1 and not facts.is_empty()
+		var valid := str(item.get("instance", {}).get("state", "")) == "Available" and bool(compatibility.get("compatible", false)) and options.size() == 1 and not facts.is_empty()
 		var reason: String = str(compatibility.get("reason", ""))
 		if reason.is_empty() and not valid: reason = "Card details or application are unavailable."
 		var reference: String = preload("res://scripts/presentation/activity_presenter.gd").option_reference(options[0]) if valid else ""
@@ -78,6 +80,7 @@ func _select_item(index: int) -> void:
 		list.set_item_metadata(card_index, row)
 	get_node("CardsColumn/Hint").text = _context.translator.text("Select a card to preview the change.") if list.item_count > 0 else _context.translator.text("No cards are available for this pattern.")
 func _select_card(index: int) -> void:
+	if index < 0 or index >= get_node("CardsColumn/Cards").item_count: return
 	var entry: Dictionary = get_node("CardsColumn/Cards").get_item_metadata(index)
 	_reference = str(entry.get("reference", ""))
 	selected_card_name = get_node("CardsColumn/Cards").get_item_text(index)
