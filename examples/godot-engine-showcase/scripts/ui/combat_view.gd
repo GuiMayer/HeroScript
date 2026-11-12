@@ -445,6 +445,9 @@ func _show_preview(id: String) -> void:
 func _show_target_preview(actor_id: String) -> void:
 	if _locked() or selected_card.is_empty() or not _candidates(selected_card).any(func(candidate): return actor_id in _targets(candidate)):
 		return
+	for id in target_buttons:
+		var allowed := _candidates(selected_card).any(func(candidate): return id in _targets(candidate))
+		_set_target_outline(target_buttons[id], allowed, allowed and id == actor_id)
 	detail_label.text = visual_context.translator.text("Action preview: %s") % presenter.action_preview(selected_card, actor_id)
 	detail_label.tooltip_text = detail_label.text
 
@@ -486,6 +489,7 @@ func _update_controls() -> void:
 		target_buttons[id].disabled = locked or not allowed
 		target_buttons[id].button_pressed = selected_target == id
 		target_buttons[id].modulate = visual_context.styles.GOLD if allowed else Color.WHITE
+		_set_target_outline(target_buttons[id], allowed and not locked, selected_target == id)
 
 
 func _actor_name(id: String) -> String:
@@ -600,11 +604,30 @@ func _preview_drag_targets(card_id: String, point: Vector2) -> void:
 	for id in target_buttons:
 		var allowed := _candidates(card_id).any(func(candidate): return id in _targets(candidate))
 		target_buttons[id].modulate = (visual_context.styles.GOLD if id == hovered else visual_context.styles.GOLD.lightened(.18)) if allowed else Color.WHITE
+		_set_target_outline(target_buttons[id], allowed, allowed and id == hovered)
 
 func _restore_drag_targets() -> void:
 	for id in target_buttons:
 		var allowed := not selected_card.is_empty() and _candidates(selected_card).any(func(candidate): return id in _targets(candidate))
 		target_buttons[id].modulate = visual_context.styles.GOLD if allowed else Color.WHITE
+
+
+		_set_target_outline(target_buttons[id], allowed and not _locked(), selected_target == id)
+
+func _set_target_outline(button: Button, allowed: bool, emphasized: bool) -> void:
+	var outline := button.get_node_or_null("ValidTargetOutline") as Panel
+	if outline == null:
+		outline = Panel.new(); outline.name = "ValidTargetOutline"
+		outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(outline)
+		outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	outline.visible = allowed
+	if not allowed: return
+	var border := StyleBoxFlat.new()
+	border.bg_color = Color.TRANSPARENT
+	border.border_color = visual_context.styles.color("accent.primary")
+	border.set_border_width_all(5 if emphasized else 2)
+	outline.add_theme_stylebox_override("panel", border)
 
 func _hand_drop_allowed(point: Vector2) -> bool:
 	for control in [header_view, pile_controls, right_pile_controls, turn_view, candidate_panel, character_sidebar, _feedback_column]:
