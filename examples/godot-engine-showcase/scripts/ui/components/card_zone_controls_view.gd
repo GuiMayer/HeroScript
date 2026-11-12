@@ -53,18 +53,18 @@ func _apply_pile_style(button: Button, icon_id: String, label: String, count: in
 		icon.offset_left = 8; icon.offset_right = 50; icon.offset_top = -21; icon.offset_bottom = 21
 		var badge := PanelContainer.new(); badge.name = "CountBadge"
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var background := StyleBoxFlat.new(); background.bg_color = Color(0.04, 0.04, 0.05, 0.96)
-		background.set_corner_radius_all(4)
-		badge.add_theme_stylebox_override("panel", background)
+		badge.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 		icon.add_child(badge)
 		badge.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-		badge.offset_left = -21; badge.offset_right = 21; badge.offset_top = -11; badge.offset_bottom = 11
+		badge.offset_left = -21; badge.offset_right = 21; badge.offset_top = -21; badge.offset_bottom = 21
 		var number := Label.new(); number.name = "Count"
 		number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		number.add_theme_font_size_override("font_size", 16)
+		number.add_theme_font_size_override("font_size", 32)
 		number.add_theme_color_override("font_color", Color.WHITE)
+		number.add_theme_color_override("font_outline_color", Color.BLACK)
+		number.add_theme_constant_override("outline_size", 5)
 		badge.add_child(number)
 		var title := Label.new(); title.name = "PileLabel"
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
