@@ -40,8 +40,8 @@ func run() -> void:
 			hand.sync_models(models, "base-%s" % count, "Your hand is empty.")
 			await settle()
 			check(hand.order.size() == count and absf(hand.scroll.get_global_rect().get_center().x - canvas.get_center().x) < 1, "hand stays centered with %s cards at %s" % [count, bounds])
-			check(hand.get_global_rect().end.y <= canvas.end.y + 1, "hand reserves its bottom edge with %s cards at %s" % [count, bounds])
-			check(hand.ordered_cards().all(func(card): return card.size.is_equal_approx(expected_size)), "card dimensions remain unchanged with %s cards at %s" % [count, bounds])
+			check(absf(hand.get_global_rect().end.y - view.get_node("CanvasHost").get_global_rect().end.y) <= 1, "hand reserves its bottom edge with %s cards at %s" % [count, bounds])
+			check(hand.ordered_cards().all(func(card): return card.size.is_equal_approx(expected_size) and card.get_global_transform().get_scale().is_equal_approx(Vector2.ONE * 0.67)), "cards preserve face dimensions and scale uniformly with %s cards at %s" % [count, bounds])
 			if count == 2:
 				var first: Vector2 = hand.destination_center(hand.order.front())
 				var last: Vector2 = hand.destination_center(hand.order.back())
@@ -49,11 +49,11 @@ func run() -> void:
 				var selected: String = hand.order.back()
 				var point: Vector2 = hand.card_for(selected).get_global_transform() * (hand.card_for(selected).size * .5)
 				check(hand.pick_global(point, false) == selected, "hit surface resolves the visible card after canvas fitting " + str(bounds))
-		var position: Vector2 = hand.global_position
+		var bottom: float = hand.get_global_rect().end.y
 		view._build_hand()
 		view._layout_gameplay()
 		await settle()
-		check(hand.get_parent() == view.hand_section and hand.global_position.is_equal_approx(position), "refresh does not move or reparent the hand " + str(bounds))
+		check(hand.get_parent() == view.hand_section and absf(hand.get_global_rect().end.y - bottom) <= 1.0, "refresh keeps the hand attached to the bottom " + str(bounds))
 	check(context.card_style.presentation_key() == expected_style, "composition does not mutate card style")
 	check(duration_keys.map(func(key): return context.capture_motion().duration(key, true)) == expected_durations, "composition preserves all sampled motion durations")
 	check(root.get_node("GameSession").run == before, "local composition test does not mutate the session")

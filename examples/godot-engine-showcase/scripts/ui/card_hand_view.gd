@@ -72,6 +72,8 @@ var _return_tween: Tween
 var _reading_proxy: CardView
 var _layout_pending := false
 var _syncing := false
+@export_range(0.25, 1.0) var card_display_scale := 1.0
+@export var flush_bottom := false
 var _reserved_card_size := Vector2.ZERO
 var _layout_text_scale := -1.0
 var _layout_card_style_key := ""
@@ -255,8 +257,8 @@ func destination_pose(id: String) -> Dictionary:
 		if index < 0 or index >= _layout.get("positions", []).size(): return {}
 		position = _layout.positions[index]; rotation = _layout.rotations[index]
 	var transform := surface.get_global_transform()
-	var basis := transform * Transform2D(rotation, Vector2.ZERO)
-	return {"center": transform * (position + _cards[id].size * .5), "rotation": basis.get_rotation(), "scale": basis.get_scale(), "size": _cards[id].size}
+	var basis := transform * Transform2D(rotation, Vector2.ONE * card_display_scale, 0.0, Vector2.ZERO)
+	return {"center": transform * (position + _cards[id].size * card_display_scale * .5), "rotation": basis.get_rotation(), "scale": basis.get_scale(), "size": _cards[id].size}
 
 func is_in_transit(id: String) -> bool: return _transit.has(id)
 func is_card_pickable(id: String) -> bool: return _pickable(id)
@@ -483,29 +485,40 @@ func _relayout() -> void:
 	relayout_count += 1
 	var default_style = visual_context.card_style
 	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
-	var policy_key: String = default_style.presentation_key() + _visual_style_key() + resolved_hand_mode()
+	var policy_key: String = default_style.presentation_key() + _visual_style_key() + resolved_hand_mode() + str(card_display_scale)
 	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key:
 		_reserved_card_size = Vector2.ZERO; custom_minimum_size.y = 0
 	_layout_card_style_key = policy_key
 	_layout_text_scale = visual_context.text_scale
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
-	dimensions = dimensions.max(_reserved_card_size)
+	var face_size := dimensions.max(_reserved_card_size / card_display_scale)
+	dimensions = face_size * card_display_scale
 	_reserved_card_size = dimensions
 	_layout = Layout.presentation_layout(order, _presentation_order, _destination_order, _presenting, _aligning_arrivals, maxf(1, scroll.size.x), dimensions, visual_style, resolved_hand_mode())
-	scroll.custom_minimum_size.y = _layout.height + 12
+	var flush: bool = flush_bottom and not order.is_empty() and not _layout.overflow
+	if flush:
+		var bottom := 0.0
+		for index in _layout.positions.size():
+			var angle: float = _layout.rotations[index]
+			var half_height := (absf(cos(angle)) * dimensions.y + absf(sin(angle)) * dimensions.x) * 0.5
+			bottom = maxf(bottom, _layout.positions[index].y + dimensions.y * 0.5 + half_height)
+		_layout.height = ceilf(bottom)
+	scroll.custom_minimum_size.y = _layout.height + (0 if flush else 12)
 	surface.custom_minimum_size = Vector2(_layout.extent, _layout.height)
 	# Reserve the scroll chrome even when the native bar toggles during layout.
 	# Read-only panels/focus changes must not move the dock by the bar's height.
-	var reserved: float = ceilf(_layout.height + 12 + scroll.get_h_scroll_bar().get_combined_minimum_size().y)
+	var reserved: float = scroll.custom_minimum_size.y
+	if not flush: reserved = ceilf(reserved + scroll.get_h_scroll_bar().get_combined_minimum_size().y)
 	if not toolbar_external: reserved += toolbar.get_combined_minimum_size().y + get_theme_constant("separation")
 	custom_minimum_size.y = reserved
 	for i in order.size():
 		var id := order[i]
 		var card: CardView = _cards[id]
 		var slot: Control = _slots[id]
-		card.size = dimensions
-		card.pivot_offset = dimensions * .5
-		slot.size = dimensions
+		card.size = face_size
+		card.pivot_offset = face_size * .5
+		slot.size = face_size
+		slot.scale = Vector2.ONE * card_display_scale
 		var target: Vector2 = _layout.positions[i]
 		# Every new layout owns the slot, even if it already sits at the target.
 		# A previous tween may not have ticked yet; leaving it alive would move
@@ -543,7 +556,7 @@ func _apply_emphasis() -> void:
 		if _transit.has(id): continue
 		if i >= _layout.rotations.size(): continue
 		var raised: bool = id == active and not interaction.dragging
-		var target := Vector2(0, -visual_style.lift * visual_context.hand_emphasis) if raised else Vector2.ZERO
+		var target := Vector2(0, -visual_style.lift * visual_context.hand_emphasis / card_display_scale) if raised else Vector2.ZERO
 		var angle: float = 0 if raised else _layout.rotations[i]
 		var card: CardView = _cards[id]
 		_slots[id].z_index = 100 if raised else (50 if id == interaction.selected else mini(i, 40))
@@ -572,7 +585,7 @@ func _update_reading_proxy() -> void:
 		return
 	var clip := scroll.get_global_rect()
 	var resting: Vector2 = _slots[id].global_position
-	if resting.x >= clip.position.x and resting.x + card.size.x <= clip.end.x:
+	if resting.x >= clip.position.x and resting.x + card.size.x * card_display_scale <= clip.end.x:
 		if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 		return
 	if not is_instance_valid(_reading_proxy):

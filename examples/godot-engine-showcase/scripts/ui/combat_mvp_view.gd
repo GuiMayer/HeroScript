@@ -1,10 +1,11 @@
 @tool
 extends "res://scripts/ui/combat_view.gd"
 ## Dedicated MVP composition; the shared controller retains all rule authority.
+const HAND_SCALE := 0.67
 @export var combat_theme: Resource = preload("res://data/themes/mvp_combat_theme.tres")
 @export_node_path("Label") var energy_indicator_path := NodePath("CanvasHost/ReferenceCanvas/EnergyIndicator")
 @export var arena_gap := 20.0
-@export var hand_bottom_inset := 8.0
+@export var hand_bottom_inset := 0.0
 @export var energy_hand_gap := 10.0
 @export var battlefield_top_gap := 12.0
 @export var battlefield_left_gap := 20.0
@@ -17,7 +18,9 @@ var _log_return_focus: WeakRef
 var _drawer_return_focus: WeakRef
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
-	var local_context = context.derive(combat_theme)
+	var stage_theme = combat_theme.duplicate()
+	stage_theme.actor_art_max_height = combat_theme.actor_art_max_height / HAND_SCALE
+	var local_context = context.derive(stage_theme)
 	local_context.hand_arrangements = context.hand_arrangements
 	# Existing cards retain their context across projections. Rebind when text
 	# scaling changes so a resumed view and newly created cards agree.
@@ -156,6 +159,8 @@ func _present_energy(combat_state: Dictionary) -> void:
 		energy_indicator.minimum_size_changed.connect(_queue_gameplay_layout)
 	energy_indicator.text = ""
 	energy_indicator.tooltip_text = ""
+	if not hand_section.minimum_size_changed.is_connected(_queue_gameplay_layout):
+		hand_section.minimum_size_changed.connect(_queue_gameplay_layout)
 	for actor in combat_state.get("actors", []):
 		if str(actor.get("instanceId", "")) != _input_actor: continue
 		var resources: Dictionary = actor.get("resources", {})
@@ -202,8 +207,8 @@ func _layout_gameplay() -> void:
 	gameplay_column.position = (available - fitted) * .5
 	if not is_instance_valid(bottom_hud) or not is_instance_valid(hand_section): return
 	var height: float = hand_section.get_combined_minimum_size().y
-	bottom_hud.offset_top = -height - hand_bottom_inset
-	bottom_hud.offset_bottom = -hand_bottom_inset
+	bottom_hud.offset_bottom = (available.y - fitted.y) * 0.5 - hand_bottom_inset
+	bottom_hud.offset_top = bottom_hud.offset_bottom - height
 	var first_card_top := fitted.y + bottom_hud.offset_top
 	if is_instance_valid(hand) and is_instance_valid(hand.scroll):
 		first_card_top = (hand.scroll.global_position.y - gameplay_column.global_position.y) + hand.visual_style.padding

@@ -78,7 +78,7 @@ anchor_top = 1.0
 anchor_right = 0.84
 anchor_bottom = 1.0
 offset_top = -400.0
-offset_bottom = -8.0
+offset_bottom = 0.0
 grow_vertical = 0
 mouse_filter = 2
 [node name="HandSection" type="VBoxContainer" parent="CanvasHost/ReferenceCanvas/HandHost"]
@@ -92,6 +92,8 @@ layout_mode = 2
 [node name="CardHandView" parent="CanvasHost/ReferenceCanvas/HandHost/HandSection" instance=ExtResource("Hand")]
 layout_mode = 2
 toolbar_path = NodePath("../../../EndTurnAndContextActions/HandTools")
+flush_bottom = true
+card_display_scale = 0.67
 [node name="EndTurnAndContextActions" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Turn")]
 show_end_turn_shortcut = false
 layout_mode = 1

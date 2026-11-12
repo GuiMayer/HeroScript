@@ -281,7 +281,9 @@ func run() -> void:
 	check(live_energy.visible and live_energy.text == "◇  Energy  4 / 3", "live combat screen presents surplus energy above the hand")
 	var expected_card_size: Vector2 = mvp_view.visual_context.card_style.effective_size(mvp_view.visual_context.text_scale)
 	var baseline_card_size: Vector2 = hand.ordered_cards()[0].size
-	check(baseline_card_size.is_equal_approx(expected_card_size), "card dimensions remain unchanged at expected card_style size in Stage 5")
+	check(baseline_card_size.is_equal_approx(expected_card_size) and hand.ordered_cards()[0].get_global_transform().get_scale().is_equal_approx(Vector2.ONE * 0.67), "MVP hand cards are 33% smaller")
+	var host: Control = mvp_view.get_node("CanvasHost")
+	check(absf(mvp_view.bottom_hud.get_global_rect().end.y - host.get_global_rect().end.y) <= 1.0, "hand dock reaches the bottom edge of the screen")
 
 	# Hover and select the rightmost card in hand (near EndTurnButton) and verify no overlap or hit-test interference.
 	var rightmost_index: int = hand.order.size() - 1

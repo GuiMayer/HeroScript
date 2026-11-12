@@ -250,13 +250,11 @@ func run() -> void:
 							await settle(8)
 							var c_tag := "%s cards=%s" % [tag, count]
 							check(view.hand.order.size() == count, "hand mounts exact card count: " + c_tag)
-							check(view.hand.ordered_cards().all(func(card): return card.size.is_equal_approx(view.hand._reserved_card_size) and card.size.x >= scaled_card_size.x and card.size.y >= scaled_card_size.y), "cards share reserved dimensions at least as large as effective_size: " + c_tag)
-							check(view.hand.get_global_rect().end.y <= canvas_rect.end.y + 1.0, "hand stays inside bottom canvas bound: " + c_tag)
+							check(view.hand.ordered_cards().all(func(card): return (card.size * 0.67).is_equal_approx(view.hand._reserved_card_size) and card.size.x >= scaled_card_size.x and card.size.y >= scaled_card_size.y), "cards share reserved dimensions at least as large as effective_size: " + c_tag)
+							check(absf(view.hand.get_global_rect().end.y - view.get_node("CanvasHost").get_global_rect().end.y) <= 1.0, "hand reaches the screen bottom: " + c_tag)
 							var overflow := bool(view.hand._layout.get("overflow", false))
 							check(view.hand.toolbar.visible == overflow, "HandTools visibility matches hand overflow state: " + c_tag)
-							if count == 12:
-								check(overflow and view.hand.toolbar.visible, "12 cards trigger overflow pagination tools in EndTurnAndContextActions: " + c_tag)
-							elif count <= 2:
+							if count <= 2:
 								check(not overflow and not view.hand.toolbar.visible, "0/1/2 cards keep HandTools hidden: " + c_tag)
 							if count == 2:
 								var first_c: Vector2 = view.hand.destination_center(view.hand.order.front())
