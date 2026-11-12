@@ -23,7 +23,7 @@ func bind() -> void:
 	for i in 3:
 		var index := i
 		get_node("ContentScroll/Content/Offers/Offer%d/Column/Select" % (i + 1)).pressed.connect(func(): _select(index))
-		get_node("ContentScroll/Content/Offers/Offer%d/Column/Acquire" % (i + 1)).pressed.connect(_confirm_purchase)
+		get_node("ContentScroll/Content/Offers/Offer%d/Column/AcquireSlot/Acquire" % (i + 1)).pressed.connect(_confirm_purchase)
 	get_node("Header/Map").pressed.connect(func(): map_requested.emit())
 	get_node("Footer/Manage").pressed.connect(_toggle_inventory)
 	get_node("Footer/Continue").pressed.connect(_confirm_leave)
@@ -66,7 +66,7 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 		offer.get_node("Column/Description").text = str(model.summary) if str(model.category) == "modifier_items" else t.text("Effect description unavailable. Inspect a compatible card before applying.")
 		offer.get_node("Column/Cost").text = (t.text("Cost: %s") % str(model.cost)) if not str(model.cost).is_empty() else t.text("Cost unavailable")
 		offer.get_node("Column/Select").text = t.text("Selected") if i == _selected else t.text("Select")
-		offer.get_node("Column/Acquire").text = t.text("Acquire pattern")
+		offer.get_node("Column/AcquireSlot/Acquire").text = t.text("Acquire pattern")
 	get_node("ContentScroll/Content/Offers").visible = not _inventory_open and not _offers.is_empty()
 	var acquired = get_node("ContentScroll/Content/Acquired")
 	acquired.visible = _completed and not _inventory_open
@@ -121,7 +121,7 @@ func _refresh_selection() -> void:
 		var offer: PanelContainer = get_node("ContentScroll/Content/Offers/Offer%d" % (i + 1))
 		var selected := valid and i == _selected
 		offer.get_node("Column/Select").text = context.translator.text("Selected" if selected else "Select")
-		var acquire: Button = offer.get_node("Column/Acquire")
+		var acquire: Button = offer.get_node("Column/AcquireSlot/Acquire")
 		acquire.visible = selected and not _inventory_open
 		acquire.disabled = not _editable or (known and not can_afford)
 		if i < _offers.size():

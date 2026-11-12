@@ -22,8 +22,12 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 48)
 theme_type_variation = &"SecondaryAction"
 
-[node name="Acquire" type="Button" parent="Column"]
+[node name="AcquireSlot" type="HBoxContainer" parent="Column"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+[node name="Acquire" type="Button" parent="Column/AcquireSlot"]
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 custom_minimum_size = Vector2(0, 48)
 theme_type_variation = &"PrimaryAction"
