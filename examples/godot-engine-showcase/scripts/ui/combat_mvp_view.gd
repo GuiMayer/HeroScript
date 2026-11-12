@@ -94,6 +94,22 @@ func _update_controls() -> void:
 	_refresh_header_inspection()
 	_sync_turn_dock_visibility()
 
+func _build_footer() -> void:
+	super._build_footer()
+	var playback: HBoxContainer = get_node("CanvasHost/ReferenceCanvas/PlaybackControls")
+	for button in [turn_view.next_frame_button, turn_view.skip_button]:
+		if button.get_parent() != playback: button.reparent(playback)
+
+func _position_playback_controls() -> void:
+	if not is_instance_valid(turn_view): return
+	var playback: HBoxContainer = get_node("CanvasHost/ReferenceCanvas/PlaybackControls")
+	if not playback.visible: return
+	var end: Button = turn_view.get_node("EndTurnButton")
+	var bounds := end.get_global_rect()
+	var minimum := playback.get_combined_minimum_size()
+	playback.size = minimum
+	playback.global_position = Vector2(bounds.position.x - minimum.x - 8.0, bounds.get_center().y - minimum.y * 0.5)
+
 func _sync_turn_dock_visibility() -> void:
 	if not is_instance_valid(hand) or not is_instance_valid(hand.toolbar): return
 	var has_visible_tool := false
@@ -103,6 +119,9 @@ func _sync_turn_dock_visibility() -> void:
 			break
 	hand.toolbar.visible = has_visible_tool
 	if is_instance_valid(turn_view):
+		var playback: HBoxContainer = get_node("CanvasHost/ReferenceCanvas/PlaybackControls")
+		playback.visible = turn_view.next_frame_button.visible or turn_view.skip_button.visible
+		turn_view.get_node("ContextActionSlot").visible = turn_view.selection_actions.visible
 		var gap: Control = turn_view.get_node_or_null("EndTurnGap")
 		if is_instance_valid(gap):
 			gap.visible = has_visible_tool or turn_view.get_node("ContextActionSlot").visible or turn_view.skip_button.visible or turn_view.get_node("SystemActionSlot").visible
@@ -207,6 +226,7 @@ func _layout_turn_controls() -> void:
 	turn_view.offset_bottom = -inset_y
 	turn_view.offset_left = -min_size.x - inset_x
 	turn_view.offset_top = -min_size.y - inset_y
+	_position_playback_controls.call_deferred()
 
 func _bind_composition() -> Control:
 	gameplay_column = get_node("CanvasHost/ReferenceCanvas")

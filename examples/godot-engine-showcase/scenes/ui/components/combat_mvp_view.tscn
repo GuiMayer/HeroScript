@@ -57,6 +57,10 @@ layout_mode = 0
 layout_mode = 0
 [node name="DeckPile" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Piles")]
 layout_mode = 0
+[node name="PlaybackControls" type="HBoxContainer" parent="CanvasHost/ReferenceCanvas"]
+visible = false
+layout_mode = 0
+theme_override_constants/separation = 8
 [node name="EnergyIndicator" type="Label" parent="CanvasHost/ReferenceCanvas"]
 layout_mode = 1
 anchor_left = 0.36

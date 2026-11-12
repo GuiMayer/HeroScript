@@ -185,6 +185,12 @@ func run() -> void:
 	await settle()
 	check(next_btn.visible and skip_btn.visible and not skip_btn.disabled and not cancel_box.visible, "presentation frames reveal NextAnimation and SkipPresentationButton while hiding CancelSelection")
 	check(end_btn.disabled, "EndTurnButton is disabled while presentation frames lock input")
+	var playback_rect: Rect2 = next_btn.get_parent().get_global_rect()
+	var playback_end_rect: Rect2 = end_btn.get_global_rect()
+	check(playback_rect.end.x <= playback_end_rect.position.x and absf(playback_rect.get_center().y - playback_end_rect.get_center().y) < 1.0, "playback controls sit directly left of end turn")
+	check(next_btn.get_global_rect().end.x <= skip_btn.get_global_rect().position.x, "advance and skip are arranged horizontally")
+	check(next_btn.pressed.is_connected(Callable(turn_node, "_on_next_pressed")) and skip_btn.pressed.is_connected(Callable(turn_node, "_on_skip_pressed")), "relocated playback buttons keep their actions")
+
 
 	# Busy/submitting during presentation disables SkipPresentationButton as well.
 	present(view, snap, context_en, {"locked": true, "has_frames": true, "busy": true, "submitting": true})

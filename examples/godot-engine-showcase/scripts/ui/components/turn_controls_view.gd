@@ -21,8 +21,8 @@ func _ready() -> void:
 	if not _bound: mount(visual_context.translator,{"confirm_action":"Space","end_turn":"E"},{})
 func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	theme = visual_context.theme; _pass_option = pass_option.duplicate(true)
-	next_frame_button = get_node("ContextActionSlot/NextAnimation")
-	skip_button = get_node("SkipPresentationButton")
+	if not is_instance_valid(next_frame_button): next_frame_button = get_node("ContextActionSlot/NextAnimation")
+	if not is_instance_valid(skip_button): skip_button = get_node("SkipPresentationButton")
 	selection_actions = get_node("ContextActionSlot/SelectionActions")
 	var cancel: Button = selection_actions.get_node("CancelSelection")
 	var pass_button: Button = get_node("SystemActionSlot/Pass")
