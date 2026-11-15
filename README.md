@@ -136,6 +136,16 @@ salvamento em lote ou uma ação de Hot Reload. Em caso de resposta perdida,
 consulte `GET /api/v1/admin/authoring/settings/{settingId}/changes/{changeId}`
 ou repita a solicitação original com o mesmo ID e a mesma ETag.
 
+Para desfazer, envie um novo `changeId` e `undoOf` com o ID do lote aplicado.
+Para refazer, informe `redoOf` com o ID do desfazer confirmado. Use
+`POST .../changes/validate` para simular a compensação e `POST .../changes`
+para gravá-la. As rotas `POST .../changes/{changeId}/undo` e
+`POST .../changes/{changeId}/redo` executam a mesma operação imediatamente
+com um novo `changeId` no corpo. Consulte o recibo para verificar o próximo
+comando elegível e possíveis vínculos em `compensatedBy`. Para desfazer um
+refazer, use o ID do próprio refazer. O histórico fica no journal local do
+workspace e a engine revalida cada compensação contra as fontes atuais.
+
 Após uma interrupção, reinicie usando o mesmo diretório de pacotes e
 armazenamento de conteúdo. A engine usa o journal local
 `.heroscript-authoring/` para completar ou reverter a transação. Se um

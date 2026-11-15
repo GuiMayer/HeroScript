@@ -306,6 +306,9 @@ public sealed class DirectoryPackageProvider : IPackageProvider
     public static ReadOnlyMemory<byte> WithoutBom(ReadOnlyMemory<byte> bytes) =>
         bytes.Span.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }) ? bytes[3..] : bytes;
 
+    public static PackageManifest? ReadCapturedManifest(ReadOnlyMemory<byte> bytes) =>
+        JsonSerializer.Deserialize<PackageManifest>(WithoutBom(bytes).Span, JsonOptions);
+
     private static bool HasReparsePoint(string path) =>
         (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
 

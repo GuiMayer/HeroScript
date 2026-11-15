@@ -204,6 +204,12 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         var preview = paths.GetProperty("/api/v1/admin/authoring/settings/{settingId}/changes/validate").GetProperty("post");
         Assert.True(preview.GetProperty("responses").TryGetProperty("422", out _));
         Assert.True(preview.GetProperty("responses").TryGetProperty("428", out _));
+        foreach (var action in new[] { "undo", "redo" })
+        {
+            var operation = paths.GetProperty($"/api/v1/admin/authoring/settings/{{settingId}}/changes/{{changeId}}/{action}")
+                .GetProperty("post");
+            Assert.True(operation.GetProperty("responses").TryGetProperty("409", out _));
+        }
     }
 
     [Fact]

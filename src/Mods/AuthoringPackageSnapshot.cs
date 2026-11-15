@@ -44,11 +44,14 @@ public sealed class AuthoringPackageSnapshot : IPackageProvider
     }
 
     public AuthoringPackageSnapshot WithCandidate(PackageSource original, PackageManifest manifest,
-        IReadOnlyDictionary<string, ReadOnlyMemory<byte>> changes)
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>> changes, IEnumerable<string>? removals = null)
     {
         var sources = new Dictionary<string, ReadOnlyMemory<byte>>(_sources, StringComparer.Ordinal);
         foreach (var change in changes)
             sources[change.Key] = change.Value;
+        if (removals is not null)
+            foreach (var path in removals)
+                sources.Remove(path);
         return new(ProviderId, _discovery with
         {
             Packages = _discovery.Packages.Select(package =>

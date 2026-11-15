@@ -180,7 +180,7 @@ public sealed class CardAuthoringWriter(
             if (record is null && coordinator.RecoveryRequired)
                 record = await ReadRecord("pending.json");
             return record?.SettingId == settingId && record.Receipt.ChangeId == changeId
-                ? new(200, Receipt: PublicReceipt(record.Receipt))
+                ? new(200, Receipt: Availability(PublicReceipt(record.Receipt), await ReadSuccessor(changeId)))
                 : new(404, ApiErrorCodes.ResourceNotFound, "Authoring change not found.");
         }, cancellationToken);
 
@@ -205,9 +205,6 @@ public sealed class CardAuthoringWriter(
                 ? new(200, Receipt: existing.Receipt)
                 : new(409, AuthoringErrorCodes.ChangeConflict, "This change was aborted. Submit a new change ID.", existing.Receipt);
         }
-        if (request.UndoOf.HasValue || request.RedoOf.HasValue)
-            return new(501, ApiErrorCodes.NotImplemented, "Compensation execution is not available.");
-
         var workspace = await authoring.CaptureAsync(cancellationToken);
         if (workspace.IsFailure)
             return new(503, ApiErrorCodes.DependencyUnavailable, workspace.Error);
@@ -218,7 +215,10 @@ public sealed class CardAuthoringWriter(
         var view = await authoring.GetViewAsync(workspace.Value, settingId, cancellationToken);
         if (view.IsFailure)
             return new(422, AuthoringErrorCodes.InvalidCandidate, view.Error);
-        var plan = await authoring.PlanAsync(workspace.Value, view.Value, request, cancellationToken);
+        var planned = await PlanAsync(workspace.Value, view.Value, request, cancellationToken);
+        if (planned.Error is not null)
+            return planned.Error;
+        var plan = planned.Plan!;
         if (!plan.Validation.IsValid)
             return new(422, AuthoringErrorCodes.InvalidCandidate, "The candidate failed authoring validation.", Validation: plan.Validation);
 
@@ -253,8 +253,10 @@ public sealed class CardAuthoringWriter(
             file => $"{snapshot.ProviderId}/{file.Key}", file => file.Value, StringComparer.Ordinal));
         var receipt = new CardAuthoringChangeReceipt(request.ChangeId, "prepared", etag, nextVersion,
             plan.Validation.CandidateRevisions, plan.Files.Select(file => file.Path).ToArray(),
-            plan.Validation.Diagnostics, null, null);
-        var record = new AuthoringJournalRecord(settingId, fingerprint, receipt, plan.Files);
+            plan.Validation.Diagnostics, request.UndoOf, request.RedoOf);
+        var package = view.Value.Writable!;
+        var record = new AuthoringJournalRecord(settingId, fingerprint, receipt, plan.Files,
+            new(package.SourceId, package.Manifest.PackageId, package.Manifest.Version));
 
         // After preparing the journal the transaction must finish or be
         // recoverable independently of the HTTP connection.
@@ -275,7 +277,7 @@ public sealed class CardAuthoringWriter(
             Notify(AuthoringWriteCheckpoint.SourcesConfirmed);
             Activate(record);
             await CompleteAsync(record, "applied");
-            return new(200, Receipt: record.Receipt with { State = "applied" });
+            return new(200, Receipt: Availability(record.Receipt with { State = "applied" }));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -283,6 +285,62 @@ public sealed class CardAuthoringWriter(
             logger.LogError(exception, "Authoring change {ChangeId} requires recovery", request.ChangeId);
             return Recoverable("The write was interrupted. Restart the engine to recover the workspace.");
         }
+    }
+
+    public async Task<AuthoringApplyResult> PreviewAsync(CardAuthoringWorkspace workspace, CardAuthoringView view,
+        CardAuthoringChangeRequest request, CancellationToken cancellationToken)
+    {
+        var planned = await PlanAsync(workspace, view, request, cancellationToken);
+        if (planned.Error is not null)
+            return planned.Error;
+        var validation = planned.Plan!.Validation;
+        return validation.IsValid
+            ? new(200, Validation: validation)
+            : new(422, AuthoringErrorCodes.InvalidCandidate, "The candidate failed authoring validation.", Validation: validation);
+    }
+
+    private async Task<(CardAuthoringPlan? Plan, AuthoringApplyResult? Error)> PlanAsync(CardAuthoringWorkspace workspace,
+        CardAuthoringView view, CardAuthoringChangeRequest request, CancellationToken cancellationToken)
+    {
+        var targetId = request.UndoOf ?? request.RedoOf;
+        if (targetId is null)
+            return (await authoring.PlanAsync(workspace, view, request, cancellationToken), null);
+        if (!coordinator.Enabled)
+            return (null, new(403, ApiErrorCodes.Forbidden, "Enable source authoring to access compensation history."));
+
+        var target = await ReadRecord(ReceiptPath(targetId.Value));
+        if (target is null || target.SettingId != view.Compilation.Setting.SettingId)
+            return (null, new(404, ApiErrorCodes.ResourceNotFound, "Compensation target not found in this setting."));
+
+        if (target.Package is { } identity && (view.Writable is not { } writable ||
+            identity != new AuthoringPackageIdentity(writable.SourceId, writable.Manifest.PackageId, writable.Manifest.Version)))
+            return (null, new(409, AuthoringErrorCodes.ChangeConflict, "The target operation belongs to a different writable package."));
+
+        var successor = await ReadSuccessor(targetId.Value);
+        var availability = Availability(target.Receipt, successor);
+        if (request.UndoOf.HasValue ? !availability.CanUndo : !availability.CanRedo)
+            return (null, new(409, AuthoringErrorCodes.ChangeConflict,
+                successor.HasValue ? "This change already has a compensating operation." :
+                "The target change is not eligible for this compensation.", availability));
+
+        var plan = await authoring.PlanCompensationAsync(workspace, view, request.ChangeId, target.Files, cancellationToken);
+        if (plan.IsFailure)
+            return (null, new(409, AuthoringErrorCodes.ChangeConflict, plan.Error, availability));
+        foreach (var file in plan.Value.Files)
+            if (!Same(await ReadSource(file.Path), file.Before))
+                return (null, SourceChanged());
+        return (plan.Value, null);
+    }
+
+    private static CardAuthoringChangeReceipt Availability(CardAuthoringChangeReceipt receipt, Guid? successor = null)
+    {
+        var available = receipt.State == "applied" && successor is null;
+        return receipt with
+        {
+            CompensatedBy = successor,
+            CanUndo = available && !receipt.UndoOf.HasValue,
+            CanRedo = available && receipt.UndoOf.HasValue
+        };
     }
 
     private void Activate(AuthoringJournalRecord record)
@@ -303,11 +361,25 @@ public sealed class CardAuthoringWriter(
 
     private async Task CompleteAsync(AuthoringJournalRecord record, string state)
     {
-        var receipt = record.Receipt with { State = state };
+        var receipt = Availability(record.Receipt with { State = state });
         if (state == "aborted")
             receipt = receipt with { SourceVersion = receipt.PreviousSourceVersion, ActiveRevisions = new Dictionary<string, string>() };
         await WriteRecord(ReceiptPath(receipt.ChangeId), record with { Receipt = receipt });
+        if (state == "applied" && (receipt.UndoOf ?? receipt.RedoOf) is { } target)
+        {
+            var successor = await ReadSuccessor(target);
+            if (successor is { } existing && existing != receipt.ChangeId)
+                throw new IOException($"Compensation history for '{target}' points to another operation.");
+            await WriteAtomic(coordinator.PathFor($".heroscript-authoring/{SuccessorPath(target)}"),
+                JsonSerializer.SerializeToUtf8Bytes(receipt.ChangeId, Json));
+        }
         File.Delete(coordinator.PathFor(".heroscript-authoring/pending.json"));
+    }
+
+    private async Task<Guid?> ReadSuccessor(Guid id)
+    {
+        var path = coordinator.PathFor($".heroscript-authoring/{SuccessorPath(id)}");
+        return File.Exists(path) ? JsonSerializer.Deserialize<Guid>(await File.ReadAllBytesAsync(path), Json) : null;
     }
 
     private static CardAuthoringChangeReceipt PublicReceipt(CardAuthoringChangeReceipt receipt) =>
@@ -387,12 +459,15 @@ public sealed class CardAuthoringWriter(
     }
 
     private static string ReceiptPath(Guid id) => $"{id:N}.json";
+    private static string SuccessorPath(Guid id) => $"compensated-{id:N}.json";
     private static AuthoringApplyResult SourceChanged() => new(412, AuthoringErrorCodes.SourceChanged,
         "Workspace sources changed. Obtain a fresh source ETag and retry.");
     private static AuthoringApplyResult Recoverable(string detail) => new(503, AuthoringErrorCodes.RecoveryRequired, detail);
 
     private sealed record AuthoringJournalRecord(string SettingId, string Fingerprint,
-        CardAuthoringChangeReceipt Receipt, IReadOnlyList<AuthoringSourceChange> Files);
+        CardAuthoringChangeReceipt Receipt, IReadOnlyList<AuthoringSourceChange> Files, AuthoringPackageIdentity? Package = null);
+
+    private sealed record AuthoringPackageIdentity(string SourceId, string PackageId, string Version);
 }
 
 public enum AuthoringWriteCheckpoint { Prepared, FileReplaced, SourcesConfirmed }

@@ -27,7 +27,9 @@ public sealed class CardAuthoringController(
 
     [HttpGet("capabilities")]
     public AuthoringCapabilities Capabilities() =>
-        new("1", !coordinator.RecoveryRequired, coordinator.Enabled && !coordinator.RecoveryRequired, false, false);
+        new("1", !coordinator.RecoveryRequired, CanApply, CanApply, CanApply);
+
+    private bool CanApply => coordinator.Enabled && !coordinator.RecoveryRequired;
 
     [HttpGet("settings")]
     [ProducesResponseType(typeof(CardAuthoringSettings), StatusCodes.Status200OK)]
@@ -114,10 +116,11 @@ public sealed class CardAuthoringController(
 
     [HttpPost(SettingRoute + "/changes/validate")]
     [ProducesResponseType(typeof(CardAuthoringValidation), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status412PreconditionFailed)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status428PreconditionRequired)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status501NotImplemented)]
     public Task<IActionResult> Validate(string settingId, [FromBody] CardAuthoringChangeRequest request,
         CancellationToken cancellationToken)
     {
@@ -125,23 +128,12 @@ public sealed class CardAuthoringController(
         if (sourceVersion.Count == 0)
             return Task.FromResult<IActionResult>(ApiProblem(428, AuthoringErrorCodes.PreconditionRequired,
                 "Source version required", "Supply the source ETag in If-Match."));
-        if (request.UndoOf.HasValue || request.RedoOf.HasValue)
-            return Task.FromResult<IActionResult>(ApiProblem(501, ApiErrorCodes.NotImplemented,
-                "Compensations unavailable", "Undo and redo require applied change history."));
-
         return WithView(settingId, cancellationToken, async (workspace, view) =>
         {
             if (sourceVersion.Count != 1 || !string.Equals(sourceVersion[0], workspace.ETag, StringComparison.Ordinal))
                 return ApiProblem(412, AuthoringErrorCodes.SourceChanged, "Source version changed", "Reload the authoring source and retry.");
 
-            var result = await authoring.ValidateAsync(workspace, view, request, cancellationToken);
-            if (result.IsValid)
-                return Ok(result);
-
-            var problem = ApiProblemDetailsFactory.Create(HttpContext, 422, AuthoringErrorCodes.InvalidCandidate,
-                "Card changes rejected", "The candidate failed authoring validation.");
-            problem.Extensions["validation"] = result;
-            return new ObjectResult(problem) { StatusCode = 422, ContentTypes = { "application/problem+json" } };
+            return ApplyResult(await writer.PreviewAsync(workspace, view, request, cancellationToken));
         });
     }
 
@@ -152,7 +144,47 @@ public sealed class CardAuthoringController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status428PreconditionRequired)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
-    public async Task<IActionResult> Apply(string settingId, [FromBody] CardAuthoringChangeRequest request,
+    public Task<IActionResult> Apply(string settingId, [FromBody] CardAuthoringChangeRequest request,
+        CancellationToken cancellationToken) =>
+        ApplyChangeAsync(settingId, request, cancellationToken);
+
+    [HttpPost(SettingRoute + "/changes/{changeId:guid}/undo")]
+    [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status428PreconditionRequired)]
+    public Task<IActionResult> Undo(string settingId, Guid changeId, [FromBody] AuthoringCompensationRequest request,
+        CancellationToken cancellationToken) =>
+        ApplyCompensationAsync(settingId, changeId, request.ChangeId, undo: true, cancellationToken);
+
+    [HttpPost(SettingRoute + "/changes/{changeId:guid}/redo")]
+    [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status428PreconditionRequired)]
+    public Task<IActionResult> Redo(string settingId, Guid changeId, [FromBody] AuthoringCompensationRequest request,
+        CancellationToken cancellationToken) =>
+        ApplyCompensationAsync(settingId, changeId, request.ChangeId, undo: false, cancellationToken);
+
+    private Task<IActionResult> ApplyCompensationAsync(string settingId, Guid target, Guid changeId, bool undo,
+        CancellationToken cancellationToken)
+    {
+        if (target == Guid.Empty || changeId == Guid.Empty || target == changeId)
+            return Task.FromResult<IActionResult>(ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid change ID",
+                "Supply a non-empty change ID distinct from the compensation target."));
+        return ApplyChangeAsync(settingId, new CardAuthoringChangeRequest
+        {
+            ChangeId = changeId,
+            UndoOf = undo ? target : null,
+            RedoOf = undo ? null : target
+        }, cancellationToken);
+    }
+
+    private async Task<IActionResult> ApplyChangeAsync(string settingId, CardAuthoringChangeRequest request,
         CancellationToken cancellationToken)
     {
         var version = Request.Headers.IfMatch;
@@ -178,7 +210,7 @@ public sealed class CardAuthoringController(
         {
             if (result.Receipt is { State: "applied" } receipt)
                 Response.Headers.ETag = receipt.SourceVersion;
-            return Ok(result.Receipt);
+            return result.Validation is { } validation ? Ok(validation) : Ok(result.Receipt);
         }
         var problem = ApiProblemDetailsFactory.Create(HttpContext, result.Status, result.Code!, "Authoring change rejected", result.Detail!);
         if (result.Validation is not null)

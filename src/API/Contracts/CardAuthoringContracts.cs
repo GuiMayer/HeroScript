@@ -107,7 +107,12 @@ public sealed record CardAuthoringChangeReceipt(
     IReadOnlyList<string> ChangedFiles,
     IReadOnlyList<AuthoringDiagnostic> Diagnostics,
     Guid? UndoOf,
-    Guid? RedoOf);
+    Guid? RedoOf,
+    Guid? CompensatedBy = null,
+    bool CanUndo = false,
+    bool CanRedo = false);
+
+public sealed record AuthoringCompensationRequest(Guid ChangeId);
 
 public sealed record CardAuthoringValidation(
     Guid ChangeId, string SourceVersion, bool IsValid,

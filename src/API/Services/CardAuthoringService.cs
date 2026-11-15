@@ -270,12 +270,99 @@ public sealed class CardAuthoringService(
             originalManifest[contentKey] = candidateEntries;
             changedBytes[key] = AuthoringJsonSource.Rewrite(original, originalManifest);
         }
-        var candidateSnapshot = snapshot.WithCandidate(writable, writable.Manifest with { Content = entries },
-            changedBytes);
+        var files = changedBytes.Where(file => snapshot.FindSource(file.Key) is not { } previous ||
+                !previous.Span.SequenceEqual(file.Value.Span))
+            .Select(file => new AuthoringSourceChange(file.Key, snapshot.FindSource(file.Key)?.ToArray(), file.Value.ToArray()))
+            .Concat(removals.Select(path => new AuthoringSourceChange(path, snapshot.FindSource(path)!.Value.ToArray(), null)))
+            .ToArray();
+        return await ValidateCandidateAsync(workspace, writable, writable.Manifest with { Content = entries }, files,
+            request.ChangeId, request.Operations.OfType<CardAuthoringOperation>().Select(item => item.DefinitionId).ToArray(),
+            cancellationToken);
+    }
+
+    public async Task<Result<CardAuthoringPlan>> PlanCompensationAsync(CardAuthoringWorkspace workspace,
+        CardAuthoringView view, Guid changeId, IReadOnlyList<AuthoringSourceChange> targetFiles,
+        CancellationToken cancellationToken)
+    {
+        var writable = view.Writable;
+        if (writable is null)
+            return Result<CardAuthoringPlan>.Failure("No writable package is configured for this setting.");
+
+        var snapshot = workspace.SnapshotFor(writable);
+        var manifestKey = AuthoringPackageSnapshot.SourceKey(writable, "package.json");
+        var restoredManifest = writable.Manifest;
+        var manifestChange = targetFiles.SingleOrDefault(file => file.Path == manifestKey);
+        if (manifestChange is not null)
+        {
+            if (manifestChange.Before is null || !EqualSource(snapshot.FindSource(manifestKey), manifestChange.After))
+                return Result<CardAuthoringPlan>.Failure($"Package manifest '{manifestKey}' changed after the target operation.");
+            var historicalManifest = DirectoryPackageProvider.ReadCapturedManifest(manifestChange.Before);
+            if (historicalManifest is null || historicalManifest.PackageId != restoredManifest.PackageId ||
+                historicalManifest.Version != restoredManifest.Version)
+                return Result<CardAuthoringPlan>.Failure("The target operation belongs to a different package version.");
+            restoredManifest = historicalManifest;
+        }
+
+        var currentEntries = writable.Manifest.Content.Where(IsCardSource).ToLookup(
+            entry => AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath), StringComparer.Ordinal);
+        var restoredEntries = restoredManifest.Content.Where(IsCardSource).ToLookup(
+            entry => AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath), StringComparer.Ordinal);
+        var changes = new List<AuthoringSourceChange>(targetFiles.Count);
+        var affectedCards = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var source in targetFiles.Reverse())
+        {
+            var current = snapshot.FindSource(source.Path);
+            var next = source.Before;
+            if (source.Path != manifestKey)
+            {
+                if ((source.After is not null && currentEntries[source.Path].Count() != 1) ||
+                    (source.Before is not null && restoredEntries[source.Path].Count() != 1))
+                    return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is no longer an authorized card source.");
+
+                var entry = currentEntries[source.Path].SingleOrDefault() ?? restoredEntries[source.Path].Single();
+                if (writable.Manifest.Content.Count(item => SameSource(writable, item, entry)) > 1 ||
+                    restoredManifest.Content.Count(item => SameSource(writable, item, entry)) > 1)
+                    return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is shared by several catalog entries.");
+                if (entry.DefinitionId is { } definitionId)
+                    affectedCards.Add(definitionId);
+                else
+                    affectedCards.UnionWith(AuthoringJsonSource.ChangedProperties(source.Before, source.After));
+
+                if (!EqualSource(current, source.After))
+                {
+                    if (current is null || source.Before is null || source.After is null ||
+                        entry.DefinitionId is not null)
+                        return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' changed after the target operation.");
+                    var merged = AuthoringJsonSource.ReverseObjectChanges(current.Value, source.Before, source.After);
+                    if (merged is null)
+                        return Result<CardAuthoringPlan>.Failure($"An affected card in '{source.Path}' changed after the target operation.");
+                    next = merged.Value.ToArray();
+                }
+            }
+
+            changes.Add(new(source.Path, current?.ToArray(), next));
+        }
+
+        if (affectedCards.Any(id => view.Cards.TryGetValue(id, out var card) && !card.CanEdit))
+            return Result<CardAuthoringPlan>.Failure("An affected card is inherited, patched, or uses a shared source file.");
+
+        return Result<CardAuthoringPlan>.Success(await ValidateCandidateAsync(workspace, writable, restoredManifest,
+            changes, changeId, affectedCards.ToArray(), cancellationToken));
+    }
+
+    private async Task<CardAuthoringPlan> ValidateCandidateAsync(CardAuthoringWorkspace workspace, PackageSource writable,
+        PackageManifest manifest, IReadOnlyList<AuthoringSourceChange> files, Guid changeId, IReadOnlyList<string> affectedCards,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = workspace.SnapshotFor(writable);
+        var candidateSnapshot = snapshot.WithCandidate(writable, manifest, files.Where(file => file.After is not null)
+            .ToDictionary(file => file.Path, file => (ReadOnlyMemory<byte>)file.After!, StringComparer.Ordinal),
+            files.Where(file => file.After is null).Select(file => file.Path));
         var compiler = new SettingCompiler(workspace.Snapshots.Select(item => item == snapshot ? candidateSnapshot : item), kinds);
         var catalog = await compiler.GetCatalogAsync(cancellationToken);
         var bundles = new List<ContentBundle>();
-        var operations = request.Operations.OfType<CardAuthoringOperation>().ToArray();
+        var diagnostics = new List<AuthoringDiagnostic>();
+        var revisions = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var setting in workspace.Catalog.Settings)
         {
             var dependencies = SettingCompiler.ResolvePackages(setting.Definition, workspace.Catalog.Packages);
@@ -293,24 +380,26 @@ public sealed class CardAuthoringService(
             var result = publication.Validate(compiled.Value.Bundle);
             foreach (var error in result.Errors)
             {
-                var operation = operations.FirstOrDefault(item =>
-                    error.StartsWith($"{Cards}/{item.DefinitionId} ", StringComparison.Ordinal) ||
-                    error.StartsWith($"{Cards}/{item.DefinitionId}:", StringComparison.Ordinal) ||
-                    error.EndsWith($"missing {Cards}/{item.DefinitionId}", StringComparison.Ordinal));
-                diagnostics.Add(Diagnostic("CARD_GRAPH_INVALID", operation?.DefinitionId ?? "", "", error, settingId: settingId));
+                var card = affectedCards.FirstOrDefault(id =>
+                    error.StartsWith($"{Cards}/{id} ", StringComparison.Ordinal) ||
+                    error.StartsWith($"{Cards}/{id}:", StringComparison.Ordinal) ||
+                    error.EndsWith($"missing {Cards}/{id}", StringComparison.Ordinal));
+                diagnostics.Add(Diagnostic("CARD_GRAPH_INVALID", card ?? "", "", error, settingId: settingId));
             }
             diagnostics.AddRange(result.Warnings.Select(warning =>
                 Diagnostic("SETTING_VALIDATION_WARNING", "", "", warning, "warning", settingId)));
             revisions.Add(settingId, compiled.Value.Bundle.Manifest.Revision);
             bundles.Add(compiled.Value.Bundle);
         }
-        var files = changedBytes.Where(file => snapshot.FindSource(file.Key) is not { } previous ||
-                !previous.Span.SequenceEqual(file.Value.Span))
-            .Select(file => new AuthoringSourceChange(file.Key, snapshot.FindSource(file.Key)?.ToArray(), file.Value.ToArray()))
-            .Concat(removals.Select(path => new AuthoringSourceChange(path, snapshot.FindSource(path)!.Value.ToArray(), null)))
-            .ToArray();
-        return new(Validation(), files, bundles);
+        return new(new(changeId, workspace.ETag, diagnostics.All(diagnostic => diagnostic.Severity != "error"),
+            revisions, diagnostics), files, bundles);
     }
+
+    private static bool IsCardSource(PackageContentEnvelope entry) =>
+        entry is { Operation: PackageContentOperation.Definition, Kind: Cards };
+
+    private static bool EqualSource(ReadOnlyMemory<byte>? current, byte[]? expected) =>
+        current is null ? expected is null : expected is not null && current.Value.Span.SequenceEqual(expected);
 
     private static bool SameSource(PackageSource package, PackageContentEnvelope left, PackageContentEnvelope right) =>
         string.Equals(AuthoringPackageSnapshot.SourceKey(package, left.SourcePath),

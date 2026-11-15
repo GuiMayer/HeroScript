@@ -9,6 +9,42 @@ internal static class AuthoringJsonSource
 {
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
+    public static IEnumerable<string> ChangedProperties(byte[]? before, byte[]? after)
+    {
+        var previous = before is null ? new JsonObject() : ReadObject(before);
+        var applied = after is null ? new JsonObject() : ReadObject(after);
+        return ChangedProperties(previous, applied);
+    }
+
+    public static ReadOnlyMemory<byte>? ReverseObjectChanges(ReadOnlyMemory<byte> current, byte[] before, byte[] after)
+    {
+        var previous = ReadObject(before);
+        var applied = ReadObject(after);
+        var merged = ReadObject(current);
+        foreach (var name in ChangedProperties(previous, applied))
+        {
+            if (!SameProperty(merged, applied, name))
+                return null;
+            if (previous.TryGetPropertyValue(name, out var value))
+                merged[name] = value?.DeepClone();
+            else
+                merged.Remove(name);
+        }
+        return Rewrite(current, merged);
+    }
+
+    private static JsonObject ReadObject(ReadOnlyMemory<byte> bytes) =>
+        JsonNode.Parse(Mods.DirectoryPackageProvider.WithoutBom(bytes).Span)!.AsObject();
+
+    private static string[] ChangedProperties(JsonObject before, JsonObject after) =>
+        before.Select(item => item.Key).Union(after.Select(item => item.Key), StringComparer.Ordinal)
+            .Where(name => !SameProperty(before, after, name))
+            .ToArray();
+
+    private static bool SameProperty(JsonObject first, JsonObject second, string name) =>
+        first.TryGetPropertyValue(name, out var left) == second.TryGetPropertyValue(name, out var right) &&
+        JsonNode.DeepEquals(left, right);
+
     public static ReadOnlyMemory<byte> Rewrite(ReadOnlyMemory<byte>? source, JsonObject candidate)
     {
         if (source is null)
