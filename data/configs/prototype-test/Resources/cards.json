@@ -674,7 +674,7 @@
           "parameters": [
             {
               "parameter": "Amount",
-              "flatValue": 8,
+              "flatValue": 11,
               "unitId": "points",
               "channel": "effect_amount",
               "pipelineId": "prototype_direct_amount",
@@ -799,7 +799,7 @@
           "parameters": [
             {
               "parameter": "Amount",
-              "flatValue": 8,
+              "flatValue": 11,
               "unitId": "points",
               "channel": "effect_amount",
               "pipelineId": "prototype_direct_amount"
@@ -995,7 +995,7 @@
           "parameters": [
             {
               "parameter": "Amount",
-              "flatValue": 8,
+              "flatValue": 10,
               "unitId": "points",
               "channel": "effect_amount",
               "pipelineId": "prototype_direct_amount",
@@ -1120,7 +1120,7 @@
           "parameters": [
             {
               "parameter": "Amount",
-              "flatValue": 8,
+              "flatValue": 10,
               "unitId": "points",
               "channel": "effect_amount",
               "pipelineId": "prototype_direct_amount"
