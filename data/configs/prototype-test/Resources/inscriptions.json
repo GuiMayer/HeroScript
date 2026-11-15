@@ -194,11 +194,30 @@
             "block"
           ]
         }
+      },
+      {
+        "attributeId": "divine_scaling",
+        "influence": {
+          "influenceId": "prototype.divine_focus",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "subjectKeyCondition": {
+            "keys": [
+              "divine"
+            ],
+            "requiredKeys": [
+              "divine"
+            ],
+            "minimumCount": 1
+          }
+        }
       }
     ],
     "presentation": {
       "name": "Warding trace",
-      "description": "Character: +20% increased Block generation on eligible defense effects.",
+      "description": "Character: +20% increased Block generation and +25% increased Divine scaling.",
       "rarity": "common"
     }
   },

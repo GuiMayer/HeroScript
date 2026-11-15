@@ -52,13 +52,30 @@
             "target": "SELF",
             "targetResource": "block",
             "operation": "ADD",
-            "flatValue": 4,
             "tags": [
               "defense",
-              "block"
+              "block",
+              "divine"
+            ],
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "prototype_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 4,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "prototype_direct_amount"
+              }
             ]
           }
         }
+      },
+      {
+        "type": "tags",
+        "add": [
+          "divine"
+        ]
       }
     ]
   },

@@ -6,7 +6,8 @@
     "tags": [
       "attack",
       "starter",
-      "prototype"
+      "prototype",
+      "fire"
     ],
     "metadata": {
       "displayName": "Thermal cut",
@@ -116,7 +117,8 @@
       "skill",
       "defense",
       "starter",
-      "prototype"
+      "prototype",
+      "divine"
     ],
     "metadata": {
       "displayName": "Brace",
@@ -163,10 +165,21 @@
           "target": "SELF",
           "targetResource": "block",
           "operation": "ADD",
-          "flatValue": 8,
           "tags": [
             "defense",
-            "block"
+            "block",
+            "divine"
+          ],
+          "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount"
+            }
           ]
         }
       },
@@ -199,9 +212,9 @@
     "basePrices": [],
     "tags": [
       "attack",
-      "fire",
       "residual",
-      "prototype"
+      "prototype",
+      "fire"
     ],
     "metadata": {
       "displayName": "Ignite",
@@ -337,7 +350,8 @@
     "tags": [
       "skill",
       "condensation",
-      "prototype"
+      "prototype",
+      "fire"
     ],
     "metadata": {
       "displayName": "Condense",
@@ -415,7 +429,8 @@
       "skill",
       "control",
       "defense",
-      "prototype"
+      "prototype",
+      "divine"
     ],
     "metadata": {
       "displayName": "Soak",
@@ -498,7 +513,8 @@
       "skill",
       "recovery",
       "defense",
-      "prototype"
+      "prototype",
+      "divine"
     ],
     "metadata": {
       "displayName": "Field Recovery",
@@ -544,9 +560,20 @@
           "type": "HEAL",
           "target": "SELF",
           "targetResource": "health",
-          "flatValue": 4,
           "tags": [
-            "recovery"
+            "recovery",
+            "divine"
+          ],
+          "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount"
+            }
           ]
         }
       },
@@ -579,9 +606,9 @@
     "basePrices": [],
     "tags": [
       "attack",
-      "void",
       "starter",
-      "prototype"
+      "prototype",
+      "void"
     ],
     "metadata": {
       "displayName": "Void bolt",
@@ -702,7 +729,9 @@
       "skill",
       "defense",
       "starter",
-      "prototype"
+      "prototype",
+      "divine",
+      "void"
     ],
     "metadata": {
       "displayName": "Void guard",
@@ -760,10 +789,21 @@
           "target": "SELF",
           "targetResource": "block",
           "operation": "ADD",
-          "flatValue": 8,
           "tags": [
             "defense",
-            "block"
+            "block",
+            "divine"
+          ],
+          "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount"
+            }
           ]
         }
       },
@@ -797,7 +837,9 @@
     "tags": [
       "skill",
       "condensation",
-      "prototype"
+      "prototype",
+      "fire",
+      "void"
     ],
     "metadata": {
       "displayName": "Void release",
@@ -884,10 +926,10 @@
     "basePrices": [],
     "tags": [
       "attack",
-      "void",
-      "shadow",
       "starter",
-      "prototype"
+      "prototype",
+      "void",
+      "shadow"
     ],
     "metadata": {
       "displayName": "Echo bolt",
@@ -1008,7 +1050,9 @@
       "skill",
       "defense",
       "starter",
-      "prototype"
+      "prototype",
+      "divine",
+      "shadow"
     ],
     "metadata": {
       "displayName": "Echo guard",
@@ -1066,10 +1110,21 @@
           "target": "SELF",
           "targetResource": "block",
           "operation": "ADD",
-          "flatValue": 8,
           "tags": [
             "defense",
-            "block"
+            "block",
+            "divine"
+          ],
+          "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount"
+            }
           ]
         }
       },
@@ -1103,7 +1158,10 @@
     "tags": [
       "skill",
       "condensation",
-      "prototype"
+      "prototype",
+      "fire",
+      "void",
+      "shadow"
     ],
     "metadata": {
       "displayName": "Echo release",

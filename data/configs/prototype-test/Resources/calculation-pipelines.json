@@ -60,7 +60,8 @@
             "prototype.scaling.void": "void",
             "prototype.scaling.shadow": "shadow",
             "prototype.scaling.divine": "divine",
-            "prototype.fire_mastery.bonus": "fire"
+            "prototype.fire_mastery.bonus": "fire",
+            "prototype.divine_focus": "divine"
           },
           "groups": {
             "fire": {
@@ -312,7 +313,8 @@
             "prototype.scaling.void": "void",
             "prototype.scaling.shadow": "shadow",
             "prototype.scaling.divine": "divine",
-            "prototype.fire_mastery.bonus": "fire"
+            "prototype.fire_mastery.bonus": "fire",
+            "prototype.divine_focus": "divine"
           },
           "groups": {
             "fire": {

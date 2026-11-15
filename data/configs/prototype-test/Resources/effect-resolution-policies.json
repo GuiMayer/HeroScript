@@ -171,6 +171,12 @@
           "critical",
           "effect.damage"
         ]
+      },
+      {
+        "attributeId": "divine_scaling",
+        "displayName": "Divine scaling",
+        "pipelineId": "prototype_style_attribute",
+        "displayUnit": "points"
       }
     ]
   }
