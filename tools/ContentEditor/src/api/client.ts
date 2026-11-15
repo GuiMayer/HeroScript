@@ -29,7 +29,7 @@ export async function api<T>(key: string, path: string, options: {
     body: options.body ? JSON.stringify(options.body) : undefined,
   })
   const json = await response.json().catch(() => undefined)
-  if (!response.ok) throw new ApiError(response.status, json)
+  if (!response.ok) throw new ApiError(response.status, json && typeof json === 'object' ? json : undefined)
   if (json === undefined) throw new Error('The engine returned an empty response.')
   return { data: json as T, version: response.headers.get('ETag') ?? undefined }
 }

@@ -30,6 +30,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState('')
   const [tab, setTab] = useState<Tab>('overview')
+  const [typing, setTyping] = useState(false)
   const [hot, setHot] = useState(() => preference('mode', ['manual', 'hot'], 'manual') === 'hot')
   const [modal, setModal] = useState<'create' | 'delete' | 'discard' | null>(null)
   const requested = useDeferredValue(search.trim())
@@ -89,6 +90,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   function choose(id: string) {
     setSelected(id)
     setTab('overview')
+    setTyping(false)
   }
   function update(next: Definition) {
     actions.edit({
@@ -118,11 +120,11 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
 
   const status = draft.busy === 'save' ? copy.saving : draft.busy === 'validate' ? copy.validating :
     draft.busy === 'rebase' ? copy.rebasing : draft.attempt ? copy.waiting :
-    pending ? copy.pending : draft.receipt ? copy.saved : copy.noChanges
+    pending || typing ? copy.pending : draft.receipt ? copy.saved : copy.noChanges
   const diagnostic = draft.error instanceof ApiError ? draft.error : undefined
   const hasConflict = diagnostic?.status === 412 || draft.error instanceof RebaseConflict
   const diagnostics = diagnostic?.problem.validation?.diagnostics ?? []
-  const editorFields = value ? { value, disabled: !canEdit, copy, apiKey, setting, update } : undefined
+  const editorFields = value ? { value, disabled: !canEdit, copy, apiKey, setting, update, onTyping: setTyping } : undefined
 
   return <div className="cards-page">
     <header className="page-heading">
@@ -137,8 +139,8 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
           onClick={() => actions.turn('redo', listVersion)}><Redo2 size={18} /></button>
         <span className="divider" />
         <label className="mode-control" title={hot ? copy.hot : copy.manual}>
-          <Zap size={15} /><select aria-label={copy.hot} value={hot ? 'hot' : 'manual'}
-            disabled={!writable || !!draft.busy || pending || !!draft.attempt} onChange={(event) => {
+          <Zap size={15} /><select aria-label={copy.mode} value={hot ? 'hot' : 'manual'}
+            disabled={!writable || !!draft.busy || pending || typing || !!draft.attempt} onChange={(event) => {
               setHot(event.target.value === 'hot')
               localStorage.setItem('heroscript.editor.mode', event.target.value)
             }}><option value="manual">{copy.manual}</option><option value="hot">{copy.hot}</option></select>
@@ -149,10 +151,10 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
         {draft.receipt && !pending ? <CheckCircle2 size={15} /> : <span className="dot" />}{status}
       </span>
       <div className="actionbar-right">
-        <button className="secondary" disabled={!writable || !pending || !!draft.busy || !!draft.attempt}
+        <button className="secondary" disabled={!writable || (!pending && !typing) || !!draft.busy || !!draft.attempt}
           onClick={() => void actions.validate()}><CircleCheck size={15} />{copy.validate}</button>
-        <button className="primary" disabled={!writable || !pending || !!draft.busy}
-          onClick={() => void actions.save()}><Save size={15} />{draft.attempt ? copy.retryWrite : copy.save}</button>
+        <button className="primary" disabled={!writable || (!pending && !typing) || !!draft.busy}
+          onClick={() => void actions.save()}><Save size={15} />{draft.attempt && !draft.busy ? copy.retryWrite : copy.save}</button>
       </div>
     </section>
     {(draft.error || draft.intent || draft.valid || pending) && <div className={`notice ${draft.error ? 'notice-error' : ''}`}>
@@ -166,6 +168,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
           </li>)}</ul>}</div></> : draft.intent ? <><Undo2 size={17} /><strong>{draft.intent.kind === 'undo' ? copy.undoStaged : copy.redoStaged}</strong></>
           : <><CircleCheck size={17} /><strong>{draft.valid ? copy.valid : `${copy.pending} · ${draft.frame.length}`}</strong></>}
       </div>
+      {!draft.busy && draft.attempt && <button className="secondary" onClick={() => void actions.checkStatus()}>{copy.checkStatus}</button>}
       {!draft.busy && !draft.attempt && <div className="notice-actions">
         {hasConflict && draft.frame.length > 0 && <button className="secondary" onClick={() => void actions.rebase()}>{copy.rebase}</button>}
         {pending && <button className="text-button" onClick={() => draft.intent ? actions.discard() : setModal('discard')}>
@@ -238,7 +241,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
         <div key={name}><dt>{name}</dt><dd><code>{revision}</code></dd></div>)}</dl>
     </details>}
     {modal === 'create' && <NewCard close={() => setModal(null)} closeLabel={shell.close} {...{ copy, create }}
-      template={value ? titleOf(value, activeId) : ''} />}
+      template={value ? titleOf(value, activeId) : ''} hot={hot} />}
     {(modal === 'delete' || modal === 'discard') && <Modal title={modal === 'delete' ? copy.deleteCard : copy.discard}
       closeLabel={shell.close} onClose={() => setModal(null)}>
       <p className="muted">{modal === 'delete' ? copy.deletePrompt : copy.discardPrompt}</p>
@@ -259,14 +262,14 @@ function Loading({ label, count }: { label: string; count: number }) {
   </div>
 }
 
-function NewCard({ copy, close, closeLabel, create, template }: {
-  copy: CardCopy; close: () => void; closeLabel: string; template: string
+function NewCard({ copy, close, closeLabel, create, template, hot }: {
+  copy: CardCopy; close: () => void; closeLabel: string; template: string; hot: boolean
   create: (id: string, name: string, useTemplate: boolean) => boolean
 }) {
   const [useTemplate, setTemplate] = useState(!!template)
   const [failed, setFailed] = useState(false)
   return <Modal title={copy.newCard} closeLabel={closeLabel} onClose={close}>
-    <p className="muted">{copy.createHint}</p>
+    <p className="muted">{hot && !template ? copy.blankManual : copy.createHint}</p>
     <form onSubmit={(event) => {
       event.preventDefault()
       const fields = new FormData(event.currentTarget)
@@ -277,11 +280,11 @@ function NewCard({ copy, close, closeLabel, create, template }: {
       <input id="new-card-name" name="name" required autoFocus />
       <label htmlFor="new-card-id">{copy.id}</label>
       <input id="new-card-id" name="id" required maxLength={128} pattern={'[a-zA-Z0-9._\\-]+'} placeholder="example_card" />
-      {template && <label className="template-option"><input type="checkbox" checked={useTemplate}
+      {template && <label className="template-option"><input type="checkbox" checked={useTemplate} disabled={hot}
         onChange={(event) => setTemplate(event.target.checked)} /><span>{copy.template} <strong>{template}</strong></span></label>}
       {failed && <p className="error" role="alert">{copy.duplicate}</p>}
       <div className="dialog-actions"><button type="button" className="secondary" onClick={close}>{copy.cancel}</button>
-        <button type="submit" className="primary"><Plus size={16} />{copy.createCard}</button></div>
+        <button type="submit" className="primary" disabled={hot && !template}><Plus size={16} />{copy.createCard}</button></div>
     </form>
   </Modal>
 }

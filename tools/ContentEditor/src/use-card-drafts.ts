@@ -20,22 +20,23 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
       : { changeId, redoOf: current.intent.target }
   }
 
+  async function complete(current: Draft, receipt: Receipt) {
+    set({ ...confirmed(current, receipt), busy: 'save' })
+    await refresh()
+    set({ ...workspace.get(setting), busy: undefined })
+  }
+
   async function save() {
     const current = workspace.get(setting)
     if (current.busy || !current.version || (!current.frame.length && !current.intent)) return
     const attempt = current.attempt ?? { request: command(current), version: current.version }
     set({ ...current, busy: 'save', error: undefined, attempt, valid: undefined })
-    async function complete(receipt: Receipt) {
-      set({ ...confirmed(current, receipt), busy: 'save' })
-      await refresh()
-      set({ ...workspace.get(setting), busy: undefined })
-    }
     try {
       if (current.attempt) {
         try {
           const { data } = await api<Receipt>(key, `${changes}/${attempt.request.changeId}`)
           if (data.state === 'applied') {
-            await complete(data)
+            await complete(current, data)
             return
           }
         } catch (error) {
@@ -43,7 +44,7 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
         }
       }
       const { data } = await api<Receipt>(key, changes, { body: attempt.request, version: attempt.version })
-      await complete(data)
+      await complete(current, data)
     } catch (error) {
       const uncertain = !(error instanceof ApiError) || error.status >= 500 || error.status === 408
       set({ ...current, busy: undefined, error, attempt: uncertain ? attempt : undefined })
@@ -63,6 +64,26 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
     } catch (error) {
       set({ ...current, error, valid: false })
       if (error instanceof ApiError && error.status === 412) void refresh()
+    }
+  }
+
+  async function checkStatus() {
+    const current = workspace.get(setting)
+    if (current.busy || !current.attempt) return
+    set({ ...current, busy: 'rebase' })
+    try {
+      const { data } = await api<Receipt>(key, `${changes}/${current.attempt.request.changeId}`)
+      if (data.state === 'applied') {
+        await complete(current, data)
+      } else {
+        set({ ...current, busy: undefined, attempt: data.state === 'aborted' ? undefined : current.attempt })
+      }
+    } catch (error) {
+      // Receipt reads are serialized with writes by the engine. A missing
+      // receipt lets the designer correct the draft instead of retrying it.
+      const missing = error instanceof ApiError && error.status === 404
+      set({ ...current, busy: undefined, attempt: missing ? undefined : current.attempt,
+        error: missing ? current.error : error })
     }
   }
 
@@ -130,5 +151,5 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
     if (!current.busy && !current.attempt) set(clearDraft(current))
   }
 
-  return { draft, edit, save, validate, rebase, turn, discard, refresh }
+  return { draft, edit, save, validate, checkStatus, rebase, turn, discard, refresh }
 }

@@ -11,6 +11,26 @@ permissions:
   contents: read
 
 jobs:
+  content-editor:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/ContentEditor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/ContentEditor/package-lock.json
+      - run: npm ci
+      - name: Check generated API types
+        run: |
+          npm run generate:api
+          git diff --exit-code -- src/api/schema.d.ts
+      - run: npm test
+      - run: npm run build
+
   test:
     runs-on: ubuntu-latest
     

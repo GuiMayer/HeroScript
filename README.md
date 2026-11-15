@@ -123,6 +123,9 @@ por HTTP, siga o [quickstart da API](docs/api/getting-started.md).
 
 ### Aplicar alterações de Cartas pela API local
 
+A [interface React do editor de conteúdo](tools/ContentEditor/README.md)
+oferece o fluxo de Cartas com seleção de game setting, validação e gravação.
+
 A API de autoria grava os JSONs do checkout e ativa as revisões de conteúdo.
 O [guia de autoria de Cartas](docs/api/card-authoring.md) cobre a configuração,
 validação, salvamento, Hot Reload, desfazer/refazer e revisão com Git.

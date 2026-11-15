@@ -211,6 +211,8 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .component summary, .disclosure summary, .receipt summary { cursor: pointer; font-weight: 700; font-size: 13px; }
 .component summary code { color: var(--muted); margin-left: 8px; font-size: 11px; overflow-wrap: anywhere; }
 .component[open] summary { margin-bottom: 8px; }
+.condition-form { display: grid; gap: 8px; }
+.condition-form button { justify-self: start; }
 .cost-row { display: grid; grid-template-columns: 1fr minmax(75px, 1fr); align-items: center; gap: 10px; font-size: 12px; margin-bottom: 6px; }
 .cost-row code { display: block; color: var(--muted); }
 .code-view, .json-input { display: block; overflow: auto; max-width: 100%; max-height: 320px; margin: 3px 0 0; background: var(--canvas); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: Consolas, monospace; font-size: 12px; }

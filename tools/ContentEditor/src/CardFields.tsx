@@ -15,15 +15,23 @@ export function titleOf(definition: Definition, fallback: string) {
   return string(object(definition.metadata).displayName) || fallback
 }
 
-export function TextField({ label, value, disabled, multiline = false, onCommit }: {
+export function TextField({ label, value, disabled, multiline = false, onCommit, onTyping }: {
   label: string; value: string; disabled: boolean; multiline?: boolean; onCommit: (value: string) => void
+  onTyping: (dirty: boolean) => void
 }) {
   const [text, setText] = useState(value)
   useEffect(() => setText(value), [value])
-  const props = { value: text, disabled, onBlur: () => { if (text !== value) onCommit(text) } }
+  const props = {
+    value: text, disabled,
+    onBlur: () => { onTyping(false); if (text !== value) onCommit(text) },
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setText(event.target.value)
+      onTyping(event.target.value !== value)
+    },
+  }
   return <label className="field"><span>{label}</span>{multiline
-    ? <textarea {...props} rows={3} onChange={(event) => setText(event.target.value)} />
-    : <input {...props} onChange={(event) => setText(event.target.value)}
+    ? <textarea {...props} rows={3} />
+    : <input {...props}
       onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} />}</label>
 }
 
@@ -81,7 +89,7 @@ function TagPicker({ tags, add, remove, disabled, apiKey, setting, copy }: {
   </>
 }
 
-export function Overview({ value, disabled, apiKey, setting, copy, update }: EditorFields) {
+export function Overview({ value, disabled, apiKey, setting, copy, update, onTyping }: EditorFields) {
   const metadata = object(value.metadata)
   const tags = array(value.tags).filter((tag): tag is string => typeof tag === 'string')
   const changeMeta = (key: string, next: string) => update({ ...value, metadata: { ...metadata, [key]: next } })
@@ -89,7 +97,7 @@ export function Overview({ value, disabled, apiKey, setting, copy, update }: Edi
     <section className="form-section">
       <h3>{copy.basics}</h3>
       <div className="field-grid">
-        <TextField label={copy.name} value={string(metadata.displayName)} disabled={disabled} onCommit={(v) => changeMeta('displayName', v)} />
+        <TextField label={copy.name} value={string(metadata.displayName)} disabled={disabled} onTyping={onTyping} onCommit={(v) => changeMeta('displayName', v)} />
         <label className="field"><span>{copy.rarity}</span>
           <select value={rarities.find((rarity) => rarity.toLowerCase() === string(value.rarity).toLowerCase()) ?? 'Common'}
             disabled={disabled} onChange={(event) => update({ ...value, rarity: event.target.value })}>
@@ -97,7 +105,7 @@ export function Overview({ value, disabled, apiKey, setting, copy, update }: Edi
           </select>
         </label>
       </div>
-      <TextField label={copy.description} value={string(metadata.description)} disabled={disabled} multiline
+      <TextField label={copy.description} value={string(metadata.description)} disabled={disabled} multiline onTyping={onTyping}
         onCommit={(v) => changeMeta('description', v)} />
     </section>
     <section className="form-section">
@@ -109,7 +117,7 @@ export function Overview({ value, disabled, apiKey, setting, copy, update }: Edi
   </div>
 }
 
-export function Rules({ value, disabled, copy, update }: EditorFields) {
+export function Rules({ value, disabled, copy, update, onTyping }: EditorFields) {
   const components = array(value.components)
   const replace = (index: number, element: Definition) =>
     update({ ...value, components: components.map((item, key) => key === index ? element : item) })
@@ -124,12 +132,12 @@ export function Rules({ value, disabled, copy, update }: EditorFields) {
       const amounts = array(costs.costs)
       return <details className="component" key={`${string(item.componentId)}-${index}`} open={index === 0}>
         <summary><span>{name || copy.rules}</span><code>{string(item.componentId)}</code></summary>
-        {kind === 'condition' ? <TextField label={copy.expression} disabled={disabled} multiline
+        {kind === 'condition' ? <TextField label={copy.expression} disabled={disabled} multiline onTyping={onTyping}
           value={string(item.expression)} onCommit={(expression) => replace(index, { ...item, expression })} />
           : kind === 'cost' && amounts.length ? amounts.map((cost, costIndex) => {
             const amount = object(cost)
             return <div className="cost-row" key={costIndex}><span>{copy.resource} <code>{string(amount.resourceId)}</code></span>
-              <TextField label={copy.amount} value={String(amount.amount ?? '')} disabled={disabled}
+              <TextField label={copy.amount} value={String(amount.amount ?? '')} disabled={disabled} onTyping={onTyping}
                 onCommit={(newAmount) => {
                   const numeric = Number(newAmount)
                   if (!newAmount.trim() || !Number.isFinite(numeric)) return
@@ -141,6 +149,22 @@ export function Rules({ value, disabled, copy, update }: EditorFields) {
           }) : <pre className="code-view">{JSON.stringify(item, null, 2)}</pre>}
       </details>
     })}
+    {!disabled && <details className="component">
+      <summary>{copy.addCondition}</summary>
+      <form className="condition-form" onSubmit={(event) => {
+        event.preventDefault()
+        const data = new FormData(event.currentTarget)
+        const componentId = String(data.get('id')).trim()
+        const expression = String(data.get('expression')).trim()
+        if (!componentId || !expression) return
+        update({ ...value, components: [...components, { type: 'condition', componentId, expression }] })
+        event.currentTarget.reset()
+      }}>
+        <label className="field"><span>{copy.componentId}</span><input name="id" required /></label>
+        <label className="field"><span>{copy.expression}</span><input name="expression" required /></label>
+        <button type="submit" className="secondary"><Plus size={15} />{copy.addCondition}</button>
+      </form>
+    </details>}
   </section>
 }
 
@@ -200,4 +224,5 @@ export function Preview({ value, copy }: { value: Definition; copy: CardCopy }) 
 interface EditorFields {
   value: Definition; disabled: boolean; copy: CardCopy; apiKey: string; setting: string
   update: (value: Definition) => void
+  onTyping: (dirty: boolean) => void
 }
