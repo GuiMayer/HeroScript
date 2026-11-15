@@ -6,6 +6,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $server = $null
+$serverJob = $null
+$serverAttached = $false
 try {
     $repo = $PSScriptRoot
     $editor = Join-Path $repo 'tools\ContentEditor'
@@ -90,9 +92,15 @@ try {
     [Environment]::SetEnvironmentVariable('Authoring__WritablePackages__circular-table', 'heroscript.circular-table')
 
     Write-Host '[3/3] Iniciando a engine local...'
+    if (-not ('EditorProcessJob' -as [type])) {
+        Add-Type -Path (Join-Path $editor 'EditorProcessJob.cs')
+    }
+    $serverJob = [EditorProcessJob]::Create()
     $dll = Join-Path $build 'API.dll'
     $server = Start-Process -FilePath $dotnet -ArgumentList ('"' + $dll + '" --urls ' + $origin) `
-        -WorkingDirectory $repo -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        -WorkingDirectory $repo -NoNewWindow -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    [EditorProcessJob]::Attach($serverJob, $server)
+    $serverAttached = $true
     $deadline = [DateTime]::UtcNow.AddSeconds(120)
     while ($true) {
         if ($server.HasExited) { throw "A engine encerrou durante a inicializacao. Consulte $stdout e $stderr." }
@@ -110,7 +118,7 @@ try {
     Write-Host ''
     Write-Host "Editor: $editorUrl" -ForegroundColor Green
     Write-Host "Chave administrativa desta sessao: $key" -ForegroundColor Cyan
-    Write-Host 'Use a chave se precisar reconectar. Pressione Ctrl+C aqui para encerrar.'
+    Write-Host 'Use a chave se precisar reconectar. Feche esta janela ou pressione Ctrl+C para encerrar.'
     if (!$NoBrowser) { Start-Process ("${editorUrl}#launch=$launchCode") }
     Wait-Process -Id $server.Id
     $server.Refresh()
@@ -119,5 +127,8 @@ try {
     Write-Host "[ERRO] $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 } finally {
-    if ($null -ne $server -and !$server.HasExited) { $server.Kill() }
+    if ($null -ne $serverJob) { $serverJob.Dispose() }
+    if (!$serverAttached -and $null -ne $server -and !$server.HasExited) {
+        try { $server.Kill() } catch { if (!$server.HasExited) { throw } }
+    }
 }
