@@ -1,8 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Boxes, ChevronDown, CircleHelp, Compass, Layers3, Menu, Network, Settings2, Sparkles, Swords, Tags, Users, X } from 'lucide-react'
+import { BookOpen, Boxes, ChevronDown, CircleHelp, Compass, Layers3, Menu, Network, Settings2, Sparkles, Swords, Tags, Users } from 'lucide-react'
 import { api, ApiError, type Schemas } from './api/client'
+import { cardCopy } from './card-copy'
+import { Workspace } from './editor-state'
 import { dictionary, preference, type Locale } from './i18n'
+import { Modal } from './Modal'
 
 const Cards = lazy(() => import('./Cards'))
 const areas = [
@@ -35,6 +38,7 @@ export function App() {
   const [apiKey, setApiKey] = useState('')
   const [input, setInput] = useState('')
   const [session, setSession] = useState(0)
+  const [drafts, setDrafts] = useState(() => new Workspace())
   const [menu, setMenu] = useState(false)
   const [preferences, setPreferences] = useState(false)
   const queryClient = useQueryClient()
@@ -69,6 +73,15 @@ export function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
   useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!drafts.hasUnconfirmed()) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    return () => window.removeEventListener('beforeunload', beforeUnload)
+  }, [drafts])
+  useEffect(() => {
     if (!settingId || location.setting === settingId) return
     const url = new URL(window.location.href)
     url.searchParams.set('setting', settingId)
@@ -90,7 +103,9 @@ export function App() {
   }
 
   function connect(value: string) {
+    if (drafts.hasUnconfirmed() && !window.confirm(cardCopy[locale].warnDisconnect)) return
     queryClient.clear()
+    setDrafts(new Workspace())
     setApiKey(value)
     setInput('')
     setSession((current) => current + 1)
@@ -145,7 +160,7 @@ export function App() {
           : !settingId ? <section className="empty"><h1>{copy.noSettings}</h1>
             <button className="secondary" onClick={() => void connection.refetch()}>{copy.retry}</button></section>
           : <Suspense fallback={<Skeleton label={copy.loading} />}>
-            {location.area === 'cards' ? <Cards apiKey={apiKey} setting={settingId} locale={locale} copy={copy}
+            {location.area === 'cards' ? <Cards apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
               writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
               : <section className="empty"><div className="empty-icon"><Layers3 size={26} /></div>
                 <h1>{copy[location.area]}</h1><p>{copy.pendingPage}</p>
@@ -157,18 +172,13 @@ export function App() {
         </details>}
       </main>
     </section>
-    {preferences && <div className="modal-backdrop" onClick={() => setPreferences(false)}>
-      <dialog open className="preferences-dialog" aria-labelledby="preferences-title" onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => { if (event.key === 'Escape') setPreferences(false) }}>
-        <div className="dialog-title"><h2 id="preferences-title">{copy.preferences}</h2>
-          <button autoFocus className="icon-button" aria-label={copy.close} onClick={() => setPreferences(false)}><X size={18} /></button></div>
+    {preferences && <Modal title={copy.preferences} closeLabel={copy.close} onClose={() => setPreferences(false)}>
         <label>{copy.language}<select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
           <option value="pt-BR">Português (Brasil)</option><option value="en">English</option>
         </select></label>
         <label>{copy.theme}<select value={theme} onChange={(event) => setTheme(event.target.value as Theme)}>
           <option value="system">{copy.system}</option><option value="light">{copy.light}</option><option value="dark">{copy.dark}</option>
         </select></label>
-      </dialog>
-    </div>}
+    </Modal>}
   </div>
 }
