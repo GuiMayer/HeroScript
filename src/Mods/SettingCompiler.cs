@@ -359,7 +359,7 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
         });
     }
 
-    private static Result<IReadOnlyList<PackageSource>> ResolvePackages(
+    public static Result<IReadOnlyList<PackageSource>> ResolvePackages(
         SettingDefinition setting,
         IReadOnlyList<PackageSource> packages)
     {

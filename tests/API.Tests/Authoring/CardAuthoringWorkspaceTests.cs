@@ -1,8 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using API.Contracts;
+using API.Services;
 using Core.Content;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Mods;
 using Xunit;
 
@@ -37,6 +42,168 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         using var wrongSetting = await client.GetAsync($"/api/v1/content/cards/{card}?configName={otherSetting}&revision={revision}");
         Assert.Equal(HttpStatusCode.NotFound, wrongCard.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, wrongSetting.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("uno-clash", "uno_red_0", "circular-table")]
+    [InlineData("circular-table", "t_red_0", "uno-clash")]
+    public async Task AuthoringApiReadsAndValidatesCardsWithoutPersisting(
+        string setting, string cardId, string otherSetting)
+    {
+        using var client = factory.CreateClient();
+        var root = $"/api/v1/admin/authoring/settings/{setting}";
+        using var unauthorized = await client.GetAsync(root + "/definitions/cards");
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
+        client.DefaultRequestHeaders.Add("X-Admin-Key", "dev-admin-key");
+
+        var discovered = await client.GetFromJsonAsync<CardAuthoringSettings>("/api/v1/admin/authoring/settings");
+        Assert.Contains(discovered!.Items, item => item.SettingId == setting && item.WritablePackageId is not null);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/cards/schema");
+        Assert.Equal("tags", schema!.References["/tags"]);
+        Assert.Contains("cardId", schema.Schema["required"]!.AsArray().Select(value => value!.GetValue<string>()));
+
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/cards?limit=1");
+        Assert.Single(page!.Items);
+        Assert.NotNull(page.NextCursor);
+        var cursor = Uri.EscapeDataString(page.NextCursor);
+        var next = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(
+            root + "/definitions/cards?limit=1&cursor=" + cursor);
+        Assert.NotEqual(page.Items[0].DefinitionId, next!.Items[0].DefinitionId);
+        using var wrongCursor = await client.GetAsync(
+            $"/api/v1/admin/authoring/settings/{otherSetting}/definitions/cards?limit=1&cursor={cursor}");
+        Assert.Equal(HttpStatusCode.BadRequest, wrongCursor.StatusCode);
+
+        using var detailResponse = await client.GetAsync(root + "/definitions/cards/" + cardId);
+        detailResponse.EnsureSuccessStatusCode();
+        var version = detailResponse.Headers.ETag!.Tag;
+        var detail = await detailResponse.Content.ReadFromJsonAsync<CardAuthoringDefinition>();
+        Assert.True(detail!.Card.CanEdit);
+        Assert.NotEmpty(detail.Provenance);
+        var tag = detail.Effective.GetProperty("tags").EnumerateArray().First().GetString()!;
+        var tags = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringTag>>(
+            root + "/references/tags?q=" + Uri.EscapeDataString(tag) + "&limit=500");
+        Assert.Contains(tags!.Items, item => item.Id == tag && item.DeclaredOnCard);
+        var inherited = await client.GetFromJsonAsync<CardAuthoringDefinition>(root + "/definitions/cards/basic_attack");
+        Assert.False(inherited!.Card.CanDelete);
+        Assert.Equal("heroscript.base", inherited.Card.PackageId);
+
+        var storedFiles = await ReadSnapshot(Path.Combine(factory.PersistenceRoot, "content"));
+        var storedVersion = AuthoringSourceVersion.CreateETag(storedFiles);
+        var sourceVersion = AuthoringSourceVersion.CreateETag(await ReadSnapshot(factory.PackageRoot));
+        var activeBefore = await CurrentRevision(client, setting);
+
+        var definition = JsonNode.Parse(detail.Source.GetRawText())!.AsObject();
+        definition["tags"]!.AsArray().Add("authoring_preview_tag");
+        var clone = definition.DeepClone().AsObject();
+        clone["cardId"] = "authoring_preview_card";
+        var candidate = new CardAuthoringChangeRequest
+        {
+            ChangeId = Guid.NewGuid(),
+            Operations =
+            [
+                Operation(CardAuthoringOperationType.Update, cardId, definition),
+                Operation(CardAuthoringOperationType.Create, "authoring_preview_card", clone)
+            ]
+        };
+        using var noVersion = await Preview(null, candidate);
+        Assert.Equal((HttpStatusCode)428, noVersion.StatusCode);
+        using var stale = await Preview("\"stale\"", candidate);
+        Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
+
+        using var preview = await Preview(version, candidate);
+        preview.EnsureSuccessStatusCode();
+        var validation = await preview.Content.ReadFromJsonAsync<CardAuthoringValidation>();
+        Assert.True(validation!.IsValid);
+        Assert.NotEqual(activeBefore, validation.CandidateRevisions[setting]);
+        Assert.DoesNotContain(otherSetting, validation.CandidateRevisions.Keys);
+
+        definition["components"]!.AsArray()[0]!["type"] = "unknown-component";
+        using var invalid = await Preview(version, candidate with
+        {
+            Operations = [Operation(CardAuthoringOperationType.Update, cardId, definition)]
+        });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
+        var problem = await invalid.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(problem.GetProperty("validation").GetProperty("diagnostics").EnumerateArray(),
+            diagnostic => diagnostic.GetProperty("code").GetString() == "CARD_SCHEMA_INVALID" &&
+                diagnostic.GetProperty("definitionId").GetString() == cardId);
+
+        clone["rarity"] = 999;
+        using var invalidRarity = await Preview(version, candidate with
+        {
+            Operations = [Operation(CardAuthoringOperationType.Create, "authoring_preview_card", clone)]
+        });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidRarity.StatusCode);
+        var rarityProblem = await invalidRarity.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(rarityProblem.GetProperty("validation").GetProperty("diagnostics").EnumerateArray(),
+            diagnostic => diagnostic.GetProperty("code").GetString() == "CARD_RARITY_INVALID" &&
+                diagnostic.GetProperty("jsonPointer").GetString() == "/rarity");
+
+        using var inheritedDelete = await Preview(version, candidate with
+        {
+            Operations = [Operation(CardAuthoringOperationType.Delete, "basic_attack")]
+        });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, inheritedDelete.StatusCode);
+        var rejected = await inheritedDelete.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(rejected.GetProperty("validation").GetProperty("diagnostics").EnumerateArray(),
+            diagnostic => diagnostic.GetProperty("code").GetString() == "CARD_READ_ONLY");
+
+        Assert.Equal(activeBefore, await CurrentRevision(client, setting));
+        Assert.Equal(storedVersion, AuthoringSourceVersion.CreateETag(
+            await ReadSnapshot(Path.Combine(factory.PersistenceRoot, "content"))));
+        Assert.Equal(sourceVersion, AuthoringSourceVersion.CreateETag(await ReadSnapshot(factory.PackageRoot)));
+
+        async Task<HttpResponseMessage> Preview(string? etag, CardAuthoringChangeRequest body)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, root + "/changes/validate")
+            {
+                Content = JsonContent.Create(body)
+            };
+            if (etag is not null)
+                request.Headers.TryAddWithoutValidation("If-Match", etag);
+            return await client.SendAsync(request);
+        }
+    }
+
+    private static async Task<string?> CurrentRevision(HttpClient client, string setting)
+    {
+        var content = await client.GetFromJsonAsync<JsonElement>($"/api/v1/content/revisions?configName={setting}");
+        return content.GetProperty("currentRevision").GetString();
+    }
+
+    private static CardAuthoringOperation Operation(CardAuthoringOperationType type, string id, JsonNode? definition = null) =>
+        new()
+        {
+            Operation = type, Kind = "cards", DefinitionId = id,
+            Definition = definition is null ? null : JsonSerializer.SerializeToElement(definition)
+        };
+
+    [Fact]
+    public async Task SourceChangeExpiresCursorAndAppearsInGeneratedContract()
+    {
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Admin-Key", "dev-admin-key");
+        const string route = "/api/v1/admin/authoring/settings/uno-clash/definitions/cards";
+        var before = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(route + "?limit=1");
+        var file = Path.Combine(factory.PackageRoot, "uno-clash", "Resources", "cards", "uno.json");
+        var original = await File.ReadAllBytesAsync(file);
+        try
+        {
+            await File.AppendAllTextAsync(file, "\n");
+            using var response = await client.GetAsync(route + "?limit=1&cursor=" + Uri.EscapeDataString(before!.NextCursor!));
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            Assert.NotEqual(before.SourceVersion, response.Headers.ETag!.Tag);
+        }
+        finally
+        {
+            await File.WriteAllBytesAsync(file, original);
+        }
+
+        var contract = await client.GetFromJsonAsync<JsonElement>("/openapi/v1.json");
+        var paths = contract.GetProperty("paths");
+        var preview = paths.GetProperty("/api/v1/admin/authoring/settings/{settingId}/changes/validate").GetProperty("post");
+        Assert.True(preview.GetProperty("responses").TryGetProperty("422", out _));
+        Assert.True(preview.GetProperty("responses").TryGetProperty("428", out _));
     }
 
     [Fact]
@@ -102,11 +269,15 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
                 }
                 """);
             await File.WriteAllTextAsync(Path.Combine(settings.FullName, setting + ".json"), $$"""
-                { "settingId": "{{setting}}", "packages": [{ "packageId": "{{setting}}", "versionRange": "1.0.0" }] }
+                {
+                  "settingId": "{{setting}}",
+                  "packages": [{ "packageId": "{{(setting == "fixture-a" ? "fixture.base" : setting)}}", "versionRange": "1.0.0" }]
+                }
                 """);
         }
 
-        var compiler = new SettingCompiler([new DirectoryPackageProvider("shared-fixture", root)]);
+        var provider = new DirectoryPackageProvider("shared-fixture", root);
+        var compiler = new SettingCompiler([provider]);
         var validator = new ContentGraphValidator();
         foreach (var setting in new[] { "fixture-a", "fixture-b" })
         {
@@ -118,16 +289,37 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
             Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Errors));
         }
 
-        await File.WriteAllTextAsync(cardsPath, $$"""{"retained":{{retained}} }""");
-        foreach (var setting in new[] { "fixture-a", "fixture-b" })
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            var compiled = await compiler.CompileAsync(setting);
-            Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
-            var validation = validator.Validate(compiled.Value.Bundle);
-            Assert.Contains(validation.Errors, message =>
-                message.Contains("card-pools/shared", StringComparison.Ordinal) &&
-                message.Contains("referenced", StringComparison.Ordinal));
-        }
+            ["Authoring:WritablePackages:fixture-a"] = "fixture.base"
+        }).Build();
+        var authoring = new CardAuthoringService([provider], compiler, ContentKindRegistry.Default,
+            factory.Services.GetRequiredService<IContentPublicationService>(), config);
+        var workspace = (await authoring.CaptureAsync(default)).Value;
+        var owner = (await authoring.GetViewAsync(workspace, "fixture-a", default)).Value;
+        var inheritor = (await authoring.GetViewAsync(workspace, "fixture-b", default)).Value;
+        Assert.True(owner.Cards["referenced"].CanEdit);
+        Assert.False(inheritor.Cards["referenced"].CanEdit);
+
+        var change = new CardAuthoringChangeRequest { ChangeId = Guid.NewGuid() };
+        var deleted = await authoring.ValidateAsync(workspace, owner, change with
+        {
+            Operations = [Operation(CardAuthoringOperationType.Delete, "referenced")]
+        }, default);
+        Assert.False(deleted.IsValid);
+        var affected = new[] { "fixture-a", "fixture-b" };
+        Assert.Equal(affected, deleted.Diagnostics.Where(item => item.Code == "CARD_GRAPH_INVALID" &&
+                item.DefinitionId == "referenced" && item.Parameters["message"].Contains("card-pools/shared"))
+            .Select(item => item.Parameters["settingId"]));
+
+        var allowed = await authoring.ValidateAsync(workspace, owner, change with
+        {
+            Operations = [Operation(CardAuthoringOperationType.Delete, "retained")]
+        }, default);
+        Assert.True(allowed.IsValid);
+        Assert.Equal(affected, allowed.CandidateRevisions.Keys);
+        using var source = JsonDocument.Parse(await File.ReadAllBytesAsync(cardsPath));
+        Assert.True(source.RootElement.TryGetProperty("retained", out _));
     }
 
     private static async Task<Dictionary<string, ReadOnlyMemory<byte>>> ReadSnapshot(string root)
@@ -141,6 +333,7 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
     public sealed class WorkspaceFactory : TestWebApplicationFactory
     {
         private readonly string _packageRoot;
+        public string PackageRoot => _packageRoot;
 
         public WorkspaceFactory()
         {
@@ -154,6 +347,8 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
             builder.UseSetting("Mods:PackageRoots:0", _packageRoot);
             builder.UseSetting("Content:StartupSettings:0", "uno-clash");
             builder.UseSetting("Content:StartupSettings:1", "circular-table");
+            builder.UseSetting("Authoring:WritablePackages:uno-clash", "heroscript.uno-clash");
+            builder.UseSetting("Authoring:WritablePackages:circular-table", "heroscript.circular-table");
         }
 
         internal static void CopyPackages(string destination)

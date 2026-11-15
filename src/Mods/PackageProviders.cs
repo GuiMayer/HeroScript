@@ -41,7 +41,11 @@ public sealed class DirectoryPackageProvider : IPackageProvider
 
     public string ProviderId { get; }
 
-    public async Task<PackageDiscovery> DiscoverAsync(CancellationToken cancellationToken = default)
+    public Task<PackageDiscovery> DiscoverAsync(CancellationToken cancellationToken = default) =>
+        DiscoverAsync(null, cancellationToken);
+
+    private async Task<PackageDiscovery> DiscoverAsync(
+        Dictionary<string, ReadOnlyMemory<byte>>? filesSnapshot, CancellationToken cancellationToken)
     {
         var packages = ImmutableArray.CreateBuilder<PackageSource>();
         var settings = ImmutableArray.CreateBuilder<SettingSource>();
@@ -85,7 +89,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
             }
 
             var manifestPath = Path.Combine(packageDirectory, "package.json");
-            var manifestResult = await ReadDocumentAsync<PackageManifest>(manifestPath, cancellationToken)
+            var manifestResult = await ReadDocumentAsync<PackageManifest>(manifestPath, filesSnapshot, cancellationToken)
                 .ConfigureAwait(false);
             if (manifestResult.IsFailure)
             {
@@ -120,7 +124,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
                         settingPath));
                     continue;
                 }
-                var setting = await ReadDocumentAsync<SettingDefinition>(fullPath.Value, cancellationToken)
+                var setting = await ReadDocumentAsync<SettingDefinition>(fullPath.Value, filesSnapshot, cancellationToken)
                     .ConfigureAwait(false);
                 if (setting.IsFailure)
                 {
@@ -231,15 +235,28 @@ public sealed class DirectoryPackageProvider : IPackageProvider
         return Result<string>.Success(fullPath);
     }
 
-    private static async Task<Result<T>> ReadDocumentAsync<T>(
+    private async Task<Result<T>> ReadDocumentAsync<T>(
         string path,
+        Dictionary<string, ReadOnlyMemory<byte>>? filesSnapshot,
         CancellationToken cancellationToken)
     {
         try
         {
-            await using var stream = File.OpenRead(path);
-            var value = await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken)
-                .ConfigureAwait(false);
+            T? value;
+            if (filesSnapshot is null)
+            {
+                await using var stream = File.OpenRead(path);
+                value = await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                if (ContainsReparsePoint(_rootPath, path))
+                    return Result<T>.Failure($"Package file cannot be a symbolic link: {path}");
+                var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+                filesSnapshot.Add(NormalizeRelative(Path.GetRelativePath(_rootPath, path)), bytes);
+                value = JsonSerializer.Deserialize<T>(WithoutBom(bytes).Span, JsonOptions);
+            }
             return value == null
                 ? Result<T>.Failure($"JSON document is empty: {path}")
                 : Result<T>.Success(value);
@@ -249,6 +266,45 @@ public sealed class DirectoryPackageProvider : IPackageProvider
             return Result<T>.Failure($"Failed to read JSON document '{path}': {exception.Message}");
         }
     }
+
+    public async Task<Result<AuthoringPackageSnapshot>> CaptureAuthoringSnapshotAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var files = new Dictionary<string, ReadOnlyMemory<byte>>(StringComparer.Ordinal);
+        try
+        {
+            var discovery = await DiscoverAsync(files, cancellationToken).ConfigureAwait(false);
+            foreach (var package in discovery.Packages)
+            {
+                var directory = ResolveSourceDirectory(package.SourceId);
+                if (directory.IsFailure)
+                    return Result<AuthoringPackageSnapshot>.Failure(directory.Error);
+                foreach (var entry in package.Manifest.Content)
+                {
+                    var path = ResolvePackagePath(directory.Value, entry.SourcePath);
+                    if (path.IsFailure)
+                        return Result<AuthoringPackageSnapshot>.Failure(path.Error);
+                    var relative = NormalizeRelative(Path.GetRelativePath(_rootPath, path.Value));
+                    if (files.ContainsKey(relative))
+                        continue;
+                    if (!File.Exists(path.Value))
+                        return Result<AuthoringPackageSnapshot>.Failure($"Package file not found: {relative}");
+                    if (ContainsReparsePoint(_rootPath, path.Value))
+                        return Result<AuthoringPackageSnapshot>.Failure($"Package file cannot be a symbolic link: {relative}");
+                    files.Add(relative, await File.ReadAllBytesAsync(path.Value, cancellationToken).ConfigureAwait(false));
+                }
+            }
+
+            return Result<AuthoringPackageSnapshot>.Success(new(ProviderId, discovery, files));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return Result<AuthoringPackageSnapshot>.Failure($"Could not capture provider '{ProviderId}': {exception.Message}");
+        }
+    }
+
+    internal static ReadOnlyMemory<byte> WithoutBom(ReadOnlyMemory<byte> bytes) =>
+        bytes.Span.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }) ? bytes[3..] : bytes;
 
     private static bool HasReparsePoint(string path) =>
         (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;

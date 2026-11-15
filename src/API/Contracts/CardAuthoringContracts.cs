@@ -108,3 +108,31 @@ public sealed record CardAuthoringChangeReceipt(
     IReadOnlyList<AuthoringDiagnostic> Diagnostics,
     Guid? UndoOf,
     Guid? RedoOf);
+
+public sealed record CardAuthoringValidation(
+    Guid ChangeId, string SourceVersion, bool IsValid,
+    IReadOnlyDictionary<string, string> CandidateRevisions,
+    IReadOnlyList<AuthoringDiagnostic> Diagnostics);
+
+public sealed record CardAuthoringSetting(
+    string SettingId, string DisplayName, string? WritablePackageId);
+
+public sealed record CardAuthoringSettings(
+    IReadOnlyList<CardAuthoringSetting> Items, IReadOnlyList<Mods.PackageDiagnostic> Diagnostics);
+
+public sealed record AuthoringKind(string Kind, bool SupportsSchema, bool CanCreate);
+
+public sealed record AuthoringKindSchema(
+    string Kind, System.Text.Json.Nodes.JsonNode Schema, IReadOnlyDictionary<string, string> References);
+
+public sealed record AuthoringCapabilities(string Version, bool CanValidate, bool CanApply, bool CanUndo, bool CanRedo);
+
+public sealed record AuthoringPage<T>(IReadOnlyList<T> Items, string? NextCursor, string SourceVersion);
+
+public sealed record CardAuthoringSummary(string DefinitionId, string PackageId, bool CanEdit, bool CanDelete);
+
+public sealed record CardAuthoringDefinition(
+    CardAuthoringSummary Card, JsonElement Source, JsonElement Effective,
+    IReadOnlyList<Mods.ContentProvenanceEntry> Provenance);
+
+public sealed record CardAuthoringTag(string Id, bool DeclaredOnCard, bool Referenced);

@@ -278,6 +278,7 @@ for (var packageRootIndex = 0; packageRootIndex < packageRoots.Length; packageRo
 }
 builder.Services.AddSingleton<SettingCompiler>();
 builder.Services.AddSingleton<ISettingCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
+builder.Services.AddSingleton<API.Services.CardAuthoringService>();
 builder.Services.AddSingleton<ISettingBundleCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
