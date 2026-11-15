@@ -1144,5 +1144,12 @@
   "Character: +25% increased Divine scaling.": "Personagem: +25% de escalonamento Divino aumentado.",
   "Divine scaling": "Escalonamento Divino",
   "Character: +25% increased Fire scaling.": "Personagem: +25% de escalonamento de Fogo aumentado.",
-  "Character: +20% increased Block generation and +25% increased Divine scaling.": "Personagem: +20% de geração de Escudo e +25% de escalonamento Divino."
+  "Character: +20% increased Block generation and +25% increased Divine scaling.": "Personagem: +20% de geração de Escudo e +25% de escalonamento Divino.",
+  "Guarded insight": "Percepção Protegida",
+  "Cinder recall": "Recordação das Cinzas",
+  "Final spark": "Faísca Final",
+  "card.prototype_guarded_insight": "Percepção Protegida",
+  "card.prototype_cinder_recall": "Recordação das Cinzas",
+  "card.prototype_final_spark": "Faísca Final",
+  "Draw {value} cards.": "Compre {value} carta(s)."
 }

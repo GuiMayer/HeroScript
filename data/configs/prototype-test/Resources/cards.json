@@ -1241,5 +1241,328 @@
         "amount": 3
       }
     ]
+  },
+  "prototype_guarded_insight": {
+    "cardId": "prototype_guarded_insight",
+    "rarity": "Common",
+    "basePrices": [],
+    "tags": [
+      "skill",
+      "defense",
+      "divine",
+      "void"
+    ],
+    "metadata": {
+      "displayName": "Guarded insight",
+      "nameKey": "card.prototype_guarded_insight",
+      "artKey": "placeholder.prototype_guarded_insight"
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "prototype_guarded_insight.main",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "tags": [
+            "defense",
+            "block",
+            "divine"
+          ],
+          "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 5,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount"
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      },
+      {
+        "type": "effect",
+        "componentId": "draw",
+        "order": 30,
+        "effect": {
+          "effectId": "prototype_guarded_insight.draw",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.draw",
+          "cardCount": 1
+        }
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "prototype_cinder_recall": {
+    "cardId": "prototype_cinder_recall",
+    "rarity": "Uncommon",
+    "basePrices": [],
+    "tags": [
+      "skill",
+      "recovery",
+      "divine",
+      "fire"
+    ],
+    "metadata": {
+      "displayName": "Cinder recall",
+      "nameKey": "card.prototype_cinder_recall",
+      "artKey": "placeholder.prototype_cinder_recall"
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "prototype_cinder_recall.main",
+          "type": "HEAL",
+          "target": "SELF",
+          "targetResource": "health",
+          "tags": [
+            "recovery",
+            "divine"
+          ],
+          "calculationChannel": "effect_amount",
+          "calculationPipelineId": "prototype_direct_amount",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 3,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount"
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      },
+      {
+        "type": "effect",
+        "componentId": "draw",
+        "order": 30,
+        "effect": {
+          "effectId": "prototype_cinder_recall.draw",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.draw",
+          "cardCount": 1
+        }
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
+  },
+  "prototype_final_spark": {
+    "cardId": "prototype_final_spark",
+    "rarity": "Common",
+    "basePrices": [],
+    "tags": [
+      "attack",
+      "fire",
+      "shadow"
+    ],
+    "metadata": {
+      "displayName": "Final spark",
+      "nameKey": "card.prototype_final_spark",
+      "artKey": "placeholder.prototype_final_spark"
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "prototype_final_spark.main",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 12,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "prototype_direct_amount",
+              "stageIds": [
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
+    ]
   }
 }

@@ -9,7 +9,10 @@
       "prototype_coolant",
       "prototype_condense",
       "pyro_golpe_brasa",
-      "pyro_barreira_cinzas"
+      "pyro_barreira_cinzas",
+      "prototype_guarded_insight",
+      "prototype_cinder_recall",
+      "prototype_final_spark"
     ]
   }
 }

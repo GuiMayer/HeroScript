@@ -100,7 +100,7 @@ func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary
 			resource = _i18n.content_name(str(effect.get("modifierId", "")))
 			parameter = "ModifierStacks"
 		"CARD_ZONE_FLOW":
-			template = "Move/create {value} cards: {resource}."
+			template = "Draw {value} cards." if str(effect.get("cardZoneFlowId", "")) == "effect.draw" else "Move/create {value} cards: {resource}."
 			resource = _i18n.text(str(_appearance.get("card_flow_labels", {}).get(str(effect.get("cardZoneFlowId", "")), "Configured card flow — inspect")))
 			parameter = "CardCount"
 		"MODIFY_ATTRIBUTE":
