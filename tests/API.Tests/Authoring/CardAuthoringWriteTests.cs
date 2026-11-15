@@ -7,10 +7,11 @@ using API.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace API.Tests.Authoring;
 
-public sealed class CardAuthoringWriteTests
+public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
 {
     [Theory]
     [InlineData("uno-clash", "uno_red_0", "uno_red_1", "uno.json", "circular-table")]
@@ -387,6 +388,112 @@ public sealed class CardAuthoringWriteTests
         Assert.Equal(applied.ActiveRevisions[setting], redo.ActiveRevisions[setting]);
     }
 
+    [Fact]
+    public async Task AuthoredRevisionsRebuildFromSourcesAndExistingRunsKeepTheirRevision()
+    {
+        using var original = new WriteFactory(performanceDiagnostics: true);
+        var settings = new[]
+        {
+            (Id: "uno-clash", Card: "uno_red_0", Catalog: "uno.json", Run: "uno_clash_run", Mode: "uno_classic", Player: "player"),
+            (Id: "circular-table", Card: "t_red_0", Catalog: "table.json", Run: "table_run", Mode: "table_mode", Player: "seat_0")
+        };
+        var history = new Dictionary<string, (Guid OldRun, string Original, Guid NewRun, string Authored)>();
+        const string tag = "stage_five_rebuild";
+        using (var client = Open(original))
+        {
+            foreach (var setting in settings)
+            {
+                var catalog = Path.Combine(original.PackageRoot, setting.Id, "Resources", "cards", setting.Catalog);
+                using var sourceBefore = JsonDocument.Parse(await File.ReadAllBytesAsync(catalog));
+                var initialRevision = await Revision(client, setting.Id);
+                var oldRun = await StartRun(client, setting.Id, setting.Run, setting.Mode, setting.Player,
+                    initialRevision, 1739);
+                var (version, card) = await Read(client, setting.Id, setting.Card);
+                var change = Change(WithTag(card, tag));
+                using var preview = await Send(client, setting.Id, version, change, "/changes/validate");
+                preview.EnsureSuccessStatusCode();
+                var previewTiming = string.Join(", ", preview.Headers.GetValues("Server-Timing"));
+                Assert.Contains("authoring_validation;dur=", previewTiming);
+                using var appliedResponse = await Send(client, setting.Id, version, change);
+                appliedResponse.EnsureSuccessStatusCode();
+                var applyTiming = string.Join(", ", appliedResponse.Headers.GetValues("Server-Timing"));
+                foreach (var phase in new[] { "authoring_validation", "authoring_prepare", "authoring_apply" })
+                    Assert.Contains(phase + ";dur=", applyTiming);
+                output.WriteLine($"{setting.Id} preview: {previewTiming}");
+                output.WriteLine($"{setting.Id} apply: {applyTiming}");
+                var applied = (await appliedResponse.Content.ReadFromJsonAsync<CardAuthoringChangeReceipt>())!;
+                using var sourceAfter = JsonDocument.Parse(await File.ReadAllBytesAsync(catalog));
+                var appliedCard = sourceAfter.RootElement.GetProperty(setting.Card);
+                Assert.DoesNotContain("\r\r\n", appliedCard.GetProperty("tags").GetRawText());
+                foreach (var property in sourceBefore.RootElement.GetProperty(setting.Card).EnumerateObject())
+                    if (!property.NameEquals("tags"))
+                        Assert.Equal(property.Value.GetRawText(), appliedCard.GetProperty(property.Name).GetRawText());
+                var authored = applied.ActiveRevisions[setting.Id];
+                Assert.NotEqual(initialRevision, authored);
+                Assert.Equal(authored, await Revision(client, setting.Id));
+                await AssertRunRevision(client, oldRun, initialRevision);
+                var newRun = await StartRun(client, setting.Id, setting.Run, setting.Mode, setting.Player,
+                    authored, 1740);
+                history.Add(setting.Id, (oldRun, initialRevision, newRun, authored));
+            }
+        }
+        await original.DisposeAsync();
+
+        using var restarted = new WriteFactory(original.PersistenceRoot);
+        using (var client = Open(restarted))
+        {
+            foreach (var setting in settings)
+            {
+                var expected = history[setting.Id];
+                Assert.Equal(expected.Authored, await Revision(client, setting.Id));
+                await AssertRunRevision(client, expected.OldRun, expected.Original);
+                await AssertRunRevision(client, expected.NewRun, expected.Authored);
+                var historical = await ReadPublishedCard(client, setting.Id, setting.Card, expected.Original);
+                Assert.DoesNotContain(historical.GetProperty("tags").EnumerateArray(), item => item.GetString() == tag);
+            }
+        }
+
+        using var clean = new WriteFactory(applyEnabled: false, packageSource: original.PackageRoot);
+        Assert.False(Directory.Exists(Path.Combine(clean.PersistenceRoot, "content")));
+        Assert.False(Directory.Exists(Path.Combine(clean.PackageRoot, ".heroscript-authoring")));
+        using var cleanClient = Open(clean);
+        foreach (var setting in settings)
+        {
+            var expected = history[setting.Id];
+            Assert.Equal(expected.Authored, await Revision(cleanClient, setting.Id));
+            var rebuilt = await ReadPublishedCard(cleanClient, setting.Id, setting.Card, expected.Authored);
+            Assert.Contains(rebuilt.GetProperty("tags").EnumerateArray(), item => item.GetString() == tag);
+            using var absent = await cleanClient.GetAsync($"/api/v1/runs/{expected.OldRun}");
+            Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+        }
+    }
+
+    private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,
+        string playerEntityId, string contentRevision, ulong seed)
+    {
+        using var response = await client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            settingId, runDefinitionId, modeId, playerEntityId, contentRevision, seed
+        });
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        var run = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(contentRevision, run.GetProperty("contentRevision").GetString());
+        return run.GetProperty("runId").GetGuid();
+    }
+
+    private static async Task AssertRunRevision(HttpClient client, Guid runId, string revision)
+    {
+        var run = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{runId}");
+        Assert.Equal(revision, run.GetProperty("contentRevision").GetString());
+    }
+
+    private static async Task<JsonElement> ReadPublishedCard(HttpClient client, string setting, string card, string revision)
+    {
+        var result = await client.GetFromJsonAsync<JsonElement>(
+            $"/api/v1/content/cards/{card}?configName={setting}&revision={revision}");
+        return result.GetProperty("definition");
+    }
+
     private static CardAuthoringChangeRequest Change(params CardAuthoringOperation[] operations) =>
         new() { ChangeId = Guid.NewGuid(), Operations = operations };
 
@@ -459,18 +566,21 @@ public sealed class CardAuthoringWriteTests
         private readonly AuthoringWriteCheckpoint? _stop;
         private readonly bool _includeEmptyPackage;
         private readonly bool _applyEnabled;
+        private readonly bool _performanceDiagnostics;
 
         public WriteFactory(string? root = null, AuthoringWriteCheckpoint? stop = null,
-            bool includeEmptyPackage = false, bool applyEnabled = true)
+            bool includeEmptyPackage = false, bool applyEnabled = true, string? packageSource = null,
+            bool performanceDiagnostics = false)
             : base(root ?? Path.Combine(Path.GetTempPath(), "HeroScript", "authoring-write-tests", Guid.NewGuid().ToString("N")))
         {
             _stop = stop;
             _includeEmptyPackage = includeEmptyPackage;
             _applyEnabled = applyEnabled;
+            _performanceDiagnostics = performanceDiagnostics;
             PackageRoot = Path.Combine(PersistenceRoot, "packages");
             if (root is null)
             {
-                CardAuthoringWorkspaceTests.WorkspaceFactory.CopyPackages(PackageRoot);
+                CardAuthoringWorkspaceTests.WorkspaceFactory.CopyPackages(PackageRoot, packageSource);
                 if (includeEmptyPackage)
                 {
                     var package = Path.Combine(PackageRoot, "empty-cards");
@@ -492,6 +602,7 @@ public sealed class CardAuthoringWriteTests
             builder.UseSetting("Content:StartupSettings:0", "uno-clash");
             builder.UseSetting("Content:StartupSettings:1", "circular-table");
             builder.UseSetting("Authoring:ApplyEnabled", _applyEnabled ? "true" : "false");
+            builder.UseSetting("Performance:DiagnosticsEnabled", _performanceDiagnostics ? "true" : "false");
             builder.UseSetting("Authoring:WritablePackages:uno-clash", "heroscript.uno-clash");
             builder.UseSetting("Authoring:WritablePackages:circular-table", "heroscript.circular-table");
             if (_includeEmptyPackage)

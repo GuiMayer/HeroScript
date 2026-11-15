@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
+[ApiExplorerSettings(GroupName = AuthoringDocumentFilter.DocumentName)]
 [AdminEndpoint]
 [Route("api/v1/admin/authoring")]
 public sealed class CardAuthoringController(
@@ -21,17 +22,17 @@ public sealed class CardAuthoringController(
 {
     private const string SettingRoute = "settings/{settingId}";
     private const string Cards = "cards";
-    private static readonly Lazy<JsonNode> CardSchema = new(CreateCardSchema);
+    private static readonly Lazy<JsonObject> CardSchema = new(CreateCardSchema);
     private static readonly HashSet<string> TagCriteria =
         new(["requiredTags", "excludedTags", "includeTags", "excludeTags"], StringComparer.OrdinalIgnoreCase);
 
-    [HttpGet("capabilities")]
+    [HttpGet("capabilities", Name = "AuthoringCapabilities")]
     public AuthoringCapabilities Capabilities() =>
         new("1", !coordinator.RecoveryRequired, CanApply, CanApply, CanApply);
 
     private bool CanApply => coordinator.Enabled && !coordinator.RecoveryRequired;
 
-    [HttpGet("settings")]
+    [HttpGet("settings", Name = "AuthoringSettings")]
     [ProducesResponseType(typeof(CardAuthoringSettings), StatusCodes.Status200OK)]
     public Task<IActionResult> Settings(CancellationToken cancellationToken) =>
         coordinator.ExecuteAsync<IActionResult>(async () =>
@@ -45,14 +46,14 @@ public sealed class CardAuthoringController(
             catalog.Diagnostics));
     }, cancellationToken);
 
-    [HttpGet(SettingRoute + "/kinds")]
+    [HttpGet(SettingRoute + "/kinds", Name = "AuthoringKinds")]
     [ProducesResponseType(typeof(AuthoringKind[]), StatusCodes.Status200OK)]
     public Task<IActionResult> Kinds(string settingId, CancellationToken cancellationToken) =>
         WithView(settingId, cancellationToken, (_, view) => Task.FromResult<IActionResult>(Ok(
             kinds.Kinds.Select(kind => new AuthoringKind(kind.Kind, kind.Kind == Cards,
                 kind.Kind == Cards && view.Writable is not null)).ToArray())));
 
-    [HttpGet(SettingRoute + "/kinds/{kind}/schema")]
+    [HttpGet(SettingRoute + "/kinds/{kind}/schema", Name = "AuthoringKindSchema")]
     [ProducesResponseType(typeof(AuthoringKindSchema), StatusCodes.Status200OK)]
     public Task<IActionResult> Schema(string settingId, string kind, CancellationToken cancellationToken) =>
         WithView(settingId, cancellationToken, (_, _) => Task.FromResult<IActionResult>(kind == Cards
@@ -63,7 +64,7 @@ public sealed class CardAuthoringController(
             }))
             : ApiNotFound($"Authoring schema not available for '{kind}'.")));
 
-    [HttpGet(SettingRoute + "/definitions/cards")]
+    [HttpGet(SettingRoute + "/definitions/cards", Name = "AuthoringListCards")]
     [ProducesResponseType(typeof(AuthoringPage<CardAuthoringSummary>), StatusCodes.Status200OK)]
     public Task<IActionResult> CardsPage(string settingId, [FromQuery] string? q, [FromQuery] string? cursor,
         CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
@@ -76,7 +77,7 @@ public sealed class CardAuthoringController(
                 .Select(Summary),
             card => card.DefinitionId, workspace.ETag, settingId, Cards, q, cursor, limit)));
 
-    [HttpGet(SettingRoute + "/definitions/cards/{definitionId}")]
+    [HttpGet(SettingRoute + "/definitions/cards/{definitionId}", Name = "AuthoringGetCard")]
     [ProducesResponseType(typeof(CardAuthoringDefinition), StatusCodes.Status200OK)]
     public Task<IActionResult> Card(string settingId, string definitionId, CancellationToken cancellationToken) =>
         WithView(settingId, cancellationToken, async (workspace, view) =>
@@ -92,7 +93,7 @@ public sealed class CardAuthoringController(
             return Ok(new CardAuthoringDefinition(Summary(card), source.Value, card.Effective, provenance));
         });
 
-    [HttpGet(SettingRoute + "/references/tags")]
+    [HttpGet(SettingRoute + "/references/tags", Name = "AuthoringListTags")]
     [ProducesResponseType(typeof(AuthoringPage<CardAuthoringTag>), StatusCodes.Status200OK)]
     public Task<IActionResult> Tags(string settingId, [FromQuery] string? q, [FromQuery] string? cursor,
         CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
@@ -114,7 +115,7 @@ public sealed class CardAuthoringController(
             return Task.FromResult(Paginate(tags, tag => tag.Id, workspace.ETag, settingId, "tags", q, cursor, limit));
         });
 
-    [HttpPost(SettingRoute + "/changes/validate")]
+    [HttpPost(SettingRoute + "/changes/validate", Name = "AuthoringValidateChange")]
     [ProducesResponseType(typeof(CardAuthoringValidation), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -137,7 +138,7 @@ public sealed class CardAuthoringController(
         });
     }
 
-    [HttpPost(SettingRoute + "/changes")]
+    [HttpPost(SettingRoute + "/changes", Name = "AuthoringApplyChange")]
     [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status412PreconditionFailed)]
@@ -148,7 +149,7 @@ public sealed class CardAuthoringController(
         CancellationToken cancellationToken) =>
         ApplyChangeAsync(settingId, request, cancellationToken);
 
-    [HttpPost(SettingRoute + "/changes/{changeId:guid}/undo")]
+    [HttpPost(SettingRoute + "/changes/{changeId:guid}/undo", Name = "AuthoringUndoChange")]
     [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -159,7 +160,7 @@ public sealed class CardAuthoringController(
         CancellationToken cancellationToken) =>
         ApplyCompensationAsync(settingId, changeId, request.ChangeId, undo: true, cancellationToken);
 
-    [HttpPost(SettingRoute + "/changes/{changeId:guid}/redo")]
+    [HttpPost(SettingRoute + "/changes/{changeId:guid}/redo", Name = "AuthoringRedoChange")]
     [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -197,7 +198,7 @@ public sealed class CardAuthoringController(
         return ApplyResult(await writer.ApplyAsync(settingId, version[0]!, request, cancellationToken));
     }
 
-    [HttpGet(SettingRoute + "/changes/{changeId:guid}")]
+    [HttpGet(SettingRoute + "/changes/{changeId:guid}", Name = "AuthoringGetChange")]
     [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Change(string settingId, Guid changeId, CancellationToken cancellationToken) =>
@@ -309,7 +310,7 @@ public sealed class CardAuthoringController(
                 tags.Add(tag);
     }
 
-    private static JsonNode CreateCardSchema()
+    private static JsonObject CreateCardSchema()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
@@ -321,7 +322,7 @@ public sealed class CardAuthoringController(
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
         schema["$schema"] = "https://json-schema.org/draft/2020-12/schema";
         schema["required"] = new JsonArray(JsonValue.Create("cardId"));
-        return schema;
+        return schema.AsObject();
     }
 
     private sealed record PageCursor(string ETag, string SettingId, string Kind, string? Query, string After);

@@ -128,7 +128,7 @@ public sealed record CardAuthoringSettings(
 public sealed record AuthoringKind(string Kind, bool SupportsSchema, bool CanCreate);
 
 public sealed record AuthoringKindSchema(
-    string Kind, System.Text.Json.Nodes.JsonNode Schema, IReadOnlyDictionary<string, string> References);
+    string Kind, System.Text.Json.Nodes.JsonObject Schema, IReadOnlyDictionary<string, string> References);
 
 public sealed record AuthoringCapabilities(string Version, bool CanValidate, bool CanApply, bool CanUndo, bool CanRedo);
 

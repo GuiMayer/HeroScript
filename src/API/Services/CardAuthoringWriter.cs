@@ -222,14 +222,17 @@ public sealed class CardAuthoringWriter(
         if (!plan.Validation.IsValid)
             return new(422, AuthoringErrorCodes.InvalidCandidate, "The candidate failed authoring validation.", Validation: plan.Validation);
 
-        foreach (var bundle in plan.Bundles)
+        using (Core.Diagnostics.OperationalTiming.Measure("authoring_prepare"))
         {
-            var prepared = await publication.PrepareBundleAsync(bundle, cancellationToken);
-            if (prepared.IsFailure)
-                return new(503, ApiErrorCodes.DependencyUnavailable, prepared.Error);
-            var runtime = runtimes.Resolve(bundle.Manifest.Revision, bundle.Manifest.ConfigName);
-            if (runtime.IsFailure)
-                return new(503, ApiErrorCodes.DependencyUnavailable, runtime.Error);
+            foreach (var bundle in plan.Bundles)
+            {
+                var prepared = await publication.PrepareBundleAsync(bundle, cancellationToken);
+                if (prepared.IsFailure)
+                    return new(503, ApiErrorCodes.DependencyUnavailable, prepared.Error);
+                var runtime = runtimes.Resolve(bundle.Manifest.Revision, bundle.Manifest.ConfigName);
+                if (runtime.IsFailure)
+                    return new(503, ApiErrorCodes.DependencyUnavailable, runtime.Error);
+            }
         }
 
         // Recheck the source snapshot after preparing runtimes and before
@@ -262,6 +265,7 @@ public sealed class CardAuthoringWriter(
         // recoverable independently of the HTTP connection.
         try
         {
+            using var timing = Core.Diagnostics.OperationalTiming.Measure("authoring_apply");
             await WriteRecord("pending.json", record);
             Notify(AuthoringWriteCheckpoint.Prepared);
             foreach (var file in plan.Files)

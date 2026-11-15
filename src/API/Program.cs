@@ -598,11 +598,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.DocumentFilter<API.Contracts.CanonicalCommandDocumentFilter>();
+    options.DocumentFilter<API.Contracts.AuthoringDocumentFilter>();
+    options.MapType<System.Text.Json.Nodes.JsonObject>(() => new OpenApiSchema { Type = JsonSchemaType.Object });
+    options.DocInclusionPredicate((name, description) => name == "v1" || description.GroupName == name);
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "HeroScript API",
         Version = "v1",
         Description = "Headless deterministic game-engine API. See /docs/api/governance for contract rules."
+    });
+    options.SwaggerDoc(API.Contracts.AuthoringDocumentFilter.DocumentName, new OpenApiInfo
+    {
+        Title = "HeroScript Authoring API",
+        Version = "v1",
+        Description = "Local administrative API for card authoring."
     });
 });
 
@@ -755,6 +764,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/openapi/v1.json", "HeroScript API v1");
+        options.SwaggerEndpoint("/openapi/authoring-v1.json", "HeroScript Authoring API v1");
         options.RoutePrefix = "docs/api";
     });
 }

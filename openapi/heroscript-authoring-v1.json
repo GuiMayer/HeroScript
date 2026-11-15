@@ -1,0 +1,2000 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "HeroScript Authoring API",
+    "description": "Local administrative API for card authoring.",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/admin/authoring/capabilities": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringCapabilities",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringCapabilities"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringCapabilities"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringCapabilities"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSettings"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/kinds": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringKinds",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthoringKind"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthoringKind"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthoringKind"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/kinds/{kind}/schema": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringKindSchema",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringKindSchema"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringKindSchema"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringKindSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/definitions/cards": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringListCards",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSummaryAuthoringPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSummaryAuthoringPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSummaryAuthoringPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/definitions/cards/{definitionId}": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringGetCard",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "definitionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringDefinition"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringDefinition"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringDefinition"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/references/tags": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringListTags",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringTagAuthoringPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringTagAuthoringPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringTagAuthoringPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/changes/validate": {
+      "post": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringValidateChange",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong workspace ETag returned by the authoring API.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringValidation"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringValidation"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringValidation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/changes": {
+      "post": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringApplyChange",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong workspace ETag returned by the authoring API.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/changes/{changeId}/undo": {
+      "post": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringUndoChange",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong workspace ETag returned by the authoring API.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoringCompensationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoringCompensationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoringCompensationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/changes/{changeId}/redo": {
+      "post": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringRedoChange",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong workspace ETag returned by the authoring API.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoringCompensationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoringCompensationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoringCompensationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/settings/{settingId}/changes/{changeId}": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringGetChange",
+        "parameters": [
+          {
+            "name": "settingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Workspace source version. For an applied change, this is the version in its receipt.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthoringCapabilities": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "canValidate": {
+            "type": "boolean"
+          },
+          "canApply": {
+            "type": "boolean"
+          },
+          "canUndo": {
+            "type": "boolean"
+          },
+          "canRedo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthoringCompensationRequest": {
+        "type": "object",
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthoringDiagnostic": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "jsonPointer": {
+            "type": "string",
+            "nullable": true
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthoringKind": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportsSchema": {
+            "type": "boolean"
+          },
+          "canCreate": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthoringKindSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "schema": {
+            "type": "object",
+            "nullable": true
+          },
+          "references": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthoringProblem": {
+        "required": [
+          "code"
+        ],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          }
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/CardAuthoringValidation"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+          }
+        }
+      },
+      "CardAuthoringChangeReceipt": {
+        "type": "object",
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "activeRevisions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthoringDiagnostic"
+            },
+            "nullable": true
+          },
+          "undoOf": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "redoOf": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "compensatedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "canUndo": {
+            "type": "boolean"
+          },
+          "canRedo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringChangeRequest": {
+        "required": [
+          "changeId"
+        ],
+        "type": "object",
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardAuthoringOperation"
+            },
+            "nullable": true
+          },
+          "undoOf": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "redoOf": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringDefinition": {
+        "type": "object",
+        "properties": {
+          "card": {
+            "$ref": "#/components/schemas/CardAuthoringSummary"
+          },
+          "source": { },
+          "effective": { },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentProvenanceEntry"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringOperation": {
+        "required": [
+          "definitionId",
+          "kind",
+          "operation"
+        ],
+        "type": "object",
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/CardAuthoringOperationType"
+          },
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "definition": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringOperationType": {
+        "enum": [
+          "create",
+          "update",
+          "delete"
+        ],
+        "type": "string"
+      },
+      "CardAuthoringSetting": {
+        "type": "object",
+        "properties": {
+          "settingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "writablePackageId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringSettings": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardAuthoringSetting"
+            },
+            "nullable": true
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageDiagnostic"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringSummary": {
+        "type": "object",
+        "properties": {
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canDelete": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringSummaryAuthoringPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardAuthoringSummary"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringTag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "declaredOnCard": {
+            "type": "boolean"
+          },
+          "referenced": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringTagAuthoringPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardAuthoringTag"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CardAuthoringValidation": {
+        "type": "object",
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "candidateRevisions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthoringDiagnostic"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentProvenanceEntry": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "artifactPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "jsonPointer": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "operation": {
+            "$ref": "#/components/schemas/PackageContentOperation"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackageContentOperation": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "PackageDiagnostic": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "$ref": "#/components/schemas/PackageDiagnosticSeverity"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePath": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackageDiagnosticSeverity": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      }
+    },
+    "securitySchemes": {
+      "AuthoringAdminKey": {
+        "type": "apiKey",
+        "name": "X-Admin-Key",
+        "in": "header"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "CardAuthoring"
+    }
+  ]
+}

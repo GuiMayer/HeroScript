@@ -1,5 +1,11 @@
 # Changelog do contrato público
 
+## Autoria local de Cartas
+
+- `/openapi/authoring-v1.json` documenta leitura, validação, gravação, recibos e compensações sob `/api/v1/admin/authoring`. O [snapshot de autoria](../../openapi/heroscript-authoring-v1.json) é conferido na CI.
+- A API administrativa usa `X-Admin-Key` e exige `If-Match` para validar ou aplicar lotes. Uma revisão ativa pode ser reconstruída a partir dos JSONs gravados. Runs existentes preservam a revisão com que foram iniciadas.
+- [Configuração, execução e fluxo de Git](card-authoring.md).
+
 ## Fluxo circular configurável — 2026-10-27
 
 - Runtime determinístico **34**. `flow.activationSequence` é obrigatório nos novos conteúdos; fontes existentes foram migradas explicitamente para `PerRound`. Sem migração silenciosa de bundles ou saves históricos.

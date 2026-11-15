@@ -121,6 +121,7 @@ public sealed class CardAuthoringService(
     public async Task<CardAuthoringPlan> PlanAsync(CardAuthoringWorkspace workspace, CardAuthoringView view,
         CardAuthoringChangeRequest request, CancellationToken cancellationToken)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("authoring_validation");
         var diagnostics = new List<AuthoringDiagnostic>();
         var revisions = new SortedDictionary<string, string>(StringComparer.Ordinal);
         CardAuthoringValidation Validation() => new(request.ChangeId, workspace.ETag,
@@ -284,6 +285,7 @@ public sealed class CardAuthoringService(
         CardAuthoringView view, Guid changeId, IReadOnlyList<AuthoringSourceChange> targetFiles,
         CancellationToken cancellationToken)
     {
+        using var timing = Core.Diagnostics.OperationalTiming.Measure("authoring_validation");
         var writable = view.Writable;
         if (writable is null)
             return Result<CardAuthoringPlan>.Failure("No writable package is configured for this setting.");

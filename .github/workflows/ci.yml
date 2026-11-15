@@ -30,6 +30,12 @@ jobs:
       
       - name: Core Tests
         run: dotnet test tests/Core.Tests/Core.Tests.csproj --no-build -c Release --logger trx
+
+      - name: Check generated authoring OpenAPI
+        timeout-minutes: 5
+        env:
+          HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
+        run: dotnet run --project tools/ExportOpenApi -c Release -- --authoring --check openapi/heroscript-authoring-v1.json
       
       # Include untagged foundation/controller regressions as well as categorized tests.
       # Long deterministic journeys have their own session budget below.
@@ -55,7 +61,7 @@ jobs:
         if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
         run: |
           changed_files="$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
-          if [[ "$changed_files" == *"openapi/heroscript-v1.json"* && "$changed_files" != *"docs/api/changelog.md"* ]]; then
+          if [[ ( "$changed_files" == *"openapi/heroscript-v1.json"* || "$changed_files" == *"openapi/heroscript-authoring-v1.json"* ) && "$changed_files" != *"docs/api/changelog.md"* ]]; then
             echo "An OpenAPI change must include docs/api/changelog.md"
             exit 1
           fi

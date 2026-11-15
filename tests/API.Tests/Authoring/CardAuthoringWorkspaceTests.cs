@@ -210,6 +210,26 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
                 .GetProperty("post");
             Assert.True(operation.GetProperty("responses").TryGetProperty("409", out _));
         }
+
+        var authoring = await client.GetFromJsonAsync<JsonElement>("/openapi/authoring-v1.json");
+        var authoringPaths = authoring.GetProperty("paths");
+        var prefix = "/api/v1/admin/authoring/";
+        Assert.Equal(paths.EnumerateObject().Select(item => item.Name)
+                .Where(name => name.StartsWith(prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal),
+            authoringPaths.EnumerateObject().Select(item => item.Name).Order(StringComparer.Ordinal));
+        var operations = authoringPaths.EnumerateObject().SelectMany(item => item.Value.EnumerateObject()).ToArray();
+        Assert.Equal(operations.Length, operations.Select(item => item.Value.GetProperty("operationId").GetString()).Distinct().Count());
+        foreach (var operation in operations)
+        {
+            Assert.True(operation.Value.GetProperty("security")[0].TryGetProperty("AuthoringAdminKey", out _));
+            if (operation.Name == "post")
+                Assert.Contains(operation.Value.GetProperty("parameters").EnumerateArray(), parameter =>
+                    parameter.GetProperty("name").GetString() == "If-Match" && parameter.GetProperty("required").GetBoolean());
+        }
+        Assert.Equal("X-Admin-Key", authoring.GetProperty("components").GetProperty("securitySchemes")
+            .GetProperty("AuthoringAdminKey").GetProperty("name").GetString());
+        Assert.Equal("object", authoring.GetProperty("components").GetProperty("schemas")
+            .GetProperty("AuthoringKindSchema").GetProperty("properties").GetProperty("schema").GetProperty("type").GetString());
     }
 
     [Fact]
@@ -357,13 +377,14 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
             builder.UseSetting("Authoring:WritablePackages:circular-table", "heroscript.circular-table");
         }
 
-        internal static void CopyPackages(string destination)
+        internal static void CopyPackages(string destination, string? packageRoot = null)
         {
-            var repository = FindProjectRoot() ?? throw new InvalidOperationException("HeroScript checkout not found.");
+            packageRoot ??= Path.Combine(FindProjectRoot() ??
+                throw new InvalidOperationException("HeroScript checkout not found."), "data", "configs");
             foreach (var package in new[] { "default", "uno-clash", "circular-table" })
             {
-                var source = Path.Combine(repository, "data", "configs", package);
-                foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+                var source = Path.Combine(packageRoot, package);
+                foreach (var file in Directory.EnumerateFiles(source, "*.json", SearchOption.AllDirectories))
                 {
                     var target = Path.Combine(destination, package, Path.GetRelativePath(source, file));
                     Directory.CreateDirectory(Path.GetDirectoryName(target)!);

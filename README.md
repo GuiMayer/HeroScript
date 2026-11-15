@@ -123,35 +123,11 @@ por HTTP, siga o [quickstart da API](docs/api/getting-started.md).
 
 ### Aplicar alterações de Cartas pela API local
 
-Em uma engine local com acesso administrativo configurado, defina
-`Authoring__ApplyEnabled=true`, `Mods__PackageRoots__0` como o diretório de
-pacotes do checkout (por exemplo, o caminho absoluto de `data/configs`) e
-`Authoring__WritablePackages__uno-clash=heroscript.uno-clash` para habilitar
-edições no pacote de Uno Clash. Use um único processo gravador por diretório.
-
-Consulte a ETag em `GET /api/v1/admin/authoring/settings/{settingId}/definitions/cards`.
-Envie o lote para `POST /api/v1/admin/authoring/settings/{settingId}/changes`
-com `If-Match`, `changeId` e as operações. O mesmo endpoint aplica um
-salvamento em lote ou uma ação de Hot Reload. Em caso de resposta perdida,
-consulte `GET /api/v1/admin/authoring/settings/{settingId}/changes/{changeId}`
-ou repita a solicitação original com o mesmo ID e a mesma ETag.
-
-Para desfazer, envie um novo `changeId` e `undoOf` com o ID do lote aplicado.
-Para refazer, informe `redoOf` com o ID do desfazer confirmado. Use
-`POST .../changes/validate` para simular a compensação e `POST .../changes`
-para gravá-la. As rotas `POST .../changes/{changeId}/undo` e
-`POST .../changes/{changeId}/redo` executam a mesma operação imediatamente
-com um novo `changeId` no corpo. Consulte o recibo para verificar o próximo
-comando elegível e possíveis vínculos em `compensatedBy`. Para desfazer um
-refazer, use o ID do próprio refazer. O histórico fica no journal local do
-workspace e a engine revalida cada compensação contra as fontes atuais.
-
-Após uma interrupção, reinicie usando o mesmo diretório de pacotes e
-armazenamento de conteúdo. A engine usa o journal local
-`.heroscript-authoring/` para completar ou reverter a transação. Se um
-arquivo divergir das imagens do journal, a inicialização informa o conflito
-e preserva o arquivo. Guarde a edição externa e resolva o conflito antes de
-tentar reiniciar novamente.
+A API de autoria grava os JSONs do checkout e ativa as revisões de conteúdo.
+O [guia de autoria de Cartas](docs/api/card-authoring.md) cobre a configuração,
+validação, salvamento, Hot Reload, desfazer/refazer e revisão com Git.
+O [contrato de autoria](openapi/heroscript-authoring-v1.json) também é servido
+em `/openapi/authoring-v1.json`.
 
 ## Princípios do projeto
 
