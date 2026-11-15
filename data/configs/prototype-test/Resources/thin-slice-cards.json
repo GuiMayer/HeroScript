@@ -58,6 +58,12 @@
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
       }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
+      }
     ]
   },
   "pyro_barreira_cinzas": {
@@ -130,6 +136,12 @@
         "componentId": "disposition",
         "order": 90,
         "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ],
+    "decomposeRewards": [
+      {
+        "resourceId": "parts",
+        "amount": 3
       }
     ]
   }
