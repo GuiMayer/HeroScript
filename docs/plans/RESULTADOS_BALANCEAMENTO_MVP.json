@@ -1,0 +1,719 @@
+{
+  "escopo": "MVP prototype-test; cálculo real da engine em sessões isoladas",
+  "metodo": "Cartas: snapshots imutáveis com mesma mão controlada e alvo prototype_target, 3 sementes, 4 builds legais; dano direto medido por execução, inclui crítico e não inclui queimadura futura, turnos, frequência real de compra, defesa dos encontros ou custo de oportunidade. O valor por carta é média ponderada pelas 20 cartas da composição inicial e não é dano por turno. Ensaios com a mesma semente compartilham RNG e não são independentes.",
+  "builds": {
+    "base": [],
+    "edge": [
+      "prototype_edge"
+    ],
+    "focus": [
+      "prototype_focus"
+    ],
+    "edge_focus": [
+      "prototype_edge",
+      "prototype_focus"
+    ]
+  },
+  "dados_antes": [
+    {
+      "build": "base",
+      "carta": "prototype_scorch",
+      "amostras": [
+        4.0,
+        4.0,
+        8.0
+      ],
+      "media_amostral": 5.33
+    },
+    {
+      "build": "base",
+      "carta": "prototype_strike",
+      "amostras": [
+        8.0,
+        8.0,
+        16.0
+      ],
+      "media_amostral": 10.67
+    },
+    {
+      "build": "base",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        8.0,
+        8.0,
+        16.0
+      ],
+      "media_amostral": 10.67
+    },
+    {
+      "build": "base",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        14.0,
+        14.0,
+        28.0
+      ],
+      "media_amostral": 18.67
+    },
+    {
+      "build": "edge",
+      "carta": "prototype_scorch",
+      "amostras": [
+        5.0,
+        5.0,
+        10.0
+      ],
+      "media_amostral": 6.67
+    },
+    {
+      "build": "edge",
+      "carta": "prototype_strike",
+      "amostras": [
+        10.0,
+        10.0,
+        20.0
+      ],
+      "media_amostral": 13.33
+    },
+    {
+      "build": "edge",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        10.0,
+        10.0,
+        20.0
+      ],
+      "media_amostral": 13.33
+    },
+    {
+      "build": "edge",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        17.0,
+        17.0,
+        34.0
+      ],
+      "media_amostral": 22.67
+    },
+    {
+      "build": "edge_focus",
+      "carta": "prototype_scorch",
+      "amostras": [
+        10.0,
+        5.0,
+        10.0
+      ],
+      "media_amostral": 8.33
+    },
+    {
+      "build": "edge_focus",
+      "carta": "prototype_strike",
+      "amostras": [
+        20.0,
+        10.0,
+        20.0
+      ],
+      "media_amostral": 16.67
+    },
+    {
+      "build": "edge_focus",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        20.0,
+        10.0,
+        20.0
+      ],
+      "media_amostral": 16.67
+    },
+    {
+      "build": "edge_focus",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        34.0,
+        17.0,
+        34.0
+      ],
+      "media_amostral": 28.33
+    },
+    {
+      "build": "focus",
+      "carta": "prototype_scorch",
+      "amostras": [
+        8.0,
+        4.0,
+        8.0
+      ],
+      "media_amostral": 6.67
+    },
+    {
+      "build": "focus",
+      "carta": "prototype_strike",
+      "amostras": [
+        16.0,
+        8.0,
+        16.0
+      ],
+      "media_amostral": 13.33
+    },
+    {
+      "build": "focus",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        16.0,
+        8.0,
+        16.0
+      ],
+      "media_amostral": 13.33
+    },
+    {
+      "build": "focus",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        28.0,
+        14.0,
+        28.0
+      ],
+      "media_amostral": 23.33
+    }
+  ],
+  "dados_finais": [
+    {
+      "build": "base",
+      "carta": "prototype_scorch",
+      "amostras": [
+        4.0,
+        4.0,
+        8.0
+      ],
+      "media_amostral": 5.33
+    },
+    {
+      "build": "base",
+      "carta": "prototype_strike",
+      "amostras": [
+        8.0,
+        8.0,
+        16.0
+      ],
+      "media_amostral": 10.67
+    },
+    {
+      "build": "base",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        11.0,
+        11.0,
+        22.0
+      ],
+      "media_amostral": 14.67
+    },
+    {
+      "build": "base",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        14.0,
+        14.0,
+        28.0
+      ],
+      "media_amostral": 18.67
+    },
+    {
+      "build": "edge",
+      "carta": "prototype_scorch",
+      "amostras": [
+        5.0,
+        5.0,
+        10.0
+      ],
+      "media_amostral": 6.67
+    },
+    {
+      "build": "edge",
+      "carta": "prototype_strike",
+      "amostras": [
+        10.0,
+        10.0,
+        20.0
+      ],
+      "media_amostral": 13.33
+    },
+    {
+      "build": "edge",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        13.0,
+        13.0,
+        26.0
+      ],
+      "media_amostral": 17.33
+    },
+    {
+      "build": "edge",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        17.0,
+        17.0,
+        34.0
+      ],
+      "media_amostral": 22.67
+    },
+    {
+      "build": "edge_focus",
+      "carta": "prototype_scorch",
+      "amostras": [
+        10.0,
+        5.0,
+        10.0
+      ],
+      "media_amostral": 8.33
+    },
+    {
+      "build": "edge_focus",
+      "carta": "prototype_strike",
+      "amostras": [
+        20.0,
+        10.0,
+        20.0
+      ],
+      "media_amostral": 16.67
+    },
+    {
+      "build": "edge_focus",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        26.0,
+        13.0,
+        26.0
+      ],
+      "media_amostral": 21.67
+    },
+    {
+      "build": "edge_focus",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        34.0,
+        17.0,
+        34.0
+      ],
+      "media_amostral": 28.33
+    },
+    {
+      "build": "focus",
+      "carta": "prototype_scorch",
+      "amostras": [
+        8.0,
+        4.0,
+        8.0
+      ],
+      "media_amostral": 6.67
+    },
+    {
+      "build": "focus",
+      "carta": "prototype_strike",
+      "amostras": [
+        16.0,
+        8.0,
+        16.0
+      ],
+      "media_amostral": 13.33
+    },
+    {
+      "build": "focus",
+      "carta": "prototype_void_bolt",
+      "amostras": [
+        22.0,
+        11.0,
+        22.0
+      ],
+      "media_amostral": 18.33
+    },
+    {
+      "build": "focus",
+      "carta": "pyro_golpe_brasa",
+      "amostras": [
+        28.0,
+        14.0,
+        28.0
+      ],
+      "media_amostral": 23.33
+    }
+  ],
+  "composicao_inicial_antes": {
+    "base": {
+      "media_por_carta": 4.667,
+      "amostras_sementes": [
+        3.5,
+        3.5,
+        7.0
+      ]
+    },
+    "edge": {
+      "media_por_carta": 5.8,
+      "amostras_sementes": [
+        4.35,
+        4.35,
+        8.7
+      ]
+    },
+    "edge_focus": {
+      "media_por_carta": 7.25,
+      "amostras_sementes": [
+        8.7,
+        4.35,
+        8.7
+      ]
+    },
+    "focus": {
+      "media_por_carta": 5.833,
+      "amostras_sementes": [
+        7.0,
+        3.5,
+        7.0
+      ]
+    }
+  },
+  "composicao_inicial_final": {
+    "base": {
+      "media_por_carta": 5.067,
+      "amostras_sementes": [
+        3.8,
+        3.8,
+        7.6
+      ]
+    },
+    "edge": {
+      "media_por_carta": 6.2,
+      "amostras_sementes": [
+        4.65,
+        4.65,
+        9.3
+      ]
+    },
+    "edge_focus": {
+      "media_por_carta": 7.75,
+      "amostras_sementes": [
+        9.3,
+        4.65,
+        9.3
+      ]
+    },
+    "focus": {
+      "media_por_carta": 6.333,
+      "amostras_sementes": [
+        7.6,
+        3.8,
+        7.6
+      ]
+    }
+  },
+  "encontros": {
+    "metodo": "Três seeds, política heurística fixa de escolha de ações; recompensas decompiladas, oficinas recusadas, primeira derrota no chefe provocada deliberadamente e posteriores tentativas reais. Atualização temporária das posições de inscrição no teste; código da engine inalterado.",
+    "revisao_anterior": [
+      {
+        "semente": 8816,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 79.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 20.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 10,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 14,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 14,
+        "vida_restante": 7.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 79.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 26.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 10,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 13,
+        "vida_restante": 6.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 81.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 11,
+        "vida_restante": 18.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 10,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 13,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 7.0
+      }
+    ],
+    "ajuste_inimigos": [
+      {
+        "semente": 8816,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 79.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 10,
+        "vida_restante": 36.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 17.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 79.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 14.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 10.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 81.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 11,
+        "vida_restante": 18.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 16,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 11,
+        "vida_restante": 17.0
+      }
+    ],
+    "ajuste_final_cartas_e_inimigos": [
+      {
+        "semente": 8816,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 79.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 9,
+        "vida_restante": 42.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8816,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 17.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 79.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 26.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8815,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 12,
+        "vida_restante": 10.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_scout",
+        "resultado": "VICTORY",
+        "indice_turno": 8,
+        "vida_restante": 81.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_pair",
+        "resultado": "VICTORY",
+        "indice_turno": 11,
+        "vida_restante": 18.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 12,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "DEFEAT",
+        "indice_turno": 16,
+        "vida_restante": 0.0
+      },
+      {
+        "semente": 8814,
+        "no": "chapter_boss",
+        "resultado": "VICTORY",
+        "indice_turno": 11,
+        "vida_restante": 17.0
+      }
+    ]
+  },
+  "limitacoes": [
+    "Amostra de três sementes é pequena e os intervalos de incerteza são amplos; não prova balanceamento, dificuldade ou diversão.",
+    "Revisões de conteúdo e escolhas de recompensas podem alterar aleatoriedade; a comparação não isola causalidade.",
+    "A estratégia não explora todas as inscrições, módulos, padrões ou cartas novas; são necessários playtests humanos e ensaios adicionais.",
+    "O teste versionado de capítulo ainda usa trace_1 e trace_2; a execução de validação usou cópia temporária com capacity_1 e capacity_2, sem modificar a engine.",
+    "A primeira derrota no chefe é intencional; não deve ser tratada como falha da estratégia."
+  ]
+}

@@ -116,14 +116,15 @@
     }
   ],
   "pendencias": [
-    "Medir engine autoritativa por build legal com inscrições, progressão, escolha de jogadas, sementes, efeitos temporais e defesas antes de balancear inimigos.",
-    "Inspecionar custo efetivo e influências de cada inscrição na revisão ativa; textos e valores brutos aparentam divergência.",
-    "Validar suporte a Divino em atributos, pipelines e exibição antes de alterar cartas.",
-    "Inventariar mecânicas suportadas por engine e interface antes de propor cartas.",
-    "A linha de base não inclui cálculo de DPS nem prediz taxa de vitória.",
-    "O teste API EquippedStyleInscriptionsApplyOnlyToMatchingCards exige o parâmetro cap=1.5 do escalonamento anterior; atualizar validação ao substituir a fórmula, sem modificar a engine.",
-    "Escudo acrescentado por padrão em carta sem Divino: verificar como aplicar escalonamento Divino ao efeito sem contaminar o escalonamento do dano da carta; a seleção de subjectKeys utiliza as tags da carta.",
-    "O teste de capítulo PrototypeChapterTests usa trace_1/trace_2, mas a política atual define capacity_1/capacity_2; falha na troca de inscrição antes da revanche. Atualizar teste fora da engine e repetir validação integral.",
-    "Validar os efeitos das três novas cartas em execução e simular múltiplas builds e sementes antes de alterar a vida ou o dano dos inimigos."
-  ]
+    "Atualizar o teste versionado de capítulo para capacity_1/capacity_2; a restrição atual permite mudanças de conteúdo JSON e Godot, não alteração de testes C#.",
+    "Realizar playtests humanos e ampliar simulações para mais sementes, módulos, padrões, inscrições e estratégias antes de certificar o balanceamento.",
+    "TODO engine: permitir afinidades por efeito se o escudo do padrão precisar escalar com Divino sem também acrescentar Divino ao dano da carta; hoje os subjectKeys são as tags da carta inteira."
+  ],
+  "status_atual": {
+    "formula": "Pesos 1, 0.6 e 0.45 configurados para uma, duas e três tags; fórmula numérica verificada com o calculador.",
+    "divino": "Escudo e cura acessíveis usam Divino; inscrição prototype_ward oferece aumento Divino. O padrão de escudo acrescenta Divino à carta inteira; isso também permite escalonamento Divino do dano e é uma consequência da seleção por tags da carta.",
+    "cartas": "Três cartas adicionadas, efeitos executados em testes isolados; 17 cartas acessíveis verificadas quanto a tags.",
+    "encontros": "Valores revisados e simulados em 3 seeds; consultar RESULTADOS_BALANCEAMENTO_MVP.json.",
+    "capitulo": "Capítulo completo passou com 3 sementes em cópia temporária do teste, com posições de inscrição atualizadas; o teste versionado permanece desatualizado."
+  }
 }
