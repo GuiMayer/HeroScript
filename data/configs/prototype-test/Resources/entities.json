@@ -165,8 +165,8 @@
         "componentId": "resources",
         "pools": {
           "health": {
-            "current": 60,
-            "max": 60
+            "current": 55,
+            "max": 55
           },
           "energy": {
             "current": 3,
@@ -205,8 +205,8 @@
         "componentId": "resources",
         "pools": {
           "health": {
-            "current": 42,
-            "max": 42
+            "current": 40,
+            "max": 40
           },
           "energy": {
             "current": 3,
@@ -245,8 +245,8 @@
         "componentId": "resources",
         "pools": {
           "health": {
-            "current": 150,
-            "max": 150
+            "current": 135,
+            "max": 135
           },
           "energy": {
             "current": 3,

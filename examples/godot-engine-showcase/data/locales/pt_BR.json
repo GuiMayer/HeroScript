@@ -1151,5 +1151,7 @@
   "card.prototype_guarded_insight": "Percepção Protegida",
   "card.prototype_cinder_recall": "Recordação das Cinzas",
   "card.prototype_final_spark": "Faísca Final",
-  "Draw {value} cards.": "Compre {value} carta(s)."
+  "Draw {value} cards.": "Compre {value} carta(s).",
+  "Brace: 7 + 8 Block": "Guarda: 7 de dano + 8 de Escudo",
+  "Crushing blow: 16": "Golpe Esmagador: 16 de dano"
 }
