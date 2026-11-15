@@ -780,6 +780,19 @@ app.UseMiddleware<API.Middleware.OperationalTimingMiddleware>();
 app.UseMiddleware<API.Middleware.ApiExceptionMiddleware>();
 app.UseMiddleware<API.Middleware.ApiStatusCodeProblemDetailsMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
+var editorPath = app.Configuration["Authoring:EditorPath"];
+if (!string.IsNullOrWhiteSpace(editorPath))
+{
+    var editorRoot = Path.GetFullPath(editorPath, app.Environment.ContentRootPath);
+    var editorIndex = Path.Combine(editorRoot, "index.html");
+    if (!File.Exists(editorIndex))
+        throw new InvalidOperationException("Authoring:EditorPath must contain a built editor index.html.");
+    var editorFiles = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(editorRoot);
+    app.Lifetime.ApplicationStopped.Register(editorFiles.Dispose);
+    app.UseStaticFiles(new StaticFileOptions { RequestPath = "/editor", FileProvider = editorFiles });
+    app.MapGet("/editor", () => Results.File(editorIndex, "text/html; charset=utf-8"))
+        .ExcludeFromDescription();
+}
 app.MapControllers();
 
 // Compile serializer metadata before readiness. This reads no runs/content and
