@@ -1,5 +1,14 @@
 # Editor de conteúdo HeroScript
 
+No Windows, execute [Start-ContentEditor.bat](../../Start-ContentEditor.bat) na raiz do projeto.
+O launcher precisa do Node.js e do SDK .NET do repositório. Ele prepara o
+editor, inicia a engine local e abre `http://127.0.0.1:5279/editor/`.
+Cole no editor a chave administrativa exibida no terminal e mantenha a
+janela aberta enquanto estiver editando. Para encerrar, pressione `Ctrl+C`.
+Se a porta estiver ocupada, execute `Start-ContentEditor.bat -ApiPort 5280`.
+
+## Desenvolvimento
+
 Inicie a engine conforme o [guia de autoria](../../docs/api/card-authoring.md). Na pasta deste editor, execute:
 
 ```powershell
