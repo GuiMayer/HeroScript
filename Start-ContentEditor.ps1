@@ -55,9 +55,17 @@ try {
     }
 
     $random = [Security.Cryptography.RandomNumberGenerator]::Create()
-    $bytes = New-Object byte[] 24
-    try { $random.GetBytes($bytes) } finally { $random.Dispose() }
-    $key = [Convert]::ToBase64String($bytes)
+    try {
+        $keyBytes = New-Object byte[] 24
+        $random.GetBytes($keyBytes)
+        $key = [Convert]::ToBase64String($keyBytes)
+        $launchCode = $null
+        if (!$NoBrowser) {
+            $launchBytes = New-Object byte[] 32
+            $random.GetBytes($launchBytes)
+            $launchCode = [BitConverter]::ToString($launchBytes).Replace('-', '')
+        }
+    } finally { $random.Dispose() }
     $origin = "http://127.0.0.1:$ApiPort"
     $editorUrl = "$origin/editor/"
     $stdout = Join-Path $runtime "api-$ApiPort.log"
@@ -77,6 +85,7 @@ try {
     $env:ToolAccess__Profile = 'dev_modder'
     $env:Authoring__ApplyEnabled = 'true'
     $env:Authoring__EditorPath = Join-Path $editor 'dist'
+    $env:Authoring__EditorLaunchCode = $launchCode
     [Environment]::SetEnvironmentVariable('Authoring__WritablePackages__uno-clash', 'heroscript.uno-clash')
     [Environment]::SetEnvironmentVariable('Authoring__WritablePackages__circular-table', 'heroscript.circular-table')
 
@@ -101,8 +110,8 @@ try {
     Write-Host ''
     Write-Host "Editor: $editorUrl" -ForegroundColor Green
     Write-Host "Chave administrativa desta sessao: $key" -ForegroundColor Cyan
-    Write-Host 'Cole a chave no editor. Pressione Ctrl+C aqui para encerrar.'
-    if (!$NoBrowser) { Start-Process $editorUrl }
+    Write-Host 'Use a chave se precisar reconectar. Pressione Ctrl+C aqui para encerrar.'
+    if (!$NoBrowser) { Start-Process ("${editorUrl}#launch=$launchCode") }
     Wait-Process -Id $server.Id
     $server.Refresh()
     if ($server.ExitCode -ne 0) { throw "A engine encerrou com erro. Consulte $stdout e $stderr." }

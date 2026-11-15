@@ -36,6 +36,8 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(() => preference('theme', ['system', 'light', 'dark'], 'system'))
   const [location, setLocation] = useState(locationState)
   const [apiKey, setApiKey] = useState('')
+  const [launching, setLaunching] = useState(() => new URLSearchParams(window.location.hash.slice(1)).has('launch'))
+  const [launchFailed, setLaunchFailed] = useState(false)
   const [input, setInput] = useState('')
   const [session, setSession] = useState(0)
   const [drafts, setDrafts] = useState(() => new Workspace())
@@ -58,6 +60,33 @@ export function App() {
     settings.find((item) => item.writablePackageId) ?? settings[0]
   const settingId = selected?.settingId ?? ''
   const connected = connection.isSuccess
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const code = new URLSearchParams(url.hash.slice(1)).get('launch')
+    if (code === null) return
+    url.hash = ''
+    window.history.replaceState(window.history.state, '', url)
+
+    async function exchange() {
+      try {
+        const response = await fetch('/editor/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        })
+        if (!response.ok) throw new Error()
+        const { key } = await response.json()
+        if (typeof key !== 'string' || !key) throw new Error()
+        setApiKey(key)
+      } catch {
+        setLaunchFailed(true)
+      } finally {
+        setLaunching(false)
+      }
+    }
+    void exchange()
+  }, [])
 
   useEffect(() => {
     document.documentElement.lang = locale
@@ -107,6 +136,7 @@ export function App() {
     queryClient.clear()
     setDrafts(new Workspace())
     setApiKey(value)
+    setLaunchFailed(false)
     setInput('')
     setSession((current) => current + 1)
   }
@@ -147,13 +177,14 @@ export function App() {
         </div>
       </header>
       <main className="workspace-main">
-        {!apiKey || connection.isError ? <section className="connection-card">
+        {launching ? <Skeleton label={copy.connecting} /> : !apiKey || connection.isError ? <section className="connection-card">
           <div className="empty-icon"><Network size={26} /></div>
           <h1>{copy.connect}</h1><p>{copy.connectHint}</p>
           <form onSubmit={(event) => { event.preventDefault(); if (input.trim()) connect(input.trim()) }}>
             <label htmlFor="admin-key">{copy.key}</label>
             <input id="admin-key" type="password" autoComplete="off" value={input} onChange={(event) => setInput(event.target.value)} required />
             {connection.isError && <p className="error" role="alert">{connection.error instanceof ApiError && connection.error.status === 401 ? copy.invalidKey : copy.unavailable}</p>}
+            {launchFailed && <p className="error" role="alert">{copy.launchFailed}</p>}
             <button className="primary" type="submit" disabled={!input.trim()}>{copy.connectButton}</button>
           </form>
         </section> : !connected ? <Skeleton label={copy.connecting} />

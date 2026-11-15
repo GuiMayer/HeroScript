@@ -19,7 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\data\configs\**\*">
+    <Content Include="..\..\data\configs\**\*"
+             Exclude="..\..\data\configs\**\.heroscript-authoring\**;..\..\data\configs\**\.heroscript-authoring-*.tmp">
       <Link>Resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

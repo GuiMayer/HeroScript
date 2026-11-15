@@ -792,6 +792,14 @@ if (!string.IsNullOrWhiteSpace(editorPath))
     app.UseStaticFiles(new StaticFileOptions { RequestPath = "/editor", FileProvider = editorFiles });
     app.MapGet("/editor", () => Results.File(editorIndex, "text/html; charset=utf-8"))
         .ExcludeFromDescription();
+    var launchCode = app.Configuration["Authoring:EditorLaunchCode"];
+    var adminKey = app.Configuration["Admin:ApiKey"];
+    if (app.Configuration.GetValue<bool>("Admin:Enabled") &&
+        !string.IsNullOrWhiteSpace(launchCode) && !string.IsNullOrWhiteSpace(adminKey))
+    {
+        var launch = new API.Services.EditorLaunchSession(launchCode, adminKey);
+        app.MapPost("/editor/session", launch.Exchange).ExcludeFromDescription();
+    }
 }
 app.MapControllers();
 
