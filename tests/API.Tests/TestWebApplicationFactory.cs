@@ -53,7 +53,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
-    private static string? FindProjectRoot()
+    internal static string? FindProjectRoot()
     {
         // Allow CI/test environment to specify root explicitly
         var envRoot = Environment.GetEnvironmentVariable("HERESCRIPT_REPO_ROOT");
