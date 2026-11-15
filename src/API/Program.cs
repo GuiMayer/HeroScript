@@ -279,6 +279,8 @@ for (var packageRootIndex = 0; packageRootIndex < packageRoots.Length; packageRo
 builder.Services.AddSingleton<SettingCompiler>();
 builder.Services.AddSingleton<ISettingCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
 builder.Services.AddSingleton<API.Services.CardAuthoringService>();
+builder.Services.AddSingleton(sp => new API.Services.AuthoringWriteCoordinator(packageRoots, builder.Configuration));
+builder.Services.AddSingleton<API.Services.CardAuthoringWriter>();
 builder.Services.AddSingleton<ISettingBundleCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
@@ -607,6 +609,7 @@ builder.Services.AddSwaggerGen(options =>
 var startupMark = startupTimings.Now;
 var app = builder.Build();
 startupTimings.Record("host_build", startupMark);
+app.Services.GetRequiredService<API.Services.CardAuthoringWriter>().RecoverAsync().GetAwaiter().GetResult();
 
 // Shipped content crosses the same compile/validate/publish boundary as mods.
 // Every discovered setting is published by default so launchers can switch the

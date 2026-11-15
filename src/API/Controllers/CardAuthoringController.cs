@@ -15,7 +15,8 @@ namespace API.Controllers;
 [AdminEndpoint]
 [Route("api/v1/admin/authoring")]
 public sealed class CardAuthoringController(
-    CardAuthoringService authoring, IContentKindRegistry kinds, ILogger<CardAuthoringController> logger)
+    CardAuthoringService authoring, CardAuthoringWriter writer, AuthoringWriteCoordinator coordinator,
+    IContentKindRegistry kinds, ILogger<CardAuthoringController> logger)
     : BaseApiController(logger)
 {
     private const string SettingRoute = "settings/{settingId}";
@@ -25,16 +26,22 @@ public sealed class CardAuthoringController(
         new(["requiredTags", "excludedTags", "includeTags", "excludeTags"], StringComparer.OrdinalIgnoreCase);
 
     [HttpGet("capabilities")]
-    public AuthoringCapabilities Capabilities() => new("1", true, false, false, false);
+    public AuthoringCapabilities Capabilities() =>
+        new("1", !coordinator.RecoveryRequired, coordinator.Enabled && !coordinator.RecoveryRequired, false, false);
 
     [HttpGet("settings")]
-    public async Task<CardAuthoringSettings> Settings(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(CardAuthoringSettings), StatusCodes.Status200OK)]
+    public Task<IActionResult> Settings(CancellationToken cancellationToken) =>
+        coordinator.ExecuteAsync<IActionResult>(async () =>
     {
+        if (coordinator.RecoveryRequired)
+            return ApiProblem(503, AuthoringErrorCodes.RecoveryRequired, "Authoring workspace recovering",
+                "Restart the engine to recover the interrupted write.");
         var catalog = await authoring.DiscoverAsync(cancellationToken);
-        return new(catalog.Settings.Select(item => new CardAuthoringSetting(
+        return Ok(new CardAuthoringSettings(catalog.Settings.Select(item => new CardAuthoringSetting(
             item.Definition.SettingId, item.Definition.DisplayName, authoring.WritablePackage(item.Definition))).ToArray(),
-            catalog.Diagnostics);
-    }
+            catalog.Diagnostics));
+    }, cancellationToken);
 
     [HttpGet(SettingRoute + "/kinds")]
     [ProducesResponseType(typeof(AuthoringKind[]), StatusCodes.Status200OK)]
@@ -138,9 +145,59 @@ public sealed class CardAuthoringController(
         });
     }
 
-    private async Task<IActionResult> WithView(string settingId, CancellationToken cancellationToken,
+    [HttpPost(SettingRoute + "/changes")]
+    [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Apply(string settingId, [FromBody] CardAuthoringChangeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var version = Request.Headers.IfMatch;
+        if (version.Count == 0)
+            return ApiProblem(428, AuthoringErrorCodes.PreconditionRequired, "Source version required",
+                "Supply the source ETag in If-Match.");
+        if (version.Count != 1 || string.IsNullOrWhiteSpace(version[0]))
+            return ApiProblem(412, AuthoringErrorCodes.SourceChanged, "Source version changed",
+                "Supply one strong workspace ETag in If-Match.");
+        return ApplyResult(await writer.ApplyAsync(settingId, version[0]!, request, cancellationToken));
+    }
+
+    [HttpGet(SettingRoute + "/changes/{changeId:guid}")]
+    [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Change(string settingId, Guid changeId, CancellationToken cancellationToken) =>
+        ApplyResult(await writer.GetAsync(settingId, changeId, cancellationToken));
+
+    private IActionResult ApplyResult(AuthoringApplyResult result)
+    {
+        Response.Headers.CacheControl = "no-store";
+        if (result.Status == 200)
+        {
+            if (result.Receipt is { State: "applied" } receipt)
+                Response.Headers.ETag = receipt.SourceVersion;
+            return Ok(result.Receipt);
+        }
+        var problem = ApiProblemDetailsFactory.Create(HttpContext, result.Status, result.Code!, "Authoring change rejected", result.Detail!);
+        if (result.Validation is not null)
+            problem.Extensions["validation"] = result.Validation;
+        if (result.Receipt is not null)
+            problem.Extensions["receipt"] = result.Receipt;
+        return new ObjectResult(problem) { StatusCode = result.Status, ContentTypes = { "application/problem+json" } };
+    }
+
+    private Task<IActionResult> WithView(string settingId, CancellationToken cancellationToken,
+        Func<CardAuthoringWorkspace, CardAuthoringView, Task<IActionResult>> action) =>
+        coordinator.ExecuteAsync(() => ReadView(settingId, cancellationToken, action), cancellationToken);
+
+    private async Task<IActionResult> ReadView(string settingId, CancellationToken cancellationToken,
         Func<CardAuthoringWorkspace, CardAuthoringView, Task<IActionResult>> action)
     {
+        if (coordinator.RecoveryRequired)
+            return ApiProblem(503, AuthoringErrorCodes.RecoveryRequired, "Authoring workspace recovering",
+                "Restart the engine to recover the interrupted write.");
         var workspace = await authoring.CaptureAsync(cancellationToken);
         if (workspace.IsFailure)
             return ApiProblem(503, ApiErrorCodes.DependencyUnavailable, "Authoring sources unavailable", workspace.Error);

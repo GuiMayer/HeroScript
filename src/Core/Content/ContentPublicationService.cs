@@ -44,6 +44,7 @@ public interface IContentPublicationService
     Task<ContentValidationResult> ValidateDraftAsync(Guid draftId, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> PublishDraftAsync(Guid draftId, int expectedVersion, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> PublishBundleAsync(ContentBundle bundle, CancellationToken cancellationToken = default);
+    Task<Result<ContentBundle>> PrepareBundleAsync(ContentBundle bundle, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> GetPublishedAsync(string revision, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> ResolveBundleAsync(
         string revision,
@@ -224,9 +225,18 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
     /// by package settings: compilation is read-only and publication is explicit.
     /// Existing runs remain pinned to their recorded content revision.
     /// </summary>
-    public async Task<Result<ContentBundle>> PublishBundleAsync(
+    public Task<Result<ContentBundle>> PublishBundleAsync(
         ContentBundle bundle,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        StoreBundleAsync(bundle, activate: true, cancellationToken);
+
+    public Task<Result<ContentBundle>> PrepareBundleAsync(
+        ContentBundle bundle,
+        CancellationToken cancellationToken = default) =>
+        StoreBundleAsync(bundle, activate: false, cancellationToken);
+
+    private async Task<Result<ContentBundle>> StoreBundleAsync(
+        ContentBundle bundle, bool activate, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(bundle);
         var generation = Volatile.Read(ref _cacheGeneration);
@@ -262,10 +272,13 @@ public sealed class ContentPublicationService : IContentPublicationService, ICac
                     .ConfigureAwait(false);
             }
 
-            var activation = _manifests.ActivatePublishedManifest(bundle.Manifest);
-            return activation.IsFailure
-                ? Result<ContentBundle>.Failure(activation.Error)
-                : Result<ContentBundle>.Success(bundle);
+            if (activate)
+            {
+                var activation = _manifests.ActivatePublishedManifest(bundle.Manifest);
+                if (activation.IsFailure)
+                    return Result<ContentBundle>.Failure(activation.Error);
+            }
+            return Result<ContentBundle>.Success(bundle);
         }
         catch (Exception exception)
         {

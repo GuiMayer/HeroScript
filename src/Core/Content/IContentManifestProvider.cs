@@ -9,4 +9,5 @@ public interface IContentManifestProvider
     IReadOnlyList<ContentManifest> GetKnownManifests();
     Result RegisterPublishedManifest(ContentManifest manifest);
     Result ActivatePublishedManifest(ContentManifest manifest);
+    Result ActivatePublishedManifests(IReadOnlyList<ContentManifest> manifests);
 }

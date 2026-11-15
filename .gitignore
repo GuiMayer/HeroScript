@@ -377,3 +377,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local HeroScript authoring recovery journal and same-volume staging files
+.heroscript-authoring/
+.heroscript-authoring-*.tmp

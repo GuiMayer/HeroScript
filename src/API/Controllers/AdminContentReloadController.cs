@@ -2,6 +2,7 @@ using API.Attributes;
 using API.Contracts;
 using API.Helpers;
 using API.Models;
+using API.Services;
 using Core.Content;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,15 +15,18 @@ public sealed class AdminContentReloadController : BaseApiController
 {
     private readonly IContentReloadService _reloads;
     private readonly ConfigReloadSettings _settings;
+    private readonly AuthoringWriteCoordinator _authoring;
 
     public AdminContentReloadController(
         IContentReloadService reloads,
         ConfigReloadSettings settings,
+        AuthoringWriteCoordinator authoring,
         ILogger<AdminContentReloadController> logger)
         : base(logger)
     {
         _reloads = reloads ?? throw new ArgumentNullException(nameof(reloads));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _authoring = authoring;
     }
 
     [HttpPost("reload")]
@@ -52,14 +56,20 @@ public sealed class AdminContentReloadController : BaseApiController
                 "SettingId contains unsupported characters");
         }
 
-        var result = await _reloads.ReloadAsync(settingId, cancellationToken);
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : ApiProblem(
-                StatusCodes.Status422UnprocessableEntity,
-                ApiErrorCodes.RuleViolation,
-                "Content reload rejected",
-                result.Error);
+        return await _authoring.ExecuteAsync(async () =>
+        {
+            if (_authoring.RecoveryRequired)
+                return ApiProblem(503, AuthoringErrorCodes.RecoveryRequired, "Authoring workspace recovering",
+                    "Restart the engine to recover the interrupted write.");
+            var result = await _reloads.ReloadAsync(settingId, cancellationToken);
+            return result.IsSuccess
+                ? Ok(result.Value)
+                : ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    ApiErrorCodes.RuleViolation,
+                    "Content reload rejected",
+                    result.Error);
+        }, cancellationToken);
     }
 }
 

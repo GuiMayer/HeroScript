@@ -21,6 +21,18 @@ public sealed class CardAuthoringService(
     public async Task<SettingCatalog> DiscoverAsync(CancellationToken cancellationToken) =>
         await settings.GetCatalogAsync(cancellationToken);
 
+    public async Task<bool> IsManagedAsync(string settingId, CancellationToken cancellationToken)
+    {
+        var catalog = await DiscoverAsync(cancellationToken);
+        var setting = catalog.Settings.FirstOrDefault(item => item.Definition.SettingId == settingId);
+        if (setting is null)
+            return false;
+        var managed = catalog.Settings.Select(item => WritablePackage(item.Definition)).OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+        var packages = SettingCompiler.ResolvePackages(setting.Definition, catalog.Packages);
+        return packages.IsFailure || packages.Value.Any(package => managed.Contains(package.Manifest.PackageId));
+    }
+
     public string? WritablePackage(SettingDefinition setting)
     {
         var configured = configuration[$"Authoring:WritablePackages:{setting.SettingId}"];
@@ -103,23 +115,29 @@ public sealed class CardAuthoringService(
     }
 
     public async Task<CardAuthoringValidation> ValidateAsync(CardAuthoringWorkspace workspace, CardAuthoringView view,
+        CardAuthoringChangeRequest request, CancellationToken cancellationToken) =>
+        (await PlanAsync(workspace, view, request, cancellationToken)).Validation;
+
+    public async Task<CardAuthoringPlan> PlanAsync(CardAuthoringWorkspace workspace, CardAuthoringView view,
         CardAuthoringChangeRequest request, CancellationToken cancellationToken)
     {
         var diagnostics = new List<AuthoringDiagnostic>();
         var revisions = new SortedDictionary<string, string>(StringComparer.Ordinal);
         CardAuthoringValidation Validation() => new(request.ChangeId, workspace.ETag,
             diagnostics.All(diagnostic => diagnostic.Severity != "error"), revisions, diagnostics);
+        CardAuthoringPlan InvalidPlan() => new(Validation(), [], []);
 
         var writable = view.Writable;
         if (writable is null)
         {
             diagnostics.Add(Diagnostic("CARD_PACKAGE_READ_ONLY", "", "", "No writable package is configured for this setting."));
-            return Validation();
+            return InvalidPlan();
         }
 
         var snapshot = workspace.SnapshotFor(writable);
         var entries = writable.Manifest.Content.ToList();
         var sourceChanges = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        var removals = new List<string>();
         foreach (var operation in request.Operations.OfType<CardAuthoringOperation>())
         {
             var id = operation.DefinitionId;
@@ -198,7 +216,10 @@ public sealed class CardAuthoringService(
             if (entry.DefinitionId is not null)
             {
                 if (operation.Operation == CardAuthoringOperationType.Delete)
+                {
                     entries.Remove(entry);
+                    removals.Add(key);
+                }
                 else
                     sourceChanges[key] = JsonNode.Parse(operation.Definition!.Value.GetRawText())!.AsObject();
                 continue;
@@ -222,13 +243,38 @@ public sealed class CardAuthoringService(
         }
 
         if (diagnostics.Count > 0)
-            return Validation();
+            return InvalidPlan();
 
+        var changedBytes = sourceChanges.ToDictionary(file => file.Key,
+            file => AuthoringJsonSource.Rewrite(snapshot.FindSource(file.Key), file.Value), StringComparer.Ordinal);
+        if (!entries.SequenceEqual(writable.Manifest.Content))
+        {
+            var key = AuthoringPackageSnapshot.SourceKey(writable, "package.json");
+            var original = snapshot.FindSource(key)!.Value;
+            var originalManifest = JsonNode.Parse(DirectoryPackageProvider.WithoutBom(original).Span)!.AsObject();
+            var contentKey = originalManifest.Select(property => property.Key)
+                .FirstOrDefault(name => name.Equals("content", StringComparison.OrdinalIgnoreCase)) ?? "content";
+            var originalEntries = originalManifest[contentKey] as JsonArray;
+            var candidateEntries = new JsonArray();
+            foreach (var entry in entries)
+            {
+                var originalIndex = Array.IndexOf(writable.Manifest.Content.ToArray(), entry);
+                candidateEntries.Add(originalIndex >= 0 && originalEntries is not null
+                    ? originalEntries[originalIndex]?.DeepClone()
+                    : new JsonObject
+                    {
+                        ["operation"] = "definition", ["kind"] = entry.Kind,
+                        ["sourcePath"] = entry.SourcePath, ["artifactPath"] = entry.ArtifactPath
+                    });
+            }
+            originalManifest[contentKey] = candidateEntries;
+            changedBytes[key] = AuthoringJsonSource.Rewrite(original, originalManifest);
+        }
         var candidateSnapshot = snapshot.WithCandidate(writable, writable.Manifest with { Content = entries },
-            sourceChanges.ToDictionary(file => file.Key,
-                file => (ReadOnlyMemory<byte>)JsonSerializer.SerializeToUtf8Bytes(file.Value), StringComparer.Ordinal));
+            changedBytes);
         var compiler = new SettingCompiler(workspace.Snapshots.Select(item => item == snapshot ? candidateSnapshot : item), kinds);
         var catalog = await compiler.GetCatalogAsync(cancellationToken);
+        var bundles = new List<ContentBundle>();
         var operations = request.Operations.OfType<CardAuthoringOperation>().ToArray();
         foreach (var setting in workspace.Catalog.Settings)
         {
@@ -256,8 +302,14 @@ public sealed class CardAuthoringService(
             diagnostics.AddRange(result.Warnings.Select(warning =>
                 Diagnostic("SETTING_VALIDATION_WARNING", "", "", warning, "warning", settingId)));
             revisions.Add(settingId, compiled.Value.Bundle.Manifest.Revision);
+            bundles.Add(compiled.Value.Bundle);
         }
-        return Validation();
+        var files = changedBytes.Where(file => snapshot.FindSource(file.Key) is not { } previous ||
+                !previous.Span.SequenceEqual(file.Value.Span))
+            .Select(file => new AuthoringSourceChange(file.Key, snapshot.FindSource(file.Key)?.ToArray(), file.Value.ToArray()))
+            .Concat(removals.Select(path => new AuthoringSourceChange(path, snapshot.FindSource(path)!.Value.ToArray(), null)))
+            .ToArray();
+        return new(Validation(), files, bundles);
     }
 
     private static bool SameSource(PackageSource package, PackageContentEnvelope left, PackageContentEnvelope right) =>
@@ -286,3 +338,8 @@ public sealed record CardAuthoringView(SettingCompilation Compilation, PackageSo
 
 public sealed record CardAuthoringCard(string Id, JsonElement Effective, PackageSource Package,
     PackageContentEnvelope Entry, bool CanEdit);
+
+public sealed record CardAuthoringPlan(CardAuthoringValidation Validation, IReadOnlyList<AuthoringSourceChange> Files,
+    IReadOnlyList<ContentBundle> Bundles);
+
+public sealed record AuthoringSourceChange(string Path, byte[]? Before, byte[]? After);

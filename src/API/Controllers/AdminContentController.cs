@@ -1,5 +1,6 @@
 using API.Attributes;
 using API.Contracts;
+using API.Services;
 using Core.Content;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,13 +12,19 @@ namespace API.Controllers;
 public sealed class AdminContentController : BaseApiController
 {
     private readonly IContentPublicationService _content;
+    private readonly AuthoringWriteCoordinator _coordinator;
+    private readonly CardAuthoringService _authoring;
 
     public AdminContentController(
         IContentPublicationService content,
+        AuthoringWriteCoordinator coordinator,
+        CardAuthoringService authoring,
         ILogger<AdminContentController> logger)
         : base(logger)
     {
         _content = content;
+        _coordinator = coordinator;
+        _authoring = authoring;
     }
 
     [HttpGet("{draftId:guid}")]
@@ -38,15 +45,26 @@ public sealed class AdminContentController : BaseApiController
     public async Task<IActionResult> Publish(
         Guid draftId,
         [FromBody] VersionedDraftRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        await _coordinator.ExecuteAsync(async () =>
     {
+        if (_coordinator.Enabled)
+        {
+            if (_coordinator.RecoveryRequired)
+                return ApiProblem(503, AuthoringErrorCodes.RecoveryRequired, "Authoring workspace recovering",
+                    "Restart the engine to recover the interrupted write.");
+            var draft = await _content.GetDraftAsync(draftId, cancellationToken);
+            if (draft.IsSuccess && await _authoring.IsManagedAsync(draft.Value.ConfigName, cancellationToken))
+                return ApiProblem(409, AuthoringErrorCodes.ChangeConflict, "Setting managed by source authoring",
+                    "Use authoring changes or reload the current source files for this setting.");
+        }
         var result = await _content.PublishDraftAsync(draftId, request.ExpectedVersion, cancellationToken);
         if (result.IsSuccess)
             return Ok(new { revision = result.Value.Manifest.Revision, result.Value.Manifest });
         if (result.Error.StartsWith("VERSION_CONFLICT:", StringComparison.Ordinal))
             return ApiProblem(StatusCodes.Status409Conflict, ApiErrorCodes.VersionConflict, "Draft version conflict", result.Error["VERSION_CONFLICT:".Length..].Trim());
         return ApiProblem(StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.RuleViolation, "Publication rejected", result.Error);
-    }
+    }, cancellationToken);
 
 }
 

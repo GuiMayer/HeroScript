@@ -60,6 +60,22 @@ public sealed class ContentManifestProviderTests
     }
 
     [Fact]
+    public void ActivatePublishedManifests_LeavesAllSettingsUnchangedWhenOneManifestIsInvalid()
+    {
+        var provider = new ContentManifestProvider();
+        var first = Manifest('a');
+        var second = Manifest('b') with { ConfigName = "other" };
+        Assert.True(provider.ActivatePublishedManifests([first, second]).IsSuccess);
+
+        var replacement = Manifest('c');
+        var invalid = Manifest('A') with { ConfigName = "other" };
+        Assert.True(provider.ActivatePublishedManifests([replacement, invalid]).IsFailure);
+        Assert.Equal(first, provider.GetManifest("test").Value);
+        Assert.Equal(second, provider.GetManifest("other").Value);
+        Assert.True(provider.GetByRevision(replacement.Revision).IsFailure);
+    }
+
+    [Fact]
     public void RegisterPublishedManifest_RejectsNonCanonicalRevision()
     {
         var provider = new ContentManifestProvider();

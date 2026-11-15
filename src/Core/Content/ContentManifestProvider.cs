@@ -79,15 +79,36 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         return Result.Success();
     }
 
-    public Result ActivatePublishedManifest(ContentManifest manifest)
-    {
-        var registration = RegisterPublishedManifest(manifest);
-        if (registration.IsFailure)
-            return registration;
+    public Result ActivatePublishedManifest(ContentManifest manifest) =>
+        ActivatePublishedManifests([manifest]);
 
+    public Result ActivatePublishedManifests(IReadOnlyList<ContentManifest> manifests)
+    {
         lock (_lock)
         {
-            _activeBySetting[manifest.ConfigName] = manifest;
+            var pending = new Dictionary<string, ContentManifest>(StringComparer.Ordinal);
+            var settings = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var manifest in manifests)
+            {
+                var validation = ValidatePublishedManifest(manifest);
+                if (validation.IsFailure)
+                    return validation;
+                if (!settings.Add(manifest.ConfigName))
+                    return Result.Failure($"Duplicate activation setting: {manifest.ConfigName}");
+                if (pending.TryGetValue(manifest.Revision, out var existing) ||
+                    _manifestsByRevision.TryGetValue(manifest.Revision, out existing))
+                {
+                    if (CanonicalJson.ComputeHash(existing) != CanonicalJson.ComputeHash(manifest))
+                        return Result.Failure($"Content revision collision: {manifest.Revision}");
+                }
+                pending[manifest.Revision] = manifest;
+            }
+
+            foreach (var manifest in pending.Values)
+            {
+                _manifestsByRevision[manifest.Revision] = manifest;
+                _activeBySetting[manifest.ConfigName] = manifest;
+            }
         }
 
         return Result.Success();

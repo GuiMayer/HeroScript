@@ -121,6 +121,28 @@ O contrato versionado também fica no repositório em
 [`openapi/heroscript-v1.json`](openapi/heroscript-v1.json). Para iniciar uma run
 por HTTP, siga o [quickstart da API](docs/api/getting-started.md).
 
+### Aplicar alterações de Cartas pela API local
+
+Em uma engine local com acesso administrativo configurado, defina
+`Authoring__ApplyEnabled=true`, `Mods__PackageRoots__0` como o diretório de
+pacotes do checkout (por exemplo, o caminho absoluto de `data/configs`) e
+`Authoring__WritablePackages__uno-clash=heroscript.uno-clash` para habilitar
+edições no pacote de Uno Clash. Use um único processo gravador por diretório.
+
+Consulte a ETag em `GET /api/v1/admin/authoring/settings/{settingId}/definitions/cards`.
+Envie o lote para `POST /api/v1/admin/authoring/settings/{settingId}/changes`
+com `If-Match`, `changeId` e as operações. O mesmo endpoint aplica um
+salvamento em lote ou uma ação de Hot Reload. Em caso de resposta perdida,
+consulte `GET /api/v1/admin/authoring/settings/{settingId}/changes/{changeId}`
+ou repita a solicitação original com o mesmo ID e a mesma ETag.
+
+Após uma interrupção, reinicie usando o mesmo diretório de pacotes e
+armazenamento de conteúdo. A engine usa o journal local
+`.heroscript-authoring/` para completar ou reverter a transação. Se um
+arquivo divergir das imagens do journal, a inicialização informa o conflito
+e preserva o arquivo. Guarde a edição externa e resolva o conflito antes de
+tentar reiniciar novamente.
+
 ## Princípios do projeto
 
 - **Engine autoritativa:** clientes não calculam custo, dano, alvos, turno, IA

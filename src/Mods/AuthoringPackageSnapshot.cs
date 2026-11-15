@@ -19,6 +19,8 @@ public sealed class AuthoringPackageSnapshot : IPackageProvider
 
     public string ProviderId { get; }
     public IEnumerable<KeyValuePair<string, ReadOnlyMemory<byte>>> Sources => _sources;
+    public ReadOnlyMemory<byte>? FindSource(string key) =>
+        _sources.TryGetValue(key, out var bytes) ? bytes : (ReadOnlyMemory<byte>?)null;
 
     public Task<PackageDiscovery> DiscoverAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(_discovery);

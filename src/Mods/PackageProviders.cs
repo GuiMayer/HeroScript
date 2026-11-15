@@ -303,7 +303,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
         }
     }
 
-    internal static ReadOnlyMemory<byte> WithoutBom(ReadOnlyMemory<byte> bytes) =>
+    public static ReadOnlyMemory<byte> WithoutBom(ReadOnlyMemory<byte> bytes) =>
         bytes.Span.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }) ? bytes[3..] : bytes;
 
     private static bool HasReparsePoint(string path) =>
