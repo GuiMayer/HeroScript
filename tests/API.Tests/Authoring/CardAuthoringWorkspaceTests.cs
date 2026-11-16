@@ -45,10 +45,10 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
     }
 
     [Theory]
-    [InlineData("uno-clash", "uno_red_0", "circular-table")]
-    [InlineData("circular-table", "t_red_0", "uno-clash")]
+    [InlineData("uno-clash", "uno_red_0", "circular-table", "card.played.to-table", "table.played")]
+    [InlineData("circular-table", "t_red_0", "uno-clash", "table.played", "card.played.to-table")]
     public async Task AuthoringApiReadsAndValidatesCardsWithoutPersisting(
-        string setting, string cardId, string otherSetting)
+        string setting, string cardId, string otherSetting, string destination, string otherDestination)
     {
         using var client = factory.CreateClient();
         var root = $"/api/v1/admin/authoring/settings/{setting}";
@@ -65,6 +65,16 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         Assert.Equal("resources", schema.References["/components/*/effects/*/selectionResourceId"]);
         Assert.Equal("resources", schema.References["/components/*/effect/continuation/selectionResourceId"]);
         Assert.Equal("status-effects", schema.References["/components/*/effect/dispel/statusIds/*"]);
+        Assert.Equal("resources", schema.References["/components/*/costs/alternativeCosts/*/costs/*/resourceId"]);
+        Assert.Equal("resources", schema.References["/components/*/selectionResourceId"]);
+        Assert.Equal("card-resolution-flows", schema.References["/components/*/cardZoneResolutionFlowId"]);
+        var destinations = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/card-resolution-flows");
+        Assert.Contains(destinations!.Items, item => item.Id == destination);
+        Assert.DoesNotContain(destinations.Items, item => item.Id == otherDestination);
+        var zones = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/card-zones?q=hand");
+        Assert.Contains(zones!.Items, item => item.Id == "hand");
+        var payments = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/card-payment-flows");
+        Assert.DoesNotContain(payments!.Items, item => item.Id == destination);
         var statuses = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/status-effects");
         var resources = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/resources");
         var status = Assert.Single(statuses!.Items.Take(1)).Id;
@@ -109,6 +119,16 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         definition["tags"]!.AsArray().Add("authoring_preview_tag");
         var clone = definition.DeepClone().AsObject();
         clone["cardId"] = "authoring_preview_card";
+        var components = clone["components"]!.AsArray();
+        components.First(item => (string?)item?["type"] == "cost")!["costs"]!["alternativeCosts"] = new JsonArray(new JsonObject
+        {
+            ["optionId"] = "authoring_alternative",
+            ["costs"] = new JsonArray(new JsonObject { ["resourceId"] = resource, ["amount"] = 1 })
+        });
+        components.First(item => (string?)item?["type"] == "condition")!["failureReason"] = "Test condition message";
+        components.First(item => (string?)item?["type"] == "targeting")!["allowSelf"] = true;
+        var disposition = components.First(item => (string?)item?["type"] == "disposition")!;
+        disposition["cardZoneResolutionFlowId"] = destination;
         clone["components"]!.AsArray().Add(new JsonObject
         {
             ["type"] = "effect", ["componentId"] = "authoring_preview_effect",
@@ -141,6 +161,14 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         Assert.True(validation!.IsValid);
         Assert.NotEqual(activeBefore, validation.CandidateRevisions[setting]);
         Assert.DoesNotContain(otherSetting, validation.CandidateRevisions.Keys);
+
+        disposition["cardZoneResolutionFlowId"] = "unknown_authoring_destination";
+        using var invalidDestination = await Preview(version, candidate with
+        {
+            Operations = [Operation(CardAuthoringOperationType.Create, "authoring_preview_card", clone)]
+        });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidDestination.StatusCode);
+        Assert.Contains("unknown_authoring_destination", await invalidDestination.Content.ReadAsStringAsync());
 
         definition["components"]!.AsArray()[0]!["type"] = "unknown-component";
         using var invalid = await Preview(version, candidate with

@@ -1,5 +1,9 @@
 # Changelog do contrato público
 
+## Opções para componentes de regras das cartas
+
+- O schema de Cartas identifica recursos de custos e seleção de alvos, zonas e fluxos de pagamento e destino. Os catálogos `card-zones`, `card-payment-flows` e `card-resolution-flows` são consultáveis em `/references/{kind}` para o setting selecionado.
+
 ## Autoria de efeitos nas cartas
 
 - O schema de Cartas identifica referências de efeitos diretos e de efeitos em gatilhos, incluindo status, recursos, modificadores, cartas, pipelines de cálculo e receitas de condensação.

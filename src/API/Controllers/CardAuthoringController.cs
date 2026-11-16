@@ -7,6 +7,8 @@ using API.Attributes;
 using API.Contracts;
 using API.Services;
 using Core.Content;
+using Core.CardZones;
+using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -23,6 +25,7 @@ public sealed class CardAuthoringController(
     private const string SettingRoute = "settings/{settingId}";
     private const string Cards = "cards";
     private static readonly ConcurrentDictionary<string, JsonObject> Schemas = new(StringComparer.Ordinal);
+    private static readonly JsonSerializerOptions ReferenceJson = new(JsonSerializerDefaults.Web);
     private static readonly HashSet<string> TagCriteria =
         new(["requiredTags", "excludedTags", "includeTags", "excludeTags"], StringComparer.OrdinalIgnoreCase);
 
@@ -125,15 +128,34 @@ public sealed class CardAuthoringController(
         CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
         WithView(settingId, cancellationToken, (workspace, view) =>
         {
-            if (kinds.Get(kind).IsFailure)
-                return Task.FromResult<IActionResult>(ApiNotFound($"Unknown reference kind '{kind}'."));
             var bundle = view.Compilation.Bundle;
-            var ids = bundle.Manifest.Artifacts.Where(item => string.Equals(item.Kind, kind, StringComparison.OrdinalIgnoreCase))
-                .SelectMany(item => bundle.Artifacts[item.Path].EnumerateObject().Select(value => value.Name))
-                .Distinct(StringComparer.Ordinal).Where(id => Matches(id, q)).Order(StringComparer.Ordinal)
+            var source = kind switch
+            {
+                AuthoringDefinitionKinds.CardZones => CardZoneSystems(bundle).SelectMany(system => system.Zones).Select(zone => zone.ZoneId),
+                AuthoringDefinitionKinds.CardResolutionFlows => CardZoneSystems(bundle).SelectMany(system => system.Flows)
+                    .Where(flow => flow.AllowedInvocations.Contains(CardZoneFlowInvocation.CardResolution)).Select(flow => flow.FlowId),
+                AuthoringDefinitionKinds.CardPaymentFlows => CardZoneSystems(bundle).SelectMany(system => system.Flows)
+                    .Where(flow => flow.Steps.Count == 1 && CardZonePaymentPlanner.ValidateFlow(new()
+                    {
+                        SourceZoneId = flow.Steps[0].SourceZoneId ?? "",
+                        TargetZoneId = flow.Steps[0].TargetZoneId ?? ""
+                    }, flow).IsSuccess).Select(flow => flow.FlowId),
+                _ => kinds.Get(kind).IsSuccess ? ReferenceDefinitions(bundle, kind).Select(item => item.Name) : null
+            };
+            if (source is null)
+                return Task.FromResult<IActionResult>(ApiNotFound($"Unknown reference kind '{kind}'."));
+            var ids = source.Distinct(StringComparer.Ordinal).Where(id => Matches(id, q)).Order(StringComparer.Ordinal)
                 .Select(id => new AuthoringReference(id));
             return Task.FromResult(Paginate(ids, item => item.Id, workspace.ETag, settingId, $"reference:{kind}", q, cursor, limit));
         });
+
+    private static IEnumerable<JsonProperty> ReferenceDefinitions(ContentBundle bundle, string kind) =>
+        bundle.Manifest.Artifacts.Where(item => string.Equals(item.Kind, kind, StringComparison.OrdinalIgnoreCase))
+            .SelectMany(item => bundle.Artifacts[item.Path].EnumerateObject());
+
+    private static IEnumerable<CardZoneSystemDefinition> CardZoneSystems(ContentBundle bundle) =>
+        ReferenceDefinitions(bundle, "card-zone-systems")
+            .Select(item => item.Value.Deserialize<CardZoneSystemDefinition>(ReferenceJson)!);
 
     [HttpGet(SettingRoute + "/references/tags", Name = "AuthoringListTags")]
     [ProducesResponseType(typeof(AuthoringPage<CardAuthoringTag>), StatusCodes.Status200OK)]

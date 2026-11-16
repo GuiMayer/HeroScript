@@ -4,6 +4,9 @@ namespace API.Contracts;
 
 public static class AuthoringDefinitionKinds
 {
+    internal const string CardZones = "card-zones";
+    internal const string CardResolutionFlows = "card-resolution-flows";
+    internal const string CardPaymentFlows = "card-payment-flows";
     private static readonly HashSet<string> Editable = new(StringComparer.Ordinal)
     {
         "cards", "combat-rules", "flow-rules", "phase-sequences", "modes",
@@ -66,7 +69,18 @@ public static class AuthoringDefinitionKinds
         var references = new Dictionary<string, string>
         {
             ["/tags"] = "tags", ["/componentBundles/*/bundleId"] = "card-component-bundles",
-            ["/components/*/costs/costs/*/resourceId"] = "resources"
+            ["/components/*/costs/costs/*/resourceId"] = "resources",
+            ["/components/*/costs/alternativeCosts/*/costs/*/resourceId"] = "resources",
+            ["/components/*/selectionResourceId"] = "resources",
+            ["/components/*/cardZoneResolutionFlowId"] = CardResolutionFlows,
+            ["/components/*/zonePayments/*/sourceZoneId"] = CardZones,
+            ["/components/*/zonePayments/*/targetZoneId"] = CardZones,
+            ["/components/*/zonePayments/*/flowId"] = CardPaymentFlows,
+            ["/components/*/zonePayments/*/costOptionId"] = "local:costs/alternativeCosts/optionId",
+            ["/components/*/zonePayments/*/requiredTags/*"] = "tags",
+            ["/components/*/zonePayments/*/excludedTags/*"] = "tags",
+            ["/components/*/requiredTags/*"] = "tags",
+            ["/components/*/excludedTags/*"] = "tags"
         };
         foreach (var path in new[] { "/components/*/effect", "/components/*/effects/*" })
         {
