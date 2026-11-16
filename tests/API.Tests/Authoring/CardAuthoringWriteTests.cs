@@ -478,12 +478,12 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var root = Setting(setting);
         var kinds = await client.GetFromJsonAsync<AuthoringKind[]>(root + "/kinds");
         Assert.NotNull(kinds);
-        Assert.Equal(36, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
+        Assert.Equal(47, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
         foreach (var kind in kinds.Where(kind => kind.SupportsSchema))
         {
             var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + $"/kinds/{kind.Kind}/schema");
             Assert.NotNull(schema);
-            if (kind.Kind is "powers" or "keywords" or "enemies" or "companions" or "races" or "decks")
+            if (kind.Kind is "powers" or "keywords" or "enemies" or "companions" or "races" or "decks" or "run-events" or "boards" or "zones")
             {
                 Assert.Null(schema.IdentityProperty);
                 Assert.Equal("object", schema.Schema["type"]!.GetValue<string>());
@@ -831,6 +831,72 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var kinds = create.Operations.Select(operation => operation!.Kind).ToArray();
         await Apply(client, setting, edited.SourceVersion, Change(kinds.Select(kind => Op(kind, null, CardAuthoringOperationType.Delete)).ToArray()));
         using var missing = await client.GetAsync(root + "/definitions/card-pools/editor_deck");
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("uno-clash", "uno_classic", "uno_red_0")]
+    [InlineData("circular-table", "table_mode", "t_red_0")]
+    public async Task RunAuthoringValidatesWritesAndDeletes(string setting, string modeId, string cardId)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var root = Setting(setting);
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/runs");
+        Assert.NotEmpty(page!.Items);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/runs/schema");
+        Assert.Equal("resources", schema!.References["/startingResources/@key"]);
+        Assert.Equal("shops", (string?)schema.Schema["x-authoring-dependent-references"]?["/mapNodes/*/activity/definitionId"]?["kinds"]?["Shop"]);
+        var challengeSchema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/daily-challenges/schema");
+        Assert.Equal("uint64", (string?)challengeSchema!.Schema["properties"]?["seed"]?["format"]);
+
+        static CardAuthoringOperation Op(string kind, string? source, CardAuthoringOperationType operation) => new()
+        {
+            Kind = kind, DefinitionId = "editor_run", Operation = operation,
+            Definition = source is null ? null : JsonSerializer.Deserialize<JsonElement>(source)
+        };
+        static CardAuthoringOperation Create(string kind, string source) => Op(kind, source, CardAuthoringOperationType.Create);
+        var create = Change(
+            Create("runs", $$"""
+                {"runId":"editor_run","startingResources":{"gold":10},"startingCards":["{{cardId}}","{{cardId}}"],
+                "mapNodes":[{"nodeId":"start","completionPolicy":"Required","activity":{"type":"Shop","definitionId":"editor_run"} }]}
+                """),
+            Create("run-progression-policies", """{"progressionPolicyId":"editor_run","endOfMap":"Complete"}"""),
+            Create("profile-progress-policies", $$"""
+                {"profileProgressPolicyId":"editor_run","contributingModeIds":["{{modeId}}"],
+                "unlocks":[{"unlockId":"bonus","targets":[{"kind":"Card","definitionId":"{{cardId}}"}],
+                "condition":{"kind":"RunCompleted","runDefinitionId":"editor_run"} }]}
+                """),
+            Create("daily-challenges", $$"""
+                {"challengeId":"editor_run","configName":"{{setting}}","runDefinitionId":"editor_run","modeId":"{{modeId}}",
+                "seed":18446744073709551615,"scoreResourceWeights":{"gold":2} }
+                """),
+            Create("dialogues", """
+                {"dialogueId":"editor_run","title":{"text":"Meeting"},"startNodeId":"start",
+                "nodes":[{"nodeId":"start","speaker":{"text":"Host"},"text":{"text":"Welcome"},"choices":[{"choiceId":"leave","text":{"text":"Leave"}}]}]}
+                """),
+            Create("preparations", $$"""{"preparationId":"editor_run","options":[{"optionId":"supply","grantedCardIds":["{{cardId}}"]}]}"""),
+            Create("shops", $$"""{"shopId":"editor_run","items":[{"itemId":"first","cardId":"{{cardId}}"}]}"""),
+            Create("relics", """{"relicId":"editor_run","stackLimit":1}"""),
+            Create("boards", """{"name":"Board"}"""), Create("zones", """{"name":"Zone"}"""),
+            Create("run-events", """{"name":"Event"}"""));
+        using var preview = await Send(client, setting, page.SourceVersion, create, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        var applied = await Apply(client, setting, page.SourceVersion, create);
+
+        using var referenced = await Send(client, setting, applied.SourceVersion,
+            Change(Op("shops", null, CardAuthoringOperationType.Delete)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, referenced.StatusCode);
+        var edited = await Apply(client, setting, applied.SourceVersion,
+            Change(Op("relics", """{"relicId":"editor_run","stackLimit":2}""", CardAuthoringOperationType.Update)));
+        var relic = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/relics/editor_run");
+        Assert.Equal(2, relic!.Source.GetProperty("stackLimit").GetInt32());
+        var challenge = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/daily-challenges/editor_run");
+        Assert.Equal(ulong.MaxValue, challenge!.Source.GetProperty("seed").GetUInt64());
+
+        var kinds = create.Operations.Select(operation => operation!.Kind).ToArray();
+        await Apply(client, setting, edited.SourceVersion, Change(kinds.Select(kind => Op(kind, null, CardAuthoringOperationType.Delete)).ToArray()));
+        using var missing = await client.GetAsync(root + "/definitions/runs/editor_run");
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 

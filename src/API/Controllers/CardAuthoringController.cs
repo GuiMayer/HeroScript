@@ -9,6 +9,8 @@ using API.Services;
 using Core.Content;
 using Core.CardZones;
 using Core.Effects;
+using Core.Meta;
+using Core.Run;
 using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 
@@ -404,15 +406,20 @@ public sealed class CardAuthoringController(
         var schema = options.GetJsonSchemaAsNode(descriptor.DefinitionType,
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
         schema["$schema"] = schemaVersion;
+        if (descriptor.Kind == "daily-challenges" && schema["properties"]?["seed"] is JsonObject seed)
+            seed["format"] = "uint64";
         var repeatableReference = descriptor.Kind switch
         {
             "deck-modules" => "/startingCardIds",
             "deck-composition-policies" => "/groups/*/startingCardIds",
             "loadout-policies" => "/startingInscriptionIds",
+            "runs" => "/startingCards",
             _ => null
         };
         if (repeatableReference is not null)
             schema["x-authoring-repeatable-references"] = new JsonArray(JsonValue.Create(repeatableReference));
+        if (DependentReferences(descriptor.Kind) is { } dependent)
+            schema["x-authoring-dependent-references"] = dependent;
         if (descriptor.IdentityProperty is not { } identity)
             return schema.AsObject();
         var required = schema["required"] as JsonArray ?? new JsonArray();
@@ -421,6 +428,38 @@ public sealed class CardAuthoringController(
         if (schema["required"] is null)
             schema["required"] = required;
         return schema.AsObject();
+    }
+
+    private static JsonObject? DependentReferences(string kind)
+    {
+        static JsonObject Describe(string selector, IEnumerable<KeyValuePair<string, string>> options) =>
+            new() { ["selector"] = selector, ["kinds"] = JsonSerializer.SerializeToNode(options.ToDictionary()) };
+
+        if (kind == "runs")
+        {
+            var activities = RunActivityRegistry.CreateDefault();
+            var kinds = Enum.GetValues<RunActivityType>()
+                .Select(type => (Type: type, Handler: activities.Resolve(type)))
+                .Where(item => item.Handler.IsSuccess && item.Handler.Value.DefinitionKind != null)
+                .ToDictionary(item => item.Type.ToString(), item => item.Handler.Value.DefinitionKind!);
+            return new() { ["/mapNodes/*/activity/definitionId"] = Describe("type", kinds) };
+        }
+        if (kind == "profile-progress-policies")
+            return new()
+            {
+                ["/unlocks/*/targets/*/definitionId"] = Describe("kind", Enum.GetValues<UnlockTargetKind>()
+                    .ToDictionary(target => target.ToString(), target => new UnlockTargetDefinition { Kind = target }.ContentKind))
+            };
+        if (kind == "dialogues")
+            return new()
+            {
+                ["/nodes/*/choices/*/condition/id"] = Describe("kind", new Dictionary<string, string>
+                {
+                    ["ResourceAtLeast"] = "resources", ["HasCard"] = "cards", ["HasRelic"] = "relics",
+                    ["VisitedNode"] = "local:nodes/nodeId", ["ResolvedNode"] = "local:nodes/nodeId"
+                })
+            };
+        return null;
     }
 
     private sealed record PageCursor(string ETag, string SettingId, string Kind, string? Query, string After);

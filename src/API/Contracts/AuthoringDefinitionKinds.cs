@@ -17,7 +17,9 @@ public static class AuthoringDefinitionKinds
         "resources", "actor-resource-lifecycle-policies", "calculation-pipelines", "formulas",
         "entities", "enemies", "enemy-pools", "companions", "races", "supports", "support-routines",
         "decks", "card-pools", "deck-composition-policies", "deck-modules", "deck-compartment-profiles",
-        "deck-compartment-policies", "loadout-policies", "support-loadout-policies", "inscriptions"
+        "deck-compartment-policies", "loadout-policies", "support-loadout-policies", "inscriptions",
+        "runs", "run-progression-policies", "profile-progress-policies", "daily-challenges", "dialogues",
+        "run-events", "preparations", "shops", "relics", "boards", "zones"
     };
 
     public static bool Supports(string kind) => Editable.Contains(kind);
@@ -28,6 +30,43 @@ public static class AuthoringDefinitionKinds
     public static IReadOnlyDictionary<string, string> References(string kind) => kind switch
     {
         "cards" => CardReferences(),
+        "runs" => WithEffectReferences(new()
+        {
+            ["/playerDefinitionId"] = "entities", ["/startingResources/@key"] = "resources",
+            ["/initialCardZoneId"] = CardZones, ["/startingCards/*"] = "cards",
+            ["/mapNodes/*/nextNodeIds/*"] = "local:mapNodes/nodeId"
+        }, "/mapNodes/*/entryEffects/*", "/mapNodes/*/exitEffects/*"),
+        "profile-progress-policies" => new Dictionary<string, string>
+        {
+            ["/contributingModeIds/*"] = "modes", ["/unlocks/*/condition/runDefinitionId"] = "runs",
+            ["/unlocks/*/condition/unlockId"] = "local:unlocks/unlockId"
+        },
+        "daily-challenges" => new Dictionary<string, string>
+        {
+            ["/runDefinitionId"] = "runs", ["/modeId"] = "modes", ["/scoreResourceWeights/@key"] = "resources"
+        },
+        "dialogues" => WithEffectReferences(new()
+        {
+            ["/startNodeId"] = "local:nodes/nodeId", ["/nodes/*/choices/*/nextNodeId"] = "local:nodes/nodeId",
+            ["/nodes/*/choices/*/costs/*/resourceId"] = "resources"
+        }, "/nodes/*/entryEffects/*", "/nodes/*/choices/*/effects/*"),
+        "shops" => new Dictionary<string, string>
+        {
+            ["/cardPoolId"] = "card-pools", ["/items/*/cardId"] = "cards",
+            ["/items/*/modifierItemDefinitionId"] = "card-modifier-items", ["/items/*/costs/*/resourceId"] = "resources",
+            ["/pricing/rarityMultipliers/@key"] = CardRarities, ["/pricing/tagMultipliers/@key"] = "tags",
+            ["/reroll/baseCosts/*/resourceId"] = "resources", ["/reroll/costsPerReroll/*/resourceId"] = "resources"
+        },
+        "preparations" => WithEffectReferences(new()
+        {
+            ["/options/*/costs/*/resourceId"] = "resources", ["/options/*/grantedCardIds/*"] = "cards",
+            ["/options/*/applyModifiers/*/modifierId"] = "modifiers"
+        }, "/options/*/effects/*"),
+        "relics" => WithEffectReferences(new()
+        {
+            ["/reactions/*/resourceId"] = "resources", ["/resourceRestrictions/*/resourceId"] = "resources",
+            ["/influences/*/requiredTags/*"] = "tags", ["/influences/*/excludedTags/*"] = "tags"
+        }, "/triggers/*/effects/*"),
         "card-pools" => new Dictionary<string, string>
         {
             ["/explicitCardIds/*"] = "cards", ["/includeTags/*"] = "tags", ["/excludeTags/*"] = "tags",
@@ -134,9 +173,8 @@ public static class AuthoringDefinitionKinds
         _ => new Dictionary<string, string>()
     };
 
-    private static Dictionary<string, string> CardReferences()
-    {
-        var references = new Dictionary<string, string>
+    private static Dictionary<string, string> CardReferences() =>
+        WithEffectReferences(new()
         {
             ["/tags"] = "tags", ["/componentBundles/*/bundleId"] = "card-component-bundles",
             ["/components/*/costs/costs/*/resourceId"] = "resources",
@@ -151,8 +189,11 @@ public static class AuthoringDefinitionKinds
             ["/components/*/zonePayments/*/excludedTags/*"] = "tags",
             ["/components/*/requiredTags/*"] = "tags",
             ["/components/*/excludedTags/*"] = "tags"
-        };
-        foreach (var path in new[] { "/components/*/effect", "/components/*/effects/*" })
+        }, "/components/*/effect", "/components/*/effects/*");
+
+    private static Dictionary<string, string> WithEffectReferences(Dictionary<string, string> references, params string[] paths)
+    {
+        foreach (var path in paths)
         {
             references[$"{path}/statusId"] = "status-effects";
             references[$"{path}/targetResource"] = "resources";

@@ -1,5 +1,9 @@
 # Changelog do contrato público
 
+## Autoria de runs e progressão
+
+- A API de autoria inclui runs, políticas de progressão de runs e perfis, desafios diários, diálogos, preparações, lojas, relíquias, eventos, tabuleiros e zonas. Os schemas identificam referências condicionadas ao tipo de atividade, de alvo de desbloqueio ou de condição de diálogo.
+
 ## Autoria de decks e pools
 
 - A API oferece autoria de pools de cartas, módulos, políticas de composição, perfis e políticas de compartimentos, políticas de equipamento e de suporte, inscrições e decks.
