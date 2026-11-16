@@ -145,12 +145,13 @@ public sealed class CardAuthoringService(
         {
             var id = operation.DefinitionId;
             var kind = operation.Kind;
-            var identity = AuthoringDefinitionKinds.Identity(kind)!;
+            var identity = AuthoringDefinitionKinds.Identity(kind);
             if (operation.Operation == CardAuthoringOperationType.Create &&
                 (id.Length > 128 || id.Any(character => !char.IsAsciiLetterOrDigit(character) &&
                     character is not ('.' or '_' or '-')) || id is "." or ".."))
             {
-                diagnostics.Add(Diagnostic(Code(kind, "ID_INVALID"), id, $"/{identity}", "Use an addressable identifier.", kind: kind));
+                diagnostics.Add(Diagnostic(Code(kind, "ID_INVALID"), id, identity is null ? "" : $"/{identity}",
+                    "Use an addressable identifier.", kind: kind));
                 continue;
             }
             view.ForKind(kind).TryGetValue(id, out var card);

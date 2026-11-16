@@ -478,11 +478,18 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var root = Setting(setting);
         var kinds = await client.GetFromJsonAsync<AuthoringKind[]>(root + "/kinds");
         Assert.NotNull(kinds);
-        Assert.Equal(9, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
+        Assert.Equal(16, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
         foreach (var kind in kinds.Where(kind => kind.SupportsSchema))
         {
             var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + $"/kinds/{kind.Kind}/schema");
-            Assert.Contains(schema!.IdentityProperty, schema.Schema["required"]!.AsArray().Select(node => node!.GetValue<string>()));
+            Assert.NotNull(schema);
+            if (kind.Kind is "powers" or "keywords")
+            {
+                Assert.Null(schema.IdentityProperty);
+                Assert.Equal("object", schema.Schema["type"]!.GetValue<string>());
+            }
+            else
+                Assert.Contains(schema.IdentityProperty, schema.Schema["required"]!.AsArray().Select(node => node!.GetValue<string>()));
         }
 
         var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/combat-rules?q=" + id);
@@ -537,6 +544,75 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         Assert.Equal(originalRevision, undone.ActiveRevisions[setting]);
         using var absent = await client.GetAsync(root + "/definitions/flow-rules/authoring_rule_test");
         Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("uno-clash", "uno_setup_table", "Distribuir cartas reais", "uno.json")]
+    [InlineData("circular-table", "t_draw", "Draw one", "table.json")]
+    public async Task EffectAuthoringValidatesAppliesAndCompensatesAcrossCatalogs(
+        string setting, string id, string name, string catalog)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var root = Setting(setting);
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(
+            $"{root}/definitions/actions?q={Uri.EscapeDataString(name)}");
+        Assert.Contains(page!.Items, item => item.DefinitionId == id && item.CanEdit && item.DisplayName == name);
+        var endpoint = $"{root}/definitions/actions/{id}";
+        var detail = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(endpoint);
+        Assert.NotEmpty(detail!.Provenance);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/actions/schema");
+        Assert.Equal("resources", schema!.References["/effects/*/targetResource"]);
+        var references = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/resources");
+        Assert.NotEmpty(references!.Items);
+
+        CardAuthoringOperation Operation(string kind, string key, JsonObject value,
+            CardAuthoringOperationType operation = CardAuthoringOperationType.Create) => new()
+        {
+            Operation = operation, Kind = kind, DefinitionId = key, Definition = JsonSerializer.SerializeToElement(value)
+        };
+
+        var action = JsonNode.Parse(detail.Source.GetRawText())!.AsObject();
+        var invalid = action.DeepClone().AsObject();
+        invalid["costs"] = JsonNode.Parse("""{"costs":[{"resourceId":"missing_effect_test_resource","amount":1}]}""");
+        using var rejected = await Send(client, setting, page.SourceVersion,
+            Change(Operation("actions", id, invalid, CardAuthoringOperationType.Update)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        Assert.Contains("missing_effect_test_resource", await rejected.Content.ReadAsStringAsync());
+
+        var path = Path.Combine(factory.PackageRoot, setting, "Resources", "actions", catalog);
+        var original = await File.ReadAllBytesAsync(path);
+        var originalRevision = await Revision(client, setting);
+        action["displayName"] = "Edited action";
+        var change = Change(Operation("actions", id, action, CardAuthoringOperationType.Update),
+            Operation("status-effects", "authoring_status", new() { ["StatusId"] = "authoring_status", ["DisplayName"] = "Test" }),
+            Operation("powers", "authoring_power", new() { ["name"] = "Power" }),
+            Operation("keywords", "authoring_keyword", new() { ["name"] = "Keyword" }));
+        using var preview = await Send(client, setting, page.SourceVersion, change, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        Assert.Equal(original, await File.ReadAllBytesAsync(path));
+        Assert.Equal(originalRevision, await Revision(client, setting));
+
+        var applied = await Apply(client, setting, page.SourceVersion, change);
+        var saved = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(endpoint);
+        Assert.Equal("Edited action", saved!.Source.GetProperty("displayName").GetString());
+        foreach (var (kind, definitionId) in new[] { ("status-effects", "authoring_status"), ("powers", "authoring_power"), ("keywords", "authoring_keyword") })
+        {
+            var created = await client.GetFromJsonAsync<AuthoringDefinitionDetail>($"{root}/definitions/{kind}/{definitionId}");
+            Assert.Equal(definitionId, created!.Item.DefinitionId);
+        }
+        Assert.Equal(applied.ActiveRevisions[setting], await Revision(client, setting));
+        Assert.NotEqual(originalRevision, applied.ActiveRevisions[setting]);
+
+        var undone = await Apply(client, setting, applied.SourceVersion,
+            new CardAuthoringChangeRequest { ChangeId = Guid.NewGuid(), UndoOf = applied.ChangeId });
+        Assert.Equal(original, await File.ReadAllBytesAsync(path));
+        Assert.Equal(originalRevision, undone.ActiveRevisions[setting]);
+        using var removed = await client.GetAsync(root + "/definitions/keywords/authoring_keyword");
+        Assert.Equal(HttpStatusCode.NotFound, removed.StatusCode);
+        var redone = await Apply(client, setting, undone.SourceVersion,
+            new CardAuthoringChangeRequest { ChangeId = Guid.NewGuid(), RedoOf = undone.ChangeId });
+        Assert.Equal(applied.ActiveRevisions[setting], redone.ActiveRevisions[setting]);
     }
 
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,

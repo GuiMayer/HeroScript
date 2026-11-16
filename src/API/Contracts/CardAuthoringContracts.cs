@@ -61,7 +61,7 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
             var member = $"{nameof(Operations)}[{index}]";
             if (operation is null ||
                 !Enum.IsDefined(operation.Operation) ||
-                operation.Kind is null || AuthoringDefinitionKinds.Identity(operation.Kind) is not { } identity ||
+                operation.Kind is null || !AuthoringDefinitionKinds.Supports(operation.Kind) ||
                 string.IsNullOrWhiteSpace(operation.DefinitionId))
             {
                 yield return new("Supply a supported authoring operation with a definition ID.", [member]);
@@ -79,12 +79,20 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
                 continue;
             }
 
-            if (definition is not { ValueKind: JsonValueKind.Object } value ||
-                !value.TryGetProperty(identity, out var declaredId) ||
-                declaredId.ValueKind != JsonValueKind.String ||
-                !string.Equals(declaredId.GetString(), operation.DefinitionId, StringComparison.Ordinal))
+            if (definition is not { ValueKind: JsonValueKind.Object } value)
             {
-                yield return new($"Create and update require an object with a matching {identity}.", [member]);
+                yield return new("Create and update require a JSON object.", [member]);
+                continue;
+            }
+
+            if (AuthoringDefinitionKinds.Identity(operation.Kind) is { } identity)
+            {
+                var declaredIds = value.EnumerateObject()
+                    .Where(property => property.Name.Equals(identity, StringComparison.OrdinalIgnoreCase))
+                    .Select(property => property.Value).ToArray();
+                if (declaredIds.Length != 1 || declaredIds[0].ValueKind != JsonValueKind.String ||
+                    !string.Equals(declaredIds[0].GetString(), operation.DefinitionId, StringComparison.Ordinal))
+                    yield return new($"Create and update require an object with one matching {identity}.", [member]);
             }
         }
     }
@@ -128,13 +136,13 @@ public sealed record CardAuthoringSettings(
 public sealed record AuthoringKind(string Kind, bool SupportsSchema, bool CanCreate);
 
 public sealed record AuthoringKindSchema(
-    string Kind, System.Text.Json.Nodes.JsonObject Schema, IReadOnlyDictionary<string, string> References, string IdentityProperty);
+    string Kind, System.Text.Json.Nodes.JsonObject Schema, IReadOnlyDictionary<string, string> References, string? IdentityProperty);
 
 public sealed record AuthoringCapabilities(string Version, bool CanValidate, bool CanApply, bool CanUndo, bool CanRedo);
 
 public sealed record AuthoringPage<T>(IReadOnlyList<T> Items, string? NextCursor, string SourceVersion);
 
-public sealed record CardAuthoringSummary(string DefinitionId, string PackageId, bool CanEdit, bool CanDelete);
+public sealed record CardAuthoringSummary(string DefinitionId, string PackageId, bool CanEdit, bool CanDelete, string? DisplayName = null);
 
 public sealed record CardAuthoringDefinition(
     CardAuthoringSummary Card, JsonElement Source, JsonElement Effective,

@@ -57,9 +57,9 @@ public sealed class CardAuthoringController(
     [ProducesResponseType(typeof(AuthoringKindSchema), StatusCodes.Status200OK)]
     public Task<IActionResult> Schema(string settingId, string kind, CancellationToken cancellationToken) =>
         WithView(settingId, cancellationToken, (_, _) => Task.FromResult<IActionResult>(
-            AuthoringDefinitionKinds.Identity(kind) is { } identity
-            ? Ok(new AuthoringKindSchema(kind, Schemas.GetOrAdd(kind, name => CreateSchema(kinds.Get(name).Value, identity)),
-                AuthoringDefinitionKinds.References(kind), identity))
+            AuthoringDefinitionKinds.Supports(kind)
+            ? Ok(new AuthoringKindSchema(kind, Schemas.GetOrAdd(kind, name => CreateSchema(kinds.Get(name).Value)),
+                AuthoringDefinitionKinds.References(kind), AuthoringDefinitionKinds.Identity(kind)))
             : ApiNotFound($"Authoring schema not available for '{kind}'.")));
 
     [HttpGet(SettingRoute + "/definitions/cards", Name = "AuthoringListCards")]
@@ -97,9 +97,9 @@ public sealed class CardAuthoringController(
         CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
         WithView(settingId, cancellationToken, (workspace, view) => Task.FromResult(
             AuthoringDefinitionKinds.Supports(kind)
-                ? Paginate(view.ForKind(kind).Values.Where(item => Matches(item.Id, q) ||
-                    (item.Effective.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String &&
-                        Matches(name.GetString()!, q))).Select(Summary), item => item.DefinitionId,
+                ? Paginate(view.ForKind(kind).Values.Select(DefinitionSummary)
+                    .Where(item => Matches(item.DefinitionId, q) || item.DisplayName is { } name && Matches(name, q)),
+                    item => item.DefinitionId,
                     workspace.ETag, settingId, kind, q, cursor, limit)
                 : ApiNotFound($"Authoring is unavailable for '{kind}'.")));
 
@@ -116,7 +116,7 @@ public sealed class CardAuthoringController(
             var artifact = item.Entry.ArtifactPath!.Replace('\\', '/');
             var provenance = view.Compilation.Provenance.Where(entry => entry.ArtifactPath == artifact &&
                 (entry.DefinitionId is null || entry.DefinitionId == definitionId)).ToArray();
-            return Ok(new AuthoringDefinitionDetail(Summary(item), source.Value, item.Effective, provenance));
+            return Ok(new AuthoringDefinitionDetail(DefinitionSummary(item), source.Value, item.Effective, provenance));
         });
 
     [HttpGet(SettingRoute + "/references/{kind}", Name = "AuthoringListReferences")]
@@ -321,6 +321,16 @@ public sealed class CardAuthoringController(
     private static CardAuthoringSummary Summary(CardAuthoringCard card) =>
         new(card.Id, card.Package.Manifest.PackageId, card.CanEdit, card.CanEdit);
 
+    private static CardAuthoringSummary DefinitionSummary(CardAuthoringCard item)
+    {
+        string? ReadName(string key) => item.Effective.EnumerateObject()
+            .Where(property => property.Name.Equals(key, StringComparison.OrdinalIgnoreCase) &&
+                property.Value.ValueKind == JsonValueKind.String)
+            .Select(property => property.Value.GetString())
+            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
+        return Summary(item) with { DisplayName = ReadName("displayName") ?? ReadName("name") };
+    }
+
     private static bool Matches(string value, string? query) =>
         string.IsNullOrWhiteSpace(query) || value.Contains(query, StringComparison.OrdinalIgnoreCase);
 
@@ -352,8 +362,12 @@ public sealed class CardAuthoringController(
                 tags.Add(tag);
     }
 
-    private static JsonObject CreateSchema(ContentKindDescriptor descriptor, string identity)
+    private static JsonObject CreateSchema(ContentKindDescriptor descriptor)
     {
+        const string schemaVersion = "https://json-schema.org/draft/2020-12/schema";
+        if (descriptor.IdentityProperty is not { } identity)
+            return new JsonObject { ["$schema"] = schemaVersion, ["type"] = "object", ["additionalProperties"] = true };
+
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
@@ -362,7 +376,7 @@ public sealed class CardAuthoringController(
         options.Converters.Add(new JsonStringEnumConverter());
         var schema = options.GetJsonSchemaAsNode(descriptor.DefinitionType,
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
-        schema["$schema"] = "https://json-schema.org/draft/2020-12/schema";
+        schema["$schema"] = schemaVersion;
         var required = schema["required"] as JsonArray ?? new JsonArray();
         if (!required.Any(property => property?.GetValue<string>() == identity))
             required.Insert(0, JsonValue.Create(identity));

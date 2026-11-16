@@ -7,7 +7,8 @@ public static class AuthoringDefinitionKinds
     private static readonly HashSet<string> Editable = new(StringComparer.Ordinal)
     {
         "cards", "combat-rules", "flow-rules", "phase-sequences", "modes",
-        "capability-policies", "content-binding-policies", "replay-policies", "timeline-policies"
+        "capability-policies", "content-binding-policies", "replay-policies", "timeline-policies",
+        "actions", "modifiers", "status-effects", "effect-resolution-policies", "gambits", "powers", "keywords"
     };
 
     public static bool Supports(string kind) => Editable.Contains(kind);
@@ -29,6 +30,24 @@ public static class AuthoringDefinitionKinds
         {
             ["/entryPhaseId"] = "local:phases/phaseId",
             ["/phases/*/edges/*/targetPhaseId"] = "local:phases/phaseId"
+        },
+        "actions" => new Dictionary<string, string>
+        {
+            ["/costs/costs/*/resourceId"] = "resources",
+            ["/effects/*/targetResource"] = "resources",
+            ["/effects/*/statusId"] = "status-effects"
+        },
+        "modifiers" => new Dictionary<string, string> { ["/tags/*"] = "tags" },
+        "gambits" => new Dictionary<string, string>
+        {
+            ["/action/actionId"] = "actions", ["/action/cardDefinitionId"] = "cards",
+            ["/action/targetSelector/resourceId"] = "resources"
+        },
+        "status-effects" => new Dictionary<string, string>
+        {
+            ["/tags/*"] = "tags",
+            ["/triggers/*/effects/*/targetResource"] = "resources",
+            ["/triggers/*/effects/*/statusId"] = "status-effects"
         },
         "modes" => new Dictionary<string, string>
         {

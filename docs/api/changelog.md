@@ -1,5 +1,11 @@
 # Changelog do contrato público
 
+## Autoria de efeitos e status
+
+- A API de autoria inclui ações, modificadores, efeitos de status, políticas de resolução, gambitos, poderes e palavras-chave.
+- A listagem genérica retorna `displayName` quando a definição declara um nome.
+- Poderes e palavras-chave usam o ID da chave do catálogo e um objeto JSON livre. Seus schemas retornam `identityProperty` nulo. Para os demais tipos, a API aceita a grafia do campo de identidade encontrada nas fontes existentes.
+
 ## Autoria de regras e fluxos
 
 - O [OpenAPI de autoria](../../openapi/heroscript-authoring-v1.json) inclui consultas por tipo em `/definitions/{kind}` e opções de referência em `/references/{kind}`.

@@ -359,6 +359,7 @@ export interface components {
             packageId?: string | null;
             canEdit?: boolean;
             canDelete?: boolean;
+            displayName?: string | null;
         };
         CardAuthoringSummaryAuthoringPage: {
             items?: components["schemas"]["CardAuthoringSummary"][] | null;

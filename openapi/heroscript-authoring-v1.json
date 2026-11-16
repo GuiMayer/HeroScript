@@ -2194,6 +2194,10 @@
           },
           "canDelete": {
             "type": "boolean"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
