@@ -4,7 +4,7 @@ import { Plus, X } from 'lucide-react'
 import { api, settingPath, type Definition, type Schemas } from './api/client'
 import { cardComponentSchemas } from './authoring-schema'
 import type { CardCopy } from './card-copy'
-import { array, object, propertyKey, same, string, type Frame } from './editor-state'
+import { array, object, propertyKey, string, type Frame } from './editor-state'
 import type { Locale } from './i18n'
 import { ruleCopy } from './rule-copy'
 import { SchemaFields } from './RuleFields'
@@ -16,15 +16,13 @@ type ComponentKind = (typeof effectKinds)[number] | (typeof ruleKinds)[number]
 type Props = {
   value: Definition; disabled: boolean; copy: CardCopy; apiKey: string; setting: string; locale: Locale; draft: Frame
   update: (value: Definition) => void
+  onTyping: (typing: boolean) => void
   group: 'effects' | 'rules'
 }
 
-type Edit = { index: number | null; source: Definition; value: Definition }
-
-export function CardComponents({ value, disabled, copy, apiKey, setting, update, locale, draft, group }: Props) {
+export function CardComponents({ value, disabled, copy, apiKey, setting, update, onTyping, locale, draft, group }: Props) {
   const kinds: readonly ComponentKind[] = group === 'effects' ? effectKinds : ruleKinds
-  const [edit, setEdit] = useState<Edit | null>(null)
-  const [typing, setTyping] = useState(false)
+  const [selected, setSelected] = useState<number | null>(null)
   const [kind, setKind] = useState<ComponentKind>(kinds[0])
   const schema = useQuery({
     queryKey: ['authoring', setting, 'schema', 'cards'],
@@ -37,24 +35,21 @@ export function CardComponents({ value, disabled, copy, apiKey, setting, update,
   const labels = { effect: copy.cardEffect, trigger: copy.cardTrigger, effect_rule_override: copy.cardEffectOverride,
     cost: copy.cost, condition: copy.condition, targeting: copy.targeting, disposition: copy.disposition, influence: copy.influence }
   const updateComponents = (next: unknown[]) => update({ ...value, [componentsKey]: next })
-  const sourceChanged = !!edit && edit.index !== null && !same(components[edit.index], edit.source)
-  const editSchema = edit && definitions.get(string(edit.value.type))
-  const id = edit ? string(edit.value[propertyKey(edit.value, 'componentId')]) : ''
-  const isDuplicate = !!edit && !!id && components.some((item, index) => {
-    const component = object(item)
-    return index !== edit.index && component[propertyKey(component, 'componentId')] === id
-  })
+  const edit = selected === null ? undefined : object(components[selected])
+  const editSchema = edit && kinds.some((type) => type === edit.type) && definitions.get(string(edit.type))
   const rows = components.flatMap((entry, index) => {
     const item = object(entry)
     return kinds.some((type) => type === item.type) ? [{ item, index }] : []
   })
-  function apply() {
-    if (!edit || sourceChanged || disabled || !id.trim() || isDuplicate) return
-    // Keep the polymorphic discriminator first, as required by the source serializer.
-    const candidate = { type: edit.value.type, ...edit.value }
-    updateComponents(edit.index === null ? [...components, candidate]
-      : components.map((component, index) => index === edit.index ? candidate : component))
-    setEdit(null)
+  function add() {
+    const ids = new Set(components.map((component) => {
+      const item = object(component)
+      return string(item[propertyKey(item, 'componentId')])
+    }))
+    let suffix = 1
+    while (ids.has(`${kind}.${suffix}`)) suffix++
+    updateComponents([...components, { type: kind, componentId: `${kind}.${suffix}` }])
+    setSelected(components.length)
   }
 
   return <section className="form-section component-section">
@@ -68,40 +63,31 @@ export function CardComponents({ value, disabled, copy, apiKey, setting, update,
       const type = item.type as ComponentKind
       const componentId = string(item[propertyKey(item, 'componentId')])
       const effectType = string(object(item[propertyKey(item, 'effect')]).type)
-      return <button type="button" className="secondary effect-row" key={index} aria-pressed={edit?.index === index}
-        disabled={!definitions.has(type) || (edit !== null && edit.index !== index)}
-        onClick={() => { if (!edit) { setTyping(false); setEdit({ index, source: item, value: item }) } }}>
+      return <button type="button" className="secondary effect-row" key={index} aria-pressed={selected === index}
+        disabled={!definitions.has(type)} onClick={() => setSelected(index)}>
         <span>{labels[type]}{effectType ? ` · ${effectType}` : ''}</span><code>{componentId}</code>
       </button>
     })}</div>}
     {edit && editSchema ? <div className="component card-effect-form">
-      <h4>{labels[edit.value.type as ComponentKind]}</h4>
-      <SchemaFields schema={editSchema} path="/components/*" skip="type" value={edit.value}
-        update={(next) => setEdit((current) => current && { ...current, value: next })}
-        context={{ key: apiKey, setting, disabled: disabled || sourceChanged, locale, copy: ruleCopy[locale], schemaRoot,
-          full: true, refs: schema.data?.data.references ?? {}, root: edit.value, draft, onTyping: setTyping }} />
-      {sourceChanged && <p className="error" role="alert">{copy.effectChanged}</p>}
-      {isDuplicate && <p className="error" role="alert">{copy.duplicateComponent}</p>}
+      <h4>{labels[edit.type as ComponentKind]}</h4>
+      <SchemaFields key={selected} schema={editSchema} path="/components/*" skip="type" value={edit}
+        update={(next) => updateComponents(components.map((item, index) => index === selected ? { type: edit.type, ...next } : item))}
+        context={{ key: apiKey, setting, disabled, locale, copy: ruleCopy[locale], schemaRoot,
+          full: true, refs: schema.data?.data.references ?? {}, root: edit, draft, onTyping }} />
       <div className="effect-actions">
-        <button type="button" className="secondary" onClick={() => setEdit(null)}>{disabled ? copy.closeEffect : copy.cancel}</button>
-        {!disabled && edit.index !== null && !sourceChanged && <button type="button" className="text-button" onClick={() => {
-          updateComponents(components.filter((_, index) => index !== edit.index))
-          setEdit(null)
+        <button type="button" className="secondary" onClick={() => setSelected(null)}>{copy.closeEffect}</button>
+        {!disabled && <button type="button" className="text-button" onClick={() => {
+          updateComponents(components.filter((_, index) => index !== selected))
+          setSelected(null)
         }}><X size={15} />{copy.removeEffect}</button>}
-        {!disabled && <button type="button" className="primary" disabled={sourceChanged ||
-          !typing && (!id.trim() || isDuplicate || same(edit.source, edit.value) && edit.index !== null)}
-          onClick={apply}>{copy.applyEffect}</button>}
       </div>
-    </div> : !disabled && !!definitions.size && <div className="rule-reference-row">
+    </div> : null}
+    {!disabled && !!definitions.size && <div className="rule-reference-row">
       <label className="field"><span>{copy.effectComponentType}</span><select value={kind}
         onChange={(event) => setKind(event.target.value as ComponentKind)}>
         {kinds.filter((type) => definitions.has(type)).map((type) => <option key={type} value={type}>{labels[type]}</option>)}
       </select></label>
-      <button type="button" className="secondary" disabled={!definitions.has(kind)} onClick={() => {
-        const source = { type: kind }
-        setTyping(false)
-        setEdit({ index: null, source, value: source })
-      }}><Plus size={15} />{copy.addEffect}</button>
+      <button type="button" className="secondary" disabled={!definitions.has(kind)} onClick={add}><Plus size={15} />{copy.addEffect}</button>
     </div>}
   </section>
 }
