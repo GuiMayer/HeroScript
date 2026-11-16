@@ -60,6 +60,19 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         Assert.Contains(discovered!.Items, item => item.SettingId == setting && item.WritablePackageId is not null);
         var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/cards/schema");
         Assert.Equal("tags", schema!.References["/tags"]);
+        Assert.Equal("status-effects", schema.References["/components/*/effect/statusId"]);
+        Assert.Equal("resources", schema.References["/components/*/effect/targetResource"]);
+        Assert.Equal("resources", schema.References["/components/*/effects/*/selectionResourceId"]);
+        Assert.Equal("resources", schema.References["/components/*/effect/continuation/selectionResourceId"]);
+        Assert.Equal("status-effects", schema.References["/components/*/effect/dispel/statusIds/*"]);
+        var statuses = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/status-effects");
+        var resources = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/resources");
+        var status = Assert.Single(statuses!.Items.Take(1)).Id;
+        var resource = Assert.Single(resources!.Items.Take(1)).Id;
+        var componentSchema = schema.Schema["properties"]!["components"]!["items"]!.AsObject();
+        var variants = (componentSchema["anyOf"] ?? componentSchema["oneOf"])!.AsArray();
+        Assert.Contains(variants, branch => (string?)branch?["properties"]?["type"]?["const"] == "effect");
+        Assert.Contains(variants, branch => (string?)branch?["properties"]?["type"]?["const"] == "trigger");
         Assert.Contains("cardId", schema.Schema["required"]!.AsArray().Select(value => value!.GetValue<string>()));
 
         var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/cards?limit=1");
@@ -96,6 +109,18 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
         definition["tags"]!.AsArray().Add("authoring_preview_tag");
         var clone = definition.DeepClone().AsObject();
         clone["cardId"] = "authoring_preview_card";
+        clone["components"]!.AsArray().Add(new JsonObject
+        {
+            ["type"] = "effect", ["componentId"] = "authoring_preview_effect",
+            ["effect"] = new JsonObject
+            {
+                ["type"] = "APPLY_STATUS", ["target"] = "SELF", ["statusId"] = status,
+                ["chainedEffects"] = new JsonArray(new JsonObject
+                {
+                    ["type"] = "MODIFY_RESOURCE", ["target"] = "SELF", ["targetResource"] = resource, ["flatValue"] = 1
+                })
+            }
+        });
         var candidate = new CardAuthoringChangeRequest
         {
             ChangeId = Guid.NewGuid(),

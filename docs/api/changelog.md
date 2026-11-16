@@ -1,5 +1,9 @@
 # Changelog do contrato público
 
+## Autoria de efeitos nas cartas
+
+- O schema de Cartas identifica referências de efeitos diretos e de efeitos em gatilhos, incluindo status, recursos, modificadores, cartas, pipelines de cálculo e receitas de condensação.
+
 ## Autoria de efeitos e status
 
 - A API de autoria inclui ações, modificadores, efeitos de status, políticas de resolução, gambitos, poderes e palavras-chave.

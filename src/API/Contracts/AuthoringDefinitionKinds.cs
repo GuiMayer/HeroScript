@@ -18,10 +18,7 @@ public static class AuthoringDefinitionKinds
 
     public static IReadOnlyDictionary<string, string> References(string kind) => kind switch
     {
-        "cards" => new Dictionary<string, string>
-        {
-            ["/tags"] = "tags", ["/componentBundles/*/bundleId"] = "card-component-bundles"
-        },
+        "cards" => CardReferences(),
         "combat-rules" => new Dictionary<string, string>
         {
             ["/defaultPhaseSequenceId"] = "phase-sequences", ["/flow/actionBudget/resourceId"] = "resources"
@@ -63,4 +60,31 @@ public static class AuthoringDefinitionKinds
         },
         _ => new Dictionary<string, string>()
     };
+
+    private static Dictionary<string, string> CardReferences()
+    {
+        var references = new Dictionary<string, string>
+        {
+            ["/tags"] = "tags", ["/componentBundles/*/bundleId"] = "card-component-bundles",
+            ["/components/*/costs/costs/*/resourceId"] = "resources"
+        };
+        foreach (var path in new[] { "/components/*/effect", "/components/*/effects/*" })
+        {
+            references[$"{path}/statusId"] = "status-effects";
+            references[$"{path}/targetResource"] = "resources";
+            references[$"{path}/selectionResourceId"] = "resources";
+            references[$"{path}/continuation/selectionResourceId"] = "resources";
+            references[$"{path}/dispel/statusIds/*"] = "status-effects";
+            references[$"{path}/dispel/requiredTags/*"] = "tags";
+            references[$"{path}/modifierId"] = "modifiers";
+            references[$"{path}/cardDefinitionId"] = "cards";
+            references[$"{path}/calculationPipelineId"] = "calculation-pipelines";
+            references[$"{path}/continuation/overflowPipelineId"] = "calculation-pipelines";
+            references[$"{path}/parameters/*/pipelineId"] = "calculation-pipelines";
+            references[$"{path}/condensationRecipeId"] = "condensation-recipes";
+            foreach (var field in new[] { "tags", "requiredTags", "excludedTags" })
+                references[$"{path}/{field}/*"] = "tags";
+        }
+        return references;
+    }
 }
