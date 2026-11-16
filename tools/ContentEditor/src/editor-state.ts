@@ -48,6 +48,10 @@ export function object(value: unknown): Definition {
 export function string(value: unknown) { return typeof value === 'string' ? value : '' }
 export function array(value: unknown): unknown[] { return Array.isArray(value) ? value : [] }
 
+export function propertyKey(value: Definition, name: string) {
+  return Object.keys(value).find((key) => key.toLowerCase() === name.toLowerCase()) ?? name
+}
+
 export function same(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true
   if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
 import { api, settingPath, type Definition, type Schemas } from './api/client'
 import { TextField } from './CardFields'
-import { array, object, string, type Frame } from './editor-state'
+import { array, object, propertyKey, string, type Frame } from './editor-state'
 import { fieldLabel, type RuleCopy } from './rule-copy'
 
 interface Schema {
@@ -45,10 +45,11 @@ function ObjectFields({ properties, value, update, context, path, skip }: {
   properties: Record<string, Schema>; value: Definition; update: (value: Definition) => void
   context: Context; path: string; skip?: string
 }) {
-  return <div className="rule-field-group">{Object.entries(properties).filter(([name]) => name !== skip).map(([name, schema]) =>
-    <Field key={name} label={fieldLabel(name, context.locale)} path={`${path}/${name}`}
-      schema={schema} value={value[name]} update={(next) => update({ ...value, [name]: next })} context={context} />,
-  )}</div>
+  return <div className="rule-field-group">{Object.entries(properties).filter(([name]) => name !== skip).map(([name, schema]) => {
+    const key = propertyKey(value, name)
+    return <Field key={name} label={fieldLabel(name, context.locale)} path={`${path}/${name}`}
+      schema={schema} value={value[key]} update={(next) => update({ ...value, [key]: next })} context={context} />
+  })}</div>
 }
 
 function Fold({ label, count, children }: { label: string; count?: number; children: ReactNode }) {
@@ -103,20 +104,33 @@ function Field({ label, path, schema, value, update, context }: {
         {values.map((item, index) => <div className="rule-reference-row" key={index}>
           <Reference label={`${label} ${index + 1}`} kind={context.refs[`${path}/*`]} context={context} value={string(item)}
             commit={(id) => update(values.map((value, position) => position === index ? id : value))} />
-          {!context.disabled && <button className="icon-button" aria-label={`${context.locale === 'pt-BR' ? 'Remover' : 'Remove'} ${string(item)}`}
+          {!context.disabled && <button type="button" className="icon-button" aria-label={`${context.copy.removeItem}: ${string(item)}`}
             onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} /></button>}
         </div>)}
         {!context.disabled && <Reference label={`${label} +`} kind={context.refs[`${path}/*`]} context={context}
           value="" commit={(id) => { if (id && !values.includes(id)) update([...values, id]) }} />}
       </div>
     </Fold>
-    if (itemSchema.properties) return <Fold label={label} count={values.length}>
-      {values.map((item, index) => <Fold key={index} label={string(object(item).name) ||
-        string(object(item).phaseId) || string(object(item).edgeId) || `${label} ${index + 1}`}>
-        <ObjectFields properties={itemSchema.properties!} value={object(item)} context={context} path={`${path}/*`}
-          update={(next) => update(values.map((current, position) => position === index ? next : current))} />
-      </Fold>)}
-      {!values.length && <p className="muted">{context.copy.editAdvanced}</p>}
+    const properties = itemSchema.properties
+    if (properties) return <Fold label={label} count={values.length}>
+      <div className="rule-array">
+        {values.map((item, index) => {
+          const row = object(item)
+          const name = ['name', 'phaseId', 'edgeId', 'effectId', 'triggerId'].map((key) => string(row[propertyKey(row, key)]))
+            .find(Boolean) || `${label} ${index + 1}`
+          return <Fold key={index} label={name}>
+            <ObjectFields properties={properties} value={row} context={context} path={`${path}/*`}
+              update={(next) => update(values.map((current, position) => position === index ? next : current))} />
+            {!context.disabled && <button type="button" className="text-button rule-array-remove"
+              onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} />
+              {context.copy.removeItem}
+            </button>}
+          </Fold>
+        })}
+        {!context.disabled && <button type="button" className="secondary" onClick={() => update([...values, {}])}>
+          <Plus size={15} />{context.copy.addItem}
+        </button>}
+      </div>
     </Fold>
   }
   return <Fold label={label} count={Array.isArray(value) ? value.length : undefined}>
@@ -139,7 +153,10 @@ function Reference({ context, kind, label, value, commit }: {
       `${settingPath(context.setting)}/references/${encodeURIComponent(kind)}?limit=50&q=${encodeURIComponent(search)}`, { signal }),
   })
   const localPath = kind.slice('local:'.length).split('/')
-  const source = local ? array(context.root[localPath[0]]).map((item) => string(object(item)[localPath[1]]))
+  const source = local ? array(context.root[propertyKey(context.root, localPath[0])]).map((item) => {
+    const row = object(item)
+    return string(row[propertyKey(row, localPath[1])])
+  })
     : (query.data?.data.items ?? []).map((item) => string(item.id))
   const ids = new Set(source)
   for (const { operation } of context.draft) {

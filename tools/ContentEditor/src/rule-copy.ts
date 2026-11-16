@@ -2,7 +2,16 @@ export const ruleKinds = [
   'combat-rules', 'flow-rules', 'phase-sequences', 'modes',
   'capability-policies', 'content-binding-policies', 'replay-policies', 'timeline-policies',
 ] as const
-export type RuleKind = (typeof ruleKinds)[number]
+const effectKinds = [
+  'actions', 'modifiers', 'status-effects', 'effect-resolution-policies', 'gambits', 'powers', 'keywords',
+] as const
+export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number]
+export type DefinitionSection = 'rules' | 'effects'
+
+export const definitionGroups = {
+  rules: [ruleKinds.slice(0, 4), ruleKinds.slice(4)],
+  effects: [effectKinds.slice(0, 5), effectKinds.slice(5)],
+}
 
 export const ruleCopy = {
   en: {
@@ -14,6 +23,8 @@ export const ruleCopy = {
     delete: 'Delete definition', confirmDelete: 'Mark this definition for deletion? The engine checks its references before saving.',
     inherited: 'Inherited or read only', createReference: 'Create referenced definition',
     unset: 'Engine default', yes: 'Yes', no: 'No', editAdvanced: 'Edit this field in Advanced.', invalidJson: 'Enter a JSON object with the same definition ID.',
+    rawInvalid: 'Enter a valid JSON object.', rawNotice: 'This catalog uses free-form JSON. The engine validates its structure.',
+    invalidId: 'Enter a unique definition ID.', addItem: 'Add item', removeItem: 'Remove item',
     'combat-rules': 'Combat rules', 'flow-rules': 'Flow rules', 'phase-sequences': 'Phase sequences', modes: 'Game modes',
     'capability-policies': 'Capability policies', 'content-binding-policies': 'Content binding', 'replay-policies': 'Replay', 'timeline-policies': 'Timeline',
   },
@@ -26,11 +37,33 @@ export const ruleCopy = {
     delete: 'Excluir definição', confirmDelete: 'Marcar esta definição para exclusão? A engine verifica as referências antes de salvar.',
     inherited: 'Herdada ou somente leitura', createReference: 'Criar definição de referência',
     unset: 'Padrão da engine', yes: 'Sim', no: 'Não', editAdvanced: 'Edite este campo em Avançado.', invalidJson: 'Informe um objeto JSON com o mesmo ID da definição.',
+    rawInvalid: 'Informe um objeto JSON válido.', rawNotice: 'Este catálogo usa JSON livre. A engine valida sua estrutura.',
+    invalidId: 'Informe um ID de definição único.', addItem: 'Adicionar item', removeItem: 'Remover item',
     'combat-rules': 'Regras de combate', 'flow-rules': 'Regras de fluxo', 'phase-sequences': 'Sequências de fases', modes: 'Modos de jogo',
     'capability-policies': 'Permissões', 'content-binding-policies': 'Vínculo de conteúdo', 'replay-policies': 'Replay', 'timeline-policies': 'Linha do tempo',
   },
 } as const
-export type RuleCopy = (typeof ruleCopy)[keyof typeof ruleCopy]
+export type RuleCopy = Record<keyof typeof ruleCopy.en, string>
+
+const effectCopy = {
+  en: {
+    intro: 'Configure actions, modifiers, status effects and how they resolve.',
+    rules: 'Effects catalog', gameplay: 'Effects and behavior', policies: 'Free-form catalogs', editing: 'Effects editing controls',
+    actions: 'Actions', modifiers: 'Modifiers', 'status-effects': 'Status effects',
+    'effect-resolution-policies': 'Effect resolution policies', gambits: 'Gambits', powers: 'Powers', keywords: 'Keywords',
+  },
+  'pt-BR': {
+    intro: 'Configure ações, modificadores, efeitos de status e sua resolução.',
+    rules: 'Catálogo de efeitos', gameplay: 'Efeitos e comportamento', policies: 'Catálogos de JSON livre', editing: 'Controles de edição de efeitos',
+    actions: 'Ações', modifiers: 'Modificadores', 'status-effects': 'Efeitos de status',
+    'effect-resolution-policies': 'Políticas de resolução de efeitos', gambits: 'Gambitos', powers: 'Poderes', keywords: 'Palavras-chave',
+  },
+}
+
+export function definitionCopy(locale: keyof typeof ruleCopy, section: DefinitionSection) {
+  const labels = { ...ruleCopy[locale], ...effectCopy[locale] }
+  return { copy: section === 'effects' ? labels : ruleCopy[locale], labels }
+}
 
 const portuguese: Record<string, string> = {
   name: 'Nome', description: 'Descrição', version: 'Versão', flow: 'Fluxo de combate', turnOrder: 'Ordem de turno',
@@ -52,6 +85,14 @@ const portuguese: Record<string, string> = {
   semanticVerification: 'Verificação semântica', groupByTurn: 'Agrupar por turno', maxItemsPerPage: 'Máximo de itens por página',
   allowHistoricalInspection: 'Permitir inspeção do histórico', allowForkFromHistory: 'Permitir branch a partir do histórico',
   allowHeadRestore: 'Permitir restauração da versão atual',
+  displayName: 'Nome de exibição', actionType: 'Tipo de ação', cooldown: 'Recarga', action: 'Ação',
+  actionId: 'Ação', cardDefinitionId: 'Carta', predicates: 'Predicados', targetSelector: 'Seleção de alvo',
+  effects: 'Efeitos', effectId: 'ID do efeito', type: 'Tipo', costs: 'Custos', amount: 'Quantidade',
+  target: 'Alvo', targetResource: 'Recurso do alvo', statusId: 'Efeito de status', operation: 'Operação',
+  flatValue: 'Valor fixo', formula: 'Fórmula', cardZoneFlowId: 'Fluxo de zona de cartas', cardCount: 'Número de cartas',
+  defaultDuration: 'Duração padrão', durationTickBoundary: 'Momento de reduzir a duração', triggers: 'Gatilhos',
+  triggerId: 'ID do gatilho', boundary: 'Momento de ativação', influences: 'Influências',
+  defaultStacks: 'Acúmulos padrão', maxStacks: 'Máximo de acúmulos', dispellable: 'Pode ser dissipado',
 }
 
 export function fieldLabel(key: string, locale: string) {
