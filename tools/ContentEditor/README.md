@@ -27,8 +27,8 @@ Se o contrato de autoria mudar, execute `npm run generate:api` antes de compilar
 
 Escolha o game setting na barra superior. O catálogo consulta a engine
 e permite buscar por nome ou ID. Abra uma carta para editar seus dados e
-tags em **Visão geral**, condições e custos em **Regras**, a definição
-completa em **Avançado** ou conferir a **Prévia** visual.
+tags em **Visão geral**, condições e custos em **Regras** e a definição
+completa em **Avançado**.
 
 No modo manual, use **Validar** para consultar a engine sem gravar e **Salvar**
 para aplicar o lote. Em **Hot Reload**, cada ação concluída é enviada

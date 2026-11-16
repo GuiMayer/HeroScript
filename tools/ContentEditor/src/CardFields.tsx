@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useId, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Braces, CircleHelp, Layers3, Plus, Search, Tag, X } from 'lucide-react'
+import { Braces, Plus, Search, Tag, X } from 'lucide-react'
 import { api, settingPath, type Card, type Definition, type Schemas } from './api/client'
 import type { CardCopy } from './card-copy'
 import { array, object, string } from './editor-state'
@@ -209,16 +209,6 @@ export function Advanced({ value, disabled, copy, update, apiKey, setting, detai
         : <p className="muted">{schema.isError ? copy.sourceUnavailable : '…'}</p>}
     </details>
   </div>
-}
-
-export function Preview({ value, copy }: { value: Definition; copy: CardCopy }) {
-  return <section className="preview-pane"><div className="card-preview">
-    <div className="preview-card-icon"><Layers3 size={31} /></div>
-    <strong>{titleOf(value, string(value.cardId))}</strong>
-    <span className="preview-rarity">{rarityLabel(string(value.rarity) || 'Common', copy)}</span>
-    <p>{string(object(value.metadata).description)}</p>
-    <div className="tag-row">{array(value.tags).map((item, index) => <span className="tag-chip" key={index}>{string(item)}</span>)}</div>
-  </div><p className="muted"><CircleHelp size={14} />{copy.previewHint}</p></section>
 }
 
 interface EditorFields {

@@ -218,14 +218,6 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .code-view, .json-input { display: block; overflow: auto; max-width: 100%; max-height: 320px; margin: 3px 0 0; background: var(--canvas); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: Consolas, monospace; font-size: 12px; }
 .json-input { width: 100%; min-height: 200px; max-height: none; }
 .form-section > button { justify-self: start; }
-.preview-pane { display: grid; justify-items: center; gap: 11px; }
-.preview-pane > p { display: flex; gap: 5px; align-items: center; }
-.card-preview { width: min(100%, 290px); border-radius: 17px; background: linear-gradient(145deg, #352448, #242033 68%); color: #fbf7ff; padding: 16px; display: grid; gap: 7px; box-shadow: 0 7px 25px #23183c30; }
-.preview-card-icon { height: 105px; border-radius: 12px; display: grid; place-items: center; color: #e8dbff; background: radial-gradient(ellipse at center, #795a9e, #382c52 70%); }
-.card-preview > strong { font: 700 22px "Geist Variable", sans-serif; overflow-wrap: anywhere; }
-.preview-rarity { font-size: 11px; color: #d3b7ff; }
-.card-preview p { font-size: 13px; line-height: 1.45; min-height: 44px; overflow-wrap: anywhere; }
-.card-preview .tag-chip { background: #4a365f; color: #e7ddfa; }
 .receipt { margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 11px; }
 .receipt :is(ul, dl) { color: var(--muted); margin-block: 7px 2px; font-size: 12px; overflow-wrap: anywhere; }
 .receipt dd { margin-left: 0; }

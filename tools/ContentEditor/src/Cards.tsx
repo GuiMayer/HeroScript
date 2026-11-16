@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, CircleCheck, FileText, Layers3, LockKeyhole, Plus, Redo2, Save, Search, Trash2, Undo2, Zap } from 'lucide-react'
 import { api, ApiError, cardPath, settingPath, type Card, type Definition, type Schemas } from './api/client'
-import { Advanced, Overview, Preview, rarityLabel, Rules, titleOf } from './CardFields'
+import { Advanced, Overview, rarityLabel, Rules, titleOf } from './CardFields'
 import { cardCopy, type CardCopy } from './card-copy'
 import { object, string, type Workspace } from './editor-state'
 import { preference, type Copy, type Locale } from './i18n'
@@ -17,8 +17,8 @@ export interface CardsProps {
   copy: Copy
   workspace: Workspace
 }
-type Tab = 'overview' | 'rules' | 'advanced' | 'preview'
-const tabs: Tab[] = ['overview', 'rules', 'advanced', 'preview']
+type Tab = 'overview' | 'rules' | 'advanced'
+const tabs: Tab[] = ['overview', 'rules', 'advanced']
 type Summary = Schemas['CardAuthoringSummary']
 
 export default function Cards(props: CardsProps) {
@@ -226,7 +226,6 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
             {tab === 'overview' && <Overview key={activeId} {...editorFields} />}
             {tab === 'rules' && <Rules key={activeId} {...editorFields} />}
             {tab === 'advanced' && <Advanced key={activeId} {...editorFields} detail={current} />}
-            {tab === 'preview' && <Preview value={value} copy={copy} />}
           </div>
         </> : <div className="detail-empty"><span className="empty-icon"><Layers3 size={23} /></span>
           <p>{detail.isError ? copy.sourceUnavailable : copy.selectCard}</p>
