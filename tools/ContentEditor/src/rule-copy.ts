@@ -9,13 +9,19 @@ const resourceGroups = [
   ['resources', 'actor-resource-lifecycle-policies'],
   ['calculation-pipelines', 'formulas'],
 ] as const
-export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number] | (typeof resourceGroups)[number][number]
-export type DefinitionSection = 'rules' | 'effects' | 'resources'
+const entityGroups = [
+  ['entities', 'enemy-pools', 'supports', 'support-routines'],
+  ['enemies', 'companions', 'races'],
+] as const
+export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number] |
+  (typeof resourceGroups)[number][number] | (typeof entityGroups)[number][number]
+export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities'
 
 export const definitionGroups = {
   rules: [ruleKinds.slice(0, 4), ruleKinds.slice(4)],
   effects: [effectKinds.slice(0, 5), effectKinds.slice(5)],
   resources: resourceGroups,
+  entities: entityGroups,
 }
 
 export const ruleCopy = {
@@ -37,6 +43,7 @@ export const ruleCopy = {
     costSettings: 'Cost settings', resourceCosts: 'Resource costs',
     valueType: 'Value type', addProperty: 'Add property', renameProperty: 'Rename property',
     moveEarlier: 'Move earlier', moveLater: 'Move later',
+    componentType: 'Component type', addComponent: 'Add component',
     'combat-rules': 'Combat rules', 'flow-rules': 'Flow rules', 'phase-sequences': 'Phase sequences', modes: 'Game modes',
     'capability-policies': 'Capability policies', 'content-binding-policies': 'Content binding', 'replay-policies': 'Replay', 'timeline-policies': 'Timeline',
   },
@@ -58,6 +65,7 @@ export const ruleCopy = {
     costSettings: 'Configuração do custo', resourceCosts: 'Custos de recursos',
     valueType: 'Tipo de valor', addProperty: 'Adicionar propriedade', renameProperty: 'Renomear propriedade',
     moveEarlier: 'Mover para cima', moveLater: 'Mover para baixo',
+    componentType: 'Tipo de componente', addComponent: 'Adicionar componente',
     'combat-rules': 'Regras de combate', 'flow-rules': 'Regras de fluxo', 'phase-sequences': 'Sequências de fases', modes: 'Modos de jogo',
     'capability-policies': 'Permissões', 'content-binding-policies': 'Vínculo de conteúdo', 'replay-policies': 'Replay', 'timeline-policies': 'Linha do tempo',
   },
@@ -96,9 +104,25 @@ const resourceCopy = {
   },
 }
 
+const entityCopy = {
+  en: {
+    intro: 'Configure actors, enemy pools, supports and their routines.',
+    rules: 'Entity catalog', gameplay: 'Entities and support', policies: 'Open catalogs', editing: 'Entity editing controls',
+    entities: 'Entities', enemies: 'Enemies', 'enemy-pools': 'Enemy pools', companions: 'Companions',
+    races: 'Races', supports: 'Supports', 'support-routines': 'Support routines',
+  },
+  'pt-BR': {
+    intro: 'Configure atores, grupos de inimigos, suportes e suas rotinas.',
+    rules: 'Catálogo de entidades', gameplay: 'Entidades e suporte', policies: 'Catálogos de propriedades livres',
+    editing: 'Controles de edição de entidades', entities: 'Entidades', enemies: 'Inimigos',
+    'enemy-pools': 'Grupos de inimigos', companions: 'Companheiros', races: 'Raças', supports: 'Suportes',
+    'support-routines': 'Rotinas de suporte',
+  },
+}
+
 export function definitionCopy(locale: keyof typeof ruleCopy, section: DefinitionSection) {
-  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale] }
-  const extra = section === 'resources' ? resourceCopy[locale] : section === 'effects' ? effectCopy[locale] : {}
+  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale] }
+  const extra = { rules: {}, effects: effectCopy[locale], resources: resourceCopy[locale], entities: entityCopy[locale] }[section]
   return { copy: { ...ruleCopy[locale], ...extra }, labels }
 }
 
@@ -158,11 +182,18 @@ const portuguese: Record<string, string> = {
   params: 'Parâmetros', parameterConstraints: 'Restrições de parâmetros', minimumExclusive: 'Mínimo exclusivo',
   operations: 'Operações', op: 'Operação', operands: 'Operandos', min: 'Mínimo', max: 'Máximo',
   minimum: 'Mínimo', maximum: 'Máximo',
+  components: 'Componentes', resources: 'Recursos', pools: 'Reservas de recursos', current: 'Valor atual',
+  values: 'Valores', valueRules: 'Regras de atributos', stats: 'Atributos', inventory: 'Inventário',
+  startingItems: 'Itens iniciais', capacity: 'Capacidade', abilities: 'Habilidades', abilityIds: 'Ações disponíveis',
+  deck_compartments: 'Compartimentos do deck', profileId: 'Perfil de compartimentos', responses: 'Respostas',
+  entityDefinitionId: 'Entidade', entityDefinitionIds: 'Entidades', countsForOutcome: 'Conta para o resultado',
+  ownerActivationInterval: 'Intervalo de ativações do dono', routineIds: 'Rotinas permitidas',
+  defaultRoutineId: 'Rotina padrão', gambitIds: 'Gambitos', iconPath: 'Caminho do ícone', spritePath: 'Caminho do sprite',
 }
 
 export function fieldLabel(key: string, locale: string) {
   if (locale === 'pt-BR' && portuguese[key]) return portuguese[key]
   if (key === 'op') return 'Operation'
   if (key === 'params') return 'Parameters'
-  return key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (letter) => letter.toUpperCase())
+  return key.replaceAll('_', ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (letter) => letter.toUpperCase())
 }

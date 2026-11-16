@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { Boxes, ChevronRight, FileText, GitBranch, LockKeyhole, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
+import { Boxes, ChevronRight, FileText, GitBranch, LockKeyhole, Plus, Search, Sparkles, Trash2, Users } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
@@ -27,7 +27,7 @@ function titleOf(value: Definition | undefined, id: string) {
 function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspace, section }: Props) {
   const { copy, labels } = definitionCopy(locale, section)
   const groups = definitionGroups[section]
-  const Icon = section === 'resources' ? Boxes : section === 'effects' ? Sparkles : GitBranch
+  const Icon = { resources: Boxes, effects: Sparkles, rules: GitBranch, entities: Users }[section]
   const actionsCopy = cardCopy[locale]
   const [kind, setKind] = useState<DefinitionKind>(groups[0][0])
   const [selected, setSelected] = useState('')
@@ -203,7 +203,7 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
               </section> : schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
                 schema={schema.data.data.schema} context={{
                   key: apiKey, setting, disabled: !editable, locale, copy, root: value, draft: draft.frame,
-                  full: section === 'resources', reorder: kind === 'formulas', schemaRoot: schema.data.data.schema,
+                  full: section === 'resources' || section === 'entities', reorder: kind === 'formulas', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
                   onCreateReference: (target) => { chooseKind(target as DefinitionKind); setModal('create') },
                 }} /> : schema.isError ? <p className="error">{actionsCopy.sourceUnavailable}</p> : <Loading label={shell.loading} />

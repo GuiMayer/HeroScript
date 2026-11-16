@@ -70,10 +70,11 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
   </details>
 }
 
-export function PropertyFields({ value: entries, update, copy, disabled, onTyping, typed }: {
+export function PropertyFields({ value: entries, update, copy, disabled, onTyping, typed, keyInput }: {
   value: Definition; update: (value: Definition) => void; copy: RuleCopy; disabled: boolean
   onTyping: (typing: boolean) => void
   typed?: { initial: unknown; render: (name: string, value: unknown, update: (next: unknown) => void) => ReactNode }
+  keyInput?: (value: string, change: (value: string) => void) => ReactNode
 }) {
   const [key, setKey] = useState('')
   const [kind, setKind] = useState<ValueKind>('text')
@@ -108,16 +109,16 @@ export function PropertyFields({ value: entries, update, copy, disabled, onTypin
           }} />
         </div>}
         {!disabled && renaming === name && <div className="property-rename rule-reference-row">
-          <label className="field"><span>{copy.propertyName}</span><input autoFocus value={renameKey}
+          {keyInput ? keyInput(renameKey, setRenameKey) : <label className="field"><span>{copy.propertyName}</span><input autoFocus value={renameKey}
             onChange={(event) => setRenameKey(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); rename() } }} /></label>
+            onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); rename() } }} /></label>}
           <button type="button" className="secondary" disabled={!canRename} onClick={rename}>{copy.renameProperty}</button>
         </div>}
       </div>
     })}
     {!disabled && <div className="property-add">
-      <label className="field"><span>{copy.propertyName}</span><input value={key} onChange={(event) => setKey(event.target.value)}
-        onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add() } }} /></label>
+      {keyInput ? keyInput(key, setKey) : <label className="field"><span>{copy.propertyName}</span><input value={key} onChange={(event) => setKey(event.target.value)}
+        onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add() } }} /></label>}
       {!typed && <ValueType label={copy.valueType} kind={kind} copy={copy} disabled={disabled} select={(next) => { if (next) setKind(next) }} />}
       <button type="button" className="secondary" disabled={!newKey || Object.hasOwn(entries, newKey)} onClick={add}>
         <Plus size={15} />{copy.addProperty}

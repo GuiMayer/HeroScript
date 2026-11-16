@@ -5,7 +5,7 @@ import { api, settingPath, type Definition, type Schemas } from './api/client'
 import { TextField } from './TextField'
 import { array, object, propertyKey, string, type Frame } from './editor-state'
 import { fieldLabel, type RuleCopy } from './rule-copy'
-import { resolveSchema, type Schema } from './authoring-schema'
+import { discriminatedSchemas, resolveSchema, type Schema } from './authoring-schema'
 import { FreeField, PropertyFields } from './FreeField'
 
 interface Context {
@@ -149,6 +149,10 @@ function Field({ label, path, schema, value, update, context }: {
   if (types.includes('array') && shape.items && !Array.isArray(shape.items)) {
     const values = array(value)
     const { shape: itemSchema } = schemaShape(shape.items, context.schemaRoot)
+    const variants = context.full ? discriminatedSchemas(itemSchema, context.schemaRoot) : undefined
+    if (variants?.size) return <Fold label={label} count={values.length}>
+      <VariantItems values={values} update={update} variants={variants} context={context} path={path} />
+    </Fold>
     if (elementReference) return <Fold label={label} count={values.length}>
       <div className="rule-reference-list">
         {values.map((item, index) => <div className="rule-reference-row" key={index}>
@@ -206,8 +210,11 @@ function Field({ label, path, schema, value, update, context }: {
   if (context.full && types.includes('object') && typeof shape.additionalProperties === 'object' &&
       Object.keys(shape.additionalProperties).length) {
     const entrySchema = shape.additionalProperties
+    const keyReference = context.refs[`${path}/@key`]
     return <Fold label={label} count={Object.keys(object(value)).length}>
       <PropertyFields value={object(value)} update={update} copy={context.copy} disabled={context.disabled} onTyping={context.onTyping}
+        keyInput={keyReference ? (key, change) => <Reference context={context} label={fieldLabel('resourceId', context.locale)}
+          kind={keyReference} value={key} commit={change} immediate /> : undefined}
         typed={{ initial: initialValue(entrySchema, context.schemaRoot), render: (key, entry, replace) =>
           <Field label={key} path={`${path}/*`} schema={entrySchema} value={entry} update={replace} context={context} /> }} />
     </Fold>
@@ -220,12 +227,44 @@ function Field({ label, path, schema, value, update, context }: {
   </Fold>
 }
 
-function Reference({ context, kind, label, value, commit }: {
+function VariantItems({ values, update, variants, context, path }: {
+  values: unknown[]; update: (value: unknown[]) => void; variants: Map<string, Schema>; context: Context; path: string
+}) {
+  const [selected, setSelected] = useState(() => variants.keys().next().value ?? '')
+  return <div className="rule-array">
+    {values.map((value, index) => {
+      const item = object(value)
+      const kind = string(item.type)
+      const properties = variants.get(kind)?.properties
+      const identification = string(item[propertyKey(item, 'componentId')])
+      const label = kind ? fieldLabel(kind, context.locale) : context.copy.componentType
+      return <Fold label={identification ? `${label} · ${identification}` : label} key={index}>
+        {properties && <ObjectFields properties={properties} value={item} path={`${path}/*`} skip="type" context={context}
+          update={(next) => update(values.map((current, position) => position === index ? { type: kind, ...next } : current))} />}
+        {!context.disabled && <button type="button" className="text-button rule-array-remove"
+          onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} />{context.copy.removeItem}</button>}
+      </Fold>
+    })}
+    {!context.disabled && <div className="rule-reference-row">
+      <label className="field"><span>{context.copy.componentType}</span>
+        <select value={selected} onChange={(event) => setSelected(event.target.value)}>
+          {[...variants.keys()].map((kind) => <option key={kind} value={kind}>{fieldLabel(kind, context.locale)}</option>)}
+        </select>
+      </label>
+      <button type="button" className="secondary" onClick={() => update([...values, { type: selected }])}>
+        <Plus size={15} />{context.copy.addComponent}
+      </button>
+    </div>}
+  </div>
+}
+
+function Reference({ context, kind, label, value, commit, immediate = false }: {
   context: Context; kind: string; label: string; value: string; commit: (value: string) => void
+  immediate?: boolean
 }) {
   const id = useId()
   const [input, setInput] = useState<string | null>(null)
-  const search = useDeferredValue(input === value ? '' : input ?? '')
+  const search = useDeferredValue(immediate ? input ?? '' : input === value ? '' : input ?? '')
   const local = kind.startsWith('local:')
   const query = useQuery({
     queryKey: ['authoring', context.setting, 'references', kind, search],
@@ -234,12 +273,13 @@ function Reference({ context, kind, label, value, commit }: {
       `${settingPath(context.setting)}/references/${encodeURIComponent(kind)}?limit=50&q=${encodeURIComponent(search)}`, { signal }),
   })
   const localPath = kind.slice('local:'.length).split('/')
-  const localKey = localPath.pop()!
+  const localKey = localPath.length > 1 ? localPath.pop() : undefined
   const localValue = local ? localPath.reduce<unknown>((node, name) => {
     const parent = object(node)
     return parent[propertyKey(parent, name)]
   }, context.root) : undefined
   const source = local ? array(localValue).map((item) => {
+    if (!localKey) return string(item)
     const row = object(item)
     return string(row[propertyKey(row, localKey)])
   })
@@ -253,9 +293,13 @@ function Reference({ context, kind, label, value, commit }: {
   return <div className="rule-reference">
     <label className="field"><span>{label}</span><input value={input ?? value} list={id}
       disabled={context.disabled} onFocus={() => setInput(value)}
-      onChange={(event) => { setInput(event.target.value); context.onTyping(event.target.value !== value) }}
+      onChange={(event) => {
+        setInput(event.target.value)
+        if (immediate) commit(event.target.value)
+        else context.onTyping(event.target.value !== value)
+      }}
       onBlur={() => {
-        if (input !== null && input !== value) commit(input.trim())
+        if (!immediate && input !== null && input !== value) commit(input.trim())
         setInput(null)
         context.onTyping(false)
       }} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} />

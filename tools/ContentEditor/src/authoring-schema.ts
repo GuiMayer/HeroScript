@@ -26,9 +26,13 @@ export function resolveSchema(schema: Schema, root: unknown): Schema {
 
 export function cardComponentSchemas(root: unknown): Map<string, Schema> {
   const components = (root as Schema | undefined)?.properties?.components
-  const item = components?.items && resolveSchema(components.items, root)
+  return components?.items ? discriminatedSchemas(components.items, root) : new Map()
+}
+
+export function discriminatedSchemas(schema: Schema, root: unknown): Map<string, Schema> {
+  const item = resolveSchema(schema, root)
   const result = new Map<string, Schema>()
-  for (const option of item?.oneOf ?? item?.anyOf ?? []) {
+  for (const option of item.oneOf ?? item.anyOf ?? []) {
     const branch = resolveSchema(option, root)
     const type = branch.properties?.type?.const
     if (typeof type === 'string') result.set(type, branch)
