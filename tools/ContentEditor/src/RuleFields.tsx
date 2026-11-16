@@ -162,7 +162,10 @@ function Field({ label, path, schema, value, update, context }: {
             onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} /></button>}
         </div>)}
         {!context.disabled && <Reference label={`${label} +`} kind={elementReference} context={context}
-          value="" commit={(id) => { if (id && !values.includes(id)) update([...values, id]) }} />}
+          value="" commit={(id) => {
+            const repeatable = array(object(context.schemaRoot)['x-authoring-repeatable-references']).includes(referencePath)
+            if (id && (repeatable || !values.includes(id))) update([...values, id])
+          }} />}
       </div>
     </Fold>
     if (itemSchema.properties || context.full) return <Fold label={label} count={values.length}>
@@ -211,9 +214,11 @@ function Field({ label, path, schema, value, update, context }: {
       Object.keys(shape.additionalProperties).length) {
     const entrySchema = shape.additionalProperties
     const keyReference = context.refs[`${path}/@key`]
+    const keyLabel = keyReference === 'resources' ? fieldLabel('resourceId', context.locale)
+      : keyReference === 'card-rarities' ? fieldLabel('rarity', context.locale) : context.copy.propertyName
     return <Fold label={label} count={Object.keys(object(value)).length}>
       <PropertyFields value={object(value)} update={update} copy={context.copy} disabled={context.disabled} onTyping={context.onTyping}
-        keyInput={keyReference ? (key, change) => <Reference context={context} label={fieldLabel('resourceId', context.locale)}
+        keyInput={keyReference ? (key, change) => <Reference context={context} label={keyLabel}
           kind={keyReference} value={key} commit={change} immediate /> : undefined}
         typed={{ initial: initialValue(entrySchema, context.schemaRoot), render: (key, entry, replace) =>
           <Field label={key} path={`${path}/*`} schema={entrySchema} value={entry} update={replace} context={context} /> }} />

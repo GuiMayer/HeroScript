@@ -13,15 +13,20 @@ const entityGroups = [
   ['entities', 'enemy-pools', 'supports', 'support-routines'],
   ['enemies', 'companions', 'races'],
 ] as const
+const deckGroups = [
+  ['card-pools', 'decks', 'deck-modules', 'deck-composition-policies', 'deck-compartment-profiles', 'deck-compartment-policies'],
+  ['loadout-policies', 'support-loadout-policies', 'inscriptions'],
+] as const
 export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number] |
-  (typeof resourceGroups)[number][number] | (typeof entityGroups)[number][number]
-export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities'
+  (typeof resourceGroups)[number][number] | (typeof entityGroups)[number][number] | (typeof deckGroups)[number][number]
+export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities' | 'decks'
 
 export const definitionGroups = {
   rules: [ruleKinds.slice(0, 4), ruleKinds.slice(4)],
   effects: [effectKinds.slice(0, 5), effectKinds.slice(5)],
   resources: resourceGroups,
   entities: entityGroups,
+  decks: deckGroups,
 }
 
 export const ruleCopy = {
@@ -120,9 +125,29 @@ const entityCopy = {
   },
 }
 
+const deckCopy = {
+  en: {
+    intro: 'Configure card pools, deck composition, compartments and equipment.',
+    rules: 'Deck and pool catalog', gameplay: 'Decks, pools and compartments', policies: 'Equipment',
+    editing: 'Deck and pool editing controls',
+    decks: 'Decks', 'card-pools': 'Card pools', 'deck-modules': 'Deck modules', 'deck-composition-policies': 'Deck composition policies',
+    'deck-compartment-profiles': 'Deck compartment profiles', 'deck-compartment-policies': 'Deck compartment policies',
+    'loadout-policies': 'Equipment policies', 'support-loadout-policies': 'Support equipment policies', inscriptions: 'Inscriptions',
+  },
+  'pt-BR': {
+    intro: 'Configure pools de cartas, composição de decks, compartimentos e equipamentos.',
+    rules: 'Catálogo de decks e pools', gameplay: 'Decks, pools e compartimentos', policies: 'Equipamentos',
+    editing: 'Controles de edição de decks e pools',
+    decks: 'Decks', 'card-pools': 'Pools de cartas', 'deck-modules': 'Módulos de deck', 'deck-composition-policies': 'Políticas de composição',
+    'deck-compartment-profiles': 'Perfis de compartimentos', 'deck-compartment-policies': 'Políticas de compartimentos',
+    'loadout-policies': 'Políticas de equipamento', 'support-loadout-policies': 'Políticas de equipamento de suporte', inscriptions: 'Inscrições',
+  },
+}
+
 export function definitionCopy(locale: keyof typeof ruleCopy, section: DefinitionSection) {
-  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale] }
-  const extra = { rules: {}, effects: effectCopy[locale], resources: resourceCopy[locale], entities: entityCopy[locale] }[section]
+  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale], ...deckCopy[locale] }
+  const extra = { rules: {}, effects: effectCopy[locale], resources: resourceCopy[locale],
+    entities: entityCopy[locale], decks: deckCopy[locale] }[section]
   return { copy: { ...ruleCopy[locale], ...extra }, labels }
 }
 
@@ -189,6 +214,21 @@ const portuguese: Record<string, string> = {
   entityDefinitionId: 'Entidade', entityDefinitionIds: 'Entidades', countsForOutcome: 'Conta para o resultado',
   ownerActivationInterval: 'Intervalo de ativações do dono', routineIds: 'Rotinas permitidas',
   defaultRoutineId: 'Rotina padrão', gambitIds: 'Gambitos', iconPath: 'Caminho do ícone', spritePath: 'Caminho do sprite',
+  explicitCardIds: 'Cartas incluídas', includeTags: 'Tags de inclusão', excludeTags: 'Tags de exclusão',
+  rarity: 'Raridade', rarityWeights: 'Pesos de raridade', editWindows: 'Momentos em que é possível editar',
+  equipmentWindows: 'Momentos em que é possível equipar', groups: 'Grupos', groupId: 'ID do grupo',
+  cardIds: 'Cartas permitidas', startingCardIds: 'Cartas iniciais', allowDuplicateDefinitions: 'Permitir cópias da mesma definição',
+  moduleIds: 'Módulos permitidos', startingModuleId: 'Módulo inicial', compartments: 'Compartimentos', compartmentId: 'ID do compartimento',
+  grants: 'Componentes concedidos', grantId: 'ID da concessão', bundleId: 'Pacote de componentes',
+  effectBindings: 'Vínculos de efeitos', grantedTags: 'Tags concedidas', preparationOnly: 'Apenas na preparação',
+  inscriptionIds: 'Inscrições permitidas', startingInscriptionIds: 'Inscrições iniciais', slots: 'Slots', slotId: 'ID do slot',
+  supportIds: 'Suportes permitidos', startingOwnedSupportIds: 'Suportes inicialmente possuídos', startingSupportId: 'Suporte equipado inicialmente',
+  inventoryScope: 'Escopo do inventário', capacityOnly: 'Equipamento por capacidade', allowTransfers: 'Permitir transferências',
+  maximumInventoryEntries: 'Limite de itens no inventário', stations: 'Estações', stationId: 'ID da estação',
+  offerCount: 'Quantidade de ofertas', maximumPurchases: 'Máximo de compras', pool: 'Pool de ofertas',
+  allowedActorDefinitionIds: 'Entidades autorizadas', attributeBonuses: 'Bônus de atributos', attributeId: 'Atributo',
+  rank: 'Nível', ranks: 'Níveis', equipmentCost: 'Custo de equipamento', polarity: 'Polaridade',
+  revisionMigration: 'Migração de revisão', influenceValues: 'Valores de influência', presentation: 'Apresentação',
 }
 
 export function fieldLabel(key: string, locale: string) {
