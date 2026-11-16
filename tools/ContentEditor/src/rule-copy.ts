@@ -5,12 +5,17 @@ export const ruleKinds = [
 const effectKinds = [
   'actions', 'modifiers', 'status-effects', 'effect-resolution-policies', 'gambits', 'powers', 'keywords',
 ] as const
-export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number]
-export type DefinitionSection = 'rules' | 'effects'
+const resourceGroups = [
+  ['resources', 'actor-resource-lifecycle-policies'],
+  ['calculation-pipelines', 'formulas'],
+] as const
+export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number] | (typeof resourceGroups)[number][number]
+export type DefinitionSection = 'rules' | 'effects' | 'resources'
 
 export const definitionGroups = {
   rules: [ruleKinds.slice(0, 4), ruleKinds.slice(4)],
   effects: [effectKinds.slice(0, 5), effectKinds.slice(5)],
+  resources: resourceGroups,
 }
 
 export const ruleCopy = {
@@ -31,6 +36,7 @@ export const ruleCopy = {
     retryReferences: 'Retry loading options',
     costSettings: 'Cost settings', resourceCosts: 'Resource costs',
     valueType: 'Value type', addProperty: 'Add property', renameProperty: 'Rename property',
+    moveEarlier: 'Move earlier', moveLater: 'Move later',
     'combat-rules': 'Combat rules', 'flow-rules': 'Flow rules', 'phase-sequences': 'Phase sequences', modes: 'Game modes',
     'capability-policies': 'Capability policies', 'content-binding-policies': 'Content binding', 'replay-policies': 'Replay', 'timeline-policies': 'Timeline',
   },
@@ -51,6 +57,7 @@ export const ruleCopy = {
     retryReferences: 'Tentar carregar opções novamente',
     costSettings: 'Configuração do custo', resourceCosts: 'Custos de recursos',
     valueType: 'Tipo de valor', addProperty: 'Adicionar propriedade', renameProperty: 'Renomear propriedade',
+    moveEarlier: 'Mover para cima', moveLater: 'Mover para baixo',
     'combat-rules': 'Regras de combate', 'flow-rules': 'Regras de fluxo', 'phase-sequences': 'Sequências de fases', modes: 'Modos de jogo',
     'capability-policies': 'Permissões', 'content-binding-policies': 'Vínculo de conteúdo', 'replay-policies': 'Replay', 'timeline-policies': 'Linha do tempo',
   },
@@ -72,9 +79,27 @@ const effectCopy = {
   },
 }
 
+const resourceCopy = {
+  en: {
+    intro: 'Configure resources, their lifecycle, calculation pipelines and formulas.',
+    rules: 'Resource and formula catalog', gameplay: 'Resources and lifecycle', policies: 'Calculations',
+    editing: 'Resource and formula editing controls',
+    resources: 'Resources', 'actor-resource-lifecycle-policies': 'Resource lifecycle policies',
+    'calculation-pipelines': 'Calculation pipelines', formulas: 'Formulas',
+  },
+  'pt-BR': {
+    intro: 'Configure recursos, seu ciclo de vida, pipelines de cálculo e fórmulas.',
+    rules: 'Catálogo de recursos e fórmulas', gameplay: 'Recursos e ciclo de vida', policies: 'Cálculos',
+    editing: 'Controles de edição de recursos e fórmulas',
+    resources: 'Recursos', 'actor-resource-lifecycle-policies': 'Políticas de ciclo de vida dos recursos',
+    'calculation-pipelines': 'Pipelines de cálculo', formulas: 'Fórmulas',
+  },
+}
+
 export function definitionCopy(locale: keyof typeof ruleCopy, section: DefinitionSection) {
-  const labels = { ...ruleCopy[locale], ...effectCopy[locale] }
-  return { copy: section === 'effects' ? labels : ruleCopy[locale], labels }
+  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale] }
+  const extra = section === 'resources' ? resourceCopy[locale] : section === 'effects' ? effectCopy[locale] : {}
+  return { copy: { ...ruleCopy[locale], ...extra }, labels }
 }
 
 const portuguese: Record<string, string> = {
@@ -120,9 +145,24 @@ const portuguese: Record<string, string> = {
   failureReason: 'Mensagem quando a condição falhar', relativeOffset: 'Posição relativa',
   minimumTargets: 'Mínimo de alvos', maximumTargets: 'Máximo de alvos', allowSelf: 'Permitir selecionar a si mesmo',
   cardZoneResolutionFlowId: 'Fluxo de destino da carta', channel: 'Canal', bucket: 'Grupo de cálculo', value: 'Valor',
+  shortName: 'Nome curto', category: 'Categoria', defaultMin: 'Mínimo padrão', defaultMax: 'Máximo padrão',
+  defaultCurrent: 'Valor inicial', canBeNegative: 'Permitir valor negativo', canExceedMax: 'Permitir exceder o máximo',
+  costMultiplier: 'Multiplicador de custo', regeneration: 'Regeneração', amountPerTurn: 'Quantidade por turno',
+  timing: 'Momento da regeneração', thresholdPolicies: 'Políticas de limite', thresholdSource: 'Origem do limite',
+  thresholdValue: 'Valor do limite', tolerance: 'Tolerância', comparison: 'Comparação', consequence: 'Consequência',
+  rules: 'Regras', entry: 'Entrada', victory: 'Vitória', defeat: 'Derrota', draw: 'Empate', abandoned: 'Abandono',
+  retry: 'Nova tentativa', configuredValue: 'Valor configurado', missingResource: 'Quando o recurso estiver ausente',
+  unitId: 'Unidade', stages: 'Etapas', stageId: 'Etapa', scope: 'Escopo', buckets: 'Grupos de cálculo',
+  bucketId: 'ID do grupo', rounding: 'Arredondamento', midpointRounding: 'Arredondamento de empates',
+  resourceInfluenceBindings: 'Influências de recursos', statInfluenceBindings: 'Influências de atributos',
+  params: 'Parâmetros', parameterConstraints: 'Restrições de parâmetros', minimumExclusive: 'Mínimo exclusivo',
+  operations: 'Operações', op: 'Operação', operands: 'Operandos', min: 'Mínimo', max: 'Máximo',
+  minimum: 'Mínimo', maximum: 'Máximo',
 }
 
 export function fieldLabel(key: string, locale: string) {
   if (locale === 'pt-BR' && portuguese[key]) return portuguese[key]
+  if (key === 'op') return 'Operation'
+  if (key === 'params') return 'Parameters'
   return key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (letter) => letter.toUpperCase())
 }

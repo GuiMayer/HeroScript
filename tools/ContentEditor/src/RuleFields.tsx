@@ -1,12 +1,12 @@
 import { useDeferredValue, useId, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
 import { api, settingPath, type Definition, type Schemas } from './api/client'
 import { TextField } from './TextField'
 import { array, object, propertyKey, string, type Frame } from './editor-state'
 import { fieldLabel, type RuleCopy } from './rule-copy'
 import { resolveSchema, type Schema } from './authoring-schema'
-import { FreeField } from './FreeField'
+import { FreeField, PropertyFields } from './FreeField'
 
 interface Context {
   key: string
@@ -17,6 +17,7 @@ interface Context {
   refs: Record<string, string>
   schemaRoot?: unknown
   full?: boolean
+  reorder?: boolean
   root: Definition
   draft: Frame
   onTyping: (dirty: boolean) => void
@@ -31,7 +32,7 @@ export function SchemaFields({ schema, value, update, context, path, skip }: {
 }
 
 export function RuleFields({ schema, identity, value, update, context }: {
-  schema: unknown; identity: string; value: Definition; update: (value: Definition) => void; context: Context
+  schema: unknown; identity?: string; value: Definition; update: (value: Definition) => void; context: Context
 }) {
   const properties = object(schema).properties as Record<string, Schema> | undefined
   if (!properties) return <p className="muted">{context.copy.editAdvanced}</p>
@@ -77,13 +78,28 @@ function Fold({ label, count, children, initiallyOpen = false }: { label: string
   </details>
 }
 
+function schemaShape(schema: Schema, root: unknown) {
+  const resolved = resolveSchema(schema, root)
+  const variant = resolved.anyOf ?? resolved.oneOf
+  const nonNull = variant?.filter((item) => item.type !== 'null') ?? []
+  return { shape: nonNull.length === 1 ? resolveSchema(nonNull[0], root) : resolved, variant }
+}
+
+function initialValue(schema: Schema, root: unknown): unknown {
+  const { shape } = schemaShape(schema, root)
+  const types = Array.isArray(shape.type) ? shape.type : [shape.type]
+  if (shape.properties || types.includes('object')) return {}
+  if (types.includes('array')) return []
+  if (types.includes('integer') || types.includes('number')) return 0
+  if (types.includes('boolean')) return false
+  if (types.includes('string')) return ''
+  return shape.enum?.[0] ?? null
+}
+
 function Field({ label, path, schema, value, update, context }: {
   label: string; path: string; schema: Schema; value: unknown; update: (value: unknown) => void; context: Context
 }) {
-  const resolved = resolveSchema(schema, context.schemaRoot)
-  const variant = resolved.anyOf ?? resolved.oneOf
-  const nonNull = variant?.filter((item) => item.type !== 'null') ?? []
-  const shape = nonNull.length === 1 ? resolveSchema(nonNull[0], context.schemaRoot) : resolved
+  const { shape, variant } = schemaShape(schema, context.schemaRoot)
   const types = Array.isArray(shape.type) ? shape.type : [shape.type]
   const referencePath = path.replaceAll('/chainedEffects/*', '')
   const reference = context.refs[path] ?? context.refs[referencePath]
@@ -132,7 +148,7 @@ function Field({ label, path, schema, value, update, context }: {
     </Fold>
   if (types.includes('array') && shape.items && !Array.isArray(shape.items)) {
     const values = array(value)
-    const itemSchema = resolveSchema(shape.items, context.schemaRoot)
+    const { shape: itemSchema } = schemaShape(shape.items, context.schemaRoot)
     if (elementReference) return <Fold label={label} count={values.length}>
       <div className="rule-reference-list">
         {values.map((item, index) => <div className="rule-reference-row" key={index}>
@@ -149,26 +165,51 @@ function Field({ label, path, schema, value, update, context }: {
       <div className="rule-array">
         {values.map((item, index) => {
           const row = object(item)
-          const name = ['name', 'phaseId', 'edgeId', 'effectId', 'triggerId', 'optionId', 'paymentId', 'resourceId']
+          const name = ['name', 'phaseId', 'edgeId', 'effectId', 'triggerId', 'optionId', 'paymentId', 'resourceId', 'op', 'stageId', 'bucketId']
             .map((key) => string(row[propertyKey(row, key)]))
             .find(Boolean) || `${label} ${index + 1}`
-          const replace = (next: unknown) => update(values.map((current, position) => position === index ? next ?? null : current))
+          const replace = (next: unknown) => update(values.map((current, position) =>
+            position === index ? next ?? initialValue(itemSchema, context.schemaRoot) : current))
+          const move = (offset: number) => {
+            const reordered = [...values]
+            const target = index + offset
+            reordered[index] = values[target]
+            reordered[target] = values[index]
+            update(reordered)
+          }
           return <Fold key={index} label={name}>
             {itemSchema.properties ? <ObjectFields properties={itemSchema.properties} value={row} context={context}
               path={`${path}/*`} update={replace} /> : <Field label={context.copy.value} schema={itemSchema} value={item}
               context={context} path={`${path}/*`} update={replace} />}
-            {!context.disabled && <button type="button" className="text-button rule-array-remove"
-              onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} />
-              {context.copy.removeItem}
-            </button>}
+            {!context.disabled && <div className="property-actions rule-array-remove">
+              {context.reorder && <>
+                <button type="button" className="icon-button" aria-label={`${context.copy.moveEarlier}: ${name}`}
+                  disabled={index === 0} onClick={() => move(-1)}><ChevronUp size={15} /></button>
+                <button type="button" className="icon-button" aria-label={`${context.copy.moveLater}: ${name}`}
+                  disabled={index === values.length - 1} onClick={() => move(1)}><ChevronDown size={15} /></button>
+              </>}
+              <button type="button" className="text-button"
+                onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} />
+                {context.copy.removeItem}
+              </button>
+            </div>}
           </Fold>
         })}
         {!context.disabled && <button type="button" className="secondary" onClick={() => update([
-          ...values, itemSchema.properties ? {} : itemSchema.type === 'string' ? '' : null,
+          ...values, initialValue(itemSchema, context.schemaRoot),
         ])}>
           <Plus size={15} />{context.copy.addItem}
         </button>}
       </div>
+    </Fold>
+  }
+  if (context.full && types.includes('object') && typeof shape.additionalProperties === 'object' &&
+      Object.keys(shape.additionalProperties).length) {
+    const entrySchema = shape.additionalProperties
+    return <Fold label={label} count={Object.keys(object(value)).length}>
+      <PropertyFields value={object(value)} update={update} copy={context.copy} disabled={context.disabled} onTyping={context.onTyping}
+        typed={{ initial: initialValue(entrySchema, context.schemaRoot), render: (key, entry, replace) =>
+          <Field label={key} path={`${path}/*`} schema={entrySchema} value={entry} update={replace} context={context} /> }} />
     </Fold>
   }
   if (context.full) return <FreeField label={label} value={value} update={update} copy={context.copy} disabled={context.disabled}

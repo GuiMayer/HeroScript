@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { ChevronRight, FileText, GitBranch, LockKeyhole, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
+import { Boxes, ChevronRight, FileText, GitBranch, LockKeyhole, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
@@ -27,7 +27,7 @@ function titleOf(value: Definition | undefined, id: string) {
 function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspace, section }: Props) {
   const { copy, labels } = definitionCopy(locale, section)
   const groups = definitionGroups[section]
-  const Icon = section === 'effects' ? Sparkles : GitBranch
+  const Icon = section === 'resources' ? Boxes : section === 'effects' ? Sparkles : GitBranch
   const actionsCopy = cardCopy[locale]
   const [kind, setKind] = useState<DefinitionKind>(groups[0][0])
   const [selected, setSelected] = useState('')
@@ -57,7 +57,7 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
       `${settingPath(setting)}/kinds/${encodeURIComponent(kind)}/schema`, { signal }),
   })
   const identity = schema.data?.data.identityProperty ?? undefined
-  const raw = !!schema.data && !identity
+  const raw = !!schema.data && !object(schema.data.data.schema).properties
   const showFields = tab === 'fields'
   const rows = new Map<string, Schemas['CardAuthoringSummary']>()
   for (const { data } of list.data?.pages ?? [])
@@ -200,14 +200,15 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
                 <p className="muted">{copy.rawNotice}</p>
                 <PropertyFields key={`${kind}/${id}`} value={value} update={update}
                   copy={copy} disabled={!editable} onTyping={setTyping} />
-              </section> : identity && schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
+              </section> : schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
                 schema={schema.data.data.schema} context={{
                   key: apiKey, setting, disabled: !editable, locale, copy, root: value, draft: draft.frame,
+                  full: section === 'resources', reorder: kind === 'formulas', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
                   onCreateReference: (target) => { chooseKind(target as DefinitionKind); setModal('create') },
                 }} /> : schema.isError ? <p className="error">{actionsCopy.sourceUnavailable}</p> : <Loading label={shell.loading} />
               : <RuleAdvanced key={`${kind}/${id}`} value={value} source={source} disabled={!editable || !schema.data}
-                id={id} identity={identity} raw={raw} update={update} copy={copy} actionsCopy={actionsCopy} />}
+                id={id} identity={identity} update={update} copy={copy} actionsCopy={actionsCopy} />}
           </div>
         </> : <div className="detail-empty"><span className="empty-icon"><Icon size={23} /></span>
           <p>{detail.isError ? actionsCopy.sourceUnavailable : copy.select}</p>
@@ -239,13 +240,13 @@ function Loading({ label }: { label: string }) {
   </div>
 }
 
-function RuleAdvanced({ id, value, identity, raw, source, disabled, update, copy, actionsCopy }: {
-  id: string; value: Definition; identity?: string; raw: boolean; source?: Schemas['AuthoringDefinitionDetail']; disabled: boolean
+function RuleAdvanced({ id, value, identity, source, disabled, update, copy, actionsCopy }: {
+  id: string; value: Definition; identity?: string; source?: Schemas['AuthoringDefinitionDetail']; disabled: boolean
   update: (next: Definition) => void; copy: RuleCopy; actionsCopy: CardCopy
 }) {
   return <div className="field-sections">
     <JsonSource value={value} disabled={disabled} update={update} copy={actionsCopy} label={copy.source}
-      id={id} identity={identity} invalidMessage={raw ? copy.rawInvalid : copy.invalidJson} />
+      id={id} identity={identity} invalidMessage={identity ? copy.invalidJson : copy.rawInvalid} />
     {source?.source !== undefined && <details className="form-section disclosure"><summary>{copy.latest}</summary>
       <pre className="code-view">{JSON.stringify(source.source, null, 2)}</pre></details>}
     {source?.effective !== undefined && <details className="form-section disclosure"><summary>{actionsCopy.effective}</summary>

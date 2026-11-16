@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Pencil, Plus, X } from 'lucide-react'
 import type { Definition } from './api/client'
 import { object } from './editor-state'
@@ -70,9 +70,10 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
   </details>
 }
 
-export function PropertyFields({ value: entries, update, copy, disabled, onTyping }: {
+export function PropertyFields({ value: entries, update, copy, disabled, onTyping, typed }: {
   value: Definition; update: (value: Definition) => void; copy: RuleCopy; disabled: boolean
   onTyping: (typing: boolean) => void
+  typed?: { initial: unknown; render: (name: string, value: unknown, update: (next: unknown) => void) => ReactNode }
 }) {
   const [key, setKey] = useState('')
   const [kind, setKind] = useState<ValueKind>('text')
@@ -82,7 +83,7 @@ export function PropertyFields({ value: entries, update, copy, disabled, onTypin
   const canRename = renaming !== null && !!renameKey.trim() && renameKey.trim() !== renaming && !Object.hasOwn(entries, renameKey.trim())
   function add() {
     if (!newKey || Object.hasOwn(entries, newKey)) return
-    update({ ...entries, [newKey]: defaults[kind] })
+    update({ ...entries, [newKey]: typed ? typed.initial : defaults[kind] })
     setKey('')
   }
   function rename() {
@@ -91,30 +92,33 @@ export function PropertyFields({ value: entries, update, copy, disabled, onTypin
     setRenaming(null)
   }
   return <div className="rule-array">
-    {Object.entries(entries).map(([name, item]) => <div className="free-entry" key={name}>
-      <FreeField label={name} value={item} copy={copy} disabled={disabled} onTyping={onTyping}
-        update={(next) => update({ ...entries, [name]: next ?? null })} />
-      {!disabled && <div className="property-actions">
-        <button type="button" className="icon-button" aria-label={`${copy.renameProperty}: ${name}`} title={copy.renameProperty}
-          onClick={() => { setRenaming(renaming === name ? null : name); setRenameKey(name) }}><Pencil size={15} /></button>
-        <Remove copy={copy} disabled={disabled} remove={() => {
-          const next = { ...entries }
-          delete next[name]
-          if (renaming === name) setRenaming(null)
-          update(next)
-        }} />
-      </div>}
-      {!disabled && renaming === name && <div className="property-rename rule-reference-row">
-        <label className="field"><span>{copy.propertyName}</span><input autoFocus value={renameKey}
-          onChange={(event) => setRenameKey(event.target.value)}
-          onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); rename() } }} /></label>
-        <button type="button" className="secondary" disabled={!canRename} onClick={rename}>{copy.renameProperty}</button>
-      </div>}
-    </div>)}
+    {Object.entries(entries).map(([name, item]) => {
+      const change = (next: unknown) => update({ ...entries, [name]: next ?? (typed ? typed.initial : null) })
+      return <div className="free-entry" key={name}>
+        {typed ? typed.render(name, item, change) : <FreeField label={name} value={item} copy={copy} disabled={disabled}
+          onTyping={onTyping} update={change} />}
+        {!disabled && <div className="property-actions">
+          <button type="button" className="icon-button" aria-label={`${copy.renameProperty}: ${name}`} title={copy.renameProperty}
+            onClick={() => { setRenaming(renaming === name ? null : name); setRenameKey(name) }}><Pencil size={15} /></button>
+          <Remove copy={copy} disabled={disabled} remove={() => {
+            const next = { ...entries }
+            delete next[name]
+            if (renaming === name) setRenaming(null)
+            update(next)
+          }} />
+        </div>}
+        {!disabled && renaming === name && <div className="property-rename rule-reference-row">
+          <label className="field"><span>{copy.propertyName}</span><input autoFocus value={renameKey}
+            onChange={(event) => setRenameKey(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); rename() } }} /></label>
+          <button type="button" className="secondary" disabled={!canRename} onClick={rename}>{copy.renameProperty}</button>
+        </div>}
+      </div>
+    })}
     {!disabled && <div className="property-add">
       <label className="field"><span>{copy.propertyName}</span><input value={key} onChange={(event) => setKey(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add() } }} /></label>
-      <ValueType label={copy.valueType} kind={kind} copy={copy} disabled={disabled} select={(next) => { if (next) setKind(next) }} />
+      {!typed && <ValueType label={copy.valueType} kind={kind} copy={copy} disabled={disabled} select={(next) => { if (next) setKind(next) }} />}
       <button type="button" className="secondary" disabled={!newKey || Object.hasOwn(entries, newKey)} onClick={add}>
         <Plus size={15} />{copy.addProperty}
       </button>
