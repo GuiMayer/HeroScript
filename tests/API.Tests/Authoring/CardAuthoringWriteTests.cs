@@ -613,6 +613,23 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var redone = await Apply(client, setting, undone.SourceVersion,
             new CardAuthoringChangeRequest { ChangeId = Guid.NewGuid(), RedoOf = undone.ChangeId });
         Assert.Equal(applied.ActiveRevisions[setting], redone.ActiveRevisions[setting]);
+        var catalogEdits = Change(
+            Operation("powers", "authoring_power", JsonNode.Parse(
+                """{"name":"Edited power","settings":{"enabled":false,"steps":[1,"hit",null]}}""")!.AsObject(),
+                CardAuthoringOperationType.Update),
+            new CardAuthoringOperation
+            {
+                Operation = CardAuthoringOperationType.Delete, Kind = "keywords", DefinitionId = "authoring_keyword"
+            });
+        using var editedPreview = await Send(client, setting, redone.SourceVersion, catalogEdits, "/changes/validate");
+        Assert.True(editedPreview.IsSuccessStatusCode, await editedPreview.Content.ReadAsStringAsync());
+        await Apply(client, setting, redone.SourceVersion, catalogEdits);
+        var power = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/powers/authoring_power");
+        var settings = power!.Source.GetProperty("settings");
+        Assert.False(settings.GetProperty("enabled").GetBoolean());
+        Assert.Equal(3, settings.GetProperty("steps").GetArrayLength());
+        using var deletedKeyword = await client.GetAsync(root + "/definitions/keywords/authoring_keyword");
+        Assert.Equal(HttpStatusCode.NotFound, deletedKeyword.StatusCode);
     }
 
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,

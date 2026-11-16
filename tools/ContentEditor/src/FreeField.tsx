@@ -38,17 +38,18 @@ function ValueType({ label, kind, copy, disabled, select, allowUnset = false }: 
 export function FreeField({ label, value, update, copy, disabled, onTyping, dictionary }: Props) {
   const kind = valueKind(value)
   const child = { copy, disabled, onTyping }
+  const valueLabel = `${label} · ${copy.value}`
   const type = <ValueType label={`${label} · ${copy.valueType}`} kind={kind} copy={copy} disabled={disabled}
     allowUnset={value === undefined} select={(next) => update(next ? defaults[next] : undefined)} />
   if (!dictionary && kind !== 'object' && kind !== 'array') return <div className="free-field">
     {type}
-    {(kind === 'text' || kind === 'number') && <TextField label={copy.value} value={String(value)} disabled={disabled}
+    {(kind === 'text' || kind === 'number') && <TextField label={valueLabel} value={String(value)} disabled={disabled}
       onTyping={onTyping} onCommit={(next) => {
         if (kind === 'text') update(next)
         else if (next.trim() && Number.isFinite(Number(next))) update(Number(next))
       }} />}
     {kind === 'boolean' && <label className="rule-check"><input type="checkbox" checked={value === true}
-      disabled={disabled} onChange={(event) => update(event.target.checked)} /><span>{copy.value}</span></label>}
+      disabled={disabled} onChange={(event) => update(event.target.checked)} /><span>{valueLabel}</span></label>}
   </div>
 
   return <details className="component rule-fold">
@@ -64,7 +65,7 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
         <Plus size={15} />{copy.addItem}
       </button>}
     </div> : <PropertyFields {...child} value={object(value)} update={update} />}
-    {!disabled && value !== undefined && <button type="button" className="text-button rule-array-remove"
+    {dictionary && !disabled && value !== undefined && <button type="button" className="text-button rule-array-remove"
       onClick={() => update(undefined)}>{copy.resetField}</button>}
   </details>
 }

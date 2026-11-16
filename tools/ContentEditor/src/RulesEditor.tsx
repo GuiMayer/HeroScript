@@ -1,14 +1,15 @@
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ChevronRight, FileText, GitBranch, LockKeyhole, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
-import { api, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
+import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
 import type { CardsProps } from './Cards'
 import { object, propertyKey, string } from './editor-state'
 import { preference } from './i18n'
 import { Modal } from './Modal'
 import { JsonSource } from './JsonSource'
+import { PropertyFields } from './FreeField'
 import { RuleFields } from './RuleFields'
 import { definitionCopy, definitionGroups, type DefinitionKind, type DefinitionSection, type RuleCopy } from './rule-copy'
 import { useCardDrafts } from './use-card-drafts'
@@ -57,7 +58,7 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   })
   const identity = schema.data?.data.identityProperty ?? undefined
   const raw = !!schema.data && !identity
-  const showFields = tab === 'fields' && !raw
+  const showFields = tab === 'fields'
   const rows = new Map<string, Schemas['CardAuthoringSummary']>()
   for (const { data } of list.data?.pages ?? [])
     for (const item of data.items ?? []) if (item.definitionId) rows.set(item.definitionId, item)
@@ -76,6 +77,10 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     enabled: !!id && !created,
     queryFn: ({ signal }) => api<Schemas['AuthoringDefinitionDetail']>(apiKey, definitionPath(setting, kind, id), { signal }),
   })
+  useEffect(() => {
+    if (selected && !staged && !detail.isFetching && detail.error instanceof ApiError && detail.error.status === 404)
+      setSelected('')
+  }, [selected, staged, detail.error, detail.isFetching])
   const source = detail.data?.data
   const value = staged?.operation.definition ? object(staged.operation.definition) : source ? object(source.source) : undefined
   const listVersion = list.data?.pages[0]?.version ?? list.data?.pages[0]?.data.sourceVersion ?? undefined
@@ -183,14 +188,19 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
               : (!writable || !source?.item?.canEdit) && <span className="meta-label"><LockKeyhole size={13} />{copy.inherited}</span>}
           </div>
           <nav className="detail-tabs" aria-label={copy.definition}>
-            {!raw && <button className={showFields ? 'chosen' : ''} aria-current={showFields ? 'page' : undefined}
-              onClick={() => setTab('fields')}>{copy.form}</button>}
+            <button className={showFields ? 'chosen' : ''} aria-current={showFields ? 'page' : undefined}
+              onClick={() => { setTyping(false); setTab('fields') }}>{copy.form}</button>
             <button className={!showFields ? 'chosen' : ''} aria-current={!showFields ? 'page' : undefined}
-              onClick={() => setTab('advanced')}>{actionsCopy.advanced}</button>
+              onClick={() => { setTyping(false); setTab('advanced') }}>{actionsCopy.advanced}</button>
           </nav>
           <div className="detail-content">
             {showFields
-              ? identity && schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
+              ? raw ? <section className="form-section">
+                <h3>{copy.properties}</h3>
+                <p className="muted">{copy.rawNotice}</p>
+                <PropertyFields key={`${kind}/${id}`} value={value} update={update}
+                  copy={copy} disabled={!editable} onTyping={setTyping} />
+              </section> : identity && schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
                 schema={schema.data.data.schema} context={{
                   key: apiKey, setting, disabled: !editable, locale, copy, root: value, draft: draft.frame,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
@@ -235,9 +245,7 @@ function RuleAdvanced({ id, value, identity, raw, source, disabled, update, copy
 }) {
   return <div className="field-sections">
     <JsonSource value={value} disabled={disabled} update={update} copy={actionsCopy} label={copy.source}
-      id={id} identity={identity} invalidMessage={raw ? copy.rawInvalid : copy.invalidJson}>
-      {raw && <p className="muted">{copy.rawNotice}</p>}
-    </JsonSource>
+      id={id} identity={identity} invalidMessage={raw ? copy.rawInvalid : copy.invalidJson} />
     {source?.source !== undefined && <details className="form-section disclosure"><summary>{copy.latest}</summary>
       <pre className="code-view">{JSON.stringify(source.source, null, 2)}</pre></details>}
     {source?.effective !== undefined && <details className="form-section disclosure"><summary>{actionsCopy.effective}</summary>
