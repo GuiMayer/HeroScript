@@ -10,23 +10,22 @@ import { ruleCopy } from './rule-copy'
 import { SchemaFields } from './RuleFields'
 
 const effectKinds = ['effect', 'trigger', 'effect_rule_override'] as const
-type EffectKind = (typeof effectKinds)[number]
-
-export function isEffectComponent(component: Definition): boolean {
-  return effectKinds.some((kind) => kind === component.type)
-}
+const ruleKinds = ['cost', 'condition', 'targeting', 'disposition', 'influence'] as const
+type ComponentKind = (typeof effectKinds)[number] | (typeof ruleKinds)[number]
 
 type Props = {
   value: Definition; disabled: boolean; copy: CardCopy; apiKey: string; setting: string; locale: Locale; draft: Frame
   update: (value: Definition) => void
+  group: 'effects' | 'rules'
 }
 
 type Edit = { index: number | null; source: Definition; value: Definition }
 
-export function CardEffects({ value, disabled, copy, apiKey, setting, update, locale, draft }: Props) {
+export function CardComponents({ value, disabled, copy, apiKey, setting, update, locale, draft, group }: Props) {
+  const kinds: readonly ComponentKind[] = group === 'effects' ? effectKinds : ruleKinds
   const [edit, setEdit] = useState<Edit | null>(null)
   const [typing, setTyping] = useState(false)
-  const [kind, setKind] = useState<EffectKind>('effect')
+  const [kind, setKind] = useState<ComponentKind>(kinds[0])
   const schema = useQuery({
     queryKey: ['authoring', setting, 'schema', 'cards'],
     queryFn: ({ signal }) => api<Schemas['AuthoringKindSchema']>(apiKey, `${settingPath(setting)}/kinds/cards/schema`, { signal }),
@@ -35,7 +34,8 @@ export function CardEffects({ value, disabled, copy, apiKey, setting, update, lo
   const definitions = cardComponentSchemas(schemaRoot)
   const componentsKey = propertyKey(value, 'components')
   const components = array(value[componentsKey])
-  const labels = { effect: copy.cardEffect, trigger: copy.cardTrigger, effect_rule_override: copy.cardEffectOverride }
+  const labels = { effect: copy.cardEffect, trigger: copy.cardTrigger, effect_rule_override: copy.cardEffectOverride,
+    cost: copy.cost, condition: copy.condition, targeting: copy.targeting, disposition: copy.disposition, influence: copy.influence }
   const updateComponents = (next: unknown[]) => update({ ...value, [componentsKey]: next })
   const sourceChanged = !!edit && edit.index !== null && !same(components[edit.index], edit.source)
   const editSchema = edit && definitions.get(string(edit.value.type))
@@ -46,7 +46,7 @@ export function CardEffects({ value, disabled, copy, apiKey, setting, update, lo
   })
   const rows = components.flatMap((entry, index) => {
     const item = object(entry)
-    return isEffectComponent(item) ? [{ item, index }] : []
+    return kinds.some((type) => type === item.type) ? [{ item, index }] : []
   })
   function apply() {
     if (!edit || sourceChanged || disabled || !id.trim() || isDuplicate) return
@@ -58,14 +58,14 @@ export function CardEffects({ value, disabled, copy, apiKey, setting, update, lo
   }
 
   return <section className="form-section component-section">
-    <h3>{copy.cardEffects}</h3>
-    {!rows.length && <p className="muted">{copy.noEffects}</p>}
+    <h3>{group === 'effects' ? copy.cardEffects : copy.components}</h3>
+    {!rows.length && <p className="muted">{group === 'effects' ? copy.noEffects : copy.noComponents}</p>}
     {schema.isPending && <div className="skeleton" role="status" aria-label={copy.loadingEffects} />}
     {(schema.isError || (schemaRoot && !definitions.size)) && <p className="error" role="alert">{copy.effectsUnavailable}
       {schema.isError && <button type="button" className="text-button" onClick={() => void schema.refetch()}>{copy.retryEffects}</button>}
     </p>}
     {!!rows.length && <div className="effect-list">{rows.map(({ item, index }) => {
-      const type = item.type as EffectKind
+      const type = item.type as ComponentKind
       const componentId = string(item[propertyKey(item, 'componentId')])
       const effectType = string(object(item[propertyKey(item, 'effect')]).type)
       return <button type="button" className="secondary effect-row" key={index} aria-pressed={edit?.index === index}
@@ -75,11 +75,11 @@ export function CardEffects({ value, disabled, copy, apiKey, setting, update, lo
       </button>
     })}</div>}
     {edit && editSchema ? <div className="component card-effect-form">
-      <h4>{labels[edit.value.type as EffectKind]}</h4>
+      <h4>{labels[edit.value.type as ComponentKind]}</h4>
       <SchemaFields schema={editSchema} path="/components/*" skip="type" value={edit.value}
         update={(next) => setEdit((current) => current && { ...current, value: next })}
         context={{ key: apiKey, setting, disabled: disabled || sourceChanged, locale, copy: ruleCopy[locale], schemaRoot,
-          full: true, refs: schema.data?.data.references ?? {}, root: value, draft, onTyping: setTyping }} />
+          full: true, refs: schema.data?.data.references ?? {}, root: edit.value, draft, onTyping: setTyping }} />
       {sourceChanged && <p className="error" role="alert">{copy.effectChanged}</p>}
       {isDuplicate && <p className="error" role="alert">{copy.duplicateComponent}</p>}
       <div className="effect-actions">
@@ -94,8 +94,8 @@ export function CardEffects({ value, disabled, copy, apiKey, setting, update, lo
       </div>
     </div> : !disabled && !!definitions.size && <div className="rule-reference-row">
       <label className="field"><span>{copy.effectComponentType}</span><select value={kind}
-        onChange={(event) => setKind(event.target.value as EffectKind)}>
-        {effectKinds.filter((type) => definitions.has(type)).map((type) => <option key={type} value={type}>{labels[type]}</option>)}
+        onChange={(event) => setKind(event.target.value as ComponentKind)}>
+        {kinds.filter((type) => definitions.has(type)).map((type) => <option key={type} value={type}>{labels[type]}</option>)}
       </select></label>
       <button type="button" className="secondary" disabled={!definitions.has(kind)} onClick={() => {
         const source = { type: kind }

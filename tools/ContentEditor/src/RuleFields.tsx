@@ -54,7 +54,11 @@ function ObjectFields({ properties, value, update, context, path, skip }: {
   const extra = isEffect ? fields.filter(([name]) => !basicEffectFields.includes(name)) : []
   const render = ([name, schema]: [string, Schema]) => {
     const key = propertyKey(value, name)
-    return <Field key={name} label={fieldLabel(name, context.locale)} path={`${path}/${name}`}
+    const fieldPath = `${path}/${name}`
+    const label = context.full && fieldPath === '/components/*/costs' ? context.copy.costSettings
+      : context.full && name === 'costs' && path.startsWith('/components/*/costs') ? context.copy.resourceCosts
+      : fieldLabel(name, context.locale)
+    return <Field key={name} label={label} path={fieldPath}
       schema={schema} value={value[key]} update={(next) => {
         const changed = { ...value, [key]: next }
         if (next === undefined) delete changed[key]
@@ -118,7 +122,8 @@ function Field({ label, path, schema, value, update, context }: {
         else if (!next.trim() && context.full) update(undefined)
       }} />
   if (types.includes('string'))
-    return <TextField {...common} value={string(value)} onCommit={(next) => update(next || (context.full ? undefined : ''))} />
+    return <TextField {...common} value={string(value)} multiline={context.full && /\/(expression|formula|failureReason)$/.test(path)}
+      onCommit={(next) => update(next || (context.full ? undefined : ''))} />
   if (shape.properties && shape.type !== 'array')
     return <Fold label={label} initiallyOpen={context.full && path === '/components/*/effect'}>
       <ObjectFields properties={shape.properties} value={object(value)} update={update} context={context} path={path} />
@@ -144,7 +149,8 @@ function Field({ label, path, schema, value, update, context }: {
       <div className="rule-array">
         {values.map((item, index) => {
           const row = object(item)
-          const name = ['name', 'phaseId', 'edgeId', 'effectId', 'triggerId'].map((key) => string(row[propertyKey(row, key)]))
+          const name = ['name', 'phaseId', 'edgeId', 'effectId', 'triggerId', 'optionId', 'paymentId', 'resourceId']
+            .map((key) => string(row[propertyKey(row, key)]))
             .find(Boolean) || `${label} ${index + 1}`
           const replace = (next: unknown) => update(values.map((current, position) => position === index ? next ?? null : current))
           return <Fold key={index} label={name}>
@@ -187,9 +193,14 @@ function Reference({ context, kind, label, value, commit }: {
       `${settingPath(context.setting)}/references/${encodeURIComponent(kind)}?limit=50&q=${encodeURIComponent(search)}`, { signal }),
   })
   const localPath = kind.slice('local:'.length).split('/')
-  const source = local ? array(context.root[propertyKey(context.root, localPath[0])]).map((item) => {
+  const localKey = localPath.pop()!
+  const localValue = local ? localPath.reduce<unknown>((node, name) => {
+    const parent = object(node)
+    return parent[propertyKey(parent, name)]
+  }, context.root) : undefined
+  const source = local ? array(localValue).map((item) => {
     const row = object(item)
-    return string(row[propertyKey(row, localPath[1])])
+    return string(row[propertyKey(row, localKey)])
   })
     : (query.data?.data.items ?? []).map((item) => string(item.id))
   const ids = new Set(source)

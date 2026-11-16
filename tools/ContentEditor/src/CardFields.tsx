@@ -5,7 +5,7 @@ import { api, settingPath, type Card, type Definition, type Schemas } from './ap
 import type { CardCopy } from './card-copy'
 import { array, object, propertyKey, string, type Frame } from './editor-state'
 import { TextField } from './TextField'
-import { CardEffects, isEffectComponent } from './CardEffects'
+import { CardComponents } from './CardComponents'
 import type { Locale } from './i18n'
 import { JsonSource } from './JsonSource'
 
@@ -102,57 +102,10 @@ export function Overview({ value, disabled, apiKey, setting, copy, update, onTyp
 }
 
 export function Rules(props: EditorFields & { locale: Locale; draft: Frame }) {
-  const { value, disabled, copy, update, onTyping } = props
-  const components = array(value.components)
-  const replace = (index: number, element: Definition) =>
-    update({ ...value, components: components.map((item, key) => key === index ? element : item) })
-  return <div className="field-sections"><CardEffects {...props} />
-  <section className="form-section component-section">
-    <h3>{copy.components}</h3><p className="muted">{copy.componentHint}</p>
-    {!components.length && <p className="muted">{copy.noComponents}</p>}
-    {components.map((entry, index) => {
-      const item = object(entry)
-      if (isEffectComponent(item)) return null
-      const kind = string(item.type)
-      const name = kind === 'condition' ? copy.condition : kind === 'cost' ? copy.cost : kind
-      const costs = object(item.costs)
-      const amounts = array(costs.costs)
-      return <details className="component" key={`${string(item.componentId)}-${index}`} open={index === 0}>
-        <summary><span>{name || copy.rules}</span><code>{string(item.componentId)}</code></summary>
-        {kind === 'condition' ? <TextField label={copy.expression} disabled={disabled} multiline onTyping={onTyping}
-          value={string(item.expression)} onCommit={(expression) => replace(index, { ...item, expression })} />
-          : kind === 'cost' && amounts.length ? amounts.map((cost, costIndex) => {
-            const amount = object(cost)
-            return <div className="cost-row" key={costIndex}><span>{copy.resource} <code>{string(amount.resourceId)}</code></span>
-              <TextField label={copy.amount} value={String(amount.amount ?? '')} disabled={disabled} onTyping={onTyping}
-                onCommit={(newAmount) => {
-                  const numeric = Number(newAmount)
-                  if (!newAmount.trim() || !Number.isFinite(numeric)) return
-                  replace(index, { ...item, costs: {
-                    ...costs, costs: amounts.map((row, rowIndex) => rowIndex === costIndex ? { ...amount, amount: numeric } : row),
-                  } })
-                }} />
-            </div>
-          }) : <pre className="code-view">{JSON.stringify(item, null, 2)}</pre>}
-      </details>
-    })}
-    {!disabled && <details className="component">
-      <summary>{copy.addCondition}</summary>
-      <form className="condition-form" onSubmit={(event) => {
-        event.preventDefault()
-        const data = new FormData(event.currentTarget)
-        const componentId = String(data.get('id')).trim()
-        const expression = String(data.get('expression')).trim()
-        if (!componentId || !expression) return
-        update({ ...value, components: [...components, { type: 'condition', componentId, expression }] })
-        event.currentTarget.reset()
-      }}>
-        <label className="field"><span>{copy.componentId}</span><input name="id" required /></label>
-        <label className="field"><span>{copy.expression}</span><input name="expression" required /></label>
-        <button type="submit" className="secondary"><Plus size={15} />{copy.addCondition}</button>
-      </form>
-    </details>}
-  </section></div>
+  return <div className="field-sections">
+    <CardComponents {...props} group="rules" />
+    <CardComponents {...props} group="effects" />
+  </div>
 }
 
 export function Advanced({ value, disabled, copy, update, apiKey, setting, detail }: EditorFields & { detail?: Card }) {

@@ -28,6 +28,7 @@ export const ruleCopy = {
     moreFields: 'More effect settings', resetField: 'Use engine default', value: 'Value', propertyName: 'Property name',
     textType: 'Text', numberType: 'Number', booleanType: 'Boolean', objectType: 'Object', arrayType: 'List', nullType: 'Null',
     retryReferences: 'Retry loading options',
+    costSettings: 'Cost settings', resourceCosts: 'Resource costs',
     'combat-rules': 'Combat rules', 'flow-rules': 'Flow rules', 'phase-sequences': 'Phase sequences', modes: 'Game modes',
     'capability-policies': 'Capability policies', 'content-binding-policies': 'Content binding', 'replay-policies': 'Replay', 'timeline-policies': 'Timeline',
   },
@@ -45,6 +46,7 @@ export const ruleCopy = {
     moreFields: 'Mais configurações do efeito', resetField: 'Usar padrão da engine', value: 'Valor', propertyName: 'Nome da propriedade',
     textType: 'Texto', numberType: 'Número', booleanType: 'Sim ou não', objectType: 'Objeto', arrayType: 'Lista', nullType: 'Nulo',
     retryReferences: 'Tentar carregar opções novamente',
+    costSettings: 'Configuração do custo', resourceCosts: 'Custos de recursos',
     'combat-rules': 'Regras de combate', 'flow-rules': 'Regras de fluxo', 'phase-sequences': 'Sequências de fases', modes: 'Modos de jogo',
     'capability-policies': 'Permissões', 'content-binding-policies': 'Vínculo de conteúdo', 'replay-policies': 'Replay', 'timeline-policies': 'Linha do tempo',
   },
@@ -107,6 +109,13 @@ const portuguese: Record<string, string> = {
   repeat: 'Repetições', requiredTags: 'Tags obrigatórias', excludedTags: 'Tags excluídas', metadata: 'Metadados',
   sequenceMutation: 'Alteração da sequência', attributeMutation: 'Alteração de atributo', parameters: 'Parâmetros',
   condensationRecipeId: 'Receita de condensação', continuation: 'Continuação', randomInputs: 'Entradas aleatórias',
+  alternativeCosts: 'Custos alternativos', optionId: 'ID da opção', allowOverdraft: 'Permitir saldo negativo',
+  zonePayments: 'Pagamentos com cartas', paymentId: 'ID do pagamento', flowId: 'Fluxo do pagamento',
+  costOptionId: 'Opção de custo alternativo', sourceZoneId: 'Zona de origem', targetZoneId: 'Zona de destino',
+  count: 'Quantidade', allowResolvingCard: 'Permitir a carta em resolução', expression: 'Expressão',
+  failureReason: 'Mensagem quando a condição falhar', relativeOffset: 'Posição relativa',
+  minimumTargets: 'Mínimo de alvos', maximumTargets: 'Máximo de alvos', allowSelf: 'Permitir selecionar a si mesmo',
+  cardZoneResolutionFlowId: 'Fluxo de destino da carta', channel: 'Canal', bucket: 'Grupo de cálculo', value: 'Valor',
 }
 
 export function fieldLabel(key: string, locale: string) {
