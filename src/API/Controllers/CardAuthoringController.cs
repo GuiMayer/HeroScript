@@ -13,6 +13,7 @@ using Core.Meta;
 using Core.Run;
 using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
+using Mods;
 
 namespace API.Controllers;
 
@@ -291,6 +292,125 @@ public sealed class CardAuthoringController(
             problem.Extensions["receipt"] = result.Receipt;
         return new ObjectResult(problem) { StatusCode = result.Status, ContentTypes = { "application/problem+json" } };
     }
+
+    [HttpGet("workspace/kinds", Name = "AuthoringWorkspaceKinds")]
+    [ProducesResponseType(typeof(AuthoringKind[]), StatusCodes.Status200OK)]
+    public Task<IActionResult> WorkspaceKinds(CancellationToken cancellationToken) =>
+        WithWorkspace(cancellationToken, workspace => Task.FromResult<IActionResult>(Ok(new AuthoringKind[]
+        {
+            new(CompositionAuthoringKinds.Settings, true, CanApply && workspace.Catalog.Packages.Count > 0),
+            new(CompositionAuthoringKinds.Packages, true, CanApply && workspace.Catalog.Packages.All(package => package.SourceId != "."))
+        })));
+
+    [HttpGet("workspace/kinds/{kind}/schema", Name = "AuthoringWorkspaceSchema")]
+    [ProducesResponseType(typeof(AuthoringKindSchema), StatusCodes.Status200OK)]
+    public Task<IActionResult> WorkspaceSchema(string kind, CancellationToken cancellationToken) =>
+        WithWorkspace(cancellationToken, _ =>
+        {
+            if (!CompositionAuthoringKinds.Supports(kind))
+                return Task.FromResult<IActionResult>(ApiNotFound($"Unknown workspace kind '{kind}'."));
+            var identity = CompositionAuthoringKinds.Identity(kind);
+            var schema = Schemas.GetOrAdd($"workspace:{kind}", _ => CreateSchema(new(kind, kind,
+                kind == CompositionAuthoringKinds.Settings ? typeof(SettingDefinition) : typeof(PackageManifest), identity)));
+            return Task.FromResult<IActionResult>(Ok(new AuthoringKindSchema(kind, schema, CompositionAuthoringKinds.References(kind), identity)));
+        });
+
+    [HttpGet("workspace/definitions/{kind}", Name = "AuthoringWorkspaceDefinitions")]
+    [ProducesResponseType(typeof(AuthoringPage<CardAuthoringSummary>), StatusCodes.Status200OK)]
+    public Task<IActionResult> WorkspaceDefinitions(string kind, [FromQuery] string? q, [FromQuery] string? cursor,
+        CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
+        WithWorkspace(cancellationToken, workspace => Task.FromResult(CompositionAuthoringKinds.Supports(kind)
+            ? Paginate(CardAuthoringService.CompositionSources(workspace, kind)
+                .Where(item => Matches(item.Id, q) || Matches(item.PackageId, q) || item.Name is { } name && Matches(name, q))
+                .OrderBy(item => item.Id, StringComparer.Ordinal).Select(item => CompositionSummary(item, kind)),
+                item => item.DefinitionId, workspace.ETag, CompositionAuthoringKinds.Scope, kind, q, cursor, limit)
+            : ApiNotFound($"Unknown workspace kind '{kind}'.")));
+
+    [HttpGet("workspace/definitions/{kind}/{definitionId}", Name = "AuthoringWorkspaceDefinition")]
+    [ProducesResponseType(typeof(AuthoringDefinitionDetail), StatusCodes.Status200OK)]
+    public Task<IActionResult> WorkspaceDefinition(string kind, string definitionId, CancellationToken cancellationToken) =>
+        WithWorkspace(cancellationToken, workspace =>
+        {
+            var item = CardAuthoringService.CompositionSources(workspace, kind).FirstOrDefault(source => source.Id == definitionId);
+            if (item?.Snapshot.FindSource(item.Path) is not { } bytes)
+                return Task.FromResult<IActionResult>(ApiNotFound($"Workspace definition '{kind}/{definitionId}' not found."));
+            using var document = JsonDocument.Parse(DirectoryPackageProvider.WithoutBom(bytes));
+            var definition = document.RootElement.Clone();
+            return Task.FromResult<IActionResult>(Ok(new AuthoringDefinitionDetail(CompositionSummary(item, kind), definition, definition, [])));
+        });
+
+    [HttpGet("workspace/references/{kind}", Name = "AuthoringWorkspaceReferences")]
+    [ProducesResponseType(typeof(AuthoringPage<AuthoringReference>), StatusCodes.Status200OK)]
+    public Task<IActionResult> WorkspaceReferences(string kind, [FromQuery] string? settingId, [FromQuery] string? q,
+        [FromQuery] string? cursor, CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
+        WithWorkspace(cancellationToken, async workspace =>
+        {
+            IEnumerable<string> ids;
+            switch (kind)
+            {
+                case CompositionAuthoringKinds.PackageSources:
+                    ids = workspace.Catalog.Packages.Select(CardAuthoringService.PackageEntryId);
+                    break;
+                case CompositionAuthoringKinds.PackageIds:
+                    ids = workspace.Catalog.Packages.Select(package => package.Manifest.PackageId);
+                    break;
+                case "content-kinds":
+                    ids = kinds.Kinds.Select(item => item.Kind);
+                    break;
+                case "entities" or "runs" or "modes":
+                    var compilation = await workspace.Compiler.CompileFromCatalogAsync(settingId ?? "", workspace.Catalog, cancellationToken);
+                    ids = compilation.IsSuccess ? ReferenceDefinitions(compilation.Value.Bundle, kind).Select(item => item.Name) : [];
+                    break;
+                default:
+                    return ApiNotFound($"Unknown workspace reference kind '{kind}'.");
+            }
+            return Paginate(ids.Distinct(StringComparer.Ordinal).Where(id => Matches(id, q)).Order(StringComparer.Ordinal)
+                .Select(id => new AuthoringReference(id)), item => item.Id, workspace.ETag, settingId ?? "", $"workspace:{kind}", q, cursor, limit);
+        });
+
+    [HttpPost("workspace/changes/validate", Name = "AuthoringValidateWorkspaceChange")]
+    [ProducesResponseType(typeof(CardAuthoringValidation), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<IActionResult> ValidateWorkspace([FromBody] CardAuthoringChangeRequest request, CancellationToken cancellationToken) =>
+        WithWorkspace(cancellationToken, async workspace =>
+        {
+            var version = Request.Headers.IfMatch;
+            if (version.Count == 0)
+                return ApiProblem(428, AuthoringErrorCodes.PreconditionRequired, "Source version required", "Supply the source ETag in If-Match.");
+            if (version.Count != 1 || version[0] != workspace.ETag)
+                return ApiProblem(412, AuthoringErrorCodes.SourceChanged, "Source version changed", "Reload the authoring source and retry.");
+            if (!CanApply)
+                return ApiProblem(403, ApiErrorCodes.Forbidden, "Workspace authoring is disabled", "Enable source authoring to plan workspace changes.");
+            return ApplyResult(await writer.PreviewCompositionAsync(workspace, request, cancellationToken));
+        });
+
+    [HttpPost("workspace/changes", Name = "AuthoringApplyWorkspaceChange")]
+    [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public Task<IActionResult> ApplyWorkspace([FromBody] CardAuthoringChangeRequest request, CancellationToken cancellationToken) =>
+        ApplyChangeAsync(CompositionAuthoringKinds.Scope, request, cancellationToken);
+
+    [HttpGet("workspace/changes/{changeId:guid}", Name = "AuthoringGetWorkspaceChange")]
+    [ProducesResponseType(typeof(CardAuthoringChangeReceipt), StatusCodes.Status200OK)]
+    public Task<IActionResult> WorkspaceChange(Guid changeId, CancellationToken cancellationToken) =>
+        Change(CompositionAuthoringKinds.Scope, changeId, cancellationToken);
+
+    private Task<IActionResult> WithWorkspace(CancellationToken cancellationToken, Func<CardAuthoringWorkspace, Task<IActionResult>> action) =>
+        coordinator.ExecuteAsync(async () =>
+        {
+            if (coordinator.RecoveryRequired)
+                return ApiProblem(503, AuthoringErrorCodes.RecoveryRequired, "Authoring workspace recovering", "Restart the engine to recover the interrupted write.");
+            var workspace = await authoring.CaptureAsync(cancellationToken);
+            if (workspace.IsFailure)
+                return ApiProblem(503, ApiErrorCodes.DependencyUnavailable, "Authoring sources unavailable", workspace.Error);
+            Response.Headers.ETag = workspace.Value.ETag;
+            Response.Headers.CacheControl = "no-store";
+            return await action(workspace.Value);
+        }, cancellationToken);
+
+    private CardAuthoringSummary CompositionSummary(CompositionSource item, string kind) =>
+        new(item.Id, item.PackageId, CanApply, CanApply &&
+            (kind != CompositionAuthoringKinds.Settings || !authoring.IsStartupSetting(item.Id)), item.Name);
 
     private Task<IActionResult> WithView(string settingId, CancellationToken cancellationToken,
         Func<CardAuthoringWorkspace, CardAuthoringView, Task<IActionResult>> action) =>

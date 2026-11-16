@@ -900,6 +900,84 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
+    [Fact]
+    public async Task WorkspaceAuthoringValidatesActivatesAndUndoesCompositionAcrossSettings()
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        const string root = "/api/v1/admin/authoring/workspace";
+        const string package = "editor-package";
+        var packageFolder = Path.Combine(factory.PackageRoot, package);
+        var asset = Path.Combine(packageFolder, "Resources", "keywords.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(asset)!);
+        await File.WriteAllTextAsync(asset, """{"editor_keyword":{"name":"Test"}}""");
+        var manifest = Path.Combine(packageFolder, "package.json");
+        var settings = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/settings");
+        Assert.Contains(settings!.Items, item => item.DefinitionId == "uno-clash" && item.CanEdit && !item.CanDelete);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/settings/schema");
+        Assert.Equal("package-ids", schema!.References["/packages/*/packageId"]);
+        var dirs = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/package-sources");
+        Assert.Contains(dirs!.Items, item => item.Id == "circular-table");
+
+        async Task<HttpResponseMessage> Request(string version, CardAuthoringChangeRequest change, bool preview = false)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, root + "/changes" + (preview ? "/validate" : ""))
+                { Content = JsonContent.Create(change) };
+            request.Headers.TryAddWithoutValidation("If-Match", version);
+            return await client.SendAsync(request);
+        }
+        async Task<CardAuthoringChangeReceipt> Save(string version, CardAuthoringChangeRequest change)
+        {
+            using var response = await Request(version, change);
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            return (await response.Content.ReadFromJsonAsync<CardAuthoringChangeReceipt>())!;
+        }
+        static CardAuthoringOperation Op(string kind, string id, CardAuthoringOperationType operation, object? definition = null, string? owner = null) =>
+            new() { Kind = kind, DefinitionId = id, Operation = operation, SourcePackage = owner,
+                Definition = definition is null ? null : JsonSerializer.SerializeToElement(definition) };
+        CardAuthoringOperation NewSetting(string id, string source) => Op("settings", id, CardAuthoringOperationType.Create, new
+        {
+            settingId = id, displayName = "Test setting",
+            packages = new[] { new { packageId = "fixture.editor" }, new { packageId = $"heroscript.{source}" } }
+        }, package);
+        var create = Change(
+            Op("packages", package, CardAuthoringOperationType.Create, new { packageId = "fixture.editor", version = "1.0.0" }),
+            NewSetting("editor-uno", "uno-clash"), NewSetting("editor-table", "circular-table"));
+        using var preview = await Request(settings.SourceVersion, create, preview: true);
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        Assert.False(File.Exists(manifest));
+        var created = await Save(settings.SourceVersion, create);
+        Assert.Equal(new[] { "editor-table", "editor-uno" }, created.ActiveRevisions.Keys.Order(StringComparer.Ordinal));
+        Assert.True(File.Exists(manifest));
+
+        var edit = Change(Op("packages", package, CardAuthoringOperationType.Update, new
+        {
+            packageId = "fixture.editor", version = "1.1.0",
+            content = new[] { new { kind = "keywords", operation = "Definition", sourcePath = "Resources/keywords.json", artifactPath = "keywords/editor.json" } }
+        }));
+        using var stale = await Request(settings.SourceVersion, edit);
+        Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
+        var edited = await Save(created.SourceVersion, edit);
+        Assert.Equal(2, edited.ActiveRevisions.Count);
+        var detail = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/packages/editor-package");
+        Assert.Equal("1.1.0", detail!.Source.GetProperty("version").GetString());
+        var deletePackage = Op("packages", package, CardAuthoringOperationType.Delete);
+        using var rejected = await Request(edited.SourceVersion, Change(deletePackage), preview: true);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+
+        var removed = await Save(edited.SourceVersion, Change(deletePackage,
+            Op("settings", "editor-uno", CardAuthoringOperationType.Delete),
+            Op("settings", "editor-table", CardAuthoringOperationType.Delete)));
+        Assert.False(File.Exists(manifest));
+        Assert.True(File.Exists(asset));
+        var manifests = factory.Services.GetRequiredService<Core.Content.IContentManifestProvider>();
+        Assert.True(manifests.GetManifest("editor-uno").IsFailure);
+        Assert.True(manifests.GetByRevision(edited.ActiveRevisions["editor-uno"]).IsSuccess);
+        var restored = await Save(removed.SourceVersion, new() { ChangeId = Guid.NewGuid(), UndoOf = removed.ChangeId });
+        Assert.Equal(edited.ActiveRevisions["editor-uno"], restored.ActiveRevisions["editor-uno"]);
+        Assert.True(File.Exists(manifest));
+    }
+
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,
         string playerEntityId, string contentRevision, ulong seed)
     {

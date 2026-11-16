@@ -210,12 +210,17 @@ public sealed class CardAuthoringWriter(
             return new(503, ApiErrorCodes.DependencyUnavailable, workspace.Error);
         if (workspace.Value.ETag != etag)
             return SourceChanged();
-        if (!workspace.Value.Catalog.Settings.Any(item => item.Definition.SettingId == settingId))
-            return new(404, ApiErrorCodes.ResourceNotFound, "Setting not found.");
-        var view = await authoring.GetViewAsync(workspace.Value, settingId, cancellationToken);
-        if (view.IsFailure)
-            return new(422, AuthoringErrorCodes.InvalidCandidate, view.Error);
-        var planned = await PlanAsync(workspace.Value, view.Value, request, cancellationToken);
+        CardAuthoringView? view = null;
+        if (settingId != CompositionAuthoringKinds.Scope)
+        {
+            if (!workspace.Value.Catalog.Settings.Any(item => item.Definition.SettingId == settingId))
+                return new(404, ApiErrorCodes.ResourceNotFound, "Setting not found.");
+            var resolvedView = await authoring.GetViewAsync(workspace.Value, settingId, cancellationToken);
+            if (resolvedView.IsFailure)
+                return new(422, AuthoringErrorCodes.InvalidCandidate, resolvedView.Error);
+            view = resolvedView.Value;
+        }
+        var planned = await PlanAsync(workspace.Value, settingId, view, request, cancellationToken);
         if (planned.Error is not null)
             return planned.Error;
         var plan = planned.Plan!;
@@ -240,9 +245,20 @@ public sealed class CardAuthoringWriter(
         var latest = await authoring.CaptureAsync(cancellationToken);
         if (latest.IsFailure || latest.Value.ETag != etag)
             return SourceChanged();
-        foreach (var file in plan.Files)
-            if (!Same(await ReadSource(file.Path), file.Before))
-                return SourceChanged();
+        try
+        {
+            foreach (var file in plan.Files)
+                if (!Same(await ReadSource(file.Path), file.Before))
+                    return SourceChanged();
+            if (plan.AddedSourceChecks is { } checks)
+                foreach (var (path, bytes) in checks)
+                    if (!Same(await ReadSource(path), bytes.ToArray()))
+                        return SourceChanged();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return SourceChanged();
+        }
         cancellationToken.ThrowIfCancellationRequested();
 
         var snapshot = workspace.Value.Snapshots.Single();
@@ -252,14 +268,14 @@ public sealed class CardAuthoringWriter(
                 candidate[file.Path] = bytes;
             else
                 candidate.Remove(file.Path);
-        var nextVersion = AuthoringSourceVersion.CreateETag(candidate.ToDictionary(
+        var nextVersion = plan.CandidateSourceVersion ?? AuthoringSourceVersion.CreateETag(candidate.ToDictionary(
             file => $"{snapshot.ProviderId}/{file.Key}", file => file.Value, StringComparer.Ordinal));
         var receipt = new CardAuthoringChangeReceipt(request.ChangeId, "prepared", etag, nextVersion,
             plan.Validation.CandidateRevisions, plan.Files.Select(file => file.Path).ToArray(),
             plan.Validation.Diagnostics, request.UndoOf, request.RedoOf);
-        var package = view.Value.Writable!;
+        var package = view?.Writable;
         var record = new AuthoringJournalRecord(settingId, fingerprint, receipt, plan.Files,
-            new(package.SourceId, package.Manifest.PackageId, package.Manifest.Version));
+            package is null ? null : new(package.SourceId, package.Manifest.PackageId, package.Manifest.Version), plan.RemovedSettings);
 
         // After preparing the journal the transaction must finish or be
         // recoverable independently of the HTTP connection.
@@ -293,8 +309,15 @@ public sealed class CardAuthoringWriter(
 
     public async Task<AuthoringApplyResult> PreviewAsync(CardAuthoringWorkspace workspace, CardAuthoringView view,
         CardAuthoringChangeRequest request, CancellationToken cancellationToken)
+        => await PreviewCoreAsync(workspace, view.Compilation.Setting.SettingId, view, request, cancellationToken);
+
+    public Task<AuthoringApplyResult> PreviewCompositionAsync(CardAuthoringWorkspace workspace, CardAuthoringChangeRequest request,
+        CancellationToken cancellationToken) => PreviewCoreAsync(workspace, CompositionAuthoringKinds.Scope, null, request, cancellationToken);
+
+    private async Task<AuthoringApplyResult> PreviewCoreAsync(CardAuthoringWorkspace workspace, string settingId,
+        CardAuthoringView? view, CardAuthoringChangeRequest request, CancellationToken cancellationToken)
     {
-        var planned = await PlanAsync(workspace, view, request, cancellationToken);
+        var planned = await PlanAsync(workspace, settingId, view, request, cancellationToken);
         if (planned.Error is not null)
             return planned.Error;
         var validation = planned.Plan!.Validation;
@@ -304,19 +327,25 @@ public sealed class CardAuthoringWriter(
     }
 
     private async Task<(CardAuthoringPlan? Plan, AuthoringApplyResult? Error)> PlanAsync(CardAuthoringWorkspace workspace,
-        CardAuthoringView view, CardAuthoringChangeRequest request, CancellationToken cancellationToken)
+        string settingId, CardAuthoringView? view, CardAuthoringChangeRequest request, CancellationToken cancellationToken)
     {
         var targetId = request.UndoOf ?? request.RedoOf;
         if (targetId is null)
+        {
+            if (view is null)
+                return (await authoring.PlanCompositionAsync(workspace, request, ReadSource, null, cancellationToken), null);
+            if (request.Operations.OfType<CardAuthoringOperation>().Any(item => CompositionAuthoringKinds.Supports(item.Kind)))
+                return (null, new(422, AuthoringErrorCodes.InvalidCandidate, "Use the workspace endpoint for settings and packages."));
             return (await authoring.PlanAsync(workspace, view, request, cancellationToken), null);
+        }
         if (!coordinator.Enabled)
             return (null, new(403, ApiErrorCodes.Forbidden, "Enable source authoring to access compensation history."));
 
         var target = await ReadRecord(ReceiptPath(targetId.Value));
-        if (target is null || target.SettingId != view.Compilation.Setting.SettingId)
+        if (target is null || target.SettingId != settingId)
             return (null, new(404, ApiErrorCodes.ResourceNotFound, "Compensation target not found in this setting."));
 
-        if (target.Package is { } identity && (view.Writable is not { } writable ||
+        if (target.Package is { } identity && (view?.Writable is not { } writable ||
             identity != new AuthoringPackageIdentity(writable.SourceId, writable.Manifest.PackageId, writable.Manifest.Version)))
             return (null, new(409, AuthoringErrorCodes.ChangeConflict, "The target operation belongs to a different writable package."));
 
@@ -327,6 +356,8 @@ public sealed class CardAuthoringWriter(
                 successor.HasValue ? "This change already has a compensating operation." :
                 "The target change is not eligible for this compensation.", availability));
 
+        if (view is null)
+            return (await authoring.PlanCompositionAsync(workspace, request, ReadSource, target.Files, cancellationToken), null);
         var plan = await authoring.PlanCompensationAsync(workspace, view, request.ChangeId, target.Files, cancellationToken);
         if (plan.IsFailure)
             return (null, new(409, AuthoringErrorCodes.ChangeConflict, plan.Error, availability));
@@ -357,7 +388,7 @@ public sealed class CardAuthoringWriter(
                 throw new IOException(runtime.Error);
             prepared.Add(runtime.Value.Manifest);
         }
-        var result = manifests.ActivatePublishedManifests(prepared);
+        var result = manifests.ActivatePublishedManifests(prepared, record.RemovedSettings);
         if (result.IsFailure)
             throw new IOException(result.Error);
         caches.InvalidateAll(includeRevisioned: false);
@@ -469,7 +500,8 @@ public sealed class CardAuthoringWriter(
     private static AuthoringApplyResult Recoverable(string detail) => new(503, AuthoringErrorCodes.RecoveryRequired, detail);
 
     private sealed record AuthoringJournalRecord(string SettingId, string Fingerprint,
-        CardAuthoringChangeReceipt Receipt, IReadOnlyList<AuthoringSourceChange> Files, AuthoringPackageIdentity? Package = null);
+        CardAuthoringChangeReceipt Receipt, IReadOnlyList<AuthoringSourceChange> Files, AuthoringPackageIdentity? Package = null,
+        IReadOnlyList<string>? RemovedSettings = null);
 
     private sealed record AuthoringPackageIdentity(string SourceId, string PackageId, string Version);
 }

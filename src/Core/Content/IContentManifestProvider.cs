@@ -9,5 +9,5 @@ public interface IContentManifestProvider
     IReadOnlyList<ContentManifest> GetKnownManifests();
     Result RegisterPublishedManifest(ContentManifest manifest);
     Result ActivatePublishedManifest(ContentManifest manifest);
-    Result ActivatePublishedManifests(IReadOnlyList<ContentManifest> manifests);
+    Result ActivatePublishedManifests(IReadOnlyList<ContentManifest> manifests, IReadOnlyList<string>? removedSettings = null);
 }

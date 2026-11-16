@@ -8,7 +8,7 @@ using Mods;
 
 namespace API.Services;
 
-public sealed class CardAuthoringService(
+public sealed partial class CardAuthoringService(
     IEnumerable<IPackageProvider> providers,
     ISettingCompiler settings,
     IContentKindRegistry kinds,
@@ -38,14 +38,15 @@ public sealed class CardAuthoringService(
         return setting.Packages.Any(reference => reference.PackageId == configured) ? configured : null;
     }
 
-    public async Task<Result<CardAuthoringWorkspace>> CaptureAsync(CancellationToken cancellationToken)
+    public async Task<Result<CardAuthoringWorkspace>> CaptureAsync(CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>?>? overlay = null)
     {
         var snapshots = new List<AuthoringPackageSnapshot>();
         foreach (var provider in providers)
         {
             if (provider is not DirectoryPackageProvider directory)
                 return Result<CardAuthoringWorkspace>.Failure($"Provider '{provider.ProviderId}' does not support source snapshots.");
-            var snapshot = await directory.CaptureAuthoringSnapshotAsync(cancellationToken);
+            var snapshot = await directory.CaptureAuthoringSnapshotAsync(cancellationToken, overlay);
             if (snapshot.IsFailure)
                 return Result<CardAuthoringWorkspace>.Failure(snapshot.Error);
             snapshots.Add(snapshot.Value);
@@ -450,6 +451,7 @@ public sealed record CardAuthoringCard(string Id, JsonElement Effective, Package
     PackageContentEnvelope Entry, bool CanEdit);
 
 public sealed record CardAuthoringPlan(CardAuthoringValidation Validation, IReadOnlyList<AuthoringSourceChange> Files,
-    IReadOnlyList<ContentBundle> Bundles);
+    IReadOnlyList<ContentBundle> Bundles, string? CandidateSourceVersion = null, IReadOnlyList<string>? RemovedSettings = null,
+    IReadOnlyDictionary<string, ReadOnlyMemory<byte>>? AddedSourceChecks = null);
 
 public sealed record AuthoringSourceChange(string Path, byte[]? Before, byte[]? After);

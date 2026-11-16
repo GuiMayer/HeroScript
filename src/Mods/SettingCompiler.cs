@@ -552,13 +552,13 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
                 diagnostics.Add(Error("PACKAGE_CODE_REJECTED", "Only data-only packages are supported", manifest.PackageId));
             foreach (var dependency in manifest.Dependencies)
             {
-                if (!IsIdentifier(dependency.PackageId) || !SemanticVersionRange.TryParse(dependency.VersionRange, out _))
-                    diagnostics.Add(Error("PACKAGE_DEPENDENCY_INVALID", $"Invalid dependency: {dependency.PackageId} {dependency.VersionRange}", manifest.PackageId));
+                if (dependency is null || !IsIdentifier(dependency.PackageId) || !SemanticVersionRange.TryParse(dependency.VersionRange, out _))
+                    diagnostics.Add(Error("PACKAGE_DEPENDENCY_INVALID", $"Invalid dependency: {dependency?.PackageId} {dependency?.VersionRange}", manifest.PackageId));
             }
             foreach (var conflict in manifest.Conflicts)
             {
-                if (!IsIdentifier(conflict.PackageId) || !SemanticVersionRange.TryParse(conflict.VersionRange, out _))
-                    diagnostics.Add(Error("PACKAGE_CONFLICT_INVALID", $"Invalid conflict: {conflict.PackageId} {conflict.VersionRange}", manifest.PackageId));
+                if (conflict is null || !IsIdentifier(conflict.PackageId) || !SemanticVersionRange.TryParse(conflict.VersionRange, out _))
+                    diagnostics.Add(Error("PACKAGE_CONFLICT_INVALID", $"Invalid conflict: {conflict?.PackageId} {conflict?.VersionRange}", manifest.PackageId));
             }
         }
         foreach (var group in settings.GroupBy(setting => setting.Definition.SettingId, StringComparer.OrdinalIgnoreCase))
@@ -584,8 +584,8 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
             }
             foreach (var reference in setting.Definition.Packages)
             {
-                if (!IsIdentifier(reference.PackageId) || !SemanticVersionRange.TryParse(reference.VersionRange, out _))
-                    diagnostics.Add(Error("SETTING_PACKAGE_INVALID", $"Invalid setting package: {reference.PackageId} {reference.VersionRange}", setting.PackageId));
+                if (reference is null || !IsIdentifier(reference.PackageId) || !SemanticVersionRange.TryParse(reference.VersionRange, out _))
+                    diagnostics.Add(Error("SETTING_PACKAGE_INVALID", $"Invalid setting package: {reference?.PackageId} {reference?.VersionRange}", setting.PackageId));
             }
         }
     }
@@ -634,6 +634,35 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
         if (!string.IsNullOrWhiteSpace(envelope.Kind) || envelope.ArtifactPath != null || envelope.DefinitionId != null)
             return $"Patch envelope must describe content through target, not definition fields, in {manifest.PackageId}";
         return null;
+    }
+
+    public async Task<Result> ValidatePackageSourceAsync(PackageSource package, IReadOnlyList<PackageSource> packages,
+        CancellationToken cancellationToken)
+    {
+        var manifest = package.Manifest;
+        var provider = _providers.Single(item => item.ProviderId == package.ProviderId);
+        foreach (var envelope in manifest.Content)
+        {
+            if (envelope is null)
+                return Result.Failure($"Package {manifest.PackageId} contains an empty content entry");
+            if (!Enum.IsDefined(envelope.Operation) || !Enum.IsDefined(envelope.PatchStrategy))
+                return Result.Failure($"Package {manifest.PackageId} contains an invalid operation or patch strategy");
+            if (ValidateEnvelope(manifest, envelope) is { } error)
+                return Result.Failure(error);
+            var source = await provider.ReadJsonAsync(package, envelope.SourcePath, cancellationToken).ConfigureAwait(false);
+            if (source.IsFailure)
+                return Result.Failure(source.Error);
+            if (source.Value.ValueKind != JsonValueKind.Object)
+                return Result.Failure($"Package content must be a JSON object: {envelope.SourcePath}");
+        }
+        var resolved = ResolvePackages(new SettingDefinition
+        {
+            Packages = [new() { PackageId = manifest.PackageId, VersionRange = manifest.Version }]
+        }, packages);
+        if (resolved.IsFailure)
+            return Result.Failure(resolved.Error);
+        var ordered = OrderPackages(resolved.Value);
+        return ordered.IsSuccess ? Result.Success() : Result.Failure(ordered.Error);
     }
 
     private Result<JsonElement> NormalizeArtifact(string kind, JsonElement payload)

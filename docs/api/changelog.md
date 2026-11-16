@@ -1,5 +1,11 @@
 # Changelog do contrato público
 
+## Autoria de settings e pacotes
+
+- `/workspace/definitions/{kind}` e `/workspace/kinds/{kind}/schema` expõem settings e manifestos de pacotes. `/workspace/changes` e `/workspace/changes/validate` usam o mesmo ETag, diário e recibos da autoria por setting.
+- A criação de um setting indica o diretório do pacote proprietário em `sourcePackage`. A identidade de um manifesto na rota é seu diretório, e o ID e a versão declarados podem ser editados. Alterações de composição recompilam os settings afetados.
+- A exclusão de um pacote remove o manifesto e preserva seus arquivos de conteúdo. Settings configurados na inicialização e dependências que ficariam sem resolução bloqueiam a alteração.
+
 ## Autoria de runs e progressão
 
 - A API de autoria inclui runs, políticas de progressão de runs e perfis, desafios diários, diálogos, preparações, lojas, relíquias, eventos, tabuleiros e zonas. Os schemas identificam referências condicionadas ao tipo de atividade, de alvo de desbloqueio ou de condição de diálogo.

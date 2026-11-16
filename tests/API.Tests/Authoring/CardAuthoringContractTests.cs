@@ -16,7 +16,7 @@ public sealed class CardAuthoringContractTests
     [InlineData("""{"operation":"delete","kind":"cards","definitionId":"demo"}""", true)]
     [InlineData("""{"operation":"update","kind":"cards","definitionId":"demo","definition":{"cardId":"different"}}""", false)]
     [InlineData("""{"operation":"delete","kind":"cards","definitionId":"demo","definition":{}}""", false)]
-    [InlineData("""{"operation":"delete","kind":"relics","definitionId":"demo"}""", false)]
+    [InlineData("""{"operation":"delete","kind":"card-selections","definitionId":"demo"}""", false)]
     [InlineData("""{"operation":99,"kind":"cards","definitionId":"demo"}""", false)]
     [InlineData("null", false)]
     public void ValidatesCardOperationEnvelope(string operation, bool expected)

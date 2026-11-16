@@ -1812,6 +1812,807 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/authoring/workspace/kinds": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringWorkspaceKinds",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthoringKind"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthoringKind"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthoringKind"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/kinds/{kind}/schema": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringWorkspaceSchema",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringKindSchema"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringKindSchema"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringKindSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/definitions/{kind}": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringWorkspaceDefinitions",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSummaryAuthoringPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSummaryAuthoringPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringSummaryAuthoringPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/definitions/{kind}/{definitionId}": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringWorkspaceDefinition",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "definitionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringDefinitionDetail"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringDefinitionDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringDefinitionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/references/{kind}": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringWorkspaceReferences",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "settingId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringReferenceAuthoringPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringReferenceAuthoringPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringReferenceAuthoringPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/changes/validate": {
+      "post": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringValidateWorkspaceChange",
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong workspace ETag returned by the authoring API.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringValidation"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringValidation"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringValidation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/changes": {
+      "post": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringApplyWorkspaceChange",
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Strong workspace ETag returned by the authoring API.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAuthoringChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authoring/workspace/changes/{changeId}": {
+      "get": {
+        "tags": [
+          "CardAuthoring"
+        ],
+        "operationId": "AuthoringGetWorkspaceChange",
+        "parameters": [
+          {
+            "name": "changeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAuthoringChangeReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Administrative key is missing or invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The operation is disabled or denied by policy.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin API or requested resource is unavailable.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace is unavailable or requires recovery.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoringProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AuthoringAdminKey": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2127,6 +2928,10 @@
             "nullable": true
           },
           "definition": {
+            "nullable": true
+          },
+          "sourcePackage": {
+            "type": "string",
             "nullable": true
           }
         },

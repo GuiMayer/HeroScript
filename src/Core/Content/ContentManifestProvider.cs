@@ -82,7 +82,7 @@ public sealed class ContentManifestProvider : IContentManifestProvider
     public Result ActivatePublishedManifest(ContentManifest manifest) =>
         ActivatePublishedManifests([manifest]);
 
-    public Result ActivatePublishedManifests(IReadOnlyList<ContentManifest> manifests)
+    public Result ActivatePublishedManifests(IReadOnlyList<ContentManifest> manifests, IReadOnlyList<string>? removedSettings = null)
     {
         lock (_lock)
         {
@@ -104,6 +104,8 @@ public sealed class ContentManifestProvider : IContentManifestProvider
                 pending[manifest.Revision] = manifest;
             }
 
+            foreach (var setting in removedSettings ?? [])
+                _activeBySetting.Remove(setting);
             foreach (var manifest in pending.Values)
             {
                 _manifestsByRevision[manifest.Revision] = manifest;

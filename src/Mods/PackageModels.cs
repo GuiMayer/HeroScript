@@ -146,6 +146,8 @@ public sealed record SettingSource
 {
     public string ProviderId { get; init; } = string.Empty;
     public string PackageId { get; init; } = string.Empty;
+    [JsonIgnore]
+    public string PackageSourceId { get; init; } = string.Empty;
     public string SourcePath { get; init; } = string.Empty;
     public SettingDefinition Definition { get; init; } = new();
 }

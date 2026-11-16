@@ -244,6 +244,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/authoring/workspace/kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthoringWorkspaceKinds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/kinds/{kind}/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthoringWorkspaceSchema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/definitions/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthoringWorkspaceDefinitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/definitions/{kind}/{definitionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthoringWorkspaceDefinition"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/references/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthoringWorkspaceReferences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/changes/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AuthoringValidateWorkspaceChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AuthoringApplyWorkspaceChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/authoring/workspace/changes/{changeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuthoringGetWorkspaceChange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -342,6 +470,7 @@ export interface components {
             kind: string | null;
             definitionId: string | null;
             definition?: unknown;
+            sourcePackage?: string | null;
         };
         /** @enum {string} */
         CardAuthoringOperationType: "create" | "update" | "delete";
@@ -1540,6 +1669,526 @@ export interface operations {
                 };
             };
             /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringWorkspaceKinds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["AuthoringKind"][];
+                    "application/json": components["schemas"]["AuthoringKind"][];
+                    "text/json": components["schemas"]["AuthoringKind"][];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringWorkspaceSchema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["AuthoringKindSchema"];
+                    "application/json": components["schemas"]["AuthoringKindSchema"];
+                    "text/json": components["schemas"]["AuthoringKindSchema"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringWorkspaceDefinitions: {
+        parameters: {
+            query?: {
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["CardAuthoringSummaryAuthoringPage"];
+                    "application/json": components["schemas"]["CardAuthoringSummaryAuthoringPage"];
+                    "text/json": components["schemas"]["CardAuthoringSummaryAuthoringPage"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringWorkspaceDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+                definitionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["AuthoringDefinitionDetail"];
+                    "application/json": components["schemas"]["AuthoringDefinitionDetail"];
+                    "text/json": components["schemas"]["AuthoringDefinitionDetail"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringWorkspaceReferences: {
+        parameters: {
+            query?: {
+                settingId?: string;
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["AuthoringReferenceAuthoringPage"];
+                    "application/json": components["schemas"]["AuthoringReferenceAuthoringPage"];
+                    "text/json": components["schemas"]["AuthoringReferenceAuthoringPage"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringValidateWorkspaceChange: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong workspace ETag returned by the authoring API. */
+                "If-Match": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CardAuthoringChangeRequest"];
+                "text/json": components["schemas"]["CardAuthoringChangeRequest"];
+                "application/*+json": components["schemas"]["CardAuthoringChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["CardAuthoringValidation"];
+                    "application/json": components["schemas"]["CardAuthoringValidation"];
+                    "text/json": components["schemas"]["CardAuthoringValidation"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringApplyWorkspaceChange: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Strong workspace ETag returned by the authoring API. */
+                "If-Match": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CardAuthoringChangeRequest"];
+                "text/json": components["schemas"]["CardAuthoringChangeRequest"];
+                "application/*+json": components["schemas"]["CardAuthoringChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["CardAuthoringChangeReceipt"];
+                    "application/json": components["schemas"]["CardAuthoringChangeReceipt"];
+                    "text/json": components["schemas"]["CardAuthoringChangeReceipt"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The workspace is unavailable or requires recovery. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+        };
+    };
+    AuthoringGetWorkspaceChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                changeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["CardAuthoringChangeReceipt"];
+                    "application/json": components["schemas"]["CardAuthoringChangeReceipt"];
+                    "text/json": components["schemas"]["CardAuthoringChangeReceipt"];
+                };
+            };
+            /** @description Administrative key is missing or invalid. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The operation is disabled or denied by policy. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["AuthoringProblem"];
+                };
+            };
+            /** @description The admin API or requested resource is unavailable. */
             404: {
                 headers: {
                     [name: string]: unknown;

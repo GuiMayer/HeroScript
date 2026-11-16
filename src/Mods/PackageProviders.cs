@@ -45,7 +45,8 @@ public sealed class DirectoryPackageProvider : IPackageProvider
         DiscoverAsync(null, cancellationToken);
 
     private async Task<PackageDiscovery> DiscoverAsync(
-        Dictionary<string, ReadOnlyMemory<byte>>? filesSnapshot, CancellationToken cancellationToken)
+        Dictionary<string, ReadOnlyMemory<byte>>? filesSnapshot, CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>?>? overlay = null)
     {
         var packages = ImmutableArray.CreateBuilder<PackageSource>();
         var settings = ImmutableArray.CreateBuilder<SettingSource>();
@@ -59,11 +60,11 @@ public sealed class DirectoryPackageProvider : IPackageProvider
             return new PackageDiscovery { Diagnostics = diagnostics.ToImmutable() };
         }
 
-        foreach (var packageDirectory in FindPackageDirectories())
+        foreach (var packageDirectory in FindPackageDirectories(overlay))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var sourceId = NormalizeRelative(Path.GetRelativePath(_rootPath, packageDirectory));
-            if (HasReparsePoint(packageDirectory))
+            if (Directory.Exists(packageDirectory) && HasReparsePoint(packageDirectory))
             {
                 diagnostics.Add(Diagnostic(
                     PackageDiagnosticSeverity.Error,
@@ -73,10 +74,19 @@ public sealed class DirectoryPackageProvider : IPackageProvider
                 continue;
             }
 
-            var files = Directory.EnumerateFiles(packageDirectory, "*", SearchOption.AllDirectories)
+            var files = (Directory.Exists(packageDirectory) ? Directory.EnumerateFiles(packageDirectory, "*", SearchOption.AllDirectories) : [])
                 .Select(path => NormalizeRelative(Path.GetRelativePath(packageDirectory, path)))
-                .OrderBy(path => path, StringComparer.Ordinal)
-                .ToArray();
+                .ToHashSet(StringComparer.Ordinal);
+            if (overlay is not null)
+            {
+                var prefix = sourceId == "." ? "" : sourceId + "/";
+                foreach (var (path, bytes) in overlay.Where(item => item.Key.StartsWith(prefix, StringComparison.Ordinal)))
+                {
+                    var relative = path[prefix.Length..];
+                    if (bytes.HasValue) files.Add(relative);
+                    else files.Remove(relative);
+                }
+            }
             foreach (var collision in files
                          .GroupBy(path => path, StringComparer.OrdinalIgnoreCase)
                          .Where(group => group.Distinct(StringComparer.Ordinal).Count() > 1))
@@ -89,7 +99,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
             }
 
             var manifestPath = Path.Combine(packageDirectory, "package.json");
-            var manifestResult = await ReadDocumentAsync<PackageManifest>(manifestPath, filesSnapshot, cancellationToken)
+            var manifestResult = await ReadDocumentAsync<PackageManifest>(manifestPath, filesSnapshot, cancellationToken, overlay)
                 .ConfigureAwait(false);
             if (manifestResult.IsFailure)
             {
@@ -111,7 +121,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
 
             foreach (var settingPath in files.Where(path =>
                          path.StartsWith("settings/", StringComparison.OrdinalIgnoreCase) &&
-                         path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+                         path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
             {
                 var fullPath = ResolvePackagePath(packageDirectory, settingPath);
                 if (fullPath.IsFailure)
@@ -124,7 +134,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
                         settingPath));
                     continue;
                 }
-                var setting = await ReadDocumentAsync<SettingDefinition>(fullPath.Value, filesSnapshot, cancellationToken)
+                var setting = await ReadDocumentAsync<SettingDefinition>(fullPath.Value, filesSnapshot, cancellationToken, overlay)
                     .ConfigureAwait(false);
                 if (setting.IsFailure)
                 {
@@ -140,6 +150,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
                 {
                     ProviderId = ProviderId,
                     PackageId = package.Manifest.PackageId,
+                    PackageSourceId = sourceId,
                     SourcePath = settingPath,
                     Definition = setting.Value
                 });
@@ -198,12 +209,18 @@ public sealed class DirectoryPackageProvider : IPackageProvider
         }
     }
 
-    private IEnumerable<string> FindPackageDirectories()
+    private IEnumerable<string> FindPackageDirectories(IReadOnlyDictionary<string, ReadOnlyMemory<byte>?>? overlay)
     {
-        if (File.Exists(Path.Combine(_rootPath, "package.json")))
+        bool HasManifest(string source) => overlay?.TryGetValue(source, out var bytes) == true
+            ? bytes.HasValue : File.Exists(Path.Combine(_rootPath, source));
+        if (HasManifest("package.json"))
             return [_rootPath];
-        return Directory.EnumerateDirectories(_rootPath, "*", SearchOption.TopDirectoryOnly)
-            .Where(directory => File.Exists(Path.Combine(directory, "package.json")))
+        var added = overlay?.Keys.Where(key => key.EndsWith("/package.json", StringComparison.Ordinal) &&
+                key.Count(character => character == '/') == 1)
+            .Select(key => Path.Combine(_rootPath, key[..key.IndexOf('/')])) ?? [];
+        return Directory.EnumerateDirectories(_rootPath, "*", SearchOption.TopDirectoryOnly).Concat(added)
+            .Distinct(StringComparer.Ordinal)
+            .Where(directory => HasManifest(NormalizeRelative(Path.GetRelativePath(_rootPath, directory)) + "/package.json"))
             .OrderBy(directory => NormalizeRelative(Path.GetRelativePath(_rootPath, directory)), StringComparer.Ordinal)
             .ToArray();
     }
@@ -238,7 +255,7 @@ public sealed class DirectoryPackageProvider : IPackageProvider
     private async Task<Result<T>> ReadDocumentAsync<T>(
         string path,
         Dictionary<string, ReadOnlyMemory<byte>>? filesSnapshot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, IReadOnlyDictionary<string, ReadOnlyMemory<byte>?>? overlay)
     {
         try
         {
@@ -251,11 +268,20 @@ public sealed class DirectoryPackageProvider : IPackageProvider
             }
             else
             {
-                if (ContainsReparsePoint(_rootPath, path))
-                    return Result<T>.Failure($"Package file cannot be a symbolic link: {path}");
-                var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-                filesSnapshot.Add(NormalizeRelative(Path.GetRelativePath(_rootPath, path)), bytes);
-                value = JsonSerializer.Deserialize<T>(WithoutBom(bytes).Span, JsonOptions);
+                var relative = NormalizeRelative(Path.GetRelativePath(_rootPath, path));
+                if (overlay?.TryGetValue(relative, out var supplied) == true && supplied.HasValue)
+                {
+                    filesSnapshot.Add(relative, supplied.Value);
+                    value = JsonSerializer.Deserialize<T>(WithoutBom(supplied.Value).Span, JsonOptions);
+                }
+                else
+                {
+                    if (ContainsReparsePoint(_rootPath, path))
+                        return Result<T>.Failure($"Package file cannot be a symbolic link: {path}");
+                    var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+                    filesSnapshot.Add(relative, bytes);
+                    value = JsonSerializer.Deserialize<T>(WithoutBom(bytes).Span, JsonOptions);
+                }
             }
             return value == null
                 ? Result<T>.Failure($"JSON document is empty: {path}")
@@ -268,12 +294,12 @@ public sealed class DirectoryPackageProvider : IPackageProvider
     }
 
     public async Task<Result<AuthoringPackageSnapshot>> CaptureAuthoringSnapshotAsync(
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, IReadOnlyDictionary<string, ReadOnlyMemory<byte>?>? overlay = null)
     {
         var files = new Dictionary<string, ReadOnlyMemory<byte>>(StringComparer.Ordinal);
         try
         {
-            var discovery = await DiscoverAsync(files, cancellationToken).ConfigureAwait(false);
+            var discovery = await DiscoverAsync(files, cancellationToken, overlay).ConfigureAwait(false);
             foreach (var package in discovery.Packages)
             {
                 var directory = ResolveSourceDirectory(package.SourceId);
@@ -281,12 +307,21 @@ public sealed class DirectoryPackageProvider : IPackageProvider
                     return Result<AuthoringPackageSnapshot>.Failure(directory.Error);
                 foreach (var entry in package.Manifest.Content)
                 {
+                    if (entry is null)
+                        return Result<AuthoringPackageSnapshot>.Failure($"Package {package.Manifest.PackageId} contains an empty content entry.");
                     var path = ResolvePackagePath(directory.Value, entry.SourcePath);
                     if (path.IsFailure)
                         return Result<AuthoringPackageSnapshot>.Failure(path.Error);
                     var relative = NormalizeRelative(Path.GetRelativePath(_rootPath, path.Value));
                     if (files.ContainsKey(relative))
                         continue;
+                    if (overlay?.TryGetValue(relative, out var supplied) == true)
+                    {
+                        if (!supplied.HasValue)
+                            return Result<AuthoringPackageSnapshot>.Failure($"Package file not found: {relative}");
+                        files.Add(relative, supplied.Value);
+                        continue;
+                    }
                     if (!File.Exists(path.Value))
                         return Result<AuthoringPackageSnapshot>.Failure($"Package file not found: {relative}");
                     if (ContainsReparsePoint(_rootPath, path.Value))

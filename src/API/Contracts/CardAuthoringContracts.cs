@@ -30,6 +30,8 @@ public sealed record CardAuthoringOperation
     public required string Kind { get; init; }
     public required string DefinitionId { get; init; }
     public JsonElement? Definition { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourcePackage { get; init; }
 }
 
 public sealed record CardAuthoringChangeRequest : IValidatableObject
@@ -61,7 +63,7 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
             var member = $"{nameof(Operations)}[{index}]";
             if (operation is null ||
                 !Enum.IsDefined(operation.Operation) ||
-                operation.Kind is null || !AuthoringDefinitionKinds.Supports(operation.Kind) ||
+                operation.Kind is null || (!AuthoringDefinitionKinds.Supports(operation.Kind) && !CompositionAuthoringKinds.Supports(operation.Kind)) ||
                 string.IsNullOrWhiteSpace(operation.DefinitionId))
             {
                 yield return new("Supply a supported authoring operation with a definition ID.", [member]);
@@ -85,7 +87,7 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
                 continue;
             }
 
-            if (AuthoringDefinitionKinds.Identity(operation.Kind) is { } identity)
+            if ((CompositionAuthoringKinds.Identity(operation.Kind) ?? AuthoringDefinitionKinds.Identity(operation.Kind)) is { } identity)
             {
                 var declaredIds = value.EnumerateObject()
                     .Where(property => property.Name.Equals(identity, StringComparison.OrdinalIgnoreCase))
