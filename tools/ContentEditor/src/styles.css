@@ -246,6 +246,8 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .card-effect-form h4 { margin: 0; }
 .effect-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
 .effect-actions .text-button { display: inline-flex; gap: 5px; align-items: center; }
+.json-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.json-heading .icon-button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .rule-reference, .rule-reference-row { display: flex; align-items: end; gap: 5px; min-width: 0; }
 .rule-reference > .field, .rule-reference-row > .rule-reference { flex: 1; min-width: 0; }
 .rule-reference-list { display: grid; gap: 8px; }

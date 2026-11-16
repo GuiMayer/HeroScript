@@ -1,12 +1,13 @@
-import { useDeferredValue, useEffect, useId, useRef, useState } from 'react'
+import { useDeferredValue, useId, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Braces, Plus, Search, Tag, X } from 'lucide-react'
+import { Plus, Search, Tag, X } from 'lucide-react'
 import { api, settingPath, type Card, type Definition, type Schemas } from './api/client'
 import type { CardCopy } from './card-copy'
-import { array, object, string, type Frame } from './editor-state'
+import { array, object, propertyKey, string, type Frame } from './editor-state'
 import { TextField } from './TextField'
 import { CardEffects, isEffectComponent } from './CardEffects'
 import type { Locale } from './i18n'
+import { JsonSource } from './JsonSource'
 
 export const rarities = ['Common', 'Uncommon', 'Rare', 'Legendary'] as const
 export function rarityLabel(value: string, copy: CardCopy) {
@@ -155,31 +156,14 @@ export function Rules(props: EditorFields & { locale: Locale; draft: Frame }) {
 }
 
 export function Advanced({ value, disabled, copy, update, apiKey, setting, detail }: EditorFields & { detail?: Card }) {
-  const serialized = JSON.stringify(value, null, 2)
-  const [text, setText] = useState(serialized)
-  const [invalid, setInvalid] = useState(false)
   const [schemaOpen, setSchemaOpen] = useState(false)
-  useEffect(() => { setText(serialized); setInvalid(false) }, [serialized])
   const schema = useQuery({
     queryKey: ['authoring', setting, 'schema', 'cards'], enabled: schemaOpen,
     queryFn: ({ signal }) => api<Schemas['AuthoringKindSchema']>(apiKey, `${settingPath(setting)}/kinds/cards/schema`, { signal }),
   })
-  function apply() {
-    try {
-      const parsed = object(JSON.parse(text))
-      if (parsed.cardId !== value.cardId) throw new Error()
-      update(parsed)
-      setInvalid(false)
-    } catch { setInvalid(true) }
-  }
   return <div className="field-sections">
-    <section className="form-section">
-      <h3>{copy.fullDefinition}</h3><p className="muted">{copy.jsonHelp}</p>
-      <textarea className="json-input" aria-label={copy.fullDefinition} spellCheck={false} readOnly={disabled}
-        value={text} onChange={(event) => setText(event.target.value)} />
-      {invalid && <p className="error" role="alert">{copy.invalidJson}</p>}
-      <button className="secondary" disabled={disabled || text === serialized} onClick={apply}><Braces size={15} />{copy.applyJson}</button>
-    </section>
+    <JsonSource value={value} disabled={disabled} update={update} copy={copy} label={copy.fullDefinition}
+      identity="cardId" id={value[propertyKey(value, 'cardId')]} invalidMessage={copy.invalidJson} />
     {detail?.source !== undefined && <details className="form-section disclosure">
       <summary>{copy.compare}</summary><pre className="code-view">{JSON.stringify(detail.source, null, 2)}</pre>
     </details>}

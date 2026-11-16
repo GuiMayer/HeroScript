@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ChevronRight, FileText, GitBranch, LockKeyhole, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
@@ -8,6 +8,7 @@ import type { CardsProps } from './Cards'
 import { object, propertyKey, string } from './editor-state'
 import { preference } from './i18n'
 import { Modal } from './Modal'
+import { JsonSource } from './JsonSource'
 import { RuleFields } from './RuleFields'
 import { definitionCopy, definitionGroups, type DefinitionKind, type DefinitionSection, type RuleCopy } from './rule-copy'
 import { useCardDrafts } from './use-card-drafts'
@@ -232,26 +233,11 @@ function RuleAdvanced({ id, value, identity, raw, source, disabled, update, copy
   id: string; value: Definition; identity?: string; raw: boolean; source?: Schemas['AuthoringDefinitionDetail']; disabled: boolean
   update: (next: Definition) => void; copy: RuleCopy; actionsCopy: CardCopy
 }) {
-  const original = JSON.stringify(value, null, 2)
-  const [text, setText] = useState(original)
-  const [invalid, setInvalid] = useState(false)
-  useEffect(() => { setText(original); setInvalid(false) }, [original])
   return <div className="field-sections">
-    <section className="form-section"><h3>{copy.source}</h3>
+    <JsonSource value={value} disabled={disabled} update={update} copy={actionsCopy} label={copy.source}
+      id={id} identity={identity} invalidMessage={raw ? copy.rawInvalid : copy.invalidJson}>
       {raw && <p className="muted">{copy.rawNotice}</p>}
-      <textarea className="json-input" spellCheck={false} aria-label={copy.source} value={text}
-        readOnly={disabled} onChange={(event) => setText(event.target.value)} />
-      {invalid && <p className="error" role="alert">{raw ? copy.rawInvalid : copy.invalidJson}</p>}
-      <button className="secondary" disabled={disabled || text === original} onClick={() => {
-        try {
-          const input: unknown = JSON.parse(text)
-          const parsed = object(input)
-          if (input !== parsed || (identity && parsed[propertyKey(parsed, identity)] !== id)) throw new Error()
-          update(parsed)
-          setInvalid(false)
-        } catch { setInvalid(true) }
-      }}>{actionsCopy.applyJson}</button>
-    </section>
+    </JsonSource>
     {source?.source !== undefined && <details className="form-section disclosure"><summary>{copy.latest}</summary>
       <pre className="code-view">{JSON.stringify(source.source, null, 2)}</pre></details>}
     {source?.effective !== undefined && <details className="form-section disclosure"><summary>{actionsCopy.effective}</summary>
