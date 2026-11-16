@@ -478,12 +478,12 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var root = Setting(setting);
         var kinds = await client.GetFromJsonAsync<AuthoringKind[]>(root + "/kinds");
         Assert.NotNull(kinds);
-        Assert.Equal(27, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
+        Assert.Equal(36, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
         foreach (var kind in kinds.Where(kind => kind.SupportsSchema))
         {
             var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + $"/kinds/{kind.Kind}/schema");
             Assert.NotNull(schema);
-            if (kind.Kind is "powers" or "keywords" or "enemies" or "companions" or "races")
+            if (kind.Kind is "powers" or "keywords" or "enemies" or "companions" or "races" or "decks")
             {
                 Assert.Null(schema.IdentityProperty);
                 Assert.Equal("object", schema.Schema["type"]!.GetValue<string>());
@@ -752,6 +752,86 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
             using var missing = await client.GetAsync($"{root}/definitions/{kind}/editor_entity");
             Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         }
+    }
+
+    [Theory]
+    [InlineData("uno-clash", "uno_red_0", "uno_bot", "uno_choose_red")]
+    [InlineData("circular-table", "t_red_0", "table_actor", "g_t_choose_red")]
+    public async Task DeckAuthoringValidatesWritesAndDeletes(string setting, string cardId, string entityId, string gambitId)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var root = Setting(setting);
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/card-pools");
+        Assert.NotEmpty(page!.Items);
+        var rarity = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/card-rarities?q=Legendary");
+        Assert.Equal("Legendary", Assert.Single(rarity!.Items).Id);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/deck-modules/schema");
+        Assert.Equal("local:cardIds", schema!.References["/startingCardIds/*"]);
+        Assert.Equal("/startingCardIds", (string?)schema.Schema["x-authoring-repeatable-references"]?[0]);
+
+        static CardAuthoringOperation Op(string kind, string? source, CardAuthoringOperationType operation) => new()
+        {
+            Kind = kind, DefinitionId = "editor_deck", Operation = operation,
+            Definition = source is null ? null : JsonSerializer.Deserialize<JsonElement>(source)
+        };
+        static CardAuthoringOperation Create(string kind, string source) => Op(kind, source, CardAuthoringOperationType.Create);
+        var create = Change(
+            Create("decks", """{"name":"Test Deck"}"""),
+            Create("card-pools", $$"""{"poolId":"editor_deck","explicitCardIds":["{{cardId}}"],"rarityWeights":{"Common":4} }"""),
+            Create("deck-modules", $$"""{"moduleId":"editor_deck","cardIds":["{{cardId}}"],"startingCardIds":["{{cardId}}","{{cardId}}"]}"""),
+            Create("deck-composition-policies", """
+                {"policyId":"editor_deck","editWindows":["Preparation"],"groups":[{"groupId":"core","minimum":2,"maximum":2,
+                "allowDuplicateDefinitions":true,"moduleIds":["editor_deck"],"startingModuleId":"editor_deck"}]}
+                """),
+            Create("deck-compartment-profiles", """
+                {"profileId":"editor_deck","compartments":[{"compartmentId":"extra","capacity":2,
+                "grants":[{"grantId":"ember","bundleId":"core.ember.attack"}]}]}
+                """),
+            Create("deck-compartment-policies", """{"policyId":"editor_deck","preparationOnly":true}"""),
+            Create("calculation-pipelines", """{"pipelineId":"editor_deck","channel":"editor_deck","buckets":[{"bucketId":"base"}]}"""),
+            Create("effect-resolution-policies", """
+                {"policyId":"editor_deck","rules":[{"ruleId":"default","amountPipelineId":"editor_deck"}],
+                "attributes":[{"attributeId":"editor_deck","displayName":"Deck test attribute","pipelineId":"editor_deck"}]}
+                """),
+            Create("inscriptions", """
+                {"inscriptionId":"editor_deck","attributeBonuses":[{"attributeId":"editor_deck",
+                "influence":{"influenceId":"bonus","channel":"editor_deck","bucket":"base","value":2}}]}
+                """),
+            Create("loadout-policies", """
+                {"loadoutPolicyId":"editor_deck","capacity":2,"inventoryScope":"Actor","capacityOnly":true,
+                "allowDuplicateDefinitions":true,"inscriptionIds":["editor_deck"],"equipmentWindows":["Preparation"]}
+                """),
+            Create("support-routines", $$"""{"routineId":"editor_deck","gambitIds":["{{gambitId}}"]}"""),
+            Create("supports", $$"""
+                {"supportId":"editor_deck","countsForOutcome":false,"ownerActivationInterval":1,
+                "entityDefinitionId":"{{entityId}}","routineIds":["editor_deck"],"defaultRoutineId":"editor_deck"}
+                """),
+            Create("support-loadout-policies", """
+                {"policyId":"editor_deck","supportIds":["editor_deck"],"editWindows":["Preparation"]}
+                """));
+        using var preview = await Send(client, setting, page.SourceVersion, create, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        var applied = await Apply(client, setting, page.SourceVersion, create);
+        var attributes = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/character-attributes?q=editor_deck");
+        Assert.Equal("editor_deck", Assert.Single(attributes!.Items).Id);
+
+        using var invalid = await Send(client, setting, applied.SourceVersion, Change(Op("card-pools",
+            """{"poolId":"editor_deck","explicitCardIds":["missing_card_for_editor"]}""", CardAuthoringOperationType.Update)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
+        using var referenced = await Send(client, setting, applied.SourceVersion,
+            Change(Op("deck-modules", null, CardAuthoringOperationType.Delete)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, referenced.StatusCode);
+        var edited = await Apply(client, setting, applied.SourceVersion, Change(Op("card-pools",
+            $$"""{"poolId":"editor_deck","explicitCardIds":["{{cardId}}"],"rarityWeights":{"Common":9} }""",
+            CardAuthoringOperationType.Update)));
+        var pool = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/card-pools/editor_deck");
+        Assert.Equal(9, pool!.Source.GetProperty("rarityWeights").GetProperty("Common").GetInt32());
+
+        var kinds = create.Operations.Select(operation => operation!.Kind).ToArray();
+        await Apply(client, setting, edited.SourceVersion, Change(kinds.Select(kind => Op(kind, null, CardAuthoringOperationType.Delete)).ToArray()));
+        using var missing = await client.GetAsync(root + "/definitions/card-pools/editor_deck");
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,

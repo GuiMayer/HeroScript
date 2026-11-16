@@ -1,5 +1,10 @@
 # Changelog do contrato público
 
+## Autoria de decks e pools
+
+- A API oferece autoria de pools de cartas, módulos, políticas de composição, perfis e políticas de compartimentos, políticas de equipamento e de suporte, inscrições e decks.
+- Os seletores usam os catálogos do setting. `/references/card-rarities` lista as raridades e `/references/character-attributes` lista os atributos declarados nas políticas de resolução. Decks usam propriedades livres e ID na chave do catálogo.
+
 ## Autoria de entidades
 
 - A API de autoria inclui entidades, grupos de inimigos, suportes e rotinas de suporte. O schema de entidades descreve os componentes por tipo.

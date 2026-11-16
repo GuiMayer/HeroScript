@@ -7,13 +7,17 @@ public static class AuthoringDefinitionKinds
     internal const string CardZones = "card-zones";
     internal const string CardResolutionFlows = "card-resolution-flows";
     internal const string CardPaymentFlows = "card-payment-flows";
+    internal const string CardRarities = "card-rarities";
+    internal const string CharacterAttributes = "character-attributes";
     private static readonly HashSet<string> Editable = new(StringComparer.Ordinal)
     {
         "cards", "combat-rules", "flow-rules", "phase-sequences", "modes",
         "capability-policies", "content-binding-policies", "replay-policies", "timeline-policies",
         "actions", "modifiers", "status-effects", "effect-resolution-policies", "gambits", "powers", "keywords",
         "resources", "actor-resource-lifecycle-policies", "calculation-pipelines", "formulas",
-        "entities", "enemies", "enemy-pools", "companions", "races", "supports", "support-routines"
+        "entities", "enemies", "enemy-pools", "companions", "races", "supports", "support-routines",
+        "decks", "card-pools", "deck-composition-policies", "deck-modules", "deck-compartment-profiles",
+        "deck-compartment-policies", "loadout-policies", "support-loadout-policies", "inscriptions"
     };
 
     public static bool Supports(string kind) => Editable.Contains(kind);
@@ -24,6 +28,42 @@ public static class AuthoringDefinitionKinds
     public static IReadOnlyDictionary<string, string> References(string kind) => kind switch
     {
         "cards" => CardReferences(),
+        "card-pools" => new Dictionary<string, string>
+        {
+            ["/explicitCardIds/*"] = "cards", ["/includeTags/*"] = "tags", ["/excludeTags/*"] = "tags",
+            ["/rarityWeights/@key"] = CardRarities
+        },
+        "deck-composition-policies" => new Dictionary<string, string>
+        {
+            ["/groups/*/cardIds/*"] = "cards", ["/groups/*/startingCardIds/*"] = "cards",
+            ["/groups/*/moduleIds/*"] = "deck-modules", ["/groups/*/startingModuleId"] = "deck-modules"
+        },
+        "deck-modules" => new Dictionary<string, string>
+        {
+            ["/cardIds/*"] = "cards", ["/startingCardIds/*"] = "local:cardIds"
+        },
+        "deck-compartment-profiles" => new Dictionary<string, string>
+        {
+            ["/compartments/*/grants/*/bundleId"] = "card-component-bundles",
+            ["/compartments/*/grantedTags/*"] = "tags", ["/compartments/*/requiredTags/*"] = "tags",
+            ["/compartments/*/excludedTags/*"] = "tags"
+        },
+        "loadout-policies" => new Dictionary<string, string>
+        {
+            ["/inscriptionIds/*"] = "inscriptions", ["/startingInscriptionIds/*"] = "local:inscriptionIds",
+            ["/slots/*/requiredTags/*"] = "tags", ["/stations/*/pool/@key"] = "local:inscriptionIds",
+            ["/stations/*/costs/*/resourceId"] = "resources"
+        },
+        "support-loadout-policies" => new Dictionary<string, string>
+        {
+            ["/supportIds/*"] = "supports", ["/startingOwnedSupportIds/*"] = "local:supportIds",
+            ["/startingSupportId"] = "local:startingOwnedSupportIds"
+        },
+        "inscriptions" => new Dictionary<string, string>
+        {
+            ["/tags/*"] = "tags", ["/allowedActorDefinitionIds/*"] = "entities",
+            ["/attributeBonuses/*/attributeId"] = CharacterAttributes
+        },
         "combat-rules" => new Dictionary<string, string>
         {
             ["/defaultPhaseSequenceId"] = "phase-sequences", ["/flow/actionBudget/resourceId"] = "resources"

@@ -8,6 +8,7 @@ using API.Contracts;
 using API.Services;
 using Core.Content;
 using Core.CardZones;
+using Core.Effects;
 using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 
@@ -131,6 +132,10 @@ public sealed class CardAuthoringController(
             var bundle = view.Compilation.Bundle;
             var source = kind switch
             {
+                AuthoringDefinitionKinds.CardRarities => Enum.GetNames<CardRarity>(),
+                AuthoringDefinitionKinds.CharacterAttributes => ReferenceDefinitions(bundle, "effect-resolution-policies")
+                    .SelectMany(item => item.Value.Deserialize<EffectResolutionPolicyDefinition>(ReferenceJson)!.Attributes)
+                    .Select(attribute => attribute.AttributeId),
                 AuthoringDefinitionKinds.CardZones => CardZoneSystems(bundle).SelectMany(system => system.Zones).Select(zone => zone.ZoneId),
                 AuthoringDefinitionKinds.CardResolutionFlows => CardZoneSystems(bundle).SelectMany(system => system.Flows)
                     .Where(flow => flow.AllowedInvocations.Contains(CardZoneFlowInvocation.CardResolution)).Select(flow => flow.FlowId),
@@ -399,6 +404,15 @@ public sealed class CardAuthoringController(
         var schema = options.GetJsonSchemaAsNode(descriptor.DefinitionType,
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
         schema["$schema"] = schemaVersion;
+        var repeatableReference = descriptor.Kind switch
+        {
+            "deck-modules" => "/startingCardIds",
+            "deck-composition-policies" => "/groups/*/startingCardIds",
+            "loadout-policies" => "/startingInscriptionIds",
+            _ => null
+        };
+        if (repeatableReference is not null)
+            schema["x-authoring-repeatable-references"] = new JsonArray(JsonValue.Create(repeatableReference));
         if (descriptor.IdentityProperty is not { } identity)
             return schema.AsObject();
         var required = schema["required"] as JsonArray ?? new JsonArray();
