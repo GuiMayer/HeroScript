@@ -12,6 +12,7 @@ import { FreeField, PropertyFields } from './FreeField'
 interface Context {
   key: string
   setting: string
+  referenceSetting?: string
   disabled: boolean
   locale: string
   copy: RuleCopy
@@ -292,10 +293,12 @@ function Reference({ context, kind, label, value, commit, immediate = false }: {
   const search = useDeferredValue(immediate ? input ?? '' : input === value ? '' : input ?? '')
   const local = kind.startsWith('local:')
   const query = useQuery({
-    queryKey: ['authoring', context.setting, 'references', kind, search],
+    queryKey: ['authoring', context.setting, 'references', kind, search, context.referenceSetting],
     enabled: input !== null && !local && !context.disabled,
     queryFn: ({ signal }) => api<Schemas['AuthoringReferenceAuthoringPage']>(context.key,
-      `${settingPath(context.setting)}/references/${encodeURIComponent(kind)}?limit=50&q=${encodeURIComponent(search)}`, { signal }),
+      `${settingPath(context.setting)}/references/${encodeURIComponent(kind)}?${new URLSearchParams({
+        limit: '50', q: search, ...(context.referenceSetting ? { settingId: context.referenceSetting } : {}),
+      })}`, { signal }),
   })
   const localPath = kind.slice('local:'.length).split('/')
   const localKey = localPath.length > 1 ? localPath.pop() : undefined

@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { Boxes, ChevronRight, FileText, GitBranch, Layers3, LockKeyhole, Plus, Search, Sparkles, Swords, Trash2, Users } from 'lucide-react'
+import { Boxes, ChevronRight, FileText, GitBranch, Layers3, LockKeyhole, Plus, Search, Settings2, Sparkles, Swords, Trash2, Users } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
@@ -18,17 +18,20 @@ import { useCardDrafts } from './use-card-drafts'
 type Props = CardsProps & { section: DefinitionSection }
 
 export default function RulesEditor(props: Props) {
-  return <RuleWorkspace key={`${props.section}/${props.setting}`} {...props} />
+  return <RuleWorkspace key={`${props.section}/${props.section === 'settings' ? '' : props.setting}`} {...props} />
 }
 
 function titleOf(value: Definition | undefined, id: string) {
+  const packageId = value && string(value[propertyKey(value, 'packageId')])
+  if (value && packageId) return [packageId, string(value[propertyKey(value, 'version')])].filter(Boolean).join(' · ')
   return value && (string(value[propertyKey(value, 'displayName')]) || string(value[propertyKey(value, 'name')])) || id
 }
 
-function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspace, section }: Props) {
+function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy: shell, workspace, section }: Props) {
+  const setting = section === 'settings' ? '' : activeSetting
   const { copy, labels } = definitionCopy(locale, section)
   const groups = definitionGroups[section]
-  const Icon = { resources: Boxes, effects: Sparkles, rules: GitBranch, entities: Users, decks: Layers3, runs: Swords }[section]
+  const Icon = { resources: Boxes, effects: Sparkles, rules: GitBranch, entities: Users, decks: Layers3, runs: Swords, settings: Settings2 }[section]
   const actionsCopy = cardCopy[locale]
   const [kind, setKind] = useState<DefinitionKind>(groups[0][0])
   const [selected, setSelected] = useState('')
@@ -108,16 +111,18 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
 
   function update(definition: Definition) {
     actions.edit({
-      operation: { kind, operation: created ? 'create' : 'update', definitionId: id, definition },
+      operation: { kind, operation: created ? 'create' : 'update', definitionId: id, definition,
+        sourcePackage: staged?.operation.sourcePackage },
       original: source ? object(source.source) : undefined,
     }, version)
   }
 
-  function create(id: string, copySource: boolean) {
+  function create(id: string, copySource: boolean, sourcePackage?: string) {
     if (!schema.data || rows.has(id) || id === '.' || id === '..') return false
     const definition = { ...(copySource ? value : {}) }
     if (identity) definition[propertyKey(definition, identity)] = id
-    if (!actions.edit({ operation: { kind, operation: 'create', definitionId: id, definition } }, listVersion)) return false
+    if (kind === 'packages') definition[propertyKey(definition, 'packageId')] = id
+    if (!actions.edit({ operation: { kind, operation: 'create', definitionId: id, definition, sourcePackage } }, listVersion)) return false
     choose(id)
     setSearch('')
     setModal(null)
@@ -203,14 +208,15 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
                   copy={copy} disabled={!editable} onTyping={setTyping} />
               </section> : schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
                 schema={schema.data.data.schema} context={{
-                  key: apiKey, setting, disabled: !editable, locale, copy, root: value, draft: draft.frame,
-                  full: section === 'resources' || section === 'entities' || section === 'decks' || section === 'runs',
+                  key: apiKey, setting, referenceSetting: section === 'settings' ? activeSetting : undefined,
+                  disabled: !editable, locale, copy, root: value, draft: draft.frame,
+                  full: section !== 'rules' && section !== 'effects',
                   reorder: kind === 'formulas' || kind === 'runs', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
                   onCreateReference: (target) => { chooseKind(target as DefinitionKind); setModal('create') },
                 }} /> : schema.isError ? <p className="error">{actionsCopy.sourceUnavailable}</p> : <Loading label={shell.loading} />
               : <RuleAdvanced key={`${kind}/${id}`} value={value} source={source} disabled={!editable || !schema.data}
-                id={id} identity={identity} update={update} copy={copy} actionsCopy={actionsCopy} />}
+                id={id} identity={identity} update={update} copy={copy} actionsCopy={actionsCopy} showEffective={section !== 'settings'} />}
           </div>
         </> : <div className="detail-empty"><span className="empty-icon"><Icon size={23} /></span>
           <p>{detail.isError ? actionsCopy.sourceUnavailable : copy.select}</p>
@@ -221,7 +227,10 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     <AuthoringReceipt receipt={draft.receipt} copy={actionsCopy} />
     {modal === 'create' && <NewDefinition key={kind} close={() => setModal(null)} closeLabel={shell.close} copy={copy}
       actionsCopy={actionsCopy} title={labels[kind]} template={value ? titleOf(value, id) : ''}
-      ready={!!schema.data && !!listVersion && canCreate(kind)} create={create} />}
+      ready={!!schema.data && !!listVersion && canCreate(kind)} create={create}
+      idLabel={kind === 'packages' ? copy.packageDirectory : copy.id} apiKey={apiKey} needsOwner={kind === 'settings'}
+      draftPackages={draft.frame.filter(({ operation }) => operation.kind === 'packages' && operation.operation === 'create')
+        .map(({ operation }) => operation.definitionId)} />}
     {(modal === 'delete' || modal === 'discard') && <Modal title={modal === 'delete' ? copy.delete : actionsCopy.discard}
       closeLabel={shell.close} onClose={() => setModal(null)}>
       <p className="muted">{modal === 'delete' ? copy.confirmDelete : actionsCopy.discardPrompt}</p>
@@ -242,37 +251,53 @@ function Loading({ label }: { label: string }) {
   </div>
 }
 
-function RuleAdvanced({ id, value, identity, source, disabled, update, copy, actionsCopy }: {
+function RuleAdvanced({ id, value, identity, source, disabled, update, copy, actionsCopy, showEffective }: {
   id: string; value: Definition; identity?: string; source?: Schemas['AuthoringDefinitionDetail']; disabled: boolean
-  update: (next: Definition) => void; copy: RuleCopy; actionsCopy: CardCopy
+  update: (next: Definition) => void; copy: RuleCopy; actionsCopy: CardCopy; showEffective: boolean
 }) {
   return <div className="field-sections">
     <JsonSource value={value} disabled={disabled} update={update} copy={actionsCopy} label={copy.source}
       id={id} identity={identity} invalidMessage={identity ? copy.invalidJson : copy.rawInvalid} />
     {source?.source !== undefined && <details className="form-section disclosure"><summary>{copy.latest}</summary>
       <pre className="code-view">{stringifyAuthoringJson(source.source, 2)}</pre></details>}
-    {source?.effective !== undefined && <details className="form-section disclosure"><summary>{actionsCopy.effective}</summary>
+    {showEffective && source?.effective !== undefined && <details className="form-section disclosure"><summary>{actionsCopy.effective}</summary>
       <pre className="code-view">{stringifyAuthoringJson(source.effective, 2)}</pre></details>}
     {!!source?.provenance?.length && <details className="form-section disclosure"><summary>{actionsCopy.provenance}</summary>
       <pre className="code-view">{stringifyAuthoringJson(source.provenance, 2)}</pre></details>}
   </div>
 }
 
-function NewDefinition({ close, closeLabel, copy, actionsCopy, title, template, ready, create }: {
+function NewDefinition({ close, closeLabel, copy, actionsCopy, title, template, ready, create, idLabel, apiKey, needsOwner, draftPackages }: {
   close: () => void; closeLabel: string; copy: RuleCopy; actionsCopy: CardCopy; title: string; template: string; ready: boolean
-  create: (id: string, copySource: boolean) => boolean
+  create: (id: string, copySource: boolean, sourcePackage?: string) => boolean
+  idLabel: string; apiKey: string; needsOwner: boolean; draftPackages: string[]
 }) {
-  const [useTemplate, setTemplate] = useState(true)
+  const [useTemplate, setTemplate] = useState(idLabel !== copy.packageDirectory)
   const [invalid, setInvalid] = useState(false)
+  const [owner, setOwner] = useState('')
+  const ownerSearch = useDeferredValue(owner.trim())
+  const owners = useQuery({
+    queryKey: ['authoring', '', 'references', 'package-sources', ownerSearch], enabled: needsOwner,
+    queryFn: ({ signal }) => api<Schemas['AuthoringReferenceAuthoringPage']>(apiKey,
+      `/workspace/references/package-sources?limit=50&q=${encodeURIComponent(ownerSearch)}`, { signal }),
+  })
   return <Modal title={copy.newRule} onClose={close} closeLabel={closeLabel}>
     <p className="muted">{title} · {copy.dialogHint}</p>
     <form onSubmit={(event) => {
       event.preventDefault()
       const data = new FormData(event.currentTarget)
-      if (!create(String(data.get('id')).trim(), !!template && useTemplate)) setInvalid(true)
+      if (!create(String(data.get('id')).trim(), !!template && useTemplate, needsOwner ? owner.trim() : undefined)) setInvalid(true)
     }}>
-      <label htmlFor="new-definition-id">{copy.id}</label>
+      <label htmlFor="new-definition-id">{idLabel}</label>
       <input id="new-definition-id" name="id" required autoFocus maxLength={128} pattern={'[a-zA-Z0-9._\\-]+'} />
+      {needsOwner && <>
+        <label htmlFor="definition-owner">{copy.sourcePackage}</label>
+        <input id="definition-owner" list="definition-owners" required value={owner} onChange={(event) => setOwner(event.target.value)} />
+        <datalist id="definition-owners">
+          {[...new Set([...(owners.data?.data.items ?? []).flatMap((entry) => entry.id ? [entry.id] : []), ...draftPackages])]
+            .map((name) => <option key={name} value={name} />)}
+        </datalist>
+      </>}
       {!!template && <label className="template-option"><input type="checkbox" checked={useTemplate}
         onChange={(event) => setTemplate(event.target.checked)} /><span>{actionsCopy.template} <strong>{template}</strong></span></label>}
       {invalid && <p className="error" role="alert">{copy.invalidId}</p>}

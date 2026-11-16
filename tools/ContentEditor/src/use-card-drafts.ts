@@ -10,7 +10,10 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
   const draft = useSyncExternalStore(workspace.subscribe, () => workspace.get(setting))
   const changes = `${settingPath(setting)}/changes`
   const set = (next: Draft) => workspace.set(setting, next)
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['authoring'] })
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['authoring'] })
+    if (!setting) await queryClient.invalidateQueries({ queryKey: ['connection'] })
+  }
 
   function command(current: Draft): Change {
     const changeId = crypto.randomUUID()
@@ -92,7 +95,8 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
     if (current.busy || current.intent || current.attempt || !current.frame.length) return
     set({ ...current, busy: 'rebase' })
     try {
-      const latest = await api<Schemas['CardAuthoringSummaryAuthoringPage']>(key, `${settingPath(setting)}/definitions/cards?limit=1`)
+      const base = `${settingPath(setting)}/definitions/${setting ? 'cards' : 'settings'}?limit=1`
+      const latest = await api<Schemas['CardAuthoringSummaryAuthoringPage']>(key, base)
       const version = latest.version ?? latest.data.sourceVersion
       if (!version) throw new RebaseConflict()
       const adjusted = await Promise.all(current.frame.map(async (entry): Promise<Entry | null> => {
@@ -120,7 +124,7 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
         if (!combined) throw new RebaseConflict()
         return same(combined, theirs) ? null : { original: theirs, operation: { ...operation, definition: combined } }
       }))
-      if ((await api<unknown>(key, `${settingPath(setting)}/definitions/cards?limit=1`)).version !== version)
+      if ((await api<unknown>(key, base)).version !== version)
         throw new RebaseConflict()
       const frame = adjusted.filter((entry): entry is Entry => !!entry)
       set({ ...current, frame, past: [], future: [], version, busy: undefined, error: undefined, valid: undefined })

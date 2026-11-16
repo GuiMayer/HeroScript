@@ -21,10 +21,11 @@ const runGroups = [
   ['runs', 'run-progression-policies', 'profile-progress-policies', 'daily-challenges'],
   ['dialogues', 'preparations', 'shops', 'relics', 'run-events', 'boards', 'zones'],
 ] as const
+const workspaceGroups = [['settings', 'packages']] as const
 export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number] |
   (typeof resourceGroups)[number][number] | (typeof entityGroups)[number][number] | (typeof deckGroups)[number][number] |
-  (typeof runGroups)[number][number]
-export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities' | 'decks' | 'runs'
+  (typeof runGroups)[number][number] | (typeof workspaceGroups)[number][number]
+export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities' | 'decks' | 'runs' | 'settings'
 
 export const definitionGroups = {
   rules: [ruleKinds.slice(0, 4), ruleKinds.slice(4)],
@@ -33,6 +34,7 @@ export const definitionGroups = {
   entities: entityGroups,
   decks: deckGroups,
   runs: runGroups,
+  settings: workspaceGroups,
 }
 
 export const ruleCopy = {
@@ -55,6 +57,7 @@ export const ruleCopy = {
     valueType: 'Value type', addProperty: 'Add property', renameProperty: 'Rename property',
     moveEarlier: 'Move earlier', moveLater: 'Move later',
     componentType: 'Component type', addComponent: 'Add component',
+    sourcePackage: 'Owning package directory', packageDirectory: 'New package directory',
     'combat-rules': 'Combat rules', 'flow-rules': 'Flow rules', 'phase-sequences': 'Phase sequences', modes: 'Game modes',
     'capability-policies': 'Capability policies', 'content-binding-policies': 'Content binding', 'replay-policies': 'Replay', 'timeline-policies': 'Timeline',
   },
@@ -77,6 +80,7 @@ export const ruleCopy = {
     valueType: 'Tipo de valor', addProperty: 'Adicionar propriedade', renameProperty: 'Renomear propriedade',
     moveEarlier: 'Mover para cima', moveLater: 'Mover para baixo',
     componentType: 'Tipo de componente', addComponent: 'Adicionar componente',
+    sourcePackage: 'Diretório do pacote que guardará o setting', packageDirectory: 'Diretório do novo pacote',
     'combat-rules': 'Regras de combate', 'flow-rules': 'Regras de fluxo', 'phase-sequences': 'Sequências de fases', modes: 'Modos de jogo',
     'capability-policies': 'Permissões', 'content-binding-policies': 'Vínculo de conteúdo', 'replay-policies': 'Replay', 'timeline-policies': 'Linha do tempo',
   },
@@ -169,10 +173,24 @@ const runCopy = {
   },
 }
 
+const workspaceCopy = {
+  en: {
+    intro: 'Configure game settings, package manifests, dependencies and launch options.',
+    rules: 'Workspace catalog', gameplay: 'Workspace', editing: 'Workspace editing controls',
+    settings: 'Game settings', packages: 'Packages',
+  },
+  'pt-BR': {
+    intro: 'Configure game settings, manifestos de pacotes, dependências e opções de lançamento.',
+    rules: 'Catálogo do workspace', gameplay: 'Workspace', editing: 'Controles de edição do workspace',
+    settings: 'Game settings', packages: 'Pacotes',
+  },
+}
+
 export function definitionCopy(locale: keyof typeof ruleCopy, section: DefinitionSection) {
-  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale], ...deckCopy[locale], ...runCopy[locale] }
+  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale],
+    ...deckCopy[locale], ...runCopy[locale], ...workspaceCopy[locale] }
   const extra = { rules: {}, effects: effectCopy[locale], resources: resourceCopy[locale],
-    entities: entityCopy[locale], decks: deckCopy[locale], runs: runCopy[locale] }[section]
+    entities: entityCopy[locale], decks: deckCopy[locale], runs: runCopy[locale], settings: workspaceCopy[locale] }[section]
   return { copy: { ...ruleCopy[locale], ...extra }, labels }
 }
 
@@ -275,6 +293,11 @@ const portuguese: Record<string, string> = {
   baseCosts: 'Custos base', costsPerReroll: 'Custos por renovação', grantedCardIds: 'Cartas concedidas',
   applyModifiers: 'Modificadores aplicados', resourceRestrictions: 'Restrições de recursos', currentCeiling: 'Teto do valor atual',
   stackLimit: 'Limite de acúmulos', reactions: 'Reações',
+  schemaVersion: 'Versão do schema', launch: 'Ponto de entrada', playerEntityId: 'Entidade jogadora',
+  packages: 'Pacotes do setting', packageId: 'ID do pacote', versionRange: 'Faixa de versões',
+  dataOnly: 'Pacote de dados', dependencies: 'Dependências', conflicts: 'Conflitos entre pacotes',
+  content: 'Declarações de conteúdo', sourcePath: 'Caminho do arquivo fonte', artifactPath: 'Caminho do artefato',
+  expectedHash: 'Hash esperado', patchStrategy: 'Estratégia do patch',
 }
 
 export function fieldLabel(key: string, locale: string) {

@@ -189,15 +189,15 @@ export function App() {
             <button className="primary" type="submit" disabled={!input.trim()}>{copy.connectButton}</button>
           </form>
         </section> : !connected ? <Skeleton label={copy.connecting} />
-          : !settingId ? <section className="empty"><h1>{copy.noSettings}</h1>
+          : !settingId && location.area !== 'settings' ? <section className="empty"><h1>{copy.noSettings}</h1>
             <button className="secondary" onClick={() => void connection.refetch()}>{copy.retry}</button></section>
           : <Suspense fallback={<Skeleton label={copy.loading} />}>
             {location.area === 'cards' ? <Cards apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
               writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
               : location.area === 'rules' || location.area === 'effects' || location.area === 'resources' ||
-                location.area === 'entities' || location.area === 'decks' || location.area === 'runs'
+                location.area === 'entities' || location.area === 'decks' || location.area === 'runs' || location.area === 'settings'
               ? <RulesEditor section={location.area} apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
-                writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
+                writable={(location.area === 'settings' || !!selected?.writablePackageId) && !!connection.data?.capabilities.canApply} />
               : <section className="empty"><div className="empty-icon"><Layers3 size={26} /></div>
                 <h1>{copy[location.area]}</h1><p>{copy.pendingPage}</p>
                 <button className="secondary" onClick={() => navigate('cards')}>{copy.backToCards}</button>

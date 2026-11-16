@@ -15,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 const root = '/api/v1/admin/authoring'
-export const settingPath = (setting: string) => `/settings/${encodeURIComponent(setting)}`
+export const settingPath = (setting: string) => setting ? `/settings/${encodeURIComponent(setting)}` : '/workspace'
 export const cardPath = (setting: string, id: string) =>
   `${settingPath(setting)}/definitions/cards/${encodeURIComponent(id)}`
 export const definitionsPath = (setting: string, kind: string) =>
