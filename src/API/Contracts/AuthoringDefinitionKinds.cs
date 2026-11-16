@@ -11,7 +11,8 @@ public static class AuthoringDefinitionKinds
     {
         "cards", "combat-rules", "flow-rules", "phase-sequences", "modes",
         "capability-policies", "content-binding-policies", "replay-policies", "timeline-policies",
-        "actions", "modifiers", "status-effects", "effect-resolution-policies", "gambits", "powers", "keywords"
+        "actions", "modifiers", "status-effects", "effect-resolution-policies", "gambits", "powers", "keywords",
+        "resources", "actor-resource-lifecycle-policies", "calculation-pipelines", "formulas"
     };
 
     public static bool Supports(string kind) => Editable.Contains(kind);
@@ -38,6 +39,22 @@ public static class AuthoringDefinitionKinds
             ["/effects/*/statusId"] = "status-effects"
         },
         "modifiers" => new Dictionary<string, string> { ["/tags/*"] = "tags" },
+        "resources" => new Dictionary<string, string>
+        {
+            ["/tags/*"] = "tags", ["/regeneration/calculationPipelineId"] = "calculation-pipelines"
+        },
+        "actor-resource-lifecycle-policies" => new Dictionary<string, string> { ["/rules/*/resourceId"] = "resources" },
+        "calculation-pipelines" => new Dictionary<string, string>
+        {
+            ["/buckets/*/stageId"] = "local:stages/stageId",
+            ["/resourceInfluenceBindings/*/resourceId"] = "resources",
+            ["/resourceInfluenceBindings/*/bucket"] = "local:buckets/bucketId",
+            ["/statInfluenceBindings/*/bucket"] = "local:buckets/bucketId",
+            ["/resourceInfluenceBindings/*/requiredTags/*"] = "tags",
+            ["/resourceInfluenceBindings/*/excludedTags/*"] = "tags",
+            ["/statInfluenceBindings/*/requiredTags/*"] = "tags",
+            ["/statInfluenceBindings/*/excludedTags/*"] = "tags"
+        },
         "gambits" => new Dictionary<string, string>
         {
             ["/action/actionId"] = "actions", ["/action/cardDefinitionId"] = "cards",

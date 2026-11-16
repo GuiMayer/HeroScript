@@ -387,7 +387,7 @@ public sealed class CardAuthoringController(
     private static JsonObject CreateSchema(ContentKindDescriptor descriptor)
     {
         const string schemaVersion = "https://json-schema.org/draft/2020-12/schema";
-        if (descriptor.IdentityProperty is not { } identity)
+        if (descriptor.DefinitionType == typeof(JsonElement))
             return new JsonObject { ["$schema"] = schemaVersion, ["type"] = "object", ["additionalProperties"] = true };
 
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
@@ -399,6 +399,8 @@ public sealed class CardAuthoringController(
         var schema = options.GetJsonSchemaAsNode(descriptor.DefinitionType,
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
         schema["$schema"] = schemaVersion;
+        if (descriptor.IdentityProperty is not { } identity)
+            return schema.AsObject();
         var required = schema["required"] as JsonArray ?? new JsonArray();
         if (!required.Any(property => property?.GetValue<string>() == identity))
             required.Insert(0, JsonValue.Create(identity));

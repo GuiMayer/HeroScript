@@ -478,7 +478,7 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var root = Setting(setting);
         var kinds = await client.GetFromJsonAsync<AuthoringKind[]>(root + "/kinds");
         Assert.NotNull(kinds);
-        Assert.Equal(16, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
+        Assert.Equal(20, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
         foreach (var kind in kinds.Where(kind => kind.SupportsSchema))
         {
             var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + $"/kinds/{kind.Kind}/schema");
@@ -487,6 +487,11 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
             {
                 Assert.Null(schema.IdentityProperty);
                 Assert.Equal("object", schema.Schema["type"]!.GetValue<string>());
+            }
+            else if (kind.Kind == "formulas")
+            {
+                Assert.Null(schema.IdentityProperty);
+                Assert.NotNull(schema.Schema["properties"]?["operations"]);
             }
             else
                 Assert.Contains(schema.IdentityProperty, schema.Schema["required"]!.AsArray().Select(node => node!.GetValue<string>()));
@@ -630,6 +635,63 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         Assert.Equal(3, settings.GetProperty("steps").GetArrayLength());
         using var deletedKeyword = await client.GetAsync(root + "/definitions/keywords/authoring_keyword");
         Assert.Equal(HttpStatusCode.NotFound, deletedKeyword.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("uno-clash", "uno_draw_one")]
+    [InlineData("circular-table", "t_no_debt")]
+    public async Task ResourceAuthoringValidatesWritesAndDeletes(string setting, string existingFormula)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var root = Setting(setting);
+        var formulas = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/formulas");
+        var existing = await client.GetFromJsonAsync<AuthoringDefinitionDetail>($"{root}/definitions/formulas/{existingFormula}");
+        Assert.True(existing!.Item.CanEdit);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/formulas/schema");
+        Assert.Null(schema!.IdentityProperty);
+        Assert.NotNull(schema.Schema["properties"]?["parameterConstraints"]);
+        Assert.NotNull(schema.Schema["properties"]?["operations"]);
+
+        static CardAuthoringOperation Op(string kind, string? source, CardAuthoringOperationType operation) => new()
+        {
+            Kind = kind, DefinitionId = "editor_test", Operation = operation,
+            Definition = source is null ? null : JsonSerializer.Deserialize<JsonElement>(source)
+        };
+        static CardAuthoringOperation Create(string kind, string source) => Op(kind, source, CardAuthoringOperationType.Create);
+
+        var create = Change(
+            Create("resources", """{"resourceId":"editor_test","displayName":"Test resource","defaultMax":10}"""),
+            Create("actor-resource-lifecycle-policies", """
+                {"actorResourceLifecyclePolicyId":"editor_test","rules":[{"resourceId":"editor_test","entry":"PreserveCurrent",
+                "victory":"PreserveCurrent","defeat":"PreserveCurrent","draw":"PreserveCurrent","abandoned":"PreserveCurrent","retry":"PreserveCurrent"}]}
+                """),
+            Create("calculation-pipelines", """{"pipelineId":"editor_test","channel":"editor_test","buckets":[{"bucketId":"base","operation":"Add"}]}"""),
+            Create("formulas", """{"params":{"base":2},"operations":[{"op":"SET","value":"params.base"}]}"""));
+        using var preview = await Send(client, setting, formulas!.SourceVersion, create, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        var applied = await Apply(client, setting, formulas.SourceVersion, create);
+
+        var invalid = Change(Op("formulas", """{"operations":[{"op":"UNKNOWN"}]}""", CardAuthoringOperationType.Update));
+        using var rejected = await Send(client, setting, applied.SourceVersion, invalid, "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        Assert.Contains("unsupported operation", await rejected.Content.ReadAsStringAsync());
+        using var used = await Send(client, setting, applied.SourceVersion,
+            Change(Op("resources", null, CardAuthoringOperationType.Delete)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, used.StatusCode);
+
+        var edited = await Apply(client, setting, applied.SourceVersion,
+            Change(Op("formulas", """{"params":{"base":3},"operations":[{"op":"SET","value":"params.base"}]}""", CardAuthoringOperationType.Update)));
+        var formula = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/formulas/editor_test");
+        Assert.Equal(3, formula!.Source.GetProperty("params").GetProperty("base").GetInt32());
+
+        var kinds = create.Operations.Select(operation => operation!.Kind).ToArray();
+        await Apply(client, setting, edited.SourceVersion, Change(kinds.Select(kind => Op(kind, null, CardAuthoringOperationType.Delete)).ToArray()));
+        foreach (var kind in kinds)
+        {
+            using var missing = await client.GetAsync($"{root}/definitions/{kind}/editor_test");
+            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        }
     }
 
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,

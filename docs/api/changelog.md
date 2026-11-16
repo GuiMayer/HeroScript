@@ -1,5 +1,9 @@
 # Changelog do contrato público
 
+## Autoria de recursos e fórmulas
+
+- A API de autoria expõe recursos, políticas de ciclo de vida, pipelines de cálculo e fórmulas. As fórmulas têm schema tipado e usam a chave do catálogo como ID. O fluxo de alterações valida as definições com os validadores da engine.
+
 ## Opções para componentes de regras das cartas
 
 - O schema de Cartas identifica recursos de custos e seleção de alvos, zonas e fluxos de pagamento e destino. Os catálogos `card-zones`, `card-payment-flows` e `card-resolution-flows` são consultáveis em `/references/{kind}` para o setting selecionado.
