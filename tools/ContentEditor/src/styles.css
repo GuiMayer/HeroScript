@@ -237,6 +237,15 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .rule-array { display: grid; gap: 8px; justify-items: stretch; }
 .rule-array > button { justify-self: start; }
 .rule-array-remove { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; }
+.free-field { display: grid; gap: 8px; min-width: 0; }
+.free-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.effect-list { display: grid; gap: 6px; max-height: 240px; overflow-y: auto; padding: 2px; }
+.effect-row { justify-content: space-between; text-align: left; gap: 10px; }
+.effect-row[aria-pressed="true"] { border-color: var(--accent); }
+.card-effect-form { display: grid; gap: 12px; }
+.card-effect-form h4 { margin: 0; }
+.effect-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+.effect-actions .text-button { display: inline-flex; gap: 5px; align-items: center; }
 .rule-reference, .rule-reference-row { display: flex; align-items: end; gap: 5px; min-width: 0; }
 .rule-reference > .field, .rule-reference-row > .rule-reference { flex: 1; min-width: 0; }
 .rule-reference-list { display: grid; gap: 8px; }

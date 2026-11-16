@@ -160,7 +160,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
           </nav>
           <div className="detail-content">
             {tab === 'overview' && <Overview key={activeId} {...editorFields} />}
-            {tab === 'rules' && <Rules key={activeId} {...editorFields} />}
+            {tab === 'rules' && <Rules key={activeId} {...editorFields} locale={locale} draft={draft.frame} />}
             {tab === 'advanced' && <Advanced key={activeId} {...editorFields} detail={current} />}
           </div>
         </> : <div className="detail-empty"><span className="empty-icon"><Layers3 size={23} /></span>

@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Braces, Plus, Search, Tag, X } from 'lucide-react'
 import { api, settingPath, type Card, type Definition, type Schemas } from './api/client'
 import type { CardCopy } from './card-copy'
-import { array, object, string } from './editor-state'
+import { array, object, string, type Frame } from './editor-state'
+import { TextField } from './TextField'
+import { CardEffects, isEffectComponent } from './CardEffects'
+import type { Locale } from './i18n'
 
 export const rarities = ['Common', 'Uncommon', 'Rare', 'Legendary'] as const
 export function rarityLabel(value: string, copy: CardCopy) {
@@ -13,26 +16,6 @@ export function rarityLabel(value: string, copy: CardCopy) {
 
 export function titleOf(definition: Definition, fallback: string) {
   return string(object(definition.metadata).displayName) || fallback
-}
-
-export function TextField({ label, value, disabled, multiline = false, onCommit, onTyping }: {
-  label: string; value: string; disabled: boolean; multiline?: boolean; onCommit: (value: string) => void
-  onTyping: (dirty: boolean) => void
-}) {
-  const [text, setText] = useState(value)
-  useEffect(() => setText(value), [value])
-  const props = {
-    value: text, disabled,
-    onBlur: () => { onTyping(false); if (text !== value) onCommit(text) },
-    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setText(event.target.value)
-      onTyping(event.target.value !== value)
-    },
-  }
-  return <label className="field"><span>{label}</span>{multiline
-    ? <textarea {...props} rows={3} />
-    : <input {...props}
-      onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} />}</label>
 }
 
 function TagPicker({ tags, add, remove, disabled, apiKey, setting, copy }: {
@@ -117,15 +100,18 @@ export function Overview({ value, disabled, apiKey, setting, copy, update, onTyp
   </div>
 }
 
-export function Rules({ value, disabled, copy, update, onTyping }: EditorFields) {
+export function Rules(props: EditorFields & { locale: Locale; draft: Frame }) {
+  const { value, disabled, copy, update, onTyping } = props
   const components = array(value.components)
   const replace = (index: number, element: Definition) =>
     update({ ...value, components: components.map((item, key) => key === index ? element : item) })
-  return <section className="form-section component-section">
+  return <div className="field-sections"><CardEffects {...props} />
+  <section className="form-section component-section">
     <h3>{copy.components}</h3><p className="muted">{copy.componentHint}</p>
     {!components.length && <p className="muted">{copy.noComponents}</p>}
     {components.map((entry, index) => {
       const item = object(entry)
+      if (isEffectComponent(item)) return null
       const kind = string(item.type)
       const name = kind === 'condition' ? copy.condition : kind === 'cost' ? copy.cost : kind
       const costs = object(item.costs)
@@ -165,7 +151,7 @@ export function Rules({ value, disabled, copy, update, onTyping }: EditorFields)
         <button type="submit" className="secondary"><Plus size={15} />{copy.addCondition}</button>
       </form>
     </details>}
-  </section>
+  </section></div>
 }
 
 export function Advanced({ value, disabled, copy, update, apiKey, setting, detail }: EditorFields & { detail?: Card }) {
