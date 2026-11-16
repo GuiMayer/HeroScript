@@ -2,11 +2,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
+using System.Collections.Concurrent;
 using API.Attributes;
 using API.Contracts;
 using API.Services;
 using Core.Content;
-using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -22,7 +22,7 @@ public sealed class CardAuthoringController(
 {
     private const string SettingRoute = "settings/{settingId}";
     private const string Cards = "cards";
-    private static readonly Lazy<JsonObject> CardSchema = new(CreateCardSchema);
+    private static readonly ConcurrentDictionary<string, JsonObject> Schemas = new(StringComparer.Ordinal);
     private static readonly HashSet<string> TagCriteria =
         new(["requiredTags", "excludedTags", "includeTags", "excludeTags"], StringComparer.OrdinalIgnoreCase);
 
@@ -50,18 +50,16 @@ public sealed class CardAuthoringController(
     [ProducesResponseType(typeof(AuthoringKind[]), StatusCodes.Status200OK)]
     public Task<IActionResult> Kinds(string settingId, CancellationToken cancellationToken) =>
         WithView(settingId, cancellationToken, (_, view) => Task.FromResult<IActionResult>(Ok(
-            kinds.Kinds.Select(kind => new AuthoringKind(kind.Kind, kind.Kind == Cards,
-                kind.Kind == Cards && view.Writable is not null)).ToArray())));
+            kinds.Kinds.Select(kind => new AuthoringKind(kind.Kind, AuthoringDefinitionKinds.Supports(kind.Kind),
+                AuthoringDefinitionKinds.Supports(kind.Kind) && view.Writable is not null)).ToArray())));
 
     [HttpGet(SettingRoute + "/kinds/{kind}/schema", Name = "AuthoringKindSchema")]
     [ProducesResponseType(typeof(AuthoringKindSchema), StatusCodes.Status200OK)]
     public Task<IActionResult> Schema(string settingId, string kind, CancellationToken cancellationToken) =>
-        WithView(settingId, cancellationToken, (_, _) => Task.FromResult<IActionResult>(kind == Cards
-            ? Ok(new AuthoringKindSchema(Cards, CardSchema.Value, new Dictionary<string, string>
-            {
-                ["/tags"] = "tags",
-                ["/componentBundles/*/bundleId"] = "card-component-bundles"
-            }))
+        WithView(settingId, cancellationToken, (_, _) => Task.FromResult<IActionResult>(
+            AuthoringDefinitionKinds.Identity(kind) is { } identity
+            ? Ok(new AuthoringKindSchema(kind, Schemas.GetOrAdd(kind, name => CreateSchema(kinds.Get(name).Value, identity)),
+                AuthoringDefinitionKinds.References(kind), identity))
             : ApiNotFound($"Authoring schema not available for '{kind}'.")));
 
     [HttpGet(SettingRoute + "/definitions/cards", Name = "AuthoringListCards")]
@@ -91,6 +89,50 @@ public sealed class CardAuthoringController(
             var provenance = view.Compilation.Provenance.Where(item => item.ArtifactPath == artifact &&
                 (item.DefinitionId is null || item.DefinitionId == definitionId)).ToArray();
             return Ok(new CardAuthoringDefinition(Summary(card), source.Value, card.Effective, provenance));
+        });
+
+    [HttpGet(SettingRoute + "/definitions/{kind}", Name = "AuthoringListDefinitions")]
+    [ProducesResponseType(typeof(AuthoringPage<CardAuthoringSummary>), StatusCodes.Status200OK)]
+    public Task<IActionResult> Definitions(string settingId, string kind, [FromQuery] string? q, [FromQuery] string? cursor,
+        CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
+        WithView(settingId, cancellationToken, (workspace, view) => Task.FromResult(
+            AuthoringDefinitionKinds.Supports(kind)
+                ? Paginate(view.ForKind(kind).Values.Where(item => Matches(item.Id, q) ||
+                    (item.Effective.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String &&
+                        Matches(name.GetString()!, q))).Select(Summary), item => item.DefinitionId,
+                    workspace.ETag, settingId, kind, q, cursor, limit)
+                : ApiNotFound($"Authoring is unavailable for '{kind}'.")));
+
+    [HttpGet(SettingRoute + "/definitions/{kind}/{definitionId}", Name = "AuthoringGetDefinition")]
+    [ProducesResponseType(typeof(AuthoringDefinitionDetail), StatusCodes.Status200OK)]
+    public Task<IActionResult> Definition(string settingId, string kind, string definitionId, CancellationToken cancellationToken) =>
+        WithView(settingId, cancellationToken, async (workspace, view) =>
+        {
+            if (!view.ForKind(kind).TryGetValue(definitionId, out var item))
+                return ApiNotFound($"Definition '{kind}/{definitionId}' not found.");
+            var source = await authoring.ReadSourceAsync(workspace, item, cancellationToken);
+            if (source.IsFailure)
+                return ApiProblem(422, AuthoringErrorCodes.InvalidCandidate, "Definition source unavailable", source.Error);
+            var artifact = item.Entry.ArtifactPath!.Replace('\\', '/');
+            var provenance = view.Compilation.Provenance.Where(entry => entry.ArtifactPath == artifact &&
+                (entry.DefinitionId is null || entry.DefinitionId == definitionId)).ToArray();
+            return Ok(new AuthoringDefinitionDetail(Summary(item), source.Value, item.Effective, provenance));
+        });
+
+    [HttpGet(SettingRoute + "/references/{kind}", Name = "AuthoringListReferences")]
+    [ProducesResponseType(typeof(AuthoringPage<AuthoringReference>), StatusCodes.Status200OK)]
+    public Task<IActionResult> References(string settingId, string kind, [FromQuery] string? q, [FromQuery] string? cursor,
+        CancellationToken cancellationToken, [FromQuery] int limit = 50) =>
+        WithView(settingId, cancellationToken, (workspace, view) =>
+        {
+            if (kinds.Get(kind).IsFailure)
+                return Task.FromResult<IActionResult>(ApiNotFound($"Unknown reference kind '{kind}'."));
+            var bundle = view.Compilation.Bundle;
+            var ids = bundle.Manifest.Artifacts.Where(item => string.Equals(item.Kind, kind, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(item => bundle.Artifacts[item.Path].EnumerateObject().Select(value => value.Name))
+                .Distinct(StringComparer.Ordinal).Where(id => Matches(id, q)).Order(StringComparer.Ordinal)
+                .Select(id => new AuthoringReference(id));
+            return Task.FromResult(Paginate(ids, item => item.Id, workspace.ETag, settingId, $"reference:{kind}", q, cursor, limit));
         });
 
     [HttpGet(SettingRoute + "/references/tags", Name = "AuthoringListTags")]
@@ -310,7 +352,7 @@ public sealed class CardAuthoringController(
                 tags.Add(tag);
     }
 
-    private static JsonObject CreateCardSchema()
+    private static JsonObject CreateSchema(ContentKindDescriptor descriptor, string identity)
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
@@ -318,10 +360,14 @@ public sealed class CardAuthoringController(
             UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
         };
         options.Converters.Add(new JsonStringEnumConverter());
-        var schema = options.GetJsonSchemaAsNode(typeof(CardContentDefinition),
+        var schema = options.GetJsonSchemaAsNode(descriptor.DefinitionType,
             new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
         schema["$schema"] = "https://json-schema.org/draft/2020-12/schema";
-        schema["required"] = new JsonArray(JsonValue.Create("cardId"));
+        var required = schema["required"] as JsonArray ?? new JsonArray();
+        if (!required.Any(property => property?.GetValue<string>() == identity))
+            required.Insert(0, JsonValue.Create(identity));
+        if (schema["required"] is null)
+            schema["required"] = required;
         return schema.AsObject();
     }
 

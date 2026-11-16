@@ -1,5 +1,10 @@
 # Changelog do contrato público
 
+## Autoria de regras e fluxos
+
+- O [OpenAPI de autoria](../../openapi/heroscript-authoring-v1.json) inclui consultas por tipo em `/definitions/{kind}` e opções de referência em `/references/{kind}`.
+- O contrato de alterações aceita regras de combate e fluxo, sequências de fases, modos e políticas de capacidade, conteúdo, replay e timeline. O schema identifica o campo de ID e os campos de referência. Validação, gravação e compensações seguem o mesmo fluxo de autoria de Cartas.
+
 ## Autoria local de Cartas
 
 - `/openapi/authoring-v1.json` documenta leitura, validação, gravação, recibos e compensações sob `/api/v1/admin/authoring`. O [snapshot de autoria](../../openapi/heroscript-authoring-v1.json) é conferido na CI.

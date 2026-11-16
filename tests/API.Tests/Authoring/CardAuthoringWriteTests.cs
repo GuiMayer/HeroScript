@@ -468,6 +468,77 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         }
     }
 
+    [Theory]
+    [InlineData("uno-clash", "uno_combat", "uno.json")]
+    [InlineData("circular-table", "table_combat", "table.json")]
+    public async Task RuleAuthoringListsValidatesWritesAndUndoesRuleDefinitions(string setting, string id, string catalog)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var root = Setting(setting);
+        var kinds = await client.GetFromJsonAsync<AuthoringKind[]>(root + "/kinds");
+        Assert.NotNull(kinds);
+        Assert.Equal(9, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
+        foreach (var kind in kinds.Where(kind => kind.SupportsSchema))
+        {
+            var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + $"/kinds/{kind.Kind}/schema");
+            Assert.Contains(schema!.IdentityProperty, schema.Schema["required"]!.AsArray().Select(node => node!.GetValue<string>()));
+        }
+
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/combat-rules?q=" + id);
+        Assert.Equal(id, Assert.Single(page!.Items).DefinitionId);
+        var references = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/phase-sequences");
+        Assert.NotEmpty(references!.Items);
+        var inherited = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/flow-rules/standard_flow");
+        Assert.False(inherited!.Item.CanEdit);
+
+        var detail = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/combat-rules/" + id);
+        Assert.True(detail!.Item.CanEdit);
+        Assert.NotEmpty(detail.Provenance);
+        var originalRevision = await Revision(client, setting);
+        var source = Path.Combine(factory.PackageRoot, setting, "Resources", "combat-rules", catalog);
+        var original = await File.ReadAllBytesAsync(source);
+        var definition = JsonNode.Parse(detail.Source.GetRawText())!.AsObject();
+        var invalid = definition.DeepClone().AsObject();
+        invalid["defaultPhaseSequenceId"] = "missing_phase_sequence";
+        CardAuthoringOperation Rule(JsonObject value) => new()
+        {
+            Operation = CardAuthoringOperationType.Update, Kind = "combat-rules", DefinitionId = id,
+            Definition = JsonSerializer.SerializeToElement(value)
+        };
+        using var invalidResult = await Send(client, setting, page.SourceVersion, Change(Rule(invalid)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidResult.StatusCode);
+        Assert.Contains("missing_phase_sequence", await invalidResult.Content.ReadAsStringAsync());
+
+        var resolution = definition["flow"]!["automaticResolution"]!;
+        resolution["maxAutomaticSteps"] = resolution["maxAutomaticSteps"]!.GetValue<int>() + 1;
+        var change = Change(Rule(definition), new()
+        {
+            Operation = CardAuthoringOperationType.Create, Kind = "flow-rules", DefinitionId = "authoring_rule_test",
+            Definition = JsonSerializer.SerializeToElement(new { flowRulesId = "authoring_rule_test", allowMapNavigation = true })
+        });
+        using var preview = await Send(client, setting, page.SourceVersion, change, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        Assert.Equal(original, await File.ReadAllBytesAsync(source));
+        Assert.Equal(originalRevision, await Revision(client, setting));
+
+        var result = await Apply(client, setting, page.SourceVersion, change);
+        var observed = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/combat-rules/" + id);
+        Assert.Equal(resolution["maxAutomaticSteps"]!.GetValue<int>(), observed!.Source.GetProperty("flow")
+            .GetProperty("automaticResolution").GetProperty("maxAutomaticSteps").GetInt32());
+        Assert.Equal(result.ActiveRevisions[setting], await Revision(client, setting));
+        Assert.NotEqual(originalRevision, result.ActiveRevisions[setting]);
+        using var created = await client.GetAsync(root + "/definitions/flow-rules/authoring_rule_test");
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+
+        var undone = await Apply(client, setting, result.SourceVersion,
+            new CardAuthoringChangeRequest { ChangeId = Guid.NewGuid(), UndoOf = result.ChangeId });
+        Assert.Equal(original, await File.ReadAllBytesAsync(source));
+        Assert.Equal(originalRevision, undone.ActiveRevisions[setting]);
+        using var absent = await client.GetAsync(root + "/definitions/flow-rules/authoring_rule_test");
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+    }
+
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,
         string playerEntityId, string contentRevision, ulong seed)
     {

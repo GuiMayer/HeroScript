@@ -16,7 +16,6 @@ public sealed class CardAuthoringService(
     IConfiguration configuration)
 {
     private const string Cards = "cards";
-    private const string NewCatalog = "Resources/cards/authoring.json";
 
     public async Task<SettingCatalog> DiscoverAsync(CancellationToken cancellationToken) =>
         await settings.GetCatalogAsync(cancellationToken);
@@ -69,34 +68,36 @@ public sealed class CardAuthoringService(
         var compilation = compiled.Value;
         var selected = SettingCompiler.ResolvePackages(compilation.Setting, workspace.Catalog.Packages).Value;
         var writable = selected.SingleOrDefault(package => package.Manifest.PackageId == WritablePackage(compilation.Setting));
-        var cards = new SortedDictionary<string, CardAuthoringCard>(StringComparer.Ordinal);
+        var definitions = new Dictionary<string, SortedDictionary<string, CardAuthoringCard>>(StringComparer.Ordinal);
         var patches = selected.SelectMany(package => package.Manifest.Content)
-            .Where(entry => entry.Operation == PackageContentOperation.Patch && entry.Target?.Kind == Cards)
+            .Where(entry => entry.Operation == PackageContentOperation.Patch)
             .Select(entry => entry.Target!).ToArray();
         foreach (var package in selected)
         {
             var entries = package.Manifest.Content.Where(entry =>
-                entry.Operation == PackageContentOperation.Definition && entry.Kind == Cards);
+                entry.Operation == PackageContentOperation.Definition && AuthoringDefinitionKinds.Supports(entry.Kind));
             foreach (var entry in entries)
             {
+                if (!definitions.TryGetValue(entry.Kind, out var items))
+                    definitions.Add(entry.Kind, items = new(StringComparer.Ordinal));
                 var artifact = entry.ArtifactPath!.Replace('\\', '/');
                 var sharedSource = package.Manifest.Content.Count(other =>
                     string.Equals(AuthoringPackageSnapshot.SourceKey(package, other.SourcePath),
                         AuthoringPackageSnapshot.SourceKey(package, entry.SourcePath), StringComparison.OrdinalIgnoreCase)) > 1;
                 foreach (var card in compilation.Bundle.Artifacts[artifact].EnumerateObject())
                 {
-                    var patched = patches.Any(target =>
+                    var patched = patches.Any(target => target.Kind == entry.Kind &&
                         target.ArtifactPath.Replace('\\', '/') == artifact &&
                         (target.DefinitionId is null || target.DefinitionId == card.Name));
                     var record = new CardAuthoringCard(card.Name, card.Value, package, entry,
                         package == writable && !patched && !sharedSource);
-                    if (!cards.TryAdd(card.Name, record))
-                        return Result<CardAuthoringView>.Failure($"Duplicate definition 'cards/{card.Name}'.");
+                    if (!items.TryAdd(card.Name, record))
+                        return Result<CardAuthoringView>.Failure($"Duplicate definition '{entry.Kind}/{card.Name}'.");
                 }
             }
         }
 
-        return Result<CardAuthoringView>.Success(new(compilation, writable, cards));
+        return Result<CardAuthoringView>.Success(new(compilation, writable, definitions));
     }
 
     public async Task<Result<JsonElement>> ReadSourceAsync(CardAuthoringWorkspace workspace, CardAuthoringCard card,
@@ -108,10 +109,10 @@ public sealed class CardAuthoringService(
         if (card.Entry.DefinitionId is null)
         {
             if (!source.Value.TryGetProperty(card.Id, out var value))
-                return Result<JsonElement>.Failure($"Card '{card.Id}' has no source definition.");
-            return kinds.Normalize(Cards, card.Id, value);
+                return Result<JsonElement>.Failure($"Definition '{card.Id}' has no source definition.");
+            return kinds.Normalize(card.Entry.Kind, card.Id, value);
         }
-        return kinds.Normalize(Cards, card.Id, source.Value);
+        return kinds.Normalize(card.Entry.Kind, card.Id, source.Value);
     }
 
     public async Task<CardAuthoringValidation> ValidateAsync(CardAuthoringWorkspace workspace, CardAuthoringView view,
@@ -131,7 +132,8 @@ public sealed class CardAuthoringService(
         var writable = view.Writable;
         if (writable is null)
         {
-            diagnostics.Add(Diagnostic("CARD_PACKAGE_READ_ONLY", "", "", "No writable package is configured for this setting."));
+            var kind = request.Operations.OfType<CardAuthoringOperation>().First().Kind;
+            diagnostics.Add(Diagnostic(Code(kind, "PACKAGE_READ_ONLY"), "", "", "No writable package is configured for this setting.", kind: kind));
             return InvalidPlan();
         }
 
@@ -142,28 +144,30 @@ public sealed class CardAuthoringService(
         foreach (var operation in request.Operations.OfType<CardAuthoringOperation>())
         {
             var id = operation.DefinitionId;
+            var kind = operation.Kind;
+            var identity = AuthoringDefinitionKinds.Identity(kind)!;
             if (operation.Operation == CardAuthoringOperationType.Create &&
                 (id.Length > 128 || id.Any(character => !char.IsAsciiLetterOrDigit(character) &&
                     character is not ('.' or '_' or '-')) || id is "." or ".."))
             {
-                diagnostics.Add(Diagnostic("CARD_ID_INVALID", id, "/cardId", "Use an addressable card identifier."));
+                diagnostics.Add(Diagnostic(Code(kind, "ID_INVALID"), id, $"/{identity}", "Use an addressable identifier.", kind: kind));
                 continue;
             }
-            view.Cards.TryGetValue(id, out var card);
+            view.ForKind(kind).TryGetValue(id, out var card);
             if (operation.Operation == CardAuthoringOperationType.Create ? card is not null : card is null)
             {
-                diagnostics.Add(Diagnostic(card is null ? "CARD_NOT_FOUND" : "CARD_ALREADY_EXISTS", id, "",
-                    card is null ? "Card does not exist." : "Card already exists."));
+                diagnostics.Add(Diagnostic(Code(kind, card is null ? "NOT_FOUND" : "ALREADY_EXISTS"), id, "",
+                    card is null ? "Definition does not exist." : "Definition already exists.", kind: kind));
                 continue;
             }
             if (card is { CanEdit: false })
             {
-                diagnostics.Add(Diagnostic("CARD_READ_ONLY", id, "", "The card is inherited, patched, or uses a shared source file."));
+                diagnostics.Add(Diagnostic(Code(kind, "READ_ONLY"), id, "", "The definition is inherited, patched, or uses a shared source file.", kind: kind));
                 continue;
             }
             if (operation.Definition is { } definition)
             {
-                var invalidRarity = definition.EnumerateObject().Any(property =>
+                var invalidRarity = kind == Cards && definition.EnumerateObject().Any(property =>
                     property.Name.Equals("rarity", StringComparison.OrdinalIgnoreCase) &&
                     (property.Value.ValueKind != JsonValueKind.String ||
                      !Enum.GetNames<CardRarity>().Contains(property.Value.GetString(), StringComparer.OrdinalIgnoreCase)));
@@ -172,7 +176,7 @@ public sealed class CardAuthoringService(
                     diagnostics.Add(Diagnostic("CARD_RARITY_INVALID", id, "/rarity", "Use a recognized card rarity name."));
                     continue;
                 }
-                var invalidTag = definition.EnumerateObject().Any(property =>
+                var invalidTag = kind == Cards && definition.EnumerateObject().Any(property =>
                     property.Name.Equals("tags", StringComparison.OrdinalIgnoreCase) &&
                     (property.Value.ValueKind != JsonValueKind.Array ||
                      property.Value.EnumerateArray().Any(tag => tag.ValueKind != JsonValueKind.String ||
@@ -182,31 +186,32 @@ public sealed class CardAuthoringService(
                     diagnostics.Add(Diagnostic("CARD_TAGS_INVALID", id, "/tags", "Tags must be non-empty strings."));
                     continue;
                 }
-                var validation = ContentKindRegistry.Canonical.Validate(Cards, id, definition);
+                var validation = ContentKindRegistry.Canonical.Validate(kind, id, definition);
                 if (validation.IsFailure)
                 {
-                    diagnostics.Add(Diagnostic("CARD_SCHEMA_INVALID", id, "", validation.Error));
+                    diagnostics.Add(Diagnostic(Code(kind, "SCHEMA_INVALID"), id, "", validation.Error, kind: kind));
                     continue;
                 }
             }
 
             var entry = card?.Entry ?? entries.FirstOrDefault(candidate => candidate is
-                { Operation: PackageContentOperation.Definition, Kind: Cards, DefinitionId: null } &&
+                { Operation: PackageContentOperation.Definition, DefinitionId: null } && candidate.Kind == kind &&
                 entries.Count(other => SameSource(writable, candidate, other)) == 1 &&
                 !workspace.Catalog.Packages.SelectMany(package => package.Manifest.Content)
-                    .Any(other => other.Target is { Kind: Cards } target &&
+                    .Any(other => other.Target is { } target && target.Kind == kind &&
                         target.ArtifactPath.Replace('\\', '/') == candidate.ArtifactPath!.Replace('\\', '/')));
             if (entry is null)
             {
+                var catalogName = kind == Cards ? "authoring.json" : $"{writable.Manifest.PackageId}.authoring.json";
                 entry = new PackageContentEnvelope
                 {
-                    Kind = Cards, Operation = PackageContentOperation.Definition,
-                    SourcePath = NewCatalog, ArtifactPath = "cards/authoring.json"
+                    Kind = kind, Operation = PackageContentOperation.Definition,
+                    SourcePath = $"Resources/{kind}/{catalogName}", ArtifactPath = $"{kind}/{catalogName}"
                 };
                 var sourceKey = AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath);
                 if (snapshot.Sources.Any(file => string.Equals(file.Key, sourceKey, StringComparison.OrdinalIgnoreCase)))
                 {
-                    diagnostics.Add(Diagnostic("CARD_CATALOG_CONFLICT", id, "", "The proposed card catalog path is already declared."));
+                    diagnostics.Add(Diagnostic(Code(kind, "CATALOG_CONFLICT"), id, "", "The proposed catalog path is already declared.", kind: kind));
                     continue;
                 }
                 entries.Add(entry);
@@ -231,7 +236,7 @@ public sealed class CardAuthoringService(
                 var source = await snapshot.ReadJsonAsync(writable, entry.SourcePath, cancellationToken);
                 if (source.IsFailure)
                 {
-                    diagnostics.Add(Diagnostic("CARD_SOURCE_UNAVAILABLE", id, "", source.Error));
+                    diagnostics.Add(Diagnostic(Code(kind, "SOURCE_UNAVAILABLE"), id, "", source.Error, kind: kind));
                     continue;
                 }
                 sourceChanges.Add(key, document = JsonNode.Parse(source.Value.GetRawText())!.AsObject());
@@ -277,7 +282,7 @@ public sealed class CardAuthoringService(
             .Concat(removals.Select(path => new AuthoringSourceChange(path, snapshot.FindSource(path)!.Value.ToArray(), null)))
             .ToArray();
         return await ValidateCandidateAsync(workspace, writable, writable.Manifest with { Content = entries }, files,
-            request.ChangeId, request.Operations.OfType<CardAuthoringOperation>().Select(item => item.DefinitionId).ToArray(),
+            request.ChangeId, request.Operations.OfType<CardAuthoringOperation>().Select(item => (item.Kind, item.DefinitionId)).ToArray(),
             cancellationToken);
     }
 
@@ -305,12 +310,12 @@ public sealed class CardAuthoringService(
             restoredManifest = historicalManifest;
         }
 
-        var currentEntries = writable.Manifest.Content.Where(IsCardSource).ToLookup(
+        var currentEntries = writable.Manifest.Content.Where(IsEditableSource).ToLookup(
             entry => AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath), StringComparer.Ordinal);
-        var restoredEntries = restoredManifest.Content.Where(IsCardSource).ToLookup(
+        var restoredEntries = restoredManifest.Content.Where(IsEditableSource).ToLookup(
             entry => AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath), StringComparer.Ordinal);
         var changes = new List<AuthoringSourceChange>(targetFiles.Count);
-        var affectedCards = new HashSet<string>(StringComparer.Ordinal);
+        var affected = new HashSet<(string Kind, string Id)>();
         foreach (var source in targetFiles.Reverse())
         {
             var current = snapshot.FindSource(source.Path);
@@ -319,16 +324,16 @@ public sealed class CardAuthoringService(
             {
                 if ((source.After is not null && currentEntries[source.Path].Count() != 1) ||
                     (source.Before is not null && restoredEntries[source.Path].Count() != 1))
-                    return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is no longer an authorized card source.");
+                    return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is no longer an authorized definition source.");
 
                 var entry = currentEntries[source.Path].SingleOrDefault() ?? restoredEntries[source.Path].Single();
                 if (writable.Manifest.Content.Count(item => SameSource(writable, item, entry)) > 1 ||
                     restoredManifest.Content.Count(item => SameSource(writable, item, entry)) > 1)
                     return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is shared by several catalog entries.");
                 if (entry.DefinitionId is { } definitionId)
-                    affectedCards.Add(definitionId);
+                    affected.Add((entry.Kind, definitionId));
                 else
-                    affectedCards.UnionWith(AuthoringJsonSource.ChangedProperties(source.Before, source.After));
+                    affected.UnionWith(AuthoringJsonSource.ChangedProperties(source.Before, source.After).Select(id => (entry.Kind, id)));
 
                 if (!EqualSource(current, source.After))
                 {
@@ -337,7 +342,7 @@ public sealed class CardAuthoringService(
                         return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' changed after the target operation.");
                     var merged = AuthoringJsonSource.ReverseObjectChanges(current.Value, source.Before, source.After);
                     if (merged is null)
-                        return Result<CardAuthoringPlan>.Failure($"An affected card in '{source.Path}' changed after the target operation.");
+                        return Result<CardAuthoringPlan>.Failure($"An affected definition in '{source.Path}' changed after the target operation.");
                     next = merged.Value.ToArray();
                 }
             }
@@ -345,15 +350,16 @@ public sealed class CardAuthoringService(
             changes.Add(new(source.Path, current?.ToArray(), next));
         }
 
-        if (affectedCards.Any(id => view.Cards.TryGetValue(id, out var card) && !card.CanEdit))
-            return Result<CardAuthoringPlan>.Failure("An affected card is inherited, patched, or uses a shared source file.");
+        if (affected.Any(item => view.ForKind(item.Kind).TryGetValue(item.Id, out var card) && !card.CanEdit))
+            return Result<CardAuthoringPlan>.Failure("An affected definition is inherited, patched, or uses a shared source file.");
 
         return Result<CardAuthoringPlan>.Success(await ValidateCandidateAsync(workspace, writable, restoredManifest,
-            changes, changeId, affectedCards.ToArray(), cancellationToken));
+            changes, changeId, affected.ToArray(), cancellationToken));
     }
 
     private async Task<CardAuthoringPlan> ValidateCandidateAsync(CardAuthoringWorkspace workspace, PackageSource writable,
-        PackageManifest manifest, IReadOnlyList<AuthoringSourceChange> files, Guid changeId, IReadOnlyList<string> affectedCards,
+        PackageManifest manifest, IReadOnlyList<AuthoringSourceChange> files, Guid changeId,
+        IReadOnlyList<(string Kind, string Id)> affected,
         CancellationToken cancellationToken)
     {
         var snapshot = workspace.SnapshotFor(writable);
@@ -382,11 +388,13 @@ public sealed class CardAuthoringService(
             var result = publication.Validate(compiled.Value.Bundle);
             foreach (var error in result.Errors)
             {
-                var card = affectedCards.FirstOrDefault(id =>
-                    error.StartsWith($"{Cards}/{id} ", StringComparison.Ordinal) ||
-                    error.StartsWith($"{Cards}/{id}:", StringComparison.Ordinal) ||
-                    error.EndsWith($"missing {Cards}/{id}", StringComparison.Ordinal));
-                diagnostics.Add(Diagnostic("CARD_GRAPH_INVALID", card ?? "", "", error, settingId: settingId));
+                var (kind, id) = affected.FirstOrDefault(item =>
+                    error.StartsWith($"{item.Kind}/{item.Id} ", StringComparison.Ordinal) ||
+                    error.StartsWith($"{item.Kind}/{item.Id}:", StringComparison.Ordinal) ||
+                    error.EndsWith($"missing {item.Kind}/{item.Id}", StringComparison.Ordinal));
+                var diagnosticKind = kind ?? affected.FirstOrDefault().Kind ?? Cards;
+                diagnostics.Add(Diagnostic(Code(diagnosticKind, "GRAPH_INVALID"), id ?? "", "", error,
+                    settingId: settingId, kind: diagnosticKind));
             }
             diagnostics.AddRange(result.Warnings.Select(warning =>
                 Diagnostic("SETTING_VALIDATION_WARNING", "", "", warning, "warning", settingId)));
@@ -397,8 +405,10 @@ public sealed class CardAuthoringService(
             revisions, diagnostics), files, bundles);
     }
 
-    private static bool IsCardSource(PackageContentEnvelope entry) =>
-        entry is { Operation: PackageContentOperation.Definition, Kind: Cards };
+    private static bool IsEditableSource(PackageContentEnvelope entry) =>
+        entry.Operation == PackageContentOperation.Definition && AuthoringDefinitionKinds.Supports(entry.Kind);
+
+    private static string Code(string kind, string suffix) => kind == Cards ? $"CARD_{suffix}" : $"DEFINITION_{suffix}";
 
     private static bool EqualSource(ReadOnlyMemory<byte>? current, byte[]? expected) =>
         current is null ? expected is null : expected is not null && current.Value.Span.SequenceEqual(expected);
@@ -408,12 +418,12 @@ public sealed class CardAuthoringService(
             AuthoringPackageSnapshot.SourceKey(package, right.SourcePath), StringComparison.OrdinalIgnoreCase);
 
     private static AuthoringDiagnostic Diagnostic(string code, string id, string pointer, string message,
-        string severity = "error", string? settingId = null)
+        string severity = "error", string? settingId = null, string kind = Cards)
     {
         var parameters = new Dictionary<string, string> { ["message"] = message };
         if (settingId is not null)
             parameters["settingId"] = settingId;
-        return new(code, severity, Cards, id, pointer, parameters);
+        return new(code, severity, kind, id, pointer, parameters);
     }
 }
 
@@ -425,7 +435,15 @@ public sealed record CardAuthoringWorkspace(
 }
 
 public sealed record CardAuthoringView(SettingCompilation Compilation, PackageSource? Writable,
-    IReadOnlyDictionary<string, CardAuthoringCard> Cards);
+    IReadOnlyDictionary<string, SortedDictionary<string, CardAuthoringCard>> Definitions)
+{
+    private static readonly IReadOnlyDictionary<string, CardAuthoringCard> Empty =
+        System.Collections.Immutable.ImmutableDictionary<string, CardAuthoringCard>.Empty;
+
+    public IReadOnlyDictionary<string, CardAuthoringCard> Cards => ForKind("cards");
+    public IReadOnlyDictionary<string, CardAuthoringCard> ForKind(string kind) =>
+        Definitions.TryGetValue(kind, out var definitions) ? definitions : Empty;
+}
 
 public sealed record CardAuthoringCard(string Id, JsonElement Effective, PackageSource Package,
     PackageContentEnvelope Entry, bool CanEdit);

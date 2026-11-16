@@ -54,22 +54,22 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
             yield break;
         }
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var seen = new HashSet<(string Kind, string Id)>();
         for (var index = 0; index < Operations.Count; index++)
         {
             var operation = Operations[index];
             var member = $"{nameof(Operations)}[{index}]";
             if (operation is null ||
                 !Enum.IsDefined(operation.Operation) ||
-                !string.Equals(operation.Kind, "cards", StringComparison.Ordinal) ||
+                operation.Kind is null || AuthoringDefinitionKinds.Identity(operation.Kind) is not { } identity ||
                 string.IsNullOrWhiteSpace(operation.DefinitionId))
             {
-                yield return new("Supply a supported card operation with a definition ID.", [member]);
+                yield return new("Supply a supported authoring operation with a definition ID.", [member]);
                 continue;
             }
 
-            if (!seen.Add(operation.DefinitionId))
-                yield return new("Supply one operation per card.", [member]);
+            if (!seen.Add((operation.Kind, operation.DefinitionId)))
+                yield return new("Supply one operation per kind and definition ID.", [member]);
 
             var definition = operation.Definition;
             if (operation.Operation == CardAuthoringOperationType.Delete)
@@ -80,11 +80,11 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
             }
 
             if (definition is not { ValueKind: JsonValueKind.Object } value ||
-                !value.TryGetProperty("cardId", out var cardId) ||
-                cardId.ValueKind != JsonValueKind.String ||
-                !string.Equals(cardId.GetString(), operation.DefinitionId, StringComparison.Ordinal))
+                !value.TryGetProperty(identity, out var declaredId) ||
+                declaredId.ValueKind != JsonValueKind.String ||
+                !string.Equals(declaredId.GetString(), operation.DefinitionId, StringComparison.Ordinal))
             {
-                yield return new("Create and update require an object with a matching cardId.", [member]);
+                yield return new($"Create and update require an object with a matching {identity}.", [member]);
             }
         }
     }
@@ -128,7 +128,7 @@ public sealed record CardAuthoringSettings(
 public sealed record AuthoringKind(string Kind, bool SupportsSchema, bool CanCreate);
 
 public sealed record AuthoringKindSchema(
-    string Kind, System.Text.Json.Nodes.JsonObject Schema, IReadOnlyDictionary<string, string> References);
+    string Kind, System.Text.Json.Nodes.JsonObject Schema, IReadOnlyDictionary<string, string> References, string IdentityProperty);
 
 public sealed record AuthoringCapabilities(string Version, bool CanValidate, bool CanApply, bool CanUndo, bool CanRedo);
 
@@ -141,3 +141,9 @@ public sealed record CardAuthoringDefinition(
     IReadOnlyList<Mods.ContentProvenanceEntry> Provenance);
 
 public sealed record CardAuthoringTag(string Id, bool DeclaredOnCard, bool Referenced);
+
+public sealed record AuthoringDefinitionDetail(
+    CardAuthoringSummary Item, JsonElement Source, JsonElement Effective,
+    IReadOnlyList<Mods.ContentProvenanceEntry> Provenance);
+
+public sealed record AuthoringReference(string Id);
