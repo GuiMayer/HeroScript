@@ -1,4 +1,5 @@
 import type { components } from './schema'
+import { parseAuthoringJson, stringifyAuthoringJson } from '../authoring-json'
 
 export type Schemas = components['schemas']
 export type Definition = Record<string, unknown>
@@ -30,10 +31,12 @@ export async function api<T>(key: string, path: string, options: {
   if (options.body) headers['Content-Type'] = 'application/json'
   const response = await fetch(root + path, {
     method: options.body ? 'POST' : 'GET', headers, signal: options.signal,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body ? stringifyAuthoringJson(options.body) : undefined,
   })
-  const json = await response.json().catch(() => undefined)
-  if (!response.ok) throw new ApiError(response.status, json && typeof json === 'object' ? json : undefined)
+  let json: unknown
+  try { json = parseAuthoringJson(await response.text()) }
+  catch (error) { if (!(error instanceof SyntaxError)) throw error }
+  if (!response.ok) throw new ApiError(response.status, json && typeof json === 'object' ? json as ApiError['problem'] : undefined)
   if (json === undefined) throw new Error('The engine returned an empty response.')
   return { data: json as T, version: response.headers.get('ETag') ?? undefined }
 }

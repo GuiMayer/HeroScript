@@ -3,6 +3,7 @@ import { Braces, Pencil } from 'lucide-react'
 import type { Definition } from './api/client'
 import type { CardCopy } from './card-copy'
 import { object, propertyKey } from './editor-state'
+import { parseAuthoringJson, stringifyAuthoringJson } from './authoring-json'
 
 type Props = {
   value: Definition; disabled: boolean; copy: CardCopy; label: string; invalidMessage: string
@@ -10,7 +11,7 @@ type Props = {
 }
 
 export function JsonSource({ value, disabled, copy, label, invalidMessage, identity, id, update, children }: Props) {
-  const serialized = JSON.stringify(value, null, 2)
+  const serialized = stringifyAuthoringJson(value, 2)
   const [text, setText] = useState(serialized)
   const [editing, setEditing] = useState(false)
   const [invalid, setInvalid] = useState(false)
@@ -27,7 +28,7 @@ export function JsonSource({ value, disabled, copy, label, invalidMessage, ident
 
   function apply() {
     try {
-      const input: unknown = JSON.parse(text)
+      const input = parseAuthoringJson(text)
       const parsed = object(input)
       if (parsed !== input || (identity && parsed[propertyKey(parsed, identity)] !== id)) throw new Error()
       update(parsed)

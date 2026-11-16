@@ -13,6 +13,7 @@ function valueKind(value: unknown): ValueKind | '' {
   if (value === undefined) return ''
   if (value === null) return 'null'
   if (Array.isArray(value)) return 'array'
+  if (typeof value === 'bigint') return 'number'
   return typeof value === 'string' ? 'text' : typeof value as ValueKind
 }
 
@@ -46,6 +47,7 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
     {(kind === 'text' || kind === 'number') && <TextField label={valueLabel} value={String(value)} disabled={disabled}
       onTyping={onTyping} onCommit={(next) => {
         if (kind === 'text') update(next)
+        else if (typeof value === 'bigint' && /^-?\d+$/.test(next.trim())) update(BigInt(next.trim()))
         else if (next.trim() && Number.isFinite(Number(next))) update(Number(next))
       }} />}
     {kind === 'boolean' && <label className="rule-check"><input type="checkbox" checked={value === true}

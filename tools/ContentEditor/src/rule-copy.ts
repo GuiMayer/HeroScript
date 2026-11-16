@@ -17,9 +17,14 @@ const deckGroups = [
   ['card-pools', 'decks', 'deck-modules', 'deck-composition-policies', 'deck-compartment-profiles', 'deck-compartment-policies'],
   ['loadout-policies', 'support-loadout-policies', 'inscriptions'],
 ] as const
+const runGroups = [
+  ['runs', 'run-progression-policies', 'profile-progress-policies', 'daily-challenges'],
+  ['dialogues', 'preparations', 'shops', 'relics', 'run-events', 'boards', 'zones'],
+] as const
 export type DefinitionKind = (typeof ruleKinds)[number] | (typeof effectKinds)[number] |
-  (typeof resourceGroups)[number][number] | (typeof entityGroups)[number][number] | (typeof deckGroups)[number][number]
-export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities' | 'decks'
+  (typeof resourceGroups)[number][number] | (typeof entityGroups)[number][number] | (typeof deckGroups)[number][number] |
+  (typeof runGroups)[number][number]
+export type DefinitionSection = 'rules' | 'effects' | 'resources' | 'entities' | 'decks' | 'runs'
 
 export const definitionGroups = {
   rules: [ruleKinds.slice(0, 4), ruleKinds.slice(4)],
@@ -27,6 +32,7 @@ export const definitionGroups = {
   resources: resourceGroups,
   entities: entityGroups,
   decks: deckGroups,
+  runs: runGroups,
 }
 
 export const ruleCopy = {
@@ -144,10 +150,29 @@ const deckCopy = {
   },
 }
 
+const runCopy = {
+  en: {
+    intro: 'Configure run maps, progression, activities and rewards.',
+    rules: 'Run and progression catalog', gameplay: 'Runs and policies', policies: 'Activities and content',
+    editing: 'Run and progression editing controls',
+    runs: 'Runs', 'run-progression-policies': 'Run progression policies', 'profile-progress-policies': 'Profile progression policies',
+    'daily-challenges': 'Daily challenges', dialogues: 'Dialogues', preparations: 'Preparations', shops: 'Shops',
+    relics: 'Relics', 'run-events': 'Run events', boards: 'Boards', zones: 'Zones',
+  },
+  'pt-BR': {
+    intro: 'Configure mapas de runs, progressão, atividades e recompensas.',
+    rules: 'Catálogo de runs e progressão', gameplay: 'Runs e políticas', policies: 'Atividades e conteúdo',
+    editing: 'Controles de edição de runs e progressão',
+    runs: 'Runs', 'run-progression-policies': 'Políticas de progressão da run', 'profile-progress-policies': 'Políticas de progressão do perfil',
+    'daily-challenges': 'Desafios diários', dialogues: 'Diálogos', preparations: 'Preparações', shops: 'Lojas',
+    relics: 'Relíquias', 'run-events': 'Eventos da run', boards: 'Tabuleiros', zones: 'Zonas',
+  },
+}
+
 export function definitionCopy(locale: keyof typeof ruleCopy, section: DefinitionSection) {
-  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale], ...deckCopy[locale] }
+  const labels = { ...ruleCopy[locale], ...effectCopy[locale], ...resourceCopy[locale], ...entityCopy[locale], ...deckCopy[locale], ...runCopy[locale] }
   const extra = { rules: {}, effects: effectCopy[locale], resources: resourceCopy[locale],
-    entities: entityCopy[locale], decks: deckCopy[locale] }[section]
+    entities: entityCopy[locale], decks: deckCopy[locale], runs: runCopy[locale] }[section]
   return { copy: { ...ruleCopy[locale], ...extra }, labels }
 }
 
@@ -229,6 +254,27 @@ const portuguese: Record<string, string> = {
   allowedActorDefinitionIds: 'Entidades autorizadas', attributeBonuses: 'Bônus de atributos', attributeId: 'Atributo',
   rank: 'Nível', ranks: 'Níveis', equipmentCost: 'Custo de equipamento', polarity: 'Polaridade',
   revisionMigration: 'Migração de revisão', influenceValues: 'Valores de influência', presentation: 'Apresentação',
+  playerDefinitionId: 'Entidade jogadora', startingResources: 'Recursos iniciais', startingCards: 'Cartas iniciais',
+  initialPlayableCardCount: 'Cartas jogáveis no início', initialCardZoneId: 'Zona inicial das cartas', initialCardOwner: 'Dono inicial das cartas',
+  mapNodes: 'Nós do mapa', nodeId: 'ID do nó', nextNodeIds: 'Próximos nós', activity: 'Atividade',
+  completionPolicy: 'Política de conclusão', entryEffects: 'Efeitos de entrada', exitEffects: 'Efeitos de saída',
+  entryEffectOwner: 'Dono dos efeitos de entrada', exitEffectOwner: 'Dono dos efeitos de saída',
+  encounterVictory: 'Vitória no encontro', encounterDefeat: 'Derrota no encontro', encounterDraw: 'Empate no encontro',
+  encounterAbandoned: 'Abandono do encontro', encounterRetry: 'Nova tentativa de encontro',
+  retryableEncounterOutcomes: 'Resultados que permitem tentar novamente', endOfMap: 'Fim do mapa',
+  allowAbandon: 'Permitir abandonar a run', allowOutOfActivityCommands: 'Permitir comandos fora da atividade',
+  contributingModeIds: 'Modos que contam para a progressão', allowedProvenances: 'Origens permitidas', deduplication: 'Contagem de runs',
+  unlocks: 'Desbloqueios', unlockId: 'ID do desbloqueio', targets: 'Itens desbloqueados', outcomes: 'Resultados da run',
+  encounterOutcomes: 'Resultados do encontro', isCurrent: 'Desafio atual', configName: 'Game setting',
+  scoreResourceWeights: 'Pesos dos recursos na pontuação', modeId: 'Modo de jogo', seed: 'Seed',
+  title: 'Título', startNodeId: 'Nó inicial', nodes: 'Nós', speaker: 'Quem fala', translations: 'Traduções',
+  choices: 'Escolhas', choiceId: 'ID da escolha', interactionKind: 'Tipo de interação', nextNodeId: 'Próximo nó',
+  hideWhenUnavailable: 'Ocultar quando indisponível', unavailableText: 'Mensagem de indisponibilidade', once: 'Apenas uma vez',
+  setFlags: 'Variáveis definidas pela escolha', items: 'Itens', pricing: 'Preços', reroll: 'Renovação das ofertas',
+  baseMultiplier: 'Multiplicador base', rarityMultipliers: 'Multiplicadores por raridade', tagMultipliers: 'Multiplicadores por tag',
+  baseCosts: 'Custos base', costsPerReroll: 'Custos por renovação', grantedCardIds: 'Cartas concedidas',
+  applyModifiers: 'Modificadores aplicados', resourceRestrictions: 'Restrições de recursos', currentCeiling: 'Teto do valor atual',
+  stackLimit: 'Limite de acúmulos', reactions: 'Reações',
 }
 
 export function fieldLabel(key: string, locale: string) {

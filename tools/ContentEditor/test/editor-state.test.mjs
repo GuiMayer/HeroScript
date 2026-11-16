@@ -1,6 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { Workspace, confirmed, history, mergeIndependent, stage } from '../src/editor-state.ts'
+import { parseAuthoringJson, stringifyAuthoringJson } from '../src/authoring-json.ts'
+
+test('daily challenge seeds round-trip as exact numbers beyond the safe integer range', () => {
+  const source = '{"Seed":18446744073709551615,"name":"Before"}'
+  const challenge = parseAuthoringJson(source)
+  assert.equal(challenge.Seed, 18446744073709551615n)
+  assert.equal(stringifyAuthoringJson({ ...challenge, name: 'After' }), '{"Seed":18446744073709551615,"name":"After"}')
+})
 
 const create = (id, definition = {}) => ({
   operation: { kind: 'cards', operation: 'create', definitionId: id, definition },

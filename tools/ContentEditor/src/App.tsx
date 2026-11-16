@@ -195,7 +195,7 @@ export function App() {
             {location.area === 'cards' ? <Cards apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
               writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
               : location.area === 'rules' || location.area === 'effects' || location.area === 'resources' ||
-                location.area === 'entities' || location.area === 'decks'
+                location.area === 'entities' || location.area === 'decks' || location.area === 'runs'
               ? <RulesEditor section={location.area} apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
                 writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
               : <section className="empty"><div className="empty-icon"><Layers3 size={26} /></div>

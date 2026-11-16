@@ -6,6 +6,7 @@ import { TextField } from './TextField'
 import { array, object, propertyKey, string, type Frame } from './editor-state'
 import { fieldLabel, type RuleCopy } from './rule-copy'
 import { discriminatedSchemas, resolveSchema, type Schema } from './authoring-schema'
+import { stringifyAuthoringJson } from './authoring-json'
 import { FreeField, PropertyFields } from './FreeField'
 
 interface Context {
@@ -53,13 +54,20 @@ function ObjectFields({ properties, value, update, context, path, skip }: {
   const isEffect = context.full && !!properties.effectId
   const primary = isEffect ? basicEffectFields.flatMap((name) => fields.filter(([key]) => name === key)) : fields
   const extra = isEffect ? fields.filter(([name]) => !basicEffectFields.includes(name)) : []
+  const dependentReferences = object(object(context.schemaRoot)['x-authoring-dependent-references'])
   const render = ([name, schema]: [string, Schema]) => {
     const key = propertyKey(value, name)
     const fieldPath = `${path}/${name}`
+    const dependent = object(dependentReferences[fieldPath.replaceAll('/children/*', '')])
+    const selector = string(dependent.selector)
+    const selected = selector ? string(value[propertyKey(value, selector)]) : ''
+    const choices = object(dependent.kinds)
+    const choice = Object.keys(choices).find((option) => option.toLowerCase() === selected.toLowerCase())
+    const reference = choice ? string(choices[choice]) : undefined
     const label = context.full && fieldPath === '/components/*/costs' ? context.copy.costSettings
       : context.full && name === 'costs' && path.startsWith('/components/*/costs') ? context.copy.resourceCosts
       : fieldLabel(name, context.locale)
-    return <Field key={name} label={label} path={fieldPath}
+    return <Field key={name} label={label} path={fieldPath} referenceKind={reference}
       schema={schema} value={value[key]} update={(next) => {
         const changed = { ...value, [key]: next }
         if (next === undefined) delete changed[key]
@@ -96,13 +104,14 @@ function initialValue(schema: Schema, root: unknown): unknown {
   return shape.enum?.[0] ?? null
 }
 
-function Field({ label, path, schema, value, update, context }: {
+function Field({ label, path, schema, value, update, context, referenceKind }: {
   label: string; path: string; schema: Schema; value: unknown; update: (value: unknown) => void; context: Context
+  referenceKind?: string
 }) {
   const { shape, variant } = schemaShape(schema, context.schemaRoot)
   const types = Array.isArray(shape.type) ? shape.type : [shape.type]
-  const referencePath = path.replaceAll('/chainedEffects/*', '')
-  const reference = context.refs[path] ?? context.refs[referencePath]
+  const referencePath = path.replaceAll('/chainedEffects/*', '').replaceAll('/conditions/*', '')
+  const reference = referenceKind ?? context.refs[path] ?? context.refs[referencePath]
   const elementReference = context.refs[`${referencePath}/*`]
   const common = { label, disabled: context.disabled, onTyping: context.onTyping }
   if (reference) return <Reference context={context} label={label} kind={reference} value={string(value)}
@@ -131,6 +140,16 @@ function Field({ label, path, schema, value, update, context }: {
         <option value="" disabled>{context.copy.unset}</option><option value="true">{context.copy.yes}</option>
         <option value="false">{context.copy.no}</option>
       </select></label>
+  if (shape.format === 'uint64') return <TextField {...common}
+    value={typeof value === 'number' || typeof value === 'bigint' ? String(value) : ''}
+    onCommit={(next) => {
+      const text = next.trim()
+      if (!text) update(undefined)
+      else if (/^-?\d+$/.test(text)) {
+        const numeric = Number(text)
+        update(Number.isSafeInteger(numeric) ? numeric : BigInt(text))
+      }
+    }} />
   if (types.includes('integer') || types.includes('number'))
     return <TextField {...common} value={typeof value === 'number' || types.includes('string') && typeof value === 'string' ? String(value) : ''}
       onCommit={(next) => {
@@ -172,7 +191,8 @@ function Field({ label, path, schema, value, update, context }: {
       <div className="rule-array">
         {values.map((item, index) => {
           const row = object(item)
-          const name = ['name', 'phaseId', 'edgeId', 'effectId', 'triggerId', 'optionId', 'paymentId', 'resourceId', 'op', 'stageId', 'bucketId']
+          const name = ['name', 'nodeId', 'choiceId', 'unlockId', 'itemId', 'phaseId', 'edgeId', 'effectId', 'triggerId',
+            'optionId', 'paymentId', 'resourceId', 'op', 'stageId', 'bucketId']
             .map((key) => string(row[propertyKey(row, key)]))
             .find(Boolean) || `${label} ${index + 1}`
           const replace = (next: unknown) => update(values.map((current, position) =>
@@ -228,7 +248,7 @@ function Field({ label, path, schema, value, update, context }: {
     onTyping={context.onTyping} dictionary={types.includes('object')} />
   return <Fold label={label} count={Array.isArray(value) ? value.length : undefined}>
     <p className="muted">{context.copy.editAdvanced}</p>
-    {value !== undefined && <pre className="code-view">{JSON.stringify(value, null, 2)}</pre>}
+    {value !== undefined && <pre className="code-view">{stringifyAuthoringJson(value, 2)}</pre>}
   </Fold>
 }
 

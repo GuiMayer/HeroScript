@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { Boxes, ChevronRight, FileText, GitBranch, Layers3, LockKeyhole, Plus, Search, Sparkles, Trash2, Users } from 'lucide-react'
+import { Boxes, ChevronRight, FileText, GitBranch, Layers3, LockKeyhole, Plus, Search, Sparkles, Swords, Trash2, Users } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
@@ -9,6 +9,7 @@ import { object, propertyKey, string } from './editor-state'
 import { preference } from './i18n'
 import { Modal } from './Modal'
 import { JsonSource } from './JsonSource'
+import { stringifyAuthoringJson } from './authoring-json'
 import { PropertyFields } from './FreeField'
 import { RuleFields } from './RuleFields'
 import { definitionCopy, definitionGroups, type DefinitionKind, type DefinitionSection, type RuleCopy } from './rule-copy'
@@ -27,7 +28,7 @@ function titleOf(value: Definition | undefined, id: string) {
 function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspace, section }: Props) {
   const { copy, labels } = definitionCopy(locale, section)
   const groups = definitionGroups[section]
-  const Icon = { resources: Boxes, effects: Sparkles, rules: GitBranch, entities: Users, decks: Layers3 }[section]
+  const Icon = { resources: Boxes, effects: Sparkles, rules: GitBranch, entities: Users, decks: Layers3, runs: Swords }[section]
   const actionsCopy = cardCopy[locale]
   const [kind, setKind] = useState<DefinitionKind>(groups[0][0])
   const [selected, setSelected] = useState('')
@@ -203,8 +204,8 @@ function RuleWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
               </section> : schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
                 schema={schema.data.data.schema} context={{
                   key: apiKey, setting, disabled: !editable, locale, copy, root: value, draft: draft.frame,
-                  full: section === 'resources' || section === 'entities' || section === 'decks',
-                  reorder: kind === 'formulas', schemaRoot: schema.data.data.schema,
+                  full: section === 'resources' || section === 'entities' || section === 'decks' || section === 'runs',
+                  reorder: kind === 'formulas' || kind === 'runs', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
                   onCreateReference: (target) => { chooseKind(target as DefinitionKind); setModal('create') },
                 }} /> : schema.isError ? <p className="error">{actionsCopy.sourceUnavailable}</p> : <Loading label={shell.loading} />
@@ -249,11 +250,11 @@ function RuleAdvanced({ id, value, identity, source, disabled, update, copy, act
     <JsonSource value={value} disabled={disabled} update={update} copy={actionsCopy} label={copy.source}
       id={id} identity={identity} invalidMessage={identity ? copy.invalidJson : copy.rawInvalid} />
     {source?.source !== undefined && <details className="form-section disclosure"><summary>{copy.latest}</summary>
-      <pre className="code-view">{JSON.stringify(source.source, null, 2)}</pre></details>}
+      <pre className="code-view">{stringifyAuthoringJson(source.source, 2)}</pre></details>}
     {source?.effective !== undefined && <details className="form-section disclosure"><summary>{actionsCopy.effective}</summary>
-      <pre className="code-view">{JSON.stringify(source.effective, null, 2)}</pre></details>}
+      <pre className="code-view">{stringifyAuthoringJson(source.effective, 2)}</pre></details>}
     {!!source?.provenance?.length && <details className="form-section disclosure"><summary>{actionsCopy.provenance}</summary>
-      <pre className="code-view">{JSON.stringify(source.provenance, null, 2)}</pre></details>}
+      <pre className="code-view">{stringifyAuthoringJson(source.provenance, 2)}</pre></details>}
   </div>
 }
 

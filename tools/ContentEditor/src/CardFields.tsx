@@ -8,6 +8,7 @@ import { TextField } from './TextField'
 import { CardComponents } from './CardComponents'
 import type { Locale } from './i18n'
 import { JsonSource } from './JsonSource'
+import { stringifyAuthoringJson } from './authoring-json'
 
 export const rarities = ['Common', 'Uncommon', 'Rare', 'Legendary'] as const
 export function rarityLabel(value: string, copy: CardCopy) {
@@ -118,10 +119,10 @@ export function Advanced({ value, disabled, copy, update, apiKey, setting, detai
     <JsonSource value={value} disabled={disabled} update={update} copy={copy} label={copy.fullDefinition}
       identity="cardId" id={value[propertyKey(value, 'cardId')]} invalidMessage={copy.invalidJson} />
     {detail?.source !== undefined && <details className="form-section disclosure">
-      <summary>{copy.compare}</summary><pre className="code-view">{JSON.stringify(detail.source, null, 2)}</pre>
+      <summary>{copy.compare}</summary><pre className="code-view">{stringifyAuthoringJson(detail.source, 2)}</pre>
     </details>}
     {detail?.effective !== undefined && <details className="form-section disclosure">
-      <summary>{copy.effective}</summary><pre className="code-view">{JSON.stringify(detail.effective, null, 2)}</pre>
+      <summary>{copy.effective}</summary><pre className="code-view">{stringifyAuthoringJson(detail.effective, 2)}</pre>
     </details>}
     {!!detail?.provenance?.length && <details className="form-section disclosure">
       <summary>{copy.provenance}</summary><pre className="code-view">{JSON.stringify(detail.provenance, null, 2)}</pre>

@@ -3,6 +3,7 @@ import { object } from './editor-state'
 export interface Schema {
   $ref?: string
   type?: string | string[]
+  format?: string
   properties?: Record<string, Schema>
   items?: Schema
   enum?: unknown[]
