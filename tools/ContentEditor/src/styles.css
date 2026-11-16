@@ -239,6 +239,10 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .rule-array-remove { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; }
 .free-field { display: grid; gap: 8px; min-width: 0; }
 .free-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.property-actions { display: flex; gap: 4px; }
+.property-add { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.property-add .field { flex: 1 1 130px; min-width: 0; }
+.property-rename { grid-column: 1 / -1; }
 .effect-list { display: grid; gap: 6px; max-height: 240px; overflow-y: auto; padding: 2px; }
 .effect-row { justify-content: space-between; text-align: left; gap: 10px; }
 .effect-row[aria-pressed="true"] { border-color: var(--accent); }

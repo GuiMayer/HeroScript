@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Pencil, Plus, X } from 'lucide-react'
+import type { Definition } from './api/client'
 import { object } from './editor-state'
 import type { RuleCopy } from './rule-copy'
 import { TextField } from './TextField'
 
 const defaults = { text: '', number: 0, boolean: false, object: {}, array: [], null: null }
 type ValueKind = keyof typeof defaults
+const valueKinds = Object.keys(defaults) as ValueKind[]
 
 function valueKind(value: unknown): ValueKind | '' {
   if (value === undefined) return ''
@@ -19,21 +21,27 @@ type Props = {
   disabled: boolean; onTyping: (typing: boolean) => void; dictionary?: boolean
 }
 
+function ValueType({ label, kind, copy, disabled, select, allowUnset = false }: {
+  label: string; kind: ValueKind | ''; copy: RuleCopy; disabled: boolean
+  select: (kind: ValueKind | '') => void; allowUnset?: boolean
+}) {
+  const labels = { text: copy.textType, number: copy.numberType, boolean: copy.booleanType,
+    object: copy.objectType, array: copy.arrayType, null: copy.nullType }
+  return <label className="field"><span>{label}</span>
+    <select value={kind} disabled={disabled} onChange={(event) => select(event.target.value as ValueKind | '')}>
+      {(allowUnset || kind === '') && <option value="" disabled={!allowUnset}>{copy.unset}</option>}
+      {valueKinds.map((type) => <option key={type} value={type}>{labels[type]}</option>)}
+    </select>
+  </label>
+}
+
 export function FreeField({ label, value, update, copy, disabled, onTyping, dictionary }: Props) {
   const kind = valueKind(value)
   const child = { copy, disabled, onTyping }
-  const labels = { text: copy.textType, number: copy.numberType, boolean: copy.booleanType,
-    object: copy.objectType, array: copy.arrayType, null: copy.nullType }
+  const type = <ValueType label={`${label} · ${copy.valueType}`} kind={kind} copy={copy} disabled={disabled}
+    allowUnset={value === undefined} select={(next) => update(next ? defaults[next] : undefined)} />
   if (!dictionary && kind !== 'object' && kind !== 'array') return <div className="free-field">
-    <label className="field"><span>{label} · {copy.kind}</span>
-      <select value={kind} disabled={disabled} onChange={(event) => {
-        const next = event.target.value as ValueKind
-        update(defaults[next])
-      }}>
-        <option value="">{copy.unset}</option>
-        {Object.entries(labels).map(([type, name]) => <option key={type} value={type}>{name}</option>)}
-      </select>
-    </label>
+    {type}
     {(kind === 'text' || kind === 'number') && <TextField label={copy.value} value={String(value)} disabled={disabled}
       onTyping={onTyping} onCommit={(next) => {
         if (kind === 'text') update(next)
@@ -45,6 +53,7 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
 
   return <details className="component rule-fold">
     <summary>{label}</summary>
+    {!dictionary && type}
     {Array.isArray(value) && !dictionary ? <div className="rule-array">
       {value.map((item, index) => <div className="free-entry" key={index}>
         <FreeField {...child} label={`${copy.value} ${index + 1}`} value={item}
@@ -54,36 +63,59 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
       {!disabled && <button type="button" className="secondary" onClick={() => update([...value, null])}>
         <Plus size={15} />{copy.addItem}
       </button>}
-    </div> : <Dictionary {...child} value={value} update={update} />}
+    </div> : <PropertyFields {...child} value={object(value)} update={update} />}
     {!disabled && value !== undefined && <button type="button" className="text-button rule-array-remove"
       onClick={() => update(undefined)}>{copy.resetField}</button>}
   </details>
 }
 
-function Dictionary({ value, update, copy, disabled, onTyping }: Omit<Props, 'label'>) {
+export function PropertyFields({ value: entries, update, copy, disabled, onTyping }: {
+  value: Definition; update: (value: Definition) => void; copy: RuleCopy; disabled: boolean
+  onTyping: (typing: boolean) => void
+}) {
   const [key, setKey] = useState('')
-  const entries = object(value)
+  const [kind, setKind] = useState<ValueKind>('text')
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [renameKey, setRenameKey] = useState('')
   const newKey = key.trim()
+  const canRename = renaming !== null && !!renameKey.trim() && renameKey.trim() !== renaming && !Object.hasOwn(entries, renameKey.trim())
   function add() {
     if (!newKey || Object.hasOwn(entries, newKey)) return
-    update({ ...entries, [newKey]: null })
+    update({ ...entries, [newKey]: defaults[kind] })
     setKey('')
+  }
+  function rename() {
+    if (!canRename) return
+    update(Object.fromEntries(Object.entries(entries).map(([name, item]) => [name === renaming ? renameKey.trim() : name, item])))
+    setRenaming(null)
   }
   return <div className="rule-array">
     {Object.entries(entries).map(([name, item]) => <div className="free-entry" key={name}>
       <FreeField label={name} value={item} copy={copy} disabled={disabled} onTyping={onTyping}
         update={(next) => update({ ...entries, [name]: next ?? null })} />
-      <Remove copy={copy} disabled={disabled} remove={() => {
-        const next = { ...entries }
-        delete next[name]
-        update(next)
-      }} />
+      {!disabled && <div className="property-actions">
+        <button type="button" className="icon-button" aria-label={`${copy.renameProperty}: ${name}`} title={copy.renameProperty}
+          onClick={() => { setRenaming(renaming === name ? null : name); setRenameKey(name) }}><Pencil size={15} /></button>
+        <Remove copy={copy} disabled={disabled} remove={() => {
+          const next = { ...entries }
+          delete next[name]
+          if (renaming === name) setRenaming(null)
+          update(next)
+        }} />
+      </div>}
+      {!disabled && renaming === name && <div className="property-rename rule-reference-row">
+        <label className="field"><span>{copy.propertyName}</span><input autoFocus value={renameKey}
+          onChange={(event) => setRenameKey(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); rename() } }} /></label>
+        <button type="button" className="secondary" disabled={!canRename} onClick={rename}>{copy.renameProperty}</button>
+      </div>}
     </div>)}
-    {!disabled && <div className="rule-reference-row">
+    {!disabled && <div className="property-add">
       <label className="field"><span>{copy.propertyName}</span><input value={key} onChange={(event) => setKey(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add() } }} /></label>
+      <ValueType label={copy.valueType} kind={kind} copy={copy} disabled={disabled} select={(next) => { if (next) setKind(next) }} />
       <button type="button" className="secondary" disabled={!newKey || Object.hasOwn(entries, newKey)} onClick={add}>
-        <Plus size={15} />{copy.addItem}
+        <Plus size={15} />{copy.addProperty}
       </button>
     </div>}
   </div>
