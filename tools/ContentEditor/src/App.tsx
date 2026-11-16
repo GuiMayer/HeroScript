@@ -8,6 +8,7 @@ import { dictionary, preference, type Locale } from './i18n'
 import { Modal } from './Modal'
 
 const Cards = lazy(() => import('./Cards'))
+const RulesEditor = lazy(() => import('./RulesEditor'))
 const areas = [
   ['cards', Layers3], ['rules', Network], ['effects', Sparkles], ['resources', Boxes],
   ['entities', Users], ['decks', Tags], ['runs', Swords], ['settings', Settings2],
@@ -193,6 +194,8 @@ export function App() {
           : <Suspense fallback={<Skeleton label={copy.loading} />}>
             {location.area === 'cards' ? <Cards apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
               writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
+              : location.area === 'rules' ? <RulesEditor apiKey={apiKey} setting={settingId} locale={locale} copy={copy} workspace={drafts}
+                writable={!!selected?.writablePackageId && !!connection.data?.capabilities.canApply} />
               : <section className="empty"><div className="empty-icon"><Layers3 size={26} /></div>
                 <h1>{copy[location.area]}</h1><p>{copy.pendingPage}</p>
                 <button className="secondary" onClick={() => navigate('cards')}>{copy.backToCards}</button>

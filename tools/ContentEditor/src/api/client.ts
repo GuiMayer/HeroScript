@@ -17,6 +17,10 @@ const root = '/api/v1/admin/authoring'
 export const settingPath = (setting: string) => `/settings/${encodeURIComponent(setting)}`
 export const cardPath = (setting: string, id: string) =>
   `${settingPath(setting)}/definitions/cards/${encodeURIComponent(id)}`
+export const definitionsPath = (setting: string, kind: string) =>
+  `${settingPath(setting)}/definitions/${encodeURIComponent(kind)}`
+export const definitionPath = (setting: string, kind: string, id: string) =>
+  `${definitionsPath(setting, kind)}/${encodeURIComponent(id)}`
 
 export async function api<T>(key: string, path: string, options: {
   signal?: AbortSignal; body?: Change; version?: string

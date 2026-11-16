@@ -32,6 +32,15 @@ test('local undo and redo restore complete draft frames', () => {
   assert.deepEqual(history(undo, 'redo').frame, [])
 })
 
+test('a card and a rule with the same identifier stay separate in one draft', () => {
+  const draft = stage(new Workspace().get('uno'), create('shared'), 'version')
+  const rule = { operation: { kind: 'flow-rules', operation: 'create', definitionId: 'shared',
+    definition: { flowRulesId: 'shared' } } }
+  const both = stage(draft, rule, 'version')
+  assert.deepEqual(both.frame.map(({ operation }) => operation.kind), ['cards', 'flow-rules'])
+  assert.deepEqual(history(both, 'undo').frame, draft.frame)
+})
+
 test('confirmed undo and redo use the authoring receipt IDs', () => {
   const draft = stage(new Workspace().get('uno'), create('one'), 'initial')
   let state = confirmed(draft, { changeId: 'original' })

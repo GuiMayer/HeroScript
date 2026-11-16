@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, ApiError, cardPath, settingPath, type Card, type Change, type Receipt, type Schemas } from './api/client'
+import { api, ApiError, definitionPath, settingPath, type Card, type Change, type Receipt, type Schemas } from './api/client'
 import { clearDraft, confirmed, history, mergeIndependent, object, same, stage, type Draft, type Entry, type Workspace } from './editor-state'
 
 export class RebaseConflict extends Error {}
@@ -97,20 +97,23 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
       if (!version) throw new RebaseConflict()
       const adjusted = await Promise.all(current.frame.map(async (entry): Promise<Entry | null> => {
         const { operation, original } = entry
+        if (!operation.kind) throw new RebaseConflict()
+        const path = definitionPath(setting, operation.kind, operation.definitionId)
         if (operation.operation === 'create') {
           try {
-            await api<Card>(key, cardPath(setting, operation.definitionId))
+            await api<unknown>(key, path)
           } catch (error) {
             if (error instanceof ApiError && error.status === 404) return entry
             throw error
           }
           throw new RebaseConflict()
         }
-        const latestCard = await api<Card>(key, cardPath(setting, operation.definitionId))
-        if (latestCard.version !== version || !original || !latestCard.data.card?.canEdit) throw new RebaseConflict()
-        const theirs = object(latestCard.data.source)
+        const latestDefinition = await api<Card & Partial<Schemas['AuthoringDefinitionDetail']>>(key, path)
+        const summary = latestDefinition.data.item ?? latestDefinition.data.card
+        if (latestDefinition.version !== version || !original || !summary?.canEdit) throw new RebaseConflict()
+        const theirs = object(latestDefinition.data.source)
         if (operation.operation === 'delete') {
-          if (!same(original, theirs) || !latestCard.data.card.canDelete) throw new RebaseConflict()
+          if (!same(original, theirs) || !summary.canDelete) throw new RebaseConflict()
           return { ...entry, original: theirs }
         }
         const combined = mergeIndependent(original, object(operation.definition), theirs)

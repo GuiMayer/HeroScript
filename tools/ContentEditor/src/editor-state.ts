@@ -64,7 +64,8 @@ export function same(left: unknown, right: unknown): boolean {
 
 export function stage(draft: Draft, entry: Entry, version: string): Draft {
   const id = entry.operation.definitionId
-  const previous = draft.frame.find((value) => value.operation.definitionId === id)
+  const previous = draft.frame.find((value) =>
+    value.operation.kind === entry.operation.kind && value.operation.definitionId === id)
   if (same(previous?.operation, entry.operation)) return draft
   const frame = draft.frame.filter((value) => value !== previous)
   const original = previous ? previous.original : entry.original

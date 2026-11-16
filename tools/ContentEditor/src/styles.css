@@ -229,6 +229,16 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .preferences-dialog .template-option input { margin: 2px 0; width: auto; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 15px; }
 .primary.destructive { background: var(--danger); color: var(--surface); border-color: var(--danger); }
+.rule-catalog-header > .field { margin-bottom: 10px; }
+.row-label small { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rule-field-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.rule-fold { grid-column: 1 / -1; }
+.rule-fold > .rule-fold { margin-top: 8px; }
+.rule-reference, .rule-reference-row { display: flex; align-items: end; gap: 5px; min-width: 0; }
+.rule-reference > .field, .rule-reference-row > .rule-reference { flex: 1; min-width: 0; }
+.rule-reference-list { display: grid; gap: 8px; }
+.rule-check { display: flex; align-items: center; gap: 7px; color: var(--text); font-size: 13px; font-weight: 600; min-height: 32px; }
+.rule-check input { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }
 @media (max-width: 625px) {
   .page-heading { align-items: start; margin-bottom: 14px; }
   .page-heading p { font-size: 12px; }
@@ -243,4 +253,5 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
   .detail-content, .detail-heading { padding-inline: 12px; }
   .detail-meta, .detail-tabs { padding-inline: 12px; }
   .field-grid { grid-template-columns: 1fr; }
+  .rule-field-group { grid-template-columns: 1fr; }
 }

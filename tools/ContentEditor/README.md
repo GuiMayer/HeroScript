@@ -39,7 +39,22 @@ prepara compensações de ações já salvas para o próximo **Salvar**.
 Os rascunhos e o histórico do editor ficam na aba e são separados por setting.
 Se a engine reportar conflito, o rascunho fica disponível. Atualize a base
 quando os campos forem independentes ou compare o JSON atual em **Avançado**.
-Outras áreas aparecem na navegação com um aviso de implementação pendente.
+Áreas ainda em construção aparecem na navegação com um aviso.
+
+## Regras e fluxos
+
+Escolha o tipo no catálogo. A seção inclui regras de combate e fluxo,
+sequências de fases, modos de jogo e políticas de permissões, vínculo de
+conteúdo, replay e linha do tempo. **Campos** organiza os valores editáveis
+segundo o schema da engine. Abra os grupos para consultar configurações
+aninhadas. Use **Avançado** para estruturas sem controle guiado, o JSON
+compilado e a proveniência.
+
+As sugestões de referência vêm do setting ativo. O botão de criação ao lado
+de uma referência abre a categoria correspondente quando ela está habilitada.
+No modo manual, volte à definição original e escolha a nova referência para
+enviar as duas mudanças em um lote. As mudanças em **Cartas** e **Regras e fluxos**
+compartilham o rascunho do setting e a validação da engine.
 
 Use Node.js 24 para `npm test` e `npm run build`. A CI confere a geração
 dos tipos da API, o histórico local e a compilação do editor.

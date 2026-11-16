@@ -1,13 +1,14 @@
-import { useDeferredValue, useEffect, useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, CircleCheck, FileText, Layers3, LockKeyhole, Plus, Redo2, Save, Search, Trash2, Undo2, Zap } from 'lucide-react'
-import { api, ApiError, cardPath, settingPath, type Card, type Definition, type Schemas } from './api/client'
+import { ChevronRight, FileText, Layers3, LockKeyhole, Plus, Search, Trash2 } from 'lucide-react'
+import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
+import { api, cardPath, settingPath, type Card, type Definition, type Schemas } from './api/client'
 import { Advanced, Overview, rarityLabel, Rules, titleOf } from './CardFields'
 import { cardCopy, type CardCopy } from './card-copy'
 import { object, string, type Workspace } from './editor-state'
 import { preference, type Copy, type Locale } from './i18n'
 import { Modal } from './Modal'
-import { RebaseConflict, useCardDrafts } from './use-card-drafts'
+import { useCardDrafts } from './use-card-drafts'
 
 export interface CardsProps {
   apiKey: string
@@ -48,13 +49,14 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   const rows = new Map<string, Summary>()
   for (const item of summaries) if (item.definitionId) rows.set(item.definitionId, item)
   for (const { operation } of draft.frame) {
+    if (operation.kind !== 'cards') continue
     const id = operation.definitionId
     if (!rows.has(id) && (id.toLowerCase().includes(requested.toLowerCase()) ||
       titleOf(object(operation.definition), '').toLowerCase().includes(requested.toLowerCase())))
       rows.set(id, { definitionId: id, canEdit: true, canDelete: true })
   }
   const activeId = selected || rows.keys().next().value || ''
-  const activeEntry = draft.frame.find((entry) => entry.operation.definitionId === activeId)
+  const activeEntry = draft.frame.find((entry) => entry.operation.kind === 'cards' && entry.operation.definitionId === activeId)
   const created = activeEntry?.operation.operation === 'create'
   const deleted = activeEntry?.operation.operation === 'delete'
   const detail = useQuery({
@@ -66,27 +68,9 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     ? object(activeEntry.operation.definition) : current ? object(current.source) : undefined
   const listVersion = list.data?.pages[0]?.version ?? list.data?.pages[0]?.data.sourceVersion ?? undefined
   const version = detail.data?.version ?? listVersion
-  const pending = !!draft.frame.length || !!draft.intent
   const editLocked = !writable || !!draft.busy || !!draft.attempt || !!draft.intent
   const canEdit = !editLocked && !deleted && (created || !!current?.card?.canEdit)
   const canDelete = !editLocked && !deleted && (created || !!current?.card?.canDelete)
-  const canUndo = !editLocked && (!!draft.past.length || (!draft.frame.length && !!draft.undo.length && !!listVersion))
-  const canRedo = !editLocked && (!!draft.future.length || (!draft.frame.length && !!draft.redo.length && !!listVersion))
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (modal || event.defaultPrevented || event.isComposing ||
-        (!(event.ctrlKey || event.metaKey)) || event.altKey || event.key.toLowerCase() !== 'z') return
-      if (event.target instanceof HTMLElement && event.target.closest('input, textarea, [contenteditable="true"], dialog')) return
-      if (event.shiftKey ? canRedo : canUndo) {
-        event.preventDefault()
-        actions.turn(event.shiftKey ? 'redo' : 'undo', listVersion)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  })
-
   function choose(id: string) {
     setSelected(id)
     setTab('overview')
@@ -118,12 +102,6 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     return accepted
   }
 
-  const status = draft.busy === 'save' ? copy.saving : draft.busy === 'validate' ? copy.validating :
-    draft.busy === 'rebase' ? copy.rebasing : draft.attempt ? copy.waiting :
-    pending || typing ? copy.pending : draft.receipt ? copy.saved : copy.noChanges
-  const diagnostic = draft.error instanceof ApiError ? draft.error : undefined
-  const hasConflict = diagnostic?.status === 412 || draft.error instanceof RebaseConflict
-  const diagnostics = diagnostic?.problem.validation?.diagnostics ?? []
   const editorFields = value ? { value, disabled: !canEdit, copy, apiKey, setting, update, onTyping: setTyping } : undefined
 
   return <div className="cards-page">
@@ -131,50 +109,8 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
       <div><h1>{shell.cards}</h1><p>{copy.intro}</p></div>
       <button className="primary" disabled={editLocked || !listVersion} onClick={() => setModal('create')}><Plus size={17} />{copy.newCard}</button>
     </header>
-    <section className="actionbar" aria-label={copy.details}>
-      <div className="actionbar-left">
-        <button className="icon-button" aria-label={copy.undo} title={`${copy.undo} (Ctrl+Z)`} disabled={!canUndo}
-          onClick={() => actions.turn('undo', listVersion)}><Undo2 size={18} /></button>
-        <button className="icon-button" aria-label={copy.redo} title={`${copy.redo} (Ctrl+Shift+Z)`} disabled={!canRedo}
-          onClick={() => actions.turn('redo', listVersion)}><Redo2 size={18} /></button>
-        <span className="divider" />
-        <label className="mode-control" title={hot ? copy.hot : copy.manual}>
-          <Zap size={15} /><select aria-label={copy.mode} value={hot ? 'hot' : 'manual'}
-            disabled={!writable || !!draft.busy || pending || typing || !!draft.attempt} onChange={(event) => {
-              setHot(event.target.value === 'hot')
-              localStorage.setItem('heroscript.editor.mode', event.target.value)
-            }}><option value="manual">{copy.manual}</option><option value="hot">{copy.hot}</option></select>
-          <ChevronDown size={13} />
-        </label>
-      </div>
-      <span className={`save-status ${draft.error ? 'problem' : draft.receipt && !pending ? 'done' : ''}`} role="status">
-        {draft.receipt && !pending ? <CheckCircle2 size={15} /> : <span className="dot" />}{status}
-      </span>
-      <div className="actionbar-right">
-        <button className="secondary" disabled={!writable || (!pending && !typing) || !!draft.busy || !!draft.attempt}
-          onClick={() => void actions.validate()}><CircleCheck size={15} />{copy.validate}</button>
-        <button className="primary" disabled={!writable || (!pending && !typing) || !!draft.busy}
-          onClick={() => void actions.save()}><Save size={15} />{draft.attempt && !draft.busy ? copy.retryWrite : copy.save}</button>
-      </div>
-    </section>
-    {(draft.error || draft.intent || draft.valid || pending) && <div className={`notice ${draft.error ? 'notice-error' : ''}`}>
-      <div className="notice-body">
-        {draft.error ? <><AlertCircle size={17} /><div><strong>{draft.attempt ? copy.uncertain :
-          draft.error instanceof RebaseConflict ? copy.rebaseConflict : hasConflict ? copy.conflict : copy.invalid}</strong>
-          {diagnostic?.message && !hasConflict && <p>{diagnostic.message}</p>}
-          {!!diagnostics.length && <ul>{diagnostics.map((item, index) => <li key={index}>
-            {item.definitionId && <code>{item.definitionId} {item.jsonPointer || ''} </code>}
-            {item.parameters?.message || item.code}
-          </li>)}</ul>}</div></> : draft.intent ? <><Undo2 size={17} /><strong>{draft.intent.kind === 'undo' ? copy.undoStaged : copy.redoStaged}</strong></>
-          : <><CircleCheck size={17} /><strong>{draft.valid ? copy.valid : `${copy.pending} · ${draft.frame.length}`}</strong></>}
-      </div>
-      {!draft.busy && draft.attempt && <button className="secondary" onClick={() => void actions.checkStatus()}>{copy.checkStatus}</button>}
-      {!draft.busy && !draft.attempt && <div className="notice-actions">
-        {hasConflict && draft.frame.length > 0 && <button className="secondary" onClick={() => void actions.rebase()}>{copy.rebase}</button>}
-        {pending && <button className="text-button" onClick={() => draft.intent ? actions.discard() : setModal('discard')}>
-          {draft.intent ? copy.cancelIntent : copy.discard}</button>}
-      </div>}
-    </div>}
+    <AuthoringActions actions={actions} copy={copy} version={listVersion} writable={writable}
+      hot={hot} setHot={setHot} typing={typing} modal={!!modal} onDiscard={() => setModal('discard')} />
     <div className="cards-layout">
       <section className="card-catalog" aria-label={copy.list}>
         <div className="catalog-header"><h2>{copy.list}</h2>
@@ -187,7 +123,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
           {!rows.size && !list.isError && <p className="catalog-message muted">{copy.noCards}</p>}
           <div className="card-list">
             {Array.from(rows, ([id]) => {
-              const entry = draft.frame.find((item) => item.operation.definitionId === id)
+              const entry = draft.frame.find((item) => item.operation.kind === 'cards' && item.operation.definitionId === id)
               const isSelected = activeId === id
               const label = titleOf(object(entry?.operation.definition ?? (isSelected ? value : undefined)), id.replaceAll('_', ' '))
               return <button className={`card-row ${isSelected ? 'active' : ''}`} key={id} onClick={() => choose(id)}
@@ -233,12 +169,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
         </div>}
       </section>
     </div>
-    {draft.receipt && <details className="receipt">
-      <summary>{copy.changedFiles} / {copy.revisions}</summary>
-      <ul>{draft.receipt.changedFiles?.map((file) => <li key={file}><code>{file}</code></li>)}</ul>
-      <dl>{Object.entries(draft.receipt.activeRevisions ?? {}).map(([name, revision]) =>
-        <div key={name}><dt>{name}</dt><dd><code>{revision}</code></dd></div>)}</dl>
-    </details>}
+    <AuthoringReceipt receipt={draft.receipt} copy={copy} />
     {modal === 'create' && <NewCard close={() => setModal(null)} closeLabel={shell.close} {...{ copy, create }}
       template={value ? titleOf(value, activeId) : ''} hot={hot} />}
     {(modal === 'delete' || modal === 'discard') && <Modal title={modal === 'delete' ? copy.deleteCard : copy.discard}
