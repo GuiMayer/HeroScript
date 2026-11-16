@@ -1,5 +1,10 @@
 # Changelog do contrato público
 
+## Autoria de entidades
+
+- A API de autoria inclui entidades, grupos de inimigos, suportes e rotinas de suporte. O schema de entidades descreve os componentes por tipo.
+- Inimigos, companheiros e raças usam objetos de propriedades livres e o ID da chave no catálogo.
+
 ## Autoria de recursos e fórmulas
 
 - A API de autoria expõe recursos, políticas de ciclo de vida, pipelines de cálculo e fórmulas. As fórmulas têm schema tipado e usam a chave do catálogo como ID. O fluxo de alterações valida as definições com os validadores da engine.

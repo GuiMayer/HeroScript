@@ -125,7 +125,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
                 ? Result.Failure($"Content definition is invalid: {kind}/{definitionId}")
                 : _allowShadowResponseDeclarations ? Result.Success() : Core.GameplayEvents.Responses.GameplayResponseAuthoringGuard.ValidateUnavailable(value);
         }
-        catch (JsonException exception)
+        catch (Exception exception) when (exception is JsonException or NotSupportedException)
         {
             return Result.Failure(
                 $"Content definition {kind}/{definitionId} does not match its declared schema: {exception.Message}");

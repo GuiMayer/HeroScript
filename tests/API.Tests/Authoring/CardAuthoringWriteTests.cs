@@ -478,12 +478,12 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var root = Setting(setting);
         var kinds = await client.GetFromJsonAsync<AuthoringKind[]>(root + "/kinds");
         Assert.NotNull(kinds);
-        Assert.Equal(20, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
+        Assert.Equal(27, kinds.Count(kind => kind.SupportsSchema && kind.CanCreate));
         foreach (var kind in kinds.Where(kind => kind.SupportsSchema))
         {
             var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + $"/kinds/{kind.Kind}/schema");
             Assert.NotNull(schema);
-            if (kind.Kind is "powers" or "keywords")
+            if (kind.Kind is "powers" or "keywords" or "enemies" or "companions" or "races")
             {
                 Assert.Null(schema.IdentityProperty);
                 Assert.Equal("object", schema.Schema["type"]!.GetValue<string>());
@@ -690,6 +690,66 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         foreach (var kind in kinds)
         {
             using var missing = await client.GetAsync($"{root}/definitions/{kind}/editor_test");
+            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        }
+    }
+
+    [Theory]
+    [InlineData("uno-clash", "uno_choose_red")]
+    [InlineData("circular-table", "g_t_choose_red")]
+    public async Task EntityAuthoringValidatesWritesAndDeletes(string setting, string gambit)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var root = Setting(setting);
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/entities");
+        Assert.NotEmpty(page!.Items);
+        var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/entities/schema");
+        Assert.Equal("resources", schema!.References["/components/*/pools/@key"]);
+        var items = schema.Schema["properties"]!["components"]!["items"]!.AsObject();
+        var variants = (items["anyOf"] ?? items["oneOf"])!.AsArray();
+        Assert.Contains(variants, branch => (string?)branch?["properties"]?["type"]?["const"] == "resources");
+
+        static CardAuthoringOperation Op(string kind, string? source, CardAuthoringOperationType operation) => new()
+        {
+            Kind = kind, DefinitionId = "editor_entity", Operation = operation,
+            Definition = source is null ? null : JsonSerializer.Deserialize<JsonElement>(source)
+        };
+        static CardAuthoringOperation Create(string kind, string source) => Op(kind, source, CardAuthoringOperationType.Create);
+        const string entity = """
+            {"definitionId":"editor_entity","displayName":"Test entity",
+            "components":[{"type":"resources","componentId":"resources","pools":{"block":{"current":1,"max":10}}}]}
+            """;
+        var create = Change(Create("entities", entity),
+            Create("enemy-pools", """{"enemyPoolId":"editor_entity","entityDefinitionIds":["editor_entity"]}"""),
+            Create("support-routines", $$"""{"routineId":"editor_entity","gambitIds":["{{gambit}}"]}"""),
+            Create("supports", """
+                {"supportId":"editor_entity","countsForOutcome":false,"ownerActivationInterval":1,
+                "entityDefinitionId":"editor_entity","routineIds":["editor_entity"],"defaultRoutineId":"editor_entity"}
+                """),
+            Create("enemies", """{"name":"Enemy"}"""), Create("companions", """{"name":"Companion"}"""),
+            Create("races", """{"name":"Race"}"""));
+        using var preview = await Send(client, setting, page.SourceVersion, create, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        var applied = await Apply(client, setting, page.SourceVersion, create);
+
+        using var invalid = await Send(client, setting, applied.SourceVersion,
+            Change(Op("entities", """{"definitionId":"editor_entity","components":[{}]}""", CardAuthoringOperationType.Update)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
+        using var referenced = await Send(client, setting, applied.SourceVersion,
+            Change(Op("entities", null, CardAuthoringOperationType.Delete)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, referenced.StatusCode);
+
+        var updated = await Apply(client, setting, applied.SourceVersion, Change(Op("entities",
+            entity.Replace("Test entity", "Updated entity", StringComparison.Ordinal), CardAuthoringOperationType.Update)));
+        var saved = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/entities/editor_entity");
+        Assert.Equal("Updated entity", saved!.Source.GetProperty("displayName").GetString());
+
+        var kinds = create.Operations.Select(operation => operation!.Kind).ToArray();
+        await Apply(client, setting, updated.SourceVersion, Change(kinds.Select(kind => Op(kind, null, CardAuthoringOperationType.Delete)).ToArray()));
+        foreach (var kind in kinds)
+        {
+            using var missing = await client.GetAsync($"{root}/definitions/{kind}/editor_entity");
             Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         }
     }

@@ -12,7 +12,8 @@ public static class AuthoringDefinitionKinds
         "cards", "combat-rules", "flow-rules", "phase-sequences", "modes",
         "capability-policies", "content-binding-policies", "replay-policies", "timeline-policies",
         "actions", "modifiers", "status-effects", "effect-resolution-policies", "gambits", "powers", "keywords",
-        "resources", "actor-resource-lifecycle-policies", "calculation-pipelines", "formulas"
+        "resources", "actor-resource-lifecycle-policies", "calculation-pipelines", "formulas",
+        "entities", "enemies", "enemy-pools", "companions", "races", "supports", "support-routines"
     };
 
     public static bool Supports(string kind) => Editable.Contains(kind);
@@ -44,6 +45,18 @@ public static class AuthoringDefinitionKinds
             ["/tags/*"] = "tags", ["/regeneration/calculationPipelineId"] = "calculation-pipelines"
         },
         "actor-resource-lifecycle-policies" => new Dictionary<string, string> { ["/rules/*/resourceId"] = "resources" },
+        "entities" => new Dictionary<string, string>
+        {
+            ["/components/*/pools/@key"] = "resources",
+            ["/components/*/abilityIds/*"] = "actions",
+            ["/components/*/profileId"] = "deck-compartment-profiles"
+        },
+        "enemy-pools" => new Dictionary<string, string> { ["/entityDefinitionIds/*"] = "entities" },
+        "supports" => new Dictionary<string, string>
+        {
+            ["/entityDefinitionId"] = "entities", ["/routineIds/*"] = "support-routines", ["/defaultRoutineId"] = "local:routineIds"
+        },
+        "support-routines" => new Dictionary<string, string> { ["/gambitIds/*"] = "gambits" },
         "calculation-pipelines" => new Dictionary<string, string>
         {
             ["/buckets/*/stageId"] = "local:stages/stageId",
