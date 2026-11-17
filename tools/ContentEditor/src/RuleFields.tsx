@@ -1,4 +1,4 @@
-import { useDeferredValue, useId, useState, type ReactNode } from 'react'
+import { useDeferredValue, useEffect, useId, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
 import { api, settingPath, type Definition, type Schemas } from './api/client'
@@ -8,11 +8,14 @@ import { fieldLabel, type RuleCopy } from './rule-copy'
 import { discriminatedSchemas, resolveSchema, type Schema } from './authoring-schema'
 import { stringifyAuthoringJson } from './authoring-json'
 import { FreeField, PropertyFields } from './FreeField'
+import { DiagnosticField } from './DiagnosticField'
+import { isWithin, joinPointer, type DiagnosticFocus } from './diagnostic-target'
 
 interface Context {
   key: string
   setting: string
   referenceSetting?: string
+  focus?: DiagnosticFocus
   disabled: boolean
   locale: string
   copy: RuleCopy
@@ -58,15 +61,16 @@ function ObjectFields({ properties, value, update, context, path, skip }: {
   const dependentReferences = object(object(context.schemaRoot)['x-authoring-dependent-references'])
   const render = ([name, schema]: [string, Schema]) => {
     const key = propertyKey(value, name)
-    const fieldPath = `${path}/${name}`
-    const dependent = object(dependentReferences[fieldPath.replaceAll('/children/*', '')])
+    const fieldPath = joinPointer(path, name)
+    const lookupPath = schemaPath(fieldPath)
+    const dependent = object(dependentReferences[lookupPath.replaceAll('/children/*', '')])
     const selector = string(dependent.selector)
     const selected = selector ? string(value[propertyKey(value, selector)]) : ''
     const choices = object(dependent.kinds)
     const choice = Object.keys(choices).find((option) => option.toLowerCase() === selected.toLowerCase())
     const reference = choice ? string(choices[choice]) : undefined
-    const label = context.full && fieldPath === '/components/*/costs' ? context.copy.costSettings
-      : context.full && name === 'costs' && path.startsWith('/components/*/costs') ? context.copy.resourceCosts
+    const label = context.full && lookupPath === '/components/*/costs' ? context.copy.costSettings
+      : context.full && name === 'costs' && lookupPath.startsWith('/components/*/costs') ? context.copy.resourceCosts
       : fieldLabel(name, context.locale)
     return <Field key={name} label={label} path={fieldPath} referenceKind={reference}
       schema={schema} value={value[key]} update={(next) => {
@@ -76,15 +80,24 @@ function ObjectFields({ properties, value, update, context, path, skip }: {
       }} context={context} />
   }
   return <div className="rule-field-group">{primary.map(render)}
-    {!!extra.length && <Fold label={context.copy.moreFields}><div className="rule-field-group">{extra.map(render)}</div></Fold>}
+    {!!extra.length && <Fold label={context.copy.moreFields} reveal={extra.some(([name]) =>
+      context.focus && isWithin(context.focus.path, joinPointer(path, name))) ? context.focus : undefined}>
+      <div className="rule-field-group">{extra.map(render)}</div></Fold>}
   </div>
 }
 
-function Fold({ label, count, children, initiallyOpen = false }: { label: string; count?: number; children: ReactNode; initiallyOpen?: boolean }) {
-  const [open, setOpen] = useState(initiallyOpen)
+function Fold({ label, count, children, initiallyOpen = false, reveal }: {
+  label: string; count?: number; children: ReactNode; initiallyOpen?: boolean; reveal?: DiagnosticFocus
+}) {
+  const [open, setOpen] = useState(initiallyOpen || !!reveal)
+  useEffect(() => { if (reveal) setOpen(true) }, [reveal])
   return <details className="component rule-fold" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary>{label}{count !== undefined && <code>{count}</code>}</summary>{open && children}
   </details>
+}
+
+function schemaPath(path: string) {
+  return path.replace(/\/\d+(?=\/|$)/g, '/*')
 }
 
 function schemaShape(schema: Schema, root: unknown) {
@@ -109,10 +122,19 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
   label: string; path: string; schema: Schema; value: unknown; update: (value: unknown) => void; context: Context
   referenceKind?: string
 }) {
+  const focus = context.focus?.path.toLowerCase() === path.toLowerCase() ? context.focus : undefined
+  return <DiagnosticField focus={focus}>
+    <FieldControl {...{ label, path, schema, value, update, context, referenceKind }} />
+  </DiagnosticField>
+}
+
+function FieldControl({ label, path, schema, value, update, context, referenceKind }: Parameters<typeof Field>[0]) {
   const { shape, variant } = schemaShape(schema, context.schemaRoot)
   const types = Array.isArray(shape.type) ? shape.type : [shape.type]
-  const referencePath = path.replaceAll('/chainedEffects/*', '').replaceAll('/conditions/*', '')
-  const reference = referenceKind ?? context.refs[path] ?? context.refs[referencePath]
+  const lookup = schemaPath(path)
+  const referencePath = lookup.replaceAll('/chainedEffects/*', '').replaceAll('/conditions/*', '')
+  const reference = referenceKind ?? context.refs[lookup] ?? context.refs[referencePath]
+  const reveal = context.focus && isWithin(context.focus.path, path) ? context.focus : undefined
   const elementReference = context.refs[`${referencePath}/*`]
   const common = { label, disabled: context.disabled, onTyping: context.onTyping }
   if (reference) return <Reference context={context} label={label} kind={reference} value={string(value)}
@@ -161,7 +183,7 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
     return <TextField {...common} value={string(value)} multiline={context.full && /\/(expression|formula|failureReason)$/.test(path)}
       onCommit={(next) => update(next || (context.full ? undefined : ''))} />
   if (shape.properties && shape.type !== 'array')
-    return <Fold label={label} initiallyOpen={context.full && path === '/components/*/effect'}>
+    return <Fold label={label} reveal={reveal} initiallyOpen={context.full && lookup === '/components/*/effect'}>
       <ObjectFields properties={shape.properties} value={object(value)} update={update} context={context} path={path} />
       {context.full && value != null && !context.disabled && <button type="button" className="text-button rule-array-remove"
         onClick={() => update(undefined)}>{context.copy.resetField}</button>}
@@ -170,14 +192,16 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
     const values = array(value)
     const { shape: itemSchema } = schemaShape(shape.items, context.schemaRoot)
     const variants = context.full ? discriminatedSchemas(itemSchema, context.schemaRoot) : undefined
-    if (variants?.size) return <Fold label={label} count={values.length}>
+    if (variants?.size) return <Fold label={label} count={values.length} reveal={reveal}>
       <VariantItems values={values} update={update} variants={variants} context={context} path={path} />
     </Fold>
-    if (elementReference) return <Fold label={label} count={values.length}>
+    if (elementReference) return <Fold label={label} count={values.length} reveal={reveal}>
       <div className="rule-reference-list">
         {values.map((item, index) => <div className="rule-reference-row" key={index}>
-          <Reference label={`${label} ${index + 1}`} kind={elementReference} context={context} value={string(item)}
-            commit={(id) => update(values.map((value, position) => position === index ? id : value))} />
+          <DiagnosticField focus={context.focus?.path.toLowerCase() === joinPointer(path, index).toLowerCase() ? context.focus : undefined}>
+            <Reference label={`${label} ${index + 1}`} kind={elementReference} context={context} value={string(item)}
+              commit={(id) => update(values.map((value, position) => position === index ? id : value))} />
+          </DiagnosticField>
           {!context.disabled && <button type="button" className="icon-button" aria-label={`${context.copy.removeItem}: ${string(item)}`}
             onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} /></button>}
         </div>)}
@@ -188,7 +212,7 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
           }} />}
       </div>
     </Fold>
-    if (itemSchema.properties || context.full) return <Fold label={label} count={values.length}>
+    if (itemSchema.properties || context.full) return <Fold label={label} count={values.length} reveal={reveal}>
       <div className="rule-array">
         {values.map((item, index) => {
           const row = object(item)
@@ -205,10 +229,11 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
             reordered[target] = values[index]
             update(reordered)
           }
-          return <Fold key={index} label={name}>
+          const address = joinPointer(path, index)
+          return <Fold key={index} label={name} reveal={context.focus && isWithin(context.focus.path, address) ? context.focus : undefined}>
             {itemSchema.properties ? <ObjectFields properties={itemSchema.properties} value={row} context={context}
-              path={`${path}/*`} update={replace} /> : <Field label={context.copy.value} schema={itemSchema} value={item}
-              context={context} path={`${path}/*`} update={replace} />}
+              path={address} update={replace} /> : <Field label={context.copy.value} schema={itemSchema} value={item}
+              context={context} path={address} update={replace} />}
             {!context.disabled && <div className="property-actions rule-array-remove">
               {context.reorder && <>
                 <button type="button" className="icon-button" aria-label={`${context.copy.moveEarlier}: ${name}`}
@@ -234,15 +259,15 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
   if (context.full && types.includes('object') && typeof shape.additionalProperties === 'object' &&
       Object.keys(shape.additionalProperties).length) {
     const entrySchema = shape.additionalProperties
-    const keyReference = context.refs[`${path}/@key`]
+    const keyReference = context.refs[`${lookup}/@key`]
     const keyLabel = keyReference === 'resources' ? fieldLabel('resourceId', context.locale)
       : keyReference === 'card-rarities' ? fieldLabel('rarity', context.locale) : context.copy.propertyName
-    return <Fold label={label} count={Object.keys(object(value)).length}>
+    return <Fold label={label} count={Object.keys(object(value)).length} reveal={reveal}>
       <PropertyFields value={object(value)} update={update} copy={context.copy} disabled={context.disabled} onTyping={context.onTyping}
         keyInput={keyReference ? (key, change) => <Reference context={context} label={keyLabel}
           kind={keyReference} value={key} commit={change} immediate /> : undefined}
         typed={{ initial: initialValue(entrySchema, context.schemaRoot), render: (key, entry, replace) =>
-          <Field label={key} path={`${path}/*`} schema={entrySchema} value={entry} update={replace} context={context} /> }} />
+          <Field label={key} path={joinPointer(path, key)} schema={entrySchema} value={entry} update={replace} context={context} /> }} />
     </Fold>
   }
   if (context.full) return <FreeField label={label} value={value} update={update} copy={context.copy} disabled={context.disabled}
@@ -264,8 +289,10 @@ function VariantItems({ values, update, variants, context, path }: {
       const properties = variants.get(kind)?.properties
       const identification = string(item[propertyKey(item, 'componentId')])
       const label = kind ? fieldLabel(kind, context.locale) : context.copy.componentType
-      return <Fold label={identification ? `${label} · ${identification}` : label} key={index}>
-        {properties && <ObjectFields properties={properties} value={item} path={`${path}/*`} skip="type" context={context}
+      const address = joinPointer(path, index)
+      return <Fold label={identification ? `${label} · ${identification}` : label} key={index}
+        reveal={context.focus && isWithin(context.focus.path, address) ? context.focus : undefined}>
+        {properties && <ObjectFields properties={properties} value={item} path={address} skip="type" context={context}
           update={(next) => update(values.map((current, position) => position === index ? { type: kind, ...next } : current))} />}
         {!context.disabled && <button type="button" className="text-button rule-array-remove"
           onClick={() => update(values.filter((_, position) => position !== index))}><X size={15} />{context.copy.removeItem}</button>}

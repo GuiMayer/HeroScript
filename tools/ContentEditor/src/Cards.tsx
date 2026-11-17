@@ -2,13 +2,14 @@ import { useDeferredValue, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ChevronRight, FileText, Layers3, LockKeyhole, Plus, Search, Trash2 } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
-import { api, cardPath, settingPath, type Card, type Definition, type Schemas } from './api/client'
+import { api, cardPath, settingPath, type Card, type Definition, type Diagnostic, type Schemas } from './api/client'
 import { Advanced, Overview, rarityLabel, Rules, titleOf } from './CardFields'
 import { cardCopy, type CardCopy } from './card-copy'
 import { object, string, type Workspace } from './editor-state'
 import { preference, type Copy, type Locale } from './i18n'
 import { Modal } from './Modal'
 import { useCardDrafts } from './use-card-drafts'
+import { cardDiagnosticPath, diagnosticCardId, type DiagnosticFocus } from './diagnostic-target'
 
 export interface CardsProps {
   apiKey: string
@@ -32,6 +33,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   const [selected, setSelected] = useState('')
   const [tab, setTab] = useState<Tab>('overview')
   const [typing, setTyping] = useState(false)
+  const [focus, setFocus] = useState<DiagnosticFocus>()
   const [hot, setHot] = useState(() => preference('mode', ['manual', 'hot'], 'manual') === 'hot')
   const [modal, setModal] = useState<'create' | 'delete' | 'discard' | null>(null)
   const requested = useDeferredValue(search.trim())
@@ -72,11 +74,13 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   const canEdit = !editLocked && !deleted && (created || !!current?.card?.canEdit)
   const canDelete = !editLocked && !deleted && (created || !!current?.card?.canDelete)
   function choose(id: string) {
+    setFocus(undefined)
     setSelected(id)
     setTab('overview')
     setTyping(false)
   }
   function update(next: Definition) {
+    setFocus(undefined)
     actions.edit({
       operation: { kind: 'cards', operation: created ? 'create' : 'update', definitionId: activeId, definition: next },
       original: current ? object(current.source) : undefined,
@@ -102,7 +106,24 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     return accepted
   }
 
-  const editorFields = value ? { value, disabled: !canEdit, copy, apiKey, setting, update, onTyping: setTyping } : undefined
+  function locateError(item: Diagnostic) {
+    const id = diagnosticCardId(item)
+    if (!id) return undefined
+    const entry = draft.frame.find(({ operation }) => operation.kind === 'cards' && operation.definitionId === id)
+    const definition = entry?.operation.definition ?? (id === activeId ? value : undefined)
+    if (!definition) return undefined
+    const path = cardDiagnosticPath(item, object(definition))
+    if (!path) return undefined
+    return () => {
+      setSelected(id)
+      setSearch('')
+      setTyping(false)
+      setTab(path.toLowerCase().startsWith('/components') ? 'rules' : 'overview')
+      setFocus({ path })
+    }
+  }
+
+  const editorFields = value ? { value, disabled: !canEdit, copy, apiKey, setting, update, focus, onTyping: setTyping } : undefined
 
   return <div className="cards-page">
     <header className="page-heading">
@@ -110,7 +131,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
       <button className="primary" disabled={editLocked || !listVersion} onClick={() => setModal('create')}><Plus size={17} />{copy.newCard}</button>
     </header>
     <AuthoringActions actions={actions} copy={copy} version={listVersion} writable={writable}
-      hot={hot} setHot={setHot} typing={typing} modal={!!modal} onDiscard={() => setModal('discard')} />
+      hot={hot} setHot={setHot} typing={typing} modal={!!modal} onDiscard={() => setModal('discard')} locateError={locateError} />
     <div className="cards-layout">
       <section className="card-catalog" aria-label={copy.list}>
         <div className="catalog-header"><h2>{copy.list}</h2>

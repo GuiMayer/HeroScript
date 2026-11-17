@@ -2,6 +2,32 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { Workspace, confirmed, history, mergeIndependent, stage } from '../src/editor-state.ts'
 import { parseAuthoringJson, stringifyAuthoringJson } from '../src/authoring-json.ts'
+import { readFile } from 'node:fs/promises'
+import ts from 'typescript'
+
+const diagnosticSource = await readFile(new URL('../src/diagnostic-target.ts', import.meta.url), 'utf8')
+const diagnosticCode = ts.transpileModule(diagnosticSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText.replace("'./editor-state'", JSON.stringify(new URL('../src/editor-state.ts', import.meta.url).href))
+const { cardDiagnosticPath, diagnosticCardId } = await import('data:text/javascript;base64,' + Buffer.from(diagnosticCode).toString('base64'))
+
+test('card diagnostics identify the component and the missing resource field', () => {
+  const definition = { components: [{ type: 'effect', componentId: 'effect.0', effect: {
+    type: 'MODIFY_RESOURCE', targetResource: 'missing_resource',
+  } }] }
+  const diagnostic = { kind: 'cards', definitionId: '', parameters: {
+    message: 'cards/test_card/components/effect.0/effects[0]: references missing resources/missing_resource',
+  } }
+  assert.equal(diagnosticCardId(diagnostic), 'test_card')
+  assert.equal(cardDiagnosticPath(diagnostic, definition), '/components/0/effect/targetResource')
+  assert.equal(cardDiagnosticPath({ ...diagnostic, jsonPointer: '/rarity' }, definition), '/rarity')
+  const chained = { components: [{ type: 'effect', componentId: 'effect.0', effect: {
+    chainedEffects: [{ type: 'APPLY_STATUS', statusId: 'unknown_status' }],
+  } }] }
+  assert.equal(cardDiagnosticPath({ ...diagnostic, parameters: {
+    message: 'cards/test_card/components/effect.0/effects[0]/chainedEffects[0]: references missing status-effects/unknown_status',
+  } }, chained), '/components/0/effect/chainedEffects/0/statusId')
+})
 
 test('daily challenge seeds round-trip as exact numbers beyond the safe integer range', () => {
   const source = '{"Seed":18446744073709551615,"name":"Before"}'

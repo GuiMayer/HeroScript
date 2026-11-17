@@ -9,6 +9,8 @@ import { CardComponents } from './CardComponents'
 import type { Locale } from './i18n'
 import { JsonSource } from './JsonSource'
 import { stringifyAuthoringJson } from './authoring-json'
+import { DiagnosticField } from './DiagnosticField'
+import { isWithin, type DiagnosticFocus } from './diagnostic-target'
 
 export const rarities = ['Common', 'Uncommon', 'Rare', 'Legendary'] as const
 export function rarityLabel(value: string, copy: CardCopy) {
@@ -74,7 +76,7 @@ function TagPicker({ tags, add, remove, disabled, apiKey, setting, copy }: {
   </>
 }
 
-export function Overview({ value, disabled, apiKey, setting, copy, update, onTyping }: EditorFields) {
+export function Overview({ value, disabled, apiKey, setting, copy, update, onTyping, focus }: EditorFields) {
   const metadata = object(value.metadata)
   const tags = array(value.tags).filter((tag): tag is string => typeof tag === 'string')
   const changeMeta = (key: string, next: string) => update({ ...value, metadata: { ...metadata, [key]: next } })
@@ -82,22 +84,30 @@ export function Overview({ value, disabled, apiKey, setting, copy, update, onTyp
     <section className="form-section">
       <h3>{copy.basics}</h3>
       <div className="field-grid">
-        <TextField label={copy.name} value={string(metadata.displayName)} disabled={disabled} onTyping={onTyping} onCommit={(v) => changeMeta('displayName', v)} />
+        <DiagnosticField focus={focus && isWithin(focus.path, '/metadata/displayName') ? focus : undefined}>
+          <TextField label={copy.name} value={string(metadata.displayName)} disabled={disabled} onTyping={onTyping} onCommit={(v) => changeMeta('displayName', v)} />
+        </DiagnosticField>
+        <DiagnosticField focus={focus && isWithin(focus.path, '/rarity') ? focus : undefined}>
         <label className="field"><span>{copy.rarity}</span>
           <select value={rarities.find((rarity) => rarity.toLowerCase() === string(value.rarity).toLowerCase()) ?? 'Common'}
             disabled={disabled} onChange={(event) => update({ ...value, rarity: event.target.value })}>
             {rarities.map((rarity) => <option key={rarity} value={rarity}>{rarityLabel(rarity, copy)}</option>)}
           </select>
         </label>
+        </DiagnosticField>
       </div>
-      <TextField label={copy.description} value={string(metadata.description)} disabled={disabled} multiline onTyping={onTyping}
-        onCommit={(v) => changeMeta('description', v)} />
+      <DiagnosticField focus={focus && isWithin(focus.path, '/metadata/description') ? focus : undefined}>
+        <TextField label={copy.description} value={string(metadata.description)} disabled={disabled} multiline onTyping={onTyping}
+          onCommit={(v) => changeMeta('description', v)} />
+      </DiagnosticField>
     </section>
     <section className="form-section">
       <h3>{copy.tags}</h3><p className="muted">{copy.tagHint}</p>
+      <DiagnosticField focus={focus && isWithin(focus.path, '/tags') ? focus : undefined}>
       <TagPicker tags={tags} add={(tag) => update({ ...value, tags: [...array(value.tags), tag] })}
         remove={(tag) => update({ ...value, tags: array(value.tags).filter((item) => item !== tag) })}
         {...{ disabled, apiKey, setting, copy }} />
+      </DiagnosticField>
     </section>
   </div>
 }
@@ -139,4 +149,5 @@ interface EditorFields {
   value: Definition; disabled: boolean; copy: CardCopy; apiKey: string; setting: string
   update: (value: Definition) => void
   onTyping: (dirty: boolean) => void
+  focus?: DiagnosticFocus
 }

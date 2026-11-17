@@ -1,14 +1,15 @@
 import { useEffect } from 'react'
 import { AlertCircle, CheckCircle2, ChevronDown, CircleCheck, Redo2, Save, Undo2, Zap } from 'lucide-react'
-import type { Receipt } from './api/client'
+import type { Diagnostic, Receipt } from './api/client'
 import { ApiError } from './api/client'
 import type { CardCopy } from './card-copy'
 import { RebaseConflict, type useCardDrafts } from './use-card-drafts'
 
 export function AuthoringActions({ actions, copy, version: listVersion, writable, hot, setHot, typing = false,
-  modal, onDiscard, label = copy.details }: {
+  modal, onDiscard, locateError, label = copy.details }: {
   actions: ReturnType<typeof useCardDrafts>; copy: CardCopy; version?: string; writable: boolean
   hot: boolean; setHot: (hot: boolean) => void; typing?: boolean; modal: boolean; onDiscard: () => void; label?: string
+  locateError?: (item: Diagnostic) => (() => void) | undefined
 }) {
   const { draft } = actions
   const pending = !!draft.frame.length || !!draft.intent
@@ -68,10 +69,14 @@ export function AuthoringActions({ actions, copy, version: listVersion, writable
         {draft.error ? <><AlertCircle size={17} /><div><strong>{draft.attempt ? copy.uncertain :
           draft.error instanceof RebaseConflict ? copy.rebaseConflict : hasConflict ? copy.conflict : copy.invalid}</strong>
           {diagnostic?.message && !hasConflict && <p>{diagnostic.message}</p>}
-          {!!diagnostics.length && <ul>{diagnostics.map((item, index) => <li key={index}>
-            {item.definitionId && <code>{item.definitionId} {item.jsonPointer || ''} </code>}
-            {item.parameters?.message || item.code}
-          </li>)}</ul>}</div></> : draft.intent ? <><Undo2 size={17} /><strong>{draft.intent.kind === 'undo' ? copy.undoStaged : copy.redoStaged}</strong></>
+          {!!diagnostics.length && <ul>{diagnostics.map((item, index) => {
+            const go = item.severity !== 'warning' ? locateError?.(item) : undefined
+            return <li key={index}>
+              {item.definitionId && <code>{item.definitionId} {item.jsonPointer || ''} </code>}
+              {item.parameters?.message || item.code}
+              {go && <button type="button" className="text-button diagnostic-link" onClick={go}>{copy.goToError}</button>}
+            </li>
+          })}</ul>}</div></> : draft.intent ? <><Undo2 size={17} /><strong>{draft.intent.kind === 'undo' ? copy.undoStaged : copy.redoStaged}</strong></>
           : <><CircleCheck size={17} /><strong>{draft.valid ? copy.valid : `${copy.pending} · ${draft.frame.length}`}</strong></>}
       </div>
       {!draft.busy && draft.attempt && <button className="secondary" onClick={() => void actions.checkStatus()}>{copy.checkStatus}</button>}

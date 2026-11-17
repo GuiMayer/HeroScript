@@ -243,6 +243,10 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .property-add { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
 .property-add .field { flex: 1 1 130px; min-width: 0; }
 .property-rename { grid-column: 1 / -1; }
+.diagnostic-link { display: inline-block; margin-inline-start: 8px; text-decoration: underline; }
+.diagnostic-field { outline: 2px solid var(--danger, #ce493d); outline-offset: 3px; border-radius: 6px; min-width: 0; }
+.diagnostic-field:has(> .rule-fold) { grid-column: 1 / -1; }
+.rule-reference-row > .diagnostic-field { flex: 1; }
 .effect-list { display: grid; gap: 6px; max-height: 240px; overflow-y: auto; padding: 2px; }
 .effect-row { justify-content: space-between; text-align: left; gap: 10px; }
 .effect-row[aria-pressed="true"] { border-color: var(--accent); }
