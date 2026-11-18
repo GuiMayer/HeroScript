@@ -1,0 +1,3415 @@
+{
+  "pyro_identity_ember_core": {
+    "inscriptionId": "pyro_identity_ember_core",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:pyromancer"
+    ],
+    "allowedActorDefinitionIds": [
+      "pyromancer"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "fire_scaling",
+        "influence": {
+          "influenceId": "pyro_identity_ember_core.fire",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "damage",
+            "fire"
+          ]
+        }
+      },
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "pyro_identity_ember_core.burn",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Runa Peitoral: Núcleo de Brasa",
+      "description": "Identidade Inicial do Piromante. +25% dano de Fogo e +25% Queimadura. Gatilho: dano de Fogo gera +1 Calor; com Calor >= 5 no fim do turno, ativa Superaquecimento (2T) e sofre 2 de dano térmico.",
+      "rarity": "common",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "pyro_ember_core.heat_on_fire",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "fire",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "pyro_ember_core.add_heat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "heat_gauge",
+            "operation": "ADD",
+            "flatValue": 1,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "fire"
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "pyro_ember_core.overheat_threshold",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": "ALISYUM_HEAT_GE_5",
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "pyro_ember_core.apply_overheat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_overheat",
+            "statusStacks": 1,
+            "statusDuration": 2,
+            "tags": [
+              "fire",
+              "overheat"
+            ]
+          },
+          {
+            "effectId": "pyro_ember_core.self_burn",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetResource": "health",
+            "flatValue": 2,
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "tags": [
+              "damage",
+              "fire",
+              "piercing",
+              "ignore_armor"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "pyro_identity_magma_veins": {
+    "inscriptionId": "pyro_identity_magma_veins",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:pyromancer"
+    ],
+    "allowedActorDefinitionIds": [
+      "pyromancer"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "fire_scaling",
+        "influence": {
+          "influenceId": "pyro_identity_magma_veins.fire_more",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.3,
+          "requiredTags": [
+            "damage",
+            "fire"
+          ]
+        }
+      },
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "pyro_identity_magma_veins.burn",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.4,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Veios de Magma Aberto",
+      "description": "Identidade Avançada do Piromante. +30% MAIS dano de Fogo (more) e +40% Queimadura. Gatilho: dano de Fogo gera +1 Calor; com Calor >= 4 no fim do turno, ativa Superaquecimento e causa 3 de dano de Fogo em TODOS os inimigos.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "pyro_magma_veins.heat_on_fire",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "fire",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "pyro_magma_veins.add_heat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "heat_gauge",
+            "operation": "ADD",
+            "flatValue": 1,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "fire"
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "pyro_magma_veins.eruption_threshold",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": "ALISYUM_HEAT_GE_4",
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "pyro_magma_veins.apply_overheat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_overheat",
+            "statusStacks": 1,
+            "statusDuration": 2,
+            "tags": [
+              "fire",
+              "overheat"
+            ]
+          },
+          {
+            "effectId": "pyro_magma_veins.aoe_flare",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "DAMAGE",
+            "target": "ALL_ENEMIES",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "targetResource": "health",
+            "flatValue": 3,
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "tags": [
+              "damage",
+              "spell",
+              "fire"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "baron_identity_first_oath": {
+    "inscriptionId": "baron_identity_first_oath",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:baron_servant"
+    ],
+    "allowedActorDefinitionIds": [
+      "baron_servant"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "blood_scaling",
+        "influence": {
+          "influenceId": "baron_identity_first_oath.blood",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "damage",
+            "blood"
+          ]
+        }
+      },
+      {
+        "attributeId": "lifesteal_ratio",
+        "influence": {
+          "influenceId": "baron_identity_first_oath.lifesteal",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.1,
+          "requiredTags": [
+            "blood",
+            "lifesteal"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Juramento da Primeira Guerra",
+      "description": "Identidade Inicial do Servo. +25% dano de Sangue e +10% Dreno de Vida. Gatilho: todo ataque que fere inimigos acumula +1 Dízimo de Sangue e drena 15% da Vida perdida.",
+      "rarity": "common",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "baron_first_oath.drain",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "attack",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "baron_first_oath.tithe",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "blood_tithe",
+            "operation": "ADD",
+            "flatValue": 1,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "blood"
+            ]
+          },
+          {
+            "effectId": "baron_first_oath.heal",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "formulaValue": "event.change.applied_delta * -0.15",
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "recovery",
+              "blood",
+              "lifesteal"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "baron_identity_scarlet_general": {
+    "inscriptionId": "baron_identity_scarlet_general",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:baron_servant"
+    ],
+    "allowedActorDefinitionIds": [
+      "baron_servant"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "weapon_damage",
+        "influence": {
+          "influenceId": "baron_identity_scarlet_general.attack",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.35,
+          "requiredTags": [
+            "damage",
+            "attack"
+          ]
+        }
+      },
+      {
+        "attributeId": "lifesteal_ratio",
+        "influence": {
+          "influenceId": "baron_identity_scarlet_general.lifesteal",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "blood",
+            "lifesteal"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "General do Rio Escarlate",
+      "description": "Identidade Avançada do Servo. +35% dano Marcial e +20% Dreno de Vida. Gatilho: todo ataque que fere inimigos acumula +2 Dízimo, drena 25% da Vida perdida e gera 2 de Block.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "baron_scarlet_general.drain",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "attack",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "baron_scarlet_general.tithe",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "blood_tithe",
+            "operation": "ADD",
+            "flatValue": 2,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "blood"
+            ]
+          },
+          {
+            "effectId": "baron_scarlet_general.heal",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "formulaValue": "event.change.applied_delta * -0.25",
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "recovery",
+              "blood",
+              "lifesteal"
+            ]
+          },
+          {
+            "effectId": "baron_scarlet_general.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 2,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "blood"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "gambler_identity_rigged_die": {
+    "inscriptionId": "gambler_identity_rigged_die",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:gambler"
+    ],
+    "allowedActorDefinitionIds": [
+      "gambler"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_tier_cap",
+        "influence": {
+          "influenceId": "gambler_identity_rigged_die.tier_cap",
+          "scope": "Actor",
+          "channel": "critical_probability",
+          "bucket": "guaranteed_tier_cap",
+          "value": 1
+        }
+      },
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "gambler_identity_rigged_die.chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 30
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Dado Viciado de Aelara",
+      "description": "Identidade Inicial do Apostador. Habilita Crítico Multi-Tier (teto x3 neste mod), +30 pp Chance Crítica. Gatilho: ataques Críticos concedem +20 pp de Chance Crítica por carta jogada.",
+      "rarity": "common",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "gambler_rigged_die.hot_streak",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "critical",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "RootAction",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "gambler_rigged_die.luck",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_minor_luck",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "critical"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "gambler_identity_broken_wheel": {
+    "inscriptionId": "gambler_identity_broken_wheel",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:gambler"
+    ],
+    "allowedActorDefinitionIds": [
+      "gambler"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_tier_cap",
+        "influence": {
+          "influenceId": "gambler_identity_broken_wheel.tier_cap",
+          "scope": "Actor",
+          "channel": "critical_probability",
+          "bucket": "guaranteed_tier_cap",
+          "value": 3
+        }
+      },
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "gambler_identity_broken_wheel.chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 55
+        }
+      },
+      {
+        "attributeId": "critical_damage",
+        "influence": {
+          "influenceId": "gambler_identity_broken_wheel.damage",
+          "scope": "Actor",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "value": 0.25
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Roda da Fortuna Quebrada",
+      "description": "Identidade Avançada do Apostador. Teto de Crítico Multi-Tier x5, +55 pp Chance Crítica e +25% Bônus Crítico. Gatilho: compra +1 carta no início do turno e ganha +20 pp de Chance Crítica por carta Crítica jogada.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "gambler_broken_wheel.windfall",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "critical",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "RootAction",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "gambler_broken_wheel.luck",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_minor_luck",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "critical"
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "gambler_broken_wheel.start_draw",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "gambler_broken_wheel.draw",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "CARD_ZONE_FLOW",
+            "target": "SELF",
+            "cardZoneFlowId": "effect.draw",
+            "cardCount": 1
+          }
+        ]
+      }
+    ]
+  },
+  "vitreous_identity_shattered_shell": {
+    "inscriptionId": "vitreous_identity_shattered_shell",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:vitreous_renegade"
+    ],
+    "allowedActorDefinitionIds": [
+      "vitreous_renegade"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "vitreous_identity_shattered_shell.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "attributeId": "ice_scaling",
+        "influence": {
+          "influenceId": "vitreous_identity_shattered_shell.ice",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "damage",
+            "ice"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Carapaça Estilhaçada",
+      "description": "Identidade Inicial do Renegado. +25% geração de Block e +20% dano de Gelo Vítreo. Gatilho: inimigos que atingirem seu Block sofrem Gelo Vítreo (+25% vulnerabilidade).",
+      "rarity": "common",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "vitreous_shattered_shell.retaliate",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "block"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "EventSource",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "vitreous_shattered_shell.chill",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_chilled",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "status",
+              "ice"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "vitreous_identity_glacial_heart": {
+    "inscriptionId": "vitreous_identity_glacial_heart",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:vitreous_renegade"
+    ],
+    "allowedActorDefinitionIds": [
+      "vitreous_renegade"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "armor",
+        "influence": {
+          "influenceId": "vitreous_identity_glacial_heart.armor",
+          "scope": "Target",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "value": 20,
+          "requiredTags": [
+            "effect.damage"
+          ]
+        }
+      },
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "vitreous_identity_glacial_heart.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.3,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Coração Glacial de Illana",
+      "description": "Identidade Avançada do Renegado. +20 Armadura e +30% Block. Gatilho: ganha 4 Block no início do turno; inimigos que atingirem seu Block sofrem Gelo Vítreo e 2 de Geada.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "vitreous_glacial_heart.retaliate",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "block"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "EventSource",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "vitreous_glacial_heart.chill",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_chilled",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "status",
+              "ice"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          },
+          {
+            "effectId": "vitreous_glacial_heart.frost",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_frostbite",
+            "statusStacks": 2,
+            "statusDuration": 2,
+            "tags": [
+              "status",
+              "residual",
+              "ice"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "vitreous_glacial_heart.start_guard",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "vitreous_glacial_heart.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 4,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "ice"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "gear_vidaria_torchblade": {
+    "inscriptionId": "gear_vidaria_torchblade",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:weapon",
+      "fire"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "fire_flat",
+        "influence": {
+          "influenceId": "gear_vidaria_torchblade.flat",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "flat",
+          "value": 2,
+          "requiredTags": [
+            "effect.damage",
+            "fire"
+          ]
+        }
+      },
+      {
+        "attributeId": "fire_scaling",
+        "influence": {
+          "influenceId": "gear_vidaria_torchblade.fire_inc",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.15,
+          "requiredTags": [
+            "damage",
+            "fire"
+          ]
+        }
+      },
+      {
+        "attributeId": "weapon_damage",
+        "influence": {
+          "influenceId": "gear_vidaria_torchblade.attack",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.15,
+          "requiredTags": [
+            "damage",
+            "attack"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Lâmina-Tocha de Vidaria",
+      "description": "Arma. +2 Dano Base de Fogo, +15% dano de Fogo e +15% dano de Ataques Marciais.",
+      "rarity": "uncommon",
+      "family": "Arma"
+    }
+  },
+  "gear_nosirian_blood_edge": {
+    "inscriptionId": "gear_nosirian_blood_edge",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:weapon",
+      "blood"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "blood_scaling",
+        "influence": {
+          "influenceId": "gear_nosirian_blood_edge.blood",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "damage",
+            "blood"
+          ]
+        }
+      },
+      {
+        "attributeId": "lifesteal_ratio",
+        "influence": {
+          "influenceId": "gear_nosirian_blood_edge.lifesteal",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.1,
+          "requiredTags": [
+            "blood",
+            "lifesteal"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Montante do Rio Escarlate",
+      "description": "Arma. +25% dano de Sangue e +10% Dreno de Vida.",
+      "rarity": "uncommon",
+      "family": "Arma"
+    }
+  },
+  "gear_crolbia_ivory_dagger": {
+    "inscriptionId": "gear_crolbia_ivory_dagger",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:weapon",
+      "critical"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "gear_crolbia_ivory_dagger.chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 20
+        }
+      },
+      {
+        "attributeId": "critical_damage",
+        "influence": {
+          "influenceId": "gear_crolbia_ivory_dagger.dmg",
+          "scope": "Actor",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "value": 0.3
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Adaga de Marfim de Crolbia",
+      "description": "Arma. +20 pp Chance Crítica e +30% Bônus Crítico.",
+      "rarity": "uncommon",
+      "family": "Arma"
+    }
+  },
+  "gear_calidor_vitreous_plate": {
+    "inscriptionId": "gear_calidor_vitreous_plate",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:armor",
+      "defense"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "armor",
+        "influence": {
+          "influenceId": "gear_calidor_vitreous_plate.armor",
+          "scope": "Target",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "value": 15,
+          "requiredTags": [
+            "effect.damage"
+          ]
+        }
+      },
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "gear_calidor_vitreous_plate.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.15,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Couraça Vítrea de Calidor",
+      "description": "Armadura. +15 Armadura e +15% eficiência de Block.",
+      "rarity": "common",
+      "family": "Armadura"
+    }
+  },
+  "gear_scarlet_jewel_shard": {
+    "inscriptionId": "gear_scarlet_jewel_shard",
+    "equipmentCost": 4,
+    "tags": [
+      "slot:core",
+      "calamity"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "spell_damage",
+        "influence": {
+          "influenceId": "gear_scarlet_jewel_shard.spell",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.2,
+          "requiredTags": [
+            "effect.damage"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Lasca de Joia Escarlate",
+      "description": "Núcleo (Calamidade). Todas as cartas causam 20% MAIS dano (more).",
+      "rarity": "rare",
+      "family": "Núcleo"
+    }
+  },
+  "rune_obor_pyre": {
+    "inscriptionId": "rune_obor_pyre",
+    "equipmentCost": 1,
+    "tags": [
+      "slot:rune",
+      "fire"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "rune_obor_pyre.dot",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Runa de Obor: Pira",
+      "description": "Runa. +25% potência de dano residual (Queimadura).",
+      "rarity": "common",
+      "family": "Runa de Equipamento"
+    }
+  },
+  "rune_obor_bastion": {
+    "inscriptionId": "rune_obor_bastion",
+    "equipmentCost": 1,
+    "tags": [
+      "slot:rune",
+      "defense"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "rune_obor_bastion.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Runa de Obor: Bastião",
+      "description": "Runa. +20% geração de Block.",
+      "rarity": "common",
+      "family": "Runa de Equipamento"
+    }
+  },
+  "rune_obor_precision": {
+    "inscriptionId": "rune_obor_precision",
+    "equipmentCost": 1,
+    "tags": [
+      "slot:rune",
+      "critical"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "rune_obor_precision.chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 15
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Runa de Obor: Fio Preciso",
+      "description": "Runa. +15 pp Chance Crítica.",
+      "rarity": "common",
+      "family": "Runa de Equipamento"
+    }
+  },
+  "pyro_identity_cinder_warden": {
+    "inscriptionId": "pyro_identity_cinder_warden",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:pyromancer"
+    ],
+    "allowedActorDefinitionIds": [
+      "pyromancer"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "pyro_identity_cinder_warden.burn",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.45,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      },
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "pyro_identity_cinder_warden.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Coração de Cinza Fria",
+      "description": "Identidade Avançada do Piromante. +45% potência de Queimadura e +20% geração de Block. Gatilho: dano de Fogo gera +1 Calor; com Calor >= 5 no fim do turno, ativa Superaquecimento (2T) e ganha +6 de Block.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "pyro_cinder_warden.heat_on_fire",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "fire",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "pyro_cinder_warden.add_heat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "heat_gauge",
+            "operation": "ADD",
+            "flatValue": 1,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "fire"
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "pyro_cinder_warden.ash_barrier",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": "ALISYUM_HEAT_GE_5",
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "pyro_cinder_warden.apply_overheat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_overheat",
+            "statusStacks": 1,
+            "statusDuration": 2,
+            "tags": [
+              "fire",
+              "overheat"
+            ]
+          },
+          {
+            "effectId": "pyro_cinder_warden.gain_block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 6,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "fire"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "baron_identity_blood_tithe_lord": {
+    "inscriptionId": "baron_identity_blood_tithe_lord",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:baron_servant"
+    ],
+    "allowedActorDefinitionIds": [
+      "baron_servant"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "blood_scaling",
+        "influence": {
+          "influenceId": "baron_identity_blood_tithe_lord.blood",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.35,
+          "requiredTags": [
+            "damage",
+            "blood"
+          ]
+        }
+      },
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "baron_identity_blood_tithe_lord.bleed",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.35,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      },
+      {
+        "attributeId": "lifesteal_ratio",
+        "influence": {
+          "influenceId": "baron_identity_blood_tithe_lord.lifesteal",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "lifesteal"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Manto da Primeira Legião",
+      "description": "Identidade Avançada do Servo. +35% dano de Sangue, +35% Sangramento e +20% Dreno de Vida. Gatilho: ataques concedem +1 Dízimo de Sangue, drenam 20% do dano e concedem +3 Block no início do turno.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "baron_blood_tithe_lord.drain",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "attack",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "baron_blood_tithe_lord.tithe",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "blood_tithe",
+            "operation": "ADD",
+            "flatValue": 1,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "blood"
+            ]
+          },
+          {
+            "effectId": "baron_blood_tithe_lord.heal",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "formulaValue": "event.change.applied_delta * -0.20",
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "recovery",
+              "blood",
+              "lifesteal"
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "baron_blood_tithe_lord.start_guard",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "baron_blood_tithe_lord.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 3,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "blood"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "gambler_identity_ace_high": {
+    "inscriptionId": "gambler_identity_ace_high",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:gambler"
+    ],
+    "allowedActorDefinitionIds": [
+      "gambler"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_tier_cap",
+        "influence": {
+          "influenceId": "gambler_identity_ace_high.tier_cap",
+          "scope": "Actor",
+          "channel": "critical_probability",
+          "bucket": "guaranteed_tier_cap",
+          "value": 2
+        }
+      },
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "gambler_identity_ace_high.chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 40
+        }
+      },
+      {
+        "attributeId": "critical_damage",
+        "influence": {
+          "influenceId": "gambler_identity_ace_high.damage",
+          "scope": "Actor",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "value": 0.45
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Cartola de Aelara",
+      "description": "Identidade Avançada do Apostador. Teto de Crítico Multi-Tier x4, +40 pp Chance Crítica e +45% Bônus Crítico. Gatilho: ataques Críticos concedem Lâmina Afiada (+35% Bônus Crítico acumulável).",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "gambler_ace_high.razor_streak",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "critical",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "RootAction",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "gambler_ace_high.razor_edge",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_razor_edge",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "critical"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "vitreous_identity_shatter_monolith": {
+    "inscriptionId": "vitreous_identity_shatter_monolith",
+    "equipmentCost": 0,
+    "tags": [
+      "identity",
+      "character:vitreous_renegade"
+    ],
+    "allowedActorDefinitionIds": [
+      "vitreous_renegade"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "ice_scaling",
+        "influence": {
+          "influenceId": "vitreous_identity_shatter_monolith.ice",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.3,
+          "requiredTags": [
+            "damage",
+            "ice"
+          ]
+        }
+      },
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "vitreous_identity_shatter_monolith.frost",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.45,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      },
+      {
+        "attributeId": "armor",
+        "influence": {
+          "influenceId": "vitreous_identity_shatter_monolith.armor",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "value": 15
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Monólito da Fenda Glacial",
+      "description": "Identidade Avançada do Renegado. +15 Armadura, +30% dano de Gelo e +45% potência de Geada. Gatilho: inimigos que atingirem seu Block sofrem Gelo Vítreo + 2 Geada; ganha +5 Block no início do turno.",
+      "rarity": "rare",
+      "family": "Mod de Identidade"
+    },
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "vitreous_shatter_monolith.retaliate",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "block"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed",
+            "reflection"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "EventSource",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "vitreous_shatter_monolith.chill",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_chilled",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "status",
+              "ice"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          },
+          {
+            "effectId": "vitreous_shatter_monolith.frost",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_frostbite",
+            "statusStacks": 2,
+            "statusDuration": 2,
+            "tags": [
+              "status",
+              "residual",
+              "ice"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "vitreous_shatter_monolith.start_guard",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "vitreous_shatter_monolith.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 5,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "ice"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "gear_illana_frost_halberd": {
+    "inscriptionId": "gear_illana_frost_halberd",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:weapon",
+      "ice"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "ice_scaling",
+        "influence": {
+          "influenceId": "gear_illana_frost_halberd.ice",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "damage",
+            "ice"
+          ]
+        }
+      },
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "gear_illana_frost_halberd.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.15,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Alabarda Glacial de Illana",
+      "description": "Arma. +25% dano de Gelo e +15% geração de Block.",
+      "rarity": "uncommon",
+      "family": "Arma"
+    }
+  },
+  "gear_vidaria_ash_mantle": {
+    "inscriptionId": "gear_vidaria_ash_mantle",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:armor",
+      "fire"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "armor",
+        "influence": {
+          "influenceId": "gear_vidaria_ash_mantle.armor",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "value": 10
+        }
+      },
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "gear_vidaria_ash_mantle.dot",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Manto de Cinzas de Vidaria",
+      "description": "Armadura. +10 Armadura e +25% potência de dano residual (Queimadura/Sangramento/Geada).",
+      "rarity": "common",
+      "family": "Armadura"
+    }
+  },
+  "gear_nosirian_war_plate": {
+    "inscriptionId": "gear_nosirian_war_plate",
+    "equipmentCost": 3,
+    "tags": [
+      "slot:armor",
+      "blood"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "armor",
+        "influence": {
+          "influenceId": "gear_nosirian_war_plate.armor",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "value": 20
+        }
+      },
+      {
+        "attributeId": "lifesteal_ratio",
+        "influence": {
+          "influenceId": "gear_nosirian_war_plate.lifesteal",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.1,
+          "requiredTags": [
+            "lifesteal"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Couraça da Vanguarda de Nosirian",
+      "description": "Armadura. +20 Armadura e +10% eficiência de Dreno de Vida.",
+      "rarity": "rare",
+      "family": "Armadura"
+    }
+  },
+  "gear_dokari_prism_lens": {
+    "inscriptionId": "gear_dokari_prism_lens",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:core"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "spell_damage",
+        "influence": {
+          "influenceId": "gear_dokari_prism_lens.damage",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "effect.damage"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Lente Cromática de Dokari",
+      "description": "Núcleo. +25% dano aumentado em todas as cartas ofensivas.",
+      "rarity": "uncommon",
+      "family": "Núcleo"
+    }
+  },
+  "gear_crolbia_fated_coin": {
+    "inscriptionId": "gear_crolbia_fated_coin",
+    "equipmentCost": 3,
+    "tags": [
+      "slot:core",
+      "critical"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "critical_chance",
+        "influence": {
+          "influenceId": "gear_crolbia_fated_coin.chance",
+          "scope": "Actor",
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 20
+        }
+      },
+      {
+        "attributeId": "critical_damage",
+        "influence": {
+          "influenceId": "gear_crolbia_fated_coin.crit_dmg",
+          "scope": "Actor",
+          "channel": "critical_bonus",
+          "bucket": "bonus",
+          "value": 0.35
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Moeda Viciada de Crolbia",
+      "description": "Núcleo. +20 pp Chance Crítica e +35% Bônus Crítico.",
+      "rarity": "rare",
+      "family": "Núcleo"
+    }
+  },
+  "gear_illana_mirror_prism": {
+    "inscriptionId": "gear_illana_mirror_prism",
+    "equipmentCost": 2,
+    "tags": [
+      "slot:core",
+      "ice",
+      "defense"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "block_efficiency",
+        "influence": {
+          "influenceId": "gear_illana_mirror_prism.block",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "attributeId": "ice_scaling",
+        "influence": {
+          "influenceId": "gear_illana_mirror_prism.ice",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.25,
+          "requiredTags": [
+            "damage",
+            "ice"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Prisma Espelhado de Illana",
+      "description": "Núcleo. +20% geração de Block e +25% dano de Gelo.",
+      "rarity": "uncommon",
+      "family": "Núcleo"
+    }
+  },
+  "rune_obor_hemorrhage": {
+    "inscriptionId": "rune_obor_hemorrhage",
+    "equipmentCost": 1,
+    "tags": [
+      "slot:rune",
+      "blood"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "blood_scaling",
+        "influence": {
+          "influenceId": "rune_obor_hemorrhage.blood",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "damage",
+            "blood"
+          ]
+        }
+      },
+      {
+        "attributeId": "dot_damage",
+        "influence": {
+          "influenceId": "rune_obor_hemorrhage.dot",
+          "scope": "Actor",
+          "channel": "alisyum_dot",
+          "bucket": "increased",
+          "value": 0.15,
+          "requiredTags": [
+            "residual"
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Runa de Obor: Sangria",
+      "description": "Runa. +20% dano de Sangue e +15% potência residual.",
+      "rarity": "common",
+      "family": "Runa de Equipamento"
+    }
+  },
+  "rune_obor_glacier": {
+    "inscriptionId": "rune_obor_glacier",
+    "equipmentCost": 1,
+    "tags": [
+      "slot:rune",
+      "ice"
+    ],
+    "attributeBonuses": [
+      {
+        "attributeId": "ice_scaling",
+        "influence": {
+          "influenceId": "rune_obor_glacier.ice",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "increased",
+          "value": 0.2,
+          "requiredTags": [
+            "damage",
+            "ice"
+          ]
+        }
+      },
+      {
+        "attributeId": "armor",
+        "influence": {
+          "influenceId": "rune_obor_glacier.armor",
+          "scope": "Actor",
+          "channel": "effect_amount",
+          "bucket": "armor",
+          "value": 10
+        }
+      }
+    ],
+    "presentation": {
+      "name": "Runa de Obor: Geleira",
+      "description": "Runa. +20% dano de Gelo e +10 Armadura.",
+      "rarity": "common",
+      "family": "Runa de Equipamento"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "alisyum_run_resources": {
+    "actorResourceLifecyclePolicyId": "alisyum_run_resources",
+    "rules": [
+      {
+        "resourceId": "health",
+        "entry": "PreserveCurrent",
+        "victory": "PreserveCurrent",
+        "defeat": "PreserveCurrent",
+        "draw": "PreserveCurrent",
+        "abandoned": "PreserveCurrent",
+        "retry": "ResetToMaximum",
+        "missingResource": "Error"
+      },
+      {
+        "resourceId": "energy",
+        "entry": "ResetToMaximum",
+        "victory": "EncounterOnly",
+        "defeat": "EncounterOnly",
+        "draw": "EncounterOnly",
+        "abandoned": "EncounterOnly",
+        "retry": "EncounterOnly",
+        "missingResource": "Error"
+      },
+      {
+        "resourceId": "block",
+        "entry": "ResetToConfiguredValue",
+        "victory": "EncounterOnly",
+        "defeat": "EncounterOnly",
+        "draw": "EncounterOnly",
+        "abandoned": "EncounterOnly",
+        "retry": "ResetToConfiguredValue",
+        "missingResource": "Error",
+        "configuredValue": 0
+      },
+      {
+        "resourceId": "heat_gauge",
+        "entry": "ResetToConfiguredValue",
+        "victory": "EncounterOnly",
+        "defeat": "EncounterOnly",
+        "draw": "EncounterOnly",
+        "abandoned": "EncounterOnly",
+        "retry": "ResetToConfiguredValue",
+        "configuredValue": 0,
+        "missingResource": "Ignore"
+      },
+      {
+        "resourceId": "blood_tithe",
+        "entry": "ResetToConfiguredValue",
+        "victory": "EncounterOnly",
+        "defeat": "EncounterOnly",
+        "draw": "EncounterOnly",
+        "abandoned": "EncounterOnly",
+        "retry": "ResetToConfiguredValue",
+        "configuredValue": 0,
+        "missingResource": "Ignore"
+      }
+    ]
+  }
+}

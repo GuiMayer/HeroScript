@@ -1,0 +1,254 @@
+{
+  "alisyum_enemy_guard": {
+    "gambitId": "alisyum_enemy_guard",
+    "displayName": "Carapaça Defensiva",
+    "priority": 200,
+    "predicates": [
+      {
+        "expression": "actor_resource_health_percent",
+        "maximum": 0.45
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_guard",
+      "targetSelector": {
+        "strategy": "Self"
+      }
+    },
+    "intent": {
+      "displayName": "Carapaça: 9 Block",
+      "description": "Ganha 9 de Block.",
+      "telegraphType": "Defend"
+    }
+  },
+  "alisyum_enemy_heavy": {
+    "gambitId": "alisyum_enemy_heavy",
+    "displayName": "Execução Pesada",
+    "priority": 135,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_heavy",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Execução: 14",
+      "description": "Causa 14 de dano pesado.",
+      "telegraphType": "HeavyAttack"
+    }
+  },
+  "alisyum_enemy_attack": {
+    "gambitId": "alisyum_enemy_attack",
+    "displayName": "Golpe Brutal",
+    "priority": 95,
+    "predicates": [
+      {
+        "expression": "turn",
+        "minimum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_attack",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Golpe: 7",
+      "description": "Causa 7 de dano.",
+      "telegraphType": "Attack"
+    }
+  },
+  "alisyum_enemy_flurry": {
+    "gambitId": "alisyum_enemy_flurry",
+    "displayName": "Corte Duplo",
+    "priority": 120,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 2,
+        "maximum": 2
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_flurry",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Corte Duplo: 4 x 2",
+      "description": "Causa 4 de dano duas vezes.",
+      "telegraphType": "Attack"
+    }
+  },
+  "alisyum_enemy_clock": {
+    "gambitId": "alisyum_enemy_clock",
+    "displayName": "Frenesi de Batalha",
+    "priority": 150,
+    "predicates": [
+      {
+        "expression": "turn",
+        "minimum": 5
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_escalate",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Frenesi: 8 (+3/turno)",
+      "description": "Causa 8 de dano e ganha +1 acúmulo de Frenesi (+3 dano permanente).",
+      "telegraphType": "HeavyAttack"
+    }
+  },
+  "alisyum_enemy_cut_bleed": {
+    "gambitId": "alisyum_enemy_cut_bleed",
+    "displayName": "Lâmina Serrilhada",
+    "priority": 125,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_cut_bleed",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Sangria: 5 + 2 Bleed",
+      "description": "Causa 5 de dano e aplica 2 Sangramento.",
+      "telegraphType": "Attack"
+    }
+  },
+  "alisyum_enemy_heavy_guard": {
+    "gambitId": "alisyum_enemy_heavy_guard",
+    "displayName": "Bastião Rúnico",
+    "priority": 180,
+    "predicates": [
+      {
+        "expression": "actor_resource_health_percent",
+        "maximum": 0.6
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_heavy_guard",
+      "targetSelector": {
+        "strategy": "Self"
+      }
+    },
+    "intent": {
+      "displayName": "Bastião: 14 Block",
+      "description": "Ganha 14 de Block.",
+      "telegraphType": "Defend"
+    }
+  },
+  "alisyum_enemy_pierce": {
+    "gambitId": "alisyum_enemy_pierce",
+    "displayName": "Martelo Perfurante",
+    "priority": 130,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 2,
+        "maximum": 2
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_enemy_pierce",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Perfurante: 11",
+      "description": "Causa 11 de dano ignorando Armadura.",
+      "telegraphType": "HeavyAttack"
+    }
+  },
+  "alisyum_boss_furnace_wave": {
+    "gambitId": "alisyum_boss_furnace_wave",
+    "displayName": "Sopro da Fornalha",
+    "priority": 130,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_boss_furnace_wave",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Fornalha: 10 + 3 Burn",
+      "description": "Causa 10 de dano de Fogo e aplica 3 Queimadura.",
+      "telegraphType": "Attack"
+    }
+  },
+  "alisyum_boss_glacial_slam": {
+    "gambitId": "alisyum_boss_glacial_slam",
+    "displayName": "Impacto Vítreo",
+    "priority": 130,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "alisyum_boss_glacial_slam",
+      "targetSelector": {
+        "strategy": "HighestResource",
+        "relationship": "Enemy",
+        "resourceId": "health"
+      }
+    },
+    "intent": {
+      "displayName": "Impacto: 11 + Gelo Vítreo",
+      "description": "Causa 11 de dano de Gelo e aplica Gelo Vítreo.",
+      "telegraphType": "Attack"
+    }
+  }
+}

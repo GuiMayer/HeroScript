@@ -1,0 +1,77 @@
+{
+  "alisyum_progress": {
+    "profileProgressPolicyId": "alisyum_progress",
+    "contributingModeIds": [
+      "alisyum_campaign",
+      "alisyum_gambler_campaign",
+      "alisyum_servo_campaign",
+      "alisyum_renegado_campaign"
+    ],
+    "allowedProvenances": [
+      "Published"
+    ],
+    "deduplication": "RootLineage",
+    "unlocks": [
+      {
+        "unlockId": "alisyum_unlock_nosirian_plate",
+        "displayName": "Couraça da Vanguarda de Nosirian",
+        "description": "Conclua o Capítulo 1 com o Servo.",
+        "targets": [
+          {
+            "kind": "Inscription",
+            "definitionId": "gear_nosirian_war_plate"
+          }
+        ],
+        "condition": {
+          "kind": "RunCompleted",
+          "runDefinitionId": "alisyum_servo_run"
+        }
+      },
+      {
+        "unlockId": "alisyum_unlock_hemorrhage_rune",
+        "displayName": "Runa de Obor: Sangria",
+        "description": "Conclua o Capítulo 1 com o Piromante.",
+        "targets": [
+          {
+            "kind": "Inscription",
+            "definitionId": "rune_obor_hemorrhage"
+          }
+        ],
+        "condition": {
+          "kind": "RunCompleted",
+          "runDefinitionId": "alisyum_chapter_1"
+        }
+      },
+      {
+        "unlockId": "alisyum_unlock_glacier_rune",
+        "displayName": "Runa de Obor: Geleira",
+        "description": "Conclua o Capítulo 1 com o Renegado.",
+        "targets": [
+          {
+            "kind": "Inscription",
+            "definitionId": "rune_obor_glacier"
+          }
+        ],
+        "condition": {
+          "kind": "RunCompleted",
+          "runDefinitionId": "alisyum_renegado_run"
+        }
+      },
+      {
+        "unlockId": "alisyum_unlock_fated_coin",
+        "displayName": "Moeda Viciada de Crolbia",
+        "description": "Conclua o Capítulo 1 com o Apostador.",
+        "targets": [
+          {
+            "kind": "Inscription",
+            "definitionId": "gear_crolbia_fated_coin"
+          }
+        ],
+        "condition": {
+          "kind": "RunCompleted",
+          "runDefinitionId": "alisyum_gambler_run"
+        }
+      }
+    ]
+  }
+}

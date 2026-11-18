@@ -1,0 +1,2104 @@
+{
+  "alisyum_burn": {
+    "statusId": "alisyum_burn",
+    "displayName": "Queimadura",
+    "description": "Causa dano de fogo residual ao fim da ativação do alvo. Pode ser detonada em massa por cartas de condensação.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "alisyum_dot",
+          "pipelineId": "alisyum_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "alisyum_detonate_burn"
+      ]
+    },
+    "tags": [
+      "residual",
+      "fire",
+      "damage_payload"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_burn.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "channel": "alisyum_dot",
+                "pipelineId": "alisyum_dot",
+                "unitId": "points",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "alisyum_dot",
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "damage",
+              "residual",
+              "fire"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_overheat": {
+    "statusId": "alisyum_overheat",
+    "displayName": "Superaquecido",
+    "description": "A runa peitoral entra em sobrecarga: cartas de Fogo causam +35% mais dano (more), mas o calor fere o usuário ao fim do turno.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "fire",
+      "overheat"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_overheat.fire_more",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "more",
+        "value": 1.35,
+        "requiredTags": [
+          "effect.damage",
+          "fire"
+        ]
+      }
+    ]
+  },
+  "alisyum_chilled": {
+    "statusId": "alisyum_chilled",
+    "displayName": "Gelo Vítreo",
+    "description": "Estruturas cristalinas fragilizam o alvo, aumentando em +25% todo dano direto sofrido.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "ice",
+      "debuff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_chilled.vulnerability",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "vulnerability",
+        "value": 1.25,
+        "requiredTags": [
+          "effect.damage"
+        ]
+      }
+    ]
+  },
+  "alisyum_frenzy": {
+    "statusId": "alisyum_frenzy",
+    "displayName": "Escalada de Combate",
+    "description": "Relógio de combate: aumenta em +3 o dano plano por acúmulo em todos os ataques do inimigo.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 20,
+    "tags": [
+      "enrage",
+      "buff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_frenzy.flat",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "value": 3,
+        "requiredTags": [
+          "effect.damage"
+        ]
+      }
+    ]
+  },
+  "alisyum_stacked_luck": {
+    "statusId": "alisyum_stacked_luck",
+    "displayName": "Dados Carregados",
+    "description": "Concede +40 pontos percentuais de Chance Crítica por acúmulo até o fim do turno.",
+    "defaultDuration": 1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "critical",
+      "buff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_stacked_luck.chance",
+        "scope": "Actor",
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 40
+      }
+    ]
+  },
+  "alisyum_cinder_vuln": {
+    "statusId": "alisyum_cinder_vuln",
+    "displayName": "Brasa Exposta",
+    "description": "Aumenta em 20% todo dano direto de Fogo sofrido.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "fire",
+      "debuff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_cinder_vuln.mult",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "vulnerability",
+        "value": 1.2,
+        "requiredTags": [
+          "effect.damage",
+          "fire"
+        ]
+      }
+    ]
+  },
+  "alisyum_marked": {
+    "statusId": "alisyum_marked",
+    "displayName": "Alvo Marcado",
+    "description": "Aumenta em 20% todo dano direto sofrido.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "critical",
+      "debuff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_marked.mult",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "vulnerability",
+        "value": 1.2,
+        "requiredTags": [
+          "effect.damage"
+        ]
+      }
+    ]
+  },
+  "alisyum_minor_luck": {
+    "statusId": "alisyum_minor_luck",
+    "displayName": "Olho Vivo",
+    "description": "Concede +20 pp de Chance Crítica por acúmulo até o fim do turno.",
+    "defaultDuration": 1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 5,
+    "tags": [
+      "critical",
+      "buff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_minor_luck.chance",
+        "scope": "Actor",
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 20
+      }
+    ]
+  },
+  "alisyum_razor_edge": {
+    "statusId": "alisyum_razor_edge",
+    "displayName": "Fio Letal",
+    "description": "Concede +35 pp de Bônus Crítico por acúmulo por 2 turnos.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 4,
+    "tags": [
+      "critical",
+      "buff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_razor_edge.bonus",
+        "scope": "Actor",
+        "channel": "critical_bonus",
+        "bucket": "bonus",
+        "value": 0.35
+      }
+    ]
+  },
+  "alisyum_blood_surge": {
+    "statusId": "alisyum_blood_surge",
+    "displayName": "Frenesi Carmesim",
+    "description": "Concede +15% dano de Sangue e +10% Dreno de Vida por acúmulo.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "blood",
+      "buff"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_blood_surge.blood",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.15,
+        "requiredTags": [
+          "damage",
+          "blood"
+        ]
+      },
+      {
+        "influenceId": "alisyum_blood_surge.lifesteal",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.1,
+        "requiredTags": [
+          "blood",
+          "lifesteal"
+        ]
+      }
+    ]
+  },
+  "alisyum_glacial_plating": {
+    "statusId": "alisyum_glacial_plating",
+    "displayName": "Revestimento Vítreo",
+    "description": "Concede +6 de Armadura temporária por acúmulo.",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 5,
+    "tags": [
+      "ice",
+      "buff",
+      "defense"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_glacial_plating.armor",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "value": 6,
+        "requiredTags": [
+          "effect.damage"
+        ]
+      }
+    ]
+  },
+  "alisyum_glacial_monolith": {
+    "statusId": "alisyum_glacial_monolith",
+    "displayName": "Monólito de Illana",
+    "description": "Poder: +15 de Armadura permanente e +25% eficiência de Block por acúmulo.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 2,
+    "tags": [
+      "ice",
+      "buff",
+      "defense"
+    ],
+    "influences": [
+      {
+        "influenceId": "alisyum_glacial_monolith.armor",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "value": 15,
+        "requiredTags": [
+          "effect.damage"
+        ]
+      },
+      {
+        "influenceId": "alisyum_glacial_monolith.block",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.25,
+        "requiredTags": [
+          "defense",
+          "block"
+        ]
+      }
+    ]
+  },
+  "alisyum_bleed": {
+    "statusId": "alisyum_bleed",
+    "displayName": "Hemorragia",
+    "description": "Causa dano de Sangue residual ao fim da ativação do alvo (ignora Block). Pode ser colhida.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "alisyum_dot",
+          "pipelineId": "alisyum_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "alisyum_crimson_harvest"
+      ]
+    },
+    "tags": [
+      "residual",
+      "blood",
+      "damage_payload"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_bleed.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "channel": "alisyum_dot",
+                "pipelineId": "alisyum_dot",
+                "unitId": "points",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "alisyum_dot",
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "damage",
+              "residual",
+              "blood"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_frostbite": {
+    "statusId": "alisyum_frostbite",
+    "displayName": "Geada Cristalina",
+    "description": "Causa dano de Gelo residual ao fim da ativação do alvo (ignora Block). Pode ser estilhaçada.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "alisyum_dot",
+          "pipelineId": "alisyum_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "alisyum_shatter_frost"
+      ]
+    },
+    "tags": [
+      "residual",
+      "ice",
+      "damage_payload"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_frostbite.tick",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "ObserverSource",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "RejectAction"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": false,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": true
+        },
+        "propagation": "AllowResponses",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "channel": "alisyum_dot",
+                "pipelineId": "alisyum_dot",
+                "unitId": "points",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ],
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "targetResource": "health",
+            "operation": "ADD",
+            "resourceField": "Current",
+            "calculationChannel": "alisyum_dot",
+            "chance": 1,
+            "chanceScope": "PerEffect",
+            "repeat": 1,
+            "tags": [
+              "damage",
+              "residual",
+              "ice"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_pyre_aura": {
+    "statusId": "alisyum_pyre_aura",
+    "displayName": "Forja Viva",
+    "description": "Poder: ao fim do seu turno, aplica 2 de Queimadura em TODOS os inimigos.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "fire",
+      "power"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_pyre_aura.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.ended"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "EndActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_pyre_aura.burn",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "ALL_ENEMIES",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "statusId": "alisyum_burn",
+            "statusStacks": 2,
+            "statusDuration": 3,
+            "tags": [
+              "status",
+              "residual",
+              "fire"
+            ],
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 2
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_obsidian_guard": {
+    "statusId": "alisyum_obsidian_guard",
+    "displayName": "Pele de Cinza Eterna",
+    "description": "Poder: no início do seu turno, ganha 4 de Block e +1 Calor da Runa.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "fire",
+      "power",
+      "defense"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_obsidian_guard.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_obsidian_guard.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 4,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "fire"
+            ]
+          },
+          {
+            "effectId": "alisyum_obsidian_guard.heat",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "heat_gauge",
+            "operation": "ADD",
+            "flatValue": 1,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "fire"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_hot_hand": {
+    "statusId": "alisyum_hot_hand",
+    "displayName": "Mão Quente",
+    "description": "Poder: no início do seu turno, ganha +40 pp de Chance Crítica por 1 turno.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "critical",
+      "power"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_hot_hand.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_hot_hand.luck",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_stacked_luck",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "critical"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_aelara_favor": {
+    "statusId": "alisyum_aelara_favor",
+    "displayName": "Favor de Aelara",
+    "description": "Poder: no início do seu turno, compra 1 carta e ganha +35 pp Bônus Crítico no turno.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 2,
+    "tags": [
+      "critical",
+      "power"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_aelara_favor.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_aelara_favor.draw",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "CARD_ZONE_FLOW",
+            "target": "SELF",
+            "cardZoneFlowId": "effect.draw",
+            "cardCount": 1
+          },
+          {
+            "effectId": "alisyum_aelara_favor.edge",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_razor_edge",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "critical"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_house_edge": {
+    "statusId": "alisyum_house_edge",
+    "displayName": "A Casa Sempre Vence",
+    "description": "Poder: no início do seu turno, ganha 4 de Block e +20 pp de Chance Crítica.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "critical",
+      "power",
+      "defense"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_house_edge.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_house_edge.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 4,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "critical"
+            ]
+          },
+          {
+            "effectId": "alisyum_house_edge.luck",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_minor_luck",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "critical"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_baron_decree": {
+    "statusId": "alisyum_baron_decree",
+    "displayName": "Decreto do Barão Rubro",
+    "description": "Poder: no início do seu turno, acumula +2 Dízimo de Sangue e +1 acúmulo de Frenesi Carmesim.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "blood",
+      "power"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_baron_decree.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_baron_decree.tithe",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "blood_tithe",
+            "operation": "ADD",
+            "flatValue": 2,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "blood"
+            ]
+          },
+          {
+            "effectId": "alisyum_baron_decree.surge",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "alisyum_blood_surge",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "blood"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_permafrost_stance": {
+    "statusId": "alisyum_permafrost_stance",
+    "displayName": "Bastião Perpétuo",
+    "description": "Poder: no início do seu turno, ganha 5 de Block.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "ice",
+      "power",
+      "defense"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "timing": "ContainerBoundary",
+        "responseId": "alisyum_permafrost_stance.trigger",
+        "observe": {
+          "kinds": {
+            "include": [
+              "activation.started"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "boundary": {
+            "boundaryIds": [
+              "StartActivation"
+            ]
+          },
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "BeforeOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_permafrost_stance.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 5,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "ice"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_combustion_draw": {
+    "statusId": "alisyum_combustion_draw",
+    "displayName": "Cinzas Renascidas",
+    "description": "Poder: sempre que você detonar/consumir stacks de status, compra 1 carta.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 2,
+    "tags": [
+      "fire",
+      "power"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "alisyum_combustion_draw.react",
+        "observe": {
+          "kinds": {
+            "include": [
+              "status.stacks.consumed"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": []
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": null,
+          "requiredTags": [],
+          "excludedTags": []
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_combustion_draw.draw",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "CARD_ZONE_FLOW",
+            "target": "SELF",
+            "cardZoneFlowId": "effect.draw",
+            "cardCount": 1
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_undying_thirst": {
+    "statusId": "alisyum_undying_thirst",
+    "displayName": "Sede Imortal",
+    "description": "Poder: sempre que seus ataques ferirem um inimigo, recupera 2 de Vida.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 3,
+    "tags": [
+      "blood",
+      "power",
+      "lifesteal"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "alisyum_undying_thirst.react",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "attack",
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_undying_thirst.heal",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 2,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "recovery",
+              "blood",
+              "lifesteal"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_scourge_litany": {
+    "statusId": "alisyum_scourge_litany",
+    "displayName": "Postura Imortal",
+    "description": "Poder: sempre que você perder Vida, ganha 3 de Block e +2 de Dízimo de Sangue.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 2,
+    "tags": [
+      "blood",
+      "power",
+      "defense"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "alisyum_scourge_litany.react",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": null,
+          "resource": {
+            "resourceIds": [
+              "health"
+            ],
+            "calculationChannels": [],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [],
+          "excludedTags": [
+            "damage.residual"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_scourge_litany.block",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "calculationChannel": "effect_amount",
+            "calculationPipelineId": "alisyum_direct_amount",
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 3,
+                "unitId": "points",
+                "channel": "effect_amount",
+                "pipelineId": "alisyum_direct_amount"
+              }
+            ],
+            "tags": [
+              "defense",
+              "block",
+              "blood"
+            ]
+          },
+          {
+            "effectId": "alisyum_scourge_litany.tithe",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "blood_tithe",
+            "operation": "ADD",
+            "flatValue": 2,
+            "calculationChannel": "effect_amount",
+            "tags": [
+              "blood"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_shatter_thorns": {
+    "statusId": "alisyum_shatter_thorns",
+    "displayName": "Armadura de Cacos",
+    "description": "Poder: sempre que um inimigo atingir seu Block ou Vida, aplica Gelo Vítreo (1T) e 3 de Geada no atacante.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 2,
+    "tags": [
+      "ice",
+      "power",
+      "defense"
+    ],
+    "responses": [
+      {
+        "schemaVersion": 1,
+        "responseId": "alisyum_shatter_thorns.react",
+        "observe": {
+          "kinds": {
+            "include": [
+              "resource.change.resolved"
+            ],
+            "exclude": []
+          },
+          "reasons": {
+            "include": [
+              "**"
+            ],
+            "exclude": [
+              "cost.payment",
+              "cost.refund"
+            ]
+          },
+          "source": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "subject": {
+            "actorIds": [],
+            "matchesOwner": true,
+            "relationshipToOwner": null
+          },
+          "attributed": {
+            "actorIds": [],
+            "matchesOwner": null,
+            "relationshipToOwner": null
+          },
+          "sourceSubjectRelationship": "Enemy",
+          "resource": {
+            "resourceIds": [
+              "block",
+              "health"
+            ],
+            "calculationChannels": [
+              "effect_amount"
+            ],
+            "field": "Current",
+            "operation": "Subtract",
+            "role": "PrimaryEffect",
+            "direction": "Any"
+          },
+          "requiredTags": [
+            "effect.damage"
+          ],
+          "excludedTags": [
+            "damage.residual",
+            "damage.condensed"
+          ]
+        },
+        "bindings": {
+          "owner": {
+            "kind": "ObserverOwner",
+            "actorId": null
+          },
+          "source": {
+            "kind": "Owner",
+            "actorId": null
+          },
+          "target": {
+            "kind": "EventSource",
+            "actorId": null
+          },
+          "missing": "Skip"
+        },
+        "availability": {
+          "snapshot": "AfterOccurrence",
+          "kind": "ContainerActive",
+          "zoneIds": [],
+          "requireLivingOwner": true,
+          "revalidateOwner": true,
+          "requireRegistrationStillActive": false
+        },
+        "frequency": {
+          "scope": "Occurrence",
+          "maximum": 1
+        },
+        "order": {
+          "priority": 0,
+          "descending": false
+        },
+        "propagation": "RecordOnly",
+        "condition": null,
+        "reasonId": null,
+        "allowExtensionTopics": false,
+        "effects": [
+          {
+            "effectId": "alisyum_shatter_thorns.chill",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "statusId": "alisyum_chilled",
+            "statusStacks": 1,
+            "statusDuration": 1,
+            "tags": [
+              "status",
+              "ice"
+            ]
+          },
+          {
+            "effectId": "alisyum_shatter_thorns.frost",
+            "executionScope": "EveryInvocation",
+            "childTiming": "AfterParentImpact",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "statusId": "alisyum_frostbite",
+            "statusStacks": 3,
+            "statusDuration": 2,
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 3
+              }
+            ],
+            "tags": [
+              "status",
+              "residual",
+              "ice"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

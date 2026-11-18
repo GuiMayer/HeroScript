@@ -1,0 +1,16 @@
+{
+  "alisyum_chapter_1_enemies": {
+    "enemyPoolId": "alisyum_chapter_1_enemies",
+    "entityDefinitionIds": [
+      "enemy_vidaria_enforcer",
+      "enemy_blood_cultist",
+      "enemy_vitreous_sentinel",
+      "enemy_crolbia_duelist",
+      "enemy_obor_runesmith",
+      "enemy_ash_abomination",
+      "boss_scarlet_inquisitor",
+      "boss_vidaria_archon",
+      "boss_illana_warden"
+    ]
+  }
+}

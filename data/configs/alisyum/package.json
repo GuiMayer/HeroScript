@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.alisyum",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.ascendant",
+      "versionRange": "1.1.0"
+    }
+  ],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "resources",
+      "sourcePath": "Resources/resources.json",
+      "artifactPath": "resources/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "formulas",
+      "sourcePath": "Resources/formulas.json",
+      "artifactPath": "formulas/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "calculation-pipelines",
+      "sourcePath": "Resources/calculation-pipelines.json",
+      "artifactPath": "calculation-pipelines/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "effect-resolution-policies",
+      "sourcePath": "Resources/effect-resolution-policies.json",
+      "artifactPath": "effect-resolution-policies/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "actor-resource-lifecycle-policies",
+      "sourcePath": "Resources/actor-resource-lifecycle-policies.json",
+      "artifactPath": "actor-resource-lifecycle-policies/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "combat-rules",
+      "sourcePath": "Resources/combat-rules.json",
+      "artifactPath": "combat-rules/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "run-progression-policies",
+      "sourcePath": "Resources/run-progression-policies.json",
+      "artifactPath": "run-progression-policies/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-zone-systems",
+      "sourcePath": "Resources/card-zone-systems.json",
+      "artifactPath": "card-zone-systems/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "status-effects",
+      "sourcePath": "Resources/status-effects.json",
+      "artifactPath": "status-effects/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "condensation-recipes",
+      "sourcePath": "Resources/condensation-recipes.json",
+      "artifactPath": "condensation-recipes/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "entities",
+      "sourcePath": "Resources/entities.json",
+      "artifactPath": "entities/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "enemy-pools",
+      "sourcePath": "Resources/enemy-pools.json",
+      "artifactPath": "enemy-pools/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "loadout-policies",
+      "sourcePath": "Resources/loadout-policies.json",
+      "artifactPath": "loadout-policies/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "inscriptions",
+      "sourcePath": "Resources/inscriptions.json",
+      "artifactPath": "inscriptions/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-upgrades",
+      "sourcePath": "Resources/card-upgrades.json",
+      "artifactPath": "card-upgrades/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-modifier-items",
+      "sourcePath": "Resources/card-modifier-items.json",
+      "artifactPath": "card-modifier-items/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "actions",
+      "sourcePath": "Resources/actions.json",
+      "artifactPath": "actions/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "gambits",
+      "sourcePath": "Resources/gambits.json",
+      "artifactPath": "gambits/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "dialogues",
+      "sourcePath": "Resources/dialogues.json",
+      "artifactPath": "dialogues/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "preparations",
+      "sourcePath": "Resources/preparations.json",
+      "artifactPath": "preparations/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "cards",
+      "sourcePath": "Resources/cards.json",
+      "artifactPath": "cards/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-pools",
+      "sourcePath": "Resources/card-pools.json",
+      "artifactPath": "card-pools/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-selections",
+      "sourcePath": "Resources/card-selections.json",
+      "artifactPath": "card-selections/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "modes",
+      "sourcePath": "Resources/modes.json",
+      "artifactPath": "modes/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "runs",
+      "sourcePath": "Resources/runs.json",
+      "artifactPath": "runs/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "relics",
+      "sourcePath": "Resources/relics.json",
+      "artifactPath": "relics/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "shops",
+      "sourcePath": "Resources/shops.json",
+      "artifactPath": "shops/alisyum.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "profile-progress-policies",
+      "sourcePath": "Resources/profile-progress-policies.json",
+      "artifactPath": "profile-progress-policies/alisyum.json"
+    }
+  ]
+}

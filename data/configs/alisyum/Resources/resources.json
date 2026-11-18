@@ -1,0 +1,49 @@
+{
+  "parts": {
+    "resourceId": "parts",
+    "displayName": "Fragmentos Rúnicos",
+    "shortName": "FR",
+    "category": "SPECIAL",
+    "defaultMin": 0,
+    "defaultMax": 1000000,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": true,
+    "tags": [
+      "run",
+      "crafting"
+    ]
+  },
+  "heat_gauge": {
+    "resourceId": "heat_gauge",
+    "displayName": "Calor da Runa",
+    "shortName": "CL",
+    "category": "SPECIAL",
+    "defaultMin": 0,
+    "defaultMax": 100,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "tags": [
+      "combat",
+      "pyromancer",
+      "fire"
+    ]
+  },
+  "blood_tithe": {
+    "resourceId": "blood_tithe",
+    "displayName": "Dízimo de Sangue",
+    "shortName": "SG",
+    "category": "SPECIAL",
+    "defaultMin": 0,
+    "defaultMax": 100,
+    "defaultCurrent": 0,
+    "canBeNegative": false,
+    "canExceedMax": false,
+    "tags": [
+      "combat",
+      "baron_servant",
+      "blood"
+    ]
+  }
+}

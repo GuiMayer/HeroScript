@@ -1,0 +1,98 @@
+{
+  "ALISYUM_CRIT_TIER_CAP": {
+    "description": "Limita os tiers garantidos de crítico (acima de 100% de chance) ao teto liberado pelo Mod de Identidade do personagem. Padrão 0 (sem multi-tier para não-Apostadores).",
+    "params": {
+      "bucket.input": 0,
+      "bucket.contributions.sum": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.bucket.input" },
+      { "op": "MIN", "value": "params.bucket.contributions.sum" },
+      { "op": "MAX", "value": "0" }
+    ]
+  },
+  "ALISYUM_NONLETHAL_6": {
+    "description": "Verdadeiro (> 0) quando o jogador tem mais de 6 de Vida atual.",
+    "params": { "source.resources.health.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.health.current" },
+      { "op": "SUBTRACT", "value": "6" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  },
+  "ALISYUM_NONLETHAL_8": {
+    "description": "Verdadeiro (> 0) quando o jogador tem mais de 8 de Vida atual.",
+    "params": { "source.resources.health.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.health.current" },
+      { "op": "SUBTRACT", "value": "8" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  },
+  "ALISYUM_NONLETHAL_3": {
+    "description": "Verdadeiro (> 0) quando o jogador tem mais de 3 de Vida atual.",
+    "params": { "source.resources.health.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.health.current" },
+      { "op": "SUBTRACT", "value": "3" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  },
+  "ALISYUM_NONLETHAL_5": {
+    "description": "Verdadeiro (> 0) quando o jogador tem mais de 5 de Vida atual.",
+    "params": { "source.resources.health.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.health.current" },
+      { "op": "SUBTRACT", "value": "5" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  },
+  "ALISYUM_SLAG_HAMMER": {
+    "description": "6 de dano base + até +6 bônus se o alvo tiver Block.",
+    "params": { "target.resources.block.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.target.resources.block.current" },
+      { "op": "MIN", "value": "6" },
+      { "op": "MAX", "value": "0" },
+      { "op": "ADD", "value": "6" }
+    ]
+  },
+  "ALISYUM_VENGEANCE_DMG": {
+    "description": "8 de dano base + 40% da Vida perdida do herói.",
+    "params": {
+      "source.resources.health.maximum": 100,
+      "source.resources.health.current": 100
+    },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.health.maximum" },
+      { "op": "SUBTRACT", "value": "params.source.resources.health.current" },
+      { "op": "MULTIPLY", "value": "0.4" },
+      { "op": "MAX", "value": "0" },
+      { "op": "ADD", "value": "8" }
+    ]
+  },
+  "ALISYUM_HEAT_GE_4": {
+    "description": "Verdadeiro (> 0) quando Calor da Runa >= 4.",
+    "params": { "source.resources.heat_gauge.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.heat_gauge.current" },
+      { "op": "SUBTRACT", "value": "3" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  },
+  "ALISYUM_HEAT_GE_5": {
+    "description": "Verdadeiro (> 0) quando Calor da Runa >= 5.",
+    "params": { "source.resources.heat_gauge.current": 0 },
+    "operations": [
+      { "op": "SET", "value": "params.source.resources.heat_gauge.current" },
+      { "op": "SUBTRACT", "value": "4" },
+      { "op": "FLOOR" },
+      { "op": "MAX", "value": "0" }
+    ]
+  }
+}

@@ -1,0 +1,512 @@
+{
+  "alisyum_flat_attribute": {
+    "pipelineId": "alisyum_flat_attribute",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "buckets": [
+      { "bucketId": "flat", "order": 5, "operation": "Add" },
+      { "bucketId": "increased", "order": 10, "operation": "Formula", "formula": "bucket.input" },
+      { "bucketId": "more", "order": 20, "operation": "Formula", "formula": "bucket.input" },
+      { "bucketId": "vulnerability", "order": 50, "operation": "Formula", "formula": "bucket.input" },
+      { "bucketId": "armor", "order": 55, "operation": "Formula", "formula": "bucket.input" }
+    ]
+  },
+  "alisyum_style_attribute": {
+    "pipelineId": "alisyum_style_attribute",
+    "channel": "effect_amount",
+    "unitId": "scalar",
+    "buckets": [
+      { "bucketId": "increased", "order": 10, "operation": "Add" },
+      { "bucketId": "more", "order": 20, "operation": "Multiply" }
+    ]
+  },
+  "alisyum_spell_attribute": {
+    "pipelineId": "alisyum_spell_attribute",
+    "channel": "effect_amount",
+    "unitId": "scalar",
+    "buckets": [
+      { "bucketId": "increased", "order": 10, "operation": "Add" },
+      { "bucketId": "more", "order": 20, "operation": "Multiply" }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "spell.damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "missingValue": "Zero"
+      }
+    ]
+  },
+  "alisyum_lifesteal_attribute": {
+    "pipelineId": "alisyum_lifesteal_attribute",
+    "channel": "effect_amount",
+    "unitId": "scalar",
+    "buckets": [
+      { "bucketId": "increased", "order": 10, "operation": "Add" }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "actor.lifesteal_ratio",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "lifesteal_ratio",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "missingValue": "Zero"
+      }
+    ]
+  },
+  "alisyum_dot_attribute": {
+    "pipelineId": "alisyum_dot_attribute",
+    "channel": "alisyum_dot",
+    "unitId": "scalar",
+    "buckets": [
+      { "bucketId": "increased", "order": 10, "operation": "Add" }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "alisyum.dot_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "dot_damage",
+        "channel": "alisyum_dot",
+        "bucket": "increased",
+        "missingValue": "Zero"
+      }
+    ]
+  },
+  "alisyum_crit_tier_cap_attribute": {
+    "pipelineId": "alisyum_crit_tier_cap_attribute",
+    "channel": "critical_probability",
+    "unitId": "points",
+    "buckets": [
+      { "bucketId": "guaranteed_tier_cap", "order": 10, "operation": "Add" }
+    ]
+  },
+  "alisyum_critical_probability": {
+    "pipelineId": "alisyum_critical_probability",
+    "channel": "critical_probability",
+    "unitId": "probability",
+    "stages": [
+      { "stageId": "guaranteed", "scope": "Actor" },
+      { "stageId": "fraction", "scope": "Actor" }
+    ],
+    "buckets": [
+      {
+        "bucketId": "tiers_raw",
+        "stageId": "guaranteed",
+        "order": 10,
+        "operation": "Formula",
+        "formula": "bucket.input / 100",
+        "rounding": "Floor"
+      },
+      {
+        "bucketId": "guaranteed_tier_cap",
+        "stageId": "guaranteed",
+        "order": 20,
+        "operation": "Formula",
+        "formula": "ALISYUM_CRIT_TIER_CAP"
+      },
+      {
+        "bucketId": "fraction",
+        "stageId": "fraction",
+        "order": 30,
+        "operation": "Formula",
+        "formula": "captures.chance % 100 / 100"
+      }
+    ]
+  },
+  "alisyum_direct_amount": {
+    "pipelineId": "alisyum_direct_amount",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      { "stageId": "w1_origin", "scope": "Actor" },
+      { "stageId": "w1_target", "scope": "Target" }
+    ],
+    "buckets": [
+      { "bucketId": "flat", "stageId": "w1_origin", "order": 10, "operation": "Add" },
+      { "bucketId": "increased", "stageId": "w1_origin", "order": 20, "operation": "AddPercent" },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
+      },
+      { "bucketId": "vulnerability", "stageId": "w1_target", "order": 50, "operation": "Multiply" },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      },
+      { "bucketId": "mitigation", "stageId": "w1_target", "order": 60, "operation": "ConsumeCapacity" },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "alisyum.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "attack" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "spell" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.fire_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "fire_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "fire" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.blood_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "blood_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "blood" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.ice_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "ice_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "ice" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.void_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "void_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "void" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "defense", "block" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum.target.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [ "effect.damage" ],
+        "excludedTags": [ "ignore_armor" ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "alisyum.target.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [ "effect.damage" ],
+        "excludedTags": [ "piercing" ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      },
+      {
+        "bindingId": "alisyum.actor.block_scaling",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.75,
+        "requiredTags": [ "damage", "block_scaling" ],
+        "missingResource": "Ignore"
+      }
+    ]
+  },
+  "alisyum_critical_amount": {
+    "pipelineId": "alisyum_critical_amount",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      { "stageId": "w1_origin", "scope": "Actor" },
+      { "stageId": "w1_impact", "scope": "Shared" },
+      { "stageId": "w1_target", "scope": "Target" }
+    ],
+    "buckets": [
+      { "bucketId": "flat", "stageId": "w1_origin", "order": 10, "operation": "Add" },
+      { "bucketId": "increased", "stageId": "w1_origin", "order": 20, "operation": "AddPercent" },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
+      },
+      {
+        "bucketId": "critical",
+        "stageId": "w1_impact",
+        "order": 40,
+        "operation": "Formula",
+        "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input"
+      },
+      { "bucketId": "vulnerability", "stageId": "w1_target", "order": 50, "operation": "Multiply" },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      },
+      { "bucketId": "mitigation", "stageId": "w1_target", "order": 60, "operation": "ConsumeCapacity" },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "alisyum_crit.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "attack" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "spell" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.fire_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "fire_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "fire" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.blood_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "blood_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "blood" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.ice_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "ice_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "ice" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.void_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "void_scaling",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "damage", "void" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [ "defense", "block" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_crit.target.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "effect_amount",
+        "bucket": "armor",
+        "requiredTags": [ "effect.damage" ],
+        "excludedTags": [ "ignore_armor" ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "alisyum_crit.target.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [ "effect.damage" ],
+        "excludedTags": [ "piercing" ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      },
+      {
+        "bindingId": "alisyum_crit.actor.block_scaling",
+        "scope": "Actor",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "flat",
+        "scale": 0.75,
+        "requiredTags": [ "damage", "block_scaling" ],
+        "missingResource": "Ignore"
+      }
+    ]
+  },
+  "alisyum_dot": {
+    "pipelineId": "alisyum_dot",
+    "channel": "alisyum_dot",
+    "unitId": "points",
+    "stages": [
+      { "stageId": "w1_origin", "scope": "Actor" },
+      { "stageId": "w1_release", "scope": "Actor" },
+      { "stageId": "w1_target", "scope": "Target" }
+    ],
+    "buckets": [
+      { "bucketId": "flat", "stageId": "w1_origin", "order": 10, "operation": "Add" },
+      { "bucketId": "increased", "stageId": "w1_origin", "order": 20, "operation": "AddPercent" },
+      { "bucketId": "more", "stageId": "w1_origin", "order": 30, "operation": "Multiply" },
+      {
+        "bucketId": "release",
+        "stageId": "w1_release",
+        "order": 40,
+        "operation": "Formula",
+        "formula": "bucket.input"
+      },
+      { "bucketId": "vulnerability", "stageId": "w1_target", "order": 50, "operation": "Multiply" },
+      {
+        "bucketId": "armor",
+        "stageId": "w1_target",
+        "order": 55,
+        "operation": "Formula",
+        "formula": "W1_ARMOR_REMAINING_AMOUNT"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "alisyum_dot.potency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "dot_damage",
+        "channel": "alisyum_dot",
+        "bucket": "increased",
+        "requiredTags": [ "residual" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_dot.fire_scaling",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "fire_scaling",
+        "channel": "alisyum_dot",
+        "bucket": "increased",
+        "requiredTags": [ "fire" ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "alisyum_dot.armor",
+        "scope": "Target",
+        "componentId": "stats",
+        "valueId": "armor",
+        "channel": "alisyum_dot",
+        "bucket": "armor",
+        "requiredTags": [ "effect.damage" ],
+        "excludedTags": [ "ignore_armor" ],
+        "missingValue": "Zero"
+      }
+    ],
+    "resourceInfluenceBindings": []
+  },
+  "alisyum_values": {
+    "pipelineId": "alisyum_values",
+    "channel": "effect_amount",
+    "buckets": [
+      { "bucketId": "base", "operation": "Add" }
+    ]
+  }
+}

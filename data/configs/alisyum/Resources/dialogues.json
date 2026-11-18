@@ -1,0 +1,643 @@
+{
+  "alisyum_opening": {
+    "dialogueId": "alisyum_opening",
+    "title": {
+      "text": "Fronteira de Vidaria",
+      "translations": {
+        "pt_BR": "Fronteira de Vidaria"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Eco da Runa",
+          "translations": {
+            "pt_BR": "Eco da Runa"
+          }
+        },
+        "text": {
+          "text": "Em Alisyum, todo poder exige um pagamento que você não escolheu pagar. Ajuste seu Mod de Identidade e seus equipamentos antes de entrar em combate.",
+          "translations": {
+            "pt_BR": "Em Alisyum, todo poder exige um pagamento que você não escolheu pagar. Ajuste seu Mod de Identidade e seus equipamentos antes de entrar em combate."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Avançar",
+              "translations": {
+                "pt_BR": "Avançar"
+              }
+            },
+            "setFlags": {
+              "alisyum.chapter1.started": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_ending": {
+    "dialogueId": "alisyum_ending",
+    "title": {
+      "text": "Capítulo Concluído",
+      "translations": {
+        "pt_BR": "Capítulo Concluído"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Crônica de Abar",
+          "translations": {
+            "pt_BR": "Crônica de Abar"
+          }
+        },
+        "text": {
+          "text": "O guardião caiu diante da sua runa. Os novos padrões gravados agora ressoam pelo continente.",
+          "translations": {
+            "pt_BR": "O guardião caiu diante da sua runa. Os novos padrões gravados agora ressoam pelo continente."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Encerrar Capítulo",
+              "translations": {
+                "pt_BR": "Encerrar Capítulo"
+              }
+            },
+            "setFlags": {
+              "alisyum.chapter1.ended": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_opening_pyro": {
+    "dialogueId": "alisyum_opening_pyro",
+    "title": {
+      "text": "Fornalhas da Periferia de Vidaria",
+      "translations": {
+        "pt_BR": "Fornalhas da Periferia de Vidaria"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Cobaia da Runa",
+          "translations": {
+            "pt_BR": "Cobaia da Runa"
+          }
+        },
+        "text": {
+          "text": "A pele cinza racha com veios de magma cada vez que sua respiração acelera. Os executores de Vidaria vieram recolher a cobaia — queime tudo antes que a runa consuma você.",
+          "translations": {
+            "pt_BR": "A pele cinza racha com veios de magma cada vez que sua respiração acelera. Os executores de Vidaria vieram recolher a cobaia — queime tudo antes que a runa consuma você."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Avançar",
+              "translations": {
+                "pt_BR": "Avançar"
+              }
+            },
+            "setFlags": {
+              "alisyum.pyro.started": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_ending_pyro": {
+    "dialogueId": "alisyum_ending_pyro",
+    "title": {
+      "text": "Cinzas do Arconte",
+      "translations": {
+        "pt_BR": "Cinzas do Arconte"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Crônica de Vidaria",
+          "translations": {
+            "pt_BR": "Crônica de Vidaria"
+          }
+        },
+        "text": {
+          "text": "O Arconte da Fornalha se desfez em escória. A runa em seu peito não obedece mais aos mestres de Vidaria — agora ela arde apenas sob a sua vontade.",
+          "translations": {
+            "pt_BR": "O Arconte da Fornalha se desfez em escória. A runa em seu peito não obedece mais aos mestres de Vidaria — agora ela arde apenas sob a sua vontade."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Encerrar Capítulo",
+              "translations": {
+                "pt_BR": "Encerrar Capítulo"
+              }
+            },
+            "setFlags": {
+              "alisyum.pyro.ended": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_opening_servo": {
+    "dialogueId": "alisyum_opening_servo",
+    "title": {
+      "text": "Muralhas Sangrentas de Nosirian",
+      "translations": {
+        "pt_BR": "Muralhas Sangrentas de Nosirian"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Juramento Antigo",
+          "translations": {
+            "pt_BR": "Juramento Antigo"
+          }
+        },
+        "text": {
+          "text": "Desde a primeira guerra que fundou Nosirian você marchou sob o estandarte do Barão. Hoje, até os inquisidores temem o peso da sua dívida de sangue.",
+          "translations": {
+            "pt_BR": "Desde a primeira guerra que fundou Nosirian você marchou sob o estandarte do Barão. Hoje, até os inquisidores temem o peso da sua dívida de sangue."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Avançar",
+              "translations": {
+                "pt_BR": "Avançar"
+              }
+            },
+            "setFlags": {
+              "alisyum.servo.started": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_ending_servo": {
+    "dialogueId": "alisyum_ending_servo",
+    "title": {
+      "text": "O Último Dízimo",
+      "translations": {
+        "pt_BR": "O Último Dízimo"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Crônica de Nosirian",
+          "translations": {
+            "pt_BR": "Crônica de Nosirian"
+          }
+        },
+        "text": {
+          "text": "O Inquisidor Escarlate ajoelhou-se na própria poça de sangue. O general invicto da primeira guerra segue de pé sobre as ruínas do pacto.",
+          "translations": {
+            "pt_BR": "O Inquisidor Escarlate ajoelhou-se na própria poça de sangue. O general invicto da primeira guerra segue de pé sobre as ruínas do pacto."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Encerrar Capítulo",
+              "translations": {
+                "pt_BR": "Encerrar Capítulo"
+              }
+            },
+            "setFlags": {
+              "alisyum.servo.ended": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_opening_gambler": {
+    "dialogueId": "alisyum_opening_gambler",
+    "title": {
+      "text": "Docas Sombrias de Crolbia",
+      "translations": {
+        "pt_BR": "Docas Sombrias de Crolbia"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Sussurro de Aelara",
+          "translations": {
+            "pt_BR": "Sussurro de Aelara"
+          }
+        },
+        "text": {
+          "text": "Sobreviventes de Crolbia não confiam em sorte justa — eles dobram as probabilidades além do limite humano. Ajuste seus dados e prepare a mesa.",
+          "translations": {
+            "pt_BR": "Sobreviventes de Crolbia não confiam em sorte justa — eles dobram as probabilidades além do limite humano. Ajuste seus dados e prepare a mesa."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Avançar",
+              "translations": {
+                "pt_BR": "Avançar"
+              }
+            },
+            "setFlags": {
+              "alisyum.gambler.started": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_ending_gambler": {
+    "dialogueId": "alisyum_ending_gambler",
+    "title": {
+      "text": "Mesa Virada",
+      "translations": {
+        "pt_BR": "Mesa Virada"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Crônica de Crolbia",
+          "translations": {
+            "pt_BR": "Crônica de Crolbia"
+          }
+        },
+        "text": {
+          "text": "Todas as cartas caíram a seu favor no lance final. Em Crolbia e em Abar, ninguém mais ousa apostar contra uma mão carregada além dos 300%.",
+          "translations": {
+            "pt_BR": "Todas as cartas caíram a seu favor no lance final. Em Crolbia e em Abar, ninguém mais ousa apostar contra uma mão carregada além dos 300%."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Encerrar Capítulo",
+              "translations": {
+                "pt_BR": "Encerrar Capítulo"
+              }
+            },
+            "setFlags": {
+              "alisyum.gambler.ended": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_opening_renegado": {
+    "dialogueId": "alisyum_opening_renegado",
+    "title": {
+      "text": "Fenda Cristalina de Illana",
+      "translations": {
+        "pt_BR": "Fenda Cristalina de Illana"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Eco Vítreo",
+          "translations": {
+            "pt_BR": "Eco Vítreo"
+          }
+        },
+        "text": {
+          "text": "O gelo consciente de Illana reconstruiu seus ossos, mas você despedaçou a coroa que exigia submissão. Cada estilhaço em seu escudo agora corta de volta.",
+          "translations": {
+            "pt_BR": "O gelo consciente de Illana reconstruiu seus ossos, mas você despedaçou a coroa que exigia submissão. Cada estilhaço em seu escudo agora corta de volta."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Avançar",
+              "translations": {
+                "pt_BR": "Avançar"
+              }
+            },
+            "setFlags": {
+              "alisyum.renegado.started": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_ending_renegado": {
+    "dialogueId": "alisyum_ending_renegado",
+    "title": {
+      "text": "Silêncio de Cristal",
+      "translations": {
+        "pt_BR": "Silêncio de Cristal"
+      }
+    },
+    "startNodeId": "node_0",
+    "nodes": [
+      {
+        "nodeId": "node_0",
+        "speaker": {
+          "text": "Crônica de Illana",
+          "translations": {
+            "pt_BR": "Crônica de Illana"
+          }
+        },
+        "text": {
+          "text": "O Carcereiro Vítreo estilhaçou-se diante da muralha imóvel. Livre do vínculo divino, você carrega o frio eterno por escolha própria.",
+          "translations": {
+            "pt_BR": "O Carcereiro Vítreo estilhaçou-se diante da muralha imóvel. Livre do vínculo divino, você carrega o frio eterno por escolha própria."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "continue",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Encerrar Capítulo",
+              "translations": {
+                "pt_BR": "Encerrar Capítulo"
+              }
+            },
+            "setFlags": {
+              "alisyum.renegado.ended": "true"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_event_shrine": {
+    "dialogueId": "alisyum_event_shrine",
+    "title": {
+      "text": "Santuário Partido de Obor",
+      "translations": {
+        "pt_BR": "Santuário Partido de Obor"
+      }
+    },
+    "startNodeId": "offer",
+    "nodes": [
+      {
+        "nodeId": "offer",
+        "speaker": {
+          "text": "Altar Abandonado",
+          "translations": {
+            "pt_BR": "Altar Abandonado"
+          }
+        },
+        "text": {
+          "text": "Entre cinzas antigas repousa uma pia rúnica ainda morna. Você pode ofertar ouro por restauração ou quebrar os selos para coletar fragmentos.",
+          "translations": {
+            "pt_BR": "Entre cinzas antigas repousa uma pia rúnica ainda morna. Você pode ofertar ouro por restauração ou quebrar os selos para coletar fragmentos."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "offer_gold_heal",
+            "text": {
+              "text": "Ofertar 18 ouro: recuperar 22 de Vida",
+              "translations": {
+                "pt_BR": "Ofertar 18 ouro: recuperar 22 de Vida"
+              }
+            },
+            "costs": [
+              {
+                "resourceId": "gold",
+                "amount": 18
+              }
+            ],
+            "effectOwner": "PlayerEntity",
+            "effects": [
+              {
+                "effectId": "shrine.heal",
+                "type": "HEAL",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 22,
+                "tags": [
+                  "recovery"
+                ]
+              }
+            ]
+          },
+          {
+            "choiceId": "harvest_parts",
+            "text": {
+              "text": "Quebrar o selo: ganhar +2 Fragmentos Rúnicos",
+              "translations": {
+                "pt_BR": "Quebrar o selo: ganhar +2 Fragmentos Rúnicos"
+              }
+            },
+            "costs": [],
+            "effectOwner": "RunWallet",
+            "effects": [
+              {
+                "effectId": "shrine.parts",
+                "type": "MODIFY_RESOURCE",
+                "target": "SELF",
+                "targetResource": "parts",
+                "operation": "ADD",
+                "flatValue": 2,
+                "tags": [
+                  "crafting"
+                ]
+              }
+            ]
+          },
+          {
+            "choiceId": "leave",
+            "interactionKind": "Continue",
+            "once": true,
+            "text": {
+              "text": "Seguir viagem",
+              "translations": {
+                "pt_BR": "Seguir viagem"
+              }
+            },
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  "alisyum_event_blood_altar": {
+    "dialogueId": "alisyum_event_blood_altar",
+    "title": {
+      "text": "Obelisco de Sangue Seco",
+      "translations": {
+        "pt_BR": "Obelisco de Sangue Seco"
+      }
+    },
+    "startNodeId": "pact",
+    "nodes": [
+      {
+        "nodeId": "pact",
+        "speaker": {
+          "text": "Obelisco de Nosirian",
+          "translations": {
+            "pt_BR": "Obelisco de Nosirian"
+          }
+        },
+        "text": {
+          "text": "Um marco de guerra escarlate oferece tesouros antigos a quem selar a pedra com o próprio sangue.",
+          "translations": {
+            "pt_BR": "Um marco de guerra escarlate oferece tesouros antigos a quem selar a pedra com o próprio sangue."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "bleed_for_gold",
+            "text": {
+              "text": "Sacrificar 10 de Vida: receber 32 ouro",
+              "translations": {
+                "pt_BR": "Sacrificar 10 de Vida: receber 32 ouro"
+              }
+            },
+            "nextNodeId": "collect",
+            "costs": [],
+            "effectOwner": "PlayerEntity",
+            "effects": [
+              {
+                "effectId": "altar.bleed",
+                "type": "DAMAGE",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 10,
+                "tags": [
+                  "risk"
+                ]
+              }
+            ]
+          },
+          {
+            "choiceId": "leave",
+            "nextNodeId": null,
+            "text": {
+              "text": "Recusar e descansar (+8 Vida)",
+              "translations": {
+                "pt_BR": "Recusar e descansar (+8 Vida)"
+              }
+            },
+            "costs": [],
+            "effectOwner": "PlayerEntity",
+            "effects": [
+              {
+                "effectId": "altar.rest",
+                "type": "HEAL",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 8,
+                "tags": [
+                  "recovery"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "nodeId": "collect",
+        "entryEffectOwner": "RunWallet",
+        "entryEffects": [
+          {
+            "effectId": "altar.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ],
+        "speaker": {
+          "text": "Obelisco de Nosirian",
+          "translations": {
+            "pt_BR": "Obelisco de Nosirian"
+          }
+        },
+        "text": {
+          "text": "A fenda na pedra se abre revelando moedas antigas do Pacto.",
+          "translations": {
+            "pt_BR": "A fenda na pedra se abre revelando moedas antigas do Pacto."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "leave",
+            "nextNodeId": null,
+            "text": {
+              "text": "Seguir adiante",
+              "translations": {
+                "pt_BR": "Seguir adiante"
+              }
+            },
+            "costs": [],
+            "effectOwner": "RunWallet",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  }
+}

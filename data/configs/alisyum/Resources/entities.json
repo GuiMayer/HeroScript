@@ -1,0 +1,562 @@
+{
+  "pyromancer": {
+    "definitionId": "pyromancer",
+    "displayName": "Piromante",
+    "description": "Antes humano, aceitou ser experimento de Vidaria por moedas e tornou-se uma aberração de pele cinza e veios de magma alimentados pela runa em seu peito. Especialista em Queimadura e Superaquecer.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 90,
+            "max": 90
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "heat_gauge": {
+            "current": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "spell_damage": 0,
+          "fire_scaling": 0,
+          "blood_scaling": 0,
+          "ice_scaling": 0,
+          "void_scaling": 0,
+          "dot_damage": 0,
+          "block_efficiency": 0,
+          "lifesteal_ratio": 0,
+          "armor": 0,
+          "critical_chance": 5,
+          "critical_damage": 100
+        }
+      }
+    ]
+  },
+  "baron_servant": {
+    "definitionId": "baron_servant",
+    "displayName": "Servo",
+    "description": "General do Barão Rubro desde a primeira guerra que fundou Nosirian. Acumula Sangue ao ferir inimigos e sustenta combate com Lifesteal.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 110,
+            "max": 110
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "blood_tithe": {
+            "current": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "spell_damage": 0,
+          "fire_scaling": 0,
+          "blood_scaling": 0,
+          "ice_scaling": 0,
+          "void_scaling": 0,
+          "dot_damage": 0,
+          "block_efficiency": 0,
+          "lifesteal_ratio": 0.15,
+          "armor": 10,
+          "critical_chance": 5,
+          "critical_damage": 100
+        }
+      }
+    ]
+  },
+  "gambler": {
+    "definitionId": "gambler",
+    "displayName": "Apostador",
+    "description": "Sobrevivente da ordem arbitrária de Crolbia e Aelara. Único herói capaz de ultrapassar 100% de crítico para acertar Críticos Multi-Tier.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 85,
+            "max": 85
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "spell_damage": 0,
+          "fire_scaling": 0,
+          "blood_scaling": 0,
+          "ice_scaling": 0,
+          "void_scaling": 0,
+          "dot_damage": 0,
+          "block_efficiency": 0,
+          "lifesteal_ratio": 0,
+          "armor": 0,
+          "critical_chance": 10,
+          "critical_damage": 100
+        }
+      }
+    ]
+  },
+  "vitreous_renegade": {
+    "definitionId": "vitreous_renegade",
+    "displayName": "Renegado",
+    "description": "Guerreiro reconstruído pelo gelo consciente de Illana que rompeu o vínculo divino. Converte defesa extrema em impacto cristalino.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 100,
+            "max": 100
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "spell_damage": 0,
+          "fire_scaling": 0,
+          "blood_scaling": 0,
+          "ice_scaling": 0,
+          "void_scaling": 0,
+          "dot_damage": 0,
+          "block_efficiency": 0.1,
+          "lifesteal_ratio": 0,
+          "armor": 10,
+          "critical_chance": 5,
+          "critical_damage": 100
+        }
+      }
+    ]
+  },
+  "enemy_vidaria_enforcer": {
+    "definitionId": "enemy_vidaria_enforcer",
+    "displayName": "Executor Modificado de Vidaria",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 55,
+            "max": 55
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 10,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_enemy_attack",
+          "alisyum_enemy_heavy",
+          "alisyum_enemy_guard"
+        ]
+      }
+    ]
+  },
+  "enemy_blood_cultist": {
+    "definitionId": "enemy_blood_cultist",
+    "displayName": "Acólito do Culto do Sangue",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 48,
+            "max": 48
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 0,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_enemy_flurry",
+          "alisyum_enemy_attack"
+        ]
+      }
+    ]
+  },
+  "enemy_vitreous_sentinel": {
+    "definitionId": "enemy_vitreous_sentinel",
+    "displayName": "Sentinela Vítreo de Illana",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 75,
+            "max": 75
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 20,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_enemy_guard",
+          "alisyum_enemy_heavy",
+          "alisyum_enemy_escalate"
+        ]
+      }
+    ]
+  },
+  "boss_scarlet_inquisitor": {
+    "definitionId": "boss_scarlet_inquisitor",
+    "displayName": "Inquisidor Escarlate",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 140,
+            "max": 140
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 18,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_enemy_guard",
+          "alisyum_enemy_heavy",
+          "alisyum_enemy_flurry",
+          "alisyum_enemy_escalate"
+        ]
+      }
+    ]
+  },
+  "enemy_crolbia_duelist": {
+    "definitionId": "enemy_crolbia_duelist",
+    "displayName": "Corsário de Crolbia",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 52,
+            "max": 52
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 5,
+          "critical_chance": 10,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_enemy_cut_bleed",
+          "alisyum_enemy_flurry",
+          "alisyum_enemy_guard"
+        ]
+      }
+    ]
+  },
+  "enemy_obor_runesmith": {
+    "definitionId": "enemy_obor_runesmith",
+    "displayName": "Forjador Corrupto de Obor",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 84,
+            "max": 84
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 22,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_enemy_heavy_guard",
+          "alisyum_enemy_pierce",
+          "alisyum_enemy_attack"
+        ]
+      }
+    ]
+  },
+  "enemy_ash_abomination": {
+    "definitionId": "enemy_ash_abomination",
+    "displayName": "Aberração Incandescente de Vidaria",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 78,
+            "max": 78
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 10,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_boss_furnace_wave",
+          "alisyum_enemy_heavy",
+          "alisyum_enemy_escalate"
+        ]
+      }
+    ]
+  },
+  "boss_vidaria_archon": {
+    "definitionId": "boss_vidaria_archon",
+    "displayName": "Arconte da Fornalha de Vidaria",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 150,
+            "max": 150
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 15,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_boss_furnace_wave",
+          "alisyum_enemy_heavy",
+          "alisyum_enemy_guard",
+          "alisyum_enemy_escalate"
+        ]
+      }
+    ]
+  },
+  "boss_illana_warden": {
+    "definitionId": "boss_illana_warden",
+    "displayName": "Carcereiro Vítreo de Illana",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 160,
+            "max": 160
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "armor": 24,
+          "critical_chance": 0,
+          "critical_damage": 100
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "alisyum_boss_glacial_slam",
+          "alisyum_enemy_heavy_guard",
+          "alisyum_enemy_heavy",
+          "alisyum_enemy_escalate"
+        ]
+      }
+    ]
+  }
+}

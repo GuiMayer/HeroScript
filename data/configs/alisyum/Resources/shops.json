@@ -1,0 +1,472 @@
+{
+  "alisyum_bazaar": {
+    "shopId": "alisyum_bazaar",
+    "cardPoolId": "alisyum_rewards",
+    "offerCount": 5,
+    "items": [
+      {
+        "itemId": "rune.echo",
+        "modifierItemDefinitionId": "obor_rune_echo_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ward",
+        "modifierItemDefinitionId": "obor_rune_ward_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.pierce",
+        "modifierItemDefinitionId": "obor_rune_pierce_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.keen",
+        "modifierItemDefinitionId": "obor_rune_keen_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ember",
+        "modifierItemDefinitionId": "obor_rune_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.leech",
+        "modifierItemDefinitionId": "obor_rune_leech_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      }
+    ],
+    "pricing": {
+      "baseMultiplier": 1,
+      "rarityMultipliers": {
+        "Common": 1,
+        "Uncommon": 1,
+        "Rare": 1,
+        "Legendary": 1
+      }
+    },
+    "reroll": {
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 15
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 10
+        }
+      ]
+    },
+    "metadata": {
+      "displayName": "Bazar das Cinzas de Abar",
+      "description": "Bazar clandestino das Cinzas de Abar: compre cartas da sua classe ou Runas de Obor com ouro."
+    }
+  },
+  "alisyum_bazaar_pyro": {
+    "shopId": "alisyum_bazaar_pyro",
+    "cardPoolId": "alisyum_rewards_pyro",
+    "offerCount": 5,
+    "items": [
+      {
+        "itemId": "rune.echo",
+        "modifierItemDefinitionId": "obor_rune_echo_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ward",
+        "modifierItemDefinitionId": "obor_rune_ward_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.pierce",
+        "modifierItemDefinitionId": "obor_rune_pierce_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.keen",
+        "modifierItemDefinitionId": "obor_rune_keen_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ember",
+        "modifierItemDefinitionId": "obor_rune_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.leech",
+        "modifierItemDefinitionId": "obor_rune_leech_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      }
+    ],
+    "pricing": {
+      "baseMultiplier": 1,
+      "rarityMultipliers": {
+        "Common": 1,
+        "Uncommon": 1,
+        "Rare": 1,
+        "Legendary": 1
+      }
+    },
+    "reroll": {
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 15
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 10
+        }
+      ]
+    },
+    "metadata": {
+      "displayName": "Bazar de Vidaria — Mercador Ígneo",
+      "description": "Bazar clandestino das Cinzas de Abar: compre cartas da sua classe ou Runas de Obor com ouro."
+    }
+  },
+  "alisyum_bazaar_servo": {
+    "shopId": "alisyum_bazaar_servo",
+    "cardPoolId": "alisyum_rewards_servo",
+    "offerCount": 5,
+    "items": [
+      {
+        "itemId": "rune.echo",
+        "modifierItemDefinitionId": "obor_rune_echo_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ward",
+        "modifierItemDefinitionId": "obor_rune_ward_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.pierce",
+        "modifierItemDefinitionId": "obor_rune_pierce_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.keen",
+        "modifierItemDefinitionId": "obor_rune_keen_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ember",
+        "modifierItemDefinitionId": "obor_rune_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.leech",
+        "modifierItemDefinitionId": "obor_rune_leech_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      }
+    ],
+    "pricing": {
+      "baseMultiplier": 1,
+      "rarityMultipliers": {
+        "Common": 1,
+        "Uncommon": 1,
+        "Rare": 1,
+        "Legendary": 1
+      }
+    },
+    "reroll": {
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 15
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 10
+        }
+      ]
+    },
+    "metadata": {
+      "displayName": "Bazar de Nosirian — Quartel Escarlate",
+      "description": "Bazar clandestino das Cinzas de Abar: compre cartas da sua classe ou Runas de Obor com ouro."
+    }
+  },
+  "alisyum_bazaar_gambler": {
+    "shopId": "alisyum_bazaar_gambler",
+    "cardPoolId": "alisyum_rewards_gambler",
+    "offerCount": 5,
+    "items": [
+      {
+        "itemId": "rune.echo",
+        "modifierItemDefinitionId": "obor_rune_echo_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ward",
+        "modifierItemDefinitionId": "obor_rune_ward_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.pierce",
+        "modifierItemDefinitionId": "obor_rune_pierce_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.keen",
+        "modifierItemDefinitionId": "obor_rune_keen_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ember",
+        "modifierItemDefinitionId": "obor_rune_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.leech",
+        "modifierItemDefinitionId": "obor_rune_leech_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      }
+    ],
+    "pricing": {
+      "baseMultiplier": 1,
+      "rarityMultipliers": {
+        "Common": 1,
+        "Uncommon": 1,
+        "Rare": 1,
+        "Legendary": 1
+      }
+    },
+    "reroll": {
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 15
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 10
+        }
+      ]
+    },
+    "metadata": {
+      "displayName": "Bazar de Crolbia — Mesa Clandestina",
+      "description": "Bazar clandestino das Cinzas de Abar: compre cartas da sua classe ou Runas de Obor com ouro."
+    }
+  },
+  "alisyum_bazaar_renegado": {
+    "shopId": "alisyum_bazaar_renegado",
+    "cardPoolId": "alisyum_rewards_renegado",
+    "offerCount": 5,
+    "items": [
+      {
+        "itemId": "rune.echo",
+        "modifierItemDefinitionId": "obor_rune_echo_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ward",
+        "modifierItemDefinitionId": "obor_rune_ward_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.pierce",
+        "modifierItemDefinitionId": "obor_rune_pierce_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.keen",
+        "modifierItemDefinitionId": "obor_rune_keen_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.ember",
+        "modifierItemDefinitionId": "obor_rune_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 28
+          }
+        ]
+      },
+      {
+        "itemId": "rune.leech",
+        "modifierItemDefinitionId": "obor_rune_leech_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      }
+    ],
+    "pricing": {
+      "baseMultiplier": 1,
+      "rarityMultipliers": {
+        "Common": 1,
+        "Uncommon": 1,
+        "Rare": 1,
+        "Legendary": 1
+      }
+    },
+    "reroll": {
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 15
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 10
+        }
+      ]
+    },
+    "metadata": {
+      "displayName": "Bazar de Illana — Relicário Vítreo",
+      "description": "Bazar clandestino das Cinzas de Abar: compre cartas da sua classe ou Runas de Obor com ouro."
+    }
+  }
+}

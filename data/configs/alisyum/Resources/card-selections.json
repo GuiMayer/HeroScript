@@ -1,0 +1,92 @@
+{
+  "alisyum_reward": {
+    "selectionId": "alisyum_reward",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "alisyum_rewards",
+    "reroll": {
+      "freeRerolls": 0,
+      "baseCosts": [ { "resourceId": "parts", "amount": 1 } ],
+      "costsPerReroll": []
+    },
+    "decompose": {
+      "enabled": true,
+      "completesSelection": true
+    },
+    "metadata": {
+      "description": "Escolha uma carta para o seu baralho ou decompile em Fragmentos Rúnicos."
+    }
+  },
+  "alisyum_reward_pyro": {
+    "selectionId": "alisyum_reward_pyro",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "alisyum_rewards_pyro",
+    "reroll": {
+      "freeRerolls": 0,
+      "baseCosts": [ { "resourceId": "parts", "amount": 1 } ],
+      "costsPerReroll": []
+    },
+    "decompose": {
+      "enabled": true,
+      "completesSelection": true
+    },
+    "metadata": {
+      "description": "Espólios de Vidaria: escolha uma carta de Fogo ou decompile em Fragmentos Rúnicos."
+    }
+  },
+  "alisyum_reward_servo": {
+    "selectionId": "alisyum_reward_servo",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "alisyum_rewards_servo",
+    "reroll": {
+      "freeRerolls": 0,
+      "baseCosts": [ { "resourceId": "parts", "amount": 1 } ],
+      "costsPerReroll": []
+    },
+    "decompose": {
+      "enabled": true,
+      "completesSelection": true
+    },
+    "metadata": {
+      "description": "Espólios de Nosirian: escolha uma carta de Sangue ou decompile em Fragmentos Rúnicos."
+    }
+  },
+  "alisyum_reward_gambler": {
+    "selectionId": "alisyum_reward_gambler",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "alisyum_rewards_gambler",
+    "reroll": {
+      "freeRerolls": 0,
+      "baseCosts": [ { "resourceId": "parts", "amount": 1 } ],
+      "costsPerReroll": []
+    },
+    "decompose": {
+      "enabled": true,
+      "completesSelection": true
+    },
+    "metadata": {
+      "description": "Espólios de Crolbia: escolha uma carta do Apostador ou decompile em Fragmentos Rúnicos."
+    }
+  },
+  "alisyum_reward_renegado": {
+    "selectionId": "alisyum_reward_renegado",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "alisyum_rewards_renegado",
+    "reroll": {
+      "freeRerolls": 0,
+      "baseCosts": [ { "resourceId": "parts", "amount": 1 } ],
+      "costsPerReroll": []
+    },
+    "decompose": {
+      "enabled": true,
+      "completesSelection": true
+    },
+    "metadata": {
+      "description": "Espólios de Illana: escolha uma carta de Gelo Vítreo ou decompile em Fragmentos Rúnicos."
+    }
+  }
+}

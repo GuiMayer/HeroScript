@@ -1,0 +1,66 @@
+{
+  "alisyum_preparation": {
+    "preparationId": "alisyum_preparation",
+    "options": [
+      {
+        "optionId": "ready",
+        "costs": [],
+        "metadata": {
+          "displayName": "Avançar",
+          "description": "Confirmar alterações no Mod de Identidade, equipamentos e baralho antes do próximo encontro."
+        }
+      }
+    ]
+  },
+  "alisyum_camp_rest": {
+    "preparationId": "alisyum_camp_rest",
+    "options": [
+      {
+        "optionId": "recover",
+        "costs": [],
+        "effectOwner": "PlayerEntity",
+        "effects": [
+          {
+            "effectId": "alisyum_camp_rest.recover",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "flatValue": 25,
+            "tags": [
+              "recovery"
+            ]
+          }
+        ],
+        "metadata": {
+          "displayName": "Repouso na Fogueira",
+          "description": "Recupera 25 de Vida persistente para a reta final."
+        }
+      },
+      {
+        "optionId": "temper",
+        "costs": [],
+        "effectOwner": "RunWallet",
+        "effects": [
+          {
+            "effectId": "alisyum_camp_rest.temper",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "parts",
+            "operation": "ADD",
+            "flatValue": 2,
+            "tags": [
+              "crafting"
+            ]
+          }
+        ],
+        "metadata": {
+          "displayName": "Meditar na Runa",
+          "description": "Extrai +2 Fragmentos Rúnicos (FR) para a Forja de Obor e rerolls."
+        }
+      }
+    ],
+    "metadata": {
+      "description": "Abrigo entre ruínas de Abar. Recupere fôlego ou extraia Fragmentos Rúnicos."
+    }
+  }
+}

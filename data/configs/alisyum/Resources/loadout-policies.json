@@ -1,0 +1,155 @@
+{
+  "alisyum_character_loadout": {
+    "loadoutPolicyId": "alisyum_character_loadout",
+    "inventoryScope": "Actor",
+    "capacity": 8,
+    "allowDuplicateDefinitions": false,
+    "revisionMigration": "RebindCompatible",
+    "maximumInventoryEntries": 128,
+    "capacityOnly": false,
+    "slots": [
+      {
+        "slotId": "identity",
+        "requiredTags": [
+          "identity"
+        ]
+      },
+      {
+        "slotId": "weapon",
+        "requiredTags": [
+          "slot:weapon"
+        ]
+      },
+      {
+        "slotId": "armor",
+        "requiredTags": [
+          "slot:armor"
+        ]
+      },
+      {
+        "slotId": "core",
+        "requiredTags": [
+          "slot:core"
+        ]
+      },
+      {
+        "slotId": "rune_1",
+        "requiredTags": [
+          "slot:rune"
+        ]
+      },
+      {
+        "slotId": "rune_2",
+        "requiredTags": [
+          "slot:rune"
+        ]
+      },
+      {
+        "slotId": "rune_3",
+        "requiredTags": [
+          "slot:rune"
+        ]
+      }
+    ],
+    "filterStartingByActorDefinition": true,
+    "inscriptionIds": [
+      "pyro_identity_ember_core",
+      "pyro_identity_magma_veins",
+      "baron_identity_first_oath",
+      "baron_identity_scarlet_general",
+      "gambler_identity_rigged_die",
+      "gambler_identity_broken_wheel",
+      "vitreous_identity_shattered_shell",
+      "vitreous_identity_glacial_heart",
+      "gear_vidaria_torchblade",
+      "gear_nosirian_blood_edge",
+      "gear_crolbia_ivory_dagger",
+      "gear_calidor_vitreous_plate",
+      "gear_scarlet_jewel_shard",
+      "rune_obor_pyre",
+      "rune_obor_bastion",
+      "rune_obor_precision",
+      "pyro_identity_cinder_warden",
+      "baron_identity_blood_tithe_lord",
+      "gambler_identity_ace_high",
+      "vitreous_identity_shatter_monolith",
+      "gear_illana_frost_halberd",
+      "gear_vidaria_ash_mantle",
+      "gear_nosirian_war_plate",
+      "gear_dokari_prism_lens",
+      "gear_crolbia_fated_coin",
+      "gear_illana_mirror_prism",
+      "rune_obor_hemorrhage",
+      "rune_obor_glacier"
+    ],
+    "startingInscriptionIds": [
+      "pyro_identity_ember_core",
+      "baron_identity_first_oath",
+      "gambler_identity_rigged_die",
+      "vitreous_identity_shattered_shell",
+      "gear_vidaria_torchblade",
+      "gear_nosirian_blood_edge",
+      "gear_crolbia_ivory_dagger",
+      "gear_illana_frost_halberd",
+      "gear_calidor_vitreous_plate",
+      "gear_vidaria_ash_mantle",
+      "rune_obor_pyre",
+      "rune_obor_bastion",
+      "rune_obor_precision"
+    ],
+    "stations": [
+      {
+        "stationId": "alisyum_relicary",
+        "nodeIds": [
+          "relicary_1"
+        ],
+        "pool": {
+          "pyro_identity_magma_veins": 1,
+          "pyro_identity_cinder_warden": 1,
+          "baron_identity_scarlet_general": 1,
+          "baron_identity_blood_tithe_lord": 1,
+          "gambler_identity_broken_wheel": 1,
+          "gambler_identity_ace_high": 1,
+          "vitreous_identity_glacial_heart": 1,
+          "vitreous_identity_shatter_monolith": 1,
+          "gear_scarlet_jewel_shard": 1,
+          "gear_dokari_prism_lens": 1,
+          "gear_crolbia_fated_coin": 1,
+          "gear_illana_mirror_prism": 1
+        },
+        "selection": "Directed",
+        "offerCount": 4,
+        "maximumPurchases": 1,
+        "costs": [],
+        "filterByActorDefinition": true
+      },
+      {
+        "stationId": "alisyum_armory",
+        "nodeIds": [
+          "armory_1"
+        ],
+        "pool": {
+          "gear_nosirian_war_plate": 1,
+          "gear_scarlet_jewel_shard": 1,
+          "gear_crolbia_fated_coin": 1,
+          "gear_illana_mirror_prism": 1,
+          "rune_obor_hemorrhage": 1,
+          "rune_obor_glacier": 1
+        },
+        "selection": "Random",
+        "offerCount": 3,
+        "maximumPurchases": 1,
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 20
+          }
+        ],
+        "filterByActorDefinition": true
+      }
+    ],
+    "equipmentWindows": [
+      "OutsideCombat"
+    ]
+  }
+}

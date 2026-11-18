@@ -1,0 +1,380 @@
+{
+  "alisyum_enemy_attack": {
+    "actionId": "alisyum_enemy_attack",
+    "displayName": "Golpe Brutal",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_attack.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 7,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_enemy_heavy": {
+    "actionId": "alisyum_enemy_heavy",
+    "displayName": "Execução Pesada",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_heavy.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 14,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_enemy_guard": {
+    "actionId": "alisyum_enemy_guard",
+    "displayName": "Carapaça Defensiva",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_guard.block",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 9,
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "defense"
+    ]
+  },
+  "alisyum_enemy_flurry": {
+    "actionId": "alisyum_enemy_flurry",
+    "displayName": "Corte Duplo",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_flurry.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 2,
+        "flatValue": 4,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_enemy_escalate": {
+    "actionId": "alisyum_enemy_escalate",
+    "displayName": "Frenesi de Batalha",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_escalate.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 8,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ]
+      },
+      {
+        "effectId": "alisyum_enemy_escalate.frenzy",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "alisyum_frenzy",
+        "statusStacks": 1,
+        "statusDuration": -1,
+        "tags": [
+          "enemy",
+          "buff"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_enemy_cut_bleed": {
+    "actionId": "alisyum_enemy_cut_bleed",
+    "displayName": "Lâmina Serrilhada",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_cut_bleed.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 5,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "blood",
+          "enemy"
+        ]
+      },
+      {
+        "effectId": "alisyum_enemy_cut_bleed.bleed",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "alisyum_bleed",
+        "statusStacks": 2,
+        "statusDuration": 3,
+        "tags": [
+          "status",
+          "residual",
+          "blood",
+          "enemy"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 2
+          }
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_enemy_heavy_guard": {
+    "actionId": "alisyum_enemy_heavy_guard",
+    "displayName": "Bastião Rúnico",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_heavy_guard.block",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "flatValue": 14,
+        "tags": [
+          "defense",
+          "block",
+          "enemy"
+        ]
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "defense"
+    ]
+  },
+  "alisyum_enemy_pierce": {
+    "actionId": "alisyum_enemy_pierce",
+    "displayName": "Martelo Perfurante",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_enemy_pierce.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 11,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "piercing",
+          "ignore_armor",
+          "enemy"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_boss_furnace_wave": {
+    "actionId": "alisyum_boss_furnace_wave",
+    "displayName": "Sopro da Fornalha",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_boss_furnace_wave.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 10,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "fire",
+          "enemy"
+        ]
+      },
+      {
+        "effectId": "alisyum_boss_furnace_wave.burn",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "alisyum_burn",
+        "statusStacks": 3,
+        "statusDuration": 3,
+        "tags": [
+          "status",
+          "residual",
+          "fire",
+          "enemy"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 2
+          }
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  },
+  "alisyum_boss_glacial_slam": {
+    "actionId": "alisyum_boss_glacial_slam",
+    "displayName": "Impacto Vítreo",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "alisyum_boss_glacial_slam.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "flatValue": 11,
+        "calculationChannel": "effect_amount",
+        "calculationPipelineId": "alisyum_direct_amount",
+        "tags": [
+          "damage",
+          "attack",
+          "ice",
+          "enemy"
+        ]
+      },
+      {
+        "effectId": "alisyum_boss_glacial_slam.chill",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "alisyum_chilled",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "tags": [
+          "status",
+          "ice",
+          "enemy"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        }
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy"
+    ]
+  }
+}

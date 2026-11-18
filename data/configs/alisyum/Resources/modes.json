@@ -1,0 +1,234 @@
+{
+  "alisyum_campaign": {
+    "modeId": "alisyum_campaign",
+    "runDefinitionId": "alisyum_chapter_1",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "alisyum_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_probability",
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_attack_attribute",
+      "w1_block_attribute",
+      "alisyum_flat_attribute",
+      "alisyum_style_attribute",
+      "alisyum_spell_attribute",
+      "alisyum_lifesteal_attribute",
+      "alisyum_dot_attribute",
+      "alisyum_crit_tier_cap_attribute",
+      "alisyum_critical_probability",
+      "alisyum_direct_amount",
+      "alisyum_critical_amount",
+      "alisyum_dot",
+      "alisyum_values"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "alisyum_values",
+      "alisyum_dot": "alisyum_dot",
+      "resource_delta": "signed_resource_delta"
+    },
+    "cardPoolIds": [
+      "alisyum_rewards_pyro"
+    ],
+    "enemyPoolIds": [
+      "alisyum_chapter_1_enemies"
+    ],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "alisyum_campaign",
+    "actorResourceLifecyclePolicyId": "alisyum_run_resources",
+    "cardZoneSystemId": "alisyum_zones",
+    "rules": {
+      "presentation": "alisyum",
+      "scalingModel": "arpg-buckets-and-identity-mods",
+      "chapter": 1
+    },
+    "effectResolutionPolicyId": "alisyum_effect_rules",
+    "loadoutPolicyId": "alisyum_character_loadout",
+    "profileProgressPolicyId": "alisyum_progress"
+  },
+  "alisyum_gambler_campaign": {
+    "modeId": "alisyum_gambler_campaign",
+    "runDefinitionId": "alisyum_gambler_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "alisyum_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_probability",
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_attack_attribute",
+      "w1_block_attribute",
+      "alisyum_flat_attribute",
+      "alisyum_style_attribute",
+      "alisyum_spell_attribute",
+      "alisyum_lifesteal_attribute",
+      "alisyum_dot_attribute",
+      "alisyum_crit_tier_cap_attribute",
+      "alisyum_critical_probability",
+      "alisyum_direct_amount",
+      "alisyum_critical_amount",
+      "alisyum_dot",
+      "alisyum_values"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "alisyum_values",
+      "alisyum_dot": "alisyum_dot",
+      "resource_delta": "signed_resource_delta"
+    },
+    "cardPoolIds": [
+      "alisyum_rewards_gambler"
+    ],
+    "enemyPoolIds": [
+      "alisyum_chapter_1_enemies"
+    ],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "alisyum_campaign",
+    "actorResourceLifecyclePolicyId": "alisyum_run_resources",
+    "cardZoneSystemId": "alisyum_zones",
+    "rules": {
+      "presentation": "alisyum",
+      "scalingModel": "arpg-buckets-and-identity-mods",
+      "chapter": 1
+    },
+    "effectResolutionPolicyId": "alisyum_effect_rules",
+    "loadoutPolicyId": "alisyum_character_loadout",
+    "profileProgressPolicyId": "alisyum_progress"
+  },
+  "alisyum_servo_campaign": {
+    "modeId": "alisyum_servo_campaign",
+    "runDefinitionId": "alisyum_servo_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "alisyum_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_probability",
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_attack_attribute",
+      "w1_block_attribute",
+      "alisyum_flat_attribute",
+      "alisyum_style_attribute",
+      "alisyum_spell_attribute",
+      "alisyum_lifesteal_attribute",
+      "alisyum_dot_attribute",
+      "alisyum_crit_tier_cap_attribute",
+      "alisyum_critical_probability",
+      "alisyum_direct_amount",
+      "alisyum_critical_amount",
+      "alisyum_dot",
+      "alisyum_values"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "alisyum_values",
+      "alisyum_dot": "alisyum_dot",
+      "resource_delta": "signed_resource_delta"
+    },
+    "cardPoolIds": [
+      "alisyum_rewards_servo"
+    ],
+    "enemyPoolIds": [
+      "alisyum_chapter_1_enemies"
+    ],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "alisyum_campaign",
+    "actorResourceLifecyclePolicyId": "alisyum_run_resources",
+    "cardZoneSystemId": "alisyum_zones",
+    "rules": {
+      "presentation": "alisyum",
+      "scalingModel": "arpg-buckets-and-identity-mods",
+      "chapter": 1
+    },
+    "effectResolutionPolicyId": "alisyum_effect_rules",
+    "loadoutPolicyId": "alisyum_character_loadout",
+    "profileProgressPolicyId": "alisyum_progress"
+  },
+  "alisyum_renegado_campaign": {
+    "modeId": "alisyum_renegado_campaign",
+    "runDefinitionId": "alisyum_renegado_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "alisyum_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_probability",
+      "signed_resource_delta",
+      "w1_critical_bonus",
+      "w1_critical_chance",
+      "w1_armor_attribute",
+      "w1_armor_reduction",
+      "w1_attack_attribute",
+      "w1_block_attribute",
+      "alisyum_flat_attribute",
+      "alisyum_style_attribute",
+      "alisyum_spell_attribute",
+      "alisyum_lifesteal_attribute",
+      "alisyum_dot_attribute",
+      "alisyum_crit_tier_cap_attribute",
+      "alisyum_critical_probability",
+      "alisyum_direct_amount",
+      "alisyum_critical_amount",
+      "alisyum_dot",
+      "alisyum_values"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "alisyum_values",
+      "alisyum_dot": "alisyum_dot",
+      "resource_delta": "signed_resource_delta"
+    },
+    "cardPoolIds": [
+      "alisyum_rewards_renegado"
+    ],
+    "enemyPoolIds": [
+      "alisyum_chapter_1_enemies"
+    ],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "alisyum_campaign",
+    "actorResourceLifecyclePolicyId": "alisyum_run_resources",
+    "cardZoneSystemId": "alisyum_zones",
+    "rules": {
+      "presentation": "alisyum",
+      "scalingModel": "arpg-buckets-and-identity-mods",
+      "chapter": 1
+    },
+    "effectResolutionPolicyId": "alisyum_effect_rules",
+    "loadoutPolicyId": "alisyum_character_loadout",
+    "profileProgressPolicyId": "alisyum_progress"
+  }
+}

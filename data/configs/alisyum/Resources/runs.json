@@ -1,0 +1,2132 @@
+{
+  "alisyum_chapter_1": {
+    "runId": "alisyum_chapter_1",
+    "playerDefinitionId": "pyromancer",
+    "startingResources": {
+      "gold": 35,
+      "parts": 3
+    },
+    "initialPlayableCardCount": 0,
+    "initialCardZoneId": "owned",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "alisyum_basic_strike",
+      "alisyum_basic_strike",
+      "alisyum_basic_guard",
+      "alisyum_basic_guard",
+      "pyro_magma_slash",
+      "pyro_magma_slash",
+      "pyro_ash_carapace",
+      "pyro_detonate_chest",
+      "pyro_cinder_spark",
+      "pyro_kindle_flame"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "chapter_opening",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_opening_pyro"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_prepare_0"
+        ],
+        "metadata": {
+          "displayName": "Fornalhas de Vidaria"
+        }
+      },
+      {
+        "nodeId": "chapter_prepare_0",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_preparation"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Altar de Runa",
+          "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "encounter_1",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "pyromancer",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_vidaria_enforcer",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_1"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_1.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ],
+        "metadata": {
+          "displayName": "Patrulha de Vidaria",
+          "reward": "18 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_1",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_pyro"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "encounter_2_patrol",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "pyromancer",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_blood_cultist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_attack",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_vidaria_enforcer",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_patrol"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_patrol.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 24
+          }
+        ],
+        "metadata": {
+          "displayName": "Emboscada do Pacto",
+          "reward": "24 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_2_patrol",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_pyro"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Espólios da Patrulha"
+        }
+      },
+      {
+        "nodeId": "encounter_2_elite",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "pyromancer",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_ash_abomination",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_boss_furnace_wave",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_clock"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_elite"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_elite.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ],
+        "metadata": {
+          "displayName": "Câmara da Fornalha (Elite)",
+          "tier": "Elite",
+          "reward": "32 ouro + carta + relíquia"
+        }
+      },
+      {
+        "nodeId": "reward_2_elite",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_pyro"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relic_2"
+        ],
+        "metadata": {
+          "displayName": "Espólios do Elite"
+        }
+      },
+      {
+        "nodeId": "relic_2",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "alisyum_relic_vidaria_censer"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Relíquia de Conquista"
+        }
+      },
+      {
+        "nodeId": "relicary_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_relicary"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "event_shrine",
+          "event_altar"
+        ],
+        "metadata": {
+          "displayName": "Relicário de Abar",
+          "description": "Escolha um Mod de Identidade Avançado ou Núcleo Raro e decida sua rota."
+        }
+      },
+      {
+        "nodeId": "event_shrine",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_shrine"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Santuário Partido de Obor"
+        }
+      },
+      {
+        "nodeId": "event_altar",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_blood_altar"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Obelisco de Sangue Seco"
+        }
+      },
+      {
+        "nodeId": "bazaar_1",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "alisyum_bazaar_pyro"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "camp_rest_1",
+          "obor_forge_1",
+          "armory_1"
+        ],
+        "metadata": {
+          "displayName": "Bazar das Cinzas de Abar",
+          "description": "Gaste ouro em novas cartas e Runas de Obor."
+        }
+      },
+      {
+        "nodeId": "camp_rest_1",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_camp_rest"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Fogueira de Abar",
+          "description": "Recupere 25 de Vida ou extraia +2 Fragmentos Rúnicos."
+        }
+      },
+      {
+        "nodeId": "obor_forge_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_rune_echo_item",
+              "obor_rune_ward_item",
+              "obor_rune_pierce_item",
+              "obor_rune_keen_item",
+              "obor_rune_ember_item",
+              "obor_rune_leech_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Forja Rúnica de Obor",
+          "description": "Gaste 3 Fragmentos Rúnicos para encaixar uma Runa de Obor diretamente em uma carta."
+        }
+      },
+      {
+        "nodeId": "armory_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_armory"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Arsenal Clandestino",
+          "description": "Pague 20 ouro por um Núcleo, Armadura ou Runa de Equipamento adicional."
+        }
+      },
+      {
+        "nodeId": "encounter_3",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "pyromancer",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_obor_runesmith",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_heavy_guard",
+                    "alisyum_enemy_pierce",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_vidaria_enforcer",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_3"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_3.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 28
+          }
+        ],
+        "metadata": {
+          "displayName": "Guarda da Cidadela",
+          "reward": "28 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_3",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_pyro"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_boss"
+        ],
+        "metadata": {
+          "displayName": "Espólios Pré-Chefe"
+        }
+      },
+      {
+        "nodeId": "encounter_boss",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "pyromancer",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "boss_vidaria_archon",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_clock",
+                    "alisyum_boss_furnace_wave",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_guard"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_ending"
+        ],
+        "metadata": {
+          "displayName": "Arconte da Fornalha de Vidaria",
+          "tier": "Boss"
+        }
+      },
+      {
+        "nodeId": "chapter_ending",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_ending_pyro"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Crônica Concluída"
+        }
+      }
+    ]
+  },
+  "alisyum_servo_run": {
+    "runId": "alisyum_servo_run",
+    "playerDefinitionId": "baron_servant",
+    "startingResources": {
+      "gold": 35,
+      "parts": 3
+    },
+    "initialPlayableCardCount": 0,
+    "initialCardZoneId": "owned",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "alisyum_basic_strike",
+      "alisyum_basic_strike",
+      "alisyum_basic_guard",
+      "alisyum_basic_guard",
+      "baron_crimson_cleave",
+      "baron_crimson_cleave",
+      "baron_blood_pact",
+      "baron_crimson_bulwark",
+      "baron_vein_cutter",
+      "baron_iron_discipline"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "chapter_opening",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_opening_servo"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_prepare_0"
+        ],
+        "metadata": {
+          "displayName": "Muralhas de Nosirian"
+        }
+      },
+      {
+        "nodeId": "chapter_prepare_0",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_preparation"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Altar de Runa",
+          "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "encounter_1",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "baron_servant",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_blood_cultist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_flurry",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_1"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_1.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ],
+        "metadata": {
+          "displayName": "Vanguarda Escarlate",
+          "reward": "18 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_1",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_servo"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "encounter_2_patrol",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "baron_servant",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_crolbia_duelist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_cut_bleed",
+                    "alisyum_enemy_flurry",
+                    "alisyum_enemy_guard"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_blood_cultist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_attack",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_patrol"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_patrol.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 24
+          }
+        ],
+        "metadata": {
+          "displayName": "Batedores do Rio Escarlate",
+          "reward": "24 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_2_patrol",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_servo"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Espólios da Patrulha"
+        }
+      },
+      {
+        "nodeId": "encounter_2_elite",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "baron_servant",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_obor_runesmith",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_heavy_guard",
+                    "alisyum_enemy_pierce",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_elite"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_elite.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ],
+        "metadata": {
+          "displayName": "Forja Sombria (Elite)",
+          "tier": "Elite",
+          "reward": "32 ouro + carta + relíquia"
+        }
+      },
+      {
+        "nodeId": "reward_2_elite",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_servo"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relic_2"
+        ],
+        "metadata": {
+          "displayName": "Espólios do Elite"
+        }
+      },
+      {
+        "nodeId": "relic_2",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "alisyum_relic_nosirian_goblet"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Relíquia de Conquista"
+        }
+      },
+      {
+        "nodeId": "relicary_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_relicary"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "event_shrine",
+          "event_altar"
+        ],
+        "metadata": {
+          "displayName": "Relicário de Abar",
+          "description": "Escolha um Mod de Identidade Avançado ou Núcleo Raro e decida sua rota."
+        }
+      },
+      {
+        "nodeId": "event_shrine",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_shrine"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Santuário Partido de Obor"
+        }
+      },
+      {
+        "nodeId": "event_altar",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_blood_altar"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Obelisco de Sangue Seco"
+        }
+      },
+      {
+        "nodeId": "bazaar_1",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "alisyum_bazaar_servo"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "camp_rest_1",
+          "obor_forge_1",
+          "armory_1"
+        ],
+        "metadata": {
+          "displayName": "Bazar das Cinzas de Abar",
+          "description": "Gaste ouro em novas cartas e Runas de Obor."
+        }
+      },
+      {
+        "nodeId": "camp_rest_1",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_camp_rest"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Fogueira de Abar",
+          "description": "Recupere 25 de Vida ou extraia +2 Fragmentos Rúnicos."
+        }
+      },
+      {
+        "nodeId": "obor_forge_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_rune_echo_item",
+              "obor_rune_ward_item",
+              "obor_rune_pierce_item",
+              "obor_rune_keen_item",
+              "obor_rune_ember_item",
+              "obor_rune_leech_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Forja Rúnica de Obor",
+          "description": "Gaste 3 Fragmentos Rúnicos para encaixar uma Runa de Obor diretamente em uma carta."
+        }
+      },
+      {
+        "nodeId": "armory_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_armory"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Arsenal Clandestino",
+          "description": "Pague 20 ouro por um Núcleo, Armadura ou Runa de Equipamento adicional."
+        }
+      },
+      {
+        "nodeId": "encounter_3",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "baron_servant",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_vidaria_enforcer",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_crolbia_duelist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_cut_bleed",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_3"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_3.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 28
+          }
+        ],
+        "metadata": {
+          "displayName": "Guarda do Inquisidor",
+          "reward": "28 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_3",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_servo"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_boss"
+        ],
+        "metadata": {
+          "displayName": "Espólios Pré-Chefe"
+        }
+      },
+      {
+        "nodeId": "encounter_boss",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "baron_servant",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "boss_scarlet_inquisitor",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_clock",
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_ending"
+        ],
+        "metadata": {
+          "displayName": "Inquisidor Escarlate",
+          "tier": "Boss"
+        }
+      },
+      {
+        "nodeId": "chapter_ending",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_ending_servo"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Crônica Concluída"
+        }
+      }
+    ]
+  },
+  "alisyum_gambler_run": {
+    "runId": "alisyum_gambler_run",
+    "playerDefinitionId": "gambler",
+    "startingResources": {
+      "gold": 35,
+      "parts": 3
+    },
+    "initialPlayableCardCount": 0,
+    "initialCardZoneId": "owned",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "alisyum_basic_strike",
+      "alisyum_basic_strike",
+      "alisyum_basic_guard",
+      "alisyum_basic_guard",
+      "gambler_loaded_toss",
+      "gambler_loaded_toss",
+      "gambler_rig_the_odds",
+      "gambler_all_in",
+      "gambler_pocket_knife",
+      "gambler_lucky_feign"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "chapter_opening",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_opening_gambler"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_prepare_0"
+        ],
+        "metadata": {
+          "displayName": "Docas de Crolbia"
+        }
+      },
+      {
+        "nodeId": "chapter_prepare_0",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_preparation"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Altar de Runa",
+          "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "encounter_1",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "gambler",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_crolbia_duelist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_cut_bleed",
+                    "alisyum_enemy_flurry",
+                    "alisyum_enemy_guard"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_1"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_1.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ],
+        "metadata": {
+          "displayName": "Cobrador de Crolbia",
+          "reward": "18 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_1",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_gambler"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "encounter_2_patrol",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "gambler",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_crolbia_duelist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_cut_bleed",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_blood_cultist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_attack",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_patrol"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_patrol.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 24
+          }
+        ],
+        "metadata": {
+          "displayName": "Bando das Docas",
+          "reward": "24 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_2_patrol",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_gambler"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Espólios da Patrulha"
+        }
+      },
+      {
+        "nodeId": "encounter_2_elite",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "gambler",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_obor_runesmith",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_heavy_guard",
+                    "alisyum_enemy_pierce",
+                    "alisyum_enemy_attack"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_elite"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_elite.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ],
+        "metadata": {
+          "displayName": "Torre do Forjador (Elite)",
+          "tier": "Elite",
+          "reward": "32 ouro + carta + relíquia"
+        }
+      },
+      {
+        "nodeId": "reward_2_elite",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_gambler"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relic_2"
+        ],
+        "metadata": {
+          "displayName": "Espólios do Elite"
+        }
+      },
+      {
+        "nodeId": "relic_2",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "alisyum_relic_crolbia_die"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Relíquia de Conquista"
+        }
+      },
+      {
+        "nodeId": "relicary_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_relicary"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "event_shrine",
+          "event_altar"
+        ],
+        "metadata": {
+          "displayName": "Relicário de Abar",
+          "description": "Escolha um Mod de Identidade Avançado ou Núcleo Raro e decida sua rota."
+        }
+      },
+      {
+        "nodeId": "event_shrine",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_shrine"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Santuário Partido de Obor"
+        }
+      },
+      {
+        "nodeId": "event_altar",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_blood_altar"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Obelisco de Sangue Seco"
+        }
+      },
+      {
+        "nodeId": "bazaar_1",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "alisyum_bazaar_gambler"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "camp_rest_1",
+          "obor_forge_1",
+          "armory_1"
+        ],
+        "metadata": {
+          "displayName": "Bazar das Cinzas de Abar",
+          "description": "Gaste ouro em novas cartas e Runas de Obor."
+        }
+      },
+      {
+        "nodeId": "camp_rest_1",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_camp_rest"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Fogueira de Abar",
+          "description": "Recupere 25 de Vida ou extraia +2 Fragmentos Rúnicos."
+        }
+      },
+      {
+        "nodeId": "obor_forge_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_rune_echo_item",
+              "obor_rune_ward_item",
+              "obor_rune_pierce_item",
+              "obor_rune_keen_item",
+              "obor_rune_ember_item",
+              "obor_rune_leech_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Forja Rúnica de Obor",
+          "description": "Gaste 3 Fragmentos Rúnicos para encaixar uma Runa de Obor diretamente em uma carta."
+        }
+      },
+      {
+        "nodeId": "armory_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_armory"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Arsenal Clandestino",
+          "description": "Pague 20 ouro por um Núcleo, Armadura ou Runa de Equipamento adicional."
+        }
+      },
+      {
+        "nodeId": "encounter_3",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "gambler",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_ash_abomination",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_boss_furnace_wave",
+                    "alisyum_enemy_heavy"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_crolbia_duelist",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_cut_bleed",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_3"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_3.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 28
+          }
+        ],
+        "metadata": {
+          "displayName": "Escolta da Mesa Real",
+          "reward": "28 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_3",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_gambler"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_boss"
+        ],
+        "metadata": {
+          "displayName": "Espólios Pré-Chefe"
+        }
+      },
+      {
+        "nodeId": "encounter_boss",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "gambler",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "boss_scarlet_inquisitor",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_clock",
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_flurry"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_ending"
+        ],
+        "metadata": {
+          "displayName": "Inquisidor Escarlate",
+          "tier": "Boss"
+        }
+      },
+      {
+        "nodeId": "chapter_ending",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_ending_gambler"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Crônica Concluída"
+        }
+      }
+    ]
+  },
+  "alisyum_renegado_run": {
+    "runId": "alisyum_renegado_run",
+    "playerDefinitionId": "vitreous_renegade",
+    "startingResources": {
+      "gold": 35,
+      "parts": 3
+    },
+    "initialPlayableCardCount": 0,
+    "initialCardZoneId": "owned",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "alisyum_basic_strike",
+      "alisyum_basic_strike",
+      "alisyum_basic_guard",
+      "alisyum_basic_guard",
+      "vitreous_frost_shard",
+      "vitreous_frost_shard",
+      "vitreous_glacial_wall",
+      "vitreous_crystal_bash",
+      "vitreous_calidor_wall",
+      "vitreous_crystalline_step"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "chapter_opening",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_opening_renegado"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_prepare_0"
+        ],
+        "metadata": {
+          "displayName": "Fenda de Illana"
+        }
+      },
+      {
+        "nodeId": "chapter_prepare_0",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_preparation"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Altar de Runa",
+          "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "encounter_1",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "vitreous_renegade",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_vitreous_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_clock"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_1"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_1.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ],
+        "metadata": {
+          "displayName": "Sentinela da Fenda",
+          "reward": "18 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_1",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_renegado"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "encounter_2_patrol",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "vitreous_renegade",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_vitreous_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_vidaria_enforcer",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_attack",
+                    "alisyum_enemy_heavy"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_patrol"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_patrol.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 24
+          }
+        ],
+        "metadata": {
+          "displayName": "Patrulha Cristalina",
+          "reward": "24 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_2_patrol",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_renegado"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Espólios da Patrulha"
+        }
+      },
+      {
+        "nodeId": "encounter_2_elite",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "vitreous_renegade",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_ash_abomination",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_boss_furnace_wave",
+                    "alisyum_enemy_heavy",
+                    "alisyum_enemy_clock"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_2_elite"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_2_elite.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ],
+        "metadata": {
+          "displayName": "Bastião em Chamas (Elite)",
+          "tier": "Elite",
+          "reward": "32 ouro + carta + relíquia"
+        }
+      },
+      {
+        "nodeId": "reward_2_elite",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_renegado"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relic_2"
+        ],
+        "metadata": {
+          "displayName": "Espólios do Elite"
+        }
+      },
+      {
+        "nodeId": "relic_2",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "alisyum_relic_calidor_shard"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "relicary_1"
+        ],
+        "metadata": {
+          "displayName": "Relíquia de Conquista"
+        }
+      },
+      {
+        "nodeId": "relicary_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_relicary"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "event_shrine",
+          "event_altar"
+        ],
+        "metadata": {
+          "displayName": "Relicário de Abar",
+          "description": "Escolha um Mod de Identidade Avançado ou Núcleo Raro e decida sua rota."
+        }
+      },
+      {
+        "nodeId": "event_shrine",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_shrine"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Santuário Partido de Obor"
+        }
+      },
+      {
+        "nodeId": "event_altar",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_event_blood_altar"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "bazaar_1"
+        ],
+        "metadata": {
+          "displayName": "Obelisco de Sangue Seco"
+        }
+      },
+      {
+        "nodeId": "bazaar_1",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "alisyum_bazaar_renegado"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "camp_rest_1",
+          "obor_forge_1",
+          "armory_1"
+        ],
+        "metadata": {
+          "displayName": "Bazar das Cinzas de Abar",
+          "description": "Gaste ouro em novas cartas e Runas de Obor."
+        }
+      },
+      {
+        "nodeId": "camp_rest_1",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "alisyum_camp_rest"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Fogueira de Abar",
+          "description": "Recupere 25 de Vida ou extraia +2 Fragmentos Rúnicos."
+        }
+      },
+      {
+        "nodeId": "obor_forge_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_rune_echo_item",
+              "obor_rune_ward_item",
+              "obor_rune_pierce_item",
+              "obor_rune_keen_item",
+              "obor_rune_ember_item",
+              "obor_rune_leech_item"
+            ],
+            "allowRemoval": false,
+            "allowReplacement": false,
+            "costs": [
+              {
+                "resourceId": "parts",
+                "amount": 3
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Forja Rúnica de Obor",
+          "description": "Gaste 3 Fragmentos Rúnicos para encaixar uma Runa de Obor diretamente em uma carta."
+        }
+      },
+      {
+        "nodeId": "armory_1",
+        "activity": {
+          "type": "InscriptionStation",
+          "definitionId": "alisyum_armory"
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_3"
+        ],
+        "metadata": {
+          "displayName": "Arsenal Clandestino",
+          "description": "Pague 20 ouro por um Núcleo, Armadura ou Runa de Equipamento adicional."
+        }
+      },
+      {
+        "nodeId": "encounter_3",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "vitreous_renegade",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "enemy_obor_runesmith",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_heavy_guard",
+                    "alisyum_enemy_pierce"
+                  ]
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "enemy_vitreous_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_guard",
+                    "alisyum_enemy_heavy"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "reward_3"
+        ],
+        "exitEffects": [
+          {
+            "effectId": "encounter_3.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 28
+          }
+        ],
+        "metadata": {
+          "displayName": "Falange de Calidor",
+          "reward": "28 ouro + escolha de carta"
+        }
+      },
+      {
+        "nodeId": "reward_3",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "alisyum_reward_renegado"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "encounter_boss"
+        ],
+        "metadata": {
+          "displayName": "Espólios Pré-Chefe"
+        }
+      },
+      {
+        "nodeId": "encounter_boss",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "vitreous_renegade",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "boss_illana_warden",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit",
+                  "decisionIds": [
+                    "alisyum_enemy_clock",
+                    "alisyum_boss_glacial_slam",
+                    "alisyum_enemy_heavy_guard",
+                    "alisyum_enemy_heavy"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "chapter_ending"
+        ],
+        "metadata": {
+          "displayName": "Carcereiro Vítreo de Illana",
+          "tier": "Boss"
+        }
+      },
+      {
+        "nodeId": "chapter_ending",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "alisyum_ending_renegado"
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Crônica Concluída"
+        }
+      }
+    ]
+  }
+}

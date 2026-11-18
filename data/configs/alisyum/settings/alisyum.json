@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "alisyum",
+  "displayName": "Alisyum — O Preço do Poder",
+  "description": "Deckbuilder tático com mecânicas de ARPG no continente de Abar: Mods de Identidade exclusivos, equipamentos por slot, runas encaixáveis em cartas e pipeline em buckets.",
+  "launch": {
+    "runDefinitionId": "alisyum_chapter_1",
+    "playerEntityId": "pyromancer",
+    "modeId": "alisyum_campaign"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.alisyum",
+      "versionRange": "1.0.0"
+    }
+  ]
+}

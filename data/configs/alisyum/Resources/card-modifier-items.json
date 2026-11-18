@@ -1,0 +1,62 @@
+{
+  "obor_rune_echo_item": {
+    "itemDefinitionId": "obor_rune_echo_item",
+    "upgradeId": "obor_upgrade_echo",
+    "use": "Bind",
+    "presentation": {
+      "name": "Runa de Obor: Eco Duplo",
+      "description": "Encaixa na carta para dividir o golpe principal em 2 acertos independentes (Repeat = 2), dobrando a chance de efeitos por acerto e Críticos.",
+      "artId": "flurry"
+    }
+  },
+  "obor_rune_ward_item": {
+    "itemDefinitionId": "obor_rune_ward_item",
+    "upgradeId": "obor_upgrade_ward",
+    "use": "Bind",
+    "presentation": {
+      "name": "Runa de Obor: Escudo Gravado",
+      "description": "Encaixa na carta para conceder 4 de Block base após o efeito principal.",
+      "artId": "guard"
+    }
+  },
+  "obor_rune_pierce_item": {
+    "itemDefinitionId": "obor_rune_pierce_item",
+    "upgradeId": "obor_upgrade_pierce",
+    "use": "Bind",
+    "presentation": {
+      "name": "Runa de Obor: Entropia Perfurante",
+      "description": "Encaixa na carta para que seu dano ignore a Armadura do alvo.",
+      "artId": "precision"
+    }
+  },
+  "obor_rune_keen_item": {
+    "itemDefinitionId": "obor_rune_keen_item",
+    "upgradeId": "obor_upgrade_keen",
+    "use": "Bind",
+    "presentation": {
+      "name": "Runa de Obor: Lâmina Afiada",
+      "description": "Encaixa na carta para conceder +20 pp de Chance Crítica (Sorte Menor) antes do golpe principal.",
+      "artId": "critical"
+    }
+  },
+  "obor_rune_ember_item": {
+    "itemDefinitionId": "obor_rune_ember_item",
+    "upgradeId": "obor_upgrade_ember",
+    "use": "Bind",
+    "presentation": {
+      "name": "Runa de Obor: Brasa Gravada",
+      "description": "Encaixa na carta de ataque para aplicar +2 Queimadura (potência 2) ao alvo.",
+      "artId": "burn"
+    }
+  },
+  "obor_rune_leech_item": {
+    "itemDefinitionId": "obor_rune_leech_item",
+    "upgradeId": "obor_upgrade_leech",
+    "use": "Bind",
+    "presentation": {
+      "name": "Runa de Obor: Sifão Escarlate",
+      "description": "Encaixa na carta para recuperar 3 de Vida após sua resolução.",
+      "artId": "leech"
+    }
+  }
+}
