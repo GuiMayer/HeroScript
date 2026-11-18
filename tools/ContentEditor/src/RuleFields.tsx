@@ -121,9 +121,10 @@ function initialValue(schema: Schema, root: unknown): unknown {
   return shape.enum?.[0] ?? null
 }
 
-function Field({ label, path, schema, value, update, context, referenceKind }: {
+function Field({ label, path, schema, value, update, restore = update, context, referenceKind }: {
   label: string; path: string; schema: Schema; value: unknown; update: (value: unknown) => void; context: Context
   referenceKind?: string
+  restore?: (value: unknown) => void
 }) {
   const focus = context.focus?.path.toLowerCase() === path.toLowerCase() ? context.focus : undefined
   const baseline = context.inherited
@@ -136,7 +137,7 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
       return source[propertyKey(source, key)]
     }, baseline.value) } : undefined
   return <DiagnosticField focus={focus}>
-    <InheritedField {...{ label, value, inherited }} restore={() => update(inherited?.value)}>
+    <InheritedField {...{ label, value, inherited }} restore={() => restore(inherited?.value)}>
       <FieldControl {...{ label, path, schema, value, update, context, referenceKind }} />
     </InheritedField>
   </DiagnosticField>
@@ -280,8 +281,9 @@ function FieldControl({ label, path, schema, value, update, context, referenceKi
       <PropertyFields value={object(value)} update={update} copy={context.copy} disabled={context.disabled} onTyping={context.onTyping}
         keyInput={keyReference ? (key, change) => <Reference context={context} label={keyLabel}
           kind={keyReference} value={key} commit={change} immediate /> : undefined}
-        typed={{ initial: initialValue(entrySchema, context.schemaRoot), render: (key, entry, replace) =>
-          <Field label={key} path={joinPointer(path, key)} schema={entrySchema} value={entry} update={replace} context={context} /> }} />
+        typed={{ initial: initialValue(entrySchema, context.schemaRoot), render: (key, entry, replace, restore) =>
+          <Field label={key} path={joinPointer(path, key)} schema={entrySchema} value={entry}
+            update={replace} restore={restore} context={context} /> }} />
     </Fold>
   }
   if (context.full) return <FreeField label={label} value={value} update={update} copy={context.copy} disabled={context.disabled}

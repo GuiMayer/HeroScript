@@ -1,11 +1,11 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { Boxes, ChevronRight, FileText, GitBranch, Layers3, LockKeyhole, Plus, Search, Settings2, Sparkles, Swords, Trash2, Users } from 'lucide-react'
+import { Boxes, ChevronRight, FileText, GitBranch, Layers3, LockKeyhole, Pencil, Plus, RotateCcw, Search, Settings2, Sparkles, Swords, Trash2, Users } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
 import type { CardsProps } from './Cards'
-import { array, object, propertyKey, string } from './editor-state'
+import { array, object, propertyKey, same, string } from './editor-state'
 import { preference } from './i18n'
 import { Modal } from './Modal'
 import { NewWritingPackage } from './NewWritingPackage'
@@ -36,6 +36,7 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
   const actionsCopy = cardCopy[locale]
   const [kind, setKind] = useState<DefinitionKind>(groups[0][0])
   const [selected, setSelected] = useState(section === 'settings' ? activeSetting : '')
+  const [customizingDefinition, setCustomizingDefinition] = useState('')
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'fields' | 'advanced'>('fields')
   const [typing, setTyping] = useState(false)
@@ -95,11 +96,19 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
       setSelected('')
   }, [selected, staged, detail.error, detail.isFetching])
   const source = detail.data?.data
-  const value = staged?.operation.definition ? object(staged.operation.definition) : source ? object(source.source) : undefined
+  const customizable = section === 'rules' && !!source?.item?.canCustomize
+  const inherited = customizable ? object(source?.source) : undefined
+  const effective = source ? object(customizable ? source.effective : source.source) : undefined
+  const selectionKey = `${kind}/${id}`
+  const customizing = customizable && (customizingDefinition === selectionKey || !!source?.item?.hasCustomization ||
+    staged?.operation.operation === 'customize')
+  const value = staged?.operation.operation === 'resetCustomization' ? inherited
+    : staged?.operation.definition ? object(staged.operation.definition) : effective
+  const personalized = !!inherited && !!value && !same(value, inherited)
   const listVersion = list.data?.pages[0]?.version ?? list.data?.pages[0]?.data.sourceVersion ?? undefined
   const version = detail.data?.version ?? listVersion
   const locked = !writable || !!draft.busy || !!draft.attempt || !!draft.intent
-  const editable = !locked && !deleted && (created || !!source?.item?.canEdit)
+  const editable = !locked && !deleted && (created || !!source?.item?.canEdit || customizing)
   const canCreate = (name: string) => !locked && groups.some((group) => group.some((item) => item === name)) &&
     !!kinds.data?.data.some((item) => item.kind === name && item.canCreate)
   const canDelete = !locked && !deleted && (created || !!source?.item?.canDelete)
@@ -120,10 +129,21 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
 
   function update(definition: Definition) {
     actions.edit({
-      operation: { kind, operation: created ? 'create' : 'update', definitionId: id, definition,
+      operation: { kind, operation: created ? 'create' : customizing ? 'customize' : 'update', definitionId: id, definition,
         sourcePackage: staged?.operation.sourcePackage },
-      original: source ? object(source.source) : undefined,
+      original: effective,
     }, version)
+  }
+
+  function restoreInherited() {
+    if (!inherited) return
+    setCustomizingDefinition(selectionKey)
+    if (!source?.item?.hasCustomization) {
+      update(inherited)
+      return
+    }
+    actions.edit({ operation: { kind, operation: 'resetCustomization', definitionId: id },
+      original: effective }, version)
   }
 
   function create(id: string, copySource: boolean, sourcePackage?: string) {
@@ -211,6 +231,10 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
           <header className="detail-heading">
             <span className="detail-icon"><Icon size={23} /></span>
             <div className="detail-title"><h2>{titleOf(value, id)}</h2><code>{id}</code></div>
+            {customizable && !customizing && <button type="button" className="secondary" disabled={locked || !schema.data}
+              onClick={() => { setCustomizingDefinition(selectionKey); setTab('fields') }}>
+              <Pencil size={15} />{actionsCopy.customize}
+            </button>}
             {canDelete && <button className="icon-button danger-button" aria-label={copy.delete} title={copy.delete}
               onClick={() => setModal('delete')}><Trash2 size={17} /></button>}
           </header>
@@ -219,7 +243,10 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
             {source?.item?.packageId && <span className="meta-source"><FileText size={14} />{source.item.packageId}</span>}
             {deleted ? <span className="meta-label error">{actionsCopy.deletion}</span> : created
               ? <span className="meta-label">{actionsCopy.draft}</span>
+              : customizable ? <span className="meta-label">{personalized ? actionsCopy.customized : copy.inheritedDefinition}</span>
               : (!writable || !source?.item?.canEdit) && <span className="meta-label"><LockKeyhole size={13} />{copy.inherited}</span>}
+            {personalized && <button type="button" className="text-button" disabled={!editable || typing}
+              onClick={restoreInherited}><RotateCcw size={14} />{copy.restoreDefinition}</button>}
           </div>
           <nav className="detail-tabs" aria-label={copy.definition}>
             <button className={showFields ? 'chosen' : ''} aria-current={showFields ? 'page' : undefined}
@@ -238,8 +265,9 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
                 schema={schema.data.data.schema} context={{
                   key: apiKey, setting, referenceSetting: section === 'settings' ? activeSetting : undefined,
                   disabled: !editable, locale, copy, root: value, draft: draft.frame,
-                  full: section !== 'rules' && section !== 'effects',
-                  reorder: kind === 'formulas' || kind === 'runs', schemaRoot: schema.data.data.schema,
+                  inherited: inherited && { path: '', value: inherited, copy: actionsCopy, restoringDisabled: !editable || typing },
+                  full: customizable || (section !== 'rules' && section !== 'effects'),
+                  reorder: customizable || kind === 'formulas' || kind === 'runs', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
                   onCreateReference: (target) => { chooseKind(target as DefinitionKind); setModal('create') },
                   onCreateWritingPackage: kind === 'settings' && canCreate('packages') ? () => setModal('writing-package') : undefined,

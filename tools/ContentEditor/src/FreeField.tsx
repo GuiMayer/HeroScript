@@ -75,7 +75,8 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
 export function PropertyFields({ value: entries, update, copy, disabled, onTyping, typed, keyInput }: {
   value: Definition; update: (value: Definition) => void; copy: RuleCopy; disabled: boolean
   onTyping: (typing: boolean) => void
-  typed?: { initial: unknown; render: (name: string, value: unknown, update: (next: unknown) => void) => ReactNode }
+  typed?: { initial: unknown; render: (name: string, value: unknown, update: (next: unknown) => void,
+    restore: (next: unknown) => void) => ReactNode }
   keyInput?: (value: string, change: (value: string) => void) => ReactNode
 }) {
   const [key, setKey] = useState('')
@@ -98,7 +99,11 @@ export function PropertyFields({ value: entries, update, copy, disabled, onTypin
     {Object.entries(entries).map(([name, item]) => {
       const change = (next: unknown) => update({ ...entries, [name]: next ?? (typed ? typed.initial : null) })
       return <div className="free-entry" key={name}>
-        {typed ? typed.render(name, item, change) : <FreeField label={name} value={item} copy={copy} disabled={disabled}
+        {typed ? typed.render(name, item, change, (baseline) => {
+          const next = { ...entries, [name]: baseline }
+          if (baseline === undefined) delete next[name]
+          update(next)
+        }) : <FreeField label={name} value={item} copy={copy} disabled={disabled}
           onTyping={onTyping} update={change} />}
         {!disabled && <div className="property-actions">
           <button type="button" className="icon-button" aria-label={`${copy.renameProperty}: ${name}`} title={copy.renameProperty}
