@@ -1,4 +1,9 @@
 {
+  "Ally": "Aliado",
+  "Enemy": "Inimigo",
+  "Hand": "Mão",
+  "Choose %d · %d selected · %d remaining": "Escolha %d · %d selecionadas · faltam %d",
+  "Skip animation": "Pular animação",
   "Your cards": "Suas cartas",
   "Unavailable — click for reason": "Indisponível — clique para saber o motivo",
   "Card unavailable": "Carta indisponível",

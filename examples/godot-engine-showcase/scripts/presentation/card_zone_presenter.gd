@@ -57,6 +57,14 @@ func zone_cards(zone_id: String) -> Array:
 			return zone.get("cards", []).duplicate(true) if bool(zone.get("contentsVisible", false)) else []
 	return []
 
+static func payment_progress(requirement: Dictionary, selected: int, translator) -> String:
+	var zone := str(requirement.sourceZoneId)
+	var zone_key: String = {"hand": "Hand", "discard": "Discard pile", "draw": "Draw pile"}.get(zone, "")
+	var zone_name: String = translator.content_name(zone) if zone_key.is_empty() else translator.text(zone_key)
+	var needed := int(requirement.count)
+	return "%s · %s" % [zone_name, translator.text("Choose %d · %d selected · %d remaining") % [
+		needed, selected, maxi(0, needed - selected)]]
+
 static func tool_flows(run: Dictionary) -> Array:
 	if not (run is Dictionary):
 		return []

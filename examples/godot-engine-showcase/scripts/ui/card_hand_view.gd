@@ -7,6 +7,7 @@ var visual_context: ContextType
 signal card_activated(instance_id: String)
 signal card_previewed(instance_id: String)
 signal card_hovered(instance_id: String)
+signal active_card_changed(instance_id: String)
 ## Physical card entry only; focus-to-pointer resumption is not another entry.
 signal card_hover_entered(instance_id: String)
 signal inspection_requested(instance_id: String)
@@ -81,6 +82,7 @@ var _layout_text_scale := -1.0
 var _layout_card_style_key := ""
 var _inspection_anchor := ""
 var _hover_point := Vector2.INF
+var _last_active_card := ""
 var overview_enabled := true
 @export_file("*.json") var preview_document := "res://data/labs/ui_editor_preview.json"
 @export var toolbar_path := NodePath("Toolbar")
@@ -587,6 +589,9 @@ func _apply_emphasis() -> void:
 		else: card.position = target; card.rotation = angle; Retarget.reset(card)
 		_emphasis[id] = {"position": target, "rotation": angle, "tween": tween}
 	_update_reading_proxy()
+	if active != _last_active_card:
+		_last_active_card = active
+		active_card_changed.emit(active)
 
 func _update_reading_proxy() -> void:
 	if not is_inside_tree(): return

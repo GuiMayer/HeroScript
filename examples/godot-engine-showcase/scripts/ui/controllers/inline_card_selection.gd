@@ -28,6 +28,8 @@ func intent() -> Dictionary:
 		if not ids.is_empty(): result.paymentSelections.append({"componentId": item.componentId, "paymentId": item.paymentId, "cardInstanceIds": ids.duplicate()})
 	return result
 func key(item: Dictionary) -> String: return str(item.componentId) + ":" + str(item.paymentId)
+func confirmable_preview() -> Dictionary:
+	return snapshot.duplicate(true) if active and _accepted == generation and snapshot.get("isLegal", false) else {}
 func pick(id: String) -> void:
 	if not active: return
 	for item in requirements():

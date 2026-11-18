@@ -16,6 +16,7 @@ var energy_indicator: Label
 var _log_entries: Array[String] = []
 var _log_return_focus: WeakRef
 var _drawer_return_focus: WeakRef
+var _payment_prompt := ""
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
 	var stage_theme = combat_theme.duplicate()
@@ -80,6 +81,22 @@ func _refresh_header_inspection(_id := "") -> void:
 	if not is_instance_valid(header_view): return
 	var id: String = hand.active_card_id() if is_instance_valid(hand) else ""
 	header_view.set_inspection_available(not id.is_empty() and hand.is_card_pickable(id))
+	var readout: Label = get_node("CanvasHost/ReferenceCanvas/CardReadout")
+	var card: CardView = card_buttons.get(selected_card if not selected_card.is_empty() else id)
+	readout.text = ""
+	if is_instance_valid(card) and not _locked():
+		var cost := card.cost_accessible_text()
+		var summary := str(card.model.get("summary", "")).get_slice("\n", 0)
+		var text := "%s · %s" % [card.model.get("name", ""), cost]
+		if not selected_card.is_empty() and target_buttons.values().any(func(button): return not button.disabled):
+			summary = visual_context.translator.text("Choose a highlighted target.")
+		readout.text = text if summary.is_empty() else "%s · %s" % [text, summary]
+	if not _payment_prompt.is_empty() and not _locked(): readout.text = _payment_prompt
+	readout.tooltip_text = readout.text
+
+func set_payment_prompt(value: String) -> void:
+	_payment_prompt = value
+	_refresh_header_inspection()
 
 func _on_header_attributes_requested() -> void:
 	if is_instance_valid(character_sidebar): character_sidebar.toggle_from_button()
@@ -88,6 +105,24 @@ func _on_header_pause_requested() -> void: intent_requested.emit("pause", [])
 func _on_header_inspection_requested() -> void:
 	if is_instance_valid(hand) and not hand.reading_modal and not hand.interaction.dragging:
 		_inspect_instance(hand.active_card_id())
+
+func _set_target_outline(button: Button, allowed: bool, emphasized: bool) -> void:
+	super._set_target_outline(button, allowed, emphasized)
+	var outline: Panel = button.get_node("ValidTargetOutline")
+	var marker := outline.get_node_or_null("TargetMarker") as Label
+	if marker == null:
+		marker = Label.new()
+		marker.name = "TargetMarker"
+		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		marker.position = Vector2(9, 6)
+		outline.add_child(marker)
+	if not allowed: return
+	var role := "accent.primary" if emphasized else "accent.power"
+	var ink: Color = visual_context.styles.color(role)
+	var border := outline.get_theme_stylebox("panel") as StyleBoxFlat
+	border.border_color = ink
+	marker.text = "◆" if emphasized else "◇"
+	marker.add_theme_color_override("font_color", ink)
 
 func _update_controls() -> void:
 	super._update_controls()
@@ -188,6 +223,8 @@ func _build_hand() -> void:
 		hand_section.minimum_size_changed.connect(_queue_gameplay_layout)
 	# The same inspection action is now in the header, not duplicated in the dock.
 	hand.toolbar.get_node("HandInspectButton").hide()
+	if not hand.active_card_changed.is_connected(_refresh_header_inspection):
+		hand.active_card_changed.connect(_refresh_header_inspection)
 	for child in hand.toolbar.get_children():
 		if child is Control and not child.visibility_changed.is_connected(_sync_turn_dock_visibility):
 			child.visibility_changed.connect(_sync_turn_dock_visibility)
@@ -203,18 +240,21 @@ func _present_energy(combat_state: Dictionary) -> void:
 		energy_indicator.minimum_size_changed.connect(_queue_gameplay_layout)
 	energy_indicator.text = ""
 	energy_indicator.tooltip_text = ""
+	var rows: Array[String] = []
 	for actor in combat_state.get("actors", []):
 		if str(actor.get("instanceId", "")) != _input_actor: continue
 		var resources: Dictionary = actor.get("resources", {})
-		if resources.get("energy") is Dictionary:
-			var value: Dictionary = resources.energy
+		for resource_id in ["energy", "heat", "heat_gauge", "blood_tithe", "luck", "frost"]:
+			if not resources.get(resource_id) is Dictionary: continue
+			var value: Dictionary = resources[resource_id]
 			var current_text: String = visual_context.translator.number(float(value.get("current", 0)))
-			var name_text: String = visual_context.translator.content_name("energy")
-			energy_indicator.text = "◇  %s  %s" % [name_text, current_text]
+			var name_text: String = visual_context.translator.content_name(resource_id)
 			if value.get("maximum") is float or value.get("maximum") is int:
-				energy_indicator.text += " / " + visual_context.translator.number(float(value.maximum))
-			energy_indicator.tooltip_text = energy_indicator.text.trim_prefix("◇  ")
+				current_text += " / " + visual_context.translator.number(float(value.maximum))
+			rows.append("%s  %s" % [name_text, current_text])
 		break
+	energy_indicator.text = "◇  " + "  ·  ".join(rows) if not rows.is_empty() else ""
+	energy_indicator.tooltip_text = "\n".join(rows)
 	energy_indicator.visible = not energy_indicator.text.is_empty()
 
 func _layout_turn_controls() -> void:
@@ -266,13 +306,17 @@ func _layout_gameplay() -> void:
 			if actor.has_method("minimum_battlefield_height"):
 				min_stage_height = maxf(min_stage_height, actor.minimum_battlefield_height())
 	var energy_top := bottom_hud.offset_top
+	var readout: Label = get_node("CanvasHost/ReferenceCanvas/CardReadout")
+	var readout_height := maxf(readout.get_combined_minimum_size().y, 22.0)
+	readout.offset_bottom = first_card_top - fitted.y - 6.0
+	readout.offset_top = readout.offset_bottom - readout_height
 	if is_instance_valid(energy_indicator):
 		var energy_height := maxf(energy_indicator.get_combined_minimum_size().y, 26.0)
 		var gap := 2.0 if fitted.y < 860.0 else energy_hand_gap
 		var energy_base := bottom_hud.offset_top
 		if fitted.y < 860.0:
 			energy_base = maxf(bottom_hud.offset_top, first_card_top - fitted.y + 4.0)
-		energy_indicator.offset_bottom = energy_base - gap
+		energy_indicator.offset_bottom = minf(energy_base - gap, readout.offset_top - 2.0)
 		energy_indicator.offset_top = energy_indicator.offset_bottom - energy_height
 		if energy_indicator.visible:
 			energy_top = energy_indicator.offset_top
@@ -356,9 +400,9 @@ func _layout_battlefield_axis() -> void:
 	round_group.offset_left = axis - half_width - width * round_group.anchor_left
 	round_group.offset_right = axis + half_width - width * round_group.anchor_right
 	if is_instance_valid(energy_indicator):
-		var shift := axis - width * 0.5
-		energy_indicator.offset_left = shift
-		energy_indicator.offset_right = shift
+		var lane_half := minf(width * 0.26, minf(axis - 16.0, width - axis - 16.0))
+		energy_indicator.offset_left = axis - lane_half - width * energy_indicator.anchor_left
+		energy_indicator.offset_right = axis + lane_half - width * energy_indicator.anchor_right
 	_layout_deck_pile()
 
 func _layout_deck_pile() -> void:

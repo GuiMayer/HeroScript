@@ -20,6 +20,8 @@ func run() -> void:
 		"cards": [fact("one"), fact("fee")], "applications": []}
 	var original := JSON.stringify(data)
 	view.accept({"ok": true, "data": data}, requests[0].generation)
+	var title: Label = view._groups["cost:fuel"].get_node("Title")
+	check(title.text.contains("Custom") and title.text.contains("1 remaining"), "payment exposes the source and missing count")
 	var card = view._cards["cost:fuel:fee"]
 	check(card.scene_file_path == "res://scenes/ui/components/card_view.tscn", "fee selection uses the combat card scene")
 	card.pressed.emit()
@@ -29,6 +31,7 @@ func run() -> void:
 	view.accept({"ok": true, "data": ready}, requests[0].generation)
 	check(view.get_ok_button().disabled, "out-of-order preview cannot enable Play")
 	view.accept({"ok": true, "data": ready}, requests[1].generation)
+	check(title.text.contains("1 selected") and title.text.contains("0 remaining"), "payment progress reflects the current selection")
 	check(not view.get_ok_button().disabled and view._cards["cost:fuel:fee"] == card, "current preview enables Play without rebuilding cards")
 	check(original == JSON.stringify(data), "payment rendering leaves the server snapshot immutable")
 	var payload = load("res://scripts/engine/engine_gateway.gd").candidate_payload(requests[1].command)
@@ -40,4 +43,10 @@ func run() -> void:
 	cancelled.play_requested.connect(func(_preview): plays.append({}))
 	cancelled.cancel_selection(); await process_frame
 	check(plays.size() == 1, "cancel closes the selector without any gameplay intent")
+	var inline = preload("res://scripts/ui/controllers/inline_card_selection.gd").new()
+	inline.start(view.command if is_instance_valid(view) else {"cardInstanceId": "one"})
+	inline.accept({"ok": true, "data": ready}, inline.generation)
+	check(not inline.confirmable_preview().is_empty(), "inline confirmation only uses the accepted current preview")
+	inline.refresh()
+	check(inline.confirmable_preview().is_empty(), "an edit clears the previously confirmable inline payment")
 	root.get_node("GameAudio").shutdown(); quit(1 if failures else 0)

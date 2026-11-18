@@ -76,6 +76,19 @@ vertical_alignment = 1
 theme_override_font_sizes/font_size = 22
 metadata/font_role = "section_title"
 metadata/text_role = "text.primary"
+[node name="CardReadout" type="Label" parent="CanvasHost/ReferenceCanvas"]
+layout_mode = 1
+anchor_left = 0.17
+anchor_top = 1.0
+anchor_right = 0.83
+anchor_bottom = 1.0
+mouse_filter = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+theme_override_font_sizes/font_size = 16
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
 [node name="HandHost" type="Control" parent="CanvasHost/ReferenceCanvas"]
 layout_mode = 1
 anchor_left = 0.16
@@ -101,6 +114,7 @@ flush_bottom = true
 card_display_scale = 0.67
 [node name="EndTurnAndContextActions" parent="CanvasHost/ReferenceCanvas" instance=ExtResource("Turn")]
 show_end_turn_shortcut = false
+skip_label = "Skip animation"
 layout_mode = 1
 anchor_left = 1.0
 anchor_top = 1.0

@@ -241,6 +241,9 @@ func _cost_accessible_text(data: Dictionary) -> String:
 		return str(data.get("cost", "0"))
 	return visual_context.translator.text("Cost: %s") % " + ".join(parts)
 
+func cost_accessible_text() -> String:
+	return _cost_accessible_text(model)
+
 func _ready() -> void:
 	if model.is_empty() and (Engine.is_editor_hint() or get_parent() == get_tree().root):
 		if visual_context == null:

@@ -51,10 +51,7 @@ func setup(owner, data: Dictionary) -> void:
 	inline_selection.preview_requested.connect(_preview_inline_selection)
 	inline_selection.changed.connect(_render_inline_selection)
 	inline_selection.ready.connect(func(preview):
-		if GameSession.payment_context_matches(preview.get("version", {})):
-			if is_instance_valid(_collection_dialog) and _collection_dialog.visible:
-				_collection_dialog.hide(); _collection_dialog.queue_free()
-			_play_candidate({"source": "Card", "command": preview.command, "costs": preview.evaluation.get("costs", []), "applications": preview.get("applications", [])}, preview))
+		if not view.has_method("set_payment_prompt"): _confirm_payment(preview))
 	if DisplayServer.get_name() != "headless": _burn_noise = load("res://data/card_burn_noise.tres")
 	screen_context = ScreenContext.ensure(owner)
 	router = screen_context.router if screen_context.router != null else owner
@@ -597,6 +594,14 @@ func _preview_inline_selection(intent: Dictionary, ticket: int) -> void:
 	var response: Dictionary = await GameSession.preview_card_payment(intent)
 	if is_inside_tree(): inline_selection.accept(response, ticket)
 
+func _confirm_payment(preview: Dictionary) -> void:
+	if _locked() or preview.is_empty() or not GameSession.payment_context_matches(preview.get("version", {})): return
+	if is_instance_valid(_collection_dialog) and _collection_dialog.visible:
+		_collection_dialog.hide()
+		_collection_dialog.queue_free()
+	_play_candidate({"source": "Card", "command": preview.command, "costs": preview.evaluation.get("costs", []),
+		"applications": preview.get("applications", [])}, preview)
+
 func _render_inline_selection() -> void:
 	if not is_instance_valid(view): return
 	_update_collection_selection()
@@ -612,10 +617,31 @@ func _render_inline_selection() -> void:
 		card.set_meta("card_selection_chosen", inline_selection.active and id in chosen)
 		card.get_node("PrintedKeyline").queue_redraw()
 	view.clear_choices()
+	var campaign_payment: bool = view.has_method("set_payment_prompt")
+	if campaign_payment: view.set_payment_prompt("")
 	if not inline_selection.active: return
 	for id in view.target_buttons:
-		view.target_buttons[id].disabled = _locked() or id not in inline_selection.snapshot.get("evaluation", {}).get("legalTargetIds", [])
+		var button: Button = view.target_buttons[id]
+		button.disabled = _locked() or id not in inline_selection.snapshot.get("evaluation", {}).get("legalTargetIds", [])
+		if campaign_payment: view._set_target_outline(button, not button.disabled, id in inline_selection.command.get("targetIds", []))
 	var options: Array = inline_selection.snapshot.get("evaluation", {}).get("affordableCostOptionIds", [])
+	if campaign_payment:
+		var lines: Array[String] = []
+		for requirement in inline_selection.requirements():
+			var selected: Array = inline_selection.chosen.get(inline_selection.key(requirement), [])
+			lines.append(preload("res://scripts/presentation/card_zone_presenter.gd").payment_progress(requirement, selected.size(), I18n))
+		var preview: Dictionary = inline_selection.confirmable_preview()
+		if not preview.is_empty():
+			view.candidate_panel.show()
+			var confirm := Button.new()
+			confirm.text = I18n.text("Play card")
+			confirm.theme_type_variation = &"PrimaryAction"
+			confirm.disabled = _locked()
+			confirm.pressed.connect(func(): _confirm_payment(inline_selection.confirmable_preview()))
+			view.choices.add_child(confirm)
+		elif lines.is_empty() and inline_selection.snapshot.is_empty():
+			lines.append(I18n.text("Validating payment…"))
+		view.set_payment_prompt("  /  ".join(lines))
 	if options.size() > 1 and not inline_selection.command.has("costOptionId"):
 		view.candidate_panel.show()
 		for option in options:

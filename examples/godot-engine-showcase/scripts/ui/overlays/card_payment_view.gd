@@ -95,19 +95,26 @@ func _render() -> void:
 			group = preload("res://scenes/ui/components/card_payment_group.tscn").instantiate()
 			get_node("Content/Columns/Scroll/Groups").add_child(group); _groups[key] = group
 		group.show()
-		group.get_node("Title").text = "%s · %s · %s/%s" % [visual_context.translator.content_name(str(requirement.paymentId)), visual_context.translator.content_name(str(requirement.sourceZoneId)), _chosen.get(key, []).size(), int(requirement.count)]
+		var eligible: Array = requirement.get("eligibleCardIds", [])
+		var selected: Array = _chosen.get(key, [])
+		group.get_node("Title").text = "%s\n%s" % [
+			visual_context.translator.content_name(str(requirement.paymentId)),
+			preload("res://scripts/presentation/card_zone_presenter.gd").payment_progress(requirement, selected.size(), visual_context.translator)]
+		group.get_node("Title").tooltip_text = visual_context.translator.text(str(requirement.get("unavailableReason", ""))) if requirement.get("unavailableReason") != null else ""
 		for child in group.get_node("Cards").get_children(): child.hide()
-		for id in requirement.get("eligibleCardIds", []):
+		for id in eligible:
 			if not facts.has(str(id)): continue
 			var card = _face(key, str(id), facts[str(id)], group.get_node("Cards"), presenter)
 			card.show(); card.select_card(id in _chosen.get(key, []))
 			if not card.has_meta("payment_bound"):
 				card.set_meta("payment_bound", true)
 				card.pressed.connect(func():
-					var selected: Array = _chosen.get(key, []).duplicate()
-					if id in selected: selected.erase(id)
-					else: selected.append(id)
-					_chosen[key] = selected; card.select_card(id in selected); refresh_preview())
+					var picks: Array = _chosen.get(key, []).duplicate()
+					if id in picks: picks.erase(id)
+					else: picks.append(id)
+					_chosen[key] = picks
+					card.select_card(id in picks)
+					refresh_preview())
 	_updating = false
 
 func _face(key: String, id: String, fact: Dictionary, parent: Node, presenter):

@@ -174,7 +174,12 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_title.add_theme_color_override("font_color", visual_context.styles.INK)
 	var relation := str(actor.get("relationship", "Enemy" if hostile else "Ally"))
 	var affiliation := "YOUR SIDE" if relation == "Ally" else ("No intent revealed" if relation == "Enemy" else "NEUTRAL")
-	_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)
+	var side := "Ally" if relation == "Ally" else ("Enemy" if relation == "Enemy" else "NEUTRAL")
+	var side_text: String = visual_context.translator.text(side)
+	if authored_battlefield_layout and not intent.is_empty():
+		_intent.text = "%s · %s" % [side_text, intent]
+	else:
+		_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)
 	_intent.tooltip_text = _intent.text
 	_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
 	_intent_row.visible = (not intent.is_empty() or hostile or relation == "Neutral") if authored_battlefield_layout else (not (battlefield and visual_context.profile.compact_actor_hud) or hostile or relation == "Neutral" or not intent.is_empty())
@@ -207,6 +212,8 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()
 	target_button.tooltip_text = name_text + "\n" + _intent.text
+	if authored_battlefield_layout:
+		target_button.accessibility_name = "%s · %s" % [name_text, side_text]
 	portrait_view.rebind_context(visual_context)
 	if not battlefield: portrait_view.setup("actors", str(actor.get("definitionId", "")))
 	else: portrait_view.texture = null
@@ -214,6 +221,10 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		var style: StyleBoxFlat = target_button.get_theme_stylebox(state).duplicate()
 		style.bg_color = visual_context.styles.color("surface.target_hover")
 		style.border_color = visual_context.styles.GOLD
+		if authored_battlefield_layout and state == "focus":
+			style.border_color = visual_context.styles.INK
+			style.bg_color = Color.TRANSPARENT
+			style.set_expand_margin_all(4.0)
 		target_button.add_theme_stylebox_override(state, style)
 
 func _status_precedes(left: Dictionary, right: Dictionary) -> bool:
