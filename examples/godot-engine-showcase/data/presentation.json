@@ -1,9 +1,11 @@
 {
   "loadout_layouts": {
-    "prototype-test": { "minimumCommonPositions": 6, "reserveIdentitySlot": true, "identitySlotId": "identity" }
+    "prototype-test": { "minimumCommonPositions": 6, "reserveIdentitySlot": true, "identitySlotId": "identity" },
+    "alisyum": { "minimumCommonPositions": 6, "reserveIdentitySlot": true, "identitySlotId": "identity" }
   },
   "hidden_system_actions": {
-    "prototype-test": ["PASS"]
+    "prototype-test": ["PASS"],
+    "alisyum": ["PASS"]
   },
   "intent_icons": {"Attack": "attack", "Guard": "guard", "Poison Spit": "unknown"},
   "card_tag_labels": {"fire": "Fire", "poison": "Poison", "frost": "Frost", "shadow": "Shadow", "void": "Void", "divine": "Divine", "lightning": "Lightning", "ember": "Ember"},
@@ -12,7 +14,9 @@
     "health",
     "block",
     "energy",
-    "mana"
+    "mana",
+    "heat_gauge",
+    "blood_tithe"
   ],
   "cards": {
     "basic_attack": {

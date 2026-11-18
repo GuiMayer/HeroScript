@@ -7,12 +7,30 @@
   "alisyum_camp_rest.temper.description": {"en": "Gain 2 Runic Shards for crafting and rerolls.", "pt_BR": "Ganhe 2 Fragmentos Rúnicos para a forja e para renovar ofertas."},
   "alisyum_chapter_1": {"en": "Alisyum · Abar", "pt_BR": "Alisyum · Abar"},
   "prototype_chapter": {"en": "Tactical Campaign MVP", "pt_BR": "Campanha Tática MVP"},
-  "prototype_split_item": {"en": "Split pattern", "pt_BR": "Padrão de divisão"},
-  "prototype_split_item.description": {"en": "Repeats this card's main effect three times, sharing its original amount across hits.", "pt_BR": "Repete o efeito principal da carta três vezes, dividindo o valor original entre os golpes."},
-  "prototype_ward_link_item": {"en": "Guard pattern", "pt_BR": "Padrão de guarda"},
-  "prototype_ward_link_item.description": {"en": "Adds a separate effect: gain 4 base Block after this card's other effects.", "pt_BR": "Adiciona um efeito separado: recebe 4 de bloqueio base após os outros efeitos da carta."},
-  "prototype_stable_item": {"en": "Stable pattern", "pt_BR": "Padrão estável"},
-  "prototype_stable_item.description": {"en": "Prevents this card's damage effects from rolling critical tiers.", "pt_BR": "Impede que os efeitos de dano desta carta produzam níveis críticos."},
+  "prototype_split_item": {
+	"en": "Split pattern",
+	"pt_BR": "Padrão de divisão"
+  },
+  "prototype_split_item.description": {
+	"en": "Repeats this card's main effect three times, sharing its original amount across hits.",
+	"pt_BR": "Repete o efeito principal da carta três vezes, dividindo o valor original entre os golpes."
+  },
+  "prototype_ward_link_item": {
+	"en": "Guard pattern",
+	"pt_BR": "Padrão de guarda"
+  },
+  "prototype_ward_link_item.description": {
+	"en": "Adds a separate effect: gain 4 base Block after this card's other effects.",
+	"pt_BR": "Adiciona um efeito separado: recebe 4 de bloqueio base após os outros efeitos da carta."
+  },
+  "prototype_stable_item": {
+	"en": "Stable pattern",
+	"pt_BR": "Padrão estável"
+  },
+  "prototype_stable_item.description": {
+	"en": "Prevents this card's damage effects from rolling critical tiers.",
+	"pt_BR": "Impede que os efeitos de dano desta carta produzam níveis críticos."
+  },
   "prototype_void": {
 	"en": "Void module",
 	"pt_BR": "Módulo Void"
@@ -81,7 +99,6 @@
 	"en": "Necro release",
 	"pt_BR": "Liberação Necro"
   },
-
   "w1_power_surge": {
 	"en": "Power Surge",
 	"pt_BR": "Surto de energia"
@@ -111,8 +128,8 @@
 	"pt_BR": "Guarda desesperada"
   },
   "w1_shelter": {
-	"en": "Shelter",
-	"pt_BR": "Abrigo"
+	"en": "Quiet Shelter",
+	"pt_BR": "Abrigo tranquilo"
   },
   "w1_cinder_brand": {
 	"en": "Cinder Brand",
@@ -190,36 +207,126 @@
 	"en": "Volatile rot",
 	"pt_BR": "Podridão volátil"
   },
-  "w1_focus.description": { "en": "Gain 80 percentage points of critical chance for this combat. Does not stack.", "pt_BR": "Ganha 80 pontos percentuais de chance crítica neste combate. Não acumula." },
-  "w1_reserve.description": { "en": "Stores defense potency until you release it with Release Guard. It does not grant Block each turn.", "pt_BR": "Armazena potência defensiva até ser liberada com Liberar guarda. Não concede Bloqueio a cada turno." },
-  "w1_release_guard.description": { "en": "Consumes your stored Guard reserve and converts its accumulated potency into Block in one proc. Does nothing without a reserve.", "pt_BR": "Consome sua reserva de guarda e converte a potência acumulada em Bloqueio em um único proc. Sem reserva, não produz efeito." },
-  "w1_release_dot.description": { "en": "Consumes eligible Scorch and Corrosion stacks and releases their accumulated potency as damage in one proc.", "pt_BR": "Consome os acúmulos elegíveis de Queimadura e Corrosão e libera a potência acumulada como dano em um único proc." },
-  "Amount": { "en": "Amount", "pt_BR": "Quantidade" },
-  "StatusStacks": { "en": "Status stacks", "pt_BR": "Acúmulos de status" },
-  "ModifierStacks": { "en": "Modifier stacks", "pt_BR": "Acúmulos do modificador" },
-  "CardCount": { "en": "Card count", "pt_BR": "Quantidade de cartas" },
-  "w1_fire_item": { "en": "Ember imprint", "pt_BR": "Marca de brasa" },
-  "w1_poison_item": { "en": "Venom imprint", "pt_BR": "Marca de veneno" },
-  "w1_split_item": { "en": "Split matrix", "pt_BR": "Matriz de divisão" },
-  "w1_cascade_item": { "en": "Cascade link", "pt_BR": "Elo de cascata" },
-  "w1_efficiency_item": { "en": "Efficiency matrix", "pt_BR": "Matriz de eficiência" },
-  "w1_calibration_item": { "en": "Calibration matrix", "pt_BR": "Matriz de calibração" },
-  "w1_amplify_item": { "en": "Amplification matrix", "pt_BR": "Matriz de amplificação" },
-  "w1_recall_item": { "en": "Recall link", "pt_BR": "Elo de compra" },
-  "w1_ward_item": { "en": "Ward link", "pt_BR": "Elo de defesa" },
-  "w1_condense_item": { "en": "Condensation seal", "pt_BR": "Selo de condensação" },
-  "w1_no_critical_item": { "en": "Stable matrix", "pt_BR": "Matriz estável" },
-  "w1_efficiency_item.description": { "en": "Reduces this card's Energy cost by 1.", "pt_BR": "Reduz o custo de Energia desta carta em 1." },
-  "w1_calibration_item.description": { "en": "Adds 40 percentage points of critical chance to this card's damage effects.", "pt_BR": "Adiciona 40 pontos percentuais de chance crítica aos efeitos de dano desta carta." },
-  "w1_amplify_item.description": { "en": "Multiplies this card's damage by 1.2 (20% more damage).", "pt_BR": "Multiplica o dano desta carta por 1,2 (20% mais dano)." },
-  "w1_recall_item.description": { "en": "Adds: draw 1 card after the card's other effects.", "pt_BR": "Adiciona: compre 1 carta após os demais efeitos da carta." },
-  "w1_ward_item.description": { "en": "Adds: gain 4 base Block after the card's other effects.", "pt_BR": "Adiciona: ganhe 4 de Bloqueio base após os demais efeitos da carta." },
-  "w1_condense_item.description": { "en": "Replaces the main effect: consume the target's eligible residual stacks and release their accumulated potency in one proc.", "pt_BR": "Substitui o efeito principal: consome os acúmulos residuais elegíveis do alvo e libera a potência acumulada em um único proc." },
-  "w1_fire_item.description": { "en": "Adds the Fire tag and applies 1 Scorch stack with base potency 2 for 2 activations.", "pt_BR": "Adiciona a tag Fogo e aplica 1 acúmulo de Queimadura com potência base 2 por 2 ativações." },
-  "w1_poison_item.description": { "en": "Adds the Poison tag and applies 1 Corrosion stack with base potency 2 for 2 activations.", "pt_BR": "Adiciona a tag Veneno e aplica 1 acúmulo de Corrosão com potência base 2 por 2 ativações." },
-  "w1_split_item.description": { "en": "Repeats the main effect 3 times and adds the Multihit tag. The shared amount is split across hits.", "pt_BR": "Repete o efeito principal 3 vezes e adiciona a tag Múltiplos acertos. O valor compartilhado é dividido entre os acertos." },
-  "w1_cascade_item.description": { "en": "Carries excess damage to the enemy with the lowest Health, for up to 3 jumps. Additional effects do not jump.", "pt_BR": "Transfere o dano excedente ao inimigo com menos Vida, por até 3 saltos. Efeitos adicionais não saltam." },
-  "w1_no_critical_item.description": { "en": "Prevents damage effects from rolling critical tiers.", "pt_BR": "Impede que os efeitos de dano desta carta causem críticos." },
+  "w1_focus.description": {
+	"en": "Gain 80 percentage points of critical chance for this combat. Does not stack.",
+	"pt_BR": "Ganha 80 pontos percentuais de chance crítica neste combate. Não acumula."
+  },
+  "w1_reserve.description": {
+	"en": "Stores defense potency until you release it with Release Guard. It does not grant Block each turn.",
+	"pt_BR": "Armazena potência defensiva até ser liberada com Liberar guarda. Não concede Bloqueio a cada turno."
+  },
+  "w1_release_guard.description": {
+	"en": "Consumes your stored Guard reserve and converts its accumulated potency into Block in one proc. Does nothing without a reserve.",
+	"pt_BR": "Consome sua reserva de guarda e converte a potência acumulada em Bloqueio em um único proc. Sem reserva, não produz efeito."
+  },
+  "w1_release_dot.description": {
+	"en": "Consumes eligible Scorch and Corrosion stacks and releases their accumulated potency as damage in one proc.",
+	"pt_BR": "Consome os acúmulos elegíveis de Queimadura e Corrosão e libera a potência acumulada como dano em um único proc."
+  },
+  "Amount": {
+	"en": "Amount",
+	"pt_BR": "Quantidade"
+  },
+  "StatusStacks": {
+	"en": "Status stacks",
+	"pt_BR": "Acúmulos de status"
+  },
+  "ModifierStacks": {
+	"en": "Modifier stacks",
+	"pt_BR": "Acúmulos do modificador"
+  },
+  "CardCount": {
+	"en": "Card count",
+	"pt_BR": "Quantidade de cartas"
+  },
+  "w1_fire_item": {
+	"en": "Ember imprint",
+	"pt_BR": "Marca de brasa"
+  },
+  "w1_poison_item": {
+	"en": "Venom imprint",
+	"pt_BR": "Marca de veneno"
+  },
+  "w1_split_item": {
+	"en": "Split matrix",
+	"pt_BR": "Matriz de divisão"
+  },
+  "w1_cascade_item": {
+	"en": "Cascade link",
+	"pt_BR": "Elo de cascata"
+  },
+  "w1_efficiency_item": {
+	"en": "Efficiency matrix",
+	"pt_BR": "Matriz de eficiência"
+  },
+  "w1_calibration_item": {
+	"en": "Calibration matrix",
+	"pt_BR": "Matriz de calibração"
+  },
+  "w1_amplify_item": {
+	"en": "Amplification matrix",
+	"pt_BR": "Matriz de amplificação"
+  },
+  "w1_recall_item": {
+	"en": "Recall link",
+	"pt_BR": "Elo de compra"
+  },
+  "w1_ward_item": {
+	"en": "Ward link",
+	"pt_BR": "Elo de defesa"
+  },
+  "w1_condense_item": {
+	"en": "Condensation seal",
+	"pt_BR": "Selo de condensação"
+  },
+  "w1_no_critical_item": {
+	"en": "Stable matrix",
+	"pt_BR": "Matriz estável"
+  },
+  "w1_efficiency_item.description": {
+	"en": "Reduces this card's Energy cost by 1.",
+	"pt_BR": "Reduz o custo de Energia desta carta em 1."
+  },
+  "w1_calibration_item.description": {
+	"en": "Adds 40 percentage points of critical chance to this card's damage effects.",
+	"pt_BR": "Adiciona 40 pontos percentuais de chance crítica aos efeitos de dano desta carta."
+  },
+  "w1_amplify_item.description": {
+	"en": "Multiplies this card's damage by 1.2 (20% more damage).",
+	"pt_BR": "Multiplica o dano desta carta por 1,2 (20% mais dano)."
+  },
+  "w1_recall_item.description": {
+	"en": "Adds: draw 1 card after the card's other effects.",
+	"pt_BR": "Adiciona: compre 1 carta após os demais efeitos da carta."
+  },
+  "w1_ward_item.description": {
+	"en": "Adds: gain 4 base Block after the card's other effects.",
+	"pt_BR": "Adiciona: ganhe 4 de Bloqueio base após os demais efeitos da carta."
+  },
+  "w1_condense_item.description": {
+	"en": "Replaces the main effect: consume the target's eligible residual stacks and release their accumulated potency in one proc.",
+	"pt_BR": "Substitui o efeito principal: consome os acúmulos residuais elegíveis do alvo e libera a potência acumulada em um único proc."
+  },
+  "w1_fire_item.description": {
+	"en": "Adds the Fire tag and applies 1 Scorch stack with base potency 2 for 2 activations.",
+	"pt_BR": "Adiciona a tag Fogo e aplica 1 acúmulo de Queimadura com potência base 2 por 2 ativações."
+  },
+  "w1_poison_item.description": {
+	"en": "Adds the Poison tag and applies 1 Corrosion stack with base potency 2 for 2 activations.",
+	"pt_BR": "Adiciona a tag Veneno e aplica 1 acúmulo de Corrosão com potência base 2 por 2 ativações."
+  },
+  "w1_split_item.description": {
+	"en": "Repeats the main effect 3 times and adds the Multihit tag. The shared amount is split across hits.",
+	"pt_BR": "Repete o efeito principal 3 vezes e adiciona a tag Múltiplos acertos. O valor compartilhado é dividido entre os acertos."
+  },
+  "w1_cascade_item.description": {
+	"en": "Carries excess damage to the enemy with the lowest Health, for up to 3 jumps. Additional effects do not jump.",
+	"pt_BR": "Transfere o dano excedente ao inimigo com menos Vida, por até 3 saltos. Efeitos adicionais não saltam."
+  },
+  "w1_no_critical_item.description": {
+	"en": "Prevents damage effects from rolling critical tiers.",
+	"pt_BR": "Impede que os efeitos de dano desta carta causem críticos."
+  },
   "core_strike": {
 	"en": "Volatile Strike",
 	"pt_BR": "Golpe volátil"
@@ -660,9 +767,18 @@
 	"en": "Matrix Strike",
 	"pt_BR": "Golpe da matriz"
   },
-  "w1_last_guard": {"en": "Last Guard", "pt_BR": "Última guarda"},
-  "w1_second_wind": {"en": "Second Wind", "pt_BR": "Novo fôlego"},
-  "w1_solar_burst": {"en": "Solar Burst", "pt_BR": "Explosão solar"},
+  "w1_last_guard": {
+	"en": "Last Guard",
+	"pt_BR": "Última guarda"
+  },
+  "w1_second_wind": {
+	"en": "Second Wind",
+	"pt_BR": "Novo fôlego"
+  },
+  "w1_solar_burst": {
+	"en": "Solar Burst",
+	"pt_BR": "Explosão solar"
+  },
   "w1_guard": {
 	"en": "Kinetic Guard",
 	"pt_BR": "Guarda cinética"
@@ -918,10 +1034,6 @@
   "w1_salvage": {
 	"en": "Unstable Salvage",
 	"pt_BR": "Sucata instável"
-  },
-  "w1_shelter": {
-	"en": "Quiet Shelter",
-	"pt_BR": "Abrigo tranquilo"
   },
   "w1_archive": {
 	"en": "Old Archive",
@@ -1462,5 +1574,1057 @@
   "w1_prime.cataclysm": {
 	"en": "Cataclysm: 34",
 	"pt_BR": "Cataclismo: 34"
+  },
+  "alisyum_basic_strike": {
+	"en": "Steel Strike",
+	"pt_BR": "Golpe de Aço"
+  },
+  "alisyum_basic_guard": {
+	"en": "Guard Stance",
+	"pt_BR": "Postura de Guarda"
+  },
+  "pyro_magma_slash": {
+	"en": "Magma Slash",
+	"pt_BR": "Talho de Magma"
+  },
+  "pyro_ash_carapace": {
+	"en": "Ash Carapace",
+	"pt_BR": "Crosta de Cinzas"
+  },
+  "pyro_overheat_surge": {
+	"en": "Rupture Chest Rune",
+	"pt_BR": "Romper a Runa Peitoral"
+  },
+  "pyro_detonate_chest": {
+	"en": "Vidaria Eruption",
+	"pt_BR": "Erupção de Vidaria"
+  },
+  "pyro_furnace_vent": {
+	"en": "Furnace Vent",
+	"pt_BR": "Válvula da Fornalha"
+  },
+  "baron_crimson_cleave": {
+	"en": "Crimson River Cleave",
+	"pt_BR": "Talho do Rio Escarlate"
+  },
+  "baron_blood_pact": {
+	"en": "Crimson Lance Pact",
+	"pt_BR": "Pacto da Lança Carmesim"
+  },
+  "baron_crimson_bulwark": {
+	"en": "First War Bulwark",
+	"pt_BR": "Bastião da Primeira Guerra"
+  },
+  "gambler_loaded_toss": {
+	"en": "Aelara's Loaded Toss",
+	"pt_BR": "Lance Marcado de Aelara"
+  },
+  "gambler_rig_the_odds": {
+	"en": "Rig the Odds",
+	"pt_BR": "Viciar a Banca"
+  },
+  "gambler_all_in": {
+	"en": "All In",
+	"pt_BR": "Tudo na Mesa"
+  },
+  "vitreous_crystal_bash": {
+	"en": "Vitreous Charge",
+	"pt_BR": "Investida Vítrea"
+  },
+  "vitreous_frost_shard": {
+	"en": "Illana's Shard",
+	"pt_BR": "Estilhaço de Illana"
+  },
+  "vitreous_glacial_wall": {
+	"en": "Cold Glass Wall",
+	"pt_BR": "Muralha de Vidro Frio"
+  },
+  "pyro_cinder_spark": {
+	"en": "Cinder Spark",
+	"pt_BR": "Faísca de Brasa"
+  },
+  "pyro_ember_volley": {
+	"en": "Ember Volley",
+	"pt_BR": "Salva de Brasas"
+  },
+  "pyro_kindle_flame": {
+	"en": "Kindle the Forge",
+	"pt_BR": "Atiçar a Forja"
+  },
+  "pyro_charred_guard": {
+	"en": "Cauterized Stance",
+	"pt_BR": "Postura Cauterizada"
+  },
+  "pyro_scorch_trail": {
+	"en": "Scorching Trail",
+	"pt_BR": "Rastro Incandescente"
+  },
+  "pyro_runic_venting": {
+	"en": "Runic Venting",
+	"pt_BR": "Escape da Runa"
+  },
+  "pyro_slag_hammer": {
+	"en": "Slag Hammer",
+	"pt_BR": "Malho de Escória"
+  },
+  "pyro_cauterize": {
+	"en": "Brutal Cauterize",
+	"pt_BR": "Cauterização Bruta"
+  },
+  "pyro_flare_step": {
+	"en": "Flare Step",
+	"pt_BR": "Passo Fulgurante"
+  },
+  "pyro_ash_recall": {
+	"en": "Lingering Ashes",
+	"pt_BR": "Cinzas Persistentes"
+  },
+  "pyro_thermal_crush": {
+	"en": "Thermal Crush",
+	"pt_BR": "Esmagamento Térmico"
+  },
+  "pyro_magma_cascade": {
+	"en": "Magma Cascade",
+	"pt_BR": "Cascata Magmática"
+  },
+  "pyro_crucible_call": {
+	"en": "Crucible Call",
+	"pt_BR": "Chamado do Cadinho"
+  },
+  "pyro_pyre_sacrifice": {
+	"en": "Sacrificial Pyre",
+	"pt_BR": "Pira Sacrificial"
+  },
+  "pyro_blistering_shell": {
+	"en": "Volcanic Carapace",
+	"pt_BR": "Carapaça Vulcânica"
+  },
+  "pyro_sear_soul": {
+	"en": "Vidaria Brand",
+	"pt_BR": "Marca de Vidaria"
+  },
+  "pyro_molten_flurry": {
+	"en": "Molten Flurry",
+	"pt_BR": "Rajada Fundida"
+  },
+  "pyro_heat_sink": {
+	"en": "Runic Heat Sink",
+	"pt_BR": "Dissipador Rúnico"
+  },
+  "pyro_living_furnace": {
+	"en": "Living Forge",
+	"pt_BR": "Forja Viva"
+  },
+  "pyro_vidaria_core_meltdown": {
+	"en": "Core Meltdown",
+	"pt_BR": "Fusão do Núcleo"
+  },
+  "pyro_ash_phoenix": {
+	"en": "Reborn Ashes",
+	"pt_BR": "Cinzas Renascidas"
+  },
+  "pyro_cataclysm_nova": {
+	"en": "Vidaria Nova",
+	"pt_BR": "Nova de Vidaria"
+  },
+  "pyro_chain_eruption": {
+	"en": "Chain Eruption",
+	"pt_BR": "Reação em Cadeia"
+  },
+  "pyro_obsidian_skin": {
+	"en": "Eternal Ash Skin",
+	"pt_BR": "Pele de Cinza Eterna"
+  },
+  "pyro_infernal_echo": {
+	"en": "Furnace Echo",
+	"pt_BR": "Eco da Fornalha"
+  },
+  "baron_iron_discipline": {
+	"en": "First War Discipline",
+	"pt_BR": "Disciplina da Primeira Guerra"
+  },
+  "baron_vein_cutter": {
+	"en": "Vein Cutter",
+	"pt_BR": "Corta-Veias"
+  },
+  "baron_tithe_strike": {
+	"en": "Tithe Strike",
+	"pt_BR": "Golpe do Tributo"
+  },
+  "baron_crimson_salve": {
+	"en": "Nosirian Salve",
+	"pt_BR": "Unguento de Nosirian"
+  },
+  "baron_blood_draw": {
+	"en": "Tactical Bloodletting",
+	"pt_BR": "Sangria Tática"
+  },
+  "baron_serrated_sweep": {
+	"en": "Serrated Sweep",
+	"pt_BR": "Varredura Serrilhada"
+  },
+  "baron_red_banner": {
+	"en": "Baron's Banner",
+	"pt_BR": "Estandarte do Barão"
+  },
+  "baron_flesh_tax": {
+	"en": "Flesh Tithe",
+	"pt_BR": "Dízimo da Carne"
+  },
+  "baron_scarlet_parry": {
+	"en": "Scarlet Parry",
+	"pt_BR": "Aparo Carmesim"
+  },
+  "baron_martyr_step": {
+	"en": "Martyr's Step",
+	"pt_BR": "Passo do Mártir"
+  },
+  "baron_recall_lance": {
+	"en": "Reclaim the Lance",
+	"pt_BR": "Retomar a Lança"
+  },
+  "baron_crimson_harvest": {
+	"en": "Crimson Harvest",
+	"pt_BR": "Colheita Escarlate"
+  },
+  "baron_vengeance_blade": {
+	"en": "Scarblade",
+	"pt_BR": "Lâmina da Cicatriz"
+  },
+  "baron_arterial_burst": {
+	"en": "Arterial Burst",
+	"pt_BR": "Ruptura Arterial"
+  },
+  "baron_blood_forge": {
+	"en": "Blood Forge",
+	"pt_BR": "Forja de Sangue"
+  },
+  "baron_general_command": {
+	"en": "General's Command",
+	"pt_BR": "Ordem do General"
+  },
+  "baron_river_tide": {
+	"en": "Scarlet River Tide",
+	"pt_BR": "Maré do Rio Escarlate"
+  },
+  "baron_hemorrhage_flurry": {
+	"en": "Flurry of Thrusts",
+	"pt_BR": "Chuva de Estocadas"
+  },
+  "baron_blood_shield_conv": {
+	"en": "Armored Coagulate",
+	"pt_BR": "Coágulo Blindado"
+  },
+  "baron_first_war_march": {
+	"en": "Nosirian March",
+	"pt_BR": "Marcha de Nosirian"
+  },
+  "baron_undying_thirst": {
+	"en": "Undying Thirst",
+	"pt_BR": "Sede Imortal"
+  },
+  "baron_baron_decree": {
+	"en": "Red Baron's Decree",
+	"pt_BR": "Decreto do Barão Rubro"
+  },
+  "baron_exsanguinate": {
+	"en": "Exsanguinate",
+	"pt_BR": "Exsanguinar"
+  },
+  "baron_scarlet_apotheosis": {
+	"en": "Scarlet Apotheosis",
+	"pt_BR": "Apoteose Escarlate"
+  },
+  "baron_oath_sacrifice": {
+	"en": "Oath of Iron and Blood",
+	"pt_BR": "Juramento de Ferro e Sangue"
+  },
+  "baron_immortal_stand": {
+	"en": "Immortal Stand",
+	"pt_BR": "Postura Imortal"
+  },
+  "baron_returning_spear": {
+	"en": "Spear of the Oath",
+	"pt_BR": "Lança do Juramento"
+  },
+  "gambler_pocket_knife": {
+	"en": "Sleeve Blade",
+	"pt_BR": "Lâmina na Manga"
+  },
+  "gambler_double_tap": {
+	"en": "Crolbia Double Tap",
+	"pt_BR": "Tiro Duplo de Crolbia"
+  },
+  "gambler_sleight_guard": {
+	"en": "Sleight of Guard",
+	"pt_BR": "Prestidigitação Defensiva"
+  },
+  "gambler_sharpen_odds": {
+	"en": "Sharpen the Odds",
+	"pt_BR": "Afiar a Sorte"
+  },
+  "gambler_bluff_step": {
+	"en": "Bluff Step",
+	"pt_BR": "Passo do Blefe"
+  },
+  "gambler_scatter_coins": {
+	"en": "Coin Shower",
+	"pt_BR": "Chuva de Fichas"
+  },
+  "gambler_cut_deck": {
+	"en": "Cut the Deck",
+	"pt_BR": "Cortar o Baralho"
+  },
+  "gambler_redeal": {
+	"en": "Redeal",
+	"pt_BR": "Nova Distribuição"
+  },
+  "gambler_piercing_card": {
+	"en": "Marked Edge",
+	"pt_BR": "Carta Marcada Perfurante"
+  },
+  "gambler_lucky_feign": {
+	"en": "Aelara's Feint",
+	"pt_BR": "Finta de Aelara"
+  },
+  "gambler_fan_of_daggers": {
+	"en": "Ivory Fan",
+	"pt_BR": "Leque de Marfim"
+  },
+  "gambler_stacked_deck": {
+	"en": "Stacked Deck",
+	"pt_BR": "Baralho Empilhado"
+  },
+  "gambler_fold_and_draw": {
+	"en": "Fold Bad Hand",
+	"pt_BR": "Queimar a Mão Ruim"
+  },
+  "gambler_execution_bet": {
+	"en": "Execution Bet",
+	"pt_BR": "Aposta na Degola"
+  },
+  "gambler_high_roller": {
+	"en": "High Roller",
+	"pt_BR": "Apostador Nato"
+  },
+  "gambler_ricochet_die": {
+	"en": "Ricochet Die",
+	"pt_BR": "Dado Ricochete"
+  },
+  "gambler_mirage_guard": {
+	"en": "Improbable Dodge",
+	"pt_BR": "Esquiva Improvável"
+  },
+  "gambler_crimson_chips": {
+	"en": "Ivory Chips",
+	"pt_BR": "Fichas de Marfim"
+  },
+  "gambler_crolbia_crossfire": {
+	"en": "Harbor Crossfire",
+	"pt_BR": "Fogo Cruzado do Porto"
+  },
+  "gambler_ante_up": {
+	"en": "Ante Up",
+	"pt_BR": "Dobrar a Aposta"
+  },
+  "gambler_hot_hand": {
+	"en": "Hot Hand",
+	"pt_BR": "Mão Quente"
+  },
+  "gambler_aelara_miracle": {
+	"en": "Aelara's Favor",
+	"pt_BR": "Favor de Aelara"
+  },
+  "gambler_jackpot_barrage": {
+	"en": "Jackpot Barrage",
+	"pt_BR": "Grande Prêmio"
+  },
+  "gambler_break_the_bank": {
+	"en": "Break the Bank",
+	"pt_BR": "Quebrar a Banca"
+  },
+  "gambler_perfect_read": {
+	"en": "Perfect Read",
+	"pt_BR": "Leitura Perfeita"
+  },
+  "gambler_house_always_wins": {
+	"en": "The House Always Wins",
+	"pt_BR": "A Casa Sempre Vence"
+  },
+  "gambler_last_coin": {
+	"en": "Last Coin",
+	"pt_BR": "Última Moeda"
+  },
+  "vitreous_calidor_wall": {
+	"en": "Calidor Shield",
+	"pt_BR": "Escudo de Calidor"
+  },
+  "vitreous_ice_bash": {
+	"en": "Freezing Impact",
+	"pt_BR": "Impacto Congelante"
+  },
+  "vitreous_brittle_cut": {
+	"en": "Brittle Cut",
+	"pt_BR": "Corte Quebradiço"
+  },
+  "vitreous_mirror_ward": {
+	"en": "Mirrored Aegis",
+	"pt_BR": "Égide Espelhada"
+  },
+  "vitreous_piercing_icicle": {
+	"en": "Piercing Icicle",
+	"pt_BR": "Estalactite Perfurante"
+  },
+  "vitreous_rime_sweep": {
+	"en": "Rime Sweep",
+	"pt_BR": "Varredura de Geada"
+  },
+  "vitreous_crystalline_step": {
+	"en": "Crystalline Step",
+	"pt_BR": "Passo Cristalino"
+  },
+  "vitreous_frost_cycle": {
+	"en": "Vitreous Refraction",
+	"pt_BR": "Refração Vítrea"
+  },
+  "vitreous_glass_splitter": {
+	"en": "Shattered Shard",
+	"pt_BR": "Caco Estilhaçado"
+  },
+  "vitreous_cold_discipline": {
+	"en": "Glacial Discipline",
+	"pt_BR": "Disciplina Glacial"
+  },
+  "vitreous_fracture_guard": {
+	"en": "Fractured Stance",
+	"pt_BR": "Postura Fraturada"
+  },
+  "vitreous_shatter_frost": {
+	"en": "Illana Shatter",
+	"pt_BR": "Fratura de Illana"
+  },
+  "vitreous_shield_slam_heavy": {
+	"en": "Glass Crush",
+	"pt_BR": "Esmagamento de Vidro"
+  },
+  "vitreous_ice_fortress": {
+	"en": "Bastion of Illana",
+	"pt_BR": "Bastião de Illana"
+  },
+  "vitreous_shatter_wave": {
+	"en": "Shatter Wave",
+	"pt_BR": "Onda de Estilhaços"
+  },
+  "vitreous_glass_tempering": {
+	"en": "Vitreous Tempering",
+	"pt_BR": "Têmpera Vítrea"
+  },
+  "vitreous_renegade_oath": {
+	"en": "Broken Bond",
+	"pt_BR": "Vínculo Partido"
+  },
+  "vitreous_breaker_lance": {
+	"en": "Shieldbreaker Lance",
+	"pt_BR": "Lança Quebra-Escudo"
+  },
+  "vitreous_cryo_tutor": {
+	"en": "Memory of Ice",
+	"pt_BR": "Memória do Gelo"
+  },
+  "vitreous_frozen_cascade": {
+	"en": "Vitreous Avalanche",
+	"pt_BR": "Avalanche Vítrea"
+  },
+  "vitreous_permafrost_power": {
+	"en": "Perpetual Bastion",
+	"pt_BR": "Bastião Perpétuo"
+  },
+  "vitreous_shatter_thorns_power": {
+	"en": "Shard Armor",
+	"pt_BR": "Armadura de Cacos"
+  },
+  "vitreous_illana_monolith": {
+	"en": "Illana Monolith",
+	"pt_BR": "Monólito de Illana"
+  },
+  "vitreous_absolute_zero": {
+	"en": "Absolute Zero",
+	"pt_BR": "Zero Absoluto"
+  },
+  "vitreous_diamond_ram": {
+	"en": "Alisyum Ram",
+	"pt_BR": "Aríete de Alisyum"
+  },
+  "vitreous_crystal_reclaim": {
+	"en": "Crystalline Reforge",
+	"pt_BR": "Reforja Cristalina"
+  },
+  "vitreous_eternal_shard": {
+	"en": "Recurring Shard",
+	"pt_BR": "Caco Recorrente"
+  },
+  "alisyum_burn": {
+	"en": "Burn",
+	"pt_BR": "Queimadura"
+  },
+  "alisyum_overheat": {
+	"en": "Overheat",
+	"pt_BR": "Superaquecido"
+  },
+  "alisyum_chilled": {
+	"en": "Vitreous Chill",
+	"pt_BR": "Gelo Vítreo"
+  },
+  "alisyum_frenzy": {
+	"en": "Combat Frenzy",
+	"pt_BR": "Escalada de Combate"
+  },
+  "alisyum_stacked_luck": {
+	"en": "Loaded Dice",
+	"pt_BR": "Dados Carregados"
+  },
+  "alisyum_cinder_vuln": {
+	"en": "Exposed Ember",
+	"pt_BR": "Brasa Exposta"
+  },
+  "alisyum_marked": {
+	"en": "Marked Target",
+	"pt_BR": "Alvo Marcado"
+  },
+  "alisyum_minor_luck": {
+	"en": "Sharp Eye",
+	"pt_BR": "Olho Vivo"
+  },
+  "alisyum_razor_edge": {
+	"en": "Razor Edge",
+	"pt_BR": "Fio Letal"
+  },
+  "alisyum_blood_surge": {
+	"en": "Crimson Frenzy",
+	"pt_BR": "Frenesi Carmesim"
+  },
+  "alisyum_glacial_plating": {
+	"en": "Vitreous Plating",
+	"pt_BR": "Revestimento Vítreo"
+  },
+  "alisyum_glacial_monolith": {
+	"en": "Illana Monolith",
+	"pt_BR": "Monólito de Illana"
+  },
+  "alisyum_bleed": {
+	"en": "Bleed",
+	"pt_BR": "Hemorragia"
+  },
+  "alisyum_frostbite": {
+	"en": "Frostbite",
+	"pt_BR": "Geada Cristalina"
+  },
+  "alisyum_pyre_aura": {
+	"en": "Living Forge",
+	"pt_BR": "Forja Viva"
+  },
+  "alisyum_obsidian_guard": {
+	"en": "Eternal Ash Skin",
+	"pt_BR": "Pele de Cinza Eterna"
+  },
+  "alisyum_hot_hand": {
+	"en": "Hot Hand",
+	"pt_BR": "Mão Quente"
+  },
+  "alisyum_aelara_favor": {
+	"en": "Aelara's Favor",
+	"pt_BR": "Favor de Aelara"
+  },
+  "alisyum_house_edge": {
+	"en": "The House Always Wins",
+	"pt_BR": "A Casa Sempre Vence"
+  },
+  "alisyum_baron_decree": {
+	"en": "Red Baron's Decree",
+	"pt_BR": "Decreto do Barão Rubro"
+  },
+  "alisyum_permafrost_stance": {
+	"en": "Perpetual Bastion",
+	"pt_BR": "Bastião Perpétuo"
+  },
+  "alisyum_combustion_draw": {
+	"en": "Reborn Ashes",
+	"pt_BR": "Cinzas Renascidas"
+  },
+  "alisyum_undying_thirst": {
+	"en": "Undying Thirst",
+	"pt_BR": "Sede Imortal"
+  },
+  "alisyum_scourge_litany": {
+	"en": "Immortal Stand",
+	"pt_BR": "Postura Imortal"
+  },
+  "alisyum_shatter_thorns": {
+	"en": "Shard Armor",
+	"pt_BR": "Armadura de Cacos"
+  },
+  "parts": {
+	"en": "Runic Shards",
+	"pt_BR": "Fragmentos Rúnicos"
+  },
+  "heat_gauge": {
+	"en": "Rune Heat",
+	"pt_BR": "Calor da Runa"
+  },
+  "blood_tithe": {
+	"en": "Blood Tithe",
+	"pt_BR": "Dízimo de Sangue"
+  },
+  "weapon_damage": {
+	"en": "Martial Damage",
+	"pt_BR": "Dano Marcial"
+  },
+  "spell_damage": {
+	"en": "Arcane Damage",
+	"pt_BR": "Dano Arcano"
+  },
+  "dot_damage": {
+	"en": "Residual Potency",
+	"pt_BR": "Potência Residual"
+  },
+  "block_efficiency": {
+	"en": "Block Efficiency",
+	"pt_BR": "Eficiência de Bloqueio"
+  },
+  "armor": {
+	"en": "Armor",
+	"pt_BR": "Armadura"
+  },
+  "armor_reduction": {
+	"en": "Armor Mitigation",
+	"pt_BR": "Mitigação de Armadura"
+  },
+  "critical_chance": {
+	"en": "Critical Chance",
+	"pt_BR": "Chance Crítica"
+  },
+  "critical_damage": {
+	"en": "Critical Bonus",
+	"pt_BR": "Bônus Crítico"
+  },
+  "critical_tier_cap": {
+	"en": "Extra Critical Tiers",
+	"pt_BR": "Tiers Críticos Extras"
+  },
+  "fire_flat": {
+	"en": "Base Fire Damage",
+	"pt_BR": "Dano Base: Fogo"
+  },
+  "fire_scaling": {
+	"en": "Fire Affinity",
+	"pt_BR": "Afinidade: Fogo"
+  },
+  "blood_scaling": {
+	"en": "Blood Affinity",
+	"pt_BR": "Afinidade: Sangue"
+  },
+  "ice_scaling": {
+	"en": "Frost Affinity",
+	"pt_BR": "Afinidade: Gelo Vítreo"
+  },
+  "void_scaling": {
+	"en": "Void Affinity",
+	"pt_BR": "Afinidade: Abismo"
+  },
+  "lifesteal_ratio": {
+	"en": "Lifesteal Ratio",
+	"pt_BR": "Dreno de Vida"
+  },
+  "pyromancer": {
+	"en": "Pyromancer",
+	"pt_BR": "Piromante"
+  },
+  "baron_servant": {
+	"en": "Servant",
+	"pt_BR": "Servo"
+  },
+  "gambler": {
+	"en": "Gambler",
+	"pt_BR": "Apostador"
+  },
+  "vitreous_renegade": {
+	"en": "Renegade",
+	"pt_BR": "Renegado"
+  },
+  "enemy_vidaria_enforcer": {
+	"en": "Vidaria Modified Enforcer",
+	"pt_BR": "Executor Modificado de Vidaria"
+  },
+  "enemy_blood_cultist": {
+	"en": "Blood Cult Acolyte",
+	"pt_BR": "Acólito do Culto do Sangue"
+  },
+  "enemy_vitreous_sentinel": {
+	"en": "Illana Vitreous Sentinel",
+	"pt_BR": "Sentinela Vítreo de Illana"
+  },
+  "boss_scarlet_inquisitor": {
+	"en": "Scarlet Inquisitor",
+	"pt_BR": "Inquisidor Escarlate"
+  },
+  "enemy_crolbia_duelist": {
+	"en": "Crolbia Corsair",
+	"pt_BR": "Corsário de Crolbia"
+  },
+  "enemy_obor_runesmith": {
+	"en": "Corrupted Obor Runesmith",
+	"pt_BR": "Forjador Corrupto de Obor"
+  },
+  "enemy_ash_abomination": {
+	"en": "Vidaria Incandescent Aberration",
+	"pt_BR": "Aberração Incandescente de Vidaria"
+  },
+  "boss_vidaria_archon": {
+	"en": "Vidaria Furnace Archon",
+	"pt_BR": "Arconte da Fornalha de Vidaria"
+  },
+  "boss_illana_warden": {
+	"en": "Illana Vitreous Warden",
+	"pt_BR": "Carcereiro Vítreo de Illana"
+  },
+  "alisyum_enemy_guard": {
+	"en": "Defensive Carapace: 9 Block",
+	"pt_BR": "Carapaça: 9 Block"
+  },
+  "alisyum_enemy_heavy": {
+	"en": "Heavy Execution: 14",
+	"pt_BR": "Execução: 14"
+  },
+  "alisyum_enemy_attack": {
+	"en": "Brutal Strike: 7",
+	"pt_BR": "Golpe: 7"
+  },
+  "alisyum_enemy_flurry": {
+	"en": "Double Slash: 4 x 2",
+	"pt_BR": "Corte Duplo: 4 x 2"
+  },
+  "alisyum_enemy_clock": {
+	"en": "Battle Frenzy: 8 (+3/turn)",
+	"pt_BR": "Frenesi: 8 (+3/turno)"
+  },
+  "alisyum_enemy_cut_bleed": {
+	"en": "Serrated Slash: 5 + 2 Bleed",
+	"pt_BR": "Sangria: 5 + 2 Bleed"
+  },
+  "alisyum_enemy_heavy_guard": {
+	"en": "Runic Bastion: 14 Block",
+	"pt_BR": "Bastião: 14 Block"
+  },
+  "alisyum_enemy_pierce": {
+	"en": "Piercing Hammer: 11",
+	"pt_BR": "Perfurante: 11"
+  },
+  "alisyum_boss_furnace_wave": {
+	"en": "Furnace Breath: 10 + 3 Burn",
+	"pt_BR": "Fornalha: 10 + 3 Burn"
+  },
+  "alisyum_boss_glacial_slam": {
+	"en": "Vitreous Slam: 11 + Chill",
+	"pt_BR": "Impacto: 11 + Gelo Vítreo"
+  },
+  "pyro_identity_ember_core": {
+	"en": "Chest Rune: Ember Core",
+	"pt_BR": "Runa Peitoral: Núcleo de Brasa"
+  },
+  "pyro_identity_magma_veins": {
+	"en": "Open Magma Veins",
+	"pt_BR": "Veios de Magma Aberto"
+  },
+  "baron_identity_first_oath": {
+	"en": "First War Oath",
+	"pt_BR": "Juramento da Primeira Guerra"
+  },
+  "baron_identity_scarlet_general": {
+	"en": "Scarlet River General",
+	"pt_BR": "General do Rio Escarlate"
+  },
+  "gambler_identity_rigged_die": {
+	"en": "Aelara's Rigged Die",
+	"pt_BR": "Dado Viciado de Aelara"
+  },
+  "gambler_identity_broken_wheel": {
+	"en": "Broken Wheel of Fortune",
+	"pt_BR": "Roda da Fortuna Quebrada"
+  },
+  "vitreous_identity_shattered_shell": {
+	"en": "Shattered Carapace",
+	"pt_BR": "Carapaça Estilhaçada"
+  },
+  "vitreous_identity_glacial_heart": {
+	"en": "Illana's Glacial Heart",
+	"pt_BR": "Coração Glacial de Illana"
+  },
+  "gear_vidaria_torchblade": {
+	"en": "Vidaria Torchblade",
+	"pt_BR": "Lâmina-Tocha de Vidaria"
+  },
+  "gear_nosirian_blood_edge": {
+	"en": "Scarlet River Greatsword",
+	"pt_BR": "Montante do Rio Escarlate"
+  },
+  "gear_crolbia_ivory_dagger": {
+	"en": "Crolbia Ivory Dagger",
+	"pt_BR": "Adaga de Marfim de Crolbia"
+  },
+  "gear_calidor_vitreous_plate": {
+	"en": "Calidor Vitreous Plate",
+	"pt_BR": "Couraça Vítrea de Calidor"
+  },
+  "gear_scarlet_jewel_shard": {
+	"en": "Scarlet Jewel Shard",
+	"pt_BR": "Lasca de Joia Escarlate"
+  },
+  "rune_obor_pyre": {
+	"en": "Obor Rune: Pyre",
+	"pt_BR": "Runa de Obor: Pira"
+  },
+  "rune_obor_bastion": {
+	"en": "Obor Rune: Bastion",
+	"pt_BR": "Runa de Obor: Bastião"
+  },
+  "rune_obor_precision": {
+	"en": "Obor Rune: Keen Edge",
+	"pt_BR": "Runa de Obor: Fio Preciso"
+  },
+  "pyro_identity_cinder_warden": {
+	"en": "Cold Ash Heart",
+	"pt_BR": "Coração de Cinza Fria"
+  },
+  "baron_identity_blood_tithe_lord": {
+	"en": "Mantle of the First Legion",
+	"pt_BR": "Manto da Primeira Legião"
+  },
+  "gambler_identity_ace_high": {
+	"en": "Aelara's Top Hat",
+	"pt_BR": "Cartola de Aelara"
+  },
+  "vitreous_identity_shatter_monolith": {
+	"en": "Glacial Rift Monolith",
+	"pt_BR": "Monólito da Fenda Glacial"
+  },
+  "gear_illana_frost_halberd": {
+	"en": "Illana Glacial Halberd",
+	"pt_BR": "Alabarda Glacial de Illana"
+  },
+  "gear_vidaria_ash_mantle": {
+	"en": "Vidaria Ash Mantle",
+	"pt_BR": "Manto de Cinzas de Vidaria"
+  },
+  "gear_nosirian_war_plate": {
+	"en": "Nosirian Vanguard Cuirass",
+	"pt_BR": "Couraça da Vanguarda de Nosirian"
+  },
+  "gear_dokari_prism_lens": {
+	"en": "Dokari Chromatic Lens",
+	"pt_BR": "Lente Cromática de Dokari"
+  },
+  "gear_crolbia_fated_coin": {
+	"en": "Crolbia Loaded Coin",
+	"pt_BR": "Moeda Viciada de Crolbia"
+  },
+  "gear_illana_mirror_prism": {
+	"en": "Illana Mirrored Prism",
+	"pt_BR": "Prisma Espelhado de Illana"
+  },
+  "rune_obor_hemorrhage": {
+	"en": "Obor Rune: Bloodletting",
+	"pt_BR": "Runa de Obor: Sangria"
+  },
+  "rune_obor_glacier": {
+	"en": "Obor Rune: Glacier",
+	"pt_BR": "Runa de Obor: Geleira"
+  },
+  "alisyum_relic_vidaria_censer": {
+	"en": "Vidaria Censer",
+	"pt_BR": "Incensário de Vidaria"
+  },
+  "alisyum_relic_nosirian_goblet": {
+	"en": "Nosirian Goblet",
+	"pt_BR": "Cálice de Nosirian"
+  },
+  "alisyum_relic_crolbia_die": {
+	"en": "Crolbia Bone Die",
+	"pt_BR": "Dado de Osso de Crolbia"
+  },
+  "alisyum_relic_calidor_shard": {
+	"en": "Calidor Shard",
+	"pt_BR": "Estilhaço de Calidor"
+  },
+  "alisyum_relic_obor_seal": {
+	"en": "Ancient Obor Seal",
+	"pt_BR": "Selo Antigo de Obor"
+  },
+  "alisyum_relic_abar_pendulum": {
+	"en": "Pendulum of Abar",
+	"pt_BR": "Pêndulo do Continente de Abar"
+  },
+  "obor_rune_echo_item": {
+	"en": "Obor Rune: Double Echo",
+	"pt_BR": "Runa de Obor: Eco Duplo"
+  },
+  "obor_rune_echo_item.description": {
+	"en": "Socket into a card to split its main effect into 2 independent hits (Repeat = 2).",
+	"pt_BR": "Encaixa na carta para dividir o golpe principal em 2 acertos independentes (Repeat = 2), dobrando a chance de efeitos por acerto e Críticos."
+  },
+  "obor_rune_ward_item": {
+	"en": "Obor Rune: Engraved Shield",
+	"pt_BR": "Runa de Obor: Escudo Gravado"
+  },
+  "obor_rune_ward_item.description": {
+	"en": "Socket into a card to gain 4 base Block after its main effect.",
+	"pt_BR": "Encaixa na carta para conceder 4 de Block base após o efeito principal."
+  },
+  "obor_rune_pierce_item": {
+	"en": "Obor Rune: Piercing Entropy",
+	"pt_BR": "Runa de Obor: Entropia Perfurante"
+  },
+  "obor_rune_pierce_item.description": {
+	"en": "Socket into a card so its damage ignores target Armor.",
+	"pt_BR": "Encaixa na carta para que seu dano ignore a Armadura do alvo."
+  },
+  "obor_rune_keen_item": {
+	"en": "Obor Rune: Keen Edge",
+	"pt_BR": "Runa de Obor: Lâmina Afiada"
+  },
+  "obor_rune_keen_item.description": {
+	"en": "Socket into a card to grant +20 pp Critical Chance (Sharp Eye) before the main effect.",
+	"pt_BR": "Encaixa na carta para conceder +20 pp de Chance Crítica (Sorte Menor) antes do golpe principal."
+  },
+  "obor_rune_ember_item": {
+	"en": "Obor Rune: Engraved Ember",
+	"pt_BR": "Runa de Obor: Brasa Gravada"
+  },
+  "obor_rune_ember_item.description": {
+	"en": "Socket into an attack card to apply +2 Burn (potency 2) to the target.",
+	"pt_BR": "Encaixa na carta de ataque para aplicar +2 Queimadura (potência 2) ao alvo."
+  },
+  "obor_rune_leech_item": {
+	"en": "Obor Rune: Scarlet Siphon",
+	"pt_BR": "Runa de Obor: Sifão Escarlate"
+  },
+  "obor_rune_leech_item.description": {
+	"en": "Socket into a card to recover 3 Health after resolution.",
+	"pt_BR": "Encaixa na carta para recuperar 3 de Vida após sua resolução."
+  },
+  "obor_upgrade_echo": {
+	"en": "Double Echo",
+	"pt_BR": "Eco Duplo"
+  },
+  "obor_upgrade_ward": {
+	"en": "Engraved Shield",
+	"pt_BR": "Escudo Gravado"
+  },
+  "obor_upgrade_pierce": {
+	"en": "Piercing Entropy",
+	"pt_BR": "Entropia Perfurante"
+  },
+  "obor_upgrade_keen": {
+	"en": "Keen Edge",
+	"pt_BR": "Lâmina Afiada"
+  },
+  "obor_upgrade_ember": {
+	"en": "Engraved Ember",
+	"pt_BR": "Brasa Gravada"
+  },
+  "obor_upgrade_leech": {
+	"en": "Scarlet Siphon",
+	"pt_BR": "Sifão Escarlate"
+  },
+  "chapter_opening": {
+	"en": "Opening Chronicle",
+	"pt_BR": "Crônica Inicial"
+  },
+  "chapter_prepare_0": {
+	"en": "Rune Altar",
+	"pt_BR": "Altar de Runa"
+  },
+  "encounter_1": {
+	"en": "First Patrol",
+	"pt_BR": "Patrulha Inicial"
+  },
+  "reward_1": {
+	"en": "Initial Spoils",
+	"pt_BR": "Espólios Iniciais"
+  },
+  "encounter_2_patrol": {
+	"en": "Ambush Patrol",
+	"pt_BR": "Emboscada da Patrulha"
+  },
+  "reward_2_patrol": {
+	"en": "Patrol Spoils",
+	"pt_BR": "Espólios da Patrulha"
+  },
+  "encounter_2_elite": {
+	"en": "Elite Chamber",
+	"pt_BR": "Câmara de Elite"
+  },
+  "reward_2_elite": {
+	"en": "Elite Spoils",
+	"pt_BR": "Espólios do Elite"
+  },
+  "relic_2": {
+	"en": "Conquest Relic",
+	"pt_BR": "Relíquia de Conquista"
+  },
+  "relicary_1": {
+	"en": "Reliquary of Abar",
+	"pt_BR": "Relicário de Abar"
+  },
+  "event_shrine": {
+	"en": "Broken Shrine of Obor",
+	"pt_BR": "Santuário Partido de Obor"
+  },
+  "event_altar": {
+	"en": "Dry Blood Obelisk",
+	"pt_BR": "Obelisco de Sangue Seco"
+  },
+  "bazaar_1": {
+	"en": "Abar Ash Bazaar",
+	"pt_BR": "Bazar das Cinzas de Abar"
+  },
+  "camp_rest_1": {
+	"en": "Abar Campfire",
+	"pt_BR": "Fogueira de Abar"
+  },
+  "obor_forge_1": {
+	"en": "Obor Runic Forge",
+	"pt_BR": "Forja Rúnica de Obor"
+  },
+  "armory_1": {
+	"en": "Clandestine Armory",
+	"pt_BR": "Arsenal Clandestino"
+  },
+  "encounter_3": {
+	"en": "Citadel Vanguard",
+	"pt_BR": "Guarda da Cidadela"
+  },
+  "reward_3": {
+	"en": "Pre-Boss Spoils",
+	"pt_BR": "Espólios Pré-Chefe"
+  },
+  "encounter_boss": {
+	"en": "Chapter Boss",
+	"pt_BR": "Chefe do Capítulo"
+  },
+  "chapter_ending": {
+	"en": "Chapter Complete",
+	"pt_BR": "Crônica Concluída"
+  },
+  "alisyum": {
+	"en": "Alisyum — The Price of Power",
+	"pt_BR": "Alisyum — O Preço do Poder"
+  },
+  "alisyum_relicary": {
+	"en": "Reliquary of Abar",
+	"pt_BR": "Relicário de Abar"
+  },
+  "alisyum_armory": {
+	"en": "Clandestine Armory",
+	"pt_BR": "Arsenal Clandestino"
   }
 }

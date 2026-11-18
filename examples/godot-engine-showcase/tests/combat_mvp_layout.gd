@@ -79,6 +79,7 @@ func _run() -> void:
 	var registry = load("res://scripts/ui/scene_registry.gd")
 	check(registry.combat_route({"settingId": "ascendant"}, "prototype-test") == "combat", "actual run setting overrides menu selection")
 	check(registry.combat_route({"settingId": "prototype-test"}, "default") == "combat_mvp", "continuing MVP selects correct scene")
+	check(registry.combat_route({"settingId": "alisyum"}, "default") == "combat_mvp", "alisyum routes to new combat_mvp scene")
 	for resolution in [Vector2i(1920,1080), Vector2i(1280,800), Vector2i(2560,1080)]:
 		root.size = resolution
 		await settle()

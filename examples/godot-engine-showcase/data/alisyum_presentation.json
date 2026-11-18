@@ -1,0 +1,737 @@
+{
+  "cards": {
+    "alisyum_basic_strike": {
+      "name": "Steel Strike",
+      "text": "Deal 6 physical damage.",
+      "tone": "attack"
+    },
+    "alisyum_basic_guard": {
+      "name": "Guard Stance",
+      "text": "Gain 5 Block.",
+      "tone": "skill"
+    },
+    "pyro_magma_slash": {
+      "name": "Magma Slash",
+      "text": "Deal 4 Fire damage and apply 3 Burn. Gain +1 Rune Heat.",
+      "tone": "attack"
+    },
+    "pyro_ash_carapace": {
+      "name": "Ash Carapace",
+      "text": "Gain 7 Block. Gain +1 Rune Heat.",
+      "tone": "skill"
+    },
+    "pyro_overheat_surge": {
+      "name": "Rupture Chest Rune",
+      "text": "Enter Overheat (+35% more Fire damage for 2 turns) and draw 1 card. Take 4 thermal damage.",
+      "tone": "skill"
+    },
+    "pyro_detonate_chest": {
+      "name": "Vidaria Eruption",
+      "text": "Condense and detonate all Burn stacks on the target.",
+      "tone": "skill"
+    },
+    "pyro_furnace_vent": {
+      "name": "Furnace Vent",
+      "text": "Deal 11 Fire damage to ALL enemies, apply 2 Burn, and gain +2 Rune Heat.",
+      "tone": "attack"
+    },
+    "baron_crimson_cleave": {
+      "name": "Crimson River Cleave",
+      "text": "Deal 7 Blood damage, gain +2 Blood Tithe, and recover 2 Health.",
+      "tone": "attack"
+    },
+    "baron_blood_pact": {
+      "name": "Crimson Lance Pact",
+      "text": "Sacrifice 5 Health (0 Energy) to deal 13 Blood damage and gain +3 Blood Tithe.",
+      "tone": "attack"
+    },
+    "baron_crimson_bulwark": {
+      "name": "First War Bulwark",
+      "text": "Gain 6 Block and recover 3 Health. Exile.",
+      "tone": "skill"
+    },
+    "gambler_loaded_toss": {
+      "name": "Aelara's Loaded Toss",
+      "text": "Deal 7 damage. Rolls Critical Tiers using your Critical Chance.",
+      "tone": "attack"
+    },
+    "gambler_rig_the_odds": {
+      "name": "Rig the Odds",
+      "text": "Gain 5 Block and +40 pp Critical Chance this turn.",
+      "tone": "skill"
+    },
+    "gambler_all_in": {
+      "name": "All In",
+      "text": "Deal 12 damage split across 2 independent Critical rolls (6 x 2).",
+      "tone": "attack"
+    },
+    "vitreous_crystal_bash": {
+      "name": "Vitreous Charge",
+      "text": "Deal 4 + 75% current Block damage and apply Vitreous Chill (+25% vulnerability).",
+      "tone": "attack"
+    },
+    "vitreous_frost_shard": {
+      "name": "Illana's Shard",
+      "text": "Deal 5 Frost damage and apply Vitreous Chill (+25% damage taken for 2 turns).",
+      "tone": "attack"
+    },
+    "vitreous_glacial_wall": {
+      "name": "Cold Glass Wall",
+      "text": "Gain 8 Block and draw 1 card. Exile.",
+      "tone": "skill"
+    },
+    "pyro_cinder_spark": {
+      "name": "Cinder Spark",
+      "text": "Deal 2 Fire damage (0 Energy), apply 2 Burn, and gain +1 Heat.",
+      "tone": "attack"
+    },
+    "pyro_ember_volley": {
+      "name": "Ember Volley",
+      "text": "Deal 6 Fire damage split into 2 hits (3 x 2), apply 2 Burn, and gain +1 Heat.",
+      "tone": "attack"
+    },
+    "pyro_kindle_flame": {
+      "name": "Kindle the Forge",
+      "text": "Gain 4 Block and apply 3 Burn to the target.",
+      "tone": "skill"
+    },
+    "pyro_charred_guard": {
+      "name": "Cauterized Stance",
+      "text": "Gain 6 Block and apply Exposed Ember (+20% Fire damage taken for 2 turns).",
+      "tone": "skill"
+    },
+    "pyro_scorch_trail": {
+      "name": "Scorching Trail",
+      "text": "Deal 5 Fire damage to ALL enemies and apply 1 Burn to all.",
+      "tone": "attack"
+    },
+    "pyro_runic_venting": {
+      "name": "Runic Venting",
+      "text": "Spend 2 Heat (0 Energy) to draw 2 cards and gain +1 Energy. Exile.",
+      "tone": "skill"
+    },
+    "pyro_slag_hammer": {
+      "name": "Slag Hammer",
+      "text": "Deal 6 Fire damage (+up to 6 bonus against enemies with Block).",
+      "tone": "attack"
+    },
+    "pyro_cauterize": {
+      "name": "Brutal Cauterize",
+      "text": "Take 2 thermal damage, recover 5 Health, and gain 6 Block. Exile.",
+      "tone": "skill"
+    },
+    "pyro_flare_step": {
+      "name": "Flare Step",
+      "text": "Deal 5 Fire damage, draw 1 card, and gain +1 Heat.",
+      "tone": "attack"
+    },
+    "pyro_ash_recall": {
+      "name": "Lingering Ashes",
+      "text": "Gain 5 Block and reclaim the last card from Discard to Hand.",
+      "tone": "skill"
+    },
+    "pyro_thermal_crush": {
+      "name": "Thermal Crush",
+      "text": "Costs 1 Energy (or 3 Heat). Deal 6 + 50% of current Heat as Fire damage.",
+      "tone": "attack"
+    },
+    "pyro_magma_cascade": {
+      "name": "Magma Cascade",
+      "text": "Deal 9 Fire damage with Overflow (excess jumps to another enemy) and apply 2 Burn.",
+      "tone": "attack"
+    },
+    "pyro_crucible_call": {
+      "name": "Crucible Call",
+      "text": "Search draw pile for 1 Fire card and gain +2 Heat. Exile.",
+      "tone": "skill"
+    },
+    "pyro_pyre_sacrifice": {
+      "name": "Sacrificial Pyre",
+      "text": "Exile 1 card from Hand (0 Energy) to gain +2 Energy, +3 Heat, and apply 2 Burn.",
+      "tone": "skill"
+    },
+    "pyro_blistering_shell": {
+      "name": "Volcanic Carapace",
+      "text": "Gain 12 Block, +2 Heat, and apply 3 Burn to the highest-Health enemy.",
+      "tone": "skill"
+    },
+    "pyro_sear_soul": {
+      "name": "Vidaria Brand",
+      "text": "Apply Exposed Ember (+20% Fire damage taken for 2 turns) and 4 Burn. Exile.",
+      "tone": "skill"
+    },
+    "pyro_molten_flurry": {
+      "name": "Molten Flurry",
+      "text": "Deal 12 Fire damage split into 3 hits (4 x 3) and apply 2 Burn.",
+      "tone": "attack"
+    },
+    "pyro_heat_sink": {
+      "name": "Runic Heat Sink",
+      "text": "Gain 4 + 80% of current Heat as Block and draw 1 card.",
+      "tone": "skill"
+    },
+    "pyro_living_furnace": {
+      "name": "Living Forge",
+      "text": "Power: at the end of your turn, apply 2 Burn to ALL enemies. Exile.",
+      "tone": "power"
+    },
+    "pyro_vidaria_core_meltdown": {
+      "name": "Core Meltdown",
+      "text": "Take 6 thermal damage to gain +2 Energy, Overheat (2 turns), and draw 2 cards. Exile.",
+      "tone": "skill"
+    },
+    "pyro_ash_phoenix": {
+      "name": "Reborn Ashes",
+      "text": "Power: whenever you condense or consume Burn stacks, draw 1 card. Exile.",
+      "tone": "power"
+    },
+    "pyro_cataclysm_nova": {
+      "name": "Vidaria Nova",
+      "text": "Deal 14 + 120% current Heat as Fire damage to ALL (ignores Armor) and apply 4 Burn.",
+      "tone": "attack"
+    },
+    "pyro_chain_eruption": {
+      "name": "Chain Eruption",
+      "text": "Apply 4 Burn, condense all Burn on target, and spread 2 Burn to ALL enemies.",
+      "tone": "skill"
+    },
+    "pyro_obsidian_skin": {
+      "name": "Eternal Ash Skin",
+      "text": "Power: at the start of your turn, gain 4 Block and +1 Heat. Exile.",
+      "tone": "power"
+    },
+    "pyro_infernal_echo": {
+      "name": "Furnace Echo",
+      "text": "Deal 8 piercing Fire damage (ignores Block), gain +1 Heat, and return to top of draw pile.",
+      "tone": "attack"
+    },
+    "baron_iron_discipline": {
+      "name": "First War Discipline",
+      "text": "Gain 6 Block and +2 Blood Tithe.",
+      "tone": "skill"
+    },
+    "baron_vein_cutter": {
+      "name": "Vein Cutter",
+      "text": "Deal 5 Blood damage and apply 3 Bleed.",
+      "tone": "attack"
+    },
+    "baron_tithe_strike": {
+      "name": "Tithe Strike",
+      "text": "Costs 1 Energy (or 3 Blood Tithe). Deal 8 Blood damage.",
+      "tone": "attack"
+    },
+    "baron_crimson_salve": {
+      "name": "Nosirian Salve",
+      "text": "Gain 4 Block and recover 4 Health. Exile.",
+      "tone": "skill"
+    },
+    "baron_blood_draw": {
+      "name": "Tactical Bloodletting",
+      "text": "Sacrifice 3 Health (0 Energy) to draw 2 cards and gain +2 Blood Tithe.",
+      "tone": "skill"
+    },
+    "baron_serrated_sweep": {
+      "name": "Serrated Sweep",
+      "text": "Deal 5 Blood damage to ALL enemies and apply 2 Bleed to all.",
+      "tone": "attack"
+    },
+    "baron_red_banner": {
+      "name": "Baron's Banner",
+      "text": "Gain 5 Block and 1 Crimson Frenzy (+15% Blood damage / +10% Lifesteal, 2 turns).",
+      "tone": "skill"
+    },
+    "baron_flesh_tax": {
+      "name": "Flesh Tithe",
+      "text": "Deal 3 Blood damage (0 Energy), gain +3 Blood Tithe, and apply 1 Bleed.",
+      "tone": "attack"
+    },
+    "baron_scarlet_parry": {
+      "name": "Scarlet Parry",
+      "text": "Gain 6 Block and deal 4 Blood damage.",
+      "tone": "attack"
+    },
+    "baron_martyr_step": {
+      "name": "Martyr's Step",
+      "text": "Sacrifice 4 Health to gain 9 Block and draw 1 card.",
+      "tone": "skill"
+    },
+    "baron_recall_lance": {
+      "name": "Reclaim the Lance",
+      "text": "Search draw pile for 1 Attack card and gain +2 Blood Tithe.",
+      "tone": "skill"
+    },
+    "baron_crimson_harvest": {
+      "name": "Crimson Harvest",
+      "text": "Condense all Bleed on target and recover 4 Health.",
+      "tone": "skill"
+    },
+    "baron_vengeance_blade": {
+      "name": "Scarblade",
+      "text": "Deal 8 + 40% of your missing Health as Blood damage.",
+      "tone": "attack"
+    },
+    "baron_arterial_burst": {
+      "name": "Arterial Burst",
+      "text": "Costs 1 Energy (or 5 Blood Tithe). Deal 10 piercing Blood damage (ignores Armor) and apply 4 Bleed.",
+      "tone": "attack"
+    },
+    "baron_blood_forge": {
+      "name": "Blood Forge",
+      "text": "Exile 1 card from Hand (0 Energy) to recover 6 Health and gain +3 Blood Tithe.",
+      "tone": "skill"
+    },
+    "baron_general_command": {
+      "name": "General's Command",
+      "text": "Spend 4 Blood Tithe to gain +2 Energy and draw 2 cards. Exile.",
+      "tone": "skill"
+    },
+    "baron_river_tide": {
+      "name": "Scarlet River Tide",
+      "text": "Deal 10 Blood damage to ALL enemies and recover 4 Health.",
+      "tone": "attack"
+    },
+    "baron_hemorrhage_flurry": {
+      "name": "Flurry of Thrusts",
+      "text": "Deal 12 Blood damage split into 3 hits (4 x 3) and apply 3 Bleed.",
+      "tone": "attack"
+    },
+    "baron_blood_shield_conv": {
+      "name": "Armored Coagulate",
+      "text": "Gain 4 + 60% of current Blood Tithe as Block.",
+      "tone": "skill"
+    },
+    "baron_first_war_march": {
+      "name": "Nosirian March",
+      "text": "Search draw pile for 1 Blood card and gain Crimson Frenzy (2 turns).",
+      "tone": "skill"
+    },
+    "baron_undying_thirst": {
+      "name": "Undying Thirst",
+      "text": "Power: heal 2 Health whenever an attack damages an enemy. Exile.",
+      "tone": "power"
+    },
+    "baron_baron_decree": {
+      "name": "Red Baron's Decree",
+      "text": "Power: at the start of your turn, gain +2 Blood Tithe and +10% Lifesteal. Exile.",
+      "tone": "power"
+    },
+    "baron_exsanguinate": {
+      "name": "Exsanguinate",
+      "text": "Deal 8 damage (ignores Armor), condense all Bleed on target, and recover 5 Health.",
+      "tone": "attack"
+    },
+    "baron_scarlet_apotheosis": {
+      "name": "Scarlet Apotheosis",
+      "text": "Deal 16 + 60% missing Health as Blood damage (Overflow) and recover 8 Health.",
+      "tone": "attack"
+    },
+    "baron_oath_sacrifice": {
+      "name": "Oath of Iron and Blood",
+      "text": "Sacrifice 8 Health (0 Energy) to gain +2 Energy, +5 Blood Tithe, and 10 Block. Exile.",
+      "tone": "skill"
+    },
+    "baron_immortal_stand": {
+      "name": "Immortal Stand",
+      "text": "Power: gain +15 Armor and +4 Block at the start of every turn. Exile.",
+      "tone": "power"
+    },
+    "baron_returning_spear": {
+      "name": "Spear of the Oath",
+      "text": "Deal 8 Blood damage, recover 3 Health, and return to top of draw pile.",
+      "tone": "attack"
+    },
+    "gambler_pocket_knife": {
+      "name": "Sleeve Blade",
+      "text": "Deal 4 damage (0 Energy) and gain Sharp Eye (+20 pp Critical Chance).",
+      "tone": "attack"
+    },
+    "gambler_double_tap": {
+      "name": "Crolbia Double Tap",
+      "text": "Deal 6 damage split into 2 Critical rolls (3 x 2).",
+      "tone": "attack"
+    },
+    "gambler_sleight_guard": {
+      "name": "Sleight of Guard",
+      "text": "Gain 5 Block and draw 1 card.",
+      "tone": "skill"
+    },
+    "gambler_sharpen_odds": {
+      "name": "Sharpen the Odds",
+      "text": "Deal 5 damage and gain Razor Edge (+35% Critical Bonus this turn).",
+      "tone": "attack"
+    },
+    "gambler_bluff_step": {
+      "name": "Bluff Step",
+      "text": "Gain 4 Block (0 Energy) and Sharp Eye (+20 pp Critical Chance).",
+      "tone": "skill"
+    },
+    "gambler_scatter_coins": {
+      "name": "Coin Shower",
+      "text": "Deal 5 damage to ALL enemies and gain Sharp Eye (+20 pp Critical Chance).",
+      "tone": "attack"
+    },
+    "gambler_cut_deck": {
+      "name": "Cut the Deck",
+      "text": "Gain 5 Block and search draw pile for 1 Critical card.",
+      "tone": "skill"
+    },
+    "gambler_redeal": {
+      "name": "Redeal",
+      "text": "Draw 2 cards and gain Sharp Eye (+20 pp Critical Chance).",
+      "tone": "skill"
+    },
+    "gambler_piercing_card": {
+      "name": "Marked Edge",
+      "text": "Deal 6 piercing damage (ignores Block) with boosted Critical pressure.",
+      "tone": "attack"
+    },
+    "gambler_lucky_feign": {
+      "name": "Aelara's Feint",
+      "text": "Gain 5 Block and deal 4 damage.",
+      "tone": "attack"
+    },
+    "gambler_fan_of_daggers": {
+      "name": "Ivory Fan",
+      "text": "Deal 9 damage split into 3 independent Critical rolls (3 x 3).",
+      "tone": "attack"
+    },
+    "gambler_stacked_deck": {
+      "name": "Stacked Deck",
+      "text": "Search draw pile for 1 Attack card and gain +40 pp Critical Chance. Exile.",
+      "tone": "skill"
+    },
+    "gambler_fold_and_draw": {
+      "name": "Fold Bad Hand",
+      "text": "Exile 1 card from Hand (0 Energy) to draw 2 cards and gain +20 pp Critical Chance.",
+      "tone": "skill"
+    },
+    "gambler_execution_bet": {
+      "name": "Execution Bet",
+      "text": "Deal 12 damage (ignores Armor, Overflow) and gain Razor Edge (+35% Critical Bonus).",
+      "tone": "attack"
+    },
+    "gambler_high_roller": {
+      "name": "High Roller",
+      "text": "Gain 9 Block and +40 pp Critical Chance for 1 turn.",
+      "tone": "skill"
+    },
+    "gambler_ricochet_die": {
+      "name": "Ricochet Die",
+      "text": "Deal 12 damage split into 4 independent Critical rolls (3 x 4).",
+      "tone": "attack"
+    },
+    "gambler_mirage_guard": {
+      "name": "Improbable Dodge",
+      "text": "Retain. Gain 7 Block and Sharp Eye (+20 pp Critical Chance).",
+      "tone": "skill"
+    },
+    "gambler_crimson_chips": {
+      "name": "Ivory Chips",
+      "text": "Gain +1 Energy (0 Energy) and +40 pp Critical Chance this turn.",
+      "tone": "skill"
+    },
+    "gambler_crolbia_crossfire": {
+      "name": "Harbor Crossfire",
+      "text": "Deal 8 damage to ALL enemies and gain Sharp Eye (+20 pp Critical Chance).",
+      "tone": "attack"
+    },
+    "gambler_ante_up": {
+      "name": "Ante Up",
+      "text": "Deal 9 damage and gain +35% Critical Bonus for 2 turns.",
+      "tone": "attack"
+    },
+    "gambler_hot_hand": {
+      "name": "Hot Hand",
+      "text": "Power: at the start of your turn, gain +40 pp Critical Chance. Exile.",
+      "tone": "power"
+    },
+    "gambler_aelara_miracle": {
+      "name": "Aelara's Favor",
+      "text": "Power: Critical strikes grant +35% Critical Bonus this turn. Exile.",
+      "tone": "power"
+    },
+    "gambler_jackpot_barrage": {
+      "name": "Jackpot Barrage",
+      "text": "Deal 15 damage split into 5 independent Critical rolls (3 x 5, ignores Armor).",
+      "tone": "attack"
+    },
+    "gambler_break_the_bank": {
+      "name": "Break the Bank",
+      "text": "Gain +2 Energy and +40 pp Critical Chance. Exile.",
+      "tone": "skill"
+    },
+    "gambler_perfect_read": {
+      "name": "Perfect Read",
+      "text": "Apply Marked Target (+20% damage taken), +70% Critical Bonus (2 turns), and draw 1. Exile.",
+      "tone": "skill"
+    },
+    "gambler_house_always_wins": {
+      "name": "The House Always Wins",
+      "text": "Power: at the start of your turn, gain 4 Block and +20 pp Critical Chance. Exile.",
+      "tone": "power"
+    },
+    "gambler_last_coin": {
+      "name": "Last Coin",
+      "text": "Ethereal. Deal 9 piercing damage (0 Energy, ignores Armor, Overflow) and return to draw pile.",
+      "tone": "attack"
+    },
+    "vitreous_calidor_wall": {
+      "name": "Calidor Shield",
+      "text": "Gain 7 Block and +6 temporary Armor for 2 turns.",
+      "tone": "skill"
+    },
+    "vitreous_ice_bash": {
+      "name": "Freezing Impact",
+      "text": "Deal 4 + 75% of your current Block as Frost damage.",
+      "tone": "attack"
+    },
+    "vitreous_brittle_cut": {
+      "name": "Brittle Cut",
+      "text": "Deal 5 Frost damage and apply 3 Frostbite.",
+      "tone": "attack"
+    },
+    "vitreous_mirror_ward": {
+      "name": "Mirrored Aegis",
+      "text": "Retain. Gain 6 Block.",
+      "tone": "skill"
+    },
+    "vitreous_piercing_icicle": {
+      "name": "Piercing Icicle",
+      "text": "Deal 7 piercing Frost damage (ignores Block).",
+      "tone": "attack"
+    },
+    "vitreous_rime_sweep": {
+      "name": "Rime Sweep",
+      "text": "Deal 4 Frost damage to ALL enemies and apply Vitreous Chill (+25% damage taken).",
+      "tone": "attack"
+    },
+    "vitreous_crystalline_step": {
+      "name": "Crystalline Step",
+      "text": "Gain 4 Block (0 Energy) and +6 temporary Armor (2 turns).",
+      "tone": "skill"
+    },
+    "vitreous_frost_cycle": {
+      "name": "Vitreous Refraction",
+      "text": "Draw 2 cards and gain 3 Block.",
+      "tone": "skill"
+    },
+    "vitreous_glass_splitter": {
+      "name": "Shattered Shard",
+      "text": "Deal 6 Frost damage split into 2 hits (3 x 2) and apply 2 Frostbite.",
+      "tone": "attack"
+    },
+    "vitreous_cold_discipline": {
+      "name": "Glacial Discipline",
+      "text": "Search draw pile for 1 Skill card and gain 4 Block.",
+      "tone": "skill"
+    },
+    "vitreous_fracture_guard": {
+      "name": "Fractured Stance",
+      "text": "Gain 5 Block and apply 3 Frostbite.",
+      "tone": "skill"
+    },
+    "vitreous_shatter_frost": {
+      "name": "Illana Shatter",
+      "text": "Condense and detonate all Frostbite on target and apply Vitreous Chill (2 turns).",
+      "tone": "skill"
+    },
+    "vitreous_shield_slam_heavy": {
+      "name": "Glass Crush",
+      "text": "Deal 4 + 100% of your current Block as Frost damage (ignores Armor).",
+      "tone": "attack"
+    },
+    "vitreous_ice_fortress": {
+      "name": "Bastion of Illana",
+      "text": "Gain 13 Block and +12 temporary Armor (2 turns).",
+      "tone": "skill"
+    },
+    "vitreous_shatter_wave": {
+      "name": "Shatter Wave",
+      "text": "Deal 9 Frost damage to ALL enemies and apply 3 Frostbite to all.",
+      "tone": "attack"
+    },
+    "vitreous_glass_tempering": {
+      "name": "Vitreous Tempering",
+      "text": "Exile 1 card from Hand (0 Energy) to gain 8 Block, +1 Energy, and draw 1 card.",
+      "tone": "skill"
+    },
+    "vitreous_renegade_oath": {
+      "name": "Broken Bond",
+      "text": "Spend 5 Block to gain +2 Energy and draw 1 card. Exile.",
+      "tone": "skill"
+    },
+    "vitreous_breaker_lance": {
+      "name": "Shieldbreaker Lance",
+      "text": "Deal 6 + target's entire current Block as Frost damage (ignores Armor).",
+      "tone": "attack"
+    },
+    "vitreous_cryo_tutor": {
+      "name": "Memory of Ice",
+      "text": "Search draw pile for 1 Ice card and gain 3 Block. Exile.",
+      "tone": "skill"
+    },
+    "vitreous_frozen_cascade": {
+      "name": "Vitreous Avalanche",
+      "text": "Deal 8 + 75% current Block damage with Overflow to another enemy.",
+      "tone": "attack"
+    },
+    "vitreous_permafrost_power": {
+      "name": "Perpetual Bastion",
+      "text": "Power: at the start of every turn, gain 5 Block. Exile.",
+      "tone": "power"
+    },
+    "vitreous_shatter_thorns_power": {
+      "name": "Shard Armor",
+      "text": "Power: enemies that hit you suffer Vitreous Chill and 3 Frostbite. Exile.",
+      "tone": "power"
+    },
+    "vitreous_illana_monolith": {
+      "name": "Illana Monolith",
+      "text": "Power: gain +15 Armor and +25% Block efficiency. Exile.",
+      "tone": "power"
+    },
+    "vitreous_absolute_zero": {
+      "name": "Absolute Zero",
+      "text": "Gain 12 Block, apply Vitreous Chill + 5 Frostbite to ALL, and condense Frostbite on target.",
+      "tone": "attack"
+    },
+    "vitreous_diamond_ram": {
+      "name": "Alisyum Ram",
+      "text": "Deal 8 + 120% current Block as piercing Frost damage (ignores Armor).",
+      "tone": "attack"
+    },
+    "vitreous_crystal_reclaim": {
+      "name": "Crystalline Reforge",
+      "text": "Reclaim the last card from Discard, gain 7 Block and +6 temporary Armor. Exile.",
+      "tone": "skill"
+    },
+    "vitreous_eternal_shard": {
+      "name": "Recurring Shard",
+      "text": "Deal 6 + 75% current Block damage, gain 3 Block, and return to top of draw pile.",
+      "tone": "attack"
+    }
+  },
+  "nodes": {
+    "chapter_opening": {
+      "name": "Opening Chronicle"
+    },
+    "chapter_prepare_0": {
+      "name": "Rune Altar"
+    },
+    "encounter_1": {
+      "name": "First Patrol"
+    },
+    "reward_1": {
+      "name": "Initial Spoils"
+    },
+    "encounter_2_patrol": {
+      "name": "Ambush Patrol"
+    },
+    "reward_2_patrol": {
+      "name": "Patrol Spoils"
+    },
+    "encounter_2_elite": {
+      "name": "Elite Chamber"
+    },
+    "reward_2_elite": {
+      "name": "Elite Spoils"
+    },
+    "relic_2": {
+      "name": "Conquest Relic"
+    },
+    "relicary_1": {
+      "name": "Reliquary of Abar"
+    },
+    "event_shrine": {
+      "name": "Broken Shrine of Obor"
+    },
+    "event_altar": {
+      "name": "Dry Blood Obelisk"
+    },
+    "bazaar_1": {
+      "name": "Abar Ash Bazaar"
+    },
+    "camp_rest_1": {
+      "name": "Abar Campfire"
+    },
+    "obor_forge_1": {
+      "name": "Obor Runic Forge"
+    },
+    "armory_1": {
+      "name": "Clandestine Armory"
+    },
+    "encounter_3": {
+      "name": "Citadel Vanguard"
+    },
+    "reward_3": {
+      "name": "Pre-Boss Spoils"
+    },
+    "encounter_boss": {
+      "name": "Chapter Boss"
+    },
+    "chapter_ending": {
+      "name": "Chapter Complete"
+    }
+  },
+  "card_tag_labels": {
+    "blood": "Blood",
+    "ice": "Frost",
+    "lifesteal": "Lifesteal",
+    "overheat": "Overheat",
+    "multihit": "Multi-hit",
+    "ignore_armor": "Armor Piercing",
+    "piercing": "Shield Piercing",
+    "condensation": "Condense",
+    "block_scaling": "Block Scaling",
+    "overflow": "Overflow",
+    "aoe": "All Enemies",
+    "critical": "Critical"
+  },
+  "card_flow_labels": {
+    "card.played.to-draw": "Return to top of draw pile after play",
+    "effect.reclaim_discard": "Recover the last card from discard to hand",
+    "effect.seek_attack": "Search draw pile for an Attack card",
+    "effect.seek_skill": "Search draw pile for a Skill card",
+    "effect.seek_fire": "Search draw pile for a Fire card",
+    "effect.seek_blood": "Search draw pile for a Blood card",
+    "effect.seek_critical": "Search draw pile for a Critical card",
+    "effect.seek_ice": "Search draw pile for an Ice card"
+  },
+  "condensation_labels": {
+    "alisyum_detonate_burn": "Consume all Burn stacks on target and detonate captured fire potency.",
+    "alisyum_crimson_harvest": "Consume all Bleed stacks on target and harvest captured blood potency.",
+    "alisyum_shatter_frost": "Consume all Frostbite stacks on target and shatter captured ice potency."
+  },
+  "resources": {
+    "heat_gauge": {
+      "display": "counter",
+      "color": "#e6693a",
+      "symbol": "HT",
+      "cost_color": "#e6693a"
+    },
+    "blood_tithe": {
+      "display": "counter",
+      "color": "#c93b52",
+      "symbol": "BT",
+      "cost_color": "#c93b52"
+    },
+    "parts": {
+      "display": "counter",
+      "color": "#9eb0c7",
+      "symbol": "RS",
+      "cost_color": "#9eb0c7"
+    }
+  },
+  "intent_icons": {
+    "Carapaça: 9 Block": "guard",
+    "Bastião: 14 Block": "guard",
+    "Golpe: 7": "attack",
+    "Execução: 14": "attack",
+    "Corte Duplo: 4 x 2": "attack",
+    "Frenesi: 8 (+3/turno)": "attack",
+    "Sangria: 5 + 2 Bleed": "attack",
+    "Perfurante: 11": "attack",
+    "Fornalha: 10 + 3 Burn": "attack",
+    "Impacto: 11 + Gelo Vítreo": "attack"
+  }
+}
