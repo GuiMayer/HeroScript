@@ -10,6 +10,7 @@ var _loading: Label
 var _recover: Button
 func _ready() -> void:
 	_bind_nodes()
+	resized.connect(_fit_reading_column)
 	if Engine.is_editor_hint():
 		mount(ContextType.new()); theme = visual_context.theme
 func _bind_nodes() -> void:
@@ -34,7 +35,13 @@ func apply_projection(model: Dictionary, context: ContextType) -> void:
 		panel.show()
 	else: panel.hide()
 	set_loading_state(false)
+	_fit_reading_column()
 	context.styles.apply_view_preferences(self)
+func _fit_reading_column() -> void:
+	if not is_instance_valid(panel) or visual_context == null: return
+	var constrained := visual_context.setting_id in ["prototype-test", "alisyum"] and size.x > 960.0
+	panel.custom_minimum_size.x = 960.0 if constrained else 0.0
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if constrained else Control.SIZE_EXPAND_FILL
 func set_loading_state(failed: bool) -> void:
 	_loading.visible = _model.is_empty()
 	_loading.text = visual_context.translator.text(

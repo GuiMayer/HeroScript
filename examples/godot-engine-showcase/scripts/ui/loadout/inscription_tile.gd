@@ -9,6 +9,8 @@ var source_slot := ""
 var drag_scope: int
 var revision := ""
 var known_items: Array = []
+var required_tags: Array = []
+var item_tags: Dictionary = {}
 var equipment_enabled := true
 var drop_color := Color("286853")
 
@@ -41,7 +43,12 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	return equipment_enabled and not slot_id.is_empty() and data is Dictionary \
 		and data.get("kind") == "inscription_draft" and data.get("scope") == drag_scope \
 		and data.get("revision") == revision and data.get("item") in known_items \
-		and data.get("source") is String and data.get("source") != slot_id
+		and data.get("source") is String and data.get("source") != slot_id \
+		and accepts_item(str(data.get("item", "")))
+
+func accepts_item(id: String) -> bool:
+	var tags: Array = item_tags.get(id, {}).get("tags", [])
+	return required_tags.all(func(tag): return tag in tags)
 
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	if _can_drop_data(at_position, data):

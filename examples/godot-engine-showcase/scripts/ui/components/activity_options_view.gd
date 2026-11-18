@@ -117,8 +117,9 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 			content.get_node("Cost").text = str(model.cost); content.get_node("Cost").visible = not str(model.cost).is_empty()
 			content.get_node("Cost").add_theme_color_override("font_color",context.styles.GOLD)
 			content.get_node("Description").text = str(model.summary)
-			content.get_node("Description").visible = (str(choice.get("subjectType","")) == "inscription" or str(model.category) == "modifier_items") and not str(model.summary).is_empty()
+			content.get_node("Description").visible = (str(choice.get("subjectType","")) == "inscription" or str(model.category) == "modifier_items" or model.get("namedPreparation", false)) and not str(model.summary).is_empty()
 			button.text = label
+			if model.get("namedPreparation", false): button.theme_type_variation = &"PrimaryAction"
 	for reference in _entries.keys():
 		if reference not in live:
 			var obsolete = _entries[reference]; obsolete.get_parent().remove_child(obsolete); obsolete.queue_free(); _entries.erase(reference)

@@ -67,7 +67,7 @@ func _select_item(id: String) -> void:
 func _select_slot(id: String) -> void:
 	if controller.inscriptions == null: return
 	controller.inscriptions.select_slot(id)
-	if not _pending_item.is_empty() and controller.editable():
+	if not _pending_item.is_empty() and controller.editable() and inscriptions_view.accepts_item_in_slot(_pending_item, id):
 		controller.inscriptions.select_item(_pending_item); _pending_item = ""; controller.edit_inscription("stage_selected")
 	else: _render()
 func _render() -> void:
@@ -81,6 +81,11 @@ func _render() -> void:
 	inscriptions_view.visible = controller.inscriptions != null and shell.active_tab == "inscriptions" and usable
 	if controller.inscriptions != null and usable:
 		var model: Dictionary = controller.inscriptions.snapshot(); model.liveEquipment = true
+		model["namedSlots"] = str(session.run.get("settingId", "")) == "alisyum"
+		if model.namedSlots:
+			for item in model.items:
+				item.name = I18n.content_name(item.definitionId, I18n.text(str(item.name)))
+				item.description = I18n.text(str(item.description))
 		model.canEdit = controller.editable() and model.canEdit
 		inscriptions_view.present(model)
 		inscriptions_view.find_child("LoadoutClearButton", true, false).text = I18n.text("Unequip all")
@@ -100,7 +105,11 @@ func _render() -> void:
 	elif controller.inscriptions == null: _present_attributes({"name": "", "attributes": []})
 	if is_instance_valid(supports_view): supports_view.present(controller.support if usable else {}, not controller.editable())
 	var summary := {"equipped": controller.inscriptions.assignments.size() if controller.inscriptions != null and usable else 0, "cards": controller.deck_cards.size() if usable else 0, "relics": controller.relics if usable else []}
-	shell.present_counts({"inscriptions": ("%s/%s" % [summary.equipped, controller.inscriptions.snapshot().get("slots", []).size()]) if controller.inscriptions != null else summary.equipped, "deck": summary.cards, "relics": summary.relics.size()})
+	var slot_count: Variant = summary.equipped
+	if controller.inscriptions != null:
+		slot_count = "%s/%s" % [summary.equipped, controller.inscriptions.equipment_positions().size()]
+		if str(session.run.get("settingId", "")) == "alisyum": slot_count = I18n.text("Slots %s") % slot_count
+	shell.present_counts({"inscriptions": slot_count, "deck": summary.cards, "relics": summary.relics.size()})
 	if is_instance_valid(overview_view): overview_view.present(summary)
 	if is_instance_valid(relics_view): relics_view.present(summary)
 func _back() -> void:

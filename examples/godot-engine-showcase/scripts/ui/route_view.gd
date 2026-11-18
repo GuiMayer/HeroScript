@@ -10,6 +10,7 @@ signal inspection_requested(node_id: String)
 signal focus_requested(node_id: String)
 signal hover_changed(node_id: String)
 var suppress_activation := false
+var campaign_captions := false
 var _selected := ""
 var _highlight_kind := ""
 var _hovered := ""
@@ -58,6 +59,9 @@ func setup(route: Array) -> void:
 		var state_label := "● " if node.current else ""
 		if node.resolved: state_label += "✓ "
 		elif not node.current and not node.travel.is_empty(): state_label += "◇ "
+		elif campaign_captions and not node.current: state_label += "– "
+		caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if campaign_captions else TextServer.AUTOWRAP_OFF
+		caption.max_lines_visible = 2 if campaign_captions else -1
 		caption.text = state_label + str(node.name)
 		if str(node.get("risk", "")) == "High": caption.text += "\n! " + visual_context.translator.text("High risk")
 		button.add_theme_font_size_override("font_size", layout_profile.node_font_size)
@@ -84,10 +88,18 @@ func setup(route: Array) -> void:
 			var box := visual_context.styles.box(fill, visual_context.profile.corner_radius, border, 2 if node.current else 1)
 			box.content_margin_left = 0; box.content_margin_right = 0
 			if state in ["hover", "focus", "pressed"]: box.border_color = visual_context.styles.color("text.primary"); box.border_width_left = 2
+			if campaign_captions and state == "focus":
+				box.bg_color = Color.TRANSPARENT
+				box.border_color = visual_context.styles.color("stroke.focus")
+				box.set_border_width_all(2)
+				box.set_expand_margin_all(3.0)
 			button.add_theme_stylebox_override(state, box)
 		button.add_theme_color_override("font_disabled_color", visual_context.styles.GOLD if node.current else visual_context.styles.MUTED)
 		button.add_theme_stylebox_override("disabled", visual_context.styles.box(visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked"), 9, visual_context.styles.GOLD if node.current else visual_context.styles.color("stroke.route_locked"), 1))
 		button.tooltip_text = str(node.name) + "\n" + visual_context.translator.content_name(str(node.kind)) + "\n" + str(node.get("description", ""))
+		if campaign_captions:
+			var status_id := "YOU ARE HERE" if node.current else ("COMPLETED" if node.resolved else ("Locked" if node.travel.is_empty() else "Available"))
+			button.accessibility_name = "%s · %s" % [node.name, visual_context.translator.text(status_id)]
 		var text_role := "accent.warm" if str(node.get("risk", "")) == "High" else "text.primary"
 		button.set_meta("text_role", text_role)
 		button.add_theme_color_override("font_color", visual_context.styles.color(text_role))

@@ -1,4 +1,12 @@
 {
+  "alisyum_preparation.ready": {"en": "Finish preparing", "pt_BR": "Concluir preparo"},
+  "alisyum_preparation.ready.description": {"en": "Confirm your Identity Mod, equipment and deck before the First Patrol.", "pt_BR": "Confira seu Mod de Identidade, equipamentos e baralho antes da Primeira Patrulha."},
+  "alisyum_camp_rest.recover": {"en": "Rest at the campfire", "pt_BR": "Repousar na fogueira"},
+  "alisyum_camp_rest.recover.description": {"en": "Restore up to 25 persistent Health.", "pt_BR": "Recupere até 25 de Vida persistente."},
+  "alisyum_camp_rest.temper": {"en": "Meditate on the rune", "pt_BR": "Meditar na runa"},
+  "alisyum_camp_rest.temper.description": {"en": "Gain 2 Runic Shards for crafting and rerolls.", "pt_BR": "Ganhe 2 Fragmentos Rúnicos para a forja e para renovar ofertas."},
+  "alisyum_chapter_1": {"en": "Alisyum · Abar", "pt_BR": "Alisyum · Abar"},
+  "prototype_chapter": {"en": "Tactical Campaign MVP", "pt_BR": "Campanha Tática MVP"},
   "prototype_split_item": {"en": "Split pattern", "pt_BR": "Padrão de divisão"},
   "prototype_split_item.description": {"en": "Repeats this card's main effect three times, sharing its original amount across hits.", "pt_BR": "Repete o efeito principal da carta três vezes, dividindo o valor original entre os golpes."},
   "prototype_ward_link_item": {"en": "Guard pattern", "pt_BR": "Padrão de guarda"},

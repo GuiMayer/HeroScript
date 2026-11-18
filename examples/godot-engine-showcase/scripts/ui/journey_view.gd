@@ -71,6 +71,9 @@ func _update_header() -> void:
 	_header.get_node("Row/Titles/RunTitle").text = visual_context.translator.content_name(str(_run_snapshot.get("runDefinitionId","")),str(metadata.get("displayName",visual_context.translator.text("THE EMBER PATH"))))
 	_header.get_node("Row/Titles/Subtitle").text = visual_context.translator.text("Build your deck. Choose your path.")
 	for entry in [["Verify","Verify"],["Map","MAP"],["Loadout","LOADOUT"],["Pause","PAUSE"]]: _header.get_node("Row/"+entry[0]).text = visual_context.translator.text(entry[1])
+	var campaign := str(_run_snapshot.get("settingId", "")) in ["prototype-test", "alisyum"]
+	_header.get_node("Row/Verify").visible = not campaign
+	_header.get_node("Row/Titles/Subtitle").visible = not campaign
 	var live: Array = []; var index := 0
 	var character: Dictionary = _run_snapshot.get("characterResources",{})
 	for id in character.get("resources",{}):

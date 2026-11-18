@@ -82,6 +82,7 @@ func snapshot() -> Dictionary:
 		var definition: Dictionary = row.definition
 		var presentation: Dictionary = definition.get("presentation", {})
 		items.append({"instanceId": str(row.instance.instanceId), "name": presentation.get("name", definition.inscriptionId),
+			"definitionId": str(definition.inscriptionId),
 			"family": presentation.get("family", "Character inscription"), "rarity": presentation.get("rarity", "common"), "cost": row.get("effectiveEquipmentCost", definition.equipmentCost),
 			"rank": definition.get("rank", 0), "polarity": definition.get("polarity", ""),
 			"tags": definition.get("tags", []), "attributeBonuses": [], "tradeoffs": [],
@@ -97,7 +98,7 @@ func snapshot() -> Dictionary:
 			"format": "percent" if stat.unit in ["percent", "%"] else "number", "sources": [], "contextTags": stat.get("contextTags", [])})
 	return {"authority": "REST", "contextKey": [source.get("runId"), source.get("actorId"), source.get("inventoryId"), source.get("contentRevision")],
 		"reserveIdentitySlot": layout.get("reserveIdentitySlot", false), "identitySlotId": layout.get("identitySlotId", ""),
-		"slots": equipment_positions(), "items": items,
+		"slots": equipment_positions(), "items": items, "slotPolicies": source.get("policy", {}).get("slots", []),
 		"assignments": assignments.duplicate(true), "selectedItem": selected_item, "selectedSlot": selected_slot,
 		"usedCapacity": current.get("usedCapacity", 0), "capacity": source.get("policy", {}).get("capacity", 0),
 		"overBudget": false, "presets": [], "presetIndex": -1, "search": search,

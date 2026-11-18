@@ -91,6 +91,16 @@ func _run() -> void:
 	run.dialogues.append({"activityNodeId": "c", "completed": false})
 	view.apply_projection(run, [], presenter, context)
 	check(view.find_child("MapResumeDialogue", true, false).visible, "same-stop narrative projection refreshes its resume action without geometry changes")
+	var campaign: Dictionary = run.duplicate(true)
+	campaign.settingId = "prototype-test"
+	campaign.currentNodeId = "a"
+	campaign.map.resolvedNodeIds = ["a"]
+	var campaign_view = load("res://scripts/ui/map_view.gd").create()
+	var campaign_presenter = load("res://scripts/presentation/activity_presenter.gd").new(campaign, [choice], {}, context.translator)
+	campaign_view.apply_projection(campaign, [choice], campaign_presenter, context)
+	check(campaign_view._selected == "b" and campaign_view._inspector_open, "campaign reveals its sole published next stop without issuing travel")
+	check(campaign_view.route.buttons.b.get_node("Caption").max_lines_visible == 2, "campaign map names can use two lines")
+	campaign_view.free()
 	view.queue_free(); for _i in 8: await process_frame
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

@@ -128,7 +128,8 @@ func _printed_controls(result: Theme, contrast: bool) -> void:
 	for type in ["Button", "OptionButton"]:
 		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 			var fill := {"normal": PANEL_LIGHT, "hover": color("surface.hover"), "pressed": color("surface.pressed"), "disabled": color("surface.disabled"), "focus": Color.TRANSPARENT}
-			result.set_stylebox(state, type, box(fill[state], 2, GOLD if state == "focus" else color("stroke.control"), 2 if state == "focus" or contrast else 1))
+			var focus_color := color("stroke.focus") if profile.color("stroke.focus") != Color.TRANSPARENT else INK
+			result.set_stylebox(state, type, box(fill[state], 2, focus_color if state == "focus" else color("stroke.control"), 2 if state == "focus" or contrast else 1))
 			var control_box: StyleBoxFlat = result.get_stylebox(state, type)
 			control_box.content_margin_left = 10; control_box.content_margin_right = 10
 			control_box.content_margin_top = 6; control_box.content_margin_bottom = 6
@@ -194,7 +195,8 @@ func _printed_controls(result: Theme, contrast: bool) -> void:
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var fill := {"normal": color("surface.primary_action"), "hover": color("surface.primary_hover"),
 			"pressed": color("surface.primary_pressed"), "disabled": color("surface.disabled"), "focus": Color.TRANSPARENT}
-		var style := box(fill[state], 2, INK if state == "focus" else color("stroke.control"), 2 if state == "focus" else 1)
+		var style := box(fill[state], 2, color("stroke.focus") if state == "focus" else color("stroke.control"), 2 if state == "focus" else 1)
+		if state == "focus": style.set_expand_margin_all(2.0)
 		style.content_margin_left = 10; style.content_margin_right = 10
 		style.content_margin_top = 6; style.content_margin_bottom = 6
 		result.set_stylebox(state, "PrimaryAction", style)

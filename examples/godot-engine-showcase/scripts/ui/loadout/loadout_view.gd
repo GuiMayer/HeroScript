@@ -172,6 +172,7 @@ func present(model: Dictionary) -> void:
 	_model = model.duplicate(true)
 	var t: Callable = visual_context.translator.text
 	var identity_slot := str(model.get("identitySlotId", ""))
+	var named_slots := bool(model.get("namedSlots", false))
 	var identity: Array = [model.items.map(func(item): return item.instanceId), model.slots, model.get("contextKey", []), identity_slot]
 	if _choices_built and identity != _identity:
 		for child in inventory_grid.get_children(): inventory_grid.remove_child(child); child.queue_free()
@@ -185,7 +186,9 @@ func present(model: Dictionary) -> void:
 	if identity_slots != null:
 		var show_identity: bool = model.get("reserveIdentitySlot", false) or identity_slot in model.slots
 		identity_slots.get_parent().visible = show_identity
-		find_child("CommonSlotsTitle", true, false).visible = show_identity
+		var slots_title: Label = find_child("CommonSlotsTitle", true, false)
+		slots_title.visible = show_identity
+		if named_slots: slots_title.text = t.call("Equipment and runes")
 		find_child("IdentityPlaceholder", true, false).visible = not identity_slot in model.slots
 	for key in _filter_buttons: _filter_buttons[key].set_pressed_no_signal(key == _filter)
 	_authority_note.text = t.call("Engine loadout. Changes require preview and confirmation.") if remote else t.call("Visual prototype only. No items, attributes or runs are changed.")
@@ -240,15 +243,35 @@ func present(model: Dictionary) -> void:
 		find_child("EmptyResults", true, false).visible = not _inventory.values().any(func(tile): return tile.visible)
 		find_child("EmptyResults", true, false).text = t.call("No inscriptions match. Clear filters to see your inventory.")
 		find_child("ClearFilters", true, false).text = t.call("Clear filters")
+	var selected: Dictionary = items.get(model.selectedItem, {})
+	var requirements := {}
+	if named_slots:
+		for policy in model.get("slotPolicies", []):
+			requirements[str(policy.slotId)] = policy.get("requiredTags", [])
 	for index in model.slots.size():
 		var id: String = model.slots[index]
 		var item: Dictionary = items.get(model.assignments.get(id, ""), {})
 		var title: String = "+  " + t.call("Empty position") if item.is_empty() else t.call(item.name)
 		var common_index: int = index + 1 - (1 if identity_slot in model.slots and index > model.slots.find(identity_slot) else 0)
 		var position_label: String = t.call("Character identity mod") if id == identity_slot else t.call("Position %s") % common_index
+		var tags: Array = requirements.get(id, [])
+		var matching := named_slots and not selected.is_empty() and not tags.is_empty() and tags.all(func(tag): return tag in selected.tags)
+		if named_slots:
+			position_label = _slot_label(id, identity_slot, t)
+			title = "+  " + position_label if item.is_empty() else "%s · %s" % [position_label, t.call(item.name)]
+			if matching and model.get("canEdit", true): title = "✓  " + title.trim_prefix("+  ")
 		var subtitle: String = position_label
 		subtitle += " · " + t.call("Drop here") if item.is_empty() else " · %s %s" % [visual_context.translator.number(item.cost), t.call("points")]
+		if named_slots and not selected.is_empty() and not tags.is_empty():
+			var hint: String = t.call("Matching slot type") if matching else t.call("Requires %s") % position_label
+			subtitle += "\n" + hint
 		_tile_text(_positions[id], title, subtitle, model.selectedSlot == id, item.is_empty())
+		_positions[id].required_tags = tags
+		if matching and model.get("canEdit", true) and model.selectedSlot != id:
+			var style := _positions[id].get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+			style.border_color = visual_context.styles.color("accent.positive")
+			style.set_border_width_all(2)
+			_positions[id].add_theme_stylebox_override("normal", style)
 		if editorial_layout:
 			_positions[id].find_child("TileSubtitle", true, false).text = position_label if id == identity_slot or not item.is_empty() else t.call("Drop here")
 			if not item.is_empty():
@@ -263,19 +286,22 @@ func present(model: Dictionary) -> void:
 		tile.drag_scope = hash(model.get("contextKey", get_instance_id()))
 		tile.revision = JSON.stringify(model.assignments)
 		tile.known_items = items.keys()
+		tile.item_tags = items
 	capacity_label.text = t.call("Equipment budget: %s / %s" if remote else "Display budget: %s / %s") % [visual_context.translator.number(model.usedCapacity), visual_context.translator.number(model.capacity)]
 	capacity_meter.max_value = maxf(1, float(model.capacity))
 	capacity_meter.value = float(model.usedCapacity)
 	var meter_fill: StyleBoxFlat = capacity_meter.get_theme_stylebox("fill")
 	meter_fill.bg_color = visual_context.styles.color("accent.danger" if model.overBudget else ("accent.primary" if editorial_layout else "accent.positive"))
 	capacity_meter.tooltip_text = capacity_label.text
-	if editorial_layout: capacity_label.text = "%s / %s" % [visual_context.translator.number(model.usedCapacity), visual_context.translator.number(model.capacity)]
+	if editorial_layout and not named_slots: capacity_label.text = "%s / %s" % [visual_context.translator.number(model.usedCapacity), visual_context.translator.number(model.capacity)]
 	warning.text = t.call("Over the example budget. This draft is not authoritative.") if model.overBudget else t.call("Illustrative costs only. Engine validation is not connected yet.")
 	if remote: warning.text = t.call(model.get("status", ""))
 	equip_button.disabled = str(model.selectedItem).is_empty() or str(model.selectedSlot).is_empty()
+	if not equip_button.disabled and not accepts_item_in_slot(model.selectedItem, model.selectedSlot):
+		equip_button.disabled = true
+		if warning.text.is_empty(): warning.text = t.call("This item does not match the selected slot.")
 	remove_button.disabled = not model.assignments.has(model.selectedSlot)
 	if not model.get("canEdit", true): equip_button.disabled = true; remove_button.disabled = true
-	var selected: Dictionary = items.get(model.selectedItem, {})
 	if editorial_layout:
 		equip_button.visible = not str(model.selectedItem).is_empty() and not str(model.selectedSlot).is_empty()
 		remove_button.visible = model.assignments.has(model.selectedSlot)
@@ -303,6 +329,16 @@ func present(model: Dictionary) -> void:
 		attributes_view.present(character)
 		attributes_view.visible = model.get("attributesReady", true)
 	_responsive.call_deferred()
+
+func _slot_label(id: String, identity_slot: String, t: Callable) -> String:
+	if id == identity_slot: return t.call("Character identity mod")
+	if id.begins_with("rune_") and id.get_slice("_", 1).is_valid_int():
+		return t.call("Equipment rune %s") % id.get_slice("_", 1)
+	var labels := {"weapon": "Weapon", "armor": "Armor", "core": "Core"}
+	return t.call(labels.get(id, id.replace("_", " ").capitalize()))
+
+func accepts_item_in_slot(item: String, slot: String) -> bool:
+	return _positions.has(slot) and _positions[slot].accepts_item(item)
 func _bonus_lines(item: Dictionary, stats: Dictionary) -> Array[String]:
 	var rows: Array[String] = []
 	for bonus in item.attributeBonuses:

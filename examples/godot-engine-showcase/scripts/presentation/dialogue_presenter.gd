@@ -5,6 +5,10 @@ static func localized(value: Dictionary, locale: String) -> String:
 	var translated := str(value.get("translations", {}).get(locale, ""))
 	return translated if not translated.is_empty() else str(value.get("text", ""))
 
+static func localized_text(value: Dictionary, translator) -> String:
+	var translated := str(value.get("translations", {}).get(translator.locale, ""))
+	return translated if not translated.is_empty() else translator.text(str(value.get("text", "")))
+
 static func build(run: Dictionary, choices: Array, translator) -> Dictionary:
 	var dialogue: Dictionary = {}
 	var advertised_instance := ""
@@ -29,9 +33,9 @@ static func build(run: Dictionary, choices: Array, translator) -> Dictionary:
 		var price: Array[String] = []
 		for cost in option.get("costs", []):
 			price.append("%s %s" % [translator.number(float(cost.amount)), translator.content_name(str(cost.resourceId))])
-		options.append({"id": option.choiceId, "text": localized(option.text, translator.locale),
+		options.append({"id": option.choiceId, "text": localized_text(option.text, translator),
 			"cost": " + ".join(price), "available": bool(option.get("available", false)) and not command.is_empty(),
-			"reason": localized(option.unavailableText, translator.locale) if option.get("unavailableText") is Dictionary else "",
+			"reason": localized_text(option.unavailableText, translator) if option.get("unavailableText") is Dictionary else "",
 			"interactionKind": str(option.get("interactionKind", "Choice")),
 			"reference": JSON.stringify([run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0),
 				dialogue.get("contentRevision", ""), dialogue.get("dialogueInstanceId", ""), dialogue.get("nodeId", ""),
@@ -39,14 +43,14 @@ static func build(run: Dictionary, choices: Array, translator) -> Dictionary:
 			"command": command})
 	var history: Array = []
 	for entry in dialogue.get("transcript", []):
-		history.append({"speaker": localized(entry.speaker, translator.locale), "text": localized(entry.text, translator.locale)})
+		history.append({"speaker": localized_text(entry.speaker, translator), "text": localized_text(entry.text, translator)})
 	return {"runId": str(run.get("runId", "")), "branchId": str(run.get("branchId", "")),
 		"sequence": run.get("sequence", 0), "dialogueInstanceId": str(dialogue.get("dialogueInstanceId", "")),
 		"dialogueId": str(dialogue.get("dialogueId", "")), "nodeId": str(dialogue.get("nodeId", "")),
 		"activityNodeId": str(dialogue.get("activityNodeId", "")), "contentRevision": str(dialogue.get("contentRevision", "")),
 		"speakerId": str(dialogue.get("speakerId", "")),
-		"title": localized(dialogue.title, translator.locale), "speaker": localized(dialogue.speaker, translator.locale),
-		"text": localized(dialogue.text, translator.locale), "portrait": str(dialogue.get("portraitId", "")),
+		"title": localized_text(dialogue.title, translator), "speaker": localized_text(dialogue.speaker, translator),
+		"text": localized_text(dialogue.text, translator), "portrait": str(dialogue.get("portraitId", "")),
 		"completed": bool(dialogue.get("completed", false)), "options": options, "history": history}
 
 static func recorded_transcript(state: Dictionary, translator) -> Array[String]:
@@ -59,8 +63,8 @@ static func recorded_transcript(state: Dictionary, translator) -> Array[String]:
 			for node in nodes:
 				if str(node.get("nodeId", "")) != str(visit.get("nodeId", "")): continue
 				if visit.get("choiceId") == null:
-					lines.append(localized(node.get("speaker", {}), translator.locale) + ": " + localized(node.get("text", {}), translator.locale))
+					lines.append(localized_text(node.get("speaker", {}), translator) + ": " + localized_text(node.get("text", {}), translator))
 				else:
 					for choice in node.get("choices", []):
-						if str(choice.get("choiceId", "")) == str(visit.choiceId): lines.append("› " + localized(choice.get("text", {}), translator.locale))
+						if str(choice.get("choiceId", "")) == str(visit.choiceId): lines.append("› " + localized_text(choice.get("text", {}), translator))
 	return lines

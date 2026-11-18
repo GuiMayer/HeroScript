@@ -1,4 +1,12 @@
 {
+  "Slots %s": "Slots %s",
+  "Equipment and runes": "Equipamentos e runas",
+  "Matching slot type": "Tipo de slot compatível",
+  "Requires %s": "Requer %s",
+  "This item does not match the selected slot.": "Este item não é compatível com o tipo do slot selecionado.",
+  "Equipment rune %s": "Runa de equipamento %s",
+  "Weapon": "Arma",
+  "Core": "Núcleo",
   "Ally": "Aliado",
   "Enemy": "Inimigo",
   "Hand": "Mão",

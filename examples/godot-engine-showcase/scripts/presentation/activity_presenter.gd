@@ -31,6 +31,7 @@ func current_node() -> Dictionary:
 func choice_label(choice: Dictionary, model: Dictionary = {}) -> String:
 	var type := str(choice.get("type", ""))
 	if type == "START_ENCOUNTER" and _run.get("encounterAttempt") is Dictionary and bool(_run.encounterAttempt.get("pendingRetry", false)): return _i18n.text("TRY AGAIN")
+	if type == "APPLY_PREPARATION_OPTION" and model.get("namedPreparation", false): return str(model.name)
 	if type == "OPEN_INSCRIPTION_OFFER": return _i18n.text("REVEAL INSCRIPTIONS")
 	if type == "CHOOSE_INSCRIPTION_OFFER": return _i18n.text("DECLINE INSCRIPTIONS") if choice.payload.get("inscriptionId") == null else _i18n.text("ACQUIRE INSCRIPTION")
 	var templates := {"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
@@ -57,7 +58,7 @@ func node_name(id: String) -> String:
 
 func node_description(node: Dictionary, fallback: String) -> String:
 	var metadata: Dictionary = node.get("metadata", {})
-	var authored := str(metadata.get("description", fallback))
+	var authored: String = _i18n.text(str(metadata.get("description", fallback)))
 	# Explicit blank fallback prevents untranslated IDs becoming player-facing prose.
 	return _i18n.content_name(str(node.get("nodeId", "")) + ".description", authored if not authored.is_empty() else " ").strip_edges()
 
@@ -84,6 +85,7 @@ func offer(choice: Dictionary) -> Dictionary:
 	if type == "APPLY_CARD_MODIFIER_ITEM": definition = str(_owned_items.get(str(choice.get("payload", {}).get("itemInstanceId", "")), subject))
 	var costs: Array = []
 	var has_cost := false
+	var preparation_key := ""
 	if choice.has("costs"):
 		costs = choice.costs.duplicate(true)
 		has_cost = true
@@ -108,6 +110,8 @@ func offer(choice: Dictionary) -> Dictionary:
 				if str(option.get("optionId", "")) == subject:
 					costs = option.get("costs", []).duplicate(true)
 					has_cost = option.has("costs")
+					if str(_run.get("settingId", "")) == "alisyum":
+						preparation_key = "%s.%s" % [preparation.get("preparationId", current_node().get("activity", {}).get("definitionId", "")), subject]
 	elif type in ["REROLL_SHOP", "REROLL_CARD_REWARD"]:
 		var shop := type == "REROLL_SHOP"
 		var identity := "shopInstanceId" if shop else "selectionInstanceId"
@@ -120,6 +124,9 @@ func offer(choice: Dictionary) -> Dictionary:
 	var name: String = _i18n.content_name(definition, str(card.get("name", definition)))
 	if str(choice.get("subjectType", "")) == "node": name = node_name(subject)
 	var summary := str(card.get("text", _i18n.text("Choose your next action.")))
+	if not preparation_key.is_empty():
+		name = _i18n.content_name(preparation_key, _i18n.content_name(subject))
+		summary = _i18n.content_name(preparation_key + ".description", node_description(current_node(), summary))
 	if str(choice.get("subjectType", "")) == "node":
 		for node in _run.get("map", {}).get("nodes", []):
 			if str(node.get("nodeId", "")) == subject: summary = node_description(node, summary)
@@ -130,6 +137,7 @@ func offer(choice: Dictionary) -> Dictionary:
 		"summary": summary, "category": "cards" if is_card else "activities",
 		"cost": (_i18n.text("Free") if costs.is_empty() else " + ".join(price)) if has_cost else "",
 		"choice": choice.duplicate(true)}
+	if not preparation_key.is_empty(): model["namedPreparation"] = true
 	if _item_catalog.has(definition):
 		var item_presentation: Dictionary = _item_catalog[definition].get("presentation", {})
 		model["name"] = _i18n.content_name(definition, str(item_presentation.get("name", definition)))

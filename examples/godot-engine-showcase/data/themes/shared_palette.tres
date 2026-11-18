@@ -21,6 +21,7 @@ colors = {
   "surface.pressed": "#dde1e5",
   "surface.disabled": "#f3f4f5",
   "stroke.control": "#9ba1a9",
+  "stroke.focus": "#303c63",
   "stroke.disabled": "#d4d8dd",
   "stroke.panel": "#d4d8dd",
   "surface.input": "#ffffff",

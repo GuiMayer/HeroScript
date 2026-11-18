@@ -28,6 +28,7 @@ var _inspector_open := false
 var _last_current := ""
 var _resume_button: Button
 var _compartments_button: Button
+var _campaign_navigation := false
 
 static func create():
 	return (load("res://scenes/ui/components/map_view.tscn") as PackedScene).instantiate()
@@ -48,17 +49,23 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 	if context.reduced_motion and _camera_tween != null and _camera_tween.is_valid():
 		_stop_camera_motion(true)
 	_run = run.duplicate(true); _choices = choices.duplicate(true); _presenter = presenter
+	_campaign_navigation = str(run.get("settingId", "")) in ["prototype-test", "alisyum"]
 	var current := str(run.get("currentNodeId", ""))
 	var progressed := not _last_current.is_empty() and _last_current != current
 	_last_current = current
 	if not is_instance_valid(route): _build()
 	_header.text = context.translator.content_name(str(run.get("runDefinitionId", "")), str(run.get("metadata", {}).get("displayName", context.translator.text("JOURNEY"))))
+	get_node("Header/CenterCurrent").text = context.translator.text("Center")
+	_compartments_button.text = context.translator.text("LOADOUT")
 	var counters: Array[String] = []
+	var character_counters: Array[String] = []
 	for resource_id in run.get("resources", {}):
 		counters.append("%s %s" % [context.translator.number(float(run.resources[resource_id].get("current", 0))), context.translator.content_name(str(resource_id))])
 	for resource_id in run.get("characterResources", {}).get("resources", {}):
 		var value: Dictionary = run.characterResources.resources[resource_id]
-		counters.append("%s %s" % [context.translator.number(float(value.get("current", 0))), context.translator.content_name(str(resource_id))])
+		character_counters.append("%s %s" % [context.translator.number(float(value.get("current", 0))), context.translator.content_name(str(resource_id))])
+	if _campaign_navigation: counters = character_counters + counters
+	else: counters.append_array(character_counters)
 	_resource_badges.text = "  ·  ".join(counters)
 	var nodes: Array = presenter.route()
 	# Optional published display metadata, never inferred from prose or effects.
@@ -66,19 +73,22 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 	for source in run.get("map", {}).get("nodes", []): metadata[str(source.get("nodeId", ""))] = source.get("metadata", {})
 	for node in nodes:
 		var display: Dictionary = metadata.get(str(node.id), {})
-		node["benefit"] = str(display.get("reward", ""))
+		node["benefit"] = context.translator.text(str(display.get("reward", "")))
 	navigation.update(nodes)
 	var key: Array = [nodes, choices, context.presentation_key()]
 	var geometry_changed := false
 	if key != _model_key:
 		_model_key = key.duplicate(true)
 		route.visual_context = context
+		route.campaign_captions = _campaign_navigation
 		var previous_geometry: Dictionary = route.geometry_snapshot()
 		route.setup(nodes)
 		var next_geometry: Dictionary = route.geometry_snapshot()
 		geometry_changed = next_geometry.get("rects", {}) != previous_geometry.get("rects", {}) or next_geometry.get("bounds", Vector2.ZERO) != previous_geometry.get("bounds", Vector2.ZERO)
 		_update_extent()
-	if progressed or not nodes.any(func(node): return node.id == _selected): _selected = current
+	if progressed or not nodes.any(func(node): return node.id == _selected):
+		_selected = _default_inspection()
+		if _campaign_navigation: _set_inspector_open(true)
 	if _selected.is_empty() and not nodes.is_empty(): _selected = str(nodes[0].id)
 	_inspect(_selected)
 	context.styles.apply_view_preferences(self)
@@ -91,6 +101,13 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 			_camera_restore_ticket += 1
 			_camera_restore_from = ""
 		_center_current.call_deferred(progressed)
+
+func _default_inspection() -> String:
+	var alternatives: Array = navigation.alternatives()
+	var current: String = navigation.current
+	if _campaign_navigation and alternatives.size() == 1 and navigation.nodes.get(current, {}).get("resolved", false):
+		return str(alternatives[0])
+	return current
 func _build() -> void:
 	get_node("Header/CenterCurrent").text = visual_context.translator.text("Center")
 	get_node("Header/CenterCurrent").pressed.connect(func(): cancel_gesture(); _center_current(true))
@@ -175,9 +192,11 @@ func _inspect(id: String) -> void:
 	var statuses: Array[String] = []
 	if node.current: statuses.append(visual_context.translator.text("YOU ARE HERE"))
 	if node.resolved: statuses.append(visual_context.translator.text("COMPLETED"))
-	if statuses.is_empty(): statuses.append(visual_context.translator.text("Available" if not node.travel.is_empty() else "Unavailable"))
+	if statuses.is_empty(): statuses.append(visual_context.translator.text("Available" if not node.travel.is_empty() else ("Locked" if _campaign_navigation else "Unavailable")))
 	information.get_node("Status").text = " · ".join(statuses)
-	if not node.travel.is_empty(): _action(visual_context.translator.text("TRAVEL"), node.travel)
+	if not node.travel.is_empty():
+		_action(visual_context.translator.text("TRAVEL"), node.travel)
+		if _campaign_navigation: _action_buttons.back().theme_type_variation = &"PrimaryAction"
 	if node.current:
 		var workshop := preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(_run)
 		for choice in _choices:
@@ -220,9 +239,11 @@ func restore_local_state(state: Dictionary) -> void:
 	var previous := str(state.get("current", navigation.current))
 	_camera_restore_from = previous if previous != navigation.current and route.buttons.has(previous) else ""
 	if not state.is_empty():
-		_inspector_open = bool(state.get("inspector_open", false)); _layout_inspector()
+		_inspector_open = (_campaign_navigation and previous != navigation.current) or bool(state.get("inspector_open", _campaign_navigation))
+		_layout_inspector()
 		var id := str(state.get("selected", navigation.current))
-		if str(state.get("current", navigation.current)) != navigation.current: id = navigation.current
+		if str(state.get("current", navigation.current)) != navigation.current or (_campaign_navigation and id == navigation.current):
+			id = _default_inspection()
 		if route.buttons.has(id): _inspect(id)
 	if previous != navigation.current and route.buttons.has(previous):
 		_restore_progress_frame.call_deferred(previous, navigation.current, _camera_restore_ticket)
