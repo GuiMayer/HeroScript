@@ -98,6 +98,11 @@ São aceitos `combat-rules`, `flow-rules`, `phase-sequences`, `modes`,
 `capability-policies`, `content-binding-policies`, `replay-policies` e
 `timeline-policies`.
 
+Efeitos e status usa o mesmo fluxo para `actions`, `modifiers`,
+`status-effects`, `effect-resolution-policies`, `gambits`, `powers` e
+`keywords`. Em catálogos sem campo de identidade, como poderes e
+palavras-chave, o ID vem de `definitionId`.
+
 O fluxo abrange cartas herdadas sem patches externos sobre a mesma carta
 ou seu catálogo. Se necessário, a engine inclui no manifesto uma dependência
 da versão do pacote base para garantir a ordem de aplicação. Remover a

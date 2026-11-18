@@ -16,37 +16,75 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
     [Theory]
     [InlineData("uno-clash", "circular-table", "combat-rules", "standard_combat")]
     [InlineData("circular-table", "uno-clash", "flow-rules", "standard_flow")]
-    public async Task CustomizesInheritedRulesAndFlows(string setting, string otherSetting, string kind, string id)
+    [InlineData("uno-clash", "circular-table", "status-effects", "burning")]
+    [InlineData("circular-table", "uno-clash", "keywords", "fixture_keyword")]
+    public async Task CustomizesInheritedDefinitions(string setting, string otherSetting, string kind, string id)
     {
         using var factory = new WriteFactory();
+        var basePackage = Path.Combine(factory.PackageRoot, "default");
+        var fileName = kind == "status-effects" ? "status_effects" : id;
+        var basePath = Path.Combine(basePackage, "Resources", kind, fileName + ".json");
+        if (kind == "keywords")
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(basePath)!);
+            await File.WriteAllTextAsync(basePath, """{"fixture_keyword":{"name":"Keyword","configuration":{"amount":3}}}""");
+            var manifestPath = Path.Combine(basePackage, "package.json");
+            var manifest = JsonNode.Parse(await File.ReadAllTextAsync(manifestPath))!.AsObject();
+            manifest["content"]!.AsArray().Add(new JsonObject
+            {
+                ["operation"] = "definition", ["kind"] = kind,
+                ["sourcePath"] = $"Resources/{kind}/{fileName}.json", ["artifactPath"] = $"{kind}/{fileName}.json"
+            });
+            await File.WriteAllTextAsync(manifestPath, manifest.ToJsonString());
+        }
         using var client = Open(factory);
         var route = Setting(setting) + "/definitions/" + kind;
         var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(route + "?q=" + id);
         var item = Assert.Single(page!.Items);
         Assert.True(item.CanCustomize);
         Assert.False(item.CanEdit);
-        var basePath = Path.Combine(factory.PackageRoot, "default", "Resources", kind, id + ".json");
         var originalBytes = await File.ReadAllBytesAsync(basePath);
         var otherRevision = await Revision(client, otherSetting);
         async Task<AuthoringDefinitionDetail> ReadRule() =>
             (await client.GetFromJsonAsync<AuthoringDefinitionDetail>(route + "/" + id))!;
         var original = await ReadRule();
         var desired = JsonNode.Parse(original.Effective.GetRawText())!.AsObject();
-        var field = kind == "combat-rules" ? "flow" : "allowMapNavigation";
-        if (kind == "combat-rules")
-            desired["flow"]!["automaticResolution"]!["maxAutomaticSteps"] = 101;
-        else
-            desired[field] = false;
+        var field = kind switch
+        {
+            "combat-rules" => "flow",
+            "flow-rules" => "allowMapNavigation",
+            "status-effects" => "DefaultDuration",
+            _ => "configuration"
+        };
+        switch (kind)
+        {
+            case "combat-rules":
+                desired[field]!["automaticResolution"]!["maxAutomaticSteps"] = 101;
+                break;
+            case "flow-rules":
+                desired[field] = false;
+                break;
+            case "status-effects":
+                desired[field] = 4;
+                break;
+            default:
+                desired[field]!["amount"] = 7;
+                break;
+        }
         CardAuthoringOperation Customize(JsonObject? value) => new()
         {
             Kind = kind, DefinitionId = id,
             Operation = value is null ? CardAuthoringOperationType.ResetCustomization : CardAuthoringOperationType.Customize,
             Definition = value is null ? null : JsonSerializer.SerializeToElement(value)
         };
-        var invalid = desired.DeepClone().AsObject();
-        invalid[kind == "combat-rules" ? "combatRulesId" : "flowRulesId"] = "wrong_id";
-        using var bad = await Send(client, setting, page.SourceVersion, Change(Customize(invalid)), "/changes/validate");
-        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        if (AuthoringDefinitionKinds.Identity(kind) is { } identity)
+        {
+            var invalid = desired.DeepClone().AsObject();
+            var identityKey = invalid.Select(property => property.Key).Single(key => key.Equals(identity, StringComparison.OrdinalIgnoreCase));
+            invalid[identityKey] = "wrong_id";
+            using var bad = await Send(client, setting, page.SourceVersion, Change(Customize(invalid)), "/changes/validate");
+            Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        }
         var change = Change(Customize(desired));
         using var preview = await Send(client, setting, page.SourceVersion, change, "/changes/validate");
         Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());

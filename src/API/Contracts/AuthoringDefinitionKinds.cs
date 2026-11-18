@@ -26,7 +26,8 @@ public static class AuthoringDefinitionKinds
 
     public static bool SupportsCustomization(string kind) => kind is
         "cards" or "combat-rules" or "flow-rules" or "phase-sequences" or "modes" or
-        "capability-policies" or "content-binding-policies" or "replay-policies" or "timeline-policies";
+        "capability-policies" or "content-binding-policies" or "replay-policies" or "timeline-policies" or
+        "actions" or "modifiers" or "status-effects" or "effect-resolution-policies" or "gambits" or "powers" or "keywords";
 
     public static string? Identity(string kind) => Supports(kind)
         ? ContentKindRegistry.Canonical.Get(kind).Value.IdentityProperty : null;
