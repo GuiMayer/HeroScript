@@ -124,7 +124,7 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
           return { ...entry, original: theirs }
         }
         if (operation.operation === 'delete') {
-          if (!same(original, theirs) || !summary.canDelete) throw new RebaseConflict()
+          if (!same(original, theirs) || !summary?.canDelete) throw new RebaseConflict()
           return { ...entry, original: theirs }
         }
         const combined = mergeIndependent(original, object(operation.definition), theirs)

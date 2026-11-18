@@ -140,7 +140,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     }
   }
 
-  const editorFields = value ? { value, inherited, disabled: !canEdit, copy, apiKey, setting, update, focus, onTyping: setTyping } : undefined
+  const editorFields = value ? { value, inherited, disabled: !canEdit, typing, copy, apiKey, setting, update, focus, onTyping: setTyping } : undefined
   const personalized = !!inherited && !!value && !same(value, inherited)
 
   return <div className="cards-page">

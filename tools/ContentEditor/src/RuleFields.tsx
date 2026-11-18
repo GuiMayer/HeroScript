@@ -10,12 +10,14 @@ import { stringifyAuthoringJson } from './authoring-json'
 import { FreeField, PropertyFields } from './FreeField'
 import { DiagnosticField } from './DiagnosticField'
 import { isWithin, joinPointer, type DiagnosticFocus } from './diagnostic-target'
+import { InheritedField, type InheritedValue } from './InheritedField'
 
 interface Context {
   key: string
   setting: string
   referenceSetting?: string
   focus?: DiagnosticFocus
+  inherited?: InheritedValue & { path: string }
   disabled: boolean
   locale: string
   copy: RuleCopy
@@ -124,8 +126,19 @@ function Field({ label, path, schema, value, update, context, referenceKind }: {
   referenceKind?: string
 }) {
   const focus = context.focus?.path.toLowerCase() === path.toLowerCase() ? context.focus : undefined
+  const baseline = context.inherited
+  // Array entries have positional paths. Restore their list as a unit after insertions or removals.
+  const segments = baseline && path.slice(baseline.path.length + 1).split('/')
+  const inherited = baseline && segments && !segments.some((segment) => /^\d+$/.test(segment))
+    ? { ...baseline, value: segments.reduce<unknown>((parent, segment) => {
+      const key = segment.replaceAll('~1', '/').replaceAll('~0', '~')
+      const source = object(parent)
+      return source[propertyKey(source, key)]
+    }, baseline.value) } : undefined
   return <DiagnosticField focus={focus}>
-    <FieldControl {...{ label, path, schema, value, update, context, referenceKind }} />
+    <InheritedField {...{ label, value, inherited }} restore={() => update(inherited?.value)}>
+      <FieldControl {...{ label, path, schema, value, update, context, referenceKind }} />
+    </InheritedField>
   </DiagnosticField>
 }
 

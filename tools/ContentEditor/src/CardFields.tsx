@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Plus, Search, Tag, X } from 'lucide-react'
 import { api, settingPath, type Card, type Definition, type Schemas } from './api/client'
 import type { CardCopy } from './card-copy'
-import { array, object, propertyKey, string, type Frame } from './editor-state'
+import { array, object, propertyKey, same, string, type Frame } from './editor-state'
 import { TextField } from './TextField'
 import { CardComponents } from './CardComponents'
 import type { Locale } from './i18n'
@@ -11,6 +11,7 @@ import { JsonSource } from './JsonSource'
 import { stringifyAuthoringJson } from './authoring-json'
 import { DiagnosticField } from './DiagnosticField'
 import { isWithin, type DiagnosticFocus } from './diagnostic-target'
+import { InheritedField } from './InheritedField'
 
 export const rarities = ['Common', 'Uncommon', 'Rare', 'Legendary'] as const
 export function rarityLabel(value: string, copy: CardCopy) {
@@ -76,44 +77,89 @@ function TagPicker({ tags, add, remove, disabled, apiKey, setting, copy }: {
   </>
 }
 
-export function Overview({ value, disabled, apiKey, setting, copy, update, onTyping, focus }: EditorFields) {
-  const metadata = object(value.metadata)
-  const tags = array(value.tags).filter((tag): tag is string => typeof tag === 'string')
-  const changeMeta = (key: string, next: string) => update({ ...value, metadata: { ...metadata, [key]: next } })
+export function Overview({ value, inherited, disabled, typing, apiKey, setting, copy, update, onTyping, focus }: EditorFields) {
+  const metadataKey = propertyKey(value, 'metadata')
+  const metadata = object(value[metadataKey])
+  const tagsKey = propertyKey(value, 'tags')
+  const rarityKey = propertyKey(value, 'rarity')
+  const nameKey = propertyKey(metadata, 'displayName')
+  const descriptionKey = propertyKey(metadata, 'description')
+  const tags = array(value[tagsKey]).filter((tag): tag is string => typeof tag === 'string')
+  const changeMeta = (key: string, next: string) => update({ ...value, [metadataKey]: { ...metadata, [key]: next } })
+  const inheritedMeta = inherited && object(inherited[propertyKey(inherited, 'metadata')])
+  const field = (name: string, label: string, parent: Definition, base: Definition | undefined, nested = false) => {
+    const key = propertyKey(parent, name)
+    const baseline = base?.[propertyKey(base, name)]
+    return {
+      label, value: parent[key],
+      inherited: base ? { value: baseline, copy, restoringDisabled: disabled || typing } : undefined,
+      restore: () => {
+        const next = { ...parent }
+        if (baseline === undefined) delete next[key]
+        else next[key] = baseline
+        if (!nested) update(next)
+        else {
+          const definition = { ...value, [metadataKey]: next }
+          if (!Object.keys(next).length && inherited?.[propertyKey(inherited, 'metadata')] === undefined)
+            delete definition[metadataKey]
+          update(definition)
+        }
+      },
+    }
+  }
   return <div className="field-sections">
     <section className="form-section">
       <h3>{copy.basics}</h3>
       <div className="field-grid">
         <DiagnosticField focus={focus && isWithin(focus.path, '/metadata/displayName') ? focus : undefined}>
-          <TextField label={copy.name} value={string(metadata.displayName)} disabled={disabled} onTyping={onTyping} onCommit={(v) => changeMeta('displayName', v)} />
+          <InheritedField {...field('displayName', copy.name, metadata, inheritedMeta, true)}>
+            <TextField label={copy.name} value={string(metadata[nameKey])} disabled={disabled} onTyping={onTyping} onCommit={(v) => changeMeta(nameKey, v)} />
+          </InheritedField>
         </DiagnosticField>
         <DiagnosticField focus={focus && isWithin(focus.path, '/rarity') ? focus : undefined}>
-        <label className="field"><span>{copy.rarity}</span>
-          <select value={rarities.find((rarity) => rarity.toLowerCase() === string(value.rarity).toLowerCase()) ?? 'Common'}
-            disabled={disabled} onChange={(event) => update({ ...value, rarity: event.target.value })}>
-            {rarities.map((rarity) => <option key={rarity} value={rarity}>{rarityLabel(rarity, copy)}</option>)}
-          </select>
-        </label>
+          <InheritedField {...field('rarity', copy.rarity, value, inherited)}>
+            <label className="field"><span>{copy.rarity}</span>
+              <select value={rarities.find((rarity) => rarity.toLowerCase() === string(value[rarityKey]).toLowerCase()) ?? 'Common'}
+                disabled={disabled} onChange={(event) => update({ ...value, [rarityKey]: event.target.value })}>
+                {rarities.map((rarity) => <option key={rarity} value={rarity}>{rarityLabel(rarity, copy)}</option>)}
+              </select>
+            </label>
+          </InheritedField>
         </DiagnosticField>
       </div>
       <DiagnosticField focus={focus && isWithin(focus.path, '/metadata/description') ? focus : undefined}>
-        <TextField label={copy.description} value={string(metadata.description)} disabled={disabled} multiline onTyping={onTyping}
-          onCommit={(v) => changeMeta('description', v)} />
+        <InheritedField {...field('description', copy.description, metadata, inheritedMeta, true)}>
+          <TextField label={copy.description} value={string(metadata[descriptionKey])} disabled={disabled} multiline onTyping={onTyping}
+            onCommit={(v) => changeMeta(descriptionKey, v)} />
+        </InheritedField>
       </DiagnosticField>
     </section>
     <section className="form-section">
       <h3>{copy.tags}</h3><p className="muted">{copy.tagHint}</p>
       <DiagnosticField focus={focus && isWithin(focus.path, '/tags') ? focus : undefined}>
-      <TagPicker tags={tags} add={(tag) => update({ ...value, tags: [...array(value.tags), tag] })}
-        remove={(tag) => update({ ...value, tags: array(value.tags).filter((item) => item !== tag) })}
-        {...{ disabled, apiKey, setting, copy }} />
+        <InheritedField {...field('tags', copy.tags, value, inherited)}>
+          <TagPicker tags={tags} add={(tag) => update({ ...value, [tagsKey]: [...array(value[tagsKey]), tag] })}
+            remove={(tag) => update({ ...value, [tagsKey]: array(value[tagsKey]).filter((item) => item !== tag) })}
+            {...{ disabled, apiKey, setting, copy }} />
+        </InheritedField>
       </DiagnosticField>
     </section>
   </div>
 }
 
 export function Rules(props: EditorFields & { locale: Locale; draft: Frame }) {
+  const key = propertyKey(props.value, 'components')
+  const baseline = props.inherited?.[propertyKey(props.inherited, 'components')]
   return <div className="field-sections">
+    {props.inherited && !same(props.value[key], baseline) && <div className="notice">
+      <span>{props.copy.customized} · {props.copy.components}</span>
+      <button type="button" className="text-button" disabled={props.disabled || props.typing} onClick={() => {
+        const next = { ...props.value }
+        if (baseline === undefined) delete next[key]
+        else next[key] = baseline
+        props.update(next)
+      }}>{props.copy.restoreComponents}</button>
+    </div>}
     <CardComponents {...props} group="rules" />
     <CardComponents {...props} group="effects" />
   </div>
@@ -147,6 +193,8 @@ export function Advanced({ value, disabled, copy, update, apiKey, setting, detai
 
 interface EditorFields {
   value: Definition; disabled: boolean; copy: CardCopy; apiKey: string; setting: string
+  inherited?: Definition
+  typing: boolean
   update: (value: Definition) => void
   onTyping: (dirty: boolean) => void
   focus?: DiagnosticFocus

@@ -250,6 +250,10 @@ input, textarea, dialog select { background: var(--surface); color: var(--text);
 .effect-list { display: grid; gap: 6px; max-height: 240px; overflow-y: auto; padding: 2px; }
 .effect-row { justify-content: space-between; text-align: left; gap: 10px; }
 .effect-row[aria-pressed="true"] { border-color: var(--accent); }
+.customized-field { padding: 8px; border-inline-start: 2px solid var(--accent); border-radius: 6px; background: var(--accent-soft); }
+.customized-field-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px; margin-top: 4px; }
+.customization-label { color: var(--accent-text); font-size: 11px; font-weight: 700; }
+.customized-component { background: var(--accent-soft); }
 .card-effect-form { display: grid; gap: 12px; }
 .card-effect-form h4 { margin: 0; }
 .effect-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }

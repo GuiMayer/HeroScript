@@ -4,7 +4,7 @@ import { Plus, X } from 'lucide-react'
 import { api, settingPath, type Definition, type Schemas } from './api/client'
 import { cardComponentSchemas } from './authoring-schema'
 import type { CardCopy } from './card-copy'
-import { array, object, propertyKey, string, type Frame } from './editor-state'
+import { array, object, propertyKey, same, string, type Frame } from './editor-state'
 import type { Locale } from './i18n'
 import { ruleCopy } from './rule-copy'
 import { SchemaFields } from './RuleFields'
@@ -17,13 +17,15 @@ type ComponentKind = (typeof effectKinds)[number] | (typeof ruleKinds)[number]
 
 type Props = {
   value: Definition; disabled: boolean; copy: CardCopy; apiKey: string; setting: string; locale: Locale; draft: Frame
+  inherited?: Definition
+  typing: boolean
   update: (value: Definition) => void
   onTyping: (typing: boolean) => void
   focus?: DiagnosticFocus
   group: 'effects' | 'rules'
 }
 
-export function CardComponents({ value, disabled, copy, apiKey, setting, update, onTyping, focus, locale, draft, group }: Props) {
+export function CardComponents({ value, inherited, disabled, typing, copy, apiKey, setting, update, onTyping, focus, locale, draft, group }: Props) {
   const kinds: readonly ComponentKind[] = group === 'effects' ? effectKinds : ruleKinds
   const [selected, setSelected] = useState<number | null>(null)
   const [kind, setKind] = useState<ComponentKind>(kinds[0])
@@ -35,10 +37,17 @@ export function CardComponents({ value, disabled, copy, apiKey, setting, update,
   const definitions = cardComponentSchemas(schemaRoot)
   const componentsKey = propertyKey(value, 'components')
   const components = array(value[componentsKey])
+  const identity = (item: Definition) => string(item[propertyKey(item, 'componentId')])
+  const inheritedComponents = inherited ? array(inherited[propertyKey(inherited, 'components')]).map(object) : []
+  const inheritedComponent = (item: Definition) => {
+    const id = identity(item)
+    return id ? inheritedComponents.find((base) => identity(base) === id) : undefined
+  }
   const labels = { effect: copy.cardEffect, trigger: copy.cardTrigger, effect_rule_override: copy.cardEffectOverride,
     cost: copy.cost, condition: copy.condition, targeting: copy.targeting, disposition: copy.disposition, influence: copy.influence }
   const updateComponents = (next: unknown[]) => update({ ...value, [componentsKey]: next })
   const edit = selected === null ? undefined : object(components[selected])
+  const baseline = edit && inheritedComponent(edit)
   const editSchema = edit && kinds.some((type) => type === edit.type) && definitions.get(string(edit.type))
   const rows = components.flatMap((entry, index) => {
     const item = object(entry)
@@ -68,11 +77,13 @@ export function CardComponents({ value, disabled, copy, apiKey, setting, update,
     </p>}
     {!!rows.length && <div className="effect-list">{rows.map(({ item, index }) => {
       const type = item.type as ComponentKind
-      const componentId = string(item[propertyKey(item, 'componentId')])
+      const componentId = identity(item)
       const effectType = string(object(item[propertyKey(item, 'effect')]).type)
-      return <button type="button" className="secondary effect-row" key={index} aria-pressed={selected === index}
+      const changed = !!inherited && !same(item, inheritedComponent(item))
+      return <button type="button" className={`secondary effect-row ${changed ? 'customized-component' : ''}`} key={index} aria-pressed={selected === index}
         disabled={!definitions.has(type)} onClick={() => setSelected(index)}>
-        <span>{labels[type]}{effectType ? ` · ${effectType}` : ''}</span><code>{componentId}</code>
+        <span>{labels[type]}{effectType ? ` · ${effectType}` : ''}</span>
+        {changed && <span className="customization-label">{copy.customized}</span>}<code>{componentId}</code>
       </button>
     })}</div>}
     {edit && editSchema ? <DiagnosticField focus={focus && isWithin(address, focus.path) ? focus : undefined}><div className="component card-effect-form">
@@ -80,6 +91,7 @@ export function CardComponents({ value, disabled, copy, apiKey, setting, update,
       <SchemaFields key={selected} schema={editSchema} path={address} skip="type" value={edit}
         update={(next) => updateComponents(components.map((item, index) => index === selected ? { type: edit.type, ...next } : item))}
         context={{ key: apiKey, setting, disabled, focus, locale, copy: ruleCopy[locale], schemaRoot,
+          inherited: baseline && { path: address, value: baseline, copy, restoringDisabled: disabled || typing },
           full: true, refs: schema.data?.data.references ?? {}, root: edit, draft, onTyping }} />
       <div className="effect-actions">
         <button type="button" className="secondary" onClick={() => setSelected(null)}>{copy.closeEffect}</button>
