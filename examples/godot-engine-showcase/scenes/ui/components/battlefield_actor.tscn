@@ -12,20 +12,16 @@ content_margin_top = 4.0
 content_margin_bottom = 4.0
 [sub_resource type="StyleBoxFlat" id="PlateSurface"]
 resource_local_to_scene = true
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
+bg_color = Color(1, 1, 1, 0)
 border_color = Color(0.831373, 0.847059, 0.866667, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_left = 4
 corner_radius_bottom_right = 4
-content_margin_left = 12.0
-content_margin_right = 12.0
-content_margin_top = 8.0
-content_margin_bottom = 8.0
+content_margin_left = 4.0
+content_margin_right = 4.0
+content_margin_top = 2.0
+content_margin_bottom = 2.0
 [sub_resource type="StyleBoxFlat" id="TargetNormal"]
 bg_color = Color(0, 0, 0, 0)
 content_margin_left = 8.0
@@ -63,8 +59,8 @@ script = ExtResource("1_actor")
 authored_battlefield_layout = true
 hide_unknown_intent_icon = true
 battlefield_target_size = Vector2(184, 140)
-battlefield_intent_height = 22.0
-battlefield_content_gap = 6
+battlefield_intent_height = 18.0
+battlefield_content_gap = 3
 
 [node name="ActorRootContent" type="BoxContainer" parent="."]
 unique_name_in_owner = true
@@ -108,7 +104,7 @@ stretch_mode = 5
 
 [node name="ActorPlate" type="PanelContainer" parent="ActorRootContent/ActorContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(236, 0)
+custom_minimum_size = Vector2(209, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_styles/panel = SubResource("PlateSurface")
@@ -116,7 +112,7 @@ theme_override_styles/panel = SubResource("PlateSurface")
 [node name="PlateContent" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
 [node name="Identity" type="HBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
 layout_mode = 2
@@ -128,6 +124,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 text = "STONE GOLEM"
+horizontal_alignment = 1
 text_overrun_behavior = 3
 
 [node name="ActorRole" type="Label" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/Identity"]
@@ -147,7 +144,7 @@ size_flags_horizontal = 3
 
 [node name="ActorBlock" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorVitals"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 0)
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 
 [node name="ActorResources" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
@@ -160,22 +157,6 @@ unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
 theme_override_constants/h_separation = 10
-
-[node name="ActorStatusSlot" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(212, 46)
-layout_mode = 2
-mouse_filter = 2
-clip_contents = true
-
-[node name="ActorStatusBadges" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorStatusSlot"]
-unique_name_in_owner = true
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
 
 [node name="ActorIntentSlot" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
 unique_name_in_owner = true
@@ -206,7 +187,7 @@ theme_override_constants/separation = 0
 
 [node name="ActorIntention" type="Label" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorIntentSlot/ActorIntentRow/IntentDetails"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 22)
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
@@ -217,3 +198,19 @@ text_overrun_behavior = 3
 unique_name_in_owner = true
 layout_mode = 2
 text_overrun_behavior = 3
+
+[node name="ActorStatusSlot" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(201, 24)
+layout_mode = 2
+mouse_filter = 2
+clip_contents = true
+
+[node name="ActorStatusBadges" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorStatusSlot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

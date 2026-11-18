@@ -64,7 +64,8 @@ func run() -> void:
 	var outer_style := standalone_actor.get_theme_stylebox("panel") as StyleBoxFlat
 	var plate_style := plate.get_theme_stylebox("panel") as StyleBoxFlat
 	check(outer_style != null and is_zero_approx(outer_style.bg_color.a), "outer unit container has no enclosing card background")
-	check(plate_style != null and plate_style.bg_color.a > 0.9 and plate_style.border_width_top >= 1, "compact info plate has its own surface and border from the current theme")
+	check(plate_style != null and is_zero_approx(plate_style.bg_color.a) and plate_style.border_width_top == 0, "reserved HUD geometry draws no empty card")
+	check(plate.get_combined_minimum_size().y <= 160, "combat readout stays compact even with two reserved rows at default scale")
 
 	# Verify different widths between artwork target and compact plate are supported.
 	target_btn.custom_minimum_size.x = 160.0

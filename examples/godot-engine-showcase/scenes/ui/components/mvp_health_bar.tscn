@@ -26,6 +26,7 @@ theme_override_constants/separation = 5
 
 [node name="ResourceLabel" type="Label" parent="HealthReadout"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_override_font_sizes/font_size = 16
@@ -39,7 +40,7 @@ theme_override_font_sizes/font_size = 21
 text_overrun_behavior = 3
 
 [node name="HealthTrack" type="Control" parent="."]
-custom_minimum_size = Vector2(0, 9)
+custom_minimum_size = Vector2(0, 7)
 layout_mode = 2
 mouse_filter = 2
 

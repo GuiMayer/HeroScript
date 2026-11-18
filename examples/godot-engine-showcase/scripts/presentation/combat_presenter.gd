@@ -466,7 +466,7 @@ func combat_model(viewpoint: String):
 						amounts.append("%s%s %s" % ["+" if delta > 0 else "", _i18n.number(delta), _i18n.content_name(str(application.get("resourceId", "")))])
 				var action: String = _i18n.content_name(str(intent.get("actionId", intent.get("actionType", ""))))
 				if intent.get("previewUncertain", false):
-					action += " · " + _i18n.text("Outcome uncertain")
+					action = "?  " + action
 				elif not amounts.is_empty():
 					action += " · " + ", ".join(amounts)
 				actor["hudIntent"] = action

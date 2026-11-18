@@ -5,7 +5,7 @@ const ContextType = preload("res://scripts/ui/visual_context.gd")
 const CombatChrome = preload("res://scripts/ui/combat_chrome.gd")
 const ResourceScene = preload("res://scenes/ui/components/resource_view.tscn")
 const MAX_VISIBLE_EFFECTS := 5
-const STATUS_GAP := 4.0
+const STATUS_GAP := 3.0
 const BadgeScene = preload("res://scenes/ui/components/status_badge.tscn")
 signal target_selected(actor_id: String)
 var visual_context: ContextType = ContextType.new()
@@ -194,9 +194,8 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		_plate_surface.set_meta("background_role", "surface.actor")
 		_plate_surface.set_meta("border_role", "stroke.panel")
 		if authored_battlefield_layout:
-			_plate_surface.bg_color = Color.WHITE if visual_context.high_contrast else visual_context.styles.color("hud.paper")
-			_plate_surface.set_meta("background_role", "hud.paper")
-			plate.custom_minimum_size.x = roundf(236 * visual_context.text_scale)
+			_plate_surface.bg_color = Color.TRANSPARENT
+			plate.custom_minimum_size.x = roundf(209 * visual_context.text_scale)
 	var name_text: String = visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", "")))
 	_title.text = name_text
 	_title.tooltip_text = name_text
@@ -206,18 +205,23 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	var affiliation := "YOUR SIDE" if relation == "Ally" else ("No intent revealed" if relation == "Enemy" else "NEUTRAL")
 	var side := "Ally" if relation == "Ally" else ("Enemy" if relation == "Enemy" else "NEUTRAL")
 	var side_text: String = visual_context.translator.text(side)
+	var defeated: bool = authored_battlefield_layout and actor.get("isAlive", true) == false
 	if authored_battlefield_layout:
 		var role: Label = get_node("%ActorRole")
 		role.text = visual_context.translator.text("Hero") if actor.get("isInputActor", false) else side_text
 		if actor.get("boss", false): role.text = visual_context.translator.text("Boss")
+		role.visible = bool(actor.get("boss", false))
 		role.add_theme_color_override("font_color", visual_context.styles.color("text.secondary") if not visual_context.high_contrast else Color.BLACK)
 		role.add_theme_font_size_override("font_size", roundi(13 * visual_context.text_scale))
 		_title.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
 		_intent.text = str(actor.get("hudIntent", intent.get_slice("\n", 0))) if not intent.is_empty() else visual_context.translator.text(affiliation)
 		var recipients: Label = get_node("%ActorIntentTarget")
 		recipients.text = str(actor.get("hudIntentTargets", ""))
+		if defeated:
+			_intent.text = ""
+			recipients.text = ""
 		for line in [_intent, recipients]:
-			line.add_theme_font_size_override("font_size", roundi(14 * visual_context.text_scale))
+			line.add_theme_font_size_override("font_size", roundi(13 * visual_context.text_scale))
 			line.add_theme_color_override("font_color", Color.BLACK if visual_context.high_contrast else visual_context.styles.INK)
 		var intent_slot: Control = get_node("%ActorIntentSlot")
 		intent_slot.custom_minimum_size.y = ceilf(_intent.get_minimum_size().y + recipients.get_minimum_size().y)
@@ -229,8 +233,9 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	else:
 		_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)
 		_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
-	_intent.tooltip_text = intent if not intent.is_empty() else _intent.text
-	_intent_row.visible = (not intent.is_empty() or hostile or relation == "Neutral") if authored_battlefield_layout else (not (battlefield and visual_context.profile.compact_actor_hud) or hostile or relation == "Neutral" or not intent.is_empty())
+	_intent.tooltip_text = "" if defeated else (intent if not intent.is_empty() else _intent.text)
+	var has_visible_intent := not intent.is_empty() or hostile or relation == "Neutral"
+	_intent_row.visible = not defeated and (has_visible_intent or (not authored_battlefield_layout and not (battlefield and visual_context.profile.compact_actor_hud)))
 	_intent_icon.visible = (battlefield or authored_battlefield_layout) and visual_context.profile.compact_actor_hud and (hostile or not intent.is_empty()) and not (hide_unknown_intent_icon and str(actor.get("intentIconId", "unknown")) == "unknown")
 	_intent_icon.texture = CombatChrome.texture(str(actor.get("intentIconId", "unknown")))
 	_intent_icon.modulate = visual_context.styles.GOLD if hostile else visual_context.styles.TEAL
@@ -307,7 +312,7 @@ func _sync_effects_button(count: int) -> void:
 func _layout_effects() -> void:
 	if not is_instance_valid(_status_slot) or not is_inside_tree(): return
 	var compact_grid := visual_context.text_scale >= 1.2 or get_viewport_rect().size.x < 1300
-	var cell := StatusBadge.battlefield_cell(visual_context, compact_grid)
+	var cell := StatusBadge.battlefield_cell(visual_context)
 	var gap := roundf(STATUS_GAP * visual_context.text_scale)
 	var columns := 3 if compact_grid else MAX_VISIBLE_EFFECTS + 1
 	var rows := ceili(float(MAX_VISIBLE_EFFECTS + 1) / columns)
@@ -319,13 +324,11 @@ func _layout_effects() -> void:
 	_statuses.offset_right = grid.x * 0.5
 	_statuses.offset_top = -grid.y * 0.5
 	_statuses.offset_bottom = grid.y * 0.5
-	var index := 0
-	for control in _statuses.get_children():
-		if not control.visible: continue
-		if control is StatusBadge: control.layout_battlefield_badge(compact_grid)
-		var slot := MAX_VISIBLE_EFFECTS if control == _effects_button else index
+	var controls := _statuses.get_children().filter(func(control): return control.visible)
+	for index in controls.size():
+		var control = controls[index]
 		if control == _effects_button:
-			control.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
+			control.add_theme_font_size_override("font_size", roundi(13 * visual_context.text_scale))
 			for state in ["normal", "pressed", "hover", "focus", "disabled"]:
 				var style: StyleBox = control.get_theme_stylebox(state).duplicate()
 				style.content_margin_left = 2
@@ -333,9 +336,10 @@ func _layout_effects() -> void:
 				style.content_margin_top = 2
 				style.content_margin_bottom = 2
 				control.add_theme_stylebox_override(state, style)
-		else:
-			index += 1
-		control.position = Vector2(slot % columns, floorf(float(slot) / columns)) * (cell + Vector2.ONE * gap)
+		var row := floori(float(index) / columns)
+		var items_in_row := mini(columns, controls.size() - row * columns)
+		var left := (columns - items_in_row) * (cell.x + gap) * 0.5
+		control.position = Vector2(left + (index % columns) * (cell.x + gap), row * (cell.y + gap))
 		control.custom_minimum_size = cell
 		control.size = cell
 
@@ -369,7 +373,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 	var bars: Array[String] = []; var counters: Array[String] = []
 	var vitals: Array[String] = []; var shield: Array[String] = []
 	if _block != null:
-		_block.custom_minimum_size.x = roundf(60 * visual_context.text_scale)
+		_block.custom_minimum_size.x = roundf(50 * visual_context.text_scale)
 	for id in ordered:
 		if not resources.has(id) or (authored_battlefield_layout and str(id) == "energy"): continue
 		if authored_battlefield_layout and _model.actor.get("isInputActor", false) and str(id) in CombatChrome.CENTRAL_RESOURCES:
@@ -404,7 +408,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 				resource.label.set_meta("owns_hud_preferences", true)
 				resource.amount.set_meta("owns_hud_preferences", true)
 				resource.label.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
-				resource.amount.add_theme_font_size_override("font_size", roundi(21 * visual_context.text_scale))
+				resource.amount.add_theme_font_size_override("font_size", roundi(18 * visual_context.text_scale))
 				resource.label.add_theme_color_override("font_color", visual_context.styles.INK)
 				resource.amount.add_theme_color_override("font_color", visual_context.styles.INK)
 			parent.move_child(resource, live.size() - 1)
@@ -425,10 +429,10 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 			if is_block:
 				counter_label.set_meta("owns_hud_preferences", true)
 				ink = Color.BLACK if visual_context.high_contrast else visual_context.styles.color("hud.block")
-				counter_label.add_theme_font_size_override("font_size", roundi(18 * visual_context.text_scale))
+				counter_label.add_theme_font_size_override("font_size", roundi(15 * visual_context.text_scale))
 				var icon: TextureRect = counter.get_node("Icon")
 				icon.modulate = ink
-				icon.custom_minimum_size = Vector2.ONE * roundf(18 * visual_context.text_scale)
+				icon.custom_minimum_size = Vector2.ONE * roundf(15 * visual_context.text_scale)
 			counter_label.add_theme_color_override("font_color", ink)
 			counter.tooltip_text = counter_label.tooltip_text
 			if resources[id].has("maximum"):
@@ -465,8 +469,7 @@ func _refresh_plate_focus() -> void:
 	if plate.has_focus():
 		_plate_surface.border_color = visual_context.styles.color("stroke.focus")
 	if visual_context.high_contrast: _plate_surface.border_color = Color.BLACK
-	var normal_border := 2 if _model.get("actor", {}).get("boss", false) else 1
-	_plate_surface.set_border_width_all(3 if plate.has_focus() else normal_border)
+	_plate_surface.set_border_width_all(2 if plate.has_focus() else 0)
 
 func _prune(parent: Node, live: Array[String]) -> void:
 	for child in parent.get_children():

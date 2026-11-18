@@ -27,7 +27,6 @@ var glyph_label: Label
 var stack_label: Label
 var _panel_style: StyleBoxFlat
 var _mvp_content: BoxContainer
-var _horizontal_mvp_badge := false
 
 func _ready() -> void:
 	_bind_nodes()
@@ -104,10 +103,10 @@ func _apply_model() -> void:
 	if mvp_icons: _layout_mvp_badge()
 	if mvp_icons and count_str.length() > 2:
 		var count_width := stack_label.get_theme_font("font").get_string_size(count_str, HORIZONTAL_ALIGNMENT_LEFT, -1, stack_label.get_theme_font_size("font_size")).x
-		var count_space := custom_minimum_size.x - 4
-		if _horizontal_mvp_badge: count_space -= icon_rect.custom_minimum_size.x
+		var count_space := custom_minimum_size.x - 4 - icon_rect.custom_minimum_size.x
 		if count_width > count_space:
 			stack_label.text = "99+" if stacks >= 100 else count_str
+			stack_label.add_theme_font_size_override("font_size", roundi(10 * visual_context.text_scale))
 
 	# Rich Tooltip
 	var title_text := status_id.capitalize()
@@ -151,28 +150,21 @@ func _layout_mvp_badge() -> void:
 		for side in ["left", "right"]:
 			get_node("Margin").add_theme_constant_override("margin_" + side, 0)
 	var scale_factor := visual_context.text_scale
-	_mvp_content.vertical = not _horizontal_mvp_badge
-	var icon_size := roundf(20 * scale_factor)
+	var icon_size := roundf(14 * scale_factor)
 	icon_rect.custom_minimum_size = Vector2(icon_size, icon_size)
-	stack_label.add_theme_font_size_override("font_size", roundi(16 * scale_factor))
+	stack_label.add_theme_font_size_override("font_size", roundi(12 * scale_factor))
 	stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stack_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	stack_label.clip_text = true
 	stack_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	custom_minimum_size = battlefield_cell(visual_context, _horizontal_mvp_badge)
+	custom_minimum_size = battlefield_cell(visual_context)
 	_mvp_content.alignment = BoxContainer.ALIGNMENT_CENTER
 
-func layout_battlefield_badge(horizontal: bool) -> void:
-	if not mvp_icons or _horizontal_mvp_badge == horizontal: return
-	_horizontal_mvp_badge = horizontal
-	_apply_model()
-
-static func battlefield_cell(context: ContextType, horizontal := false) -> Vector2:
+static func battlefield_cell(context: ContextType) -> Vector2:
 	var scale_factor := context.text_scale
 	var font := context.theme.get_font("font", "Label")
-	var icon_height := roundf(20 * scale_factor)
-	var count_height := font.get_height(roundi(16 * scale_factor))
-	var content_height := maxf(icon_height, count_height) if horizontal else icon_height + count_height
-	return Vector2(roundf((52 if horizontal else 32) * scale_factor), ceilf(content_height + 6.0))
+	var count_height := font.get_height(roundi(13 * scale_factor))
+	return Vector2(roundf(31 * scale_factor), maxf(roundf(24 * scale_factor), ceilf(count_height + 6.0)))
 
 func _status_tone(status_id: String) -> Dictionary:
 	var sid := status_id.to_lower()

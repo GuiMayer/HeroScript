@@ -30,6 +30,7 @@ func apply_model(actors: Array, background_id: String, context: ContextType) -> 
 			add_child(portraits[id])
 		portraits[id].rebind_context(context)
 		portraits[id].setup("actors", str(actor.get("definitionId", "")))
+		portraits[id].self_modulate.a = 0.45 if actor.get("isAlive", true) == false and visual_context.setting_id in ["prototype-test", "alisyum"] else 1.0
 	for id in portraits.keys():
 		if id not in live:
 			portraits[id].queue_free()
