@@ -448,6 +448,8 @@ func combat_model(viewpoint: String):
 		var relation := relationship(actor, viewpoint)
 		actor["relationship"] = relation
 		actor["isInputActor"] = str(actor.get("instanceId", "")) == viewpoint
+		if _appearance.get("boss_actors", {}).get(str(actor.get("definitionId", "")), false):
+			actor["boss"] = true
 		for intent in _combat.get("activation", {}).get("intents", []):
 			if str(intent.get("actorId", "")) == str(actor.get("instanceId", "")):
 				actor["intentIconId"] = str(_appearance.get("intent_icons", {}).get(str(intent.get("actionId", "")), "unknown"))

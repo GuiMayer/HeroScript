@@ -122,6 +122,8 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	label.add_theme_constant_override("outline_size", 4)
 	if kind == "payment": label.text = visual_context.translator.text("Cost") + " " + label.text
+	elif plate != null and kind == "impact" and name_id == "block" and delta < 0 and application.get("calculationInfluenceId") is String and not application.calculationInfluenceId.is_empty():
+		label.text = visual_context.translator.text("Absorption: %s") % label.text
 	else:
 		var cue: Dictionary = visual_context.motion.cue(kind)
 		if cue.has("label"): label.text = visual_context.translator.text(str(cue.label)) + " " + label.text

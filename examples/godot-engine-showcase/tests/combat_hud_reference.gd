@@ -16,7 +16,7 @@ func run() -> void:
 		options[parts[0]] = parts[1] if parts.size() == 2 else true
 	var i18n = root.get_node("I18n")
 	i18n.set_locale(str(options.get("locale", "en")))
-	var context = Context.new(i18n, {"text_scale": float(options.get("scale", 1.0)), "reduced_motion": true}, Profile)
+	var context = Context.new(i18n, {"text_scale": float(options.get("scale", 1.0)), "reduced_motion": true, "high_contrast": options.has("high-contrast")}, Profile)
 	var background := ColorRect.new()
 	background.color = Color("#a4a297")
 	root.add_child(background)
@@ -43,7 +43,7 @@ func run() -> void:
 	for status in ["burn", "focus", "poison", "strength", "vulnerable", "wet"]:
 		effects.append({"statusId": status, "stacks": 12 if status == "burn" else 2, "duration": 2})
 	var actors := [
-		{"name": "Pyromancer", "instanceId": "hero", "hp": 62, "max": 90, "block": 8},
+		{"name": "Pyromancer", "instanceId": "hero", "isInputActor": true, "hp": 62, "max": 90, "block": 8},
 		{"name": "Water Elemental", "instanceId": "support"},
 		{"name": "Glass Wisp", "instanceId": "enemy", "hp": 27, "max": 55, "block": 0, "intent": "Attack 11"},
 		{"name": "Obsidian Commander", "instanceId": "boss", "hp": 17, "max": 160, "block": 12, "intent": "Guard 14", "boss": true},

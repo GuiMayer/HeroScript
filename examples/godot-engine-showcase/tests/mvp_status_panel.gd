@@ -33,6 +33,19 @@ func run() -> void:
 	check(not trail.visible and not motion.is_valid() and hp.bar.value == 17, "healing interrupts the trail at the confirmed value")
 	panel.present_resource({"resourceId": "health", "previousValue": 17, "currentValue": 0}, 0.0)
 	check(not trail.visible and hp.bar.value == 0 and hp.get_node("%HealthState").text != "Defeated", "zero is immediate and does not invent defeat")
+	var previous_health: Dictionary = actor.resources.health
+	var original_plate: Rect2 = panel.plate.get_global_rect()
+	actor.resources.health = {"current": 1234, "minimum": 0, "maximum": 9876}
+	actor.resources.block.current = 1234
+	panel.setup(actor, false, presentation, "A very long new intent with its own published details", false, true)
+	for frame in 3: await process_frame
+	var number_width: float = hp.amount.get_theme_font("font").get_string_size(hp.amount.text, HORIZONTAL_ALIGNMENT_LEFT, -1, hp.amount.get_theme_font_size("font_size")).x
+	check(hp.amount.text == "1234/9876" and hp.amount.size.x >= number_width, "four-digit values remain visible (%s, %s available for %s)" % [hp.amount.text, hp.amount.size.x, number_width])
+	check(panel.plate.get_global_rect().is_equal_approx(original_plate), "long intent and larger numbers preserve the reserved plate")
+	actor.resources.health = {"current": 17, "minimum": 0, "maximum": 0}
+	panel.setup(actor, false, presentation, "", false, true)
+	check(hp.amount.text == "17" and not hp.bar.visible, "an invalid range retains the exact published value without a bar")
+	actor.resources.health = previous_health
 	actor.statuses = [{"statusId": "burn", "stacks": 2, "isActive": true}, {"statusId": "unknown_status", "stacks": 0, "isActive": false}]
 	panel.setup(actor, false, presentation, "", false, true)
 	check(panel.status_badge("burn").stack_label.text == "2" and panel.status_badge("unknown_status") == null, "status counts update and inactive effects disappear")
@@ -76,12 +89,12 @@ func run() -> void:
 	var two_digit_badge = panel.status_badge("strength")
 	check(two_digit_badge.icon_rect.modulate == Color.WHITE and two_digit_badge.get_theme_stylebox("panel").bg_color == Color.BLACK, "high contrast survives combat-wide preference application")
 	check(two_digit_badge.stack_label.get_theme_font_size("font_size") == 32, "text scale is applied once")
-	check(two_digit_badge.stack_label.text == "12" and two_digit_badge.size.is_equal_approx(StatusBadge.battlefield_cell(enlarged)), "enlarged badge retains both digits in its reserved cell")
-	check(two_digit_badge.icon_rect.get_global_rect().end.y <= two_digit_badge.stack_label.get_global_rect().position.y, "status count does not overlap the icon at enlarged text size")
+	check(two_digit_badge.stack_label.text == "12" and two_digit_badge.size.is_equal_approx(StatusBadge.battlefield_cell(enlarged, true)), "enlarged badge retains both digits in its reserved cell")
+	check(two_digit_badge.icon_rect.get_global_rect().end.x <= two_digit_badge.stack_label.get_global_rect().position.x, "status count and icon sit side by side at enlarged text size")
 	var row: Rect2 = panel.get_node("%ActorStatusSlot").get_global_rect()
 	for control in panel.get_node("%ActorStatusBadges").get_children():
 		if control.visible:
-			check(row.encloses(control.get_global_rect()), "visible status controls fit the reserved row at enlarged text size")
+			check(row.encloses(control.get_global_rect()), "%s fits the reserved grid at enlarged text size (%s inside %s)" % [control.name, control.get_global_rect(), row])
 	var shield_icon: TextureRect = panel.resource_counter("block").get_parent().get_node("Icon")
 	for icon: TextureRect in [shield_icon, two_digit_badge.icon_rect]:
 		check(icon.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and is_equal_approx(icon.size.x, icon.size.y) and icon.texture.get_width() == icon.texture.get_height(), "icon preserves a square texture and layout at enlarged text size")

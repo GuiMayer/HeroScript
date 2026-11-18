@@ -138,7 +138,7 @@ theme_override_font_sizes/font_size = 13
 [node name="ActorVitals" type="HBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="ActorHealth" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorVitals"]
 unique_name_in_owner = true
@@ -147,7 +147,7 @@ size_flags_horizontal = 3
 
 [node name="ActorBlock" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorVitals"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(68, 0)
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
 
 [node name="ActorResources" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]

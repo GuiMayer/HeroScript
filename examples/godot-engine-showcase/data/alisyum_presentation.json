@@ -1,4 +1,9 @@
 {
+  "boss_actors": {
+    "boss_illana_warden": true,
+    "boss_scarlet_inquisitor": true,
+    "boss_vidaria_archon": true
+  },
   "cards": {
     "alisyum_basic_strike": {
       "name": "Steel Strike",

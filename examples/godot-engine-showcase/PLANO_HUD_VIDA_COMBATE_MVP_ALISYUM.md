@@ -66,11 +66,11 @@ O código atual limita a placa a três efeitos, mantém um botão de inspeção 
 
 | Modo | Composição | Espaço inicial da faixa |
 |---|---|---|
-| Padrão | `[1] [2] [3] [4] [5] [⋯]` | Seis células de 32 px com cinco intervalos de 4 px ocupam 212 px internos. Com margens de 12 px, reservar pelo menos **236 px de largura externa**. |
-| Estreito ou ampliado | Primeira linha `[1] [2] [3]` e segunda linha `[4] [5] [⋯]` | Três colunas por duas linhas fixas ocupam 104 × 68 px nas mesmas medidas de referência. Recalcular a partir da escala aplicada. Se três colunas ainda excederem a largura, ampliar a área do ator e usar a rolagem do campo. |
+| Padrão | `[1] [2] [3] [4] [5] [⋯]` | Seis células de 32 unidades com cinco intervalos de 4 ocupam 212 unidades internas a 100%. Com margens de 12, reservar pelo menos **236 de largura externa**. |
+| Estreito ou ampliado | Primeira linha `[1] [2] [3]` e segunda linha `[4] [5] [⋯]` | Três células de 52 unidades com dois intervalos de 4 ocupam 164 de largura interna a 100%. Pictograma e acúmulo lado a lado economizam altura. A largura efetiva segue a escala aplicada, com rolagem do campo quando o elenco excede o espaço. |
 
 - **Leitura.** Testar pictogramas simples de 20–24 px com silhuetas distintas, fundos opacos e um único número persistente para o acúmulo publicado. Reservar espaço para o número sem encobrir a silhueta. Mostrar duração, nome e descrição na inspeção existente. Medir o texto na saída renderizada e usar 18 px para o numeral e o `+N` como referência de leitura em PC a 1080p. Se a fonte ou o contador exigir uma célula maior, recalcular o modo antes de reduzir o texto. Medir pelo menos 4,5:1 para pictogramas e números. [XAG 101 · Ícones e escala de texto](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/101#icons-and-glyph-sizes) · [XAG 102 · Contraste](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/102)
-- **Inspeção.** Com um a cinco efeitos, mostrar `⋯` na sexta célula. A partir de seis, mostrar `+N` com a quantidade além dos cinco visíveis. O botão usa nome acessível com ator e quantidade, abre a lista completa por mouse ou teclado e devolve o foco ao fechar. Se o último efeito expirar enquanto o botão estiver focado, devolver o foco ao controle de alvo do ator. Usar ordem determinística para os efeitos e conservar a ordem dos demais ao mudar somente o acúmulo ou a duração de um deles.
+- **Inspeção.** Com um a cinco efeitos, mostrar `⋯` na sexta célula. A partir de seis, mostrar `+N` com a quantidade além dos cinco visíveis. O botão usa nome acessível com ator e quantidade, abre a lista completa por mouse ou teclado e devolve o foco ao fechar. Se o último efeito expirar enquanto o botão estiver focado, devolver o foco à placa do ator, que permanece navegável durante a leitura. Usar ordem determinística para os efeitos e conservar a ordem dos demais ao mudar somente o acúmulo ou a duração de um deles.
 - **Geometria.** Escolher a grade pela largura disponível e pela escala do HUD, com seis células reservadas até quando estiverem vazias. Preencher as células com os ícones e o botão dentro de contêineres com tamanho estável. A chegada ou expiração de efeitos e a transição de `⋯` para `+N` precisam ocorrer dentro da caixa reservada. Como o Godot reposiciona filhos quando o mínimo de um controle muda, conferir a medida real dos números e do botão antes de escolher a grade. [Godot · HBoxContainer](https://docs.godotengine.org/en/stable/classes/class_hboxcontainer.html)
 
 ## Estados e feedback
@@ -103,3 +103,27 @@ O código atual limita a placa a três efeitos, mantém um botão de inspeção 
 - **Visual.** Capturar o aplicativo em 1280 × 720, 1280 × 800, 1920 × 1080 e 2560 × 1080. Priorizar extremos da matriz com texto 1,0× e 1,6×, PT-BR/EN, alto contraste e imagens de fundo distintas. Testar também a faixa de status com texto a 2,0×. Conferir cinco silhuetas distinguíveis em escala de cinza, acúmulos com mais de um dígito, foco sem mouse, legibilidade do zero, rótulos sem colisão e consistência das cores enquanto a barra muda. [XAG 103 · Revisão de cor](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/103)
 - **Piloto comparativo.** Recrutar 5–8 pessoas para uma sessão curta, alternando a ordem das duas versões. Usar estados equivalentes com números diferentes para reduzir memorização. Pedir vida do herói, vida e bloqueio de um inimigo, alvo da próxima ameaça e escolha de uma carta que finalize o alvo quando o resultado for publicado como determinístico. Medir acerto, tempo e consultas a tooltip ou log. Usar mediana e contagem de erros como evidência exploratória, sem inferir significância estatística do piloto.
 - **Handoff.** Guardar capturas comparáveis de antes e depois, os casos de teste e a tabela final de cores e dimensões renderizadas. Aprovar a placa estática antes de adicionar animação. O critério de conclusão é a leitura confiável durante a decisão de jogar, com estabilidade visual e correspondência aos valores da engine.
+
+## Validação da implementação
+
+O layout final usa uma placa de pelo menos 236 unidades de UI a 100%, com seis células reservadas. Em uma linha, o pictograma fica sobre o acúmulo. Na grade de duas linhas, cada célula usa pictograma e acúmulo lado a lado para preservar altura para a arte. As células partem de 32 unidades de largura em uma linha e 52 na grade, com altura calculada pela fonte e pelo pictograma. O botão de inspeção ocupa a sexta posição nos dois modos. A vida do herói permanece na placa local após comparar as duas variantes no cenário de referência.
+
+| Cobertura | Evidência |
+|---|---|
+| Geometria e legibilidade | `mvp_reference_battlefield.gd` verifica a sequência até dez status e a área da arte, do alvo e da placa. Executa a matriz de 1280 × 720, 1280 × 800, 1920 × 1080 e 2560 × 1080. `mvp_status_panel.gd` verifica foco, overflow, escala de 200% e ausência de colisão entre contador e pictograma. |
+| Dados confirmados e feedback | `mvp_reference_battlefield.gd` verifica prévia ambígua, resultado determinístico e cancelamento. `mvp_status_panel.gd` verifica dano, cura, zero e interrupção do rastro sem atrasar o valor confirmado. `motion_policy.gd` verifica as políticas de reprodução. |
+| Abertura das campanhas | `combat_hud_online.gd` abre MVP e Alisyum pela API em armazenamento isolado, verifica os valores publicados, joga uma carta legal e confirma o replay. A prova de densidade apresenta seis efeitos numa cópia local do snapshot, com cinco silhuetas visíveis. A etapa com dois inimigos usa identidades de chefes das campanhas no mesmo campo. |
+| Capturas | As duas aberturas foram renderizadas a 1280 × 800 em inglês a 100% e em português com alto contraste a 120%. A escala de 200% foi exercitada na referência de UI. O ajuste disponível no menu do jogo chega a 120%. As imagens foram salvas localmente em `.runtime/hud-validation`. |
+| Piloto | A comparação das variantes foi feita com a referência visual. Os tempos de leitura e a meta de acerto ainda dependem de uma sessão com jogadores. A checagem de chefe usa uma composição de teste, sem uma travessia completa do capítulo. |
+
+Para gerar uma captura de referência, execute a partir deste diretório. O argumento `--header-life` acrescenta a cópia no cabeçalho para comparação. Use `--scale=2 --high-contrast --locale=pt_BR` para a grade ampliada.
+
+```powershell
+godot --resolution 1280x800 --script res://tests/combat_hud_reference.gd -- --capture=C:/Temp/hud-referencia.png
+```
+
+Para conferir a abertura pela API, use uma configuração de teste com armazenamento próprio e uma cópia do projeto com o nome de dados de usuário iniciado por `HeroScript-hud-qa-`. Repita com `--campaign=alisyum`.
+
+```powershell
+godot --headless --script res://tests/combat_hud_online.gd -- --api-url=http://127.0.0.1:5278 --campaign=prototype-test
+```

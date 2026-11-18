@@ -67,6 +67,7 @@ func _sync_actors(actors: Array, presentation: Dictionary) -> void:
 		var hostile := relation == "Enemy"
 		if panels.has(id):
 			var panel: Control = panels[id]
+			panel.visual_context = visual_context
 			if panel.get_parent() != parent: panel.reparent(parent)
 			panel.setup(actor, hostile, presentation, str(item.intent), false, true)
 		else:

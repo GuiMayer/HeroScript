@@ -635,13 +635,24 @@ func _set_target_outline(button: Button, allowed: bool, emphasized: bool) -> voi
 		outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(outline)
 		outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var badge := Label.new()
+		badge.name = "TargetMarker"
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.position = Vector2(7, 4)
+		outline.add_child(badge)
 	outline.visible = allowed
 	if not allowed: return
 	var border := StyleBoxFlat.new()
 	border.bg_color = Color.TRANSPARENT
-	border.border_color = visual_context.styles.color("accent.primary")
+	border.border_color = Color.BLACK if visual_context.high_contrast else visual_context.styles.color("accent.primary")
 	border.set_border_width_all(5 if emphasized else 2)
 	outline.add_theme_stylebox_override("panel", border)
+	var marker: Label = outline.get_node("TargetMarker")
+	marker.visible = _setting_id in ["prototype-test", "alisyum"]
+	marker.text = "◆ " + visual_context.translator.text("Selected target") if button.button_pressed else "◆" if emphasized else "◇"
+	marker.add_theme_color_override("font_color", border.border_color)
+	marker.add_theme_color_override("font_outline_color", Color.WHITE)
+	marker.add_theme_constant_override("outline_size", 3)
 
 func _hand_drop_allowed(point: Vector2) -> bool:
 	for control in [header_view, pile_controls, right_pile_controls, turn_view, candidate_panel, character_sidebar, _feedback_column]:

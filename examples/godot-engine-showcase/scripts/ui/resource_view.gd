@@ -128,7 +128,8 @@ func _apply_model() -> void:
 	var state: Dictionary = _model.get("state", {})
 	var appearance: Dictionary = visual_context.resource_appearance(id, _model.get("appearance", {}))
 	var model = preload("res://scripts/presentation/view_models.gd").ResourceValue.new(state)
-	label.text = visual_context.translator.content_name(id).to_upper()
+	var resource_name: String = visual_context.translator.content_name(id)
+	label.text = resource_name if _health_state != null else resource_name.to_upper()
 	var bounded: bool = model.has_bounds and is_finite(model.current) and model.current >= float(state.get("minimum", 0)) and model.current <= float(state.get("maximum", 0))
 	if _health_state != null:
 		bounded = bounded and _has_health_amount(state) and is_finite(float(state.minimum)) and is_finite(float(state.maximum))
@@ -155,7 +156,7 @@ func _apply_model() -> void:
 	bar.tooltip_text = amount.text
 	amount.tooltip_text = amount.text
 	if _health_state != null:
-		amount.accessibility_name = "%s %s" % [label.text.capitalize(), amount.text]
+		amount.accessibility_name = "%s %s" % [label.text, amount.text]
 	_update_health_preview()
 
 func set_health_preview(projected: Dictionary) -> void:

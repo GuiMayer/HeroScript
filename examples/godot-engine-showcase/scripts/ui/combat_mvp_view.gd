@@ -264,7 +264,7 @@ func _present_energy(combat_state: Dictionary) -> void:
 	for actor in combat_state.get("actors", []):
 		if str(actor.get("instanceId", "")) != _input_actor: continue
 		var resources: Dictionary = actor.get("resources", {})
-		for resource_id in ["energy", "heat", "heat_gauge", "blood_tithe", "luck", "frost"]:
+		for resource_id in preload("res://scripts/ui/combat_chrome.gd").CENTRAL_RESOURCES:
 			if not resources.get(resource_id) is Dictionary: continue
 			var value: Dictionary = resources[resource_id]
 			var current_text: String = visual_context.translator.number(float(value.get("current", 0)))

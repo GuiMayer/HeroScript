@@ -2,6 +2,7 @@ extends RefCounted
 ## Native buttons keep input/accessibility; vectors and cut keylines are visual only.
 const Keyline = preload("res://scripts/ui/components/combat_keyline.gd")
 const STYLE = preload("res://scripts/ui/styles/combat_chrome_style.gd")
+const CENTRAL_RESOURCES := ["energy", "heat", "heat_gauge", "blood_tithe", "luck", "frost"]
 static func texture(id: String) -> Texture2D:
 	var path := "res://assets/ui-icons/%s.svg" % id
 	return load(path if ResourceLoader.exists(path) else "res://assets/ui-icons/unknown.svg")
@@ -17,11 +18,14 @@ static func apply(button: Button, id: String, label: String, context, primary :=
 	button.text = "" if compact else label
 	button.custom_minimum_size.y = style.primary_height if primary else style.control_height
 	if compact: button.custom_minimum_size.x = style.control_height
+	button.set_meta("contrast_preserve_colors", primary)
 	var ink: Color = context.styles.color("text.inverse" if primary else "text.primary")
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var fill: Color = context.styles.color("surface.primary_action") if primary else Color.TRANSPARENT
 		if state == "hover": fill = context.styles.color("surface.primary_hover" if primary else "surface.hover")
 		if state == "disabled": fill = context.styles.color("surface.disabled")
+		if primary and context.high_contrast:
+			fill = Color("#595959") if state == "disabled" else Color.BLACK
 		var box: StyleBoxFlat = context.styles.box(fill, 0)
 		if state == "focus":
 			box.border_color = context.styles.color("accent.primary"); box.set_border_width_all(2)
