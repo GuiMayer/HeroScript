@@ -30,9 +30,38 @@
       "core_cascade": "core_cascade_behavior"
     },
     "portraits": {
+      "prototype_opening": "actor_channeler",
+      "prototype_warning": "actor_channeler",
+      "prototype_ending": "actor_mvp_operator",
+      "alisyum_opening_pyro": "actor_pyromancer",
+      "alisyum_opening_servo": "actor_baron",
+      "alisyum_opening_gambler": "actor_mvp_operator",
+      "alisyum_opening_renegado": "actor_vitreous",
       "ember_keeper": "actor_adept"
     },
     "cards": {
+      "prototype_strike": "card_strike",
+      "prototype_guard": "card_defend",
+      "prototype_scorch": "card_fire",
+      "prototype_soak": "card_heal",
+      "prototype_condense": "card_condense",
+      "prototype_coolant": "card_heal",
+      "prototype_void_bolt": "card_precision",
+      "prototype_void_guard": "card_defend",
+      "prototype_void_condense": "card_condense",
+      "prototype_necro_bolt": "card_recall",
+      "prototype_necro_guard": "card_defend",
+      "prototype_necro_condense": "card_condense",
+      "prototype_guarded_insight": "card_defend",
+      "prototype_cinder_recall": "card_recall",
+      "prototype_final_spark": "card_fire",
+      "alisyum_basic_strike": "card_strike",
+      "alisyum_basic_guard": "card_defend",
+      "pyro_magma_slash": "card_fire",
+      "pyro_ash_carapace": "card_defend",
+      "pyro_detonate_chest": "card_condense",
+      "pyro_cinder_spark": "card_fire",
+      "pyro_kindle_flame": "card_fire",
       "core_strike": "card_core_strike",
       "core_guard": "card_core_guard",
       "core_heal": "card_core_heal",
@@ -129,6 +158,25 @@
       "lab_unknown_long_title": "sample_lab_unknown_long_title"
     },
     "actors": {
+      "prototype_hero": "actor_mvp_operator",
+      "prototype_support": "actor_channeler",
+      "inimigo_automato_batedor": "actor_wisp",
+      "prototype_duelist": "actor_sentinel",
+      "prototype_swarm": "actor_swarm",
+      "prototype_warden": "actor_sentinel",
+      "pyromancer": "actor_pyromancer",
+      "enemy_vidaria_enforcer": "actor_vidaria_enforcer",
+      "baron_servant": "actor_baron",
+      "gambler": "actor_mvp_operator",
+      "vitreous_renegade": "actor_vitreous",
+      "enemy_blood_cultist": "actor_channeler",
+      "enemy_vitreous_sentinel": "actor_sentinel",
+      "boss_scarlet_inquisitor": "actor_baron",
+      "enemy_crolbia_duelist": "actor_wisp",
+      "enemy_obor_runesmith": "actor_channeler",
+      "enemy_ash_abomination": "actor_swarm",
+      "boss_vidaria_archon": "actor_vidaria_enforcer",
+      "boss_illana_warden": "actor_vitreous",
       "spire_adept": "actor_adept",
       "player_warrior": "actor_adept",
       "spire_wisp": "actor_wisp",
@@ -170,12 +218,43 @@
       "Victory": "activity_victory"
     },
     "backgrounds": {
+      "vidaria_forges": "vidaria_forges",
       "combat": "battlefield"
     },
     "relics": {},
     "inscriptions": {}
   },
   "slots": {
+    "actor_mvp_operator": {
+      "path": "res://assets/tactical-pieces/hero-wanderer.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_baron": {
+      "path": "res://assets/tactical-pieces/hero-regent.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_vitreous": {
+      "path": "res://assets/tactical-pieces/hero-shard.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_pyromancer": {
+      "path": "res://assets/tactical-pieces/alisyum-pyromancer.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "actor_vidaria_enforcer": {
+      "path": "res://assets/tactical-pieces/alisyum-enforcer.svg",
+      "fit": "contain",
+      "placeholder": false
+    },
+    "vidaria_forges": {
+      "path": "res://assets/ivory/vidaria-forges.svg",
+      "fit": "cover",
+      "placeholder": false
+    },
     "effect_unknown": {
       "path": "res://assets/programmer-art/icon-unknown.svg",
       "placeholder": true

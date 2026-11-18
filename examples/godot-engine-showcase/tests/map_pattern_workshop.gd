@@ -68,5 +68,20 @@ func run() -> void:
 	view.get_node("Compare").confirmed.emit()
 	check(applications == ["valid-reference"], "comparison confirmation applies exactly the selected reference")
 
+	var alisyum_ids := ["obor_rune_echo_item", "obor_rune_ward_item", "obor_rune_pierce_item", "obor_rune_keen_item", "obor_rune_ember_item", "obor_rune_leech_item"]
+	var alisyum_run := {"settingId": "alisyum", "runId": "alisyum-test", "currentNodeId": "obor_forge_1", "resources": {"parts": {"current": 3}}, "map": {"resolvedNodeIds": [], "nodes": [{"nodeId": "obor_forge_1", "activity": {"type": "CardUpgrade", "parameters": {"modifierItemIds": alisyum_ids, "costs": [{"resourceId": "parts", "amount": 3}]}}, "metadata": {"displayName": "Forja Rúnica de Obor", "description": "Escolha uma runa."}, "nextNodeIds": []}]}}
+	var alisyum_commands := [{"type": "ACQUIRE_CARD_MODIFIER_ITEM", "validPayload": {"itemDefinitionIds": alisyum_ids, "costs": [{"ResourceId": "parts", "Amount": 3}]}}, {"type": "RESOLVE_NODE", "validPayload": {"currentNodeId": "obor_forge_1"}}]
+	var alisyum_choices: Array = preload("res://scripts/application/activity_choices.gd").build(alisyum_run, alisyum_commands)
+	var alisyum_catalog := {"items": [], "catalog": alisyum_ids.map(func(id): return {"itemDefinitionId": id, "presentation": {"name": id, "description": id}})}
+	var alisyum_presenter = preload("res://scripts/presentation/activity_presenter.gd").new(alisyum_run, alisyum_choices, {}, context.translator, [], alisyum_catalog)
+	check(route.is_mvp_workshop(alisyum_run) and route.resolve_route(alisyum_run, {}, alisyum_choices) == "activity", "alisyum workshop with 6 runes uses PatternWorkshop")
+	var alisyum_view = preload("res://scenes/ui/components/pattern_workshop.tscn").instantiate(); root.add_child(alisyum_view)
+	alisyum_view.update_inventory(alisyum_catalog, [], {}); alisyum_view.present(alisyum_run, alisyum_choices, alisyum_presenter, context, alisyum_catalog, [], {})
+	check(alisyum_view.get_node("ContentScroll/Content/Offers").get_child_count() == 6 and alisyum_view.get_node("ContentScroll/Content/Offers/Offer6").visible, "workshop dynamically instantiates slots for all 6 Obor runes")
+	check(alisyum_view.get_node("Header/Title").text == "Forja Rúnica de Obor", "Alisyum workshop keeps the published forge title")
+	check(alisyum_view.get_node("ContentScroll").follow_focus, "keyboard focus scrolls all six offers into view")
+	check(alisyum_view.get_node("ContentScroll/Content/Offers/Offer6/Column/Acquire").text == "Buy card rune", "forge distinguishes card runes from equipment runes")
+	alisyum_view.queue_free()
+
 	view.queue_free(); await process_frame
 	root.get_node("GameAudio").shutdown(); quit(1 if failures else 0)

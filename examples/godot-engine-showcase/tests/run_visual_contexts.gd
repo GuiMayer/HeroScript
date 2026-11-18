@@ -39,6 +39,13 @@ func _run() -> void:
 	check(scenery.read("backgroundId") == "forest" and scenery.read("nodeId") == "camp", "setting/node mappings select scenery without game rules")
 	var snapshot: Dictionary = scenery.to_dictionary(); snapshot.backgroundId = "mutated"
 	check(scenery.read("backgroundId") == "forest", "scenery model is defensively copied")
+	a.set_scenery_profile(load("res://data/themes/ivory_scenery.tres"))
+	var art = load("res://scripts/presentation/art_catalog.gd")
+	for pair in [["prototype_hero", "inimigo_automato_batedor"], ["pyromancer", "enemy_vidaria_enforcer"]]:
+		var left: Dictionary = a.resolve_art("actors", pair[0])
+		var right: Dictionary = a.resolve_art("actors", pair[1])
+		check(left.key != right.key and art.texture_for(left) != null and art.texture_for(right) != null,
+			"the opening player and enemy have distinct, loadable silhouettes")
 	host.queue_free()
 	for _frame in 8: await process_frame
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout

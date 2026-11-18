@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <title>Fornalhas de Vidaria</title>
+  <g fill="none" stroke="#944f38" opacity=".19" stroke-width="2">
+    <path d="M0 475h220l110 100h940l110-100h220M0 492h212l116 100h944l116-100h212M0 510h200l128 100h944l128-100h200"/>
+    <path d="M0 400h126V210h72v190h65l76 76m1261-76h-126V210h-72v190h-65l-76 76M100 710h1400M85 724h1430"/>
+  </g>
+  <path fill="#b83e25" opacity=".08" d="M0 620h1600v9H0z"/>
+</svg>

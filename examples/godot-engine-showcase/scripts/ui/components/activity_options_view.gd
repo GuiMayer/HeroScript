@@ -110,11 +110,15 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 			var destination := str(model.get("rewardDestination", ""))
 			entry.get_node("AcquisitionPrice").visible = not price.is_empty() or not destination.is_empty()
 			entry.get_node("AcquisitionPrice").text = (context.translator.text("Destination: %s") % context.translator.text(destination)) if not destination.is_empty() else (context.translator.text("Acquisition price: %s") % price)
+			if model.get("terminalReward", false) and type == "PICK_CARD_REWARD":
+				entry.get_node("AcquisitionPrice").text += "\n" + context.translator.text("Ends this reward choice")
+				entry.get_node("AcquisitionPrice").visible = true
 		else:
 			var content = entry.get_node("Content"); var art = content.get_node("Art")
 			art.rebind_context(context); art.setup("modifier_items" if str(model.get("category","")) == "modifier_items" else "activities",str(model.get("artId",_current_node().get("activity",{}).get("type",""))))
 			content.get_node("Title").text = str(model.name); content.get_node("Title").visible = not str(choice.get("subjectId","")).is_empty()
-			content.get_node("Cost").text = str(model.cost); content.get_node("Cost").visible = not str(model.cost).is_empty()
+			content.get_node("Cost").text = context.translator.text("Cost: %s") % str(model.cost) if type == "BUY_SHOP_ITEM" else str(model.cost)
+			content.get_node("Cost").visible = not str(model.cost).is_empty()
 			content.get_node("Cost").add_theme_color_override("font_color",context.styles.GOLD)
 			content.get_node("Description").text = str(model.summary)
 			content.get_node("Description").visible = (str(choice.get("subjectType","")) == "inscription" or str(model.category) == "modifier_items" or model.get("namedPreparation", false)) and not str(model.summary).is_empty()

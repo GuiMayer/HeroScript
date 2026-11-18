@@ -1,7 +1,9 @@
 {
   "version": 1,
   "defaults": { "backgroundId": "combat" },
-  "settings": {},
+  "settings": {
+    "alisyum": { "defaults": { "backgroundId": "vidaria_forges" } }
+  },
   "nodes": {},
   "encounters": {}
 }

@@ -100,14 +100,19 @@ func dispose() -> void:
 	if controller: controller.dispose()
 func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
 	if GameSession.busy: return
+	var reward_decision: bool = str(choice.type) == "PICK_CARD_REWARD" and bool(model.get("terminalReward", false))
 	var transformation := str(choice.type) in ["UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "APPLY_CARD_MODIFIER_ITEM"]
-	if not transformation and str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
+	if not transformation and not reward_decision and str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
 		_execute(choice)
 		return
 	var dialog: ConfirmationDialog = preload("res://scenes/ui/overlays/transformation_confirmation.tscn").instantiate() if transformation else preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate()
 	dialog.theme = visual_context.theme
 	dialog.title = I18n.text("Confirm choice")
 	dialog.dialog_text = label + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")
+	if reward_decision:
+		var destination := str(model.get("rewardDestination", ""))
+		if not destination.is_empty(): dialog.dialog_text += "\n" + I18n.text("Destination: %s") % I18n.text(destination)
+		dialog.dialog_text += "\n\n" + I18n.text("Ends this reward choice")
 	if str(model.get("category", "")) == "modifier_items": dialog.dialog_text += "\n\n" + str(model.get("summary", ""))
 	if transformation:
 		var assessment: Dictionary = await controller.preview_transformation(choice)
@@ -148,6 +153,7 @@ func _open_items() -> void:
 
 func _execute(choice: Dictionary) -> void:
 	if GameSession.busy: return
+	var receipt := _receipt_text(choice)
 	for button in view.choice_buttons: button.disabled = true
 	screen_context.show_toast(I18n.text("PROCESSING…"))
 	var accepted: bool = await controller.execute(choice)
@@ -160,6 +166,25 @@ func _execute(choice: Dictionary) -> void:
 		if screen_context.navigation.gameplay_route() == "map":
 			if not await controller.finish_for_map() or not is_inside_tree(): return
 		screen_context.open_game()
+		if not receipt.is_empty(): screen_context.show_toast(receipt)
+
+func _receipt_text(choice: Dictionary) -> String:
+	if str(GameSession.run.get("settingId", "")) not in ["prototype-test", "alisyum"]: return ""
+	var action := str(choice.get("type", ""))
+	var template: String = {
+		"PICK_CARD_REWARD": "Reward received · %s",
+		"DECOMPOSE_CARD_REWARD": "Card decompiled · %s",
+		"BUY_SHOP_ITEM": "Purchase complete · %s",
+		"APPLY_PREPARATION_OPTION": "Preparation complete · %s",
+		"ACQUIRE_CARD_MODIFIER_ITEM": "Modifier acquired · %s",
+		"APPLY_CARD_MODIFIER_ITEM": "Modifier applied · %s",
+	}.get(action, "")
+	if template.is_empty(): return ""
+	var model: Dictionary = presenter.offer(choice)
+	var label := str(model.get("name", ""))
+	if action == "DECOMPOSE_CARD_REWARD" and not str(model.get("rewardText", "")).is_empty():
+		label = str(model.rewardText)
+	return I18n.text(template) % label
 
 
 func _recover_actions() -> void:

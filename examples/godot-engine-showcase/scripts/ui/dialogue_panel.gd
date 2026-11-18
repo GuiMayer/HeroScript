@@ -38,8 +38,11 @@ func apply_model(data: Dictionary) -> void:
 	_title.text = str(model.get("title", ""))
 	_speaker.text = str(model.get("speaker", "")); _speaker.visible = not _speaker.text.is_empty()
 	_portrait.visual_context = visual_context
-	_portrait.setup("portraits", str(model.get("portrait", "")))
-	_portrait.visible = not str(model.get("portrait", "")).is_empty()
+	var portrait_id := str(model.get("portrait", "")) if model.get("portrait") != null else ""
+	if portrait_id.is_empty() and visual_context.setting_id in ["prototype-test", "alisyum"]:
+		portrait_id = str(model.get("dialogueId", ""))
+	_portrait.setup("portraits", portrait_id)
+	_portrait.visible = not portrait_id.is_empty()
 	var key := JSON.stringify([model.get("options", []), visual_context.presentation_key()])
 	if key != _choices_key:
 		_choices_key = key

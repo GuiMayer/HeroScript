@@ -121,6 +121,9 @@ func _update_ending(lifecycle: String) -> void:
 	content.get_node("Title").text = visual_context.translator.text("ARCHIVE COMPLETE" if won else "THE FLAME HAS FADED")
 	content.get_node("Title").add_theme_color_override("font_color",visual_context.styles.GOLD if won else visual_context.styles.BLOOD)
 	content.get_node("Description").text = visual_context.translator.text("Your journey has been preserved. Watch its immutable recording, verify its integrity or start a new ascent.")
+	if won and str(_run_snapshot.get("settingId", "")) in ["prototype-test", "alisyum"]:
+		content.get_node("Title").text = visual_context.translator.text("CHAPTER COMPLETE")
+		content.get_node("Description").text = visual_context.translator.text("Your chapter is complete and your journey has been recorded.")
 	for entry in [["EndingReplayButton","WATCH REPLAY"],["Verify","VERIFY INTEGRITY"],["NewJourney","NEW JOURNEY"],["MainMenu","MAIN MENU"]]: content.get_node(entry[0]).text = visual_context.translator.text(entry[1])
 
 func _current_node() -> Dictionary:

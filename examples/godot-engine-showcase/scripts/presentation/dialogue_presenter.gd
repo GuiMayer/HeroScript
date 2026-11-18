@@ -44,13 +44,14 @@ static func build(run: Dictionary, choices: Array, translator) -> Dictionary:
 	var history: Array = []
 	for entry in dialogue.get("transcript", []):
 		history.append({"speaker": localized_text(entry.speaker, translator), "text": localized_text(entry.text, translator)})
+	var portrait = dialogue.get("portraitId")
 	return {"runId": str(run.get("runId", "")), "branchId": str(run.get("branchId", "")),
 		"sequence": run.get("sequence", 0), "dialogueInstanceId": str(dialogue.get("dialogueInstanceId", "")),
 		"dialogueId": str(dialogue.get("dialogueId", "")), "nodeId": str(dialogue.get("nodeId", "")),
 		"activityNodeId": str(dialogue.get("activityNodeId", "")), "contentRevision": str(dialogue.get("contentRevision", "")),
 		"speakerId": str(dialogue.get("speakerId", "")),
 		"title": localized_text(dialogue.title, translator), "speaker": localized_text(dialogue.speaker, translator),
-		"text": localized_text(dialogue.text, translator), "portrait": str(dialogue.get("portraitId", "")),
+		"text": localized_text(dialogue.text, translator), "portrait": str(portrait) if portrait != null else "",
 		"completed": bool(dialogue.get("completed", false)), "options": options, "history": history}
 
 static func recorded_transcript(state: Dictionary, translator) -> Array[String]:
