@@ -108,7 +108,7 @@ stretch_mode = 5
 
 [node name="ActorPlate" type="PanelContainer" parent="ActorRootContent/ActorContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(228, 0)
+custom_minimum_size = Vector2(236, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_styles/panel = SubResource("PlateSurface")
@@ -126,6 +126,21 @@ text = "STONE GOLEM"
 horizontal_alignment = 1
 text_overrun_behavior = 3
 
+[node name="ActorVitals" type="HBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ActorHealth" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorVitals"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorBlock" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorVitals"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 0)
+layout_mode = 2
+
 [node name="ActorResources" type="VBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -139,21 +154,19 @@ theme_override_constants/h_separation = 10
 
 [node name="ActorStatusSlot" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(164, 38)
+custom_minimum_size = Vector2(212, 46)
 layout_mode = 2
 mouse_filter = 2
 clip_contents = true
 
-[node name="ActorStatusBadges" type="HFlowContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorStatusSlot"]
+[node name="ActorStatusBadges" type="Control" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent/ActorStatusSlot"]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
+mouse_filter = 2
 
 [node name="ActorIntentRow" type="HBoxContainer" parent="ActorRootContent/ActorContent/ActorPlate/PlateContent"]
 unique_name_in_owner = true

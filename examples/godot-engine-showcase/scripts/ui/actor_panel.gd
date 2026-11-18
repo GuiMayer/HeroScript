@@ -3,7 +3,8 @@ class_name ActorPanel
 extends PanelContainer
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 const ResourceScene = preload("res://scenes/ui/components/resource_view.tscn")
-const MAX_VISIBLE_EFFECTS := 3
+const MAX_VISIBLE_EFFECTS := 5
+const STATUS_GAP := 4.0
 const BadgeScene = preload("res://scenes/ui/components/status_badge.tscn")
 signal target_selected(actor_id: String)
 var visual_context: ContextType = ContextType.new()
@@ -23,7 +24,9 @@ var _intent_icon: TextureRect
 var _resources: VBoxContainer
 var _counters: HFlowContainer
 var _status_slot: Control
-var _statuses: HFlowContainer
+var _statuses: Control
+var _health: VBoxContainer
+var _block: VBoxContainer
 var _effects_button: Button
 var _effects_dialog: AcceptDialog
 var _effects_text: RichTextLabel
@@ -58,6 +61,9 @@ static func create(context = null) -> ActorPanel:
 
 func _ready() -> void:
 	_bind_nodes()
+	if authored_battlefield_layout:
+		get_viewport().size_changed.connect(_layout_effects)
+		_layout_effects()
 	if _model.is_empty() and (Engine.is_editor_hint() or get_parent() == get_tree().root): setup(preview_actor, preview_hostile, {}, preview_intent, preview_compact, preview_battlefield)
 
 func _bind_nodes() -> void:
@@ -74,6 +80,8 @@ func _bind_nodes() -> void:
 	_counters = get_node("%ActorCounters")
 	_status_slot = get_node_or_null("%ActorStatusSlot")
 	_statuses = get_node("%ActorStatusBadges")
+	_health = get_node_or_null("%ActorHealth")
+	_block = get_node_or_null("%ActorBlock")
 	target_button = get_node("%ActorTarget")
 	portrait_view = get_node("%ActorArtworkAnchor")
 	plate = get_node_or_null("%ActorPlate")
@@ -100,7 +108,7 @@ func present_resource(application: Dictionary, duration: float) -> Tween:
 	if view != null: return view.present_change(application, duration)
 	var counter = resource_counter(id)
 	if counter != null and application.get("currentValue") != null and str(application.get("resourceField", "Current")) in ["Current", "0", "0.0"]:
-		counter.text = "%s %s" % [visual_context.translator.number(float(application.currentValue)), visual_context.translator.content_name(id)]
+		_set_counter(counter, id, float(application.currentValue), _block != null and id == "block")
 	return null
 
 func resource_view(resource_id: String) -> Control:
@@ -114,6 +122,8 @@ func resource_counter(resource_id: String) -> Control:
 	if _counters != null and _counters.has_node(NodePath(key)):
 		var node = _counters.get_node(NodePath(key))
 		return node.get_node("Value") if node.has_node("Value") else node
+	if _block != null and _block.has_node(NodePath(key)):
+		return _block.get_node(NodePath(key)).get_node("Value")
 	return find_child(key, true, false) as Control
 
 func status_badge(status_id: String) -> Control:
@@ -169,6 +179,10 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		_plate_surface.set_corner_radius_all(visual_context.profile.corner_radius if visual_context.profile.printed_surfaces else 6)
 		_plate_surface.set_meta("background_role", "surface.actor")
 		_plate_surface.set_meta("border_role", "stroke.panel")
+		if authored_battlefield_layout:
+			_plate_surface.bg_color = Color.WHITE if visual_context.high_contrast else visual_context.styles.color("hud.paper")
+			_plate_surface.set_meta("background_role", "hud.paper")
+			plate.custom_minimum_size.x = roundf(236 * visual_context.text_scale)
 	var name_text: String = visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", "")))
 	_title.text = name_text
 	_title.tooltip_text = name_text
@@ -213,6 +227,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		live_statuses.append(str(_effects_button.name))
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()
+	if authored_battlefield_layout: _layout_effects()
 	target_button.tooltip_text = name_text + "\n" + _intent.text
 	if authored_battlefield_layout:
 		target_button.accessibility_name = "%s · %s" % [name_text, side_text]
@@ -244,13 +259,6 @@ func _sync_effects_button(count: int) -> void:
 		_effects_button.pressed.connect(_open_effects)
 		_statuses.add_child(_effects_button)
 	_statuses.move_child(_effects_button, -1)
-	var side := StatusBadge.battlefield_side(visual_context)
-	_effects_button.custom_minimum_size = Vector2(side, side)
-	if is_instance_valid(_status_slot):
-		# Reserve one row even when it is empty. Status changes must not resize
-		# the actor plate or the artwork anchored above it.
-		var gaps := MAX_VISIBLE_EFFECTS * _statuses.get_theme_constant("h_separation")
-		_status_slot.custom_minimum_size = Vector2(side * (MAX_VISIBLE_EFFECTS + 1) + gaps, side)
 	var title: String = visual_context.translator.text("Active effects")
 	_effects_button.text = "+%d" % (count - MAX_VISIBLE_EFFECTS) if count > MAX_VISIBLE_EFFECTS else "…"
 	_effects_button.accessibility_name = "%s: %s (%d)" % [_title.text, title, count]
@@ -259,6 +267,32 @@ func _sync_effects_button(count: int) -> void:
 	if is_instance_valid(_effects_dialog):
 		_effects_text.text = "\n\n".join(_effect_details)
 		if count == 0: _effects_dialog.hide()
+
+func _layout_effects() -> void:
+	if not is_instance_valid(_status_slot) or not is_inside_tree(): return
+	var cell := StatusBadge.battlefield_cell(visual_context)
+	var gap := roundf(STATUS_GAP * visual_context.text_scale)
+	var columns := 3 if visual_context.text_scale > 1.2 or get_viewport_rect().size.x < 1300 else MAX_VISIBLE_EFFECTS + 1
+	var rows := ceili(float(MAX_VISIBLE_EFFECTS + 1) / columns)
+	var grid := Vector2(columns * cell.x + (columns - 1) * gap, rows * cell.y + (rows - 1) * gap)
+	# The grid depends on the viewport and text scale. Contents never resize the plate.
+	_status_slot.custom_minimum_size = grid
+	_statuses.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_statuses.offset_left = -grid.x * 0.5
+	_statuses.offset_right = grid.x * 0.5
+	_statuses.offset_top = -grid.y * 0.5
+	_statuses.offset_bottom = grid.y * 0.5
+	var index := 0
+	for control in _statuses.get_children():
+		if not control.visible: continue
+		var slot := MAX_VISIBLE_EFFECTS if control == _effects_button else index
+		control.position = Vector2(slot % columns, floorf(float(slot) / columns)) * (cell + Vector2.ONE * gap)
+		control.custom_minimum_size = cell
+		control.size = cell
+		if control == _effects_button:
+			control.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
+		else:
+			index += 1
 
 func _open_effects() -> void:
 	if _effect_details.is_empty(): return
@@ -285,42 +319,74 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 	for id in resources:
 		if id not in ordered: ordered.append(id)
 	var bars: Array[String] = []; var counters: Array[String] = []
+	var vitals: Array[String] = []; var shield: Array[String] = []
+	if _block != null:
+		_block.custom_minimum_size.x = roundf(68 * visual_context.text_scale)
 	for id in ordered:
 		if not resources.has(id) or (authored_battlefield_layout and str(id) == "energy"): continue
 		var appearance: Dictionary = visual_context.resource_appearance(str(id), presentation.get("resources", {}).get(id, {}))
-		if authored_battlefield_layout and str(id) == "health" and not appearance.has("color"): appearance["color"] = "#c33232"
-		if authored_battlefield_layout and str(id) == "block": appearance["display"] = "counter"
+		var is_health := _health != null and str(id) == "health"
+		var is_block := _block != null and str(id) == "block"
+		if is_health:
+			appearance["display"] = "bar"
+			appearance["hud_tone"] = "hud.enemy_health" if _model.hostile else "hud.ally_health"
+		if is_block: appearance["display"] = "counter"
 		if str(appearance.get("display", "bar")) == "bar":
-			var key := "Resource_" + str(id).validate_node_name(); bars.append(key)
-			var resource = _resources.get_node_or_null(NodePath(key))
+			var key := "Resource_" + str(id).validate_node_name()
+			var parent := _health if is_health else _resources
+			var live := vitals if is_health else bars
+			live.append(key)
+			var resource = parent.get_node_or_null(NodePath(key))
 			if resource == null:
-				resource = (preload("res://scenes/ui/components/mvp_health_bar.tscn") if authored_battlefield_layout and str(id) == "health" else ResourceScene).instantiate(); resource.name = key; _resources.add_child(resource)
+				resource = (preload("res://scenes/ui/components/mvp_health_bar.tscn") if is_health else ResourceScene).instantiate()
+				resource.name = key
+				parent.add_child(resource)
 			resource.visual_context = visual_context
 			resource.setup(id, resources[id], appearance)
-			if authored_battlefield_layout and str(id) == "health":
-				resource.amount.add_theme_font_size_override("font_size", roundi(15 * visual_context.text_scale))
-				resource.amount.get_parent().custom_minimum_size.y = resource.amount.get_minimum_size().y + 4
-			_resources.move_child(resource, bars.size() - 1)
+			if is_health:
+				resource.label.text = visual_context.translator.content_name("health")
+				resource.label.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
+				resource.amount.add_theme_font_size_override("font_size", roundi(21 * visual_context.text_scale))
+				resource.label.add_theme_color_override("font_color", visual_context.styles.INK)
+				resource.amount.add_theme_color_override("font_color", visual_context.styles.INK)
+			parent.move_child(resource, live.size() - 1)
 		else:
-			var key := "ResourceCounter_" + str(id).validate_node_name(); counters.append(key)
-			var counter = _counters.get_node_or_null(NodePath(key))
+			var key := "ResourceCounter_" + str(id).validate_node_name()
+			var parent: Container = _block if is_block else _counters
+			var live := shield if is_block else counters
+			live.append(key)
+			var counter = parent.get_node_or_null(NodePath(key))
 			if counter == null:
-				counter = preload("res://scenes/ui/components/mvp_shield_counter.tscn").instantiate() if authored_battlefield_layout and str(id) == "block" else Label.new()
+				counter = preload("res://scenes/ui/components/mvp_shield_counter.tscn").instantiate() if is_block else Label.new()
 				if counter is Label: counter.theme_type_variation = &"ResourceCounter"
 				counter.mouse_filter = Control.MOUSE_FILTER_PASS if counter is HBoxContainer else Control.MOUSE_FILTER_IGNORE
-				counter.name = key; _counters.add_child(counter)
+				counter.name = key; parent.add_child(counter)
 			var counter_label: Label = counter.get_node("Value") if counter.has_node("Value") else counter
-			counter_label.text = "%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)]
+			_set_counter(counter_label, str(id), float(resources[id].get("current", 0)), is_block)
 			var ink := Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown"))
-			if counter is HBoxContainer: ink = visual_context.styles.INK
+			if is_block:
+				ink = Color.BLACK if visual_context.high_contrast else visual_context.styles.color("hud.block")
+				counter_label.add_theme_font_size_override("font_size", roundi(18 * visual_context.text_scale))
+				var icon: TextureRect = counter.get_node("Icon")
+				icon.modulate = ink
+				icon.custom_minimum_size = Vector2.ONE * roundf(18 * visual_context.text_scale)
 			counter_label.add_theme_color_override("font_color", ink)
-			counter.tooltip_text = counter_label.text
+			counter.tooltip_text = counter_label.tooltip_text
 			if resources[id].has("maximum"):
 				counter.tooltip_text += " / " + visual_context.translator.number(float(resources[id].maximum))
-			_counters.move_child(counter, counters.size() - 1)
+			parent.move_child(counter, live.size() - 1)
 	_prune(_resources, bars); _prune(_counters, counters)
+	if _health != null: _prune(_health, vitals)
+	if _block != null: _prune(_block, shield)
 	_resources.visible = not bars.is_empty()
 	_counters.visible = not counters.is_empty()
+
+func _set_counter(label: Label, id: String, value: float, is_block: bool) -> void:
+	var number: String = visual_context.translator.number(value)
+	var name_text: String = visual_context.translator.content_name(id)
+	label.tooltip_text = "%s %s" % [number, name_text]
+	label.text = number if is_block else label.tooltip_text
+	if is_block: label.accessibility_name = label.tooltip_text
 
 func _prune(parent: Node, live: Array[String]) -> void:
 	for child in parent.get_children():

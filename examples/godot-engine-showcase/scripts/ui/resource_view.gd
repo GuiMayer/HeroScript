@@ -1,6 +1,6 @@
 @tool
 class_name ResourceView
-extends HBoxContainer
+extends BoxContainer
 
 const ContextType = preload("res://scripts/ui/visual_context.gd")
 ## Authoritative numbers, optional bounded visualization; no resource semantics.
@@ -92,6 +92,8 @@ func _apply_model() -> void:
 		bar.max_value = float(state.get("maximum", 0))
 		bar.value = model.current
 	var tone := Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown"))
+	if _model.appearance.has("hud_tone"):
+		tone = Color.BLACK if visual_context.high_contrast else visual_context.styles.color(_model.appearance.hud_tone)
 	_fill_style.bg_color = tone
 	amount.text = visual_context.translator.number(model.current)
 	if state.has("maximum") and str(appearance.get("display", "bar")) != "counter": amount.text += "/" + visual_context.translator.number(float(state.maximum))

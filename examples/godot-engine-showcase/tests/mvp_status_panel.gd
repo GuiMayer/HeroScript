@@ -15,16 +15,16 @@ func run() -> void:
 	panel.visual_context = context; root.add_child(panel); panel.setup(actor, false, presentation, "", false, true)
 	await process_frame
 	var hp = panel.resource_view("health")
-	check(hp != null and hp.amount.text == "40/100" and hp.amount.get_parent().name == "HealthSurface" and hp.bar.value == 40, "MVP health value overlays the bounded bar")
+	check(hp != null and hp.amount.text == "40/100" and hp.amount.get_global_rect().end.y <= hp.bar.get_global_rect().position.y and hp.bar.value == 40, "MVP health value has a dedicated row above the bounded bar")
 	var block = panel.resource_counter("block")
-	check(block != null and block.text == "7 Block" and block.get_parent().get_node("Icon").texture.resource_path.ends_with("sbed/shield.svg"), "shield displays the published value and attributed icon")
+	check(block != null and block.text == "7" and block.get_parent().get_node("Icon").texture.resource_path.ends_with("sbed/shield.svg"), "shield displays the published value and attributed icon")
 	check(panel.resource_counter("energy") == null and panel.resource_view("energy") == null, "MVP actor plate does not duplicate energy")
 	var burn = panel.status_badge("burn"); var fallback = panel.status_badge("unknown_status")
 	check(burn.icon_rect.visible and burn.icon_rect.texture.resource_path.ends_with("sbed/burn.svg") and burn.stack_label.visible and burn.stack_label.text == "1", "known active status shows its icon and value one")
 	check(fallback.icon_rect.visible and fallback.icon_rect.texture.resource_path.ends_with("lorc/aura.svg") and fallback.stack_label.text == "3", "unknown active status uses an attributed fallback and published value")
 	panel.present_resource({"resourceId": "health", "currentValue": 25, "resourceField": "Current"}, 0.0)
 	panel.present_resource({"resourceId": "block", "currentValue": 2, "resourceField": "Current"}, 0.0)
-	check(hp.amount.text == "25/100" and hp.bar.value == 25 and block.text == "2 Block", "health and shield update from combat presentation")
+	check(hp.amount.text == "25/100" and hp.bar.value == 25 and block.text == "2", "health and shield update from combat presentation")
 	actor.statuses = [{"statusId": "burn", "stacks": 2, "isActive": true}, {"statusId": "unknown_status", "stacks": 0, "isActive": false}]
 	panel.setup(actor, false, presentation, "", false, true)
 	check(panel.status_badge("burn").stack_label.text == "2" and panel.status_badge("unknown_status") == null, "status counts update and inactive effects disappear")
@@ -38,9 +38,12 @@ func run() -> void:
 	]
 	panel.setup(actor, false, presentation, "", false, true)
 	await process_frame
-	check(panel.resource_counter("block").text == "0 Block", "published zero remains visible")
+	check(panel.resource_counter("block").text == "0", "published zero remains visible")
 	var inspect_button: Button = panel.find_child("InspectEffects", true, false)
-	check(inspect_button.text == "+2" and panel.status_badge("burn").visible and not panel.status_badge("wet").visible, "status order is stable and overflow has a count")
+	check(inspect_button.text == "…" and panel.status_badge("burn").visible and panel.status_badge("wet").visible, "five statuses are visible alongside inspection")
+	actor.statuses.append({"statusId": "zz_hidden", "stacks": 2})
+	panel.setup(actor, false, presentation, "", false, true)
+	check(inspect_button.text == "+1" and not panel.status_badge("zz_hidden").visible, "overflow counts only additional statuses")
 	inspect_button.grab_focus()
 	check(root.gui_get_focus_owner() == inspect_button, "effects inspection can receive navigation focus")
 	inspect_button.pressed.emit()
@@ -56,7 +59,7 @@ func run() -> void:
 	panel.setup(actor, false, presentation, "", false, true)
 	for frame in 3: await process_frame
 	var two_digit_badge = panel.status_badge("strength")
-	check(two_digit_badge.stack_label.text == "12" and is_equal_approx(two_digit_badge.size.x, two_digit_badge.size.y), "enlarged badge stays square and retains both digits")
+	check(two_digit_badge.stack_label.text == "12" and two_digit_badge.size.is_equal_approx(StatusBadge.battlefield_cell(enlarged)), "enlarged badge retains both digits in its reserved cell")
 	check(two_digit_badge.icon_rect.get_global_rect().end.y <= two_digit_badge.stack_label.get_global_rect().position.y, "status count does not overlap the icon at enlarged text size")
 	var row: Rect2 = panel.get_node("%ActorStatusSlot").get_global_rect()
 	for control in panel.get_node("%ActorStatusBadges").get_children():

@@ -57,6 +57,12 @@ func _apply_model() -> void:
 	# Preserve the scene's editable border widths, padding and corner radii.
 	_panel_style.bg_color = tone.bg
 	_panel_style.border_color = tone.border
+	if mvp_icons:
+		_panel_style.bg_color.a = 1.0
+		if visual_context.high_contrast:
+			_panel_style.bg_color = Color.BLACK
+			_panel_style.border_color = Color.WHITE
+			tone.accent = Color.WHITE
 
 	if icon_rect == null or glyph_label == null or stack_label == null:
 		return
@@ -118,20 +124,20 @@ func _layout_mvp_badge() -> void:
 		icon_rect.reparent(_mvp_content, false)
 		stack_label.reparent(_mvp_content, false)
 	var scale_factor := visual_context.text_scale
-	var icon_size := roundf(16 * scale_factor)
+	var icon_size := roundf(20 * scale_factor)
 	icon_rect.custom_minimum_size = Vector2(icon_size, icon_size)
-	stack_label.add_theme_font_size_override("font_size", roundi(12 * scale_factor))
+	stack_label.add_theme_font_size_override("font_size", roundi(16 * scale_factor))
 	stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack_label.clip_text = true
 	stack_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	custom_minimum_size = Vector2.ONE * battlefield_side(visual_context)
+	custom_minimum_size = battlefield_cell(visual_context)
 	_mvp_content.alignment = BoxContainer.ALIGNMENT_CENTER
 
-static func battlefield_side(context: ContextType) -> float:
+static func battlefield_cell(context: ContextType) -> Vector2:
 	var scale_factor := context.text_scale
 	var font := context.theme.get_font("font", "Label")
-	var content_height := roundf(16 * scale_factor) + font.get_height(roundi(12 * scale_factor)) + 6.0
-	return maxf(roundf(38 * scale_factor), ceilf(content_height))
+	var content_height := roundf(20 * scale_factor) + font.get_height(roundi(16 * scale_factor)) + 6.0
+	return Vector2(roundf(32 * scale_factor), ceilf(content_height))
 
 func _status_tone(status_id: String) -> Dictionary:
 	var sid := status_id.to_lower()

@@ -55,7 +55,7 @@ func run() -> void:
 	var title_lbl: Label = standalone_actor.get_node("%ActorTitle")
 	var resources_box: VBoxContainer = standalone_actor.get_node("%ActorResources")
 	var counters_box: HFlowContainer = standalone_actor.get_node("%ActorCounters")
-	var statuses_box: HFlowContainer = standalone_actor.get_node("%ActorStatusBadges")
+	var statuses_box: Control = standalone_actor.get_node("%ActorStatusBadges")
 	var intent_row: HBoxContainer = standalone_actor.get_node("%ActorIntentRow")
 	check(standalone_actor.authored_battlefield_layout and is_instance_valid(plate), "MVP battlefield_actor.tscn authors a dedicated %ActorPlate below artwork")
 	check(target_btn.get_parent() == standalone_actor.get_node("%ActorContent") and plate.get_parent() == standalone_actor.get_node("%ActorContent"), "artwork target and info plate are siblings in ActorContent")
@@ -268,10 +268,21 @@ func run() -> void:
 		{"statusId": "wet", "stacks": 10000000},
 		{"statusId": "focus", "stacks": 2},
 	]
-	for count in [1, 3, 4, 0]:
+	for id in ["bleed", "poison", "strength", "weak", "ward", "stun"]:
+		effects.append({"statusId": id, "stacks": 12})
+	var wisp_panel: ActorPanel = screen.view.battlefield_view.panels["wisp"]
+	var stable_plate := wisp_panel.plate.get_global_rect()
+	var stable_target := wisp_panel.target_button.get_global_rect()
+	for count in [1, 5, 6, 10, 5, 0]:
 		status_snapshot.actors[2].statuses = effects.slice(0, count)
 		screen.view.present_combat_snapshot(status_snapshot)
 		await settle()
+		var badges := wisp_panel.get_node("%ActorStatusBadges")
+		var visible_count := badges.get_children().filter(func(node): return node is StatusBadge and node.visible).size()
+		check(visible_count == mini(count, 5), "five effects remain directly visible whenever available")
+		if count > 5:
+			check(badges.get_node("InspectEffects").text == "+%d" % (count - 5), "overflow accurately counts additional effects")
+		check(wisp_panel.plate.get_global_rect().is_equal_approx(stable_plate) and wisp_panel.target_button.get_global_rect().is_equal_approx(stable_target), "status changes preserve plate and target geometry")
 		for id in scenery.portraits:
 			var portrait: Control = scenery.portraits[id]
 			var rect := portrait.get_global_rect()
