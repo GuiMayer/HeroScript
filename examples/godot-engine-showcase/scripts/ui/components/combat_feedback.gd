@@ -25,7 +25,7 @@ func _init(context = null) -> void:
 func _ready() -> void: effects = get_node("Effects")
 func mount(context) -> void:
 	visual_context = context; effects = get_node("Effects")
-func present(frame: Dictionary, index: int, total: int, presenter, portraits: Dictionary, blocking: Array = []) -> String:
+func present(frame: Dictionary, index: int, total: int, presenter, portraits: Dictionary, blocking: Array = [], panels: Dictionary = {}) -> String:
 	if visual_context.motion == null: visual_context.capture_motion()
 	var flashed: Array[String] = []
 	for entry in _float_entries(frame):
@@ -38,7 +38,10 @@ func present(frame: Dictionary, index: int, total: int, presenter, portraits: Di
 				var reaction = portraits[target].call("flash_hit")
 				if reaction is Tween: blocking.append(reaction)
 				flashed.append(target)
-			_float_application(application, portraits[target], 0, kind)
+			var plate: Control = null
+			if panels.has(target) and panels[target].authored_battlefield_layout:
+				plate = panels[target].plate
+			_float_application(application, portraits[target], 0, kind, plate)
 	return describe_frame(frame, index, total, presenter)
 
 func describe_frame(frame: Dictionary, index: int, total: int, presenter) -> String:
@@ -90,7 +93,7 @@ func _random_text(frame: Dictionary, application: Dictionary) -> String:
 				if value != null: parts.append("%s: %s" % [visual_context.translator.text(str(rule.checkpoints[checkpoint])), visual_context.translator.number(float(value))])
 			if rule.has("success_label"): parts.append(visual_context.translator.text(str(rule.success_label)) + (" ✓" if outcome.get("success", false) else " —"))
 	return " · ".join(parts)
-func _float_application(application: Dictionary, portrait: Control, lane := 0, kind := "fact") -> void:
+func _float_application(application: Dictionary, portrait: Control, lane := 0, kind := "fact", plate: Control = null) -> void:
 	if not visual_context.motion.cue(kind).get("enabled", true): return
 	var duration: float = visual_context.motion.duration("float")
 	if duration <= 0: return
@@ -136,6 +139,8 @@ func _float_application(application: Dictionary, portrait: Control, lane := 0, k
 		label.add_theme_color_override("font_color", ink.darkened(0.24))
 	effects.add_child(label)
 	label.global_position = portrait.global_position + Vector2(20 + (lane % 3) * 12, 45 + lane * 27)
+	if is_instance_valid(plate):
+		label.global_position = plate.global_position + Vector2(8 + (lane % 3) * 12, -28 - lane * 25)
 	var tween := label.create_tween().set_parallel()
 	_tails.append(tween)
 	tween.finished.connect(func(): _tails.erase(tween), CONNECT_ONE_SHOT)

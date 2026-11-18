@@ -89,6 +89,9 @@ func _bind_nodes() -> void:
 		_plate_surface = plate.get_theme_stylebox("panel").duplicate()
 		plate.add_theme_stylebox_override("panel", _plate_surface)
 	if not target_button.pressed.is_connected(_on_target_pressed): target_button.pressed.connect(_on_target_pressed)
+	if plate != null and not plate.focus_entered.is_connected(_refresh_plate_focus):
+		plate.focus_entered.connect(_refresh_plate_focus)
+		plate.focus_exited.connect(_refresh_plate_focus)
 	if _surface == null:
 		_authored_content_size = _content.custom_minimum_size
 		_authored_target_size = target_button.custom_minimum_size
@@ -105,16 +108,21 @@ func _on_target_pressed() -> void:
 func present_resource(application: Dictionary, duration: float) -> Tween:
 	var id := str(application.get("resourceId", ""))
 	var view = resource_view(id)
-	if view != null: return view.present_change(application, duration)
+	if view != null:
+		var motion = view.present_change(application, duration)
+		if _health != null: _update_accessible_vitals()
+		return motion
 	var counter = resource_counter(id)
 	if counter != null and application.get("currentValue") != null and str(application.get("resourceField", "Current")) in ["Current", "0", "0.0"]:
 		_set_counter(counter, id, float(application.currentValue), _block != null and id == "block")
+		if _block != null and id == "block": _update_accessible_vitals()
 	return null
 
 func set_health_preview(projected: Dictionary) -> void:
 	if _health == null: return
 	var view := resource_view("health") as ResourceView
 	if view != null: view.set_health_preview(projected)
+	_update_accessible_vitals()
 
 func resource_view(resource_id: String) -> Control:
 	var key := "Resource_" + resource_id.validate_node_name()
@@ -212,6 +220,11 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 			line.add_theme_color_override("font_color", Color.BLACK if visual_context.high_contrast else visual_context.styles.INK)
 		var intent_slot: Control = get_node("%ActorIntentSlot")
 		intent_slot.custom_minimum_size.y = ceilf(_intent.get_minimum_size().y + recipients.get_minimum_size().y)
+		for control in [plate, target_button, _title, role, _intent, recipients]:
+			control.set_meta("owns_hud_preferences", true)
+		plate.focus_mode = Control.FOCUS_ALL
+		plate.set_meta("skip_initial_focus", true)
+		_refresh_plate_focus()
 	else:
 		_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)
 		_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
@@ -246,9 +259,10 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()
 	if authored_battlefield_layout: _layout_effects()
-	target_button.tooltip_text = name_text + "\n" + _intent.text
+	target_button.tooltip_text = name_text + "\n" + _intent.tooltip_text
 	if authored_battlefield_layout:
 		target_button.accessibility_name = "%s · %s" % [name_text, side_text]
+		_update_accessible_vitals()
 	portrait_view.rebind_context(visual_context)
 	if not battlefield: portrait_view.setup("actors", str(actor.get("definitionId", "")))
 	else: portrait_view.texture = null
@@ -274,6 +288,7 @@ func _sync_effects_button(count: int) -> void:
 		_effects_button.name = "InspectEffects"
 		_effects_button.theme_type_variation = &"SecondaryAction"
 		_effects_button.clip_text = true
+		_effects_button.set_meta("owns_hud_preferences", true)
 		_effects_button.pressed.connect(_open_effects)
 		_statuses.add_child(_effects_button)
 	_statuses.move_child(_effects_button, -1)
@@ -281,10 +296,12 @@ func _sync_effects_button(count: int) -> void:
 	_effects_button.text = "+%d" % (count - MAX_VISIBLE_EFFECTS) if count > MAX_VISIBLE_EFFECTS else "…"
 	_effects_button.accessibility_name = "%s: %s (%d)" % [_title.text, title, count]
 	_effects_button.tooltip_text = _effects_button.accessibility_name
+	var restore_to_actor := count == 0 and is_inside_tree() and (_effects_button.has_focus() or (is_instance_valid(_effects_dialog) and _effects_dialog.visible))
 	_effects_button.visible = count > 0
 	if is_instance_valid(_effects_dialog):
 		_effects_text.text = "\n\n".join(_effect_details)
 		if count == 0: _effects_dialog.hide()
+	if restore_to_actor: plate.grab_focus.call_deferred()
 
 func _layout_effects() -> void:
 	if not is_instance_valid(_status_slot) or not is_inside_tree(): return
@@ -309,6 +326,11 @@ func _layout_effects() -> void:
 		control.size = cell
 		if control == _effects_button:
 			control.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
+			for state in ["normal", "pressed", "hover", "focus", "disabled"]:
+				var style: StyleBox = control.get_theme_stylebox(state).duplicate()
+				style.content_margin_left = 2
+				style.content_margin_right = 2
+				control.add_theme_stylebox_override(state, style)
 		else:
 			index += 1
 
@@ -364,9 +386,13 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 				resource.name = key
 				parent.add_child(resource)
 			resource.visual_context = visual_context
-			if is_health: resource.set_health_preview({})
+			if is_health:
+				resource.settle_motion()
+				resource.set_health_preview({})
 			resource.setup(id, resources[id], appearance)
 			if is_health:
+				resource.label.set_meta("owns_hud_preferences", true)
+				resource.amount.set_meta("owns_hud_preferences", true)
 				resource.label.text = visual_context.translator.content_name("health")
 				resource.label.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
 				resource.amount.add_theme_font_size_override("font_size", roundi(21 * visual_context.text_scale))
@@ -388,6 +414,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 			_set_counter(counter_label, str(id), float(resources[id].get("current", 0)), is_block)
 			var ink := Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown"))
 			if is_block:
+				counter_label.set_meta("owns_hud_preferences", true)
 				ink = Color.BLACK if visual_context.high_contrast else visual_context.styles.color("hud.block")
 				counter_label.add_theme_font_size_override("font_size", roundi(18 * visual_context.text_scale))
 				var icon: TextureRect = counter.get_node("Icon")
@@ -410,6 +437,26 @@ func _set_counter(label: Label, id: String, value: float, is_block: bool) -> voi
 	label.tooltip_text = "%s %s" % [number, name_text]
 	label.text = number if is_block else label.tooltip_text
 	if is_block: label.accessibility_name = label.tooltip_text
+
+func _update_accessible_vitals() -> void:
+	var parts: Array[String] = [_title.text, get_node("%ActorRole").text]
+	var hp := resource_view("health") as ResourceView
+	if hp != null:
+		parts.append(hp.amount.accessibility_name)
+		var state: Label = hp.get_node("%HealthState")
+		if not state.text.is_empty(): parts.append(state.text)
+	var shield := resource_counter("block") as Label
+	if shield != null: parts.append(shield.accessibility_name)
+	if _intent_row.visible: parts.append(_intent.tooltip_text)
+	plate.accessibility_name = " · ".join(parts)
+
+func _refresh_plate_focus() -> void:
+	if _plate_surface == null: return
+	_plate_surface.border_color = visual_context.styles.color("stroke.panel")
+	if plate.has_focus():
+		_plate_surface.border_color = visual_context.styles.color("stroke.focus")
+	if visual_context.high_contrast: _plate_surface.border_color = Color.BLACK
+	_plate_surface.set_border_width_all(3 if plate.has_focus() else 1)
 
 func _prune(parent: Node, live: Array[String]) -> void:
 	for child in parent.get_children():

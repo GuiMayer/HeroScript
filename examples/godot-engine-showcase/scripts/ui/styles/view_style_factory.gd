@@ -301,7 +301,7 @@ func apply_view_preferences(node: Node, scale_override := -1.0, contrast_overrid
 	var effective_scale: float = text_scale if scale_override < 0 else scale_override
 	var effective_contrast: bool = high_contrast_enabled if contrast_override == null else bool(contrast_override)
 	if revision.is_empty(): revision = [profile.presentation_key(), effective_scale, effective_contrast]
-	if node is Control and node.get_meta("visual_preferences_revision", []) != revision:
+	if node is Control and not node.get_meta("owns_hud_preferences", false) and node.get_meta("visual_preferences_revision", []) != revision:
 		node.set_meta("visual_preferences_revision", revision.duplicate())
 		if node.has_meta("text_role") and not str(node.get_meta("text_role")).is_empty():
 			node.add_theme_color_override("font_color", color(str(node.get_meta("text_role"))))

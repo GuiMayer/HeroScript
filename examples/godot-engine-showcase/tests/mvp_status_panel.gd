@@ -26,6 +26,13 @@ func run() -> void:
 	panel.present_resource({"resourceId": "health", "currentValue": 25, "resourceField": "Current"}, 0.0)
 	panel.present_resource({"resourceId": "block", "currentValue": 2, "resourceField": "Current"}, 0.0)
 	check(hp.amount.text == "25/100" and hp.bar.value == 25 and block.text == "2", "health and shield update from combat presentation")
+	var trail: ColorRect = hp.get_node("%HealthLossTrail")
+	var motion: Tween = panel.present_resource({"resourceId": "health", "previousValue": 25, "currentValue": 11}, 0.19)
+	check(motion != null and trail.visible and hp.bar.value == 11 and hp.amount.text == "11/100", "damage publishes health immediately while the independent trail moves")
+	panel.present_resource({"resourceId": "health", "previousValue": 11, "currentValue": 17}, 0.19)
+	check(not trail.visible and not motion.is_valid() and hp.bar.value == 17, "healing interrupts the trail at the confirmed value")
+	panel.present_resource({"resourceId": "health", "previousValue": 17, "currentValue": 0}, 0.0)
+	check(not trail.visible and hp.bar.value == 0 and hp.get_node("%HealthState").text != "Defeated", "zero is immediate and does not invent defeat")
 	actor.statuses = [{"statusId": "burn", "stacks": 2, "isActive": true}, {"statusId": "unknown_status", "stacks": 0, "isActive": false}]
 	panel.setup(actor, false, presentation, "", false, true)
 	check(panel.status_badge("burn").stack_label.text == "2" and panel.status_badge("unknown_status") == null, "status counts update and inactive effects disappear")
@@ -55,11 +62,20 @@ func run() -> void:
 	dialog.hide()
 	await process_frame
 	check(root.gui_get_focus_owner() == inspect_button, "closing inspection restores navigation focus")
-	var enlarged = preload("res://scripts/ui/visual_context.gd").new(null, {"text_scale": 1.6}, context.profile)
+	var published: Array = actor.statuses
+	actor.statuses = []
+	panel.setup(actor, false, presentation, "", false, true)
+	await process_frame
+	check(root.gui_get_focus_owner() == panel.plate, "expiry of the last focused effect restores focus to the actor plate")
+	actor.statuses = published
+	var enlarged = preload("res://scripts/ui/visual_context.gd").new(null, {"text_scale": 2.0, "high_contrast": true}, context.profile)
 	panel.visual_context = enlarged
 	panel.setup(actor, false, presentation, "", false, true)
+	enlarged.styles.apply_view_preferences(panel)
 	for frame in 3: await process_frame
 	var two_digit_badge = panel.status_badge("strength")
+	check(two_digit_badge.icon_rect.modulate == Color.WHITE and two_digit_badge.get_theme_stylebox("panel").bg_color == Color.BLACK, "high contrast survives combat-wide preference application")
+	check(two_digit_badge.stack_label.get_theme_font_size("font_size") == 32, "text scale is applied once")
 	check(two_digit_badge.stack_label.text == "12" and two_digit_badge.size.is_equal_approx(StatusBadge.battlefield_cell(enlarged)), "enlarged badge retains both digits in its reserved cell")
 	check(two_digit_badge.icon_rect.get_global_rect().end.y <= two_digit_badge.stack_label.get_global_rect().position.y, "status count does not overlap the icon at enlarged text size")
 	var row: Rect2 = panel.get_node("%ActorStatusSlot").get_global_rect()

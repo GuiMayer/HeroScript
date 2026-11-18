@@ -10,6 +10,7 @@ script = ExtResource("Script")
 [node name="BattlefieldActors" type="ScrollContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
+follow_focus = true
 [node name="Field" type="HBoxContainer" parent="BattlefieldActors"]
 layout_mode = 2
 size_flags_horizontal = 3

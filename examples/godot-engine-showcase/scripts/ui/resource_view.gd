@@ -13,6 +13,8 @@ var _value_motion: Tween
 var _fill_style: StyleBoxFlat
 var _health_state: Label
 var _forecast: Panel
+var _loss_trail: ColorRect
+var _loss_edge := 0.0
 var _preview: Dictionary = {}
 @export var preview_resource_id := "health"
 @export var preview_state: Dictionary = {"current": 75, "minimum": 0, "maximum": 100}
@@ -30,7 +32,9 @@ func _bind_nodes() -> void:
 	bar = get_node("%ProgressBar")
 	amount = get_node("%AmountLabel")
 	_health_state = get_node_or_null("%HealthState")
+	if _health_state != null: _health_state.set_meta("owns_hud_preferences", true)
 	_forecast = get_node_or_null("%HealthForecast")
+	_loss_trail = get_node_or_null("%HealthLossTrail")
 	if _forecast != null and not bar.resized.is_connected(_update_health_preview):
 		bar.resized.connect(_update_health_preview)
 		var border := StyleBoxFlat.new()
@@ -54,8 +58,19 @@ func present_change(application: Dictionary, duration: float) -> Tween:
 	var state: Dictionary = _model.state.duplicate(true)
 	state[field] = application.currentValue
 	var previous: float = float(application.get("previousValue", bar.value)) if field == "current" else bar.value
+	var loss_edge := maxf(previous, _loss_edge) if _loss_trail != null and _loss_trail.visible else previous
 	setup(_model.resourceId, state, _model.appearance)
 	if _value_motion and _value_motion.is_valid(): _value_motion.kill()
+	if _loss_trail != null:
+		_loss_trail.hide()
+		if field == "current" and bar.visible and duration > 0 and previous > bar.value:
+			var destination := bar.value
+			_draw_health_loss(loss_edge)
+			_value_motion = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			_value_motion.tween_method(_draw_health_loss, loss_edge, destination, duration)
+			_value_motion.tween_callback(_loss_trail.hide)
+			return _value_motion
+		return null
 	if bar.visible and duration > 0 and not is_equal_approx(previous, bar.value):
 		var destination: float = bar.value; bar.value = previous
 		_value_motion = create_tween(); _value_motion.tween_property(bar, "value", destination, duration)
@@ -69,7 +84,24 @@ func _exit_tree() -> void:
 
 func settle_motion() -> void:
 	if _value_motion != null and _value_motion.is_valid(): _value_motion.kill()
-	if not _model.is_empty(): bar.value = float(_model.state.get("current", bar.value))
+	if _loss_trail != null: _loss_trail.hide()
+	if not _model.is_empty() and _has_health_amount(_model.state): bar.value = float(_model.state.current)
+
+func has_health_hud() -> bool:
+	return _loss_trail != null
+
+func _draw_health_loss(edge: float) -> void:
+	_loss_edge = edge
+	var span := bar.max_value - bar.min_value
+	if span <= 0 or not bar.visible:
+		_loss_trail.hide()
+		return
+	var start := clampf((bar.value - bar.min_value) / span, 0, 1) * bar.size.x
+	var end := clampf((edge - bar.min_value) / span, 0, 1) * bar.size.x
+	_loss_trail.position = Vector2(start, 0)
+	_loss_trail.size = Vector2(maxf(0, end - start), bar.size.y)
+	_loss_trail.color = Color("#595959") if visual_context.high_contrast else Color("#896563")
+	_loss_trail.visible = end - start >= 1.0
 
 func presentation_model() -> Dictionary: return _model.duplicate(true)
 
@@ -98,6 +130,8 @@ func _apply_model() -> void:
 	var model = preload("res://scripts/presentation/view_models.gd").ResourceValue.new(state)
 	label.text = visual_context.translator.content_name(id).to_upper()
 	var bounded: bool = model.has_bounds and is_finite(model.current) and model.current >= float(state.get("minimum", 0)) and model.current <= float(state.get("maximum", 0))
+	if _health_state != null:
+		bounded = bounded and _has_health_amount(state) and is_finite(float(state.minimum)) and is_finite(float(state.maximum))
 	bar.visible = str(appearance.get("display", "bar")) == "bar" and bounded
 	if bounded:
 		bar.min_value = float(state.get("minimum", 0))
@@ -106,8 +140,13 @@ func _apply_model() -> void:
 	var tone := Color.from_string(str(appearance.get("color", "")), visual_context.styles.color("resource.unknown"))
 	if _model.appearance.has("hud_tone"):
 		tone = Color.BLACK if visual_context.high_contrast else visual_context.styles.color(_model.appearance.hud_tone)
+		var track := bar.get_theme_stylebox("background").duplicate() as StyleBoxFlat
+		track.bg_color = Color.WHITE if visual_context.high_contrast else visual_context.styles.color("hud.track")
+		track.border_color = Color.BLACK
+		track.set_border_width_all(1 if visual_context.high_contrast else 0)
+		bar.add_theme_stylebox_override("background", track)
 	_fill_style.bg_color = tone
-	amount.text = visual_context.translator.number(model.current)
+	amount.text = visual_context.translator.number(model.current) if is_finite(model.current) else "—"
 	if (bounded if _health_state != null else state.has("maximum")) and str(appearance.get("display", "bar")) != "counter":
 		amount.text += "/" + visual_context.translator.number(float(state.maximum))
 	if _health_state != null and not _has_health_amount(state):
@@ -115,6 +154,8 @@ func _apply_model() -> void:
 	amount.size_flags_horizontal = Control.SIZE_EXPAND_FILL if _health_state != null or not bar.visible else Control.SIZE_FILL
 	bar.tooltip_text = amount.text
 	amount.tooltip_text = amount.text
+	if _health_state != null:
+		amount.accessibility_name = "%s %s" % [label.text.capitalize(), amount.text]
 	_update_health_preview()
 
 func set_health_preview(projected: Dictionary) -> void:

@@ -54,6 +54,12 @@ theme_override_styles/background = SubResource("Track")
 theme_override_styles/fill = SubResource("Fill")
 show_percentage = false
 
+[node name="HealthLossTrail" type="ColorRect" parent="HealthTrack"]
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+color = Color(0.537, 0.396, 0.388, 1)
+
 [node name="HealthForecast" type="Panel" parent="HealthTrack"]
 unique_name_in_owner = true
 visible = false

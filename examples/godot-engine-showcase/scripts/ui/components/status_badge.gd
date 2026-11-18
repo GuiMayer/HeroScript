@@ -3,6 +3,18 @@ class_name StatusBadge
 extends PanelContainer
 
 const ContextType = preload("res://scripts/ui/visual_context.gd")
+const ALISYUM_ICONS := {
+	"alisyum_chilled": "game-icons/sbed/water-drop.svg",
+	"alisyum_frostbite": "ivory/spark.svg",
+	"alisyum_overheat": "game-icons/lorc/burning-embers.svg",
+	"alisyum_pyre_aura": "game-icons/lorc/aura.svg",
+	"alisyum_frenzy": "game-icons/lorc/muscle-up.svg",
+	"alisyum_combustion_draw": "game-icons/faithtoken/card-draw.svg",
+	"alisyum_razor_edge": "ivory/strike.svg",
+	"alisyum_marked": "game-icons/lorc/target-shot.svg",
+	"alisyum_glacial_plating": "game-icons/sbed/shield.svg",
+	"alisyum_glacial_monolith": "game-icons/delapouite/stack.svg",
+}
 
 var visual_context: ContextType = ContextType.new()
 var model: Dictionary = {}
@@ -58,6 +70,7 @@ func _apply_model() -> void:
 	_panel_style.bg_color = tone.bg
 	_panel_style.border_color = tone.border
 	if mvp_icons:
+		set_meta("owns_hud_preferences", true)
 		_panel_style.bg_color.a = 1.0
 		if visual_context.high_contrast:
 			_panel_style.bg_color = Color.BLACK
@@ -78,8 +91,8 @@ func _apply_model() -> void:
 		glyph_label.visible = true
 		icon_rect.visible = false
 
+	var count_str := str(roundi(stacks))
 	if stacks > 1 or mvp_icons:
-		var count_str := str(roundi(stacks))
 		if visual_context != null and visual_context.translator != null:
 			count_str = visual_context.translator.number(stacks)
 		stack_label.text = count_str
@@ -88,6 +101,10 @@ func _apply_model() -> void:
 		stack_label.visible = false
 
 	if mvp_icons: _layout_mvp_badge()
+	if mvp_icons and count_str.length() > 2:
+		var count_width := stack_label.get_theme_font("font").get_string_size(count_str, HORIZONTAL_ALIGNMENT_LEFT, -1, stack_label.get_theme_font_size("font_size")).x
+		if count_width > custom_minimum_size.x - 4:
+			stack_label.text = "99+" if stacks >= 100 else count_str
 
 	# Rich Tooltip
 	var title_text := status_id.capitalize()
@@ -96,7 +113,7 @@ func _apply_model() -> void:
 
 	var tooltip_lines: Array[String] = []
 	if stacks > 1 or mvp_icons:
-		tooltip_lines.append("%s (×%s)" % [title_text, stack_label.text])
+		tooltip_lines.append("%s (×%s)" % [title_text, count_str])
 	else:
 		tooltip_lines.append(title_text)
 
@@ -114,6 +131,7 @@ func _apply_model() -> void:
 		tooltip_lines.append(desc)
 
 	tooltip_text = "\n".join(tooltip_lines)
+	accessibility_name = tooltip_text
 
 func _layout_mvp_badge() -> void:
 	if _mvp_content == null:
@@ -123,6 +141,9 @@ func _layout_mvp_badge() -> void:
 		get_node("Margin").add_child(_mvp_content)
 		icon_rect.reparent(_mvp_content, false)
 		stack_label.reparent(_mvp_content, false)
+		stack_label.set_meta("owns_hud_preferences", true)
+		for side in ["left", "right"]:
+			get_node("Margin").add_theme_constant_override("margin_" + side, 0)
 	var scale_factor := visual_context.text_scale
 	var icon_size := roundf(20 * scale_factor)
 	icon_rect.custom_minimum_size = Vector2(icon_size, icon_size)
@@ -217,6 +238,7 @@ func _status_tone(status_id: String) -> Dictionary:
 
 func _mvp_icon(status_id: String) -> Texture2D:
 	var sid := status_id.to_lower()
+	if ALISYUM_ICONS.has(sid): return load("res://assets/" + ALISYUM_ICONS[sid])
 	var path := "res://assets/game-icons/lorc/aura.svg"
 	if "burn" in sid or "fire" in sid or "flame" in sid or "heat" in sid or "calor" in sid or "ignit" in sid: path = "res://assets/game-icons/sbed/burn.svg"
 	elif "wet" in sid or "water" in sid or "frost" in sid or "chill" in sid or "ice" in sid or "freeze" in sid: path = "res://assets/game-icons/sbed/water-drop.svg"
