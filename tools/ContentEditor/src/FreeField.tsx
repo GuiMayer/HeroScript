@@ -4,6 +4,7 @@ import type { Definition } from './api/client'
 import { object } from './editor-state'
 import type { RuleCopy } from './rule-copy'
 import { TextField } from './TextField'
+import { InheritedField, type InheritedValue } from './InheritedField'
 
 const defaults = { text: '', number: 0, boolean: false, object: {}, array: [], null: null }
 type ValueKind = keyof typeof defaults
@@ -20,6 +21,7 @@ function valueKind(value: unknown): ValueKind | '' {
 type Props = {
   label: string; value: unknown; update: (value: unknown) => void; copy: RuleCopy
   disabled: boolean; onTyping: (typing: boolean) => void; dictionary?: boolean
+  inherited?: InheritedValue
 }
 
 function ValueType({ label, kind, copy, disabled, select, allowUnset = false }: {
@@ -36,7 +38,7 @@ function ValueType({ label, kind, copy, disabled, select, allowUnset = false }: 
   </label>
 }
 
-export function FreeField({ label, value, update, copy, disabled, onTyping, dictionary }: Props) {
+export function FreeField({ label, value, update, copy, disabled, onTyping, dictionary, inherited }: Props) {
   const kind = valueKind(value)
   const child = { copy, disabled, onTyping }
   const valueLabel = `${label} · ${copy.value}`
@@ -66,18 +68,19 @@ export function FreeField({ label, value, update, copy, disabled, onTyping, dict
       {!disabled && <button type="button" className="secondary" onClick={() => update([...value, null])}>
         <Plus size={15} />{copy.addItem}
       </button>}
-    </div> : <PropertyFields {...child} value={object(value)} update={update} />}
+    </div> : <PropertyFields {...child} value={object(value)} update={update} inherited={inherited} />}
     {dictionary && !disabled && value !== undefined && <button type="button" className="text-button rule-array-remove"
       onClick={() => update(undefined)}>{copy.resetField}</button>}
   </details>
 }
 
-export function PropertyFields({ value: entries, update, copy, disabled, onTyping, typed, keyInput }: {
+export function PropertyFields({ value: entries, update, copy, disabled, onTyping, typed, keyInput, inherited }: {
   value: Definition; update: (value: Definition) => void; copy: RuleCopy; disabled: boolean
   onTyping: (typing: boolean) => void
   typed?: { initial: unknown; render: (name: string, value: unknown, update: (next: unknown) => void,
     restore: (next: unknown) => void) => ReactNode }
   keyInput?: (value: string, change: (value: string) => void) => ReactNode
+  inherited?: InheritedValue
 }) {
   const [key, setKey] = useState('')
   const [kind, setKind] = useState<ValueKind>('text')
@@ -95,17 +98,28 @@ export function PropertyFields({ value: entries, update, copy, disabled, onTypin
     update(Object.fromEntries(Object.entries(entries).map(([name, item]) => [name === renaming ? renameKey.trim() : name, item])))
     setRenaming(null)
   }
+  const baseline = object(inherited?.value)
+  const names = new Set([...Object.keys(entries), ...Object.keys(baseline)])
   return <div className="rule-array">
-    {Object.entries(entries).map(([name, item]) => {
+    {Array.from(names, (name) => {
+      const present = Object.hasOwn(entries, name)
+      const item = present ? entries[name] : undefined
+      const inheritedValue = inherited && { ...inherited, value: Object.hasOwn(baseline, name) ? baseline[name] : undefined }
       const change = (next: unknown) => update({ ...entries, [name]: next ?? (typed ? typed.initial : null) })
+      const restore = (next: unknown) => {
+        const restored = { ...entries, [name]: next }
+        if (next === undefined) delete restored[name]
+        update(restored)
+      }
       return <div className="free-entry" key={name}>
-        {typed ? typed.render(name, item, change, (baseline) => {
-          const next = { ...entries, [name]: baseline }
-          if (baseline === undefined) delete next[name]
-          update(next)
-        }) : <FreeField label={name} value={item} copy={copy} disabled={disabled}
-          onTyping={onTyping} update={change} />}
-        {!disabled && <div className="property-actions">
+        {typed ? typed.render(name, item, change, restore)
+          : <InheritedField label={name} value={item} inherited={inheritedValue} restore={() => restore(inheritedValue?.value)}>
+            {present ? <FreeField label={name} value={item} copy={copy} disabled={disabled}
+              onTyping={onTyping} update={change}
+              inherited={inheritedValue && valueKind(inheritedValue.value) === 'object' ? inheritedValue : undefined} />
+              : <span className="muted">{name} · {copy.removedProperty}</span>}
+          </InheritedField>}
+        {!disabled && present && <div className="property-actions">
           <button type="button" className="icon-button" aria-label={`${copy.renameProperty}: ${name}`} title={copy.renameProperty}
             onClick={() => { setRenaming(renaming === name ? null : name); setRenameKey(name) }}><Pencil size={15} /></button>
           <Remove copy={copy} disabled={disabled} remove={() => {

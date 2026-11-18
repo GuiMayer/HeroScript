@@ -96,7 +96,7 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
       setSelected('')
   }, [selected, staged, detail.error, detail.isFetching])
   const source = detail.data?.data
-  const customizable = section === 'rules' && !!source?.item?.canCustomize
+  const customizable = !!source?.item?.canCustomize
   const inherited = customizable ? object(source?.source) : undefined
   const effective = source ? object(customizable ? source.effective : source.source) : undefined
   const selectionKey = `${kind}/${id}`
@@ -109,6 +109,7 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
   const version = detail.data?.version ?? listVersion
   const locked = !writable || !!draft.busy || !!draft.attempt || !!draft.intent
   const editable = !locked && !deleted && (created || !!source?.item?.canEdit || customizing)
+  const inheritedFields = inherited && { value: inherited, copy: actionsCopy, restoringDisabled: !editable || typing }
   const canCreate = (name: string) => !locked && groups.some((group) => group.some((item) => item === name)) &&
     !!kinds.data?.data.some((item) => item.kind === name && item.canCreate)
   const canDelete = !locked && !deleted && (created || !!source?.item?.canDelete)
@@ -260,12 +261,12 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
                 <h3>{copy.properties}</h3>
                 <p className="muted">{copy.rawNotice}</p>
                 <PropertyFields key={`${kind}/${id}`} value={value} update={update}
-                  copy={copy} disabled={!editable} onTyping={setTyping} />
+                  copy={copy} disabled={!editable} onTyping={setTyping} inherited={inheritedFields} />
               </section> : schema.data ? <RuleFields key={`${kind}/${id}`} identity={identity} value={value} update={update}
                 schema={schema.data.data.schema} context={{
                   key: apiKey, setting, referenceSetting: section === 'settings' ? activeSetting : undefined,
                   disabled: !editable, locale, copy, root: value, draft: draft.frame,
-                  inherited: inherited && { path: '', value: inherited, copy: actionsCopy, restoringDisabled: !editable || typing },
+                  inherited: inheritedFields && { ...inheritedFields, path: '' },
                   full: customizable || (section !== 'rules' && section !== 'effects'),
                   reorder: customizable || kind === 'formulas' || kind === 'runs', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
