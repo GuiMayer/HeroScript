@@ -45,6 +45,20 @@ const update = (id, original, definition) => ({
 })
 const remove = (id) => ({ operation: { kind: 'cards', operation: 'delete', definitionId: id } })
 
+test('restoring inherited values clears an unsaved patch but keeps the draft undoable', () => {
+  const before = new Workspace().get('uno')
+  const original = { tags: ['attack'] }
+  const customize = (definition) => ({ original, operation: {
+    kind: 'cards', operation: 'customize', definitionId: 'inherited_card', definition,
+  } })
+  const edited = stage(before, customize({ tags: ['attack', 'fire'] }), 'version')
+  const restored = stage(edited, customize(original), 'version')
+  assert.deepEqual(restored.frame, [])
+  const undone = history(restored, 'undo')
+  assert.deepEqual(undone.frame, edited.frame)
+  assert.deepEqual(history(undone, 'redo').frame, [])
+})
+
 test('package creation and setting linkage undo and redo as a single action without losing other drafts', () => {
   const workspace = new Workspace()
   const pending = stage(workspace.get(''), create('pending'), 'original')

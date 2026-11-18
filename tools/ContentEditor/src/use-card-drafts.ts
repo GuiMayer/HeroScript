@@ -114,8 +114,15 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
         }
         const latestDefinition = await api<Card & Partial<Schemas['AuthoringDefinitionDetail']>>(key, path)
         const summary = latestDefinition.data.item ?? latestDefinition.data.card
-        if (latestDefinition.version !== version || !original || !summary?.canEdit) throw new RebaseConflict()
-        const theirs = object(latestDefinition.data.source)
+        const customization = operation.operation === 'customize' || operation.operation === 'resetCustomization'
+        if (latestDefinition.version !== version || !original ||
+            !(customization ? summary?.canCustomize : summary?.canEdit)) throw new RebaseConflict()
+        const theirs = object(customization ? latestDefinition.data.effective : latestDefinition.data.source)
+        if (operation.operation === 'resetCustomization') {
+          if (!summary?.hasCustomization) return null
+          if (!same(original, theirs)) throw new RebaseConflict()
+          return { ...entry, original: theirs }
+        }
         if (operation.operation === 'delete') {
           if (!same(original, theirs) || !summary.canDelete) throw new RebaseConflict()
           return { ...entry, original: theirs }

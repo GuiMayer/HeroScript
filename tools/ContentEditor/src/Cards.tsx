@@ -1,11 +1,11 @@
 import { useDeferredValue, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { ChevronRight, FileText, Layers3, LockKeyhole, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronRight, FileText, Layers3, LockKeyhole, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, cardPath, settingPath, type Card, type Definition, type Diagnostic, type Schemas } from './api/client'
 import { Advanced, Overview, rarityLabel, Rules, titleOf } from './CardFields'
 import { cardCopy, type CardCopy } from './card-copy'
-import { object, string, type Workspace } from './editor-state'
+import { object, same, string, type Workspace } from './editor-state'
 import { preference, type Copy, type Locale } from './i18n'
 import { Modal } from './Modal'
 import { useCardDrafts } from './use-card-drafts'
@@ -34,6 +34,7 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   const [tab, setTab] = useState<Tab>('overview')
   const [typing, setTyping] = useState(false)
   const [focus, setFocus] = useState<DiagnosticFocus>()
+  const [customizingId, setCustomizingId] = useState('')
   const [hot, setHot] = useState(() => preference('mode', ['manual', 'hot'], 'manual') === 'hot')
   const [modal, setModal] = useState<'create' | 'delete' | 'discard' | null>(null)
   const requested = useDeferredValue(search.trim())
@@ -66,12 +67,17 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     queryFn: ({ signal }) => api<Card>(apiKey, cardPath(setting, activeId), { signal }),
   })
   const current = detail.data?.data
-  const value = activeEntry?.operation.definition
-    ? object(activeEntry.operation.definition) : current ? object(current.source) : undefined
+  const customizable = !!current?.card?.canCustomize
+  const inherited = customizable ? object(current?.source) : undefined
+  const effective = customizable ? object(current?.effective) : current ? object(current.source) : undefined
+  const customizing = customizable && (customizingId === activeId || !!current?.card?.hasCustomization ||
+    activeEntry?.operation.operation === 'customize')
+  const value = activeEntry?.operation.operation === 'resetCustomization' ? inherited
+    : activeEntry?.operation.definition ? object(activeEntry.operation.definition) : effective
   const listVersion = list.data?.pages[0]?.version ?? list.data?.pages[0]?.data.sourceVersion ?? undefined
   const version = detail.data?.version ?? listVersion
   const editLocked = !writable || !!draft.busy || !!draft.attempt || !!draft.intent
-  const canEdit = !editLocked && !deleted && (created || !!current?.card?.canEdit)
+  const canEdit = !editLocked && !deleted && (created || !!current?.card?.canEdit || customizing)
   const canDelete = !editLocked && !deleted && (created || !!current?.card?.canDelete)
   function choose(id: string) {
     setFocus(undefined)
@@ -82,9 +88,20 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
   function update(next: Definition) {
     setFocus(undefined)
     actions.edit({
-      operation: { kind: 'cards', operation: created ? 'create' : 'update', definitionId: activeId, definition: next },
-      original: current ? object(current.source) : undefined,
+      operation: { kind: 'cards', operation: created ? 'create' : customizing ? 'customize' : 'update',
+        definitionId: activeId, definition: next },
+      original: effective,
     }, version)
+  }
+  function resetCustomization() {
+    if (!inherited) return
+    setCustomizingId(activeId)
+    if (!current?.card?.hasCustomization) {
+      update(inherited)
+      return
+    }
+    actions.edit({ operation: { kind: 'cards', operation: 'resetCustomization', definitionId: activeId },
+      original: effective }, version)
   }
   function remove() {
     actions.edit({
@@ -123,7 +140,8 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
     }
   }
 
-  const editorFields = value ? { value, disabled: !canEdit, copy, apiKey, setting, update, focus, onTyping: setTyping } : undefined
+  const editorFields = value ? { value, inherited, disabled: !canEdit, copy, apiKey, setting, update, focus, onTyping: setTyping } : undefined
+  const personalized = !!inherited && !!value && !same(value, inherited)
 
   return <div className="cards-page">
     <header className="page-heading">
@@ -166,14 +184,20 @@ function CardWorkspace({ apiKey, setting, writable, locale, copy: shell, workspa
             <span className="detail-icon"><Layers3 size={25} /></span>
             <div className="detail-title"><h2>{titleOf(value, activeId)}</h2><code>{activeId}</code></div>
             <span className="rarity-pill">{rarityLabel(string(value.rarity) || 'Common', copy)}</span>
+            {customizable && !customizing && <button className="secondary" disabled={editLocked}
+              onClick={() => setCustomizingId(activeId)}><Pencil size={15} />{copy.customize}</button>}
             {canDelete && <button className="icon-button danger-button" aria-label={copy.deleteCard} title={copy.deleteCard}
               onClick={() => setModal('delete')}><Trash2 size={17} /></button>}
           </header>
           <div className="detail-meta">
             {deleted ? <span className="meta-label error">{copy.deletion}</span>
               : created ? <span className="meta-label">{copy.draft}</span>
+              : customizable ? <span className={`meta-label ${personalized ? 'customization-label' : ''}`}>
+                {personalized ? copy.customized : copy.inheritedCard}</span>
               : (!writable || !current?.card?.canEdit) && <span className="meta-label"><LockKeyhole size={13} />{copy.inherited}</span>}
             {current?.card?.packageId && <span className="meta-source"><FileText size={14} />{current.card.packageId}</span>}
+            {personalized && <button type="button" className="text-button" disabled={!canEdit || typing}
+              onClick={resetCustomization}><RotateCcw size={14} />{copy.restoreAll}</button>}
           </div>
           <nav className="detail-tabs" aria-label={copy.details}>
             {tabs.map((name) => <button key={name} aria-current={tab === name ? 'page' : undefined}

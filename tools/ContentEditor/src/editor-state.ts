@@ -74,7 +74,8 @@ export function stage(draft: Draft, entry: Entry, version: string): Draft {
   const frame = draft.frame.filter((value) => value !== previous)
   const original = previous ? previous.original : entry.original
   const removingNew = previous?.operation.operation === 'create' && entry.operation.operation === 'delete'
-  if (!removingNew && (entry.operation.operation !== 'update' || !same(entry.operation.definition, original))) {
+  const replacesDefinition = entry.operation.operation === 'update' || entry.operation.operation === 'customize'
+  if (!removingNew && (!replacesDefinition || !same(entry.operation.definition, original))) {
     frame.push({ ...entry, original, operation: {
       ...entry.operation,
       operation: previous?.operation.operation === 'create' ? 'create' : entry.operation.operation,
