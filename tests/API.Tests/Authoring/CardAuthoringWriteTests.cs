@@ -900,6 +900,74 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
+    [Theory]
+    [InlineData("uno-clash")]
+    [InlineData("circular-table")]
+    public async Task NewWritablePackageLinksAtomicallyToExistingSetting(string setting)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        const string root = "/api/v1/admin/authoring/workspace";
+        const string package = "designer-content";
+        var manifest = Path.Combine(factory.PackageRoot, package, "package.json");
+        var detail = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/settings/" + setting);
+        var original = JsonNode.Parse(detail!.Source.GetRawText())!.AsObject();
+        var definition = original.DeepClone().AsObject();
+        definition["packages"]!.AsArray().Add(new JsonObject { ["packageId"] = package, ["versionRange"] = "1.0.0" });
+        definition["authoringPackageId"] = package;
+        var newSetting = definition.DeepClone().AsObject();
+        newSetting["settingId"] = "designer-setting";
+        var catalog = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(root + "/definitions/settings");
+        CardAuthoringChangeRequest Create(string version) => Change(
+            new() { Kind = "packages", DefinitionId = package, Operation = CardAuthoringOperationType.Create,
+                Definition = JsonSerializer.SerializeToElement(new { packageId = package, version }) },
+            new() { Kind = "settings", DefinitionId = setting, Operation = CardAuthoringOperationType.Update,
+                Definition = JsonSerializer.SerializeToElement(definition) },
+            new() { Kind = "settings", DefinitionId = "designer-setting", SourcePackage = setting,
+                Operation = CardAuthoringOperationType.Create, Definition = JsonSerializer.SerializeToElement(newSetting) });
+        async Task<HttpResponseMessage> Request(string etag, CardAuthoringChangeRequest change, bool preview = false)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, root + "/changes" + (preview ? "/validate" : ""))
+                { Content = JsonContent.Create(change) };
+            request.Headers.TryAddWithoutValidation("If-Match", etag);
+            return await client.SendAsync(request);
+        }
+        async Task<CardAuthoringChangeReceipt> Save(string etag, CardAuthoringChangeRequest change)
+        {
+            using var response = await Request(etag, change);
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            return (await response.Content.ReadFromJsonAsync<CardAuthoringChangeReceipt>())!;
+        }
+
+        using var invalid = await Request(catalog!.SourceVersion, Create("invalid"));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
+        Assert.False(File.Exists(manifest));
+        var unchanged = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/settings/" + setting);
+        Assert.Equal(original.ToJsonString(), JsonNode.Parse(unchanged!.Source.GetRawText())!.ToJsonString());
+        var change = Create("1.0.0");
+        using var preview = await Request(catalog.SourceVersion, change, preview: true);
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        Assert.False(File.Exists(manifest));
+        var saved = await Save(catalog.SourceVersion, change);
+        Assert.True(File.Exists(manifest));
+        var settings = await client.GetFromJsonAsync<CardAuthoringSettings>("/api/v1/admin/authoring/settings");
+        Assert.Contains(settings!.Items, item => item.SettingId == setting && item.WritablePackageId == package);
+        Assert.Contains(settings.Items, item => item.SettingId == "designer-setting" && item.WritablePackageId == package);
+        var undone = await Save(saved.SourceVersion, new() { ChangeId = Guid.NewGuid(), UndoOf = saved.ChangeId });
+        Assert.False(File.Exists(manifest));
+        unchanged = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/settings/" + setting);
+        Assert.Equal(original.ToJsonString(), JsonNode.Parse(unchanged!.Source.GetRawText())!.ToJsonString());
+        var redone = await Save(undone.SourceVersion, new() { ChangeId = Guid.NewGuid(), RedoOf = undone.ChangeId });
+        Assert.True(File.Exists(manifest));
+        var authored = await Apply(client, setting, redone.SourceVersion, Change(new CardAuthoringOperation
+        {
+            Kind = "keywords", DefinitionId = "designer_keyword", Operation = CardAuthoringOperationType.Create,
+            Definition = JsonSerializer.SerializeToElement(new { name = "Designer keyword" })
+        }));
+        var keywordsFile = Assert.Single(authored.ChangedFiles, path => path.StartsWith(package + "/Resources/", StringComparison.Ordinal));
+        Assert.Contains("designer_keyword", await File.ReadAllTextAsync(Path.Combine(factory.PackageRoot, keywordsFile)));
+    }
+
     [Fact]
     public async Task WorkspaceAuthoringValidatesActivatesAndUndoesCompositionAcrossSettings()
     {

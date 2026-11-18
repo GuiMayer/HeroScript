@@ -87,6 +87,12 @@ export function stage(draft: Draft, entry: Entry, version: string): Draft {
   }
 }
 
+// Related operations form one history step and one Hot Reload request.
+export function stageEntries(draft: Draft, entries: Entry[], version: string): Draft {
+  const next = entries.reduce((current, entry) => stage(current, entry, version), draft)
+  return next === draft ? draft : { ...next, past: [...draft.past, draft.frame] }
+}
+
 export function history(draft: Draft, direction: 'undo' | 'redo', version?: string): Draft {
   if (draft.busy || draft.attempt || draft.intent) return draft
   const from = direction === 'undo' ? draft.past : draft.future

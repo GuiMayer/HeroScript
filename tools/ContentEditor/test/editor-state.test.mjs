@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { Workspace, confirmed, history, mergeIndependent, stage } from '../src/editor-state.ts'
+import { Workspace, confirmed, history, mergeIndependent, stage, stageEntries } from '../src/editor-state.ts'
 import { parseAuthoringJson, stringifyAuthoringJson } from '../src/authoring-json.ts'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
@@ -44,6 +44,23 @@ const update = (id, original, definition) => ({
   original,
 })
 const remove = (id) => ({ operation: { kind: 'cards', operation: 'delete', definitionId: id } })
+
+test('package creation and setting linkage undo and redo as a single action without losing other drafts', () => {
+  const workspace = new Workspace()
+  const pending = stage(workspace.get(''), create('pending'), 'original')
+  const entries = [
+    { operation: { kind: 'packages', operation: 'create', definitionId: 'new-package', definition: { packageId: 'new-package', version: '1.0.0' } } },
+    { operation: { kind: 'settings', operation: 'update', definitionId: 'uno', definition: { authoringPackageId: 'new-package' } }, original: {} },
+  ]
+  const next = stageEntries(pending, entries, 'newer')
+  assert.equal(next.version, 'original')
+  assert.equal(next.frame.length, 3)
+  assert.equal(next.past.length, pending.past.length + 1)
+  const undone = history(next, 'undo')
+  assert.deepEqual(undone.frame, pending.frame)
+  assert.deepEqual(history(undone, 'redo').frame, next.frame)
+  assert.equal(stageEntries(next, entries, 'newer'), next)
+})
 
 test('drafts belong to the selected game setting and retain their original ETag', () => {
   const workspace = new Workspace()

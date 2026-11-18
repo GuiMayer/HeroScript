@@ -161,7 +161,7 @@ public sealed partial class CardAuthoringService
                 var document = JsonNode.Parse(definition.GetRawText())!.AsObject();
                 if (creating && !isPackage)
                 {
-                    // New settings write to their owning package, including when copied from another setting.
+                    // Default new settings to their owning package; explicit choices are validated with the candidate catalog.
                     var source = packageSources[operation.SourcePackage!];
                     var ownerManifest = files.FirstOrDefault(file => file.Path == InPackage(source, "package.json"))?.After;
                     var ownerPackage = ownerManifest is not null
@@ -181,7 +181,7 @@ public sealed partial class CardAuthoringService
                     if (document[packagesKey] is null) document[packagesKey] = references;
                     var writableKey = document.Select(item => item.Key).FirstOrDefault(key =>
                         key.Equals("authoringPackageId", StringComparison.OrdinalIgnoreCase)) ?? "authoringPackageId";
-                    document[writableKey] = ownerPackage;
+                    document[writableKey] ??= ownerPackage;
                 }
                 var bytes = AuthoringJsonSource.Rewrite(snapshot.FindSource(path), document).ToArray();
                 if (before is null || !before.AsSpan().SequenceEqual(bytes))

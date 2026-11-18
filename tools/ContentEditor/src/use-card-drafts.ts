@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, definitionPath, settingPath, type Card, type Change, type Receipt, type Schemas } from './api/client'
-import { clearDraft, confirmed, history, mergeIndependent, object, same, stage, type Draft, type Entry, type Workspace } from './editor-state'
+import { clearDraft, confirmed, history, mergeIndependent, object, same, stageEntries, type Draft, type Entry, type Workspace } from './editor-state'
 
 export class RebaseConflict extends Error {}
 
@@ -136,9 +136,13 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
   }
 
   function edit(entry: Entry, version?: string | null) {
+    return editMany([entry], version)
+  }
+
+  function editMany(entries: Entry[], version?: string | null) {
     const current = workspace.get(setting)
     if (current.busy || current.intent || current.attempt || !version) return false
-    const next = stage(current, entry, version)
+    const next = stageEntries(current, entries, version)
     if (next === current) return false
     set(next)
     if (hot && !current.error) void save()
@@ -158,5 +162,5 @@ export function useCardDrafts(workspace: Workspace, setting: string, key: string
     if (!current.busy && !current.attempt) set(clearDraft(current))
   }
 
-  return { draft, edit, save, validate, checkStatus, rebase, turn, discard, refresh }
+  return { draft, edit, editMany, save, validate, checkStatus, rebase, turn, discard, refresh }
 }
