@@ -26,17 +26,20 @@ func apply_projection(model: Dictionary, context: ContextType) -> void:
 	_header.get_node("ConversationTitle").text = context.translator.text("CONVERSATION")
 	_header.get_node("Conversation_map").text = context.translator.text("MAP")
 	_header.get_node("Conversation_pause").text = context.translator.text("PAUSE")
-	_loading.text = context.translator.text("Loading conversation…")
 	_recover.text = context.translator.text("RECONNECT")
+	_model = model.duplicate(true)
 	if not model.is_empty():
-		_model = model.duplicate(true)
 		panel.visual_context = context
 		panel.apply_model(_model)
 		panel.show()
 	else: panel.hide()
-	_loading.visible = model.is_empty()
-	_recover.visible = model.is_empty()
+	set_loading_state(false)
 	context.styles.apply_view_preferences(self)
+func set_loading_state(failed: bool) -> void:
+	_loading.visible = _model.is_empty()
+	_loading.text = visual_context.translator.text(
+		"Could not refresh the game. Reconnect before playing again." if failed else "Loading conversation…")
+	_recover.visible = _loading.visible and failed
 func _choice(command: Dictionary) -> void:
 	if _locked: return
 	for option in _model.get("options", []):

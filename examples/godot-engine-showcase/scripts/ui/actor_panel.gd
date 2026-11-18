@@ -206,7 +206,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		live_statuses.append(str(_effects_button.name))
 	_prune(_statuses, live_statuses)
 	_statuses.visible = not statuses.is_empty()
-	target_button.tooltip_text = name_text + "\n" + _intent.text + "\n" + visual_context.translator.text("Choose a highlighted target.")
+	target_button.tooltip_text = name_text + "\n" + _intent.text
 	portrait_view.rebind_context(visual_context)
 	if not battlefield: portrait_view.setup("actors", str(actor.get("definitionId", "")))
 	else: portrait_view.texture = null

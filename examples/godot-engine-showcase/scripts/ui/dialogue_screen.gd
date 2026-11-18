@@ -22,6 +22,8 @@ var view
 var presentation: Dictionary
 var _model: Dictionary = {}
 var _start_attempted := false
+var _start_failed := false
+var _recovering := false
 var _alive := true
 func setup(owner, data: Dictionary) -> void:
 	screen_context = ScreenContext.ensure(owner)
@@ -47,7 +49,11 @@ func refresh_state(data: Dictionary) -> void:
 func _start_if_needed() -> void:
 	if controller == null or not _alive or not is_inside_tree() or get_tree().paused or controller.locked() or _start_attempted or not _model.is_empty(): return
 	_start_attempted = true
-	if await controller.execute_published("START_DIALOGUE") and _alive: screen_context.open_game()
+	var accepted: bool = await controller.execute_published("START_DIALOGUE")
+	if not _alive: return
+	_start_failed = not accepted and _model.is_empty()
+	_interaction()
+	if accepted: screen_context.open_game()
 func _process(_delta: float) -> void:
 	if _model.is_empty() and not _start_attempted: _start_if_needed()
 func _intent(action: String, arguments: Array) -> void:
@@ -56,10 +62,19 @@ func _intent(action: String, arguments: Array) -> void:
 		"pause": screen_context.navigation.toggle_pause()
 		"map": screen_context.navigation.show_activity(true)
 		"recover":
-			if await controller.recover() and _alive:
+			if _recovering: return
+			_recovering = true
+			_interaction()
+			var recovered: bool = await controller.recover()
+			if not _alive: return
+			_recovering = false
+			_start_failed = not recovered
+			if recovered:
 				refresh_state(presentation)
 				_start_attempted = false
 				_start_if_needed.call_deferred()
+			else:
+				_interaction()
 		"choice":
 			if get_tree().paused or controller.locked(): return
 			if await controller.submit(str(arguments[0])) and _alive:
@@ -72,7 +87,10 @@ func _intent(action: String, arguments: Array) -> void:
 						screen_context.navigation.show_activity(true)
 				else: screen_context.open_game()
 func _interaction() -> void:
-	if is_instance_valid(view): view.set_read_only(controller.locked())
+	if not is_instance_valid(view): return
+	view.set_read_only(controller.locked())
+	var failed := not _recovering and not GameSession.busy and (_start_failed or not GameSession.synchronized)
+	view.set_loading_state(failed)
 func apply_interaction(_state) -> void: _interaction()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:

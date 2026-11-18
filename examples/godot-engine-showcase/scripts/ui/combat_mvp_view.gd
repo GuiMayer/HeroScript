@@ -147,7 +147,11 @@ func _build_piles() -> void:
 			if _pile_rank(zone) != rank: continue
 			match rank:
 				1, 2: right.append(zone)
-				3: deck.append(zone)
+				3:
+					# The collection may be fully transferred into combat zones.
+					# Keep real reserve cards inspectable, including in existing saves.
+					if _run_snapshot.get("settingId") != "alisyum" or int(zone.get("count", 0)) > 0:
+						deck.append(zone)
 				_: left.append(zone)
 	_apply_pile_group(pile_controls, left)
 	_apply_pile_group(right_pile_controls, right)
