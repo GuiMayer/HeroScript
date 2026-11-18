@@ -138,7 +138,7 @@ function FieldControl({ label, path, schema, value, update, context, referenceKi
   const elementReference = context.refs[`${referencePath}/*`]
   const common = { label, disabled: context.disabled, onTyping: context.onTyping }
   if (reference) return <Reference context={context} label={label} kind={reference} value={string(value)}
-    commit={(id) => update(id || (context.full ? undefined : ''))} />
+    selectionOnly={lookup === '/authoringPackageId'} commit={(id) => update(id || (context.full ? undefined : ''))} />
   if (shape.enum?.length && shape.enum.every((item) => typeof item === 'string' || item === null)) {
     const choices = shape.enum.filter((item): item is string => typeof item === 'string')
     const current = string(value)
@@ -311,9 +311,10 @@ function VariantItems({ values, update, variants, context, path }: {
   </div>
 }
 
-function Reference({ context, kind, label, value, commit, immediate = false }: {
+function Reference({ context, kind, label, value, commit, immediate = false, selectionOnly = false }: {
   context: Context; kind: string; label: string; value: string; commit: (value: string) => void
   immediate?: boolean
+  selectionOnly?: boolean
 }) {
   const id = useId()
   const [input, setInput] = useState<string | null>(null)
@@ -345,6 +346,13 @@ function Reference({ context, kind, label, value, commit, immediate = false }: {
     if (operation.operation === 'create') ids.add(operation.definitionId)
     if (operation.operation === 'delete') ids.delete(operation.definitionId)
   }
+  if (selectionOnly) return <label className="field"><span>{label}</span>
+    <select value={value} disabled={context.disabled} onChange={(event) => commit(event.target.value)}>
+      <option value="">{context.copy.unset}</option>
+      {value && !ids.has(value) && <option value={value}>{value}</option>}
+      {[...ids].filter(Boolean).map((id) => <option key={id} value={id}>{id}</option>)}
+    </select>
+  </label>
   return <div className="rule-reference">
     <label className="field"><span>{label}</span><input value={input ?? value} list={id}
       disabled={context.disabled} onFocus={() => setInput(value)}

@@ -171,6 +171,10 @@ export function App() {
           </select><ChevronDown size={14} />
         </div>
         <div className="top-actions">
+          {connected && settingId && <button className="text-button" title={copy.chooseWritingPackage}
+            onClick={() => navigate('settings')}>
+            {copy.writingPackage}{selected?.writablePackageId ? ` · ${selected.writablePackageId}` : ''}
+          </button>}
           {connected && <button className="connection" onClick={() => connect('')} title={copy.disconnect}>
             <span className="dot" />{copy.connected}<span className="disconnect-label">{copy.disconnect}</span>
           </button>}

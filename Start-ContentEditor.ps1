@@ -88,8 +88,6 @@ try {
     $env:Authoring__ApplyEnabled = 'true'
     $env:Authoring__EditorPath = Join-Path $editor 'dist'
     $env:Authoring__EditorLaunchCode = $launchCode
-    [Environment]::SetEnvironmentVariable('Authoring__WritablePackages__uno-clash', 'heroscript.uno-clash')
-    [Environment]::SetEnvironmentVariable('Authoring__WritablePackages__circular-table', 'heroscript.circular-table')
 
     Write-Host '[3/3] Iniciando a engine local...'
     if (-not ('EditorProcessJob' -as [type])) {
@@ -107,11 +105,11 @@ try {
         try {
             $catalog = Invoke-RestMethod -Uri "$origin/api/v1/admin/authoring/settings" `
                 -Headers @{ 'X-Admin-Key' = $key } -TimeoutSec 2
-            if (@($catalog.items | Where-Object writablePackageId).Count -ge 2) { break }
+            if ($null -ne $catalog.items) { break }
         } catch {
             if ([DateTime]::UtcNow -ge $deadline) { throw "A engine nao respondeu. Consulte $stdout e $stderr." }
         }
-        if ([DateTime]::UtcNow -ge $deadline) { throw "Os settings editaveis nao foram encontrados. Consulte $stdout." }
+        if ([DateTime]::UtcNow -ge $deadline) { throw "O catalogo de settings nao foi encontrado. Consulte $stdout." }
         Start-Sleep -Milliseconds 300
     }
 

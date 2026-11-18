@@ -298,11 +298,13 @@ const portuguese: Record<string, string> = {
   dataOnly: 'Pacote de dados', dependencies: 'Dependências', conflicts: 'Conflitos entre pacotes',
   content: 'Declarações de conteúdo', sourcePath: 'Caminho do arquivo fonte', artifactPath: 'Caminho do artefato',
   expectedHash: 'Hash esperado', patchStrategy: 'Estratégia do patch',
+  authoringPackageId: 'Pacote de gravação',
 }
 
 export function fieldLabel(key: string, locale: string) {
   if (locale === 'pt-BR' && portuguese[key]) return portuguese[key]
   if (key === 'op') return 'Operation'
+  if (key === 'authoringPackageId') return 'Write package'
   if (key === 'params') return 'Parameters'
   return key.replaceAll('_', ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (letter) => letter.toUpperCase())
 }

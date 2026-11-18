@@ -34,12 +34,20 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
   const Icon = { resources: Boxes, effects: Sparkles, rules: GitBranch, entities: Users, decks: Layers3, runs: Swords, settings: Settings2 }[section]
   const actionsCopy = cardCopy[locale]
   const [kind, setKind] = useState<DefinitionKind>(groups[0][0])
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState(section === 'settings' ? activeSetting : '')
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'fields' | 'advanced'>('fields')
   const [typing, setTyping] = useState(false)
   const [hot, setHot] = useState(() => preference('mode', ['manual', 'hot'], 'manual') === 'hot')
   const [modal, setModal] = useState<'create' | 'delete' | 'discard' | null>(null)
+  useEffect(() => {
+    if (section === 'settings') {
+      setKind('settings')
+      setSelected(activeSetting)
+      setSearch('')
+      setTab('fields')
+    }
+  }, [activeSetting, section])
   const actions = useCardDrafts(workspace, setting, apiKey, hot)
   const { draft } = actions
   const searchTerm = useDeferredValue(search.trim())
