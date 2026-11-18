@@ -21,17 +21,17 @@ Publica uma nova definição a partir de `sourcePath` e exige `kind` e
 
 ## Patch
 
-Altera um artefato de package explicitamente identificado. `expectedHash` pode
-fixar a versão exata da entrada alvo. `Merge` combina objetos; `Replace`
-substitui o payload inteiro. Ordem é a ordem de dependências e depois a ordem do
-setting, ambas validadas e determinísticas.
+Altera um artefato de package explicitamente identificado. `expectedHash` é
+obrigatório e contém o SHA-256 canônico do alvo imediatamente antes do patch.
+`Merge` combina objetos e substitui listas alteradas por inteiro. `Replace`
+substitui o payload inteiro. O compilador ordena os pacotes por dependências
+e ID e aplica as entradas de cada pacote na ordem declarada no manifesto.
 
 ```json
 {
   "schemaVersion": 1,
   "operation": "Patch",
   "sourcePath": "patches/frost_bolt.json",
-  "kind": "cards",
   "target": {
     "packageId": "example.base",
     "kind": "cards",

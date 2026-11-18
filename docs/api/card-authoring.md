@@ -68,6 +68,37 @@ O recibo expõe a elegibilidade em `canUndo` e `canRedo` e o vínculo em `compen
 | Resposta perdida | Consulte `GET .../changes/{changeId}` ou repita o mesmo envelope com o mesmo ID e a mesma ETag. |
 | Workspace em recuperação | Reinicie com a mesma raiz de pacotes e armazenamento de conteúdo. O journal conclui ou reverte a transação. Se a inicialização reportar arquivo divergente, guarde a edição externa e resolva o conflito antes de reiniciar. |
 
+## Personalizar uma carta herdada pela API
+
+`GET /api/v1/admin/authoring/settings/{settingId}/definitions/cards/{id}`
+retorna `source` com a definição original e `effective` com o resultado
+compilado. `card.canCustomize` indica que o pacote de gravação pode
+personalizar a carta. `card.hasCustomization` indica que esse pacote já
+tem uma personalização registrada para ela. `canEdit` continua indicando
+edição direta da definição original.
+
+Envie uma operação `customize` com `kind: cards`, `definitionId` e a
+`definition` efetiva completa desejada, incluindo o mesmo `cardId`. Use
+`POST .../changes/validate` para validar e `POST .../changes` para gravar,
+com a ETag de leitura em `If-Match`. A engine compara a definição desejada
+com a base, calcula o SHA-256 canônico e grava um patch no pacote de gravação.
+O patch usa `Merge` quando consegue representar a alteração e `Replace`
+quando necessário. Em `Merge`, listas alteradas são gravadas por inteiro.
+
+Uma nova operação `customize` atualiza a personalização. Enviar a definição
+herdada ou usar `resetCustomization` sem `definition` remove o patch.
+O recibo inclui os arquivos afetados. Use `undoOf` e `redoOf` com os IDs
+dos recibos para desfazer e refazer a gravação, inclusive o manifesto.
+
+O fluxo abrange cartas herdadas sem patches externos sobre a mesma carta
+ou seu catálogo. Se necessário, a engine inclui no manifesto uma dependência
+da versão do pacote base para garantir a ordem de aplicação. Remover a
+personalização pelo reset preserva as dependências do manifesto.
+A validação cobre todos os settings que usam o pacote de gravação. Para
+isolar a personalização, use um pacote exclusivo para o setting.
+Se a base mudar depois da gravação, o compilador rejeita o hash antigo.
+A reconciliação desse conflito ainda requer revisão do patch nos arquivos.
+
 ## Criar um pacote de gravação pelo editor
 
 Abra **Pacote de gravação** no topo do editor e use o botão **+** junto à seleção.

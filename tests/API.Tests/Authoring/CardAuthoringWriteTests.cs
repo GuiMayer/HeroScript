@@ -14,6 +14,102 @@ namespace API.Tests.Authoring;
 public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
 {
     [Theory]
+    [InlineData("uno-clash", "circular-table", false)]
+    [InlineData("circular-table", "uno-clash", true)]
+    public async Task CustomizesInheritedCardsWithoutChangingTheirSource(string setting, string other, bool newPackage)
+    {
+        using var factory = new WriteFactory();
+        var packageFolder = Path.Combine(factory.PackageRoot, setting);
+        if (newPackage)
+        {
+            var path = Path.Combine(packageFolder, "settings", setting + ".json");
+            var settingJson = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+            settingJson["packages"]!.AsArray().Add(new JsonObject { ["packageId"] = "custom.cards", ["versionRange"] = "1.0.0" });
+            settingJson["authoringPackageId"] = "custom.cards";
+            await File.WriteAllTextAsync(path, settingJson.ToJsonString());
+            packageFolder = Directory.CreateDirectory(Path.Combine(factory.PackageRoot, "custom-cards")).FullName;
+            await File.WriteAllTextAsync(Path.Combine(packageFolder, "package.json"),
+                """{"packageId":"custom.cards","version":"1.0.0"}""");
+        }
+
+        using var client = Open(factory);
+        const string id = "basic_attack";
+        var basePath = Path.Combine(factory.PackageRoot, "default", "Resources", "cards", "card_catalog.json");
+        var baseBytes = await File.ReadAllBytesAsync(basePath);
+        var (version, original) = await Read(client, setting, id);
+        var otherRevision = await Revision(client, other);
+        Assert.True(original.Card.CanCustomize);
+        Assert.False(original.Card.CanEdit);
+        Assert.False(original.Card.HasCustomization);
+        var definition = JsonNode.Parse(original.Effective.GetRawText())!.AsObject();
+        var tags = definition["tags"]?.AsArray() ?? [];
+        if (definition["tags"] is null)
+            definition["tags"] = tags;
+        tags.Add("custom_patch_tag");
+        var change = Change(Operation(CardAuthoringOperationType.Customize, id, definition));
+
+        var invalid = definition.DeepClone().AsObject();
+        invalid["tags"] = new JsonArray(JsonValue.Create(""));
+        using var invalidResponse = await Send(client, setting, version,
+            Change(Operation(CardAuthoringOperationType.Customize, id, invalid)));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidResponse.StatusCode);
+        using var preview = await Send(client, setting, version, change, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        Assert.False(Directory.Exists(Path.Combine(packageFolder, "patches")));
+
+        var applied = await Apply(client, setting, version, change);
+        var patchPath = Path.Combine(factory.PackageRoot, Assert.Single(applied.ChangedFiles,
+            path => path.Contains("/patches/cards/", StringComparison.Ordinal)));
+        using var patch = JsonDocument.Parse(await File.ReadAllBytesAsync(patchPath));
+        Assert.Equal("tags", Assert.Single(patch.RootElement.EnumerateObject()).Name);
+        using var manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(packageFolder, "package.json")));
+        var envelope = Assert.Single(manifest.RootElement.GetProperty("content").EnumerateArray(), entry =>
+            entry.GetProperty("operation").GetString()!.Equals("patch", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(Core.Determinism.CanonicalJson.ComputeHash(original.Effective), envelope.GetProperty("expectedHash").GetString());
+        Assert.Equal(id, envelope.GetProperty("target").GetProperty("definitionId").GetString());
+        var (_, customized) = await Read(client, setting, id);
+        Assert.True(customized.Card.HasCustomization);
+        Assert.True(customized.Card.CanCustomize);
+        Assert.True(JsonElement.DeepEquals(original.Source, customized.Source));
+        Assert.Contains(customized.Effective.GetProperty("tags").EnumerateArray(), tag => tag.GetString() == "custom_patch_tag");
+        using var stale = await Send(client, setting, version, Change(Operation(CardAuthoringOperationType.Customize, id, definition)));
+        Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
+
+        var undone = await Apply(client, setting, applied.SourceVersion, new() { ChangeId = Guid.NewGuid(), UndoOf = applied.ChangeId });
+        Assert.False(File.Exists(patchPath));
+        Assert.True(JsonElement.DeepEquals(original.Effective, (await Read(client, setting, id)).Card.Effective));
+        var redone = await Apply(client, setting, undone.SourceVersion, new() { ChangeId = Guid.NewGuid(), RedoOf = undone.ChangeId });
+        Assert.True(File.Exists(patchPath));
+
+        tags.Add("second_patch_tag");
+        var updated = await Apply(client, setting, redone.SourceVersion,
+            Change(Operation(CardAuthoringOperationType.Customize, id, definition)));
+        Assert.Contains((await Read(client, setting, id)).Card.Effective.GetProperty("tags").EnumerateArray(),
+            tag => tag.GetString() == "second_patch_tag");
+        var reset = await Apply(client, setting, updated.SourceVersion, Change(Operation(CardAuthoringOperationType.ResetCustomization, id)));
+        Assert.False(File.Exists(patchPath));
+        Assert.False((await Read(client, setting, id)).Card.Card.HasCustomization);
+        var restore = new CardAuthoringChangeRequest { ChangeId = Guid.NewGuid(), UndoOf = reset.ChangeId };
+        var changedBase = JsonNode.Parse(baseBytes)!.AsObject();
+        var baseCard = changedBase[id]!.AsObject();
+        var baseTags = baseCard["tags"]?.AsArray() ?? [];
+        if (baseCard["tags"] is null)
+            baseCard["tags"] = baseTags;
+        baseTags.Add("external_base_edit");
+        await File.WriteAllTextAsync(basePath, changedBase.ToJsonString());
+        var (changedVersion, _) = await Read(client, setting, id);
+        using var rejected = await Send(client, setting, changedVersion, restore, "/changes/validate");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        Assert.Contains("Patch precondition failed", await rejected.Content.ReadAsStringAsync());
+        Assert.False(File.Exists(patchPath));
+        await File.WriteAllBytesAsync(basePath, baseBytes);
+        await Apply(client, setting, reset.SourceVersion, restore);
+        Assert.True(File.Exists(patchPath));
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath));
+        Assert.Equal(otherRevision, await Revision(client, other));
+    }
+
+    [Theory]
     [InlineData("uno-clash", "uno_red_0", "uno_red_1", "uno.json", "circular-table")]
     [InlineData("circular-table", "t_red_0", "t_red_1", "table.json", "uno-clash")]
     public async Task AppliesCardsAndKeepsPriorRevisionAndOtherSetting(
