@@ -916,6 +916,7 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         Assert.Contains(settings!.Items, item => item.DefinitionId == "uno-clash" && item.CanEdit && !item.CanDelete);
         var schema = await client.GetFromJsonAsync<AuthoringKindSchema>(root + "/kinds/settings/schema");
         Assert.Equal("package-ids", schema!.References["/packages/*/packageId"]);
+        Assert.Equal("local:packages/packageId", schema.References["/authoringPackageId"]);
         var dirs = await client.GetFromJsonAsync<AuthoringPage<AuthoringReference>>(root + "/references/package-sources");
         Assert.Contains(dirs!.Items, item => item.Id == "circular-table");
 
@@ -938,7 +939,7 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         CardAuthoringOperation NewSetting(string id, string source) => Op("settings", id, CardAuthoringOperationType.Create, new
         {
             settingId = id, displayName = "Test setting",
-            packages = new[] { new { packageId = "fixture.editor" }, new { packageId = $"heroscript.{source}" } }
+            packages = new[] { new { packageId = $"heroscript.{source}" } }
         }, package);
         var create = Change(
             Op("packages", package, CardAuthoringOperationType.Create, new { packageId = "fixture.editor", version = "1.0.0" }),
@@ -949,6 +950,22 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var created = await Save(settings.SourceVersion, create);
         Assert.Equal(new[] { "editor-table", "editor-uno" }, created.ActiveRevisions.Keys.Order(StringComparer.Ordinal));
         Assert.True(File.Exists(manifest));
+        var catalog = await client.GetFromJsonAsync<CardAuthoringSettings>("/api/v1/admin/authoring/settings");
+        Assert.Contains(catalog!.Items, item => item.SettingId == "editor-table" && item.WritablePackageId == "fixture.editor");
+        var tableKinds = await client.GetFromJsonAsync<AuthoringKind[]>("/api/v1/admin/authoring/settings/editor-table/kinds");
+        Assert.Contains(tableKinds!, item => item.Kind == "cards" && item.CanCreate);
+        var settingDetail = await client.GetFromJsonAsync<AuthoringDefinitionDetail>(root + "/definitions/settings/editor-uno");
+        var settingDocument = JsonNode.Parse(settingDetail!.Source.GetRawText())!.AsObject();
+        Assert.Equal("fixture.editor", (string?)settingDocument["authoringPackageId"]);
+        settingDocument["authoringPackageId"] = "missing_package";
+        using var invalidOwner = await Request(created.SourceVersion,
+            Change(Op("settings", "editor-uno", CardAuthoringOperationType.Update, settingDocument)), preview: true);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidOwner.StatusCode);
+        settingDocument["authoringPackageId"] = "heroscript.uno-clash";
+        created = await Save(created.SourceVersion,
+            Change(Op("settings", "editor-uno", CardAuthoringOperationType.Update, settingDocument)));
+        catalog = await client.GetFromJsonAsync<CardAuthoringSettings>("/api/v1/admin/authoring/settings");
+        Assert.Contains(catalog!.Items, item => item.SettingId == "editor-uno" && item.WritablePackageId == "heroscript.uno-clash");
 
         var edit = Change(Op("packages", package, CardAuthoringOperationType.Update, new
         {
@@ -976,6 +993,18 @@ public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
         var restored = await Save(removed.SourceVersion, new() { ChangeId = Guid.NewGuid(), UndoOf = removed.ChangeId });
         Assert.Equal(edited.ActiveRevisions["editor-uno"], restored.ActiveRevisions["editor-uno"]);
         Assert.True(File.Exists(manifest));
+        await factory.DisposeAsync();
+        using var restarted = new WriteFactory(factory.PersistenceRoot);
+        using var afterRestart = Open(restarted);
+        var persisted = await afterRestart.GetFromJsonAsync<CardAuthoringSettings>("/api/v1/admin/authoring/settings");
+        Assert.Contains(persisted!.Items, item => item.SettingId == "editor-uno" && item.WritablePackageId == "heroscript.uno-clash");
+        Assert.Contains(persisted.Items, item => item.SettingId == "editor-table" && item.WritablePackageId == "fixture.editor");
+        await Apply(afterRestart, "editor-table", restored.SourceVersion, Change(new CardAuthoringOperation
+        {
+            Kind = "keywords", DefinitionId = "new_authoring_keyword", Operation = CardAuthoringOperationType.Create,
+            Definition = JsonSerializer.SerializeToElement(new { name = "Authored after restart" })
+        }));
+        Assert.Contains("new_authoring_keyword", await File.ReadAllTextAsync(asset));
     }
 
     private static async Task<Guid> StartRun(HttpClient client, string settingId, string runDefinitionId, string modeId,

@@ -572,6 +572,10 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
                 diagnostics.Add(Error("SETTING_SCHEMA_UNSUPPORTED", $"Unsupported setting schema: {setting.Definition.SchemaVersion}", setting.PackageId));
             if (!IsIdentifier(setting.Definition.SettingId))
                 diagnostics.Add(Error("SETTING_ID_INVALID", $"Invalid setting id: {setting.Definition.SettingId}", setting.PackageId));
+            if (setting.Definition.AuthoringPackageId is { } writable &&
+                (!IsIdentifier(writable) || !setting.Definition.Packages.Any(reference => reference?.PackageId == writable)))
+                diagnostics.Add(Error("SETTING_AUTHORING_PACKAGE_INVALID",
+                    $"Authoring package must be a direct package of setting '{setting.Definition.SettingId}': {writable}", setting.PackageId));
             if (setting.Definition.Launch is { } launch &&
                 (!IsIdentifier(launch.RunDefinitionId) ||
                  !IsIdentifier(launch.PlayerEntityId) ||

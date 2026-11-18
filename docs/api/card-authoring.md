@@ -4,7 +4,7 @@ Use um checkout ou worktree por branch, com uma instância da HeroScript e um ar
 
 ## Preparar a instância
 
-Na raiz do checkout, escolha uma porta e um diretório de runtime exclusivos. No exemplo, os pacotes de Uno Clash e Circular Table são graváveis, e a chave administrativa é informada no terminal.
+Na raiz do checkout, escolha uma porta e um diretório de runtime exclusivos. O pacote de gravação pode ser escolhido em **Settings e pacotes → Game settings → Pacote de gravação**, e a chave administrativa é informada no terminal.
 
 ```powershell
 $repo = (Get-Location).Path
@@ -20,11 +20,11 @@ $env:Admin__Enabled = 'true'
 $env:Admin__ApiKey = Read-Host 'Chave administrativa local' -MaskInput
 $env:ToolAccess__Profile = 'dev_modder'
 $env:Authoring__ApplyEnabled = 'true'
-[Environment]::SetEnvironmentVariable('Authoring__WritablePackages__uno-clash', 'heroscript.uno-clash')
-[Environment]::SetEnvironmentVariable('Authoring__WritablePackages__circular-table', 'heroscript.circular-table')
 dotnet run --project src/API --no-launch-profile -- --urls http://127.0.0.1:5260
 ```
 Reutilize as mesmas opções ao reiniciar o checkout. Para outro worktree, escolha outro diretório de runtime e outra porta. Use uma única raiz de pacotes por instância gravadora. Cartas herdadas, modificadas por patches ou com arquivos compartilhados por múltiplas declarações são de leitura.
+
+A seleção é salva no campo `authoringPackageId` do JSON do setting através de `workspace/changes`. O seletor oferece os pacotes declarados pelo setting. Settings novos recebem o pacote proprietário e a referência é incluída na composição. Settings existentes usam o primeiro pacote declarado quando não há uma escolha persistida nem uma configuração legada em `Authoring:WritablePackages`.
 
 O [contrato OpenAPI de autoria](../../openapi/heroscript-authoring-v1.json) é disponibilizado pela instância em `GET /openapi/authoring-v1.json`. Use `GET /api/v1/admin/authoring/capabilities` para verificar se gravação, desfazer e refazer estão disponíveis.
 ## Validar e aplicar uma alteração

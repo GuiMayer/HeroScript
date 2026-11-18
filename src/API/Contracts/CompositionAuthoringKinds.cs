@@ -16,6 +16,7 @@ public static class CompositionAuthoringKinds
         ? new Dictionary<string, string>
         {
             ["/packages/*/packageId"] = PackageIds, ["/launch/runDefinitionId"] = "runs",
+            ["/authoringPackageId"] = "local:packages/packageId",
             ["/launch/playerEntityId"] = "entities", ["/launch/modeId"] = "modes"
         }
         : new Dictionary<string, string>

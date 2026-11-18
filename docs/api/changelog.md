@@ -1,5 +1,10 @@
 # Changelog do contrato público
 
+## Pacote de gravação por setting
+
+- `SettingDefinition.authoringPackageId` persiste a escolha do pacote de gravação no próprio JSON do setting, pelo fluxo transacional de `workspace/changes`. A engine exige que o pacote pertença à composição direta do setting.
+- Settings existentes usam o primeiro pacote declarado quando não há uma escolha explícita nem uma configuração legada. Settings novos recebem como pacote de gravação o pacote proprietário e a referência é incluída automaticamente.
+
 ## Autoria de settings e pacotes
 
 - `/workspace/definitions/{kind}` e `/workspace/kinds/{kind}/schema` expõem settings e manifestos de pacotes. `/workspace/changes` e `/workspace/changes/validate` usam o mesmo ETag, diário e recibos da autoria por setting.

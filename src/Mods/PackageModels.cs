@@ -108,6 +108,8 @@ public sealed record SettingDefinition
     public string DisplayName { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public SettingLaunchDefinition? Launch { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthoringPackageId { get; init; }
     public IReadOnlyList<SettingPackageReference> Packages
     {
         get => _packages;
