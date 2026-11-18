@@ -715,6 +715,35 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
         return Result<JsonElement>.Success(JsonSerializer.SerializeToElement(values));
     }
 
+    public static (JsonElement Payload, PackagePatchStrategy Strategy) CreateDefinitionPatch(
+        JsonElement current, JsonElement desired)
+    {
+        var patch = CreateMergePayload(current, desired);
+        // Merge uses null for deletion. Use Replace when Merge cannot express the desired value.
+        return JsonElement.DeepEquals(ApplyMergePatch(current, patch), desired)
+            ? (patch, PackagePatchStrategy.Merge)
+            : (desired.Clone(), PackagePatchStrategy.Replace);
+    }
+
+    private static JsonElement CreateMergePayload(JsonElement current, JsonElement desired)
+    {
+        if (current.ValueKind != JsonValueKind.Object || desired.ValueKind != JsonValueKind.Object)
+            return desired.Clone();
+
+        var changes = new Dictionary<string, JsonElement?>(StringComparer.Ordinal);
+        foreach (var property in current.EnumerateObject())
+            if (!desired.TryGetProperty(property.Name, out _))
+                changes[property.Name] = null;
+        foreach (var property in desired.EnumerateObject())
+        {
+            if (!current.TryGetProperty(property.Name, out var previous))
+                changes[property.Name] = property.Value;
+            else if (!JsonElement.DeepEquals(previous, property.Value))
+                changes[property.Name] = CreateMergePayload(previous, property.Value);
+        }
+        return JsonSerializer.SerializeToElement(changes);
+    }
+
     private static JsonElement ApplyMergePatch(JsonElement current, JsonElement patch)
     {
         if (patch.ValueKind != JsonValueKind.Object)
