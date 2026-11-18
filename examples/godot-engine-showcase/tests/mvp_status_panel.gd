@@ -107,6 +107,21 @@ func run() -> void:
 	actor.resources.erase("block")
 	panel.setup(actor, false, presentation, "", false, true)
 	check(panel.resource_counter("block") == null, "absent shield does not appear as zero")
+	actor.resources["heat_gauge"] = {"current": 0, "maximum": 100}
+	panel.setup(actor, false, presentation, "", false, true)
+	for frame in 3: await process_frame
+	var heat: StatusBadge = panel.get_node("%ActorVitals/RuneHeatCounter")
+	var before_heat := heat.get_global_rect()
+	check(heat.visible and heat.stack_label.text == "0" and panel.status_badge("heat_gauge") == null, "zero heat displays as a separate counter")
+	panel.present_resource({"resourceId": "heat_gauge", "currentValue": 100}, 0.0)
+	await process_frame
+	var digits := heat.stack_label.get_theme_font("font").get_string_size("100", HORIZONTAL_ALIGNMENT_LEFT, -1, heat.stack_label.get_theme_font_size("font_size")).x
+	check(heat.stack_label.text == "100" and heat.stack_label.size.x >= digits and heat.get_global_rect().is_equal_approx(before_heat), "heat updates to three digits without resizing")
+	var badges: Array = panel.get_node("%ActorStatusBadges").get_children().filter(func(node): return node is StatusBadge and node.visible)
+	check(badges.size() == 5, "the rune heat counter preserves five visible effect slots")
+	actor.resources.erase("heat_gauge")
+	panel.setup(actor, false, presentation, "", false, true)
+	check(not heat.visible, "actors without published heat hide the counter")
 	var old_panel = load("res://scenes/ui/components/actor_panel.tscn").instantiate()
 	old_panel.visual_context = context; root.add_child(old_panel); old_panel.setup(actor, false, presentation, "")
 	check(old_panel.resource_counter("energy") != null and not old_panel.status_badge("burn").mvp_icons, "legacy actor panel retains its original presentation")

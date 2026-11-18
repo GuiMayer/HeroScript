@@ -51,7 +51,13 @@ func reconcile_from(other) -> void:
 	apply_status(other.presentation_model(), visual_context)
 
 func apply_status(status_data: Dictionary, context = null) -> void:
-	model = status_data.duplicate(true)
+	_apply_data(status_data, context)
+
+func apply_counter(resource_id: String, value: float, context) -> void:
+	_apply_data({"resourceId": resource_id, "current": value}, context)
+
+func _apply_data(data: Dictionary, context) -> void:
+	model = data.duplicate(true)
 	if context != null:
 		visual_context = context
 	_bind_nodes()
@@ -59,11 +65,13 @@ func apply_status(status_data: Dictionary, context = null) -> void:
 	_apply_model()
 
 func _apply_model() -> void:
-	var status_id := str(model.get("statusId", "status"))
-	var stacks: float = float(model.get("stacks", 1))
+	var counter := model.has("resourceId")
+	var status_id := str(model.get("resourceId", model.get("statusId", "status")))
+	var stacks: float = float(model.get("current", model.get("stacks", 1)))
 	var duration: int = int(model.get("duration", 0))
 	var tone := _status_tone(status_id)
-	if mvp_icons: tone.icon = _mvp_icon(status_id)
+	if counter and status_id == "heat_gauge": tone.icon = preload("res://assets/game-icons/lorc/burning-embers.svg")
+	elif mvp_icons: tone.icon = _mvp_icon(status_id)
 	elif icon_overrides.get(status_id) != null: tone.icon = icon_overrides[status_id]
 
 	# Preserve the scene's editable border widths, padding and corner radii.
@@ -101,7 +109,7 @@ func _apply_model() -> void:
 		stack_label.visible = false
 
 	if mvp_icons: _layout_mvp_badge()
-	if mvp_icons and count_str.length() > 2:
+	if mvp_icons and not counter and count_str.length() > 2:
 		var count_width := stack_label.get_theme_font("font").get_string_size(count_str, HORIZONTAL_ALIGNMENT_LEFT, -1, stack_label.get_theme_font_size("font_size")).x
 		var count_space := custom_minimum_size.x - 4 - icon_rect.custom_minimum_size.x
 		if count_width > count_space:
@@ -112,6 +120,11 @@ func _apply_model() -> void:
 	var title_text := status_id.capitalize()
 	if visual_context != null and visual_context.translator != null:
 		title_text = visual_context.translator.content_name(status_id)
+
+	if counter:
+		tooltip_text = "%s · %s" % [title_text, count_str]
+		accessibility_name = tooltip_text
+		return
 
 	var tooltip_lines: Array[String] = []
 	if stacks > 1 or mvp_icons:
@@ -158,6 +171,7 @@ func _layout_mvp_badge() -> void:
 	stack_label.clip_text = true
 	stack_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	custom_minimum_size = battlefield_cell(visual_context)
+	if model.has("resourceId"): custom_minimum_size.x += roundf(11 * scale_factor)
 	_mvp_content.alignment = BoxContainer.ALIGNMENT_CENTER
 
 static func battlefield_cell(context: ContextType) -> Vector2:

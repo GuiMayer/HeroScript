@@ -2,7 +2,7 @@ extends RefCounted
 ## Native buttons keep input/accessibility; vectors and cut keylines are visual only.
 const Keyline = preload("res://scripts/ui/components/combat_keyline.gd")
 const STYLE = preload("res://scripts/ui/styles/combat_chrome_style.gd")
-const CENTRAL_RESOURCES := ["energy", "heat", "heat_gauge", "blood_tithe", "luck", "frost"]
+const CENTRAL_RESOURCES := ["energy", "heat", "blood_tithe", "luck", "frost"]
 static func texture(id: String) -> Texture2D:
 	var path := "res://assets/ui-icons/%s.svg" % id
 	return load(path if ResourceLoader.exists(path) else "res://assets/ui-icons/unknown.svg")

@@ -116,9 +116,12 @@ func run() -> void:
 	var context_en = Context.new(i18n, {"text_scale": 1.0, "reduced_motion": true, "action_labels": {"end_turn": "E", "confirm_action": "F", "pause_game": "Escape", "inspect_card": "V"}}, profile)
 	var snap: Dictionary = base_snapshot.duplicate(true)
 	snap["actions"] = [{"source": "System", "command": {"actionType": "END_TURN"}}]
+	snap.combat.actors[0].resources["heat_gauge"] = {"current": 2, "minimum": 0, "maximum": 100}
 	present(view, snap, context_en)
 	await settle()
-	check(energy_node.visible and energy_node.text == "◇  Energy  3 / 3", "standard bounded energy displays published current / maximum")
+	check(energy_node.visible and energy_node.text == "◇  Energy  3 / 3", "energy shows its published bounds with rune heat moved off the central readout")
+	var heat: StatusBadge = view.find_child("RuneHeatCounter", true, false)
+	check(heat != null and heat.visible and heat.stack_label.text == "2" and heat.tooltip_text.contains("Rune Heat"), "rune heat displays beside its actor as a localized count")
 
 	snap.combat.actors[0].resources.energy = {"current": 0, "minimum": 0, "maximum": 3}
 	present(view, snap, context_en)

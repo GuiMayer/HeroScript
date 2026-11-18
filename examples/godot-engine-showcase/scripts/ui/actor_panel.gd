@@ -28,6 +28,7 @@ var _status_slot: Control
 var _statuses: Control
 var _health: VBoxContainer
 var _block: VBoxContainer
+var _heat_badge: StatusBadge
 var _effects_button: Button
 var _effects_dialog: AcceptDialog
 var _effects_text: RichTextLabel
@@ -108,6 +109,11 @@ func _on_target_pressed() -> void:
 
 func present_resource(application: Dictionary, duration: float) -> Tween:
 	var id := str(application.get("resourceId", ""))
+	if id == "heat_gauge" and is_instance_valid(_heat_badge) and _heat_badge.visible:
+		if application.get("currentValue") != null and str(application.get("resourceField", "Current")) in ["Current", "0", "0.0"]:
+			_heat_badge.apply_counter(id, float(application.currentValue), visual_context)
+			_update_accessible_vitals()
+		return null
 	var view = resource_view(id)
 	if view != null:
 		var motion = view.present_change(application, duration)
@@ -364,6 +370,8 @@ func _open_effects() -> void:
 	_effects_text.grab_focus()
 
 func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
+	if authored_battlefield_layout:
+		_sync_heat_counter(resources.get("heat_gauge", {}))
 	if _health != null and not resources.has("health") and (_model.hostile or _model.actor.get("isInputActor", false)):
 		resources = resources.duplicate()
 		resources["health"] = {}
@@ -376,6 +384,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 		_block.custom_minimum_size.x = roundf(50 * visual_context.text_scale)
 	for id in ordered:
 		if not resources.has(id) or (authored_battlefield_layout and str(id) == "energy"): continue
+		if authored_battlefield_layout and str(id) == "heat_gauge": continue
 		if authored_battlefield_layout and _model.actor.get("isInputActor", false) and str(id) in CombatChrome.CENTRAL_RESOURCES:
 			continue
 		var appearance: Dictionary = visual_context.resource_appearance(str(id), presentation.get("resources", {}).get(id, {}))
@@ -444,6 +453,20 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 	_resources.visible = not bars.is_empty()
 	_counters.visible = not counters.is_empty()
 
+func _sync_heat_counter(state: Dictionary) -> void:
+	var value = state.get("current")
+	if not (value is float or value is int) or not is_finite(float(value)):
+		if is_instance_valid(_heat_badge): _heat_badge.hide()
+		return
+	if not is_instance_valid(_heat_badge):
+		_heat_badge = BadgeScene.instantiate()
+		_heat_badge.name = "RuneHeatCounter"
+		_heat_badge.mvp_icons = true
+		_heat_badge.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		get_node("%ActorVitals").add_child(_heat_badge)
+	_heat_badge.apply_counter("heat_gauge", float(value), visual_context)
+	_heat_badge.show()
+
 func _set_counter(label: Label, id: String, value: float, is_block: bool) -> void:
 	var number: String = visual_context.translator.number(value)
 	var name_text: String = visual_context.translator.content_name(id)
@@ -460,6 +483,7 @@ func _update_accessible_vitals() -> void:
 		if not state.text.is_empty(): parts.append(state.text)
 	var shield := resource_counter("block") as Label
 	if shield != null: parts.append(shield.accessibility_name)
+	if is_instance_valid(_heat_badge) and _heat_badge.visible: parts.append(_heat_badge.accessibility_name)
 	if _intent_row.visible: parts.append(_intent.tooltip_text)
 	plate.accessibility_name = " · ".join(parts)
 
