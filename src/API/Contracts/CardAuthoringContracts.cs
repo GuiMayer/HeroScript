@@ -77,10 +77,10 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
             if (!seen.Add((operation.Kind, operation.DefinitionId)))
                 yield return new("Supply one operation per kind and definition ID.", [member]);
 
-            if (operation.Kind != "cards" &&
+            if (!AuthoringDefinitionKinds.SupportsCustomization(operation.Kind) &&
                 operation.Operation is CardAuthoringOperationType.Customize or CardAuthoringOperationType.ResetCustomization)
             {
-                yield return new("Customization is available only for cards.", [member]);
+                yield return new("Customization is not available for this definition kind.", [member]);
                 continue;
             }
 

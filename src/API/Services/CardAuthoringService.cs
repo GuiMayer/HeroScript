@@ -92,9 +92,9 @@ public sealed partial class CardAuthoringService(
                         target.Kind == entry.Kind && target.ArtifactPath.Replace('\\', '/') == artifact &&
                         (target.DefinitionId is null || target.DefinitionId == card.Name)).ToArray();
                     var customization = writable?.Manifest.Content.FirstOrDefault(patch =>
-                        IsCustomization(patch) && patch.Target!.DefinitionId == card.Name &&
+                        IsCustomization(patch) && patch.Target!.Kind == entry.Kind && patch.Target.DefinitionId == card.Name &&
                         patch.Target.PackageId == package.Manifest.PackageId && patch.Target.ArtifactPath == artifact);
-                    var canCustomize = entry.Kind == Cards && writable is not null && package != writable &&
+                    var canCustomize = AuthoringDefinitionKinds.SupportsCustomization(entry.Kind) && writable is not null && package != writable &&
                         matchingPatches.All(patch => ReferenceEquals(patch, customization)) &&
                         (customization is null || writable.Manifest.Content.Count(patch => SameSource(writable, patch, customization)) == 1);
                     var record = new CardAuthoringCard(card.Name, card.Value, package, entry,
@@ -363,10 +363,12 @@ public sealed partial class CardAuthoringService(
                     return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is shared by several catalog entries.");
                 if (IsCustomization(entry))
                 {
-                    var id = entry.Target!.DefinitionId!;
-                    if (!view.Cards.TryGetValue(id, out var target) || !target.CanCustomize || !EqualSource(current, source.After))
+                    var patchTarget = entry.Target!;
+                    var id = patchTarget.DefinitionId!;
+                    if (!view.ForKind(patchTarget.Kind).TryGetValue(id, out var target) ||
+                        !target.CanCustomize || !EqualSource(current, source.After))
                         return Result<CardAuthoringPlan>.Failure($"Customization source '{source.Path}' changed or its target is unavailable.");
-                    customized.Add((Cards, id));
+                    customized.Add((patchTarget.Kind, id));
                 }
                 else if (entry.DefinitionId is { } definitionId)
                     affected.Add((entry.Kind, definitionId));

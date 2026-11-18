@@ -68,7 +68,7 @@ O recibo expõe a elegibilidade em `canUndo` e `canRedo` e o vínculo em `compen
 | Resposta perdida | Consulte `GET .../changes/{changeId}` ou repita o mesmo envelope com o mesmo ID e a mesma ETag. |
 | Workspace em recuperação | Reinicie com a mesma raiz de pacotes e armazenamento de conteúdo. O journal conclui ou reverte a transação. Se a inicialização reportar arquivo divergente, guarde a edição externa e resolva o conflito antes de reiniciar. |
 
-## Personalizar uma carta herdada pela API
+## Personalizar conteúdo herdado pela API
 
 `GET /api/v1/admin/authoring/settings/{settingId}/definitions/cards/{id}`
 retorna `source` com a definição original e `effective` com o resultado
@@ -89,6 +89,14 @@ Uma nova operação `customize` atualiza a personalização. Enviar a definiçã
 herdada ou usar `resetCustomization` sem `definition` remove o patch.
 O recibo inclui os arquivos afetados. Use `undoOf` e `redoOf` com os IDs
 dos recibos para desfazer e refazer a gravação, inclusive o manifesto.
+
+O mesmo contrato atende Regras e fluxos. Use o detalhe em
+`GET /api/v1/admin/authoring/settings/{settingId}/definitions/{kind}/{id}`
+e consulte `item.canCustomize`, `item.hasCustomization`, `source` e `effective`.
+Envie o `kind` real da definição e preserve seu ID no objeto enviado.
+São aceitos `combat-rules`, `flow-rules`, `phase-sequences`, `modes`,
+`capability-policies`, `content-binding-policies`, `replay-policies` e
+`timeline-policies`.
 
 O fluxo abrange cartas herdadas sem patches externos sobre a mesma carta
 ou seu catálogo. Se necessário, a engine inclui no manifesto uma dependência

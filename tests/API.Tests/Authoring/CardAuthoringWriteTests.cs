@@ -14,6 +14,65 @@ namespace API.Tests.Authoring;
 public sealed class CardAuthoringWriteTests(ITestOutputHelper output)
 {
     [Theory]
+    [InlineData("uno-clash", "circular-table", "combat-rules", "standard_combat")]
+    [InlineData("circular-table", "uno-clash", "flow-rules", "standard_flow")]
+    public async Task CustomizesInheritedRulesAndFlows(string setting, string otherSetting, string kind, string id)
+    {
+        using var factory = new WriteFactory();
+        using var client = Open(factory);
+        var route = Setting(setting) + "/definitions/" + kind;
+        var page = await client.GetFromJsonAsync<AuthoringPage<CardAuthoringSummary>>(route + "?q=" + id);
+        var item = Assert.Single(page!.Items);
+        Assert.True(item.CanCustomize);
+        Assert.False(item.CanEdit);
+        var basePath = Path.Combine(factory.PackageRoot, "default", "Resources", kind, id + ".json");
+        var originalBytes = await File.ReadAllBytesAsync(basePath);
+        var otherRevision = await Revision(client, otherSetting);
+        async Task<AuthoringDefinitionDetail> ReadRule() =>
+            (await client.GetFromJsonAsync<AuthoringDefinitionDetail>(route + "/" + id))!;
+        var original = await ReadRule();
+        var desired = JsonNode.Parse(original.Effective.GetRawText())!.AsObject();
+        var field = kind == "combat-rules" ? "flow" : "allowMapNavigation";
+        if (kind == "combat-rules")
+            desired["flow"]!["automaticResolution"]!["maxAutomaticSteps"] = 101;
+        else
+            desired[field] = false;
+        CardAuthoringOperation Customize(JsonObject? value) => new()
+        {
+            Kind = kind, DefinitionId = id,
+            Operation = value is null ? CardAuthoringOperationType.ResetCustomization : CardAuthoringOperationType.Customize,
+            Definition = value is null ? null : JsonSerializer.SerializeToElement(value)
+        };
+        var invalid = desired.DeepClone().AsObject();
+        invalid[kind == "combat-rules" ? "combatRulesId" : "flowRulesId"] = "wrong_id";
+        using var bad = await Send(client, setting, page.SourceVersion, Change(Customize(invalid)), "/changes/validate");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        var change = Change(Customize(desired));
+        using var preview = await Send(client, setting, page.SourceVersion, change, "/changes/validate");
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        Assert.False(Directory.Exists(Path.Combine(factory.PackageRoot, setting, "patches")));
+        var applied = await Apply(client, setting, page.SourceVersion, change);
+        var patchPath = Path.Combine(factory.PackageRoot, Assert.Single(applied.ChangedFiles,
+            path => path.Contains($"/patches/{kind}/", StringComparison.Ordinal)));
+        using var patch = JsonDocument.Parse(await File.ReadAllBytesAsync(patchPath));
+        Assert.Equal(field, Assert.Single(patch.RootElement.EnumerateObject()).Name);
+        var personalized = await ReadRule();
+        Assert.True(personalized.Item.HasCustomization);
+        Assert.True(JsonElement.DeepEquals(original.Source, personalized.Source));
+        Assert.True(JsonElement.DeepEquals(JsonSerializer.SerializeToElement(desired), personalized.Effective));
+        var reset = await Apply(client, setting, applied.SourceVersion, Change(Customize(null)));
+        Assert.False(File.Exists(patchPath));
+        Assert.True(JsonElement.DeepEquals(original.Effective, (await ReadRule()).Effective));
+        var undone = await Apply(client, setting, reset.SourceVersion, new() { ChangeId = Guid.NewGuid(), UndoOf = reset.ChangeId });
+        Assert.True(File.Exists(patchPath));
+        Assert.True((await ReadRule()).Item.HasCustomization);
+        await Apply(client, setting, undone.SourceVersion, new() { ChangeId = Guid.NewGuid(), RedoOf = undone.ChangeId });
+        Assert.False(File.Exists(patchPath));
+        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(basePath));
+        Assert.Equal(otherRevision, await Revision(client, otherSetting));
+    }
+
+    [Theory]
     [InlineData("uno-clash", "circular-table", false)]
     [InlineData("circular-table", "uno-clash", true)]
     public async Task CustomizesInheritedCardsWithoutChangingTheirSource(string setting, string other, bool newPackage)

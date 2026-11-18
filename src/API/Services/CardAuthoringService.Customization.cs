@@ -10,32 +10,33 @@ namespace API.Services;
 
 public sealed partial class CardAuthoringService
 {
-    private static string CustomizationPath(string id) =>
-        $"patches/cards/{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(id)))}.authoring.json";
+    private static string CustomizationPath(string kind, string id) =>
+        $"patches/{kind}/{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(id)))}.authoring.json";
 
     private static bool IsCustomization(PackageContentEnvelope entry) =>
         entry.Operation == PackageContentOperation.Patch &&
-        entry.Target is { Kind: Cards, DefinitionId: { } id, PackageId.Length: > 0 } &&
-        entry.SourcePath == CustomizationPath(id);
+        entry.Target is { Kind: { } kind, DefinitionId: { } id, PackageId.Length: > 0 } &&
+        AuthoringDefinitionKinds.SupportsCustomization(kind) && entry.SourcePath == CustomizationPath(kind, id);
 
     private async Task<AuthoringDiagnostic?> PlanCustomizationAsync(
         CardAuthoringWorkspace workspace, CardAuthoringView view, PackageSource writable, CardAuthoringCard card,
         CardAuthoringOperation operation, List<PackageContentEnvelope> entries, List<PackageDependency> dependencies,
         Dictionary<string, JsonObject> sourceChanges, List<string> removals, CancellationToken cancellationToken)
     {
-        AuthoringDiagnostic Reject(string message) => Diagnostic("CARD_CUSTOMIZATION_UNAVAILABLE", card.Id, "", message);
+        var kind = operation.Kind;
+        AuthoringDiagnostic Reject(string message) => Diagnostic(Code(kind, "CUSTOMIZATION_UNAVAILABLE"), card.Id, "", message, kind: kind);
 
         if (!card.CanCustomize)
-            return Reject("Choose a different writable package or resolve the existing patches on this card.");
+            return Reject("Choose a different writable package or resolve the existing patches on this definition.");
 
-        var path = CustomizationPath(card.Id);
+        var path = CustomizationPath(kind, card.Id);
         var key = AuthoringPackageSnapshot.SourceKey(writable, path);
         var existing = card.Customization;
 
         if (operation.Operation == CardAuthoringOperationType.ResetCustomization)
         {
             if (existing is null)
-                return Reject("This package does not customize the card.");
+                return Reject("This package does not customize the definition.");
             entries.Remove(existing);
             removals.Add(key);
             return null;
@@ -49,7 +50,7 @@ public sealed partial class CardAuthoringService
                 return Reject(source.Error);
             baseline = source.Value;
         }
-        var desired = kinds.Normalize(Cards, card.Id, operation.Definition!.Value);
+        var desired = kinds.Normalize(kind, card.Id, operation.Definition!.Value);
         if (desired.IsFailure)
             return Reject(desired.Error);
         if (JsonElement.DeepEquals(baseline, desired.Value))
@@ -74,7 +75,7 @@ public sealed partial class CardAuthoringService
             Target = new()
             {
                 PackageId = card.Package.Manifest.PackageId,
-                Kind = Cards,
+                Kind = kind,
                 ArtifactPath = card.Entry.ArtifactPath!.Replace('\\', '/'),
                 DefinitionId = card.Id
             },
