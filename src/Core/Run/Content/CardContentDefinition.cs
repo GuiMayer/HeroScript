@@ -55,6 +55,8 @@ public sealed record CardContentDefinition
         get => _tags;
         init => _tags = value?.ToImmutableList() ?? [];
     }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<string>? AllowedActorDefinitionIds { get; init; }
     public IReadOnlyDictionary<string, object> Metadata
     {
         get => _metadata;

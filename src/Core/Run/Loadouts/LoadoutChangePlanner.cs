@@ -79,12 +79,23 @@ public static class InscriptionAcquisition
         if (valid.IsFailure) return Result<RunState>.Failure(valid.Error);
         var candidate = run with { Loadouts = state };
         foreach (var actor in actors.Order(StringComparer.Ordinal))
+        {
+            var definitionId = run.PlayerEntity?.InstanceId == actor ? run.PlayerEntity.DefinitionId
+                : run.GetActiveEncounter()?.Combat.GetActor(actor)?.DefinitionId;
             foreach (var id in policy.Value.StartingInscriptionIds ?? [])
             {
+                if (policy.Value.FilterStartingByActorDefinition)
+                {
+                    var definition = runtime.GetDefinition<InscriptionDefinition>("inscriptions", id);
+                    if (definition.IsSuccess && definition.Value.AllowedActorDefinitionIds is { } allowedActors &&
+                        (definitionId == null || !allowedActors.Contains(definitionId, StringComparer.Ordinal)))
+                        continue;
+                }
                 var granted = Grant(candidate, runtime, actor, id, "run-start");
                 if (granted.IsFailure) return granted;
                 candidate = granted.Value;
             }
+        }
         return Result<RunState>.Success(candidate);
     }
 

@@ -5,6 +5,7 @@ using Core.Calculations;
 using Core.Common;
 using Core.Content;
 using Core.Effects;
+using Core.GameplayEvents.Responses;
 
 namespace Core.Run.Loadouts;
 
@@ -15,7 +16,7 @@ public sealed record InscriptionAttributeBonusDefinition
 }
 
 /// <summary>Character equipment, never a card component, upgrade or card-owned item.</summary>
-public sealed record InscriptionDefinition
+public sealed record InscriptionDefinition : IGameplayResponseDeclarations
 {
     public string InscriptionId { get; init; } = string.Empty;
     public float EquipmentCost { get; init; }
@@ -29,6 +30,10 @@ public sealed record InscriptionDefinition
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<string>? AllowedActorDefinitionIds { get; init; }
     public ImmutableArray<InscriptionAttributeBonusDefinition> AttributeBonuses { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<GameplayResponseDefinition>? Responses { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ImmutableArray<ResourceRestrictionDefinition>? ResourceRestrictions { get; init; }
     public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
 
     private InscriptionRankDefinition? ActiveRank => Ranks is { } ranks ? ranks.FirstOrDefault(rank => rank.Rank == Rank) : null;
@@ -74,6 +79,11 @@ public sealed record InscriptionDefinition
                 pipeline.Value.Channel == bonus.Influence.Channel && pipeline.Value.Buckets.Any(bucket => bucket.BucketId == bonus.Influence.Bucket)))
                 return Result.Failure($"Inscription {InscriptionId} bonus must address an existing character attribute pipeline: {bonus.AttributeId}");
         }
+        if (ResourceRestrictions is { } restrictions)
+        {
+            var validRestrictions = RelicResourceRules.Validate(restrictions);
+            if (validRestrictions.IsFailure) return validRestrictions;
+        }
         return Result.Success();
     }
 }
@@ -118,6 +128,8 @@ public sealed record LoadoutPolicyDefinition
     public ImmutableArray<LoadoutEquipmentWindow> EquipmentWindows { get; init; } = [];
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<string>? StartingInscriptionIds { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool FilterStartingByActorDefinition { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ImmutableArray<InscriptionStationDefinition>? Stations { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -72,6 +72,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
     private readonly bool _allowUnconfiguredCalculations;
     private readonly ICardZoneFlowExecutor? _cardZoneFlows;
     private readonly Core.GameplayEvents.Responses.CardGameplayObserverProvider? _cardObservers;
+    private readonly Core.GameplayEvents.Responses.InscriptionGameplayObserverProvider? _inscriptionObservers;
 
     public EffectTriggerExecutor(
         IRuntimeFormulaEvaluator formulas,
@@ -94,6 +95,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
         _allowUnconfiguredCalculations = allowUnconfiguredCalculations;
         _cardZoneFlows = cardZoneFlows;
         _cardObservers = contentRuntimes == null ? null : new(contentRuntimes, observerCards, observerCardResolver);
+        _inscriptionObservers = contentRuntimes == null ? null : new(contentRuntimes);
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
@@ -199,7 +201,7 @@ public sealed partial class EffectTriggerExecutor : IEffectTriggerExecutor
         }
         var initializationFactStart = observation?.Events.Occurrences.Count ?? 0;
         var restricted = request.Run == null ? Result<CombatState>.Success(request.Combat)
-            : RelicResourceRules.Materialize(request.Run, request.Combat);
+            : RelicResourceRules.Materialize(request.Run, request.Combat, _contentRuntimes);
         if (restricted.IsFailure) return Result<EffectBatchResult>.Failure(restricted.Error);
         if (observation != null)
         {

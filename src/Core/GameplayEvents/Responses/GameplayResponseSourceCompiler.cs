@@ -47,14 +47,19 @@ public static class GameplayResponseSourceCompiler
             foreach (var definition in source.Definitions)
             {
                 var lifecycle = definition.Timing == ResponseExecutionTiming.ContainerBoundary;
-                if (lifecycle && providerId is not ("core.status" or "core.relic"))
+                if (lifecycle && providerId is not ("core.status" or "core.relic" or "core.inscription"))
                     return Result<ImmutableArray<GameplayObserverRegistration>>.Failure("This container does not support boundary-timed responses");
                 var response = GameplayResponseCompiler.Compile(definition, context.Catalog,
                     lifecycle ? (capabilities ?? new()) with { ContainerBoundary = true } : capabilities);
                 if (response.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(response.Error);
                 if (lifecycle)
                 {
-                    var validTiming = GameplayContainerBoundaryResponses.Validate(definition, providerId == "core.relic" ? "relic" : "status");
+                    var validTiming = GameplayContainerBoundaryResponses.Validate(definition, providerId switch
+                    {
+                        "core.relic" => "relic",
+                        "core.inscription" => "inscription",
+                        _ => "status"
+                    });
                     if (validTiming.IsFailure) return Result<ImmutableArray<GameplayObserverRegistration>>.Failure(validTiming.Error);
                     continue; // The owning lifecycle captures it; global broadcasts must not execute it again.
                 }

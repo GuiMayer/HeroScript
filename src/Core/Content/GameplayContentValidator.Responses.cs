@@ -15,6 +15,7 @@ internal sealed partial class GameplayContentValidator
         Visit<GameModeDefinition>("modes", (path, item) => Responses(path, item.Responses, "mode"));
         Visit<StatusEffectDefinition>("status-effects", (path, item) => Responses(path, item.Responses, "status"));
         Visit<RelicDefinition>("relics", (path, item) => Responses(path, item.Responses, "relic"));
+        Visit<Core.Run.Loadouts.InscriptionDefinition>("inscriptions", (path, item) => Responses(path, item.Responses, "inscription"));
         Visit<EntityDefinition>("entities", (path, item) => {
             foreach (var component in item.Components.OfType<EntityResponseComponentDefinition>())
                 Responses($"{path}/components/{component.ComponentId}", component.Responses, "entity");
@@ -46,7 +47,7 @@ internal sealed partial class GameplayContentValidator
         {
             var address = $"{path}/responses/{response.ResponseId}";
             var lifecycle = response.Timing == ResponseExecutionTiming.ContainerBoundary;
-            if (lifecycle && container is not ("status" or "relic" or "phase") || container == "phase" && !lifecycle)
+            if (lifecycle && container is not ("status" or "relic" or "inscription" or "phase") || container == "phase" && !lifecycle)
             { Error(address, "This response timing is not supported by the declared container"); continue; }
             var compiled = GameplayResponseCompiler.Compile(response, catalog.Value, new() { ContainerBoundary = lifecycle });
             if (compiled.IsFailure) { Error(address, compiled.Error); continue; }
@@ -70,7 +71,7 @@ internal sealed partial class GameplayContentValidator
             try
             {
                 Formula(address, response.Condition);
-                _responseInheritedVariables = lifecycle && container is "status" or "relic";
+                _responseInheritedVariables = lifecycle && container is "status" or "relic" or "inscription";
                 Effects(address, response.Effects);
             }
             finally { _responseFormulaContext = previous; _responseInheritedVariables = inherited; }

@@ -11,7 +11,7 @@ internal static class GameplayContainerBoundaryResponses
     {
         if (response == null || response.Timing != ResponseExecutionTiming.ContainerBoundary || response.Observe?.Boundary is not { } boundary ||
             boundary.BoundaryIds.IsDefaultOrEmpty || boundary.BoundaryIds.Length != 1 ||
-            !(container == "relic" ? new[] { "CombatStart", "CombatEnd", "StartActivation", "EndActivation", "StartRound", "EndRound" }
+            !(container is "relic" or "inscription" ? new[] { "CombatStart", "CombatEnd", "StartActivation", "EndActivation", "StartRound", "EndRound" }
                 : new[] { "StartActivation", "EndActivation", "StartRound", "EndRound" }).Contains(boundary.BoundaryIds[0], StringComparer.Ordinal) ||
             response.Observe.Resource != null || response.Frequency.Scope != ResponseFrequencyScope.Occurrence)
             return Result.Failure("Container boundary timing requires an explicit supported boundary and occurrence frequency");

@@ -30,5 +30,5 @@ public sealed partial class EffectTriggerExecutor
         ? [new ModeGameplayObserverProvider(), new EncounterGameplayObserverProvider(), new ActorGameplayObserverProvider(),
             new RelicGameplayObserverProvider(), new StatusGameplayObserverProvider()]
         : [new ModeGameplayObserverProvider(), new EncounterGameplayObserverProvider(), new ActorGameplayObserverProvider(),
-            new RelicGameplayObserverProvider(), new StatusGameplayObserverProvider(), _cardObservers!];
+            new RelicGameplayObserverProvider(), new StatusGameplayObserverProvider(), _cardObservers!, _inscriptionObservers!];
 }

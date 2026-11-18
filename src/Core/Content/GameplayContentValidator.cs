@@ -155,7 +155,18 @@ internal sealed partial class GameplayContentValidator(ContentRuntime runtime, I
             if (item.Regeneration is { Enabled: true } regeneration)
                 Effects(path, [regeneration.ToEffect(item.ResourceId)]);
         });
-        Visit<CardContentDefinition>("cards", (path, item) => Components(path, item.Components));
+        Visit<CardContentDefinition>("cards", (path, item) =>
+        {
+            if (item.AllowedActorDefinitionIds is { } allowedActors)
+            {
+                if (allowedActors.IsDefaultOrEmpty || allowedActors.Any(string.IsNullOrWhiteSpace) ||
+                    allowedActors.Distinct(StringComparer.Ordinal).Count() != allowedActors.Length)
+                    Error(path, "Card character restrictions must reference unique entity definitions");
+                else foreach (var actorId in allowedActors)
+                    Reference(path, "entities", actorId, required: true);
+            }
+            Components(path, item.Components);
+        });
         Visit<CardComponentBundleDefinition>("card-component-bundles", (path, item) => Components(path, item.Components));
         Visit<CardUpgradeDefinition>("card-upgrades", (path, item) =>
         {
@@ -207,6 +218,16 @@ internal sealed partial class GameplayContentValidator(ContentRuntime runtime, I
             {
                 Reference(path, "resources", reaction.ResourceId, required: true);
                 Effects($"{path}/reactions/{reaction.ReactionId}", reaction.Effects);
+            }
+        });
+        Visit<Core.Run.Loadouts.InscriptionDefinition>("inscriptions", (path, item) =>
+        {
+            foreach (var restriction in item.ResourceRestrictions ?? [])
+            {
+                Reference(path, "resources", restriction.ResourceId, required: true);
+                var resource = runtime.GetDefinition<Core.Resources.ResourceDefinition>("resources", restriction.ResourceId);
+                if (resource.IsSuccess && !resource.Value.CanBeNegative && restriction.CurrentCeiling < resource.Value.DefaultMin)
+                    Error(path, "resource restriction ceiling is below its configured minimum");
             }
         });
         Visit<ScriptModifierDefinition>("modifiers", (path, item) =>

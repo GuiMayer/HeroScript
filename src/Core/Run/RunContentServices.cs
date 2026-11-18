@@ -87,7 +87,7 @@ internal sealed class RunOfferGenerator(
                 poolResult.Value,
                 System.Math.Max(0, desiredCount),
                 state.Determinism,
-                lockedCardIds, state.Eligibility);
+                lockedCardIds, state.Eligibility, state.PlayerEntity?.DefinitionId);
             if (offer.IsFailure)
                 return Result<CardSelectionOfferGeneration>.Failure(offer.Error);
             lockedOptions.AddRange(offer.Value.Cards.Select(ToOption));

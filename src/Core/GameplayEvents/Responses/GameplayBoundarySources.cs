@@ -73,6 +73,59 @@ public static class GameplayBoundarySources
         return Result<ImmutableArray<GameplayBoundaryInvocation>>.Success(result.ToImmutable());
     }
 
+    public static Result<ImmutableArray<GameplayBoundaryInvocation>> Inscriptions(RunState run, CombatState combat,
+        Core.Content.IContentRuntimeResolver? runtimes)
+    {
+        if (runtimes == null || run.Loadouts is not { } loadouts || loadouts.Actors.Count == 0)
+            return Result<ImmutableArray<GameplayBoundaryInvocation>>.Success([]);
+
+        var result = ImmutableArray.CreateBuilder<GameplayBoundaryInvocation>();
+        foreach (var (actorId, actorLoadout) in loadouts.Actors.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (combat.GetActor(actorId) is not { } owner || !loadouts.Inventories.TryGetValue(loadouts.InventoryId(run.RunId, actorId), out var inventory))
+                continue;
+
+            foreach (var (_, instanceId) in actorLoadout.Assignments.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var owned = inventory.Items.FirstOrDefault(item => item.InstanceId == instanceId);
+                if (owned == null) continue;
+
+                var acquired = runtimes.Resolve(owned.EffectiveRevision, run.ConfigName);
+                if (acquired.IsFailure) return Result<ImmutableArray<GameplayBoundaryInvocation>>.Failure(acquired.Error);
+                var definition = acquired.Value.GetDefinition<Core.Run.Loadouts.InscriptionDefinition>("inscriptions", owned.DefinitionId);
+                if (definition.IsFailure) return Result<ImmutableArray<GameplayBoundaryInvocation>>.Failure(definition.Error);
+                if (definition.Value.Responses is not { } responses || responses.IsDefaultOrEmpty) continue;
+
+                var declared = GameplayContainerBoundaryResponses.Triggers([], responses, "inscription");
+                if (declared.IsFailure) return Result<ImmutableArray<GameplayBoundaryInvocation>>.Failure(declared.Error);
+
+                var requiredOwner = new GameplayOwner { Kind = GameplayOwnerKind.Entity, Id = actorId };
+                foreach (var (trigger, response) in declared.Value)
+                {
+                    if (result.Count > HierarchySelectorIndex.MaximumRegistrations)
+                        return Result<ImmutableArray<GameplayBoundaryInvocation>>.Failure("Container response registration budget exceeded");
+                    var activeOnly = trigger.Boundary is "StartActivation" or "EndActivation";
+                    if (activeOnly && owner.InstanceId != combat.ActivationState?.ActiveActorId) continue;
+                    result.Add(new()
+                    {
+                        Response = response,
+                        Stacks = 1,
+                        Kind = Kind(trigger.Boundary),
+                        BoundaryId = trigger.Boundary,
+                        RequiredOwner = requiredOwner,
+                        RequireActiveOwner = activeOnly,
+                        Order = new() { ContainerInstanceId = owned.InstanceId.ToString("D") },
+                        Origin = new() { ContainerKind = "inscription", ContainerId = owned.InstanceId.ToString("D"), ComponentId = trigger.TriggerId, ContentRevision = owned.EffectiveRevision },
+                        Template = new() { Run = run, Combat = combat, Trigger = trigger, OwnerEntityId = owner.InstanceId, SourceEntityId = owner.InstanceId,
+                            ContentRevision = owned.EffectiveRevision, Variables = new Dictionary<string, float>(StringComparer.Ordinal) { ["stacks"] = 1f },
+                            Provenance = new() { Kind = EffectProvenanceKind.Relic, SourceId = owned.InstanceId.ToString("D") } }
+                    });
+                }
+            }
+        }
+        return Result<ImmutableArray<GameplayBoundaryInvocation>>.Success(result.ToImmutable());
+    }
+
     public static GameplayBoundaryInvocation Phase(EffectTriggerExecutionRequest request, string phaseId, bool entering,
         GameplayResponseDefinition? response = null) => new()
     {

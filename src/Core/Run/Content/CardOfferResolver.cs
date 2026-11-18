@@ -30,7 +30,8 @@ public static class CardOfferResolver
         int count,
         DeterministicContext context,
         IReadOnlySet<string>? excludedCardIds = null,
-        RunEligibilitySnapshot? eligibility = null)
+        RunEligibilitySnapshot? eligibility = null,
+        string? actorDefinitionId = null)
     {
         ArgumentNullException.ThrowIfNull(pool);
         ArgumentNullException.ThrowIfNull(context);
@@ -49,6 +50,8 @@ public static class CardOfferResolver
         var excluded = excludedCardIds ?? new HashSet<string>(StringComparer.Ordinal);
         var remaining = pool.Cards
             .Where(card => eligibility?.Allows(Core.Meta.UnlockTargetKind.Card, card.CardId) ?? true)
+            .Where(card => card.AllowedActorDefinitionIds is not { } allowedActors ||
+                (actorDefinitionId != null && allowedActors.Contains(actorDefinitionId, StringComparer.Ordinal)))
             .Where(card => !excluded.Contains(card.CardId))
             .Select(card => new WeightedCard(card, ResolveWeight(pool, card)))
             .Where(candidate => candidate.Weight > 0)

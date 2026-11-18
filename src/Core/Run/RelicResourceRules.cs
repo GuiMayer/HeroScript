@@ -46,12 +46,12 @@ public static class RelicResourceRules
             : Result.Success();
     }
 
-    public static Result<CombatState> Materialize(RunState run, CombatState combat)
+    public static Result<CombatState> Materialize(RunState run, CombatState combat, Core.Content.IContentRuntimeResolver? runtimes = null)
     {
         var current = combat;
         foreach (var actor in combat.GetAllActors())
         {
-            var resolved = Actor(run, actor, combat);
+            var resolved = Actor(run, actor, combat, runtimes);
             if (resolved.IsFailure) return Result<CombatState>.Failure(resolved.Error);
             if (!ReferenceEquals(resolved.Value, actor)) current = current.ReplaceActor(resolved.Value);
         }
@@ -80,7 +80,8 @@ public static class RelicResourceRules
         return Result<RunState>.Success(encounters == run.Encounters ? result : result with { Encounters = encounters });
     }
 
-    private static Result<CombatActorState> Actor(RunState run, CombatActorState actor, CombatState? combat)
+    private static Result<CombatActorState> Actor(RunState run, CombatActorState actor, CombatState? combat,
+        Core.Content.IContentRuntimeResolver? runtimes = null)
     {
         var ceilings = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         foreach (var relic in run.Relics)
@@ -91,6 +92,26 @@ public static class RelicResourceRules
             foreach (var rule in relic.ResourceRestrictions ?? [])
                 ceilings[rule.ResourceId] = ceilings.TryGetValue(rule.ResourceId, out var previous)
                     ? MathF.Min(previous, rule.CurrentCeiling) : rule.CurrentCeiling;
+        }
+        if (runtimes != null && run.Loadouts is { } loadouts &&
+            loadouts.Actors.TryGetValue(actor.InstanceId, out var actorLoadout) &&
+            loadouts.Inventories.TryGetValue(loadouts.InventoryId(run.RunId, actor.InstanceId), out var inventory))
+        {
+            foreach (var (_, instanceId) in actorLoadout.Assignments.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var owned = inventory.Items.FirstOrDefault(item => item.InstanceId == instanceId);
+                if (owned == null) continue;
+                var acquired = runtimes.Resolve(owned.EffectiveRevision, run.ConfigName);
+                if (acquired.IsFailure) return Result<CombatActorState>.Failure(acquired.Error);
+                var definition = acquired.Value.GetDefinition<Loadouts.InscriptionDefinition>("inscriptions", owned.DefinitionId);
+                if (definition.IsFailure) return Result<CombatActorState>.Failure(definition.Error);
+                if (definition.Value.ResourceRestrictions is not { } inscriptionRestrictions) continue;
+                var valid = Validate(inscriptionRestrictions);
+                if (valid.IsFailure) return Result<CombatActorState>.Failure(valid.Error);
+                foreach (var rule in inscriptionRestrictions)
+                    ceilings[rule.ResourceId] = ceilings.TryGetValue(rule.ResourceId, out var previous)
+                        ? MathF.Min(previous, rule.CurrentCeiling) : rule.CurrentCeiling;
+            }
         }
         var components = actor.Components;
         foreach (var (id, component) in actor.Components)

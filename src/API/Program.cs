@@ -221,7 +221,8 @@ builder.Services.AddSingleton<IPinnedContentCatalog<ScriptModifierDefinition>>(s
 builder.Services.AddSingleton<ICombatStatusLifecycle>(sp => new CombatStatusLifecycle(
     sp.GetRequiredService<IEffectTriggerExecutor>()));
 builder.Services.AddSingleton<ICombatRelicLifecycle>(sp => new CombatRelicLifecycle(
-    sp.GetRequiredService<IEffectTriggerExecutor>()));
+    sp.GetRequiredService<IEffectTriggerExecutor>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 
 // Register persistence services
 var telemetryStorePath = builder.Configuration.GetValue<string>("Persistence:OperationalTelemetryPath") ?? "data/telemetry";

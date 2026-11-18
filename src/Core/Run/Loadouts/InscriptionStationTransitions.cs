@@ -21,6 +21,8 @@ public sealed record InscriptionStationDefinition
     public int OfferCount { get; init; } = 3;
     public int MaximumPurchases { get; init; } = 1;
     public ImmutableArray<ResourceAmount> Costs { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool FilterByActorDefinition { get; init; }
 }
 
 public sealed record InscriptionOfferState
@@ -75,7 +77,22 @@ public static class InscriptionStationTransitions
         if (station == null || !IsAvailable(run, station) || !run.Loadouts!.Actors.ContainsKey(command.ActorId))
             return Result<RunState>.Failure("Inscription station or recipient is unavailable at this node");
         if (run.Loadouts.Offers?.Count >= 512) return Result<RunState>.Failure("Inscription offer history limit reached");
-        var remaining = station.Pool.Where(pair => RunEligibility.Allows(run, UnlockTargetKind.Inscription, pair.Key))
+        var actorDefinitionId = run.PlayerEntity?.InstanceId == command.ActorId ? run.PlayerEntity.DefinitionId
+            : run.GetActiveEncounter()?.Combat.GetActor(command.ActorId)?.DefinitionId;
+        var ownedDefinitions = policy.Value.AllowDuplicateDefinitions != true &&
+            run.Loadouts.Inventories.TryGetValue(run.Loadouts.InventoryId(run.RunId, command.ActorId), out var inventory)
+            ? inventory.Items.Select(item => item.DefinitionId).ToHashSet(StringComparer.Ordinal)
+            : null;
+        var remaining = station.Pool
+            .Where(pair => RunEligibility.Allows(run, UnlockTargetKind.Inscription, pair.Key))
+            .Where(pair => ownedDefinitions == null || !ownedDefinitions.Contains(pair.Key))
+            .Where(pair =>
+            {
+                if (!station.FilterByActorDefinition) return true;
+                var definition = runtime.GetDefinition<InscriptionDefinition>("inscriptions", pair.Key);
+                return definition.IsFailure || definition.Value.AllowedActorDefinitionIds is not { } allowedActors ||
+                    (actorDefinitionId != null && allowedActors.Contains(actorDefinitionId, StringComparer.Ordinal));
+            })
             .OrderBy(pair => pair.Key, StringComparer.Ordinal).ToList();
         var context = run.Determinism;
         var options = ImmutableArray.CreateBuilder<string>();

@@ -58,9 +58,13 @@ public interface ICombatRelicLifecycle
 public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
 {
     private readonly IEffectTriggerExecutor _triggers;
+    private readonly Core.Content.IContentRuntimeResolver? _contentRuntimes;
 
-    public CombatRelicLifecycle(IEffectTriggerExecutor triggers) =>
+    public CombatRelicLifecycle(IEffectTriggerExecutor triggers, Core.Content.IContentRuntimeResolver? contentRuntimes = null)
+    {
         _triggers = triggers ?? throw new ArgumentNullException(nameof(triggers));
+        _contentRuntimes = contentRuntimes;
+    }
 
     public Result<CombatRelicLifecycleResult> Process(
         RunState run,
@@ -90,23 +94,35 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
 
         var current = combat;
         var events = new List<CombatRelicLifecycleEvent>();
-        var invocations = GameplayBoundarySources.Relics(run, combat);
-        if (invocations.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(invocations.Error);
-        if (!invocations.Value.IsEmpty)
+        var relicInvocations = GameplayBoundarySources.Relics(run, combat);
+        if (relicInvocations.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(relicInvocations.Error);
+        var inscriptionInvocations = GameplayBoundarySources.Inscriptions(run, combat, _contentRuntimes);
+        if (inscriptionInvocations.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(inscriptionInvocations.Error);
+        var invocations = relicInvocations.Value.AddRange(inscriptionInvocations.Value);
+        if (!invocations.IsEmpty)
         {
             var started = _triggers.BeginBoundaryScope(run, combat, observation);
             if (started.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(started.Error);
             var dispatched = started.Value.Dispatch(run, current, GameplayBoundarySources.Kind(boundary), boundary,
-                combat.ActivationState?.ActiveActorId, invocations.Value, observation);
+                combat.ActivationState?.ActiveActorId, invocations, observation);
             if (dispatched.IsFailure) return Result<CombatRelicLifecycleResult>.Failure(dispatched.Error);
             current = dispatched.Value.Execution.State; run = dispatched.Value.Execution.Run ?? run;
             observation = dispatched.Value.Observation;
             foreach (var frame in dispatched.Value.Invocations)
             {
-                var relicId = Guid.Parse(frame.Invocation.Origin.ContainerId);
-                var relic = run.Relics.Single(item => item.RelicInstanceId == relicId);
-                events.Add(new() { RelicInstanceId = relicId, RelicId = relic.DefinitionId, TriggerId = frame.Invocation.Template.Trigger.TriggerId,
-                    Boundary = boundary, Owner = relic.Owner, Applications = frame.Execution.Records, Steps = frame.Execution.Steps });
+                var containerId = Guid.Parse(frame.Invocation.Origin.ContainerId);
+                if (frame.Invocation.Origin.ContainerKind == "inscription")
+                {
+                    events.Add(new() { RelicInstanceId = containerId, RelicId = $"inscription:{containerId:N}",
+                        TriggerId = frame.Invocation.Template.Trigger.TriggerId, Boundary = boundary,
+                        Owner = frame.Invocation.RequiredOwner ?? new(), Applications = frame.Execution.Records, Steps = frame.Execution.Steps });
+                }
+                else
+                {
+                    var relic = run.Relics.Single(item => item.RelicInstanceId == containerId);
+                    events.Add(new() { RelicInstanceId = containerId, RelicId = relic.DefinitionId, TriggerId = frame.Invocation.Template.Trigger.TriggerId,
+                        Boundary = boundary, Owner = relic.Owner, Applications = frame.Execution.Records, Steps = frame.Execution.Steps });
+                }
             }
         }
         if (once) current = current with { CompletedLifecycleBoundaries = current.CompletedLifecycleBoundaries.Add(boundary) };
