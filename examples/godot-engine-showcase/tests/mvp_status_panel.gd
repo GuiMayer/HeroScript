@@ -58,6 +58,10 @@ func run() -> void:
 	var two_digit_badge = panel.status_badge("strength")
 	check(two_digit_badge.stack_label.text == "12" and is_equal_approx(two_digit_badge.size.x, two_digit_badge.size.y), "enlarged badge stays square and retains both digits")
 	check(two_digit_badge.icon_rect.get_global_rect().end.y <= two_digit_badge.stack_label.get_global_rect().position.y, "status count does not overlap the icon at enlarged text size")
+	var row: Rect2 = panel.get_node("%ActorStatusSlot").get_global_rect()
+	for control in panel.get_node("%ActorStatusBadges").get_children():
+		if control.visible:
+			check(row.encloses(control.get_global_rect()), "visible status controls fit the reserved row at enlarged text size")
 	var shield_icon: TextureRect = panel.resource_counter("block").get_parent().get_node("Icon")
 	for icon: TextureRect in [shield_icon, two_digit_badge.icon_rect]:
 		check(icon.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and is_equal_approx(icon.size.x, icon.size.y) and icon.texture.get_width() == icon.texture.get_height(), "icon preserves a square texture and layout at enlarged text size")

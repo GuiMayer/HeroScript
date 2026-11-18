@@ -122,9 +122,16 @@ func _layout_mvp_badge() -> void:
 	icon_rect.custom_minimum_size = Vector2(icon_size, icon_size)
 	stack_label.add_theme_font_size_override("font_size", roundi(12 * scale_factor))
 	stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var side := maxf(roundf(38 * scale_factor), _mvp_content.get_combined_minimum_size().x + 6)
-	custom_minimum_size = Vector2(side, side)
+	stack_label.clip_text = true
+	stack_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	custom_minimum_size = Vector2.ONE * battlefield_side(visual_context)
 	_mvp_content.alignment = BoxContainer.ALIGNMENT_CENTER
+
+static func battlefield_side(context: ContextType) -> float:
+	var scale_factor := context.text_scale
+	var font := context.theme.get_font("font", "Label")
+	var content_height := roundf(16 * scale_factor) + font.get_height(roundi(12 * scale_factor)) + 6.0
+	return maxf(roundf(38 * scale_factor), ceilf(content_height))
 
 func _status_tone(status_id: String) -> Dictionary:
 	var sid := status_id.to_lower()

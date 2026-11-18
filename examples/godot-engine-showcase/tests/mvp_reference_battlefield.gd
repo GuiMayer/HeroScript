@@ -255,6 +255,32 @@ func run() -> void:
 		check(art_slot.get_global_rect().is_equal_approx(anchor_btn.get_global_rect()), "scenery portrait aligns with ActorTarget anchor: " + actor_id)
 		check(art_slot.get_global_rect().end.y <= actor_plate.get_global_rect().position.y + 2.0, "scenery portrait stands above compact info plate: " + actor_id)
 
+	root.size = Vector2i(1280, 800)
+	await settle()
+	var status_snapshot: Dictionary = session._combat.duplicate(true)
+	screen.view.present_combat_snapshot(status_snapshot)
+	await settle()
+	var stable_portraits := {}
+	for id in scenery.portraits: stable_portraits[id] = scenery.portraits[id].get_global_rect()
+	var effects := [
+		{"statusId": "burn", "stacks": 1},
+		{"statusId": "vulnerable", "stacks": 12},
+		{"statusId": "wet", "stacks": 10000000},
+		{"statusId": "focus", "stacks": 2},
+	]
+	for count in [1, 3, 4, 0]:
+		status_snapshot.actors[2].statuses = effects.slice(0, count)
+		screen.view.present_combat_snapshot(status_snapshot)
+		await settle()
+		for id in scenery.portraits:
+			var portrait: Control = scenery.portraits[id]
+			var rect := portrait.get_global_rect()
+			var before: Rect2 = stable_portraits[id]
+			check(rect.is_equal_approx(before),
+				"status count %s preserves artwork for %s (%s → %s)" % [count, id, before, rect])
+	root.size = Vector2i(1920, 1080)
+	await settle()
+
 	screen._choose_card("preview-0")
 	await settle()
 	check(not screen.view.target_buttons["wisp"].disabled and not screen.view.target_buttons["sentinel"].disabled and screen.view.target_buttons["hero"].disabled, "selecting a targeted card enables only legal opponent targets")

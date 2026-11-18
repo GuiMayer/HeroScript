@@ -22,6 +22,7 @@ var _intent_row: HBoxContainer
 var _intent_icon: TextureRect
 var _resources: VBoxContainer
 var _counters: HFlowContainer
+var _status_slot: Control
 var _statuses: HFlowContainer
 var _effects_button: Button
 var _effects_dialog: AcceptDialog
@@ -71,6 +72,7 @@ func _bind_nodes() -> void:
 	_intent_icon = get_node("%IntentSymbol")
 	_resources = get_node("%ActorResources")
 	_counters = get_node("%ActorCounters")
+	_status_slot = get_node_or_null("%ActorStatusSlot")
 	_statuses = get_node("%ActorStatusBadges")
 	target_button = get_node("%ActorTarget")
 	portrait_view = get_node("%ActorArtworkAnchor")
@@ -238,11 +240,19 @@ func _sync_effects_button(count: int) -> void:
 		_effects_button = Button.new()
 		_effects_button.name = "InspectEffects"
 		_effects_button.theme_type_variation = &"SecondaryAction"
+		_effects_button.clip_text = true
 		_effects_button.pressed.connect(_open_effects)
 		_statuses.add_child(_effects_button)
 	_statuses.move_child(_effects_button, -1)
+	var side := StatusBadge.battlefield_side(visual_context)
+	_effects_button.custom_minimum_size = Vector2(side, side)
+	if is_instance_valid(_status_slot):
+		# Reserve one row even when it is empty. Status changes must not resize
+		# the actor plate or the artwork anchored above it.
+		var gaps := MAX_VISIBLE_EFFECTS * _statuses.get_theme_constant("h_separation")
+		_status_slot.custom_minimum_size = Vector2(side * (MAX_VISIBLE_EFFECTS + 1) + gaps, side)
 	var title: String = visual_context.translator.text("Active effects")
-	_effects_button.text = "+%d" % (count - MAX_VISIBLE_EFFECTS) if count > MAX_VISIBLE_EFFECTS else title
+	_effects_button.text = "+%d" % (count - MAX_VISIBLE_EFFECTS) if count > MAX_VISIBLE_EFFECTS else "…"
 	_effects_button.accessibility_name = "%s: %s (%d)" % [_title.text, title, count]
 	_effects_button.tooltip_text = _effects_button.accessibility_name
 	_effects_button.visible = count > 0
