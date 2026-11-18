@@ -34,8 +34,9 @@ public sealed partial class CardAuthoringService(
 
     public string? WritablePackage(SettingDefinition setting)
     {
-        var configured = setting.AuthoringPackageId ?? configuration[$"Authoring:WritablePackages:{setting.SettingId}"] ??
-            setting.Packages.FirstOrDefault()?.PackageId;
+        var legacy = configuration[$"Authoring:WritablePackages:{setting.SettingId}"];
+        var configured = setting.AuthoringPackageId ?? (string.IsNullOrWhiteSpace(legacy)
+            ? setting.Packages.FirstOrDefault()?.PackageId : legacy);
         return setting.Packages.Any(reference => reference.PackageId == configured) ? configured : null;
     }
 

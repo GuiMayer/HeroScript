@@ -426,8 +426,7 @@ public sealed class CardAuthoringWorkspaceTests(CardAuthoringWorkspaceTests.Work
             builder.UseSetting("Mods:PackageRoots:0", _packageRoot);
             builder.UseSetting("Content:StartupSettings:0", "uno-clash");
             builder.UseSetting("Content:StartupSettings:1", "circular-table");
-            builder.UseSetting("Authoring:WritablePackages:uno-clash", "heroscript.uno-clash");
-            builder.UseSetting("Authoring:WritablePackages:circular-table", "heroscript.circular-table");
+            builder.UseSetting("Authoring:WritablePackages:uno-clash", "");
         }
 
         internal static void CopyPackages(string destination, string? packageRoot = null)
