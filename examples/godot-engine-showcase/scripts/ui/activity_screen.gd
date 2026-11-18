@@ -166,7 +166,7 @@ func _execute(choice: Dictionary) -> void:
 		if screen_context.navigation.gameplay_route() == "map":
 			if not await controller.finish_for_map() or not is_inside_tree(): return
 		screen_context.open_game()
-		if not receipt.is_empty(): screen_context.show_toast(receipt)
+		if not receipt.is_empty(): screen_context.feedback.confirm(receipt)
 
 func _receipt_text(choice: Dictionary) -> String:
 	if str(GameSession.run.get("settingId", "")) not in ["prototype-test", "alisyum"]: return ""

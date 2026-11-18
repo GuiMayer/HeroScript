@@ -17,8 +17,10 @@ const ROUTES := {
 	"menu": preload("res://scenes/ui/screens/main_menu.tscn"),
 	"loadout_lab": preload("res://scenes/unified_loadout_lab.tscn"),
 }
+const MVP_COMBAT_SETTINGS := ["prototype-test", "alisyum"]
+
 static func combat_route(run: Dictionary, fallback: String) -> String:
-	return "combat_mvp" if str(run.get("settingId", fallback)) == "prototype-test" else "combat"
+	return "combat_mvp" if str(run.get("settingId", fallback)) in MVP_COMBAT_SETTINGS else "combat"
 
 static func instantiate(route: String) -> Node:
 	assert(ROUTES.has(route), "Unregistered UI scene: " + route)

@@ -313,6 +313,9 @@ func run() -> void:
 	click(rightmost_point, false)
 	await settle(6)
 	check(screen.selected_card == rightmost_id and mvp_view.turn_view.selection_actions.visible, "clicking rightmost card selects it and shows CancelSelection")
+	var cancel_button: Button = mvp_view.turn_view.selection_actions.get_node("CancelSelection")
+	check(mvp_view.pile_buttons().all(func(pile): return not pile.get_global_rect().intersects(cancel_button.get_global_rect())),
+		"the selection cancel control does not cover any pile")
 
 	# Escape priority 1: while a card is selected, pressing Escape cancels selection first without opening Pause.
 	press_key(KEY_ESCAPE)

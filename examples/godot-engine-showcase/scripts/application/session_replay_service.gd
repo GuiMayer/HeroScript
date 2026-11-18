@@ -53,7 +53,7 @@ static func find_resume(
 			and str(record.get("playerEntityId", "")) == player \
 			and str(record.get("modeId", "")) == mode \
 			and str(record.get("lifecycle", "")).to_lower() == "active":
-			return {"ok": true, "runId": id, "legacyChecked": legacy_checked}
+			return {"ok": true, "runId": id, "legacyChecked": legacy_checked, "resume": _resume_summary(record)}
 		index.forget(api, player, setting, mode, id)
 		if index.has_scope(api, player, setting, mode) and index.candidate(api, player, setting, mode).is_empty():
 			return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
@@ -70,5 +70,16 @@ static func find_resume(
 		var metadata: Dictionary = record.duplicate(true)
 		metadata["playerEntityId"] = player
 		index.remember(api, metadata)
-		return {"ok": true, "runId": str(record.get("runId", "")), "legacyChecked": legacy_checked}
+		return {"ok": true, "runId": str(record.get("runId", "")), "legacyChecked": legacy_checked, "resume": _resume_summary(metadata)}
 	return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
+
+
+static func _resume_summary(record: Dictionary) -> Dictionary:
+	var node_id := str(record.get("currentNodeId", ""))
+	var node_name := ""
+	var map = record.get("map", {})
+	for node in map.get("nodes", []) if map is Dictionary else []:
+		if str(node.get("nodeId", "")) == node_id:
+			node_name = str(node.get("metadata", {}).get("displayName", ""))
+			break
+	return {"playerId": str(record.get("playerEntityId", "")), "nodeId": node_id, "nodeName": node_name}

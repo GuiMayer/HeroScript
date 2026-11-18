@@ -23,6 +23,14 @@
     "card_move": {"sound": "card_move", "label": "Card flow"}
   },
   "settings": {
+    "prototype-test": {
+      "durations": {"prepare": 0.05, "retain": 0.26, "draw": 0.32, "discard": 0.27, "staged_discard": 0.23, "card_flight": 0.22, "card_entry": 0.19, "impact": 0.19, "float": 0.85, "zone_transfer": 0.30, "hover": 0.12, "acknowledge": 0.17},
+      "shapes": {"card_flight": {"lift_ratio": 0.07, "tilt_degrees": 2, "settle_scale": 0.018}}
+    },
+    "alisyum": {
+      "durations": {"prepare": 0.05, "retain": 0.26, "draw": 0.32, "discard": 0.27, "staged_discard": 0.23, "card_flight": 0.22, "card_entry": 0.19, "impact": 0.19, "float": 0.85, "zone_transfer": 0.30, "hover": 0.12, "acknowledge": 0.17},
+      "shapes": {"card_flight": {"lift_ratio": 0.07, "tilt_degrees": 2, "settle_scale": 0.018}}
+    },
     "ascendant": {"random_inputs": {"critical": {"label": "Critical", "checkpoints": {"guaranteed": "Guaranteed tiers"}, "success_label": "Extra tier"}}},
     "volatile-core": {"cues": {"condense": {"sound": "status", "label": "Condensed proc", "color": "#9568a5"}}}
   }

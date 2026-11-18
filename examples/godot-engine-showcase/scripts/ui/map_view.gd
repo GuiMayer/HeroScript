@@ -91,6 +91,7 @@ func apply_projection(run: Dictionary, choices: Array, presenter, context: Conte
 		if _campaign_navigation: _set_inspector_open(true)
 	if _selected.is_empty() and not nodes.is_empty(): _selected = str(nodes[0].id)
 	_inspect(_selected)
+	if progressed and _campaign_navigation: route.acknowledge_current.call_deferred()
 	context.styles.apply_view_preferences(self)
 	# A compact combat projection can expand without changing currentNodeId.
 	# Reframe actual geometry changes, not ordinary choice/resource refreshes,
@@ -261,6 +262,7 @@ func _restore_progress_frame(previous: String, current: String, ticket: int) -> 
 	_camera_restore_from = ""
 	_scroll_to(route.node_button_center(previous))
 	_scroll_to(route.node_button_center(current), true)
+	if _campaign_navigation: route.acknowledge_current()
 
 func _update_extent() -> void:
 	if not is_instance_valid(_canvas): return

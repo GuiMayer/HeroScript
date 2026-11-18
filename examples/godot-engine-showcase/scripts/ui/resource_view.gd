@@ -47,6 +47,8 @@ func present_change(application: Dictionary, duration: float) -> Tween:
 	if bar.visible and duration > 0 and not is_equal_approx(previous, bar.value):
 		var destination: float = bar.value; bar.value = previous
 		_value_motion = create_tween(); _value_motion.tween_property(bar, "value", destination, duration)
+		if visual_context.setting_id in ["prototype-test", "alisyum"]:
+			_value_motion.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		return _value_motion
 	return null
 

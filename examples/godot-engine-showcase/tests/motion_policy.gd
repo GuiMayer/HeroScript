@@ -14,6 +14,13 @@ func _run() -> void:
 	check(normal.duration("exile_burn", true) == .5 and normal.duration("card_flight", true) + normal.duration("staged_discard", true) == 1., "exile burns in half a second and normal card use spans one second")
 	check(["draw", "discard", "create", "destroy", "card_entry", "zone_transfer", "impact", "float"].all(func(key): return normal.duration(key) == 1.), "remaining presentation animations use one-second durations")
 	check(normal.duration("hover") < .2 and normal.duration("hand_transition") < .2, "input feedback remains responsive instead of inheriting cinematic timing")
+	for setting in ["prototype-test", "alisyum"]:
+		var campaign = Policy.capture(setting, {})
+		var campaign_fast = Policy.capture(setting, {"animation_preset": "fast"})
+		var campaign_reduced = Policy.capture(setting, {"reduced_motion": true})
+		check(campaign.duration("card_flight") < .26 and campaign.duration("draw") <= .4, setting + " has bounded play and turn cues")
+		check(campaign_fast.duration("impact", true) < campaign.duration("impact", true), setting + " accelerates impact with the fast preset")
+		check(campaign_reduced.duration("acknowledge", true) == 0 and campaign_reduced.duration("float") > 0, setting + " keeps static feedback under reduced motion")
 	var zones = preload("res://scripts/ui/card_zone_motion.gd")
 	check(zones.uses_burn([{"cardZoneSteps": [{"flowId": "card.played.to-exhaust", "instanceIds": ["played"]}]}], "played", normal), "burn consumes the published post-play flow rather than a card name")
 	check(not zones.uses_burn([{"cardZoneSteps": [{"flowId": "activation.ethereal", "instanceIds": ["played"]}]}], "played", normal), "unplayed exile does not masquerade as post-use burning")

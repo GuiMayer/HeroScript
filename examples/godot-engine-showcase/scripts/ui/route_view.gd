@@ -17,10 +17,26 @@ var _hovered := ""
 var nodes: Array = []
 var markers := {}
 var buttons := {}
+var _arrival_tween: Tween
+var _arrival_marker: Control
 static func create():
 	return (load("res://scenes/ui/components/route_view.tscn") as PackedScene).instantiate()
 func _ready() -> void:
 	theme = visual_context.theme
+
+func acknowledge_current() -> void:
+	if _arrival_tween != null and _arrival_tween.is_valid(): _arrival_tween.kill()
+	if is_instance_valid(_arrival_marker): _arrival_marker.self_modulate = Color.WHITE
+	if not is_inside_tree() or not campaign_captions: return
+	var duration: float = visual_context.capture_motion().duration("acknowledge", true)
+	if duration <= 0: return
+	for node in nodes:
+		if not node.current or not buttons.has(node.id): continue
+		_arrival_marker = buttons[node.id].get_node("Caption")
+		_arrival_marker.self_modulate = Color(0.66, 0.84, 0.74)
+		_arrival_tween = create_tween()
+		_arrival_tween.tween_property(_arrival_marker, "self_modulate", Color.WHITE, duration)
+		return
 func reconcile_from(other) -> void:
 	visual_context = other.visual_context
 	layout_profile = other.layout_profile

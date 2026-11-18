@@ -76,7 +76,9 @@ func _render() -> void:
 	if not usable: _present_attributes({"name": "", "attributes": []})
 	_inscriptions_empty.visible = usable and controller.inscriptions == null
 	for button in shell.buttons.values(): button.disabled = not usable
-	shell.set_save_status(controller.busy or session.has_pending_command, controller.uncertain or controller.read_error)
+	var campaign := str(session.run.get("settingId", "")) in ["prototype-test", "alisyum"]
+	shell.set_save_status(controller.busy or session.has_pending_command, controller.uncertain or controller.read_error,
+		campaign and controller.message == "Equipment saved automatically.")
 	shell.set_feedback(controller.message if usable else "Run or character changed. Reopen loadout.", controller.uncertain or controller.read_error)
 	inscriptions_view.visible = controller.inscriptions != null and shell.active_tab == "inscriptions" and usable
 	if controller.inscriptions != null and usable:

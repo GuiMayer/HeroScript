@@ -19,6 +19,9 @@ func show_toast(message: String, error := false) -> void:
 		else:
 			_router.show_toast(message)
 
+func confirm(message: String) -> void:
+	show_toast("✓ " + message)
+
 func show_error(message: String) -> void:
 	toasts.append({"message": message, "error": true})
 	if is_instance_valid(_router):

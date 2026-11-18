@@ -6,6 +6,7 @@ signal changed
 var command := {}
 var snapshot := {}
 var chosen := {}
+var preview_error := {}
 var generation := 0
 var _accepted := -1
 var active: bool:
@@ -16,7 +17,7 @@ func start(intent: Dictionary) -> void:
 	refresh()
 func cancel() -> void:
 	generation += 1
-	command = {}; snapshot = {}; chosen = {}
+	command = {}; snapshot = {}; chosen = {}; preview_error = {}
 	changed.emit()
 func requirements() -> Array:
 	return snapshot.get("evaluation", {}).get("paymentRequirements", []).filter(func(item): return item.get("costOptionId") == null or item.costOptionId == command.get("costOptionId"))
@@ -49,12 +50,16 @@ func cost(id: String) -> void:
 	command["costOptionId"] = id; chosen.clear(); refresh()
 func refresh() -> void:
 	generation += 1
+	preview_error = {}
 	changed.emit()
 	preview_requested.emit(intent(), generation)
 func accept(response: Dictionary, ticket: int) -> void:
 	if not active or ticket != generation or ticket == _accepted: return
 	if not response.get("ok", false):
 		if int(response.get("status", 0)) == 409: cancel()
+		else:
+			preview_error = response.duplicate(true)
+			changed.emit()
 		return
 	snapshot = response.get("data", {}).duplicate(true)
 	_accepted = ticket

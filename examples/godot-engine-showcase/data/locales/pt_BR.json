@@ -1,4 +1,11 @@
 {
+  "Action resolved": "Ação resolvida",
+  "Turn started": "Turno iniciado",
+  "Turn ended": "Turno encerrado",
+  "Combat update": "Atualização do combate",
+  "Saved journey · %s": "Jornada salva · %s",
+  "Your turn · %s": "Seu turno · %s",
+  "Equipment saved": "Equipamento salvo",
   "Available %s: %s": "%s disponíveis: %s",
   "Buy a card rune, then choose a compatible card. You can apply it now or later.": "Compre uma runa de carta e escolha uma carta compatível. Você pode aplicar a runa agora ou mais tarde.",
   "Buy card rune": "Comprar runa de carta",

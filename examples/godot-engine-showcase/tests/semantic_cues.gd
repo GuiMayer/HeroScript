@@ -29,5 +29,12 @@ func _run() -> void:
 	var presenter = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [], context.translator)
 	preload("res://scripts/ui/effect_motion.gd").execute({"applications": [damage]}, handle, context, feedback, presenter, {"hero": panel.portrait_view}, {"hero": panel}, 0, 1)
 	check(handle.done and feedback.effects.get_child_count() == 0, "instant real effects publish without an empty tween or cosmetic delay")
+	context.setting_id = "alisyum"
+	var first := damage.merged({"targetEntityId": "hero"})
+	var second := first.merged({"previousValue": 4, "currentValue": 2}, true)
+	var grouped: Array = feedback._float_entries({"applications": [first, second]})
+	check(grouped.size() == 1 and grouped[0].application.previousValue == 10 and grouped[0].application.currentValue == 2,
+		"one actor receives one readable delta for consecutive hits in the same beat")
+	check(first.currentValue == 4, "visual grouping preserves the complete published facts")
 	feedback.queue_free(); panel.queue_free()
 	view.queue_free(); await process_frame; root.get_node("GameAudio").shutdown(); quit(0 if failures == 0 else 1)

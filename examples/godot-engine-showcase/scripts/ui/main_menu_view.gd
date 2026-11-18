@@ -74,11 +74,26 @@ func apply_model(data: Dictionary) -> void:
 	get_node("%NewJourneyButton").disabled = bool(model.get("connecting",false))
 	continue_button.disabled = true
 	continue_button.tooltip_text = i18n.text("Continue the selected setting's journey.")
+	get_node("%ResumeSummary").hide()
 	get_node("%ReconnectButton").visible = model.pending or not model.available
 	get_node("%ReconnectButton").disabled = bool(model.get("connecting",false))
 	get_node("%HistoryButton").disabled = not model.available
 	apply_visual_profile(visual_context.profile)
 	_layout.call_deferred()
+
+func show_resume_summary(summary: Dictionary) -> void:
+	if str(model.selectedSettingId) not in ["prototype-test", "alisyum"]: return
+	var t = visual_context.translator
+	var player := str(summary.get("playerId", ""))
+	var node_id := str(summary.get("nodeId", ""))
+	var detail: Array[String] = []
+	if not player.is_empty(): detail.append(t.content_name(player))
+	if not node_id.is_empty(): detail.append(t.content_name(node_id, t.text(str(summary.get("nodeName", "")))))
+	if detail.is_empty(): return
+	var label: Label = get_node("%ResumeSummary")
+	label.text = t.text("Saved journey · %s") % " · ".join(detail)
+	label.show()
+	continue_button.tooltip_text = label.text
 
 func _layout() -> void:
 	if not is_instance_valid(_scroll) or not use_profile_metrics or visual_style == null: return

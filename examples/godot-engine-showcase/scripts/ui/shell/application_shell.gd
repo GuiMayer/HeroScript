@@ -114,7 +114,13 @@ func show_toast(message: String, error: bool) -> void:
 	if _toast_motion: _toast_motion.kill()
 	toast.present(message, error, visual_context)
 	toast.visible = true
+	toast.modulate.a = 1.0
 	_toast_motion = create_tween()
+	if not error and message.begins_with("✓ "):
+		var duration: float = visual_context.capture_motion().duration("acknowledge", true)
+		if duration > 0:
+			toast.modulate.a = 0.78
+			_toast_motion.tween_property(toast, "modulate:a", 1.0, duration).set_ease(Tween.EASE_OUT)
 	_toast_motion.tween_interval(2.5)
 	_toast_motion.tween_callback(func(): toast.visible = false)
 func apply_visual_profile() -> void:

@@ -25,15 +25,18 @@ func current_block(session) -> float:
 
 func _run() -> void:
 	var prefs = root.get_node("Preferences")
-	prefs.api_url = "http://127.0.0.1:61989"
+	if not Array(OS.get_cmdline_user_args()).any(func(arg): return arg.begins_with("--api-url=")):
+		prefs.api_url = "http://127.0.0.1:61989"
 	prefs.reduced_motion = true
 	prefs.auto_animations = true
 	prefs.changed.emit()
 	var session = root.get_node("GameSession")
-	check(await session.connect_engine("prototype-test"), "connect to published MVP")
+	session.failed.connect(func(error): print("ENGINE: ", error.get("error", error)))
+	check(await session.connect_engine("prototype-test") and session.selected_setting_id == "prototype-test", "connect to published MVP")
 	check(await session.start_campaign(int(Time.get_unix_time_from_system()) + 11700000), "start real seeded campaign")
 	if failures: quit(1); return
-	check(await session.execute_run_command("START_DIALOGUE", {"dialogueId": "prototype_opening"}), "start opening dialogue")
+	var dialogue: Dictionary = session.command("START_DIALOGUE")
+	check(not dialogue.is_empty() and await session.execute_run_command("START_DIALOGUE", dialogue.get("validPayload", {})), "start opening dialogue")
 	var choice: Dictionary = session.command("CHOOSE_DIALOGUE_OPTION").get("validPayload", {})
 	check(await session.execute_run_command("CHOOSE_DIALOGUE_OPTION", {"dialogueInstanceId": choice.get("dialogueInstanceId"), "nodeId": choice.get("nodeId"), "choiceId": "continue"}), "choose opening dialogue")
 	check(await session.execute_run_command("RESOLVE_NODE", {"currentNodeId": "chapter_opening"}), "resolve opening")

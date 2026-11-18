@@ -28,15 +28,17 @@ static func has_dialogue_activity(run: Dictionary) -> bool:
 	return false
 
 
+const MVP_WORKSHOP_SETTINGS := ["prototype-test", "alisyum"]
+
 static func is_mvp_workshop(run: Dictionary) -> bool:
-	if str(run.get("settingId", "")) != "prototype-test" or str(run.get("lifecycle", "Active")).to_lower() != "active": return false
+	if str(run.get("settingId", "")) not in MVP_WORKSHOP_SETTINGS or str(run.get("lifecycle", "Active")).to_lower() != "active": return false
 	var id := str(run.get("currentNodeId", ""))
 	if id in run.get("map", {}).get("resolvedNodeIds", []): return false
 	for node in run.get("map", {}).get("nodes", []):
 		if str(node.get("nodeId", "")) != id: continue
 		var activity: Dictionary = node.get("activity", {})
 		var ids: Array = activity.get("parameters", {}).get("modifierItemIds", [])
-		return str(activity.get("type", "")) == "CardUpgrade" and not ids.is_empty() and ids.size() <= 3
+		return str(activity.get("type", "")) == "CardUpgrade" and not ids.is_empty()
 	return false
 
 

@@ -186,7 +186,7 @@ func _show_main_menu() -> void:
 	if view.get_parent() == null: host.add_child(view)
 	else: preload("res://scripts/ui/focus_navigation.gd").queue(view)
 	if GameSession.available:
-		_resolve_menu_resume.call_deferred(weakref(view.continue_button), navigation_epoch)
+		_resolve_menu_resume.call_deferred(weakref(view), navigation_epoch)
 
 func _menu_action(action: String) -> void:
 	GameAudio.ui()
@@ -207,8 +207,9 @@ func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
 	var before := JSON.stringify(Preferences.resume_index.runs)
 	var result: Dictionary = await GameSession.find_resume(Preferences.resume_index, Preferences.api_url, Preferences.last_run_id)
 	if epoch != navigation_epoch or current_screen != "menu": return
-	var button = reference.get_ref()
-	if not is_instance_valid(button): return
+	var view = reference.get_ref()
+	if not is_instance_valid(view): return
+	var button: Button = view.continue_button
 	if not result.ok:
 		button.tooltip_text = I18n.error(result)
 		return
@@ -218,6 +219,7 @@ func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
 	continuation_run_id = str(result.get("runId", ""))
 	button.disabled = continuation_run_id.is_empty()
 	if button.disabled: button.tooltip_text = I18n.text("No active journey in this setting. Start a new journey.")
+	else: view.show_resume_summary(result.get("resume", {}))
 	preload("res://scripts/ui/focus_navigation.gd").queue(host)
 
 func _select_setting_from_menu(index: int, selector: OptionButton) -> void:

@@ -17,6 +17,8 @@ var _log_entries: Array[String] = []
 var _log_return_focus: WeakRef
 var _drawer_return_focus: WeakRef
 var _payment_prompt := ""
+var _active_turn := ""
+var _turn_motion: Tween
 
 func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts: Dictionary, context) -> void:
 	var stage_theme = combat_theme.duplicate()
@@ -65,17 +67,35 @@ func _present_header(projection, combat_state: Dictionary) -> void:
 		support_text = visual_context.translator.text("%s · %s activations remaining") % [visual_context.translator.content_name(str(support.get("supportId", ""))), str(int(support.remainingOwnerActivations))]
 		support_hint = visual_context.translator.content_name(str(support.get("routineId", "")))
 	var model: Dictionary = projection.header_model({}).to_dictionary()
+	var is_player_turn := active == _input_actor and bool(combat_state.get("activation", {}).get("waitingForInput", false))
+	var turn := ""
+	if not active.is_empty():
+		turn = visual_context.translator.text("Your turn · %s" if is_player_turn else "Turn: %s") % projection.actor_name(active)
 	header_view.apply_model({"actorName": projection.actor_name(str(identity.get("instanceId", ""))),
 		"actorDefinitionId": str(identity.get("definitionId", "")), "round": model.round,
-		"turn": visual_context.translator.text("Turn: %s") % projection.actor_name(active) if not active.is_empty() else "",
+		"turn": turn,
 		"support": support_text, "supportHint": support_hint, "log": visual_context.translator.text("Combat log"),
 		"pause": str(model.pause),
 		"inspect": "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]}, visual_context)
+	if _active_turn != active:
+		if not _active_turn.is_empty() and not active.is_empty(): _accent_turn()
+		_active_turn = active
 	var actions: Control = header_view.get_node("HeaderActions")
 	actions.anchor_left = 0.62 if visual_context.text_scale > 1.25 else 0.68
 	header_view.log_button.clip_text = visual_context.text_scale <= 1.25
 	header_view.pause_button.clip_text = visual_context.text_scale <= 1.25
 	_refresh_header_inspection()
+
+func _accent_turn() -> void:
+	var label: Label = header_view.active_turn_label
+	if _turn_motion != null and _turn_motion.is_valid(): _turn_motion.kill()
+	label.self_modulate = Color.WHITE
+	var policy = visual_context.motion if visual_context.motion != null else visual_context.capture_motion()
+	var duration: float = policy.duration("acknowledge", true)
+	if duration <= 0 or not is_inside_tree(): return
+	label.self_modulate = Color(0.84, 0.65, 0.57)
+	_turn_motion = create_tween()
+	_turn_motion.tween_property(label, "self_modulate", Color.WHITE, duration)
 
 func _refresh_header_inspection(_id := "") -> void:
 	if not is_instance_valid(header_view): return
@@ -270,6 +290,14 @@ func _layout_turn_controls() -> void:
 	turn_view.offset_bottom = -inset_y
 	turn_view.offset_left = -min_size.x - inset_x
 	turn_view.offset_top = -min_size.y - inset_y
+	if is_instance_valid(right_pile_controls) and right_pile_controls.visible:
+		var context_slot: Control = turn_view.get_node("ContextActionSlot")
+		var end_button: Button = turn_view.get_node("EndTurnButton")
+		var reserve: float = context_slot.custom_minimum_size.y + turn_view.get_theme_constant("separation")
+		var occupied := maxf(min_size.y, end_button.get_combined_minimum_size().y + reserve)
+		var pile_height: float = right_pile_controls.get_node("Zones").get_combined_minimum_size().y
+		_fit_pile_group(right_pile_controls, gameplay_column.size.x + turn_view.offset_left,
+			gameplay_column.size.y - inset_y - occupied - pile_height - 8.0, min_size.x, pile_height)
 	_position_playback_controls.call_deferred()
 
 func _bind_composition() -> Control:
@@ -341,9 +369,6 @@ func _layout_gameplay() -> void:
 		for actor in battlefield_actors.find_children("ActorView_*", "PanelContainer", true, false):
 			actor.fit_battlefield_height(available_height)
 	_sync_turn_dock_visibility()
-	if is_instance_valid(right_pile_controls) and right_pile_controls.visible and is_instance_valid(turn_view):
-		var pile_height: float = right_pile_controls.get_node("Zones").get_combined_minimum_size().y
-		_fit_pile_group(right_pile_controls, turn_view.position.x, turn_view.position.y - pile_height - 8.0, turn_view.size.x, pile_height)
 	_layout_battlefield_axis()
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), visual_context.theme)
@@ -440,10 +465,11 @@ func present_combat_snapshot(state: Dictionary) -> void:
 	_present_header(projection, state)
 	_present_energy(state)
 
-func present_frame(frame: Dictionary, index: int, total: int) -> void:
-	super.present_frame(frame, index, total)
-	if is_instance_valid(detail_label) and not detail_label.text.is_empty():
-		_log_entries.append(detail_label.text)
+func record_resolution(frames: Array, resolution_presenter) -> void:
+	for index in frames.size():
+		var frame: Dictionary = frames[index]
+		if frame.get("presentationOnly", "") == "card_departure": continue
+		_log_entries.append(feedback.describe_frame(frame, index, frames.size(), resolution_presenter))
 		if _log_entries.size() > 200: _log_entries.pop_front()
 
 func _open_combat_log() -> void:

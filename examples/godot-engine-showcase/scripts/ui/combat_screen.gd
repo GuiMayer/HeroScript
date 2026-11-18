@@ -403,7 +403,9 @@ func _zone_role(address: String) -> String:
 
 func _on_settled(_result: String, generation: int) -> void:
 	if generation != Playback.generation or not is_inside_tree(): return
-	if not _prepared_card.is_empty(): _interaction_trace.mark("settled")
+	if _interaction_trace.snapshot().has("sent"): _interaction_trace.mark("settled")
+	if _result != "cancelled" and view.has_method("record_resolution"):
+		view.record_resolution(Playback.frames, presenter)
 	_settled_generation = generation
 	_prepared_card = {}; _intro_handle = null
 	_resume_card_prefix = false
@@ -506,6 +508,9 @@ func _end_turn() -> void:
 
 
 func _execute_system(candidate: Dictionary) -> void:
+	if _locked() or candidate.is_empty(): return
+	_interaction_trace.begin()
+	_interaction_trace.mark("sent")
 	var accepted: bool = await controller.submit(candidate)
 	if not is_inside_tree(): return
 	if accepted:
@@ -620,6 +625,15 @@ func _render_inline_selection() -> void:
 	var campaign_payment: bool = view.has_method("set_payment_prompt")
 	if campaign_payment: view.set_payment_prompt("")
 	if not inline_selection.active: return
+	if campaign_payment and not inline_selection.preview_error.is_empty():
+		view.set_payment_prompt(I18n.error(inline_selection.preview_error))
+		var retry := Button.new()
+		retry.text = I18n.text("REFRESH ACTIONS")
+		retry.theme_type_variation = &"SecondaryAction"
+		retry.pressed.connect(inline_selection.refresh)
+		view.choices.add_child(retry)
+		view.candidate_panel.show()
+		return
 	for id in view.target_buttons:
 		var button: Button = view.target_buttons[id]
 		button.disabled = _locked() or id not in inline_selection.snapshot.get("evaluation", {}).get("legalTargetIds", [])
