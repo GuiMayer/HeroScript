@@ -468,7 +468,11 @@ public sealed class CardAuthoringController(
     }
 
     private static CardAuthoringSummary Summary(CardAuthoringCard card) =>
-        new(card.Id, card.Package.Manifest.PackageId, card.CanEdit, card.CanEdit);
+        new(card.Id, card.Package.Manifest.PackageId, card.CanEdit, card.CanEdit)
+        {
+            CanCustomize = card.CanCustomize,
+            HasCustomization = card.Customization is not null
+        };
 
     private static CardAuthoringSummary DefinitionSummary(CardAuthoringCard item)
     {

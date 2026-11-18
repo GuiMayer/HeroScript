@@ -2941,7 +2941,9 @@
         "enum": [
           "create",
           "update",
-          "delete"
+          "delete",
+          "customize",
+          "resetCustomization"
         ],
         "type": "string"
       },
@@ -3003,6 +3005,12 @@
           "displayName": {
             "type": "string",
             "nullable": true
+          },
+          "canCustomize": {
+            "type": "boolean"
+          },
+          "hasCustomization": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

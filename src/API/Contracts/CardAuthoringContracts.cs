@@ -21,7 +21,11 @@ public enum CardAuthoringOperationType
     [JsonStringEnumMemberName("update")]
     Update,
     [JsonStringEnumMemberName("delete")]
-    Delete
+    Delete,
+    [JsonStringEnumMemberName("customize")]
+    Customize,
+    [JsonStringEnumMemberName("resetCustomization")]
+    ResetCustomization
 }
 
 public sealed record CardAuthoringOperation
@@ -73,11 +77,18 @@ public sealed record CardAuthoringChangeRequest : IValidatableObject
             if (!seen.Add((operation.Kind, operation.DefinitionId)))
                 yield return new("Supply one operation per kind and definition ID.", [member]);
 
+            if (operation.Kind != "cards" &&
+                operation.Operation is CardAuthoringOperationType.Customize or CardAuthoringOperationType.ResetCustomization)
+            {
+                yield return new("Customization is available only for cards.", [member]);
+                continue;
+            }
+
             var definition = operation.Definition;
-            if (operation.Operation == CardAuthoringOperationType.Delete)
+            if (operation.Operation is CardAuthoringOperationType.Delete or CardAuthoringOperationType.ResetCustomization)
             {
                 if (definition.HasValue)
-                    yield return new("Delete accepts a definition ID only.", [member]);
+                    yield return new("This operation accepts a definition ID only.", [member]);
                 continue;
             }
 
@@ -144,7 +155,11 @@ public sealed record AuthoringCapabilities(string Version, bool CanValidate, boo
 
 public sealed record AuthoringPage<T>(IReadOnlyList<T> Items, string? NextCursor, string SourceVersion);
 
-public sealed record CardAuthoringSummary(string DefinitionId, string PackageId, bool CanEdit, bool CanDelete, string? DisplayName = null);
+public sealed record CardAuthoringSummary(string DefinitionId, string PackageId, bool CanEdit, bool CanDelete, string? DisplayName = null)
+{
+    public bool CanCustomize { get; init; }
+    public bool HasCustomization { get; init; }
+}
 
 public sealed record CardAuthoringDefinition(
     CardAuthoringSummary Card, JsonElement Source, JsonElement Effective,

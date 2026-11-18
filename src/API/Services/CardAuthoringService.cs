@@ -73,8 +73,7 @@ public sealed partial class CardAuthoringService(
         var writable = selected.SingleOrDefault(package => package.Manifest.PackageId == WritablePackage(compilation.Setting));
         var definitions = new Dictionary<string, SortedDictionary<string, CardAuthoringCard>>(StringComparer.Ordinal);
         var patches = selected.SelectMany(package => package.Manifest.Content)
-            .Where(entry => entry.Operation == PackageContentOperation.Patch)
-            .Select(entry => entry.Target!).ToArray();
+            .Where(entry => entry.Operation == PackageContentOperation.Patch).ToArray();
         foreach (var package in selected)
         {
             var entries = package.Manifest.Content.Where(entry =>
@@ -89,11 +88,17 @@ public sealed partial class CardAuthoringService(
                         AuthoringPackageSnapshot.SourceKey(package, entry.SourcePath), StringComparison.OrdinalIgnoreCase)) > 1;
                 foreach (var card in compilation.Bundle.Artifacts[artifact].EnumerateObject())
                 {
-                    var patched = patches.Any(target => target.Kind == entry.Kind &&
-                        target.ArtifactPath.Replace('\\', '/') == artifact &&
-                        (target.DefinitionId is null || target.DefinitionId == card.Name));
+                    var matchingPatches = patches.Where(patch => patch.Target is { } target &&
+                        target.Kind == entry.Kind && target.ArtifactPath.Replace('\\', '/') == artifact &&
+                        (target.DefinitionId is null || target.DefinitionId == card.Name)).ToArray();
+                    var customization = writable?.Manifest.Content.FirstOrDefault(patch =>
+                        IsCustomization(patch) && patch.Target!.DefinitionId == card.Name &&
+                        patch.Target.PackageId == package.Manifest.PackageId && patch.Target.ArtifactPath == artifact);
+                    var canCustomize = entry.Kind == Cards && writable is not null && package != writable &&
+                        matchingPatches.All(patch => ReferenceEquals(patch, customization)) &&
+                        (customization is null || writable.Manifest.Content.Count(patch => SameSource(writable, patch, customization)) == 1);
                     var record = new CardAuthoringCard(card.Name, card.Value, package, entry,
-                        package == writable && !patched && !sharedSource);
+                        package == writable && matchingPatches.Length == 0 && !sharedSource, canCustomize, customization);
                     if (!items.TryAdd(card.Name, record))
                         return Result<CardAuthoringView>.Failure($"Duplicate definition '{entry.Kind}/{card.Name}'.");
                 }
@@ -142,6 +147,7 @@ public sealed partial class CardAuthoringService(
 
         var snapshot = workspace.SnapshotFor(writable);
         var entries = writable.Manifest.Content.ToList();
+        var dependencies = writable.Manifest.Dependencies.ToList();
         var sourceChanges = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
         var removals = new List<string>();
         foreach (var operation in request.Operations.OfType<CardAuthoringOperation>())
@@ -164,7 +170,8 @@ public sealed partial class CardAuthoringService(
                     card is null ? "Definition does not exist." : "Definition already exists.", kind: kind));
                 continue;
             }
-            if (card is { CanEdit: false })
+            var customize = operation.Operation is CardAuthoringOperationType.Customize or CardAuthoringOperationType.ResetCustomization;
+            if (!customize && card is { CanEdit: false })
             {
                 diagnostics.Add(Diagnostic(Code(kind, "READ_ONLY"), id, "", "The definition is inherited, patched, or uses a shared source file.", kind: kind));
                 continue;
@@ -196,6 +203,15 @@ public sealed partial class CardAuthoringService(
                     diagnostics.Add(Diagnostic(Code(kind, "SCHEMA_INVALID"), id, "", validation.Error, kind: kind));
                     continue;
                 }
+            }
+
+            if (customize)
+            {
+                var diagnostic = await PlanCustomizationAsync(workspace, view, writable, card!, operation,
+                    entries, dependencies, sourceChanges, removals, cancellationToken);
+                if (diagnostic is not null)
+                    diagnostics.Add(diagnostic);
+                continue;
             }
 
             var entry = card?.Entry ?? entries.FirstOrDefault(candidate => candidate is
@@ -257,7 +273,7 @@ public sealed partial class CardAuthoringService(
 
         var changedBytes = sourceChanges.ToDictionary(file => file.Key,
             file => AuthoringJsonSource.Rewrite(snapshot.FindSource(file.Key), file.Value), StringComparer.Ordinal);
-        if (!entries.SequenceEqual(writable.Manifest.Content))
+        if (!entries.SequenceEqual(writable.Manifest.Content) || !dependencies.SequenceEqual(writable.Manifest.Dependencies))
         {
             var key = AuthoringPackageSnapshot.SourceKey(writable, "package.json");
             var original = snapshot.FindSource(key)!.Value;
@@ -271,13 +287,23 @@ public sealed partial class CardAuthoringService(
                 var originalIndex = Array.IndexOf(writable.Manifest.Content.ToArray(), entry);
                 candidateEntries.Add(originalIndex >= 0 && originalEntries is not null
                     ? originalEntries[originalIndex]?.DeepClone()
-                    : new JsonObject
+                    : IsCustomization(entry) ? JsonSerializer.SerializeToNode(entry, CompositionJson) : new JsonObject
                     {
                         ["operation"] = "definition", ["kind"] = entry.Kind,
                         ["sourcePath"] = entry.SourcePath, ["artifactPath"] = entry.ArtifactPath
                     });
             }
             originalManifest[contentKey] = candidateEntries;
+            if (!dependencies.SequenceEqual(writable.Manifest.Dependencies))
+            {
+                var dependenciesKey = originalManifest.Select(property => property.Key)
+                    .FirstOrDefault(name => name.Equals("dependencies", StringComparison.OrdinalIgnoreCase)) ?? "dependencies";
+                var declared = originalManifest[dependenciesKey] as JsonArray ?? new JsonArray();
+                foreach (var dependency in dependencies.Skip(writable.Manifest.Dependencies.Count))
+                    declared.Add(JsonSerializer.SerializeToNode(dependency, CompositionJson));
+                if (originalManifest[dependenciesKey] is null)
+                    originalManifest[dependenciesKey] = declared;
+            }
             changedBytes[key] = AuthoringJsonSource.Rewrite(original, originalManifest);
         }
         var files = changedBytes.Where(file => snapshot.FindSource(file.Key) is not { } previous ||
@@ -285,7 +311,7 @@ public sealed partial class CardAuthoringService(
             .Select(file => new AuthoringSourceChange(file.Key, snapshot.FindSource(file.Key)?.ToArray(), file.Value.ToArray()))
             .Concat(removals.Select(path => new AuthoringSourceChange(path, snapshot.FindSource(path)!.Value.ToArray(), null)))
             .ToArray();
-        return await ValidateCandidateAsync(workspace, writable, writable.Manifest with { Content = entries }, files,
+        return await ValidateCandidateAsync(workspace, writable, writable.Manifest with { Content = entries, Dependencies = dependencies }, files,
             request.ChangeId, request.Operations.OfType<CardAuthoringOperation>().Select(item => (item.Kind, item.DefinitionId)).ToArray(),
             cancellationToken);
     }
@@ -314,12 +340,13 @@ public sealed partial class CardAuthoringService(
             restoredManifest = historicalManifest;
         }
 
-        var currentEntries = writable.Manifest.Content.Where(IsEditableSource).ToLookup(
+        var currentEntries = writable.Manifest.Content.Where(entry => IsEditableSource(entry) || IsCustomization(entry)).ToLookup(
             entry => AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath), StringComparer.Ordinal);
-        var restoredEntries = restoredManifest.Content.Where(IsEditableSource).ToLookup(
+        var restoredEntries = restoredManifest.Content.Where(entry => IsEditableSource(entry) || IsCustomization(entry)).ToLookup(
             entry => AuthoringPackageSnapshot.SourceKey(writable, entry.SourcePath), StringComparer.Ordinal);
         var changes = new List<AuthoringSourceChange>(targetFiles.Count);
         var affected = new HashSet<(string Kind, string Id)>();
+        var customized = new HashSet<(string Kind, string Id)>();
         foreach (var source in targetFiles.Reverse())
         {
             var current = snapshot.FindSource(source.Path);
@@ -334,12 +361,19 @@ public sealed partial class CardAuthoringService(
                 if (writable.Manifest.Content.Count(item => SameSource(writable, item, entry)) > 1 ||
                     restoredManifest.Content.Count(item => SameSource(writable, item, entry)) > 1)
                     return Result<CardAuthoringPlan>.Failure($"Source '{source.Path}' is shared by several catalog entries.");
-                if (entry.DefinitionId is { } definitionId)
+                if (IsCustomization(entry))
+                {
+                    var id = entry.Target!.DefinitionId!;
+                    if (!view.Cards.TryGetValue(id, out var target) || !target.CanCustomize || !EqualSource(current, source.After))
+                        return Result<CardAuthoringPlan>.Failure($"Customization source '{source.Path}' changed or its target is unavailable.");
+                    customized.Add((Cards, id));
+                }
+                else if (entry.DefinitionId is { } definitionId)
                     affected.Add((entry.Kind, definitionId));
                 else
                     affected.UnionWith(AuthoringJsonSource.ChangedProperties(source.Before, source.After).Select(id => (entry.Kind, id)));
 
-                if (!EqualSource(current, source.After))
+                if (!IsCustomization(entry) && !EqualSource(current, source.After))
                 {
                     if (current is null || source.Before is null || source.After is null ||
                         entry.DefinitionId is not null)
@@ -358,7 +392,7 @@ public sealed partial class CardAuthoringService(
             return Result<CardAuthoringPlan>.Failure("An affected definition is inherited, patched, or uses a shared source file.");
 
         return Result<CardAuthoringPlan>.Success(await ValidateCandidateAsync(workspace, writable, restoredManifest,
-            changes, changeId, affected.ToArray(), cancellationToken));
+            changes, changeId, affected.Concat(customized).ToArray(), cancellationToken));
     }
 
     private async Task<CardAuthoringPlan> ValidateCandidateAsync(CardAuthoringWorkspace workspace, PackageSource writable,
@@ -450,7 +484,7 @@ public sealed record CardAuthoringView(SettingCompilation Compilation, PackageSo
 }
 
 public sealed record CardAuthoringCard(string Id, JsonElement Effective, PackageSource Package,
-    PackageContentEnvelope Entry, bool CanEdit);
+    PackageContentEnvelope Entry, bool CanEdit, bool CanCustomize = false, PackageContentEnvelope? Customization = null);
 
 public sealed record CardAuthoringPlan(CardAuthoringValidation Validation, IReadOnlyList<AuthoringSourceChange> Files,
     IReadOnlyList<ContentBundle> Bundles, string? CandidateSourceVersion = null, IReadOnlyList<string>? RemovedSettings = null,

@@ -473,7 +473,7 @@ export interface components {
             sourcePackage?: string | null;
         };
         /** @enum {string} */
-        CardAuthoringOperationType: "create" | "update" | "delete";
+        CardAuthoringOperationType: "create" | "update" | "delete" | "customize" | "resetCustomization";
         CardAuthoringSetting: {
             settingId?: string | null;
             displayName?: string | null;
@@ -489,6 +489,8 @@ export interface components {
             canEdit?: boolean;
             canDelete?: boolean;
             displayName?: string | null;
+            canCustomize?: boolean;
+            hasCustomization?: boolean;
         };
         CardAuthoringSummaryAuthoringPage: {
             items?: components["schemas"]["CardAuthoringSummary"][] | null;
