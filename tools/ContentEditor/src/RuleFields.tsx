@@ -27,6 +27,7 @@ interface Context {
   draft: Frame
   onTyping: (dirty: boolean) => void
   onCreateReference?: (kind: string) => void
+  onCreateWritingPackage?: () => void
   canCreate?: (kind: string) => boolean
 }
 
@@ -346,13 +347,17 @@ function Reference({ context, kind, label, value, commit, immediate = false, sel
     if (operation.operation === 'create') ids.add(operation.definitionId)
     if (operation.operation === 'delete') ids.delete(operation.definitionId)
   }
-  if (selectionOnly) return <label className="field"><span>{label}</span>
+  if (selectionOnly) return <div className="rule-reference"><label className="field"><span>{label}</span>
     <select value={value} disabled={context.disabled} onChange={(event) => commit(event.target.value)}>
       <option value="">{context.copy.unset}</option>
       {value && !ids.has(value) && <option value={value}>{value}</option>}
       {[...ids].filter(Boolean).map((id) => <option key={id} value={id}>{id}</option>)}
     </select>
   </label>
+    {context.onCreateWritingPackage && <button type="button" className="icon-button" disabled={context.disabled}
+      title={context.copy.newWritingPackage} aria-label={context.copy.newWritingPackage}
+      onClick={context.onCreateWritingPackage}><Plus size={16} /></button>}
+  </div>
   return <div className="rule-reference">
     <label className="field"><span>{label}</span><input value={input ?? value} list={id}
       disabled={context.disabled} onFocus={() => setInput(value)}

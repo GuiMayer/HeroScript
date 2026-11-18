@@ -68,6 +68,23 @@ O recibo expõe a elegibilidade em `canUndo` e `canRedo` e o vínculo em `compen
 | Resposta perdida | Consulte `GET .../changes/{changeId}` ou repita o mesmo envelope com o mesmo ID e a mesma ETag. |
 | Workspace em recuperação | Reinicie com a mesma raiz de pacotes e armazenamento de conteúdo. O journal conclui ou reverte a transação. Se a inicialização reportar arquivo divergente, guarde a edição externa e resolva o conflito antes de reiniciar. |
 
+## Criar um pacote de gravação pelo editor
+
+Abra **Pacote de gravação** no topo do editor e use o botão **+** junto à seleção.
+Informe o diretório do novo pacote, o ID e a versão. **Criar e vincular** adiciona
+ao rascunho o manifesto e a atualização do setting, preservando os pacotes já
+declarados. Não é necessário editar JSON. A opção também funciona em settings
+que ainda estão no rascunho.
+
+No modo manual, use **Validar** e **Salvar**. No Hot Reload, a confirmação do
+formulário envia as duas operações em um único pedido à engine. O editor usa
+`POST /api/v1/admin/authoring/workspace/changes`, com `If-Match`, e a rota
+`/validate` para a prévia. A engine verifica IDs, versão, composição e conflitos.
+Um lote rejeitado não deixa um pacote parcialmente criado ou um setting alterado.
+**Desfazer** e **Refazer** abrangem a criação e o vínculo juntos, tanto no rascunho
+quanto pelo histórico confirmado da API. O novo pacote passa a guardar conteúdo
+criado para o setting; definições de outros pacotes mantêm sua origem.
+
 ## Revisar e versionar com Git
 
 1. Quando a API confirmar `applied`, compare `changedFiles` com `git status --short` e revise `git diff -- data/configs`. Os caminhos do recibo são relativos à raiz de pacotes. Arquivos novos também aparecem em `git status`.

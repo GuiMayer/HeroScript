@@ -2,6 +2,8 @@
 
 ## Pacote de gravação por setting
 
+- O editor oferece **Criar pacote de gravação** junto ao seletor. Um lote em `workspace/changes` cria o manifesto, adiciona a referência ao setting e define `authoringPackageId`. Validação, gravação e compensação abrangem o lote inteiro.
+- Na criação de settings, `authoringPackageId` explícito é respeitado e validado contra a composição candidata; quando omitido, o pacote proprietário continua sendo o padrão.
 - `SettingDefinition.authoringPackageId` persiste a escolha do pacote de gravação no próprio JSON do setting, pelo fluxo transacional de `workspace/changes`. A engine exige que o pacote pertença à composição direta do setting.
 - Settings existentes usam o primeiro pacote declarado quando não há uma escolha explícita nem uma configuração legada. Settings novos recebem como pacote de gravação o pacote proprietário e a referência é incluída automaticamente.
 

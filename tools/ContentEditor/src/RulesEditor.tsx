@@ -5,9 +5,10 @@ import { AuthoringActions, AuthoringReceipt } from './AuthoringActions'
 import { api, ApiError, definitionPath, definitionsPath, settingPath, type Definition, type Schemas } from './api/client'
 import { cardCopy, type CardCopy } from './card-copy'
 import type { CardsProps } from './Cards'
-import { object, propertyKey, string } from './editor-state'
+import { array, object, propertyKey, string } from './editor-state'
 import { preference } from './i18n'
 import { Modal } from './Modal'
+import { NewWritingPackage } from './NewWritingPackage'
 import { JsonSource } from './JsonSource'
 import { stringifyAuthoringJson } from './authoring-json'
 import { PropertyFields } from './FreeField'
@@ -39,7 +40,7 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
   const [tab, setTab] = useState<'fields' | 'advanced'>('fields')
   const [typing, setTyping] = useState(false)
   const [hot, setHot] = useState(() => preference('mode', ['manual', 'hot'], 'manual') === 'hot')
-  const [modal, setModal] = useState<'create' | 'delete' | 'discard' | null>(null)
+  const [modal, setModal] = useState<'create' | 'delete' | 'discard' | 'writing-package' | null>(null)
   useEffect(() => {
     if (section === 'settings') {
       setKind('settings')
@@ -129,6 +130,7 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
     if (!schema.data || rows.has(id) || id === '.' || id === '..') return false
     const definition = { ...(copySource ? value : {}) }
     if (identity) definition[propertyKey(definition, identity)] = id
+    if (kind === 'settings') delete definition[propertyKey(definition, 'authoringPackageId')]
     if (kind === 'packages') definition[propertyKey(definition, 'packageId')] = id
     if (!actions.edit({ operation: { kind, operation: 'create', definitionId: id, definition, sourcePackage } }, listVersion)) return false
     choose(id)
@@ -144,6 +146,24 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
     }, version)
     if (created || hot) setSelected('')
     setModal(null)
+  }
+
+  function createWritingPackage(directory: string, packageId: string, packageVersion: string) {
+    if (!value || !editable || !canCreate('packages') || !directory || !packageId || !packageVersion ||
+      draft.frame.some(({ operation }) => operation.kind === 'packages' && operation.definitionId === directory)) return false
+    const packagesKey = propertyKey(value, 'packages')
+    const definition = { ...value,
+      [packagesKey]: [...array(value[packagesKey]), { packageId, versionRange: packageVersion }],
+      [propertyKey(value, 'authoringPackageId')]: packageId,
+    }
+    if (!actions.editMany([
+      { operation: { kind: 'packages', operation: 'create', definitionId: directory,
+        definition: { packageId, version: packageVersion } } },
+      { operation: { kind: 'settings', operation: created ? 'create' : 'update', definitionId: id,
+        definition, sourcePackage: staged?.operation.sourcePackage }, original: source ? object(source.source) : undefined },
+    ], version)) return false
+    setModal(null)
+    return true
   }
 
   return <div className="cards-page">
@@ -222,6 +242,7 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
                   reorder: kind === 'formulas' || kind === 'runs', schemaRoot: schema.data.data.schema,
                   refs: schema.data.data.references ?? {}, onTyping: setTyping, canCreate,
                   onCreateReference: (target) => { chooseKind(target as DefinitionKind); setModal('create') },
+                  onCreateWritingPackage: kind === 'settings' && canCreate('packages') ? () => setModal('writing-package') : undefined,
                 }} /> : schema.isError ? <p className="error">{actionsCopy.sourceUnavailable}</p> : <Loading label={shell.loading} />
               : <RuleAdvanced key={`${kind}/${id}`} value={value} source={source} disabled={!editable || !schema.data}
                 id={id} identity={identity} update={update} copy={copy} actionsCopy={actionsCopy} showEffective={section !== 'settings'} />}
@@ -233,6 +254,9 @@ function RuleWorkspace({ apiKey, setting: activeSetting, writable, locale, copy:
       </section>
     </div>
     <AuthoringReceipt receipt={draft.receipt} copy={actionsCopy} />
+    {modal === 'writing-package' && <NewWritingPackage copy={copy} closeLabel={shell.close}
+      cancelLabel={actionsCopy.cancel} close={() => setModal(null)} ready={editable && canCreate('packages')}
+      create={createWritingPackage} />}
     {modal === 'create' && <NewDefinition key={kind} close={() => setModal(null)} closeLabel={shell.close} copy={copy}
       actionsCopy={actionsCopy} title={labels[kind]} template={value ? titleOf(value, id) : ''}
       ready={!!schema.data && !!listVersion && canCreate(kind)} create={create}
