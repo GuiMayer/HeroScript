@@ -111,6 +111,11 @@ func present_resource(application: Dictionary, duration: float) -> Tween:
 		_set_counter(counter, id, float(application.currentValue), _block != null and id == "block")
 	return null
 
+func set_health_preview(projected: Dictionary) -> void:
+	if _health == null: return
+	var view := resource_view("health") as ResourceView
+	if view != null: view.set_health_preview(projected)
+
 func resource_view(resource_id: String) -> Control:
 	var key := "Resource_" + resource_id.validate_node_name()
 	if _resources != null and _resources.has_node(NodePath(key)):
@@ -192,12 +197,25 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	var affiliation := "YOUR SIDE" if relation == "Ally" else ("No intent revealed" if relation == "Enemy" else "NEUTRAL")
 	var side := "Ally" if relation == "Ally" else ("Enemy" if relation == "Enemy" else "NEUTRAL")
 	var side_text: String = visual_context.translator.text(side)
-	if authored_battlefield_layout and not intent.is_empty():
-		_intent.text = "%s · %s" % [side_text, intent]
+	if authored_battlefield_layout:
+		var role: Label = get_node("%ActorRole")
+		role.text = visual_context.translator.text("Hero") if actor.get("isInputActor", false) else side_text
+		if actor.get("boss", false): role.text = visual_context.translator.text("Boss")
+		role.add_theme_color_override("font_color", visual_context.styles.color("text.secondary") if not visual_context.high_contrast else Color.BLACK)
+		role.add_theme_font_size_override("font_size", roundi(13 * visual_context.text_scale))
+		_title.add_theme_font_size_override("font_size", roundi(16 * visual_context.text_scale))
+		_intent.text = str(actor.get("hudIntent", intent.get_slice("\n", 0))) if not intent.is_empty() else visual_context.translator.text(affiliation)
+		var recipients: Label = get_node("%ActorIntentTarget")
+		recipients.text = str(actor.get("hudIntentTargets", ""))
+		for line in [_intent, recipients]:
+			line.add_theme_font_size_override("font_size", roundi(14 * visual_context.text_scale))
+			line.add_theme_color_override("font_color", Color.BLACK if visual_context.high_contrast else visual_context.styles.INK)
+		var intent_slot: Control = get_node("%ActorIntentSlot")
+		intent_slot.custom_minimum_size.y = ceilf(_intent.get_minimum_size().y + recipients.get_minimum_size().y)
 	else:
 		_intent.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else visual_context.translator.text(affiliation)
-	_intent.tooltip_text = _intent.text
-	_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
+		_intent.add_theme_color_override("font_color", visual_context.styles.GOLD if hostile else visual_context.styles.TEAL)
+	_intent.tooltip_text = intent if not intent.is_empty() else _intent.text
 	_intent_row.visible = (not intent.is_empty() or hostile or relation == "Neutral") if authored_battlefield_layout else (not (battlefield and visual_context.profile.compact_actor_hud) or hostile or relation == "Neutral" or not intent.is_empty())
 	_intent_icon.visible = (battlefield or authored_battlefield_layout) and visual_context.profile.compact_actor_hud and (hostile or not intent.is_empty()) and not (hide_unknown_intent_icon and str(actor.get("intentIconId", "unknown")) == "unknown")
 	_intent_icon.texture = preload("res://scripts/ui/combat_chrome.gd").texture(str(actor.get("intentIconId", "unknown")))
@@ -315,6 +333,9 @@ func _open_effects() -> void:
 	_effects_text.grab_focus()
 
 func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
+	if _health != null and not resources.has("health") and (_model.hostile or _model.actor.get("isInputActor", false)):
+		resources = resources.duplicate()
+		resources["health"] = {}
 	var ordered: Array = presentation.get("resource_order", []).duplicate()
 	for id in resources:
 		if id not in ordered: ordered.append(id)
@@ -330,6 +351,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 		if is_health:
 			appearance["display"] = "bar"
 			appearance["hud_tone"] = "hud.enemy_health" if _model.hostile else "hud.ally_health"
+			appearance["hud_defeated"] = _model.actor.get("isAlive", true) == false
 		if is_block: appearance["display"] = "counter"
 		if str(appearance.get("display", "bar")) == "bar":
 			var key := "Resource_" + str(id).validate_node_name()
@@ -342,6 +364,7 @@ func _sync_resources(resources: Dictionary, presentation: Dictionary) -> void:
 				resource.name = key
 				parent.add_child(resource)
 			resource.visual_context = visual_context
+			if is_health: resource.set_health_preview({})
 			resource.setup(id, resources[id], appearance)
 			if is_health:
 				resource.label.text = visual_context.translator.content_name("health")

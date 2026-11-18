@@ -11,6 +11,9 @@ var amount: Label
 var _model: Dictionary = {}
 var _value_motion: Tween
 var _fill_style: StyleBoxFlat
+var _health_state: Label
+var _forecast: Panel
+var _preview: Dictionary = {}
 @export var preview_resource_id := "health"
 @export var preview_state: Dictionary = {"current": 75, "minimum": 0, "maximum": 100}
 
@@ -26,6 +29,15 @@ func _bind_nodes() -> void:
 	label = get_node("%ResourceLabel")
 	bar = get_node("%ProgressBar")
 	amount = get_node("%AmountLabel")
+	_health_state = get_node_or_null("%HealthState")
+	_forecast = get_node_or_null("%HealthForecast")
+	if _forecast != null and not bar.resized.is_connected(_update_health_preview):
+		bar.resized.connect(_update_health_preview)
+		var border := StyleBoxFlat.new()
+		border.bg_color = Color.TRANSPARENT
+		border.border_color = Color("#303c63")
+		border.set_border_width_all(2)
+		_forecast.add_theme_stylebox_override("panel", border)
 	if _fill_style == null:
 		_fill_style = bar.get_theme_stylebox("fill").duplicate()
 		bar.add_theme_stylebox_override("fill", _fill_style)
@@ -96,7 +108,47 @@ func _apply_model() -> void:
 		tone = Color.BLACK if visual_context.high_contrast else visual_context.styles.color(_model.appearance.hud_tone)
 	_fill_style.bg_color = tone
 	amount.text = visual_context.translator.number(model.current)
-	if state.has("maximum") and str(appearance.get("display", "bar")) != "counter": amount.text += "/" + visual_context.translator.number(float(state.maximum))
-	amount.size_flags_horizontal = Control.SIZE_FILL if bar.visible else Control.SIZE_EXPAND_FILL
+	if (bounded if _health_state != null else state.has("maximum")) and str(appearance.get("display", "bar")) != "counter":
+		amount.text += "/" + visual_context.translator.number(float(state.maximum))
+	if _health_state != null and not _has_health_amount(state):
+		amount.text = "—"
+	amount.size_flags_horizontal = Control.SIZE_EXPAND_FILL if _health_state != null or not bar.visible else Control.SIZE_FILL
 	bar.tooltip_text = amount.text
 	amount.tooltip_text = amount.text
+	_update_health_preview()
+
+func set_health_preview(projected: Dictionary) -> void:
+	_preview = projected.duplicate()
+	_update_health_preview()
+
+func _has_health_amount(state: Dictionary) -> bool:
+	var value = state.get("current")
+	return (value is int or value is float) and is_finite(float(value))
+
+func _update_health_preview() -> void:
+	if _health_state == null or _model.is_empty(): return
+	var state: Dictionary = _model.state
+	var current := float(state.current) if _has_health_amount(state) else 0.0
+	var translator = visual_context.translator
+	var defeated: bool = _model.appearance.get("hud_defeated", false)
+	var critical := bar.visible and current > bar.min_value and (current - bar.min_value) / (bar.max_value - bar.min_value) <= 0.25
+	var notice: String = translator.text("Defeated") if defeated else translator.text("Low health") if critical else ""
+	if not defeated and not _has_health_amount(state):
+		notice = translator.text("Health unavailable")
+	_forecast.hide()
+	if not defeated and _preview.get("uncertain", false):
+		notice = translator.text("Outcome uncertain")
+	elif not defeated and bar.visible and _preview.has("current") and is_equal_approx(current, float(_preview.get("previous", INF))):
+		var predicted := float(_preview.current)
+		var delta := predicted - current
+		if is_finite(predicted) and not is_zero_approx(delta):
+			var start := clampf((current - bar.min_value) / (bar.max_value - bar.min_value), 0, 1)
+			var end := clampf((predicted - bar.min_value) / (bar.max_value - bar.min_value), 0, 1)
+			_forecast.position = Vector2(minf(start, end) * bar.size.x, 0)
+			_forecast.size = Vector2(absf(start - end) * bar.size.x, bar.size.y)
+			_forecast.visible = _forecast.size.x >= 2
+			notice = translator.text("Lethal preview") if _preview.get("defeated", false) else translator.text("Preview %s") % (("+" if delta > 0 else "") + translator.number(delta))
+	_health_state.text = notice
+	_health_state.tooltip_text = notice
+	_health_state.add_theme_font_size_override("font_size", roundi(14 * visual_context.text_scale))
+	_health_state.add_theme_color_override("font_color", Color.BLACK if visual_context.high_contrast else visual_context.styles.color("hud.critical" if defeated or critical else "stroke.focus"))

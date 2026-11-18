@@ -16,6 +16,7 @@ func run() -> void:
 	await process_frame
 	var hp = panel.resource_view("health")
 	check(hp != null and hp.amount.text == "40/100" and hp.amount.get_global_rect().end.y <= hp.bar.get_global_rect().position.y and hp.bar.value == 40, "MVP health value has a dedicated row above the bounded bar")
+	check(hp.amount.size.x >= hp.amount.get_theme_font("font").get_string_size(hp.amount.text, HORIZONTAL_ALIGNMENT_LEFT, -1, hp.amount.get_theme_font_size("font_size")).x, "confirmed health text is fully visible")
 	var block = panel.resource_counter("block")
 	check(block != null and block.text == "7" and block.get_parent().get_node("Icon").texture.resource_path.ends_with("sbed/shield.svg"), "shield displays the published value and attributed icon")
 	check(panel.resource_counter("energy") == null and panel.resource_view("energy") == null, "MVP actor plate does not duplicate energy")

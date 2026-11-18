@@ -327,6 +327,38 @@ func action_preview(id: String, target_id := "") -> String:
 		return _i18n.text("Choose a highlighted target.")
 	return "\n".join(candidates.map(func(candidate): return preview(candidate)))
 
+func hud_health_preview(card_id: String, target_id: String) -> Dictionary:
+	var options := candidates(card_id)
+	if not target_id.is_empty():
+		options = options.filter(func(candidate): return target_id in targets(candidate))
+	elif options.size() != 1 or not targets(options[0]).is_empty():
+		return {}
+	var results := {}
+	for candidate in options:
+		var outcome := {}
+		for application in candidate.get("applications", []):
+			if application.get("resourceId") != "health" or str(application.get("resourceField", "Current")) not in ["Current", "0", "0.0"]:
+				continue
+			var actor_id := str(application.get("targetEntityId", ""))
+			if not _actors.has(actor_id) or application.get("currentValue") == null or application.get("previousValue") == null:
+				continue
+			if not outcome.has(actor_id):
+				outcome[actor_id] = {"previous": application.previousValue}
+			outcome[actor_id]["current"] = application.currentValue
+			var facts = application.get("resourceOutcome")
+			outcome[actor_id]["defeated"] = facts is Dictionary and bool(facts.get("ownerDefeatedAfter", false))
+		if candidate.get("outcomeUncertain", false):
+			if not target_id.is_empty(): outcome[target_id] = {}
+			for actor_id in outcome: outcome[actor_id] = {"uncertain": true}
+		for actor_id in outcome:
+			if not results.has(actor_id): results[actor_id] = []
+			results[actor_id].append(outcome[actor_id])
+	var by_actor := {}
+	for actor_id in results:
+		var values: Array = results[actor_id]
+		by_actor[actor_id] = {"uncertain": true} if values.size() != options.size() or values.any(func(value): return value != values[0]) else values[0]
+	return by_actor
+
 func _is_cost(application: Dictionary, candidate: Dictionary) -> bool:
 	var source: Dictionary = application.get("provenance", {})
 	if str(source.get("sourceId", "")) != str(candidate.get("command", {}).get("cardInstanceId", "")): return false
@@ -419,6 +451,25 @@ func combat_model(viewpoint: String):
 		for intent in _combat.get("activation", {}).get("intents", []):
 			if str(intent.get("actorId", "")) == str(actor.get("instanceId", "")):
 				actor["intentIconId"] = str(_appearance.get("intent_icons", {}).get(str(intent.get("actionId", "")), "unknown"))
+				var recipients: Array[String] = []
+				var amounts: Array[String] = []
+				for application in intent.get("previewApplications", []):
+					var target_id := str(application.get("targetEntityId", ""))
+					if _actors.has(target_id) and actor_name(target_id) not in recipients:
+						recipients.append(actor_name(target_id))
+					var previous = application.get("previousValue")
+					var current = application.get("currentValue")
+					if previous != null and current != null and not is_equal_approx(float(current), float(previous)):
+						var delta := float(current) - float(previous)
+						amounts.append("%s%s %s" % ["+" if delta > 0 else "", _i18n.number(delta), _i18n.content_name(str(application.get("resourceId", "")))])
+				var action: String = _i18n.content_name(str(intent.get("actionId", intent.get("actionType", ""))))
+				if intent.get("previewUncertain", false):
+					action += " · " + _i18n.text("Outcome uncertain")
+				elif not amounts.is_empty():
+					action += " · " + ", ".join(amounts)
+				actor["hudIntent"] = action
+				actor["hudIntentTargets"] = "" if recipients.is_empty() else _i18n.text("Target: %s") % ", ".join(recipients)
+				break
 		return {"actor": actor, "relationship": relation, "sideId": str(actor.get("sideId", "")),
 			"intent": intent_for(str(actor.get("instanceId", "")))})
 	return preload("res://scripts/presentation/view_models.gd").Combat.new({"context": context_key(), "actors": items})

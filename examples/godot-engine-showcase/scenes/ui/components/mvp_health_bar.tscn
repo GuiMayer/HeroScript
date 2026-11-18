@@ -38,11 +38,30 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 21
 text_overrun_behavior = 3
 
-[node name="ProgressBar" type="ProgressBar" parent="."]
-unique_name_in_owner = true
+[node name="HealthTrack" type="Control" parent="."]
 custom_minimum_size = Vector2(0, 9)
 layout_mode = 2
+mouse_filter = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="HealthTrack"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 mouse_filter = 2
 theme_override_styles/background = SubResource("Track")
 theme_override_styles/fill = SubResource("Fill")
 show_percentage = false
+
+[node name="HealthForecast" type="Panel" parent="HealthTrack"]
+unique_name_in_owner = true
+visible = false
+mouse_filter = 2
+
+[node name="HealthState" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 14
+text_overrun_behavior = 3

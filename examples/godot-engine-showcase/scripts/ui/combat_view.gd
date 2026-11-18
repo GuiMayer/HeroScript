@@ -183,6 +183,7 @@ func _build_battlefield() -> void:
 		battlefield_view.target_selected.connect(_select_target)
 		battlefield_view.target_previewed.connect(_show_target_preview)
 		battlefield_view.preview_left.connect(func():
+			_sync_health_preview(selected_target)
 			if not selected_card.is_empty():
 				_restore_drag_targets()
 				_show_preview(selected_card))
@@ -443,6 +444,7 @@ func _show_preview(id: String) -> void:
 		return
 	detail_label.text = visual_context.translator.text("Action preview: %s") % presenter.action_preview(id, selected_target if id == selected_card else "")
 	detail_label.tooltip_text = detail_label.text
+	if id == selected_card: _sync_health_preview(selected_target)
 
 
 func _show_target_preview(actor_id: String) -> void:
@@ -453,6 +455,15 @@ func _show_target_preview(actor_id: String) -> void:
 		_set_target_outline(target_buttons[id], allowed, allowed and id == actor_id)
 	detail_label.text = visual_context.translator.text("Action preview: %s") % presenter.action_preview(selected_card, actor_id)
 	detail_label.tooltip_text = detail_label.text
+	_sync_health_preview(actor_id)
+
+func _sync_health_preview(target_id := "", clear_only := false) -> void:
+	if not is_instance_valid(battlefield_view): return
+	var projected := {}
+	if not clear_only and not _locked() and not _has_frames() and not selected_card.is_empty():
+		projected = presenter.hud_health_preview(selected_card, target_id)
+	for id in battlefield_view.panels:
+		battlefield_view.panels[id].set_health_preview(projected.get(id, {}))
 
 
 func _update_controls() -> void:
@@ -719,7 +730,10 @@ func apply_projection(data: Dictionary, combat_presenter, cards_presenter, facts
 		replace_composition.call_deferred(composition_scene, layout_profile)
 
 func apply_interaction(state) -> void:
+	var before := [selected_card, selected_target, _locked(), _has_frames()]
 	_interaction = state.duplicate(true)
+	if before != [selected_card, selected_target, _locked(), _has_frames()]:
+		_sync_health_preview(selected_target)
 	_update_controls()
 
 func present_frame(frame: Dictionary, index: int, total: int) -> void:
@@ -728,6 +742,7 @@ func present_frame(frame: Dictionary, index: int, total: int) -> void:
 	detail_label.tooltip_text = detail_label.text
 
 func present_combat_snapshot(state: Dictionary) -> void:
+	_sync_health_preview("", true)
 	# This is an engine-published intermediate snapshot, never a reconstructed state.
 	var projection = preload("res://scripts/presentation/combat_presenter.gd").new(_run_snapshot, state, [], visual_context.translator, presentation)
 	var actors: Array = projection.combat_model(_input_actor).read("actors")
@@ -758,6 +773,7 @@ func refresh_cards() -> void:
 
 func reset_preview() -> void:
 	_clear_choices()
+	_sync_health_preview("", true)
 	detail_label.text = visual_context.translator.text("Select a card, then choose a highlighted target.")
 	detail_label.tooltip_text = detail_label.text
 
