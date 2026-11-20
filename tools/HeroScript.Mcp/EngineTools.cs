@@ -7,6 +7,22 @@ namespace HeroScript.Mcp;
 [McpServerToolType]
 public sealed class EngineTools(HeroScriptApiClient api)
 {
+    [McpServerTool(Name = "verify_replay", ReadOnly = true), Description("Reexecute the authoritative replay, report verification and a bounded timeline page; exactly one run or combat ID.")]
+    public async Task<object> VerifyReplay(CancellationToken token, Guid? runId = null, Guid? combatId = null, int afterSequence = 0, int limit = 50)
+    {
+        if (runId.HasValue == combatId.HasValue) throw new ArgumentException("Supply exactly one runId or combatId.");
+        McpSafetyPolicy.Limit(limit);
+        if (afterSequence < 0) throw new ArgumentOutOfRangeException(nameof(afterSequence));
+        var route = runId.HasValue ? $"/api/v1/runs/{runId}" : $"/api/v1/combats/{combatId}";
+        var before = await api.Get(route, token);
+        // This POST is the existing verification query, not a gameplay command.
+        var verification = await api.Post(route + "/verify", null, token);
+        var timeline = await api.Get($"{route}/timeline?afterSequence={afterSequence}&limit={limit}", token);
+        var after = await api.Get(route, token);
+        var unchanged = before.GetProperty("stateHash").GetString() == after.GetProperty("stateHash").GetString();
+        return new { runId, combatId, contentRevision = before.GetProperty("contentRevision"), verification, timeline,
+            stateUnchanged = unchanged, afterSequence, limit, note = "Verification covers the full replay; the timeline page is bounded." };
+    }
     [McpServerTool(Name = "inspect_save", ReadOnly = true), Description("Inspect a run's pinned and current revisions and journal head without migrating or restoring it.")]
     public async Task<object> Save(Guid runId, CancellationToken token)
     {
