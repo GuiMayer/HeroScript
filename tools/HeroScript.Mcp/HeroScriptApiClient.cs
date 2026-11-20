@@ -15,7 +15,8 @@ public static class McpSafetyPolicy
         return uri;
     }
 
-    public static string Segment(string value) => Uri.EscapeDataString(value);
+    public static string Segment(string value) => value is "." or ".." || string.IsNullOrWhiteSpace(value)
+        ? throw new ArgumentException("A non-empty identifier is required.") : Uri.EscapeDataString(value);
     public static int Limit(int value, int maximum = 100) => value >= 1 && value <= maximum
         ? value : throw new ArgumentOutOfRangeException(nameof(value), $"Use 1–{maximum}.");
 }
@@ -35,8 +36,9 @@ public sealed class HeroScriptApiClient : IDisposable
 
     public Task<JsonElement> Get(string route, CancellationToken token) => Send(HttpMethod.Get, route, null, token);
     public Task<JsonElement> Post(string route, object? body, CancellationToken token) => Send(HttpMethod.Post, route, body, token);
+    public Task<JsonElement> ValidateContent(object body, CancellationToken token) => Send(HttpMethod.Post, "/api/v1/content/validate", body, token, true);
 
-    private async Task<JsonElement> Send(HttpMethod method, string route, object? body, CancellationToken token)
+    private async Task<JsonElement> Send(HttpMethod method, string route, object? body, CancellationToken token, bool allowValidationFailure = false)
     {
         if (!route.StartsWith("/api/v1/", StringComparison.Ordinal) || route.Contains('\\'))
             throw new ArgumentException("Only explicit HeroScript API routes are supported.");
@@ -46,7 +48,7 @@ public sealed class HeroScriptApiClient : IDisposable
         {
             using var response = await _http.SendAsync(request, token);
             var text = await response.Content.ReadAsStringAsync(token);
-            if (!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode && !(allowValidationFailure && response.StatusCode == HttpStatusCode.UnprocessableEntity))
                 throw new InvalidOperationException($"HeroScript API HTTP {(int)response.StatusCode}: {text[..Math.Min(text.Length, 1800)]}");
             using var document = JsonDocument.Parse(text);
             return document.RootElement.Clone();

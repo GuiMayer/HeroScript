@@ -7,6 +7,31 @@ namespace HeroScript.Mcp;
 [McpServerToolType]
 public sealed class EngineTools(HeroScriptApiClient api)
 {
+    [McpServerTool(Name = "inspect_save", ReadOnly = true), Description("Inspect a run's pinned and current revisions and journal head without migrating or restoring it.")]
+    public async Task<object> Save(Guid runId, CancellationToken token)
+    {
+        var run = await api.Get($"/api/v1/runs/{runId}", token);
+        var setting = run.GetProperty("settingId").GetString()!;
+        var revision = run.GetProperty("contentRevision").GetString()!;
+        var sequence = run.GetProperty("sequence").GetInt32();
+        var revisions = await api.Get($"/api/v1/content/revisions?configName={McpSafetyPolicy.Segment(setting)}", token);
+        var current = revisions.GetProperty("currentRevision").GetString();
+        var journal = await api.Get($"/api/v1/runs/{runId}/journal?afterSequence={Math.Max(0, sequence - 1)}&limit=1", token);
+        return new { runId, settingId = setting, contentRevision = revision, currentRevision = current,
+            requiresReview = revision != current, sequence, stateHash = run.GetProperty("stateHash"), journal,
+            note = "Revision mismatch does not imply migration or corruption. Use verify_replay for integrity." };
+    }
+
+    [McpServerTool(Name = "validate_content", ReadOnly = true), Description("Validate a published pinned revision or supplied content bundle without publishing it.")]
+    public async Task<object> ValidateContent(string settingId, string revision, CancellationToken token, JsonElement? candidate = null)
+    {
+        var manifest = await api.Get($"/api/v1/content/revisions/{McpSafetyPolicy.Segment(revision)}?configName={McpSafetyPolicy.Segment(settingId)}", token);
+        if (manifest.TryGetProperty("configName", out var configName) && configName.GetString() != settingId)
+            throw new ArgumentException("Revision belongs to another setting.");
+        if (candidate.HasValue && candidate.Value.GetRawText().Length > 2_000_000) throw new ArgumentException("Candidate bundle exceeds input budget.");
+        var result = await api.ValidateContent(new { revision, bundle = candidate }, token);
+        return new { settingId, contentRevision = revision, validation = result };
+    }
     [McpServerTool(Name = "inspect_gambits", ReadOnly = true), Description("Trace the engine's actual gambit decision against a pinned combat snapshot without advancing it.")]
     public Task<JsonElement> Gambits(Guid runId, Guid combatId, string actorId, CancellationToken token, int? sequence = null)
         => api.Get($"/api/v1/diagnostics/gambits/{runId}/{combatId}/{McpSafetyPolicy.Segment(actorId)}" + (sequence.HasValue ? $"?sequence={sequence}" : ""), token);
