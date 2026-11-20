@@ -35,5 +35,10 @@ public sealed class McpSandboxTests
         var run = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{encounter.RunId}");
         var branch = await tools.Branch(encounter.RunId, run.GetProperty("sequence").GetInt32(), [], default);
         Assert.Contains("sourceUnchanged = True", branch.ToString());
+        var balance = JsonSerializer.SerializeToElement(await new BalanceTools(session).AnalyzeCards("default", revision, scenario,
+            [983744, 983745], ["basic_attack", "defend", "fireball"], default, maxCommands: 2));
+        Assert.Equal(2, balance.GetProperty("samples").GetInt32());
+        Assert.Equal(3, balance.GetProperty("cards").GetArrayLength());
+        Assert.Empty(balance.GetProperty("failures").EnumerateArray());
     }
 }
