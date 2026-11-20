@@ -7,6 +7,17 @@ namespace HeroScript.Mcp;
 [McpServerToolType]
 public sealed class EngineTools(HeroScriptApiClient api)
 {
+    [McpServerTool(Name = "inspect_gambits", ReadOnly = true), Description("Trace the engine's actual gambit decision against a pinned combat snapshot without advancing it.")]
+    public Task<JsonElement> Gambits(Guid runId, Guid combatId, string actorId, CancellationToken token, int? sequence = null)
+        => api.Get($"/api/v1/diagnostics/gambits/{runId}/{combatId}/{McpSafetyPolicy.Segment(actorId)}" + (sequence.HasValue ? $"?sequence={sequence}" : ""), token);
+
+    [McpServerTool(Name = "validate_gambits", ReadOnly = true), Description("Check configured enemy gambit bindings with bounded synthetic round and health fixtures at a pinned revision.")]
+    public async Task<JsonElement> ValidateGambits(string settingId, string revision, CancellationToken token, string? runDefinitionId = null, int budget = 3000)
+    {
+        McpSafetyPolicy.Limit(budget, 5000);
+        return await api.Get($"/api/v1/diagnostics/gambits/coverage?settingId={McpSafetyPolicy.Segment(settingId)}&revision={McpSafetyPolicy.Segment(revision)}&budget={budget}" +
+            (runDefinitionId is null ? "" : $"&runDefinitionId={McpSafetyPolicy.Segment(runDefinitionId)}"), token);
+    }
     [McpServerTool(Name = "get_engine_status", ReadOnly = true), Description("Check access to the local HeroScript API without changing game state.")]
     public async Task<object> Status(CancellationToken token)
     {

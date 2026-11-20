@@ -77,6 +77,9 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
     public string PolicyId => "gambit";
 
     public Result<DecisionPolicyResult> Decide(DecisionPolicyRequest request)
+        => Decide(request, null);
+
+    public Result<DecisionPolicyResult> Decide(DecisionPolicyRequest request, Action<GambitRuleTrace>? trace)
     {
         if (request.DecisionIds.Count == 0)
             return Result<DecisionPolicyResult>.Failure(
@@ -109,7 +112,7 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
             : _legalActions.Resolve(request.Run, decisionCombat, request.ActorId, CombatCommandOrigin.AutomaticController);
         return legal.IsFailure
             ? Result<DecisionPolicyResult>.Failure(legal.Error)
-            : _reducer.Decide(effectiveRequest, definitions, legal.Value);
+            : _reducer.Decide(effectiveRequest, definitions, legal.Value, trace);
     }
 
     private static CombatState ProjectActivation(CombatState combat, string actorId)
@@ -130,6 +133,9 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
     }
 }
 
+public sealed record GambitRuleTrace(string RuleId, int Priority, string? ActionId, string? CandidateId,
+    IReadOnlyList<string> TargetIds, string Outcome, string? Detail = null);
+
 /// <summary>Pure deterministic rule reducer; no cache, filesystem, CRUD or fallback.</summary>
 public sealed class GambitDecisionReducer
 {
@@ -141,7 +147,7 @@ public sealed class GambitDecisionReducer
     public Result<DecisionPolicyResult> Decide(
         DecisionPolicyRequest request,
         IReadOnlyList<GambitDefinition> definitions,
-        LegalActionSet legalActions)
+        LegalActionSet legalActions, Action<GambitRuleTrace>? trace = null)
     {
         var actor = request.Combat.GetActor(request.ActorId);
         if (actor == null)
@@ -155,15 +161,27 @@ public sealed class GambitDecisionReducer
                 .ToArray();
             var selected = SelectTarget(rule.Action.TargetSelector, actor, request.Combat, candidates);
             if (selected.IsFailure)
+            {
+                trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, null, [], "target_error", selected.Error));
                 return Result<DecisionPolicyResult>.Failure(
                     $"Gambit {rule.GambitId}: {selected.Error}");
+            }
+            if (selected.Value.Count == 0)
+                trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, null, [], candidates.Length == 0 ? "no_legal_candidate" : "target_filtered"));
             foreach (var candidate in selected.Value)
             {
                 var predicates = MatchPredicates(rule, request, actor, candidate);
                 if (predicates.IsFailure)
+                {
+                    trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "predicate_error", predicates.Error));
                     return Result<DecisionPolicyResult>.Failure(predicates.Error);
+                }
                 if (!predicates.Value)
+                {
+                    trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "predicate_false"));
                     continue;
+                }
+                trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "selected"));
                 var fingerprint = CanonicalJson.ComputeHash(new
                 {
                     policyId = "gambit",
