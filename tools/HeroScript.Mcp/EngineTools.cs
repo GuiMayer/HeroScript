@@ -32,9 +32,11 @@ public sealed class EngineTools(HeroScriptApiClient api)
         var sequence = run.GetProperty("sequence").GetInt32();
         var revisions = await api.Get($"/api/v1/content/revisions?configName={McpSafetyPolicy.Segment(setting)}", token);
         var current = revisions.GetProperty("currentRevision").GetString();
-        var journal = await api.Get($"/api/v1/runs/{runId}/journal?afterSequence={Math.Max(0, sequence - 1)}&limit=1", token);
+        var capabilities = await api.Get($"/api/v1/runs/{runId}/capabilities", token);
+        var journalAllowed = capabilities.GetProperty("granted").EnumerateArray().Any(item => item.GetString() == "timeline.read");
+        JsonElement? journal = journalAllowed ? await api.Get($"/api/v1/runs/{runId}/journal?afterSequence={Math.Max(0, sequence - 1)}&limit=1", token) : null;
         return new { runId, settingId = setting, contentRevision = revision, currentRevision = current,
-            requiresReview = revision != current, sequence, stateHash = run.GetProperty("stateHash"), journal,
+            requiresReview = revision != current, sequence, stateHash = run.GetProperty("stateHash"), journal, journalAllowed,
             note = "Revision mismatch does not imply migration or corruption. Use verify_replay for integrity." };
     }
 
@@ -53,17 +55,20 @@ public sealed class EngineTools(HeroScriptApiClient api)
         => api.Get($"/api/v1/diagnostics/gambits/{runId}/{combatId}/{McpSafetyPolicy.Segment(actorId)}" + (sequence.HasValue ? $"?sequence={sequence}" : ""), token);
 
     [McpServerTool(Name = "validate_gambits", ReadOnly = true), Description("Check configured enemy gambit bindings with bounded synthetic round and health fixtures at a pinned revision.")]
-    public async Task<JsonElement> ValidateGambits(string settingId, string revision, CancellationToken token, string? runDefinitionId = null, int budget = 3000)
+    public async Task<JsonElement> ValidateGambits(string settingId, string revision, CancellationToken token, string? runDefinitionId = null, int budget = 3000, string[]? runDefinitionIds = null)
     {
         McpSafetyPolicy.Limit(budget, 5000);
+        if (runDefinitionIds?.Length > 50) throw new ArgumentException("At most 50 run definitions.");
         return await api.Get($"/api/v1/diagnostics/gambits/coverage?settingId={McpSafetyPolicy.Segment(settingId)}&revision={McpSafetyPolicy.Segment(revision)}&budget={budget}" +
-            (runDefinitionId is null ? "" : $"&runDefinitionId={McpSafetyPolicy.Segment(runDefinitionId)}"), token);
+            (runDefinitionId is null ? "" : $"&runDefinitionId={McpSafetyPolicy.Segment(runDefinitionId)}") + string.Concat((runDefinitionIds ?? []).Select(id => $"&runDefinitionIds={McpSafetyPolicy.Segment(id)}")), token);
     }
     [McpServerTool(Name = "get_engine_status", ReadOnly = true), Description("Check access to the local HeroScript API without changing game state.")]
     public async Task<object> Status(CancellationToken token)
     {
+        var health = await api.Get("/api/v1/health/ready", token);
+        var capabilities = await api.Get("/api/v1/capabilities", token);
         var settings = await api.Get("/api/v1/content/settings", token);
-        return new { available = true, contract = "api/v1", settings = settings.GetProperty("items").GetArrayLength() };
+        return new { available = true, contract = "api/v1", health, capabilities, settings = settings.GetProperty("items").GetArrayLength() };
     }
 
     [McpServerTool(Name = "list_settings", ReadOnly = true), Description("List game settings and current content revisions, optionally filtered by setting ID.")]

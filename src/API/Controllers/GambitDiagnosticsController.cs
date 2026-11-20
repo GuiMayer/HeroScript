@@ -22,6 +22,7 @@ public sealed class GambitDiagnosticsController(IRunQueryService runs, IRunCommi
     [HttpGet("{runId:guid}/{combatId:guid}/{actorId}")]
     public async Task<IActionResult> Inspect(Guid runId, Guid combatId, string actorId, int? sequence, CancellationToken cancellationToken)
     {
+        if (sequence is <= 0) return BadRequest(new { error = "Sequence must be positive" });
         var current = runs.GetRun(runId);
         if (current.IsFailure) return NotFound(new { error = current.Error });
         if (!access.Allows(current.Value, ToolCapabilities.TimelineInspectState)) return StatusCode(403, new { error = "Timeline inspection denied" });
@@ -32,7 +33,7 @@ public sealed class GambitDiagnosticsController(IRunQueryService runs, IRunCommi
         if (combat is null || actor is null) return NotFound(new { error = "Combat or actor not found" });
         if (actor.ControllerBinding.Kind != ControllerKind.AI || actor.ControllerBinding.PolicyId != "gambit")
             return BadRequest(new { error = "Actor is not controlled by gambits" });
-        var ids = actor.ControllerBinding.DecisionIds ?? [];
+        var ids = actor.ControllerBinding.DecisionIds is { } explicitIds ? (IReadOnlyList<string>)explicitIds : run.ResolvedMode?.CombatRules.Flow.Ai.DecisionIds ?? [];
         var trace = new List<GambitRuleTrace>();
         var result = new GambitDecisionPolicy(runtimes, legal, formulas).Decide(new(run, combat, actorId, ids), trace.Add);
         return Ok(new { runId, combatId, actorId, run.Sequence, run.Determinism.ContentRevision, run.Determinism.Seed,
@@ -42,6 +43,7 @@ public sealed class GambitDiagnosticsController(IRunQueryService runs, IRunCommi
 
     [HttpGet("coverage")]
     public IActionResult Coverage(string settingId, string revision, string? runDefinitionId = null, int budget = 1000,
+        [FromQuery] string[]? runDefinitionIds = null,
         CancellationToken cancellationToken = default)
     {
         if (budget is < 1 or > 5000) return BadRequest(new { error = "Budget must be 1–5000" });
@@ -52,11 +54,16 @@ public sealed class GambitDiagnosticsController(IRunQueryService runs, IRunCommi
         var determinism = DeterministicContext.Create(42, revision);
         var run = new RunState { RunId = Guid.Empty, ConfigName = settingId, Determinism = determinism };
         var failures = new List<object>();
-        int checkedCases = 0, bindings = 0, failedCases = 0;
+        int checkedCases = 0, bindings = 0, failedCases = 0, skippedBindings = 0;
+        if (runDefinitionIds?.Length > 50) return BadRequest(new { error = "At most 50 run definitions" });
+        var scope = (runDefinitionIds ?? []).ToHashSet(StringComparer.Ordinal);
+        if (runDefinitionId != null) scope.Add(runDefinitionId);
+        var knownRuns = runtime.GetDefinitions("runs");
+        if (scope.Any(id => !knownRuns.ContainsKey(id))) return BadRequest(new { error = "Coverage scope contains an unknown run definition" });
         bool incomplete = false;
         foreach (var definition in runtime.GetDefinitions("runs").OrderBy(p => p.Key))
         {
-            if (runDefinitionId != null && runDefinitionId != definition.Key) continue;
+            if (scope.Count > 0 && !scope.Contains(definition.Key)) continue;
             if (!definition.Value.TryGetProperty("mapNodes", out var nodes)) continue;
             foreach (var node in nodes.EnumerateArray())
             {
@@ -71,6 +78,7 @@ public sealed class GambitDiagnosticsController(IRunQueryService runs, IRunCommi
                     bindings++;
                     var entity = participant.GetProperty("definitionId").GetString()!;
                     var ids = binding.TryGetProperty("decisionIds", out var decisions) ? decisions.EnumerateArray().Select(i => i.GetString()!).ToArray() : [];
+                    if (ids.Length == 0) { skippedBindings++; incomplete = true; continue; } // Requires mode-specific fallback resolution, not an explicit binding fixture.
                     var rules = new List<GambitDefinition>();
                     foreach (var id in ids)
                     {
@@ -109,7 +117,7 @@ public sealed class GambitDiagnosticsController(IRunQueryService runs, IRunCommi
                 }
             }
         }
-        return Ok(new { settingId, contentRevision = revision, seed = 42, bindings, checkedCases, failedCases, incomplete,
+        return Ok(new { settingId, contentRevision = revision, seed = 42, bindings, skippedBindings, checkedCases, failedCases, incomplete,
             method = "synthetic owned-power and end-turn fixtures; not full legality or exhaustive simulation", failures });
     }
 

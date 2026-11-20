@@ -33,8 +33,12 @@ public sealed class McpSandboxTests
         Assert.NotEmpty(encounter.Actions);
         Assert.Null(encounter.Error);
         var run = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{encounter.RunId}");
-        var branch = await tools.Branch(encounter.RunId, run.GetProperty("sequence").GetInt32(), [], default);
-        Assert.Contains("sourceUnchanged = True", branch.ToString());
+        var commands = new[] { new SimulationTools.SimulationCommand("END_TURN", JsonSerializer.SerializeToElement(new { actorId = "hero" })) };
+        var branch = JsonSerializer.SerializeToElement(await tools.Branch(encounter.RunId, run.GetProperty("sequence").GetInt32(), commands, default));
+        Assert.True(branch.GetProperty("sourceUnchanged").GetBoolean());
+        Assert.Equal(1, branch.GetProperty("result").GetProperty("commandsExecuted").GetInt32());
+        var repeat = JsonSerializer.SerializeToElement(await tools.Branch(encounter.RunId, run.GetProperty("sequence").GetInt32(), commands, default));
+        Assert.Equal(branch.GetProperty("result").GetProperty("finalStateHash").GetString(), repeat.GetProperty("result").GetProperty("finalStateHash").GetString());
         var balance = JsonSerializer.SerializeToElement(await new BalanceTools(session).AnalyzeCards("default", revision, scenario,
             [983744, 983745], ["basic_attack", "defend", "fireball"], default, maxCommands: 2));
         Assert.Equal(2, balance.GetProperty("samples").GetInt32());

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using ModelContextProtocol;
 
 namespace HeroScript.Mcp;
 
@@ -49,17 +50,17 @@ public sealed class HeroScriptApiClient : IDisposable
             using var response = await _http.SendAsync(request, token);
             var text = await response.Content.ReadAsStringAsync(token);
             if (!response.IsSuccessStatusCode && !(allowValidationFailure && response.StatusCode == HttpStatusCode.UnprocessableEntity))
-                throw new InvalidOperationException($"HeroScript API HTTP {(int)response.StatusCode}: {text[..Math.Min(text.Length, 1800)]}");
+                throw new McpException($"HeroScript API HTTP {(int)response.StatusCode}: {text[..Math.Min(text.Length, 1800)]}");
             using var document = JsonDocument.Parse(text);
             return document.RootElement.Clone();
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException("HeroScript API unavailable. Start the local engine and verify HEROSCRIPT_MCP_API_URL.", ex);
+            throw new McpException("API_UNAVAILABLE: Start the local engine and verify HEROSCRIPT_MCP_API_URL; retry once ready.", ex);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
-            throw new TimeoutException("HeroScript API request exceeded its time budget.");
+            throw new McpException("API_TIMEOUT: request exceeded its time budget. Retry with a smaller scope.");
         }
     }
 

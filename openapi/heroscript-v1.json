@@ -17,6 +17,40 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/diagnostics/gambits/{runId}/{combatId}/{actorId}": {
+      "get": {
+        "tags": ["Combats"], "operationId": "inspectGambitDecision", "x-heroscript-stability": "experimental",
+        "description": "Read-only trace from the canonical reducer, using the run's pinned revision. Requires timeline.inspect_state.",
+        "parameters": [
+          { "name": "runId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "combatId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "actorId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "sequence", "in": "query", "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": { "200": { "description": "Pinned decision and evaluated rule trace, including unsuccessful decisions.", "content": { "application/json": { "schema": { "type": "object" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/diagnostics/gambits/coverage": {
+      "get": {
+        "tags": ["Content"], "operationId": "validateGambitCoverage", "x-heroscript-stability": "experimental",
+        "description": "Bounded synthetic owned-power/end-turn fixtures. This is not exhaustive gameplay legality testing.",
+        "parameters": [
+          { "name": "settingId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "revision", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "runDefinitionId", "in": "query", "schema": { "type": "string" } },
+          { "name": "runDefinitionIds", "in": "query", "style": "form", "explode": true, "schema": { "type": "array", "maxItems": 50, "items": { "type": "string" } } },
+          { "name": "budget", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 5000, "default": 1000 } }
+        ],
+        "responses": { "200": { "description": "Coverage counts, bounded failure examples and incompleteness flag.", "content": { "application/json": { "schema": { "type": "object" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/diagnostics/mcp-sandbox": {
+      "get": {
+        "tags": ["Sandbox"], "operationId": "getMcpSandboxStatus", "x-heroscript-stability": "experimental",
+        "description": "Confirm a dedicated McpSandbox host with separate persistence and approved sandbox capabilities. Normal hosts return 404.",
+        "responses": { "200": { "description": "Isolated sandbox marker.", "content": { "application/json": { "schema": { "type": "object", "properties": { "isolated": { "type": "boolean" }, "environment": { "type": "string" } } } } } }, "403": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/runs/{runId}/support-loadout": {
       "get": {
         "tags": [

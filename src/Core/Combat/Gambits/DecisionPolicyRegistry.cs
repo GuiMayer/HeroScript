@@ -133,8 +133,10 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
     }
 }
 
+public sealed record GambitPredicateTrace(string Expression, float? Minimum, float? Maximum, float? Value, bool? Matched, string? Error = null);
+
 public sealed record GambitRuleTrace(string RuleId, int Priority, string? ActionId, string? CandidateId,
-    IReadOnlyList<string> TargetIds, string Outcome, string? Detail = null);
+    IReadOnlyList<string> TargetIds, string Outcome, string? Detail = null, IReadOnlyList<GambitPredicateTrace>? Predicates = null);
 
 /// <summary>Pure deterministic rule reducer; no cache, filesystem, CRUD or fallback.</summary>
 public sealed class GambitDecisionReducer
@@ -170,18 +172,19 @@ public sealed class GambitDecisionReducer
                 trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, null, [], candidates.Length == 0 ? "no_legal_candidate" : "target_filtered"));
             foreach (var candidate in selected.Value)
             {
-                var predicates = MatchPredicates(rule, request, actor, candidate);
+                var evaluations = trace is null ? null : new List<GambitPredicateTrace>();
+                var predicates = MatchPredicates(rule, request, actor, candidate, evaluations);
                 if (predicates.IsFailure)
                 {
-                    trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "predicate_error", predicates.Error));
+                    trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "predicate_error", predicates.Error, evaluations));
                     return Result<DecisionPolicyResult>.Failure(predicates.Error);
                 }
                 if (!predicates.Value)
                 {
-                    trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "predicate_false"));
+                    trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "predicate_false", Predicates: evaluations));
                     continue;
                 }
-                trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "selected"));
+                trace?.Invoke(new(rule.GambitId, rule.Priority, rule.Action.ActionId, candidate.CandidateId, Targets(candidate).ToArray(), "selected", Predicates: evaluations));
                 var fingerprint = CanonicalJson.ComputeHash(new
                 {
                     policyId = "gambit",
@@ -242,7 +245,7 @@ public sealed class GambitDecisionReducer
         GambitDefinition rule,
         DecisionPolicyRequest request,
         CombatActorState actor,
-        LegalActionCandidate candidate)
+        LegalActionCandidate candidate, List<GambitPredicateTrace>? evaluations = null)
     {
         var target = PrimaryTarget(request.Combat, candidate);
         var variables = BuildVariables(request.Combat, actor, target);
@@ -259,13 +262,16 @@ public sealed class GambitDecisionReducer
                     variables)
                 : _formulas.Evaluate(predicate.Expression, variables);
             if (evaluated.IsFailure)
+            {
+                evaluations?.Add(new(predicate.Expression, predicate.Minimum, predicate.Maximum, null, null, evaluated.Error));
                 return Result<bool>.Failure(
                     $"Gambit {rule.GambitId} predicate '{predicate.Expression}': {evaluated.Error}");
-            if (predicate.Minimum.HasValue && evaluated.Value < predicate.Minimum.Value)
-                return Result<bool>.Success(false);
-            if (predicate.Maximum.HasValue && evaluated.Value > predicate.Maximum.Value)
-                return Result<bool>.Success(false);
-            if (!predicate.Minimum.HasValue && !predicate.Maximum.HasValue && evaluated.Value <= 0)
+            }
+            var matched = !(predicate.Minimum.HasValue && evaluated.Value < predicate.Minimum.Value) &&
+                          !(predicate.Maximum.HasValue && evaluated.Value > predicate.Maximum.Value) &&
+                          !(!predicate.Minimum.HasValue && !predicate.Maximum.HasValue && evaluated.Value <= 0);
+            evaluations?.Add(new(predicate.Expression, predicate.Minimum, predicate.Maximum, evaluated.Value, matched));
+            if (!matched)
                 return Result<bool>.Success(false);
         }
         return Result<bool>.Success(true);

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using ModelContextProtocol.Server;
+using ModelContextProtocol;
 
 namespace HeroScript.Mcp;
 
@@ -24,7 +25,7 @@ public sealed class BalanceTools(SandboxSession sandbox)
         {
             if (timeout.IsCancellationRequested) break;
             try { runs.Add(await new SimulationTools(sandbox).Encounter(settingId, revision, seed, scenario, timeout.Token, maxRounds, maxCommands)); }
-            catch (Exception ex) when (!token.IsCancellationRequested && ex is InvalidOperationException or TimeoutException or OperationCanceledException)
+            catch (Exception ex) when (!token.IsCancellationRequested && ex is McpException or InvalidOperationException or TimeoutException or OperationCanceledException)
             { failures.Add(new { seed, error = ex.Message }); }
         }
         token.ThrowIfCancellationRequested();

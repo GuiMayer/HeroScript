@@ -14,7 +14,7 @@ public sealed class ContentToolsTests
             Assert.Equal(HttpMethod.Get, request.Method);
             var path = request.RequestUri!.AbsolutePath;
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(path.Contains("revisions")
-                ? "{\"currentRevision\":\"new\"}" : path.EndsWith("journal") ? "{}" : "{\"settingId\":\"alisyum\",\"contentRevision\":\"old\",\"sequence\":4,\"stateHash\":\"hash\"}") };
+                ? "{\"currentRevision\":\"new\"}" : path.EndsWith("capabilities") ? "{\"granted\":[]}" : path.EndsWith("journal") ? throw new Exception("Journal should not be requested without capability") : "{\"settingId\":\"alisyum\",\"contentRevision\":\"old\",\"sequence\":4,\"stateHash\":\"hash\"}") };
         }));
         var result = await new EngineTools(client).Save(Guid.NewGuid(), default);
         Assert.Contains("requiresReview = True", result.ToString());

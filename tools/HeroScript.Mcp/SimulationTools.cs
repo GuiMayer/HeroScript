@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
+using ModelContextProtocol;
 
 namespace HeroScript.Mcp;
 
@@ -9,9 +10,9 @@ public sealed class SandboxSession(HeroScriptApiClient? client) : IDisposable
 {
     public async Task<HeroScriptApiClient> Connect(CancellationToken token)
     {
-        if (client is null) throw new InvalidOperationException("Simulation disabled. Set HEROSCRIPT_MCP_SANDBOX_URL to an explicitly isolated MCP sandbox API.");
+        if (client is null) throw new McpException("Simulation disabled. Set HEROSCRIPT_MCP_SANDBOX_URL to an explicitly isolated MCP sandbox API.");
         var marker = await client.Get("/api/v1/diagnostics/mcp-sandbox", token);
-        if (!marker.GetProperty("isolated").GetBoolean()) throw new InvalidOperationException("API is not an isolated MCP sandbox.");
+        if (!marker.GetProperty("isolated").GetBoolean()) throw new McpException("API is not an isolated MCP sandbox.");
         return client;
     }
     public void Dispose() => client?.Dispose();
@@ -84,7 +85,7 @@ public sealed class SimulationTools(SandboxSession sandbox)
                 run = await api.Get($"/api/v1/runs/{runId}", budget.Token);
             }
         }
-        catch (Exception e) when (!token.IsCancellationRequested && e is InvalidOperationException or TimeoutException or OperationCanceledException)
+        catch (Exception e) when (!token.IsCancellationRequested && e is McpException or InvalidOperationException or TimeoutException or OperationCanceledException)
         { failure = e.Message; }
         var status = combat.GetProperty("status").GetString()!;
         return new(settingId, revision, seed, runId, combatId, status, combat.GetProperty("currentTurn").GetInt32(),

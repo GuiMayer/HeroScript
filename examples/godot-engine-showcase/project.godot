@@ -24,6 +24,7 @@ GameAudio="*res://scripts/ui/game_audio.gd"
 GameSession="*res://scripts/application/game_session.gd"
 Playback="*res://scripts/presentation/playback.gd"
 GameServices="*res://scripts/bootstrap.gd"
+McpRuntime="*res://addons/godot-mcp/mcp_runtime.gd"
 
 [display]
 
@@ -33,6 +34,10 @@ window/size/window_width_override=1280
 window/size/window_height_override=800
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot-mcp/plugin.cfg")
 
 [input]
 

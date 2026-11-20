@@ -74,13 +74,50 @@ public sealed class GambitDecisionReducerTests
     public void Decide_FailsWhenNoConfiguredRuleMatchesALegalAction()
     {
         var (request, legal) = Context(80);
+        var trace = new List<GambitRuleTrace>();
         var result = new GambitDecisionReducer(FormulaEvaluator().Object)
             .Decide(request,
                 [Rule("missing", 10, "1", ActionType.POWER, "not-owned", DecisionTargetSelection.FirstOrdinal)],
-                legal);
+                legal, trace.Add);
 
         Assert.True(result.IsFailure);
         Assert.Contains("No configured decision", result.Error);
+        Assert.Equal("no_legal_candidate", Assert.Single(trace).Outcome);
+        var corrected = new GambitDecisionReducer(FormulaEvaluator().Object).Decide(request,
+            [Rule("attack", 10, "1", ActionType.POWER, "attack", DecisionTargetSelection.FirstOrdinal, relationship: SideRelationship.Enemy)], legal, trace.Add);
+        Assert.True(corrected.IsSuccess);
+        Assert.Equal("selected", trace.Last().Outcome);
+    }
+
+    [Fact]
+    public void FurnaceArchonRoundTwoTraceReproducesMissingFallbackAndCorrectedRule()
+    {
+        var (request, legal) = Context(82);
+        request = request with { Combat = request.Combat with { CurrentTurn = 2 } };
+        var candidates = new[] { "alisyum_boss_furnace_wave", "alisyum_enemy_escalate", "alisyum_enemy_guard", "alisyum_enemy_heavy" }
+            .Select(id => Candidate(request.Run, request.Combat, id, id == "alisyum_enemy_guard" ? "actor" : "enemy-a")).ToArray();
+        legal = legal with { Candidates = candidates };
+        var evaluator = FormulaEvaluator();
+        evaluator.Setup(service => service.Evaluate("turn % 3", It.IsAny<Dictionary<string, float>>(), It.IsAny<float>()))
+            .Returns((string _, Dictionary<string, float> variables, float _) => Result<float>.Success(variables["turn"] % 3));
+        var reducer = new GambitDecisionReducer(evaluator.Object);
+        var old = new[]
+        {
+            Rule("alisyum_enemy_clock", 150, "turn", ActionType.POWER, "alisyum_enemy_escalate", DecisionTargetSelection.FirstOrdinal) with { Predicates = [new() { Expression = "turn", Minimum = 5 }] },
+            Rule("alisyum_enemy_heavy", 135, "turn % 3", ActionType.POWER, "alisyum_enemy_heavy", DecisionTargetSelection.FirstOrdinal) with { Predicates = [new() { Expression = "turn % 3", Minimum = 0, Maximum = 0 }] },
+            Rule("alisyum_boss_furnace_wave", 130, "turn % 3", ActionType.POWER, "alisyum_boss_furnace_wave", DecisionTargetSelection.FirstOrdinal) with { Predicates = [new() { Expression = "turn % 3", Minimum = 1, Maximum = 1 }] }
+        };
+        var trace = new List<GambitRuleTrace>();
+        var hash = CanonicalJson.ComputeHash(request.Combat);
+        var broken = reducer.Decide(request, old, legal, trace.Add);
+        Assert.True(broken.IsFailure);
+        Assert.Contains("No configured decision matched a legal action", broken.Error);
+        Assert.All(trace, item => Assert.Equal("predicate_false", item.Outcome));
+        Assert.All(trace, item => Assert.False(Assert.Single(item.Predicates!).Matched));
+        var corrected = reducer.Decide(request, [.. old, Rule("alisyum_enemy_heavy_fallback", 1, "1", ActionType.POWER, "alisyum_enemy_heavy", DecisionTargetSelection.FirstOrdinal)], legal, trace.Add);
+        Assert.True(corrected.IsSuccess);
+        Assert.Equal("alisyum_enemy_heavy_fallback", corrected.Value.RuleId);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(request.Combat));
     }
 
     [Fact]
