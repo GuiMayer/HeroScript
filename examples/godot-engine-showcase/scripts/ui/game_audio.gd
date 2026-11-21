@@ -28,14 +28,23 @@ func _ready() -> void:
 		_events = data.get("events", {}).duplicate(true)
 		resource_gain_cues = data.get("resource_gain_cues", {}).duplicate(true)
 		for event in _events.values():
-			for path in event.get("clips", []):
-				if not _streams.has(path) and ResourceLoader.exists(path): _streams[path] = load(path)
+			var preferred := _load_clips(event.get("preferred_clips", []))
+			event["clips"] = preferred if not preferred.is_empty() else _load_clips(event.get("clips", []))
 		var music_path := str(data.get("music", ""))
 		if not music_path.is_empty() and ResourceLoader.exists(music_path):
 			_music.stream = load(music_path)
 			_music.play()
 	Preferences.changed.connect(_apply)
 	_apply()
+
+func _load_clips(paths: Array) -> Array:
+	var valid: Array = []
+	for path in paths:
+		if not _streams.has(path) and ResourceLoader.exists(path):
+			var stream = load(path)
+			if stream is AudioStream: _streams[path] = stream
+		if _streams.has(path): valid.append(path)
+	return valid
 
 func _ensure_bus(bus_name: String) -> void:
 	if AudioServer.get_bus_index(bus_name) >= 0: return
@@ -66,7 +75,9 @@ func play_beat(frame_data: Dictionary, policy) -> void:
 		if application.get("previousValue") != null and application.get("currentValue") != null and is_equal_approx(float(application.previousValue), float(application.currentValue)): continue
 		var event := str(policy.cue(kind).get("sound", ""))
 		if kind == "resource_gain": event = str(resource_gain_cues.get(str(application.get("resourceId", "")), event))
+		event = preload("res://scripts/presentation/combat_audio_presenter.gd").specialize(event, application, frame_data)
 		if not event.is_empty() and event not in emitted: play_event(event, true); emitted.append(event)
+		if emitted.size() >= 3: break
 
 func play_event(event_id: String, combat_cue := false) -> bool:
 	if _stopped or not _events.has(event_id): return false

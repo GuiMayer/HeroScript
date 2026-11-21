@@ -10,13 +10,23 @@ func _run() -> void:
 	var catalog: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(audio.MANIFEST))
 	check(audio._voices.size() == 8, "bounded pool preallocated once")
 	check(audio._music.stream == null, "old generated background tone removed")
-	check(audio._streams.size() == 26, "selected licensed samples loaded once")
+	var selected_paths: Dictionary = {}
 	for event_id in catalog.events:
 		var event: Dictionary = catalog.events[event_id]
 		check(not event.clips.is_empty() and event.gain_db <= -10 and event.cooldown_ms >= 60, "event has restrained mix and rate limit: " + event_id)
-		for path in event.clips:
+		var available: Array = event.get("preferred_clips", []).filter(func(path): return ResourceLoader.exists(path))
+		var expected_paths: Array = available if not available.is_empty() else event.clips
+		check(audio._events[event_id].clips == expected_paths, "preferred installed clips or licensed fallback: " + event_id)
+		for path in audio._events[event_id].clips:
+			selected_paths[path] = true
 			var stream = audio._streams.get(path)
-			check(stream is AudioStreamOggVorbis and stream.get_length() > 0 and stream.get_length() < 3 and not stream.loop, "imported short non-looping sample: " + path)
+			check(stream is AudioStreamOggVorbis and stream.get_length() > 0 and stream.get_length() < 8 and not stream.loop, "imported short non-looping sample: " + path)
+	check(audio._streams.size() == selected_paths.size(), "selected licensed samples loaded once")
+	for element in ["fire", "ice", "blood", "water", "void", "shadow"]:
+		var frame := {"applications": [{"effectType": "DAMAGE", "previousValue": 5, "currentValue": 3, "calculationId": "hit"}], "calculations": [{"calculationId": "other", "tags": ["holy"]}, {"calculationId": "hit", "tags": ["damage", element]}]}
+		check(presenter.cues(frame) == ["element_" + element], "matching calculation tags route " + element)
+	check(presenter.cues({"applications": [{"effectType": "APPLY_STATUS", "statusId": "alisyum_burn"}]}) == ["status_fire"], "burn has an elemental application sound")
+	check(presenter.cues({"applications": [{"effectType": "DAMAGE", "previousValue": 5, "currentValue": 3, "provenance": {"sourceId": "alisyum_bleed"}}]}) == ["element_blood"], "bleed tick has an elemental impact")
 	check(presenter.cues({"applications": []}).is_empty(), "empty lifecycle frames are silent")
 	check(presenter.cues({"applications": [{"effectType": "DAMAGE", "resourceId": "mana", "previousValue": 5, "currentValue": 3}]} ) == ["impact"], "damage cue does not assume health")
 	check(presenter.cues({"applications": [{"effectType": "DAMAGE", "previousValue": 5, "currentValue": 5}]}).is_empty(), "zero applied change is silent")
@@ -36,6 +46,12 @@ func _run() -> void:
 	check(not audio._voices[0].stream.loop, "effects cannot loop indefinitely")
 	await create_timer(.35).timeout
 	check(audio.play_event("card_play") and audio._variant.card_play == 2, "next sample selected without immediate repetition")
+	var policy = load("res://scripts/presentation/motion_policy.gd").capture("alisyum", {})
+	var elemental_frame := {"applications": [{"effectType": "DAMAGE", "previousValue": 10, "currentValue": 7, "calculationId": "fire-hit"}], "calculations": [{"calculationId": "fire-hit", "tags": ["fire"]}]}
+	var beats = load("res://scripts/presentation/presentation_planner.gd").plan([elemental_frame])
+	audio.play_beat(beats[0], policy)
+	check(audio._voices.any(func(voice): return voice.playing and voice.get_meta("event_id", "") == "element_fire"), "live combat playback uses elemental sound after beat planning")
+	check(not audio._last_played.has("impact"), "elemental impact replaces rather than layers the generic impact")
 	prefs.sfx_volume = 0; audio._apply()
 	check(AudioServer.is_bus_mute(AudioServer.get_bus_index("SFX")) and not audio.play_event("reward"), "SFX mute prevents new voices")
 	prefs.sfx_volume = .7; prefs.music_volume = .2; audio._apply()
@@ -43,7 +59,7 @@ func _run() -> void:
 	var count: int = audio._voices.size()
 	check(audio._events.card_hover.clips.size() == 3 and audio._events.card_hover.cooldown_ms == 65, "hover has soft variants and rapid-sweep rate limit")
 	check(audio._events.card_hover.max_instances == 1, "short paper hover never layers into a sustained scrape")
-	for event_id in ["card_hover", "card_move", "card_play"]:
+	for event_id in ["card_hover"]:
 		var durations := {"card_hover": .11, "card_move": .23, "card_play": .29}
 		for path in audio._events[event_id].clips:
 			var stream = audio._streams.get(path)

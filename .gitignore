@@ -381,3 +381,6 @@ FodyWeavers.xsd
 # Local HeroScript authoring recovery journal and same-volume staging files
 .heroscript-authoring/
 .heroscript-authoring-*.tmp
+
+# Optional licensed source sound effects (installed locally from author ZIPs)
+examples/godot-engine-showcase/assets/audio/willosuna-local/

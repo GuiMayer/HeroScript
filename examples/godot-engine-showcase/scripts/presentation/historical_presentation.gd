@@ -6,6 +6,7 @@ static func frames(commit: Dictionary) -> Array:
 		if recorded.get("scope", "") != "combat": continue
 		result.append({"frameId": recorded.get("resolutionFrameId", ""), "transitionType": recorded.get("kind", ""),
 			"applications": recorded.get("applications", []), "effectSteps": recorded.get("effectSteps", []),
+			"calculations": recorded.get("calculations", []),
 			"cardZoneSteps": recorded.get("cardZoneSteps", []), "stateAfter": recorded.get("combatStateAfter")})
 	return result
 static func state(commit: Dictionary) -> Dictionary:

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "music": "",
   "resource_gain_cues": {
     "block": "guard"
@@ -13,7 +13,12 @@
       ],
       "gain_db": -20,
       "cooldown_ms": 65,
-      "max_instances": 2
+      "max_instances": 2,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/click_01.ogg",
+        "res://assets/audio/willosuna-local/ui/click_02.ogg",
+        "res://assets/audio/willosuna-local/ui/click_03.ogg"
+      ]
     },
     "card_select": {
       "clips": [
@@ -22,7 +27,11 @@
       ],
       "gain_db": -20,
       "cooldown_ms": 90,
-      "max_instances": 2
+      "max_instances": 2,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/select_01.ogg",
+        "res://assets/audio/willosuna-local/ui/select_02.ogg"
+      ]
     },
     "card_hover": {
       "clips": [
@@ -42,7 +51,12 @@
       ],
       "gain_db": -16,
       "cooldown_ms": 100,
-      "max_instances": 2
+      "max_instances": 2,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/drop_01.ogg",
+        "res://assets/audio/willosuna-local/ui/drop_02.ogg",
+        "res://assets/audio/willosuna-local/ui/drop_03.ogg"
+      ]
     },
     "card_move": {
       "clips": [
@@ -52,7 +66,12 @@
       ],
       "gain_db": -21,
       "cooldown_ms": 150,
-      "max_instances": 1
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/swipe_01.ogg",
+        "res://assets/audio/willosuna-local/ui/swipe_02.ogg",
+        "res://assets/audio/willosuna-local/ui/page_01.ogg"
+      ]
     },
     "impact": {
       "clips": [
@@ -62,7 +81,10 @@
       ],
       "gain_db": -13,
       "cooldown_ms": 75,
-      "max_instances": 3
+      "max_instances": 3,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/impact_01.ogg"
+      ]
     },
     "guard": {
       "clips": [
@@ -71,7 +93,10 @@
       ],
       "gain_db": -16,
       "cooldown_ms": 100,
-      "max_instances": 2
+      "max_instances": 2,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/shield_up_01.ogg"
+      ]
     },
     "heal": {
       "clips": [
@@ -80,7 +105,10 @@
       ],
       "gain_db": -20,
       "cooldown_ms": 130,
-      "max_instances": 2
+      "max_instances": 2,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/heal_01.ogg"
+      ]
     },
     "status": {
       "clips": [
@@ -88,7 +116,10 @@
       ],
       "gain_db": -22,
       "cooldown_ms": 130,
-      "max_instances": 2
+      "max_instances": 2,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/buff_01.ogg"
+      ]
     },
     "reward": {
       "clips": [
@@ -96,7 +127,11 @@
       ],
       "gain_db": -16,
       "cooldown_ms": 300,
-      "max_instances": 1
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/reward_01.ogg",
+        "res://assets/audio/willosuna-local/ui/reward_02.ogg"
+      ]
     },
     "error": {
       "clips": [
@@ -104,7 +139,11 @@
       ],
       "gain_db": -20,
       "cooldown_ms": 300,
-      "max_instances": 1
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/deny_01.ogg",
+        "res://assets/audio/willosuna-local/ui/error_01.ogg"
+      ]
     },
     "turn": {
       "clips": [
@@ -112,7 +151,10 @@
       ],
       "gain_db": -18,
       "cooldown_ms": 200,
-      "max_instances": 1
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/transition_01.ogg"
+      ]
     },
     "cancel": {
       "clips": [
@@ -120,7 +162,11 @@
       ],
       "gain_db": -22,
       "cooldown_ms": 120,
-      "max_instances": 1
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/cancel_01.ogg",
+        "res://assets/audio/willosuna-local/ui/cancel_02.ogg"
+      ]
     },
     "open": {
       "clips": [
@@ -128,7 +174,220 @@
       ],
       "gain_db": -20,
       "cooldown_ms": 120,
-      "max_instances": 1
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/ui/open_01.ogg",
+        "res://assets/audio/willosuna-local/ui/open_02.ogg"
+      ]
+    },
+    "dispel": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/dispel_01.ogg"
+      ]
+    },
+    "condense": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/arcane_blast_01.ogg"
+      ]
+    },
+    "element_fire": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/fire_impact_01.ogg"
+      ]
+    },
+    "element_ice": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/ice_shatter_01.ogg"
+      ]
+    },
+    "element_blood": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/blood_impact_01.ogg"
+      ]
+    },
+    "element_lightning": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/thunder_01.ogg"
+      ]
+    },
+    "element_water": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/water_impact_01.ogg"
+      ]
+    },
+    "element_void": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/void_impact_01.ogg"
+      ]
+    },
+    "element_shadow": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/shadow_01.ogg"
+      ]
+    },
+    "element_poison": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/poison_01.ogg"
+      ]
+    },
+    "element_arcane": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/arcane_blast_01.ogg"
+      ]
+    },
+    "element_holy": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/holy_01.ogg"
+      ]
+    },
+    "element_wind": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -14,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/wind_01.ogg"
+      ]
+    },
+    "status_fire": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/fire_cast_01.ogg"
+      ]
+    },
+    "status_ice": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/ice_cast_01.ogg"
+      ]
+    },
+    "status_blood": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/blood_cast_01.ogg"
+      ]
+    },
+    "status_water": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -21,
+      "cooldown_ms": 130,
+      "max_instances": 1,
+      "preferred_clips": [
+        "res://assets/audio/willosuna-local/magic/water_cast_01.ogg"
+      ]
     }
   }
 }
