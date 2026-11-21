@@ -8,9 +8,32 @@ var visual_context
 var _surface: StyleBoxFlat
 var _allow_abandon := false
 var _has_history := false
+var _entry_motion: Tween
 func _ready() -> void:
 	if visual_context == null and (Engine.is_editor_hint() or get_parent() == get_tree().root):
 		setup(preload("res://scripts/ui/visual_context.gd").new(null,{},visual_profile),preview_allow_abandon,false)
+	if not Engine.is_editor_hint() and visual_context != null: _animate_entry.call_deferred()
+
+func _animate_entry() -> void:
+	if not is_inside_tree(): return
+	_cancel_entry()
+	var duration: float = visual_context.capture_motion().duration("hover", true)
+	if duration <= 0: return
+	preload("res://scripts/ui/panel_motion.gd").enter(get_node("%Frame"), visual_context)
+	_entry_motion = create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var index := 0
+	for button in find_children("*", "Button", true, false):
+		if not button.is_visible_in_tree(): continue
+		button.offset_transform_enabled = true
+		button.offset_transform_visual_only = true
+		button.offset_transform_position = Vector2(-8, 0)
+		_entry_motion.tween_property(button, "offset_transform_position", Vector2.ZERO, duration).set_delay(index * minf(.025, duration * .15))
+		index += 1
+
+func _cancel_entry() -> void:
+	if _entry_motion and _entry_motion.is_valid(): _entry_motion.kill()
+	for button in find_children("*", "Button", true, false): button.offset_transform_position = Vector2.ZERO
+	preload("res://scripts/ui/panel_motion.gd").cancel(get_node("%Frame"))
 func setup(context, allow_abandon: bool, has_history: bool) -> void:
 	_allow_abandon = allow_abandon; _has_history = has_history
 	get_node("%AbandonRunButton").visible = allow_abandon
@@ -21,6 +44,7 @@ func setup(context, allow_abandon: bool, has_history: bool) -> void:
 	apply_context(context)
 func apply_context(context) -> void:
 	visual_context = context
+	if not Engine.is_editor_hint() and is_inside_tree() and context.reduced_motion: _cancel_entry()
 	var overlay = get_node("%PauseOverlay")
 	overlay.theme = context.theme; overlay.color = context.styles.color("surface.modal_scrim")
 	var panel = get_node("%Frame")

@@ -17,6 +17,7 @@ if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('http_transport_
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('usability_navigation', 'usability_components', 'editor_tool_scenes', 'mvp_reference_base', 'mvp_reference_header', 'mvp_reference_piles', 'mvp_reference_battlefield', 'mvp_reference_energy_and_turn', 'mvp_reference_overlays', 'mvp_reference_full_composition', 'loadout_optional_sections', 'inscription_slot_layout') }
 $workspace = Split-Path $PSScriptRoot -Parent
 if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('card_transit_counter', 'shared_canvas_theme', 'combat_attributes_drawer') }
+if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests += @('ui_offset_motion') }
 if (-not $PSBoundParameters.ContainsKey('Tests')) {
     $Tests += @('run_screen_lifecycle', 'replay_lifecycle', 'activity_map_completion', 'map_auto_completion', 'map_completion_status', 'map_topology_refresh', 'map_camera_motion', 'first_combat_map_transition', 'art_effects', 'art_effect_lab', 'card_draw_pose', 'tactical_pieces')
 }

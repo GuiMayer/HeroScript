@@ -40,6 +40,7 @@ func _ready() -> void:
 	_entry_profile = AppTheme.profile
 	_gameplay_profile = preload("res://data/themes/ivory_run.tres")
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
+	get_tree().node_added.connect(_queue_button_affordance)
 	visual_context.set_scenery_profile(preload("res://data/themes/ivory_scenery.tres"))
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -490,6 +491,19 @@ func _rebuild_localized_screen() -> void:
 func _queue_focus_preparation(screen: Node) -> void:
 	_prepare_focus.call_deferred(weakref(screen))
 
+func _queue_button_affordance(node: Node) -> void:
+	if node is Button or (node is Label and node.name in [&"Round", &"EnergyIndicator"]):
+		_attach_button_affordance.call_deferred(weakref(node))
+
+func _attach_button_affordance(reference: WeakRef) -> void:
+	var control = reference.get_ref()
+	if not is_instance_valid(control) or not is_ancestor_of(control): return
+	if current_screen not in ["menu", "map", "activity", "dialogue", "combat", "settings"]: return
+	if control is Button:
+		preload("res://scripts/ui/button_affordance.gd").attach(control, visual_context)
+	elif current_screen == "combat" and control is Label:
+		preload("res://scripts/ui/counter_affordance.gd").attach(control, visual_context)
+
 func _prepare_focus(reference: WeakRef) -> void:
 	var screen = reference.get_ref()
 	if not is_instance_valid(screen) or not screen is Control: return
@@ -508,6 +522,7 @@ func _refresh_layout_navigation() -> void:
 
 
 func _exit_tree() -> void:
+	if get_tree() and get_tree().node_added.is_connected(_queue_button_affordance): get_tree().node_added.disconnect(_queue_button_affordance)
 	if GameSession.changed.is_connected(_on_session_changed): GameSession.changed.disconnect(_on_session_changed)
 	if Preferences.changed.is_connected(_apply_preferences): Preferences.changed.disconnect(_apply_preferences)
 	if I18n.locale_changed.is_connected(_on_locale_changed): I18n.locale_changed.disconnect(_on_locale_changed)
