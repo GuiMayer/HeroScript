@@ -27,7 +27,7 @@ static func _document(path: String) -> Dictionary:
 	if _documents.size() >= 8: _documents.erase(_documents.keys()[0])
 	_documents[path] = {"source": source, "document": document}
 	return document
-static func capture(setting: String, options: Dictionary, path := PATH):
+static func capture(setting: String, options: Dictionary, path := PATH, include_local_profile := true):
 	var policy = load("res://scripts/presentation/motion_policy.gd").new()
 	var document: Dictionary = _document(path)
 	policy._values = DEFAULTS.duplicate()
@@ -60,7 +60,7 @@ static func capture(setting: String, options: Dictionary, path := PATH):
 				if (value is float or value is int) and is_finite(float(value)):
 					clean[parameter] = clampf(float(value), 0.0, 12.0 if parameter == "tilt_degrees" else (.06 if parameter == "settle_scale" else .25))
 			policy._shapes[key] = clean
-	preload("res://scripts/presentation/card_animation_profile.gd").apply(policy)
+	if include_local_profile: preload("res://scripts/presentation/card_animation_profile.gd").apply(policy)
 	# A long explicitly applied lab cycle must not hit the old twelve-second
 	# watchdog. Keep the guard outside the animation's own active budget.
 	var longest := 0.0

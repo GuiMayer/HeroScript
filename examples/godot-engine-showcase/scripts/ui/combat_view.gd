@@ -805,6 +805,7 @@ func show_editor_preview() -> void:
 	var data = JSON.parse_string(FileAccess.get_file_as_string(preview_document))
 	if not data is Dictionary: return
 	var context = ContextType.new()
+	context.setting_id = "prototype-test"
 	var projection = Presenter.new(data.run, data.combat, [], context.translator, data.presentation, data.zones)
 	var zones = CardZonePresenter.new(data.zones, context.translator)
 	get_node(battlefield_path).embedded_artwork = true

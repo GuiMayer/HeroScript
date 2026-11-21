@@ -161,13 +161,17 @@ func run() -> void:
 	check(expected_card_size.is_equal_approx(Vector2(212, 300)), "baseline card size remains 212x300 at text_scale 1.0")
 	var expected_style_key: String = ctx_base.card_style.presentation_key()
 	var duration_keys := ["hover", "draw", "card_flight", "discard", "exile", "hand_transition", "staged_discard", "retain"]
-	var baseline_motion = preload("res://scripts/presentation/motion_policy.gd").capture("prototype-test", {"animation_speed": 1.0, "reduced_motion": false})
+	var policy_type = preload("res://scripts/presentation/motion_policy.gd")
+	var baseline_motion = policy_type.capture("prototype-test", {"animation_speed": 1.0, "reduced_motion": false})
 	var sampled_motion = ctx_base.capture_motion()
 	for d_key in duration_keys:
 		check(is_equal_approx(sampled_motion.duration(d_key, true), baseline_motion.duration(d_key, true)), "motion duration matches baseline for " + d_key)
-	# Stage 1's committed motion manifest specifies 0.5s for each phase.
-	check(is_equal_approx(baseline_motion.duration("card_flight", true) + baseline_motion.duration("staged_discard", true), 1.0), "default use cycle duration remains 1.0s")
-	check(is_equal_approx(baseline_motion.duration("card_flight", true) + baseline_motion.duration("retain", true), 1.0), "default retained cycle duration remains 1.0s")
+	# Campaign timing is intentionally shorter than the generic fallback.
+	# Ignore optional player lab overrides only when checking shipped defaults.
+	for setting in ["prototype-test", "alisyum"]:
+		var shipped_motion = policy_type.capture(setting, {}, policy_type.PATH, false)
+		check(is_equal_approx(shipped_motion.duration("card_flight", true) + shipped_motion.duration("staged_discard", true), .45), setting + " default use cycle remains 0.45s")
+		check(is_equal_approx(shipped_motion.duration("card_flight", true) + shipped_motion.duration("retain", true), .48), setting + " default retained cycle remains 0.48s")
 
 	# 3. Full matrix across resolutions (1920x1080, 1280x720, 1280x800, 2560x1080), locales (en, pt_BR),
 	#    text scales (1.0, 1.25), card counts (0, 1, 2, 5, 10, 12), actor teams (1v1, 2v2, 1v4), and long texts.
