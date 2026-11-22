@@ -22,7 +22,7 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 	_generation += 1
 	_snapshot = snapshot.duplicate(true); _choices = choices.duplicate(true)
 	_facts = facts.duplicate(true); _appearance = appearance.duplicate(true)
-	get_node("ItemScroll/Items/Title").text = context.translator.text("Modifier items")
+	get_node("ItemScroll/Items/Title").text = context.translator.text("RUNES")
 	get_node("ItemScroll/Items/Empty").text = context.translator.text("No modifier items owned.")
 	get_node("ItemScroll/Items/Empty").visible = _snapshot.get("items", []).is_empty()
 	var items = get_node("ItemScroll/Items/Entries")
@@ -47,6 +47,8 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 		var art = row.get_node("Art"); art.visual_context = context
 		art.setup("modifier_items", str(presentation.get("artId", id)))
 		var button: Button = row.get_node("Select")
+		button.icon = RuneDrag.icon(id)
+		button.expand_icon = true
 		button.text = context.translator.content_name(id, str(presentation.get("name", id)))
 		button.disabled = str(item.get("instance", {}).get("state", "")) != "Available"
 		button.tooltip_text = preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, context.translator)
@@ -63,7 +65,7 @@ func _start_drag(row: Control) -> Variant:
 	if str(item.get("instance", {}).get("state", "")) != "Available": return null
 	_select(item)
 	var button: Button = row.get_node("Select")
-	button.set_drag_preview(RuneDrag.preview(button.text, theme))
+	button.set_drag_preview(RuneDrag.preview(button.text, theme, str(item.get("definition", {}).get("itemDefinitionId", ""))))
 	return RuneDrag.payload(get_instance_id(), _generation, _snapshot, item)
 func _item_id(item: Dictionary) -> String:
 	return str(item.get("instance", {}).get("itemInstanceId", item.get("definition", {}).get("itemDefinitionId", "")))

@@ -81,6 +81,7 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 		offer.visible = i < _offers.size() and not _inventory_open
 		if i >= _offers.size(): continue
 		var model: Dictionary = presenter.offer(_offers[i])
+		offer.get_node("Column/Rune").texture = preload("res://scripts/ui/components/rune_drag.gd").icon(str(_offers[i].get("subjectId", "")))
 		offer.get_node("Column/Title").text = str(model.name)
 		offer.get_node("Column/Description").text = str(model.summary) if str(model.category) == "modifier_items" else t.text("Effect description unavailable. Inspect a compatible card before applying.")
 		offer.get_node("Column/Cost").text = (t.text("Cost: %s") % str(model.cost)) if not str(model.cost).is_empty() else t.text("Cost unavailable")

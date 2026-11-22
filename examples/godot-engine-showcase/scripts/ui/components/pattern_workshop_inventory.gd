@@ -49,7 +49,7 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 		var label: String = context.translator.content_name(id, str(definition.get("presentation", {}).get("name", id)))
 		var state := str(item.get("instance", {}).get("state", ""))
 		if state != "Available": label += " · " + context.translator.text("Applied" if state == "Bound" else "Unavailable")
-		var index := list.add_item(label, load("res://assets/ui/rune_token.svg") if ResourceLoader.exists("res://assets/ui/rune_token.svg") else null)
+		var index := list.add_item(label, RuneDrag.icon(id))
 		list.set_item_tooltip(index, preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, context.translator))
 	_item_index = -1; _page = 0; _reference = ""; selected_pattern_name = ""; selected_card_name = ""
 	_rebuild_cards()
@@ -62,7 +62,7 @@ func _start_drag(at: Vector2) -> Variant:
 	if str(item.get("instance", {}).get("state", "")) != "Available": return null
 	var old_page := _page
 	list.select(index); _select_item(index); _page = old_page; _render_cards()
-	list.set_drag_preview(RuneDrag.preview(selected_pattern_name, theme))
+	list.set_drag_preview(RuneDrag.preview(selected_pattern_name, theme, str(item.get("definition", {}).get("itemDefinitionId", ""))))
 	return RuneDrag.payload(get_instance_id(), _generation, _snapshot, item)
 
 func _accept_drag(index: int, data: Variant) -> bool:

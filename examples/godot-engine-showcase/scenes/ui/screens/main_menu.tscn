@@ -145,8 +145,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 metadata/font_role = "caption"
 metadata/text_role = "text.primary"
-text = "Discover runes, transform your deck and forge your own power."
-metadata/translation_key = "Discover runes, transform your deck and forge your own power."
+text = "Your choices shape the rules of every battle."
+metadata/translation_key = "Your choices shape the rules of every battle."
 theme_type_variation = &"Caption"
 autowrap_mode = 3
 

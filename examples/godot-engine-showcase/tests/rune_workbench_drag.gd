@@ -49,6 +49,26 @@ func _run() -> void:
 		move_mouse(dst, true); await frames(10); await capture("02-forge-dragging")
 		button_down(dst, false); await frames(10); await capture("03-forge-drop-selected")
 		check(captured.size() == 1, "dropping on card body emitted one advertised choice")
+		var dialog: ConfirmationDialog = preload("res://scenes/ui/overlays/transformation_confirmation.tscn").instantiate()
+		dialog.theme = context.theme; dialog.title = "Bind rune"; dialog.ok_button_text = "Engrave"; dialog.cancel_button_text = "Cancel"
+		root.add_child(dialog); var content := dialog.get_node("Content"); content.show()
+		content.get_node("Description").text = "Fragmentation  ◆  Strike\nA permanent binding · split one impact into three."
+		var after: Dictionary = fact.duplicate(true); after.effects[0].definition.repeat = 3
+		after.effects[0].definition.parameters = [{"parameter": "Amount", "distribution": {"sourceStageIds": ["origin"]}}]
+		after.permanentChanges = [{"transformationId": 1, "category": "Behavior", "upgradeId": "obor_overwrite_fragment"}]
+		for side in ["Before", "After"]:
+			var shown_card: CardView = content.get_node("Scroll/Comparison/" + side + "/Card")
+			shown_card.visual_context = context; shown_card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(context.translator, {}).project(fact if side == "Before" else after))
+		dialog.popup_centered_clamped(Vector2i(700, 680), .92); await frames(10); await capture("04-forge-comparison")
+		dialog.queue_free()
+		await frames(10)
+		var incompatible: CardView = workbench.get_node("CardsColumn/Cards/Slot2/Card")
+		var invalid_dst := incompatible.get_global_rect().get_center()
+		move_mouse(src); await frames(); button_down(src, true); await frames(); move_mouse(src + Vector2(25, 11), true); await frames(10)
+		check(root.gui_is_dragging(), "second native drag begins normally")
+		move_mouse(invalid_dst, true); await frames(10); await capture("05-forge-incompatible")
+		button_down(invalid_dst, false); await frames(10)
+		check(captured.size() == 1 and not root.gui_is_dragging(), "dropping on incompatible card cancels without a command")
 	else:
 		workbench._select_item(0); var payload := preload("res://scripts/ui/components/rune_drag.gd").payload(workbench.get_instance_id(), workbench._generation, workbench._snapshot, item)
 		check(workbench._accept_drag(0, payload) and not workbench._accept_drag(1, payload), "compatible target accepts identity and incompatible target rejects")
