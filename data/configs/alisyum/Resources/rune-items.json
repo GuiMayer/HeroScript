@@ -1,0 +1,42 @@
+{
+  "obor_overwrite_ember_item": {
+    "itemDefinitionId": "obor_overwrite_ember_item",
+    "upgradeId": "obor_overwrite_ember",
+    "use": "Bind",
+    "presentation": {
+      "name": "Brasa",
+      "description": "Inscreve a consequência de Fogo: aplica 3 Queimadura após os impactos.",
+      "artId": "burn"
+    }
+  },
+  "obor_overwrite_frost_item": {
+    "itemDefinitionId": "obor_overwrite_frost_item",
+    "upgradeId": "obor_overwrite_frost",
+    "use": "Bind",
+    "presentation": {
+      "name": "Geada",
+      "description": "Inscreve a consequência de Gelo: aplica 3 Geada após os impactos.",
+      "artId": "ice"
+    }
+  },
+  "obor_overwrite_frost_magma_item": {
+    "itemDefinitionId": "obor_overwrite_frost_magma_item",
+    "upgradeId": "obor_overwrite_frost_magma",
+    "use": "Bind",
+    "presentation": {
+      "name": "Geada Reescrita",
+      "description": "Substitui Queimadura por Geada. Preserva dano de Fogo e Calor.",
+      "artId": "ice"
+    }
+  },
+  "obor_overwrite_fragment_item": {
+    "itemDefinitionId": "obor_overwrite_fragment_item",
+    "upgradeId": "obor_overwrite_fragment",
+    "use": "Bind",
+    "presentation": {
+      "name": "Fragmentação",
+      "description": "Substitui o golpe único por três parcelas do mesmo orçamento de dano.",
+      "artId": "flurry"
+    }
+  }
+}

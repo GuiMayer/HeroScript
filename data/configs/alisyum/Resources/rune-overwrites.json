@@ -1,0 +1,155 @@
+{
+  "obor_overwrite_ember": {
+    "upgradeId": "obor_overwrite_ember",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "alisyum_basic_strike"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "rune.affinity",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "rune.affinity",
+          "order": 30,
+          "effect": {
+            "effectId": "rune.fire",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_burn",
+            "statusStacks": 3,
+            "statusDuration": 3,
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "tags": [
+              "status",
+              "residual",
+              "fire"
+            ],
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 3
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "obor_overwrite_frost": {
+    "upgradeId": "obor_overwrite_frost",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "alisyum_basic_strike"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "rune.affinity",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "rune.affinity",
+          "order": 30,
+          "effect": {
+            "effectId": "rune.ice",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_frostbite",
+            "statusStacks": 3,
+            "statusDuration": 3,
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "tags": [
+              "status",
+              "residual",
+              "ice"
+            ],
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 3
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "obor_overwrite_frost_magma": {
+    "upgradeId": "obor_overwrite_frost_magma",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "pyro_magma_slash"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "burn",
+        "operation": "Replace",
+        "component": {
+          "type": "effect",
+          "componentId": "burn",
+          "order": 30,
+          "effect": {
+            "effectId": "rune.ice",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "alisyum_frostbite",
+            "statusStacks": 3,
+            "statusDuration": 3,
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "tags": [
+              "status",
+              "residual",
+              "ice"
+            ],
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 3
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "obor_overwrite_fragment": {
+    "upgradeId": "obor_overwrite_fragment",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "alisyum_basic_strike"
+    ],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "main",
+        "attribute": "Repeat",
+        "operation": "Set",
+        "value": 3
+      },
+      {
+        "type": "tags",
+        "add": [
+          "multihit"
+        ]
+      }
+    ]
+  }
+}

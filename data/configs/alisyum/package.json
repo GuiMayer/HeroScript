@@ -118,6 +118,20 @@
     {
       "schemaVersion": 1,
       "operation": "definition",
+      "kind": "card-upgrades",
+      "sourcePath": "Resources/rune-overwrites.json",
+      "artifactPath": "card-upgrades/alisyum-runes.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "kind": "card-modifier-items",
+      "sourcePath": "Resources/rune-items.json",
+      "artifactPath": "card-modifier-items/alisyum-runes.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
       "kind": "card-modifier-items",
       "sourcePath": "Resources/card-modifier-items.json",
       "artifactPath": "card-modifier-items/alisyum.json"
