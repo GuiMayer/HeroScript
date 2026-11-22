@@ -220,10 +220,35 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_0",
           "chapter_scout"
         ],
         "metadata": {
           "displayName": "Calibration route"
+        }
+      },
+      {
+        "nodeId": "chapter_rune_0",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "prototype_split_item",
+              "prototype_rune_ember_item",
+              "prototype_rune_wet_item",
+              "prototype_rune_resonance_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "chapter_scout"
+        ],
+        "metadata": {
+          "displayName": "First engraving",
+          "description": "Choose a rune and drag it onto a card before the first encounter."
         }
       },
       {
@@ -307,7 +332,10 @@
             "modifierItemIds": [
               "prototype_split_item",
               "prototype_ward_link_item",
-              "prototype_stable_item"
+              "prototype_stable_item",
+              "prototype_rune_ember_item",
+              "prototype_rune_wet_item",
+              "prototype_rune_resonance_item"
             ],
             "allowRemoval": false,
             "allowReplacement": false,
@@ -419,7 +447,10 @@
             "modifierItemIds": [
               "prototype_split_item",
               "prototype_ward_link_item",
-              "prototype_stable_item"
+              "prototype_stable_item",
+              "prototype_rune_ember_item",
+              "prototype_rune_wet_item",
+              "prototype_rune_resonance_item"
             ],
             "allowRemoval": false,
             "allowReplacement": false,

@@ -1,4 +1,177 @@
 {
+  "prototype_rune_ember": {
+    "upgradeId": "prototype_rune_ember",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "prototype_strike"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "rune.affinity",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "rune.affinity",
+          "order": 30,
+          "effect": {
+            "effectId": "prototype.rune.ember",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "prototype_burn",
+            "statusStacks": 2,
+            "statusDuration": 3,
+            "tags": [
+              "status",
+              "residual",
+              "fire"
+            ],
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 2
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "prototype_rune_wet": {
+    "upgradeId": "prototype_rune_wet",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "prototype_scorch"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "secondary1",
+        "operation": "Replace",
+        "component": {
+          "type": "effect",
+          "componentId": "secondary1",
+          "order": 30,
+          "effect": {
+            "effectId": "prototype.rune.wet",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "prototype_wet",
+            "statusStacks": 1,
+            "statusDuration": 2,
+            "tags": [
+              "status",
+              "water"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "prototype_rune_resonance": {
+    "upgradeId": "prototype_rune_resonance",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "prototype_guard"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "rune.resonance",
+        "operation": "Add",
+        "component": {
+          "type": "response",
+          "componentId": "rune.resonance",
+          "order": 55,
+          "response": {
+            "schemaVersion": 1,
+            "responseId": "prototype.rune.resonance",
+            "observe": {
+              "kinds": {
+                "include": [
+                  "status.applied",
+                  "status.reapplied"
+                ]
+              },
+              "source": {
+                "matchesOwner": true
+              },
+              "subject": {
+                "relationshipToOwner": "Enemy"
+              },
+              "requiredTags": [
+                "residual"
+              ]
+            },
+            "bindings": {
+              "owner": {
+                "kind": "ObserverOwner"
+              },
+              "source": {
+                "kind": "Owner"
+              },
+              "target": {
+                "kind": "Owner"
+              },
+              "missing": "Skip"
+            },
+            "availability": {
+              "snapshot": "AfterOccurrence",
+              "kind": "CardZones",
+              "zoneIds": [
+                "hand"
+              ],
+              "requireLivingOwner": true,
+              "revalidateOwner": true,
+              "requireRegistrationStillActive": true
+            },
+            "frequency": {
+              "scope": "RootAction",
+              "maximum": 1
+            },
+            "propagation": "RecordOnly",
+            "effects": [
+              {
+                "effectId": "prototype.rune.resonance.block",
+                "type": "MODIFY_RESOURCE",
+                "target": "SELF",
+                "targetResource": "block",
+                "operation": "ADD",
+                "calculationPipelineId": "prototype_direct_amount",
+                "parameters": [
+                  {
+                    "parameter": "Amount",
+                    "flatValue": 2,
+                    "unitId": "points",
+                    "channel": "effect_amount",
+                    "pipelineId": "prototype_direct_amount"
+                  }
+                ],
+                "tags": [
+                  "block",
+                  "defense",
+                  "divine",
+                  "rune.resonance"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
   "prototype_split": {
     "upgradeId": "prototype_split",
     "category": "Behavior",

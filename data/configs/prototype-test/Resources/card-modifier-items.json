@@ -1,4 +1,34 @@
 {
+  "prototype_rune_ember_item": {
+    "itemDefinitionId": "prototype_rune_ember_item",
+    "upgradeId": "prototype_rune_ember",
+    "use": "Bind",
+    "presentation": {
+      "name": "Ember rune",
+      "description": "Inscribe a residual fire consequence: apply 2 Burn after the main sequence.",
+      "artId": "burn"
+    }
+  },
+  "prototype_rune_wet_item": {
+    "itemDefinitionId": "prototype_rune_wet_item",
+    "upgradeId": "prototype_rune_wet",
+    "use": "Bind",
+    "presentation": {
+      "name": "Tidal rewrite",
+      "description": "Replace the original Burn consequence with Wet. Preserve the direct attack.",
+      "artId": "water"
+    }
+  },
+  "prototype_rune_resonance_item": {
+    "itemDefinitionId": "prototype_rune_resonance_item",
+    "upgradeId": "prototype_rune_resonance",
+    "use": "Bind",
+    "presentation": {
+      "name": "Resonance rune",
+      "description": "While held, applying a residual to an enemy grants 2 Block once per action.",
+      "artId": "guard"
+    }
+  },
   "prototype_split_item": {
     "itemDefinitionId": "prototype_split_item",
     "upgradeId": "prototype_split",

@@ -92,6 +92,7 @@
     "category": "Behavior",
     "slotId": "behavior",
     "maxApplications": 1,
+    "requirements": { "requiredCapabilities": ["rune.residual.rupture"] },
     "cardDefinitionIds": [
       "pyro_magma_slash"
     ],
@@ -104,6 +105,7 @@
           "type": "effect",
           "componentId": "burn",
           "order": 30,
+          "capabilityIds": ["rune.residual.rupture"],
           "effect": {
             "effectId": "obor.rupture",
             "type": "CONDENSE_STACKS",
@@ -221,8 +223,16 @@
                 "target": "SELF",
                 "targetResource": "block",
                 "operation": "ADD",
-                "flatValue": 2,
                 "calculationPipelineId": "alisyum_direct_amount",
+                "parameters": [
+                  {
+                    "parameter": "Amount",
+                    "flatValue": 2,
+                    "unitId": "points",
+                    "channel": "effect_amount",
+                    "pipelineId": "alisyum_direct_amount"
+                  }
+                ],
                 "tags": [
                   "block",
                   "defense",
@@ -326,6 +336,7 @@
     "category": "Affinity",
     "slotId": "affinity",
     "maxApplications": 1,
+    "requirements": { "requiredCapabilities": ["rune.residual.frost"] },
     "cardDefinitionIds": [
       "pyro_magma_slash"
     ],
@@ -338,6 +349,7 @@
           "type": "effect",
           "componentId": "burn",
           "order": 30,
+          "capabilityIds": ["rune.residual.frost"],
           "effect": {
             "effectId": "rune.ice",
             "type": "APPLY_STATUS",

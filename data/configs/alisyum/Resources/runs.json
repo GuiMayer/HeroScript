@@ -744,8 +744,8 @@
               "obor_overwrite_resonance_item",
               "obor_overwrite_catalyst_item",
               "obor_overwrite_overflow_item",
-              "obor_overwrite_rupture_item",
-              "obor_overwrite_frost_magma_item"
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item"
             ],
             "costs": []
           }
@@ -1335,8 +1335,8 @@
               "obor_overwrite_resonance_item",
               "obor_overwrite_catalyst_item",
               "obor_overwrite_overflow_item",
-              "obor_overwrite_rupture_item",
-              "obor_overwrite_frost_magma_item"
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item"
             ],
             "costs": []
           }
@@ -1925,8 +1925,8 @@
               "obor_overwrite_resonance_item",
               "obor_overwrite_catalyst_item",
               "obor_overwrite_overflow_item",
-              "obor_overwrite_rupture_item",
-              "obor_overwrite_frost_magma_item"
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item"
             ],
             "costs": []
           }

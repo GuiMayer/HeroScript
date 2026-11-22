@@ -6,5 +6,9 @@
   "obor_overwrite_rupture": {"name": "Ruptura", "english": "Rupture", "symbol": "✦"},
   "obor_overwrite_overflow": {"name": "Transbordo", "english": "Overflow", "symbol": "↗"},
   "obor_overwrite_resonance": {"name": "Ressonância", "english": "Resonance", "symbol": "◇"},
-  "obor_overwrite_catalyst": {"name": "Catalisador", "english": "Catalyst", "symbol": "✧"}
+  "obor_overwrite_catalyst": {"name": "Catalisador", "english": "Catalyst", "symbol": "✧"},
+  "prototype_rune_ember": {"name": "Brasa", "english": "Ember", "symbol": "◆"},
+  "prototype_rune_wet": {"name": "Maré", "english": "Tidal rewrite", "symbol": "≈"},
+  "prototype_rune_resonance": {"name": "Ressonância", "english": "Resonance", "symbol": "◇"},
+  "prototype_split": {"name": "Fragmentação", "english": "Fragment", "symbol": "⋔"}
 }
