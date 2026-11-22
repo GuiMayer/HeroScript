@@ -36,7 +36,7 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 			target.pressed.connect(func(): _select_card(_page * 8 + slot_index))
 			target.set_drag_forwarding(Callable(), func(_at, data): return _accept_drag(_page * 8 + slot_index, data), func(_at, data): _drop_rune(_page * 8 + slot_index, data))
 		_bound = true
-	get_node("ItemsColumn/Title").text = context.translator.text("Modifier items")
+	get_node("ItemsColumn/Title").text = context.translator.text("RUNES")
 	get_node("CardsColumn/Title").text = context.translator.text("Your cards")
 	get_node("CardsColumn/Preview").text = context.translator.text("Compare and apply")
 	get_node("CardsColumn/Paging/Previous").text = context.translator.text("Previous")
@@ -110,6 +110,7 @@ func _render_cards() -> void:
 		if not slot.visible: continue
 		var row: Dictionary = _rows[index]
 		var card = slot.get_node("Card"); card.visual_context = _context; card.configure(row.model)
+		RuneDrag.highlight(card, _item_index >= 0 and row.valid and _editable)
 		card.modulate = Color(0.55, 0.55, 0.55, 1) if _item_index >= 0 and not row.valid else Color.WHITE
 		card.tooltip_text = _reason_text(str(row.reason)) if _item_index >= 0 and not row.valid else str(row.model.get("name", ""))
 		slot.get_node("Status").text = _context.translator.text("Unavailable — click for reason") if _item_index >= 0 and not row.valid else ""

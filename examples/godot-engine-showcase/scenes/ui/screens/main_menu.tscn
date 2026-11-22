@@ -1,5 +1,6 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 [ext_resource type="Script" path="res://scripts/ui/main_menu_view.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/rune_token.svg" id="Rune"]
 [sub_resource type="StyleBoxLine" id="Divider"]
 resource_local_to_scene = true
 color = Color(0.6,0.6,0.6,1)
@@ -84,8 +85,17 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 metadata/font_role = "caption"
 metadata/text_role = "accent.warm"
-text = "A DATA-DRIVEN SHOWCASE"
-metadata/translation_key = "A DATA-DRIVEN SHOWCASE"
+text = "THE ART OF THE IMPOSSIBLE"
+metadata/translation_key = "THE ART OF THE IMPOSSIBLE"
+
+[node name="JourneySigil" type="TextureRect" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
+layout_mode = 2
+custom_minimum_size = Vector2(84, 84)
+size_flags_horizontal = 0
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("Rune")
+mouse_filter = 2
 
 [node name="SettingTitle" type="Label" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
 unique_name_in_owner = true
@@ -118,8 +128,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 metadata/font_role = "caption"
 metadata/text_role = "text.primary"
-text = "GAME SETTING"
-metadata/translation_key = "GAME SETTING"
+text = "CHOOSE YOUR JOURNEY"
+metadata/translation_key = "CHOOSE YOUR JOURNEY"
 
 [node name="SettingSelector" type="OptionButton" parent="MenuComposition/MenuScroll/Center/MenuBody/JourneyColumn"]
 unique_name_in_owner = true
@@ -135,8 +145,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 metadata/font_role = "caption"
 metadata/text_role = "text.primary"
-text = "A setting swaps the complete rules and content package used by a new journey."
-metadata/translation_key = "A setting swaps the complete rules and content package used by a new journey."
+text = "Discover runes, transform your deck and forge your own power."
+metadata/translation_key = "Discover runes, transform your deck and forge your own power."
 theme_type_variation = &"Caption"
 autowrap_mode = 3
 
@@ -312,8 +322,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 metadata/font_role = "caption"
 metadata/text_role = "text.primary"
-text = "HeroScript decides  •  REST connects  •  Godot presents"
-metadata/translation_key = "HeroScript decides  •  REST connects  •  Godot presents"
+text = "EVERY CARD CAN BECOME SOMETHING DIFFERENT"
+metadata/translation_key = "EVERY CARD CAN BECOME SOMETHING DIFFERENT"
 theme_type_variation = &"Caption"
 autowrap_mode = 0
 size_flags_vertical = 8

@@ -1,7 +1,20 @@
 [gd_scene format=3]
+[ext_resource type="Texture2D" path="res://assets/ui/rune_token.svg" id="Rune"]
+[sub_resource type="StyleBoxFlat" id="ForgeOffer"]
+bg_color = Color(0.97,0.95,0.91,1)
+border_width_left = 1
+border_width_right = 1
+border_width_top = 3
+border_width_bottom = 1
+border_color = Color(0.69,0.45,0.25,1)
+content_margin_left = 16.0
+content_margin_right = 16.0
+content_margin_top = 16.0
+content_margin_bottom = 16.0
 [node name="PatternOffer" type="PanelContainer"]
 custom_minimum_size = Vector2(240, 0)
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("ForgeOffer")
 [node name="Column" type="VBoxContainer" parent="."]
 layout_mode = 2
 theme_override_constants/separation = 10
@@ -9,6 +22,13 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
 autowrap_mode = 3
+[node name="Rune" type="TextureRect" parent="Column"]
+custom_minimum_size = Vector2(0,80)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("Rune")
+mouse_filter = 2
 [node name="Description" type="Label" parent="Column"]
 layout_mode = 2
 size_flags_vertical = 3

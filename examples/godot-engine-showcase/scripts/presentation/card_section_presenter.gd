@@ -83,6 +83,7 @@ func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary
 	var target := _target_text(effect)
 	var template := ""
 	var parameter := "Amount"
+	var shared_amount: bool = int(effect.get("repeat", 1)) > 1 and effect.get("parameters", []).any(func(item): return str(item.get("parameter", "")) == "Amount" and item.get("distribution") is Dictionary)
 	match type:
 		"DAMAGE": template = "Reduce {value} {resource} on {target}."
 		"HEAL": template = "Restore {value} {resource} on {target}."
@@ -116,8 +117,11 @@ func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary
 			_add_unique(behaviors, _i18n.text("Condense"))
 		_: rows.append(_plain(_i18n.text("Configured effect — inspect for details")))
 	if not template.is_empty():
+		if shared_amount and parameter == "Amount":
+			if type == "DAMAGE": template = "Reduce {value} total {resource} across {repeat} impacts on {target}."
+			elif type == "HEAL": template = "Restore {value} total {resource} across {repeat} impacts on {target}."
 		var value := _numeric(effect, component_id, parameter, original, inspection, depth == 0)
-		var formatted: String = _i18n.text(template).replace("{resource}", resource).replace("{target}", target)
+		var formatted: String = _i18n.text(template).replace("{resource}", resource).replace("{target}", target).replace("{repeat}", str(effect.get("repeat", 1)))
 		var parts: PackedStringArray = formatted.split("{value}", true, 1)
 		var segment := {"text": str(value.get("text", "—"))}
 		if value.has("value"): segment.merge(value)
@@ -127,7 +131,7 @@ func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary
 		rows.append(_plain(_i18n.text(str(effect.get("metadata", {}).get("conditionText", "Conditional effect — inspect for details")))))
 	if float(effect.get("chance", 1.0)) < 1.0:
 		rows.append(_plain(_i18n.text("Chance: %s%%") % _i18n.number(float(effect.chance) * 100)))
-	if int(effect.get("repeat", 1)) > 1: _add_unique(behaviors, _i18n.text("Repeat: %s") % int(effect.repeat))
+	if int(effect.get("repeat", 1)) > 1 and not shared_amount: _add_unique(behaviors, _i18n.text("Repeat: %s") % int(effect.repeat))
 	for numeric in effect.get("parameters", []):
 		if numeric.get("distribution") is Dictionary: _add_unique(behaviors, _i18n.text("Shared sequence budget"))
 	if effect.get("continuation") is Dictionary:

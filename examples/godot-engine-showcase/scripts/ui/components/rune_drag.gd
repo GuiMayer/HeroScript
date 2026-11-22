@@ -16,3 +16,12 @@ static func preview(title: String, theme: Theme) -> Control:
 	label.add_theme_color_override("font_color", Color("f9e6c5")); label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
 	return panel
+
+static func highlight(card: Control, enabled: bool) -> void:
+	var outline := card.get_node_or_null("RuneDropOutline") as Panel
+	if outline == null:
+		outline = Panel.new(); outline.name = "RuneDropOutline"; outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(outline); outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var style := StyleBoxFlat.new(); style.bg_color = Color.TRANSPARENT; style.border_color = Color("b78342"); style.set_border_width_all(3)
+		outline.add_theme_stylebox_override("panel", style)
+	outline.visible = enabled

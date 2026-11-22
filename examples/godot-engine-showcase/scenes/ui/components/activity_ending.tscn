@@ -2,12 +2,12 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yalmq"]
 content_margin_left = 14.0
-content_margin_top = 12.0
+content_margin_top = 28.0
 content_margin_right = 14.0
-content_margin_bottom = 12.0
+content_margin_bottom = 28.0
 bg_color = Color(1, 1, 1, 1)
 border_width_left = 1
-border_width_top = 1
+border_width_top = 4
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.83137256, 0.84705883, 0.8666667, 1)
@@ -16,7 +16,7 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 metadata/background_role = "surface.panel"
-metadata/border_role = "stroke.disabled"
+metadata/border_role = "accent.warm"
 
 [node name="ActivityEnding" type="CenterContainer"]
 size_flags_vertical = 3
@@ -28,6 +28,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_yalmq")
 [node name="Content" type="VBoxContainer" parent="Panel"]
 custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Panel/Content"]
 layout_mode = 2
@@ -61,7 +62,7 @@ text = "VERIFY INTEGRITY"
 [node name="NewJourney" type="Button" parent="Panel/Content"]
 custom_minimum_size = Vector2(420, 48)
 layout_mode = 2
-theme_type_variation = &"SecondaryAction"
+theme_type_variation = &"PrimaryAction"
 text = "NEW JOURNEY"
 
 [node name="MainMenu" type="Button" parent="Panel/Content"]

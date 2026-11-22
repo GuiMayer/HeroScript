@@ -8,19 +8,20 @@ content_margin_bottom = 12.0
 bg_color = Color(1,1,1,1)
 border_width_left = 1
 border_width_right = 1
-border_width_top = 1
+border_width_top = 3
 border_width_bottom = 1
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_left = 2
 corner_radius_bottom_right = 2
 metadata/background_role = "surface.panel"
-metadata/border_role = "stroke.panel"
+metadata/border_role = "accent.warm"
 [node name="GenericOffer" type="PanelContainer"]
 theme_override_styles/panel = SubResource("Panel")
 [node name="Content" type="VBoxContainer" parent="."]
 layout_mode = 2
 custom_minimum_size = Vector2(236,0)
+theme_override_constants/separation = 10
 [node name="Art" type="TextureRect" parent="Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0,100)
@@ -50,6 +51,6 @@ autowrap_mode = 3
 [node name="Choose" type="Button" parent="Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0,48)
-theme_type_variation = &"SecondaryAction"
+theme_type_variation = &"PrimaryAction"
 autowrap_mode = 3
 metadata/activity_choice = true

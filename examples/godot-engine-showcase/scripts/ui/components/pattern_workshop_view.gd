@@ -55,7 +55,10 @@ func present(run: Dictionary, choices: Array, projection, visual_context, item_s
 		get_node("LeaveConfirm").hide()
 		get_node("Compare").hide()
 	_run = run.duplicate(true); _choices = choices.duplicate(true)
+	var was_completed := _completed
 	_completed = str(_run.get("currentNodeId", "")) in _run.get("completedActivityNodeIds", [])
+	if _completed and not was_completed and item_snapshot.get("items", []).any(func(entry): return str(entry.get("instance", {}).get("state", "")) == "Available"):
+		_inventory_open = true
 	_offers = _choices.filter(func(choice): return str(choice.get("type", "")) == "ACQUIRE_CARD_MODIFIER_ITEM")
 	if _selected >= _offers.size(): _selected = -1
 	var t = context.translator
@@ -131,7 +134,7 @@ func _refresh_offers() -> void:
 			if not pool is Dictionary or not pool.has("current"): balance_known = false; continue
 			if float(pool.current) < float(cost.get("amount", 0)): can_afford = false
 		var model: Dictionary = presenter.offer(_offers[i])
-		var cost_text: String = (context.translator.text("Cost: %s") % str(model.cost)) if not str(model.cost).is_empty() else context.translator.text("Cost unavailable")
+		var cost_text: String = (context.translator.text("Cost: %s") % str(model.cost)) if not str(model.cost).is_empty() else context.translator.text("Free" if price_known and costs.is_empty() else "Cost unavailable")
 		if price_known and balance_known and not can_afford: cost_text += " · " + context.translator.text("Insufficient resources")
 		elif price_known and not balance_known: cost_text += " · " + context.translator.text("Balance unavailable; affordability cannot be verified.")
 		offer.get_node("Column/Cost").text = cost_text

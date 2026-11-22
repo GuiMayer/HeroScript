@@ -50,6 +50,10 @@ func apply_model(data: Dictionary) -> void:
 		"connecting": "●  CONNECTING"}
 	var status_key: String = phase_keys.get(str(model.get("serverPhase", "connecting")), "●  CONNECTING") if model.get("connecting", false) else ("●  ENGINE ONLINE" if model.available else "●  ENGINE OFFLINE")
 	status.text = i18n.text(status_key)
+	var campaign := str(model.get("selectedSettingId", "")) in ["prototype-test", "alisyum"]
+	status.visible = not campaign or not model.available or model.get("connecting", false)
+	get_node("%RulesLabButton").visible = not campaign
+	get_node("%LoadoutLabButton").visible = not campaign
 	status.add_theme_color_override("font_color",visual_context.styles.TEAL if model.available else visual_context.styles.GOLD)
 	status.set_meta("text_role","accent.positive" if model.available else "accent.primary")
 	var title = get_node("%SettingTitle")
@@ -58,7 +62,7 @@ func apply_model(data: Dictionary) -> void:
 		title.add_theme_font_size_override("font_size",visual_style.title_size)
 		if title.has_meta("base_font_size"): title.remove_meta("base_font_size")
 		if title.has_meta("visual_preferences_revision"): title.remove_meta("visual_preferences_revision")
-	get_node("%SettingDescription").text = str(model.description)
+	get_node("%SettingDescription").text = i18n.text("Discover runes, transform your deck and forge your own power.") if campaign else str(model.description)
 	var key := JSON.stringify(model.settings.map(func(item): return item.get("settingId","")))
 	if key != _settings_key:
 		setting_selector.get_popup().hide()
@@ -73,6 +77,8 @@ func apply_model(data: Dictionary) -> void:
 	setting_selector.disabled = not model.available or setting_selector.item_count < 2
 	get_node("%NewJourneyButton").disabled = bool(model.get("connecting",false))
 	continue_button.disabled = true
+	continue_button.theme_type_variation = &"SecondaryAction"
+	get_node("%NewJourneyButton").theme_type_variation = &"PrimaryAction"
 	continue_button.tooltip_text = i18n.text("Continue the selected setting's journey.")
 	get_node("%ResumeSummary").hide()
 	get_node("%ReconnectButton").visible = model.pending or not model.available
@@ -93,6 +99,8 @@ func show_resume_summary(summary: Dictionary) -> void:
 	var label: Label = get_node("%ResumeSummary")
 	label.text = t.text("Saved journey · %s") % " · ".join(detail)
 	label.show()
+	continue_button.theme_type_variation = &"PrimaryAction"
+	get_node("%NewJourneyButton").theme_type_variation = &"SecondaryAction"
 	continue_button.tooltip_text = label.text
 
 func _layout() -> void:
@@ -113,5 +121,5 @@ func apply_visual_profile(_profile) -> void:
 	if not Engine.is_editor_hint(): visual_context.styles.apply_view_preferences(self)
 	for divider in find_children("*", "HSeparator", true, false):
 		var line: StyleBoxLine = divider.get_theme_stylebox("separator").duplicate()
-		line.color = visual_context.profile.color("stroke.control")
+		line.color = visual_context.styles.EMBER
 		divider.add_theme_stylebox_override("separator", line)

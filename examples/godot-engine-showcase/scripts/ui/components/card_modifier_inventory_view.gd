@@ -94,6 +94,7 @@ func _select(item: Dictionary) -> void:
 				if generation == _generation and RuneDrag.matches(data, get_instance_id(), _generation, _snapshot, item): choice_requested.emit(reference))
 		else: card.disabled = true
 		column.add_child(card); column.move_child(card, 0)
+		RuneDrag.highlight(card, not card.disabled)
 		if compatibility.get("reason") != null:
 			column.get_node("Reason").text = _context.translator.text(str(compatibility.reason)); column.get_node("Reason").show()
 		_targets.get_node("Selection/Cards").add_child(column)
