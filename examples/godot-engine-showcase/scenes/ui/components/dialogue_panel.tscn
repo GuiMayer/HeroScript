@@ -31,7 +31,7 @@ layout_mode = 2
 size_flags_vertical = 0
 
 [node name="Portrait" type="TextureRect" parent="Stage" unique_id=852526122]
-custom_minimum_size = Vector2(160, 150)
+custom_minimum_size = Vector2(104, 92)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
@@ -88,9 +88,10 @@ theme_type_variation = &"SecondaryAction"
 text = "Next page · 1/1"
 
 [node name="ChoiceScroll" type="ScrollContainer" parent="." unique_id=153915828]
-custom_minimum_size = Vector2(0, 150)
+custom_minimum_size = Vector2(0, 96)
 layout_mode = 2
 horizontal_scroll_mode = 0
+follow_focus = true
 
 [node name="Choices" type="VBoxContainer" parent="ChoiceScroll" unique_id=850922722]
 layout_mode = 2

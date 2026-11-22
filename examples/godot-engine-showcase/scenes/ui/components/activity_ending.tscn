@@ -2,9 +2,9 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yalmq"]
 content_margin_left = 14.0
-content_margin_top = 28.0
+content_margin_top = 16.0
 content_margin_right = 14.0
-content_margin_bottom = 28.0
+content_margin_bottom = 16.0
 bg_color = Color(1, 1, 1, 1)
 border_width_left = 1
 border_width_top = 4
@@ -28,7 +28,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_yalmq")
 [node name="Content" type="VBoxContainer" parent="Panel"]
 custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="Panel/Content"]
 layout_mode = 2
@@ -36,6 +36,7 @@ theme_type_variation = &"ScreenTitle"
 theme_override_colors/font_color = Color(0.72156864, 0.24313726, 0.14509805, 1)
 theme_override_font_sizes/font_size = 40
 text = "ARCHIVE COMPLETE"
+autowrap_mode = 3
 metadata/font_role = "screen_title"
 metadata/text_role = "accent.primary"
 

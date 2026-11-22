@@ -59,6 +59,9 @@ func apply_context(context) -> void:
 	if panel.has_meta("visual_preferences_revision"): panel.remove_meta("visual_preferences_revision")
 	for node in find_children("*","Control",true,false):
 		if node.has_meta("translation_key"): node.text = context.translator.text(str(node.get_meta("translation_key")))
+		if node is Button:
+			node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			node.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	# Do not serialize runtime preference-cache metadata into authored editor nodes.
 	if not Engine.is_editor_hint(): context.styles.apply_view_preferences(overlay,context.text_scale,context.high_contrast)
 func _emit(action: String) -> void: intent_requested.emit(action)

@@ -41,6 +41,8 @@ func apply_model(data: Dictionary) -> void:
 	for control in find_children("*","Control",true,false):
 		if control.has_meta("translation_key"): control.text = i18n.text(str(control.get_meta("translation_key")))
 		if control is Button and control.has_meta("action"):
+			control.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			control.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 			if use_profile_metrics and visual_style != null:
 				control.custom_minimum_size.y = visual_style.link_height if control.get_meta("menu_link",false) else visual_style.action_height
 			control.tooltip_text = control.text
@@ -106,12 +108,17 @@ func show_resume_summary(summary: Dictionary) -> void:
 func _layout() -> void:
 	if not is_instance_valid(_scroll) or not use_profile_metrics or visual_style == null: return
 	var width := maxf(visual_style.minimum_scroll_width, _scroll.size.x - visual_style.scroll_padding)
-	var compact: bool = width < visual_style.compact_width
+	var scale: float = visual_context.text_scale if visual_context != null else 1.0
+	var compact: bool = width < visual_style.compact_width * maxf(1.0, scale / 1.2)
 	_body.vertical = compact
 	_body.custom_minimum_size.x = minf(width, visual_style.content_width)
 	_body.add_theme_constant_override("separation", visual_style.compact_gap if compact else visual_style.column_gap)
 	_hero.custom_minimum_size.x = minf(visual_style.hero_min_width, width) if compact else visual_style.hero_min_width
-	_navigation.custom_minimum_size.x = minf(visual_style.navigation_width, width)
+	_navigation.custom_minimum_size.x = minf(visual_style.navigation_width * maxf(1.0, scale), width)
+	_hero.get_node("JourneySigil").visible = not compact
+	_hero.get_node("SettingHint").visible = not compact
+	_hero.get_node("Eyebrow").visible = not compact
+	get_node("%Launch").add_theme_constant_override("separation", 8 if compact else 12)
 
 func apply_visual_profile(_profile) -> void:
 	theme = visual_context.theme
