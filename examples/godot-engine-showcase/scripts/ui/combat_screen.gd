@@ -40,6 +40,9 @@ var _motion_zones: Array = []
 var _pile_anchors: Dictionary = {}
 var _zone_roles: Dictionary = {}
 var _burn_noise: Texture2D
+var _rune_chain: CanvasLayer
+var _rune_labels: Array[String] = []
+var _rune_ticket := 0
 var selected_card: String:
 	get: return controller.state.selected_card if controller else ""
 var selected_target: String:
@@ -63,6 +66,8 @@ func setup(owner, data: Dictionary) -> void:
 	presentation_driver.changed.connect(_update_controls)
 	add_child(presentation_driver)
 	view = get_node("CombatView")
+	_rune_chain = preload("res://scenes/ui/overlays/rune_chain_banner.tscn").instantiate()
+	add_child(_rune_chain)
 	view.scenery = screen_context.navigation.acquire_combat_scenery()
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	view.intent_requested.connect(_on_intent)
@@ -260,6 +265,18 @@ func _toggle_character_sidebar() -> void: view.toggle_character_sidebar()
 func replace_composition(scene: PackedScene, profile: Resource) -> void: view.replace_composition(scene, profile)
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	if _active_motion != null: visual_context.motion = _active_motion
+	if not is_instance_valid(_rune_chain): return
+	if index == 0: _rune_labels.clear(); _rune_chain.get_node("Anchor/Panel").hide()
+	var cues := preload("res://scripts/presentation/rune_chain_presenter.gd").cues(frame, visual_context.translator)
+	if cues.is_empty(): return
+	for cue in cues:
+		if cue not in _rune_labels: _rune_labels.append(cue)
+	_rune_chain.get_node("Anchor/Panel/Text").text = "  →  ".join(_rune_labels.slice(-3))
+	_rune_chain.get_node("Anchor/Panel").show()
+	_rune_ticket += 1
+	var ticket := _rune_ticket
+	get_tree().create_timer(2.0, false).timeout.connect(func():
+		if is_instance_valid(_rune_chain) and ticket == _rune_ticket: _rune_chain.get_node("Anchor/Panel").hide())
 
 func _card_stage() -> Vector2:
 	return preload("res://scripts/presentation/card_choreography.gd").stage_center(view.hand)

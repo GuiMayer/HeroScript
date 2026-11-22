@@ -1,0 +1,26 @@
+[gd_scene format=3]
+[sub_resource type="StyleBoxFlat" id="Banner"]
+bg_color = Color(0.13, 0.14, 0.15, 0.94)
+border_width_bottom = 2
+border_color = Color(0.86, 0.60, 0.34, 1)
+content_margin_left = 14.0
+content_margin_right = 14.0
+content_margin_top = 6.0
+content_margin_bottom = 6.0
+[node name="RuneChainBanner" type="CanvasLayer"]
+layer = 3
+[node name="Anchor" type="CenterContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 106.0
+offset_bottom = 146.0
+mouse_filter = 2
+[node name="Panel" type="PanelContainer" parent="Anchor"]
+visible = false
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Banner")
+[node name="Text" type="Label" parent="Anchor/Panel"]
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 0.86, 0.68, 1)
+horizontal_alignment = 1
