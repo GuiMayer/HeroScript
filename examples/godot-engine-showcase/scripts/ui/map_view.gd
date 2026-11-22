@@ -195,6 +195,13 @@ func _inspect(id: String) -> void:
 	if node.resolved: statuses.append(visual_context.translator.text("COMPLETED"))
 	if statuses.is_empty(): statuses.append(visual_context.translator.text("Available" if not node.travel.is_empty() else ("Locked" if _campaign_navigation else "Unavailable")))
 	information.get_node("Status").text = " · ".join(statuses)
+	var destinations: Array[String] = []
+	if node.current and node.resolved:
+		for candidate in route.nodes:
+			if not candidate.travel.is_empty(): destinations.append(str(candidate.name))
+	var next: Label = information.get_node("NextDestination")
+	next.visible = not destinations.is_empty()
+	next.text = visual_context.translator.text("Choose your next destination") + "\n" + "\n".join(destinations.map(func(value): return "◇ " + value))
 	if not node.travel.is_empty():
 		_action(visual_context.translator.text("TRAVEL"), node.travel)
 		if _campaign_navigation: _action_buttons.back().theme_type_variation = &"PrimaryAction"

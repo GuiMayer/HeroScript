@@ -110,6 +110,13 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 metadata/font_role = "body"
 
+[node name="NextDestination" type="Label" parent="Margin/Stack/Scroll/Body/Information"]
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+metadata/font_role = "body"
+metadata/text_role = "text.primary"
+
 [node name="Actions" type="VBoxContainer" parent="Margin/Stack/Scroll/Body"]
 layout_mode = 2
 theme_override_constants/separation = 12

@@ -23,9 +23,10 @@ func _run() -> void:
 			run.currentNodeId = "b" if state == "completed" else "a"
 			run.map.resolvedNodeIds = [] if state in ["current","unresolved_again"] else ["a"]
 			var original := JSON.stringify(run)
-			var presenter = load("res://scripts/presentation/activity_presenter.gd").new(run,[],{},translator)
+			var choices: Array = [{"type":"ADVANCE_NODE", "subjectId":"b", "payload":{"targetNodeId":"b"}}] if state == "current_completed" else []
+			var presenter = load("res://scripts/presentation/activity_presenter.gd").new(run,choices,{},translator)
 			var old_button = view.route.buttons.get("a") if is_instance_valid(view.route) else null
-			view.apply_projection(run,[],presenter,context); await settle()
+			view.apply_projection(run,choices,presenter,context); await settle()
 			view.route.buttons.a.pressed.emit(); await settle()
 			var current: bool = run.currentNodeId == "a"
 			var resolved: bool = "a" in run.map.resolvedNodeIds
@@ -36,6 +37,7 @@ func _run() -> void:
 			if resolved: expected += (" · " if current else "") + translator.text("COMPLETED")
 			var texts: Array = view._inspector.find_children("*","Label",true,false).map(func(label): return label.text)
 			check(expected in texts, language + "/" + state + ": inspector exposes both localized states without hiding completion")
+			check(view._inspector.find_child("NextDestination", true, false).visible == (state == "current_completed"), "only completed current node with published destinations gives onward guidance")
 			check((old_button == null or old_button == view.route.buttons.a) and JSON.stringify(run) == original and intents.is_empty(),
 				language + "/" + state + ": reconciliation preserves button identity, input snapshot and gameplay authority")
 		view.queue_free(); await settle()

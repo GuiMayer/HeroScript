@@ -1,4 +1,6 @@
 {
+  "Choose your next destination": "Escolha o próximo destino",
+  "Runes": "Runas",
   "Reduce {value} total {resource} across {repeat} impacts on {target}.": "Reduz {value} de {resource} no total, em {repeat} impactos em {target}.",
   "Restore {value} total {resource} across {repeat} impacts on {target}.": "Restaura {value} de {resource} no total, em {repeat} impactos em {target}.",
   "Free": "Grátis",
