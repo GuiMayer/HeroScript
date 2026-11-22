@@ -93,14 +93,24 @@ func _on_intent(action: String, arguments: Array) -> void:
 func apply_model(model) -> void: refresh_state(model)
 func _return_to_map() -> void:
 	if not is_inside_tree() or get_tree().paused: return
+	if not GameSession.synchronized:
+		await _restore_session_after_rejection()
+		return
 	if preload("res://scripts/ui/gameplay_route_resolver.gd").is_mvp_workshop(GameSession.run):
 		screen_context.navigation.show_map(); return
-	if await controller.finish_for_map() and is_inside_tree(): screen_context.navigation.show_map()
+	if await controller.finish_for_map():
+		if is_inside_tree(): screen_context.navigation.show_map()
+	elif is_inside_tree() and not GameSession.synchronized:
+		await _restore_session_after_rejection()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
 	if controller: controller.dispose()
 func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
 	if GameSession.busy: return
+	if not GameSession.synchronized:
+		await _restore_session_after_rejection()
+		return
+	if bool(model.get("unaffordable", false)): return
 	var reward_decision: bool = str(choice.type) == "PICK_CARD_REWARD" and bool(model.get("terminalReward", false))
 	var transformation := str(choice.type) in ["UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION", "APPLY_CARD_MODIFIER_ITEM"]
 	if not transformation and not reward_decision and str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
@@ -154,13 +164,19 @@ func _open_items() -> void:
 
 func _execute(choice: Dictionary) -> void:
 	if GameSession.busy: return
+	if not GameSession.synchronized:
+		await _restore_session_after_rejection()
+		return
 	var receipt := _receipt_text(choice)
 	for button in view.choice_buttons: button.disabled = true
 	screen_context.show_toast(I18n.text("PROCESSING…"))
 	var accepted: bool = await controller.execute(choice)
 	if not is_inside_tree():
 		return
-	for button in view.choice_buttons: button.disabled = bool(button.get_meta("engine_disabled", false))
+	if not GameSession.synchronized:
+		await _restore_session_after_rejection()
+		return
+	view.set_choices_disabled(false)
 	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD", "ACQUIRE_CARD_MODIFIER_ITEM", "APPLY_CARD_MODIFIER_ITEM"]:
 			GameAudio.reward()
@@ -168,6 +184,17 @@ func _execute(choice: Dictionary) -> void:
 			if not await controller.finish_for_map() or not is_inside_tree(): return
 		screen_context.open_game()
 		if not receipt.is_empty(): screen_context.feedback.confirm(receipt)
+
+func _restore_session_after_rejection() -> void:
+	# A rejected purchase clears public choices; retaining stale enabled
+	# buttons would leave the stage impossible to complete. Refresh only a
+	# definitive rejection, never automatically submit an uncertain write.
+	controller.automatic_recovery_attempted = true
+	if not GameSession.has_pending_command and await controller.recover():
+		if is_inside_tree():
+			view.set_choices_disabled(false)
+			screen_context.open_game()
+	elif is_inside_tree(): _render(presentation)
 
 func _receipt_text(choice: Dictionary) -> String:
 	if str(GameSession.run.get("settingId", "")) not in ["prototype-test", "alisyum"]: return ""
@@ -197,10 +224,11 @@ func _recover_actions() -> void:
 	if not is_inside_tree():
 		return
 	if accepted:
+		view.set_choices_disabled(false)
 		screen_context.open_game()
 	else:
-		for button in view.choice_buttons:
-			if is_instance_valid(button): button.disabled = false
+		if not GameSession.synchronized: _render(presentation)
+		else: view.set_choices_disabled(false)
 
 
 func _maybe_auto_advance(ticket := -1) -> void:

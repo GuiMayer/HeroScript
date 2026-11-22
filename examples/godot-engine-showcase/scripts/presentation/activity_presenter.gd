@@ -137,6 +137,10 @@ func offer(choice: Dictionary) -> Dictionary:
 		"summary": summary, "category": "cards" if is_card else "activities",
 		"cost": (_i18n.text("Free") if costs.is_empty() else " + ".join(price)) if has_cost else "",
 		"choice": choice.duplicate(true)}
+	# Only project an affordability failure from published prices and balances.
+	# The engine still decides whether the command is legal at submission time.
+	if type in ["BUY_SHOP_ITEM", "REROLL_SHOP"] and has_cost:
+		model["unaffordable"] = _known_insufficient_balance(costs)
 	if not preparation_key.is_empty(): model["namedPreparation"] = true
 	if _item_catalog.has(definition):
 		var item_presentation: Dictionary = _item_catalog[definition].get("presentation", {})
@@ -174,6 +178,17 @@ func offer(choice: Dictionary) -> Dictionary:
 			model["rewardText"] = " + ".join(rewards) if not rewards.is_empty() else _i18n.text("No materials")
 			break
 	return model
+
+func _known_insufficient_balance(costs: Array) -> bool:
+	var required: Dictionary = {}
+	for cost in costs:
+		var resource := str(cost.get("resourceId", ""))
+		if resource.is_empty(): continue
+		required[resource] = float(required.get(resource, 0)) + float(cost.get("amount", 0))
+	for resource in required:
+		var pool = _run.get("resources", {}).get(resource, {})
+		if pool is Dictionary and pool.has("current") and float(pool.current) < float(required[resource]): return true
+	return false
 
 static func modifier_description(definition: Dictionary, translator) -> String:
 	# Descriptive copy is localized independently of the run's immutable rule revision,

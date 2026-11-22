@@ -15,6 +15,9 @@ func check(ok: bool, label: String) -> void:
 func settle() -> void:
 	for _i in 8: await process_frame
 func _run() -> void:
+	# The confirmation geometry test targets the showcase's default viewport, not
+	# whichever window size happens to be saved by a local play session.
+	root.size = Vector2i(1280, 800)
 	root.get_node("I18n").set_locale("en")
 	var session = root.get_node("GameSession")
 	session._run = {"runId": "activity", "sequence": 1, "lifecycle": "Active", "currentNodeId": "a", "map": {"nodes": [
@@ -56,6 +59,11 @@ func _run() -> void:
 	screen.refresh_state(router.presentation)
 	await settle()
 	var offer_card = screen.view.choice_buttons.filter(func(item): return item is CardView)[0]
+	check(offer_card.disabled and screen.find_child("AcquisitionPrice", true, false).text.contains("Insufficient resources"), "unaffordable shop card displays its price but cannot be purchased")
+	session._run.resources.gold.current = 40
+	screen.refresh_state(router.presentation)
+	await settle()
+	check(not offer_card.disabled, "shop card becomes selectable when published balance can pay")
 	check(not offer_card.chosen and not offer_card.button_pressed and not offer_card.has_focus(), "card offers open without selection or focus outline")
 	check(offer_card.get_meta("skip_initial_focus", false) and not offer_card.has_meta("initial_focus"), "offered cards never request automatic initial focus")
 	var focus_graph = load("res://scripts/ui/focus_navigation.gd")
@@ -92,7 +100,7 @@ func _run() -> void:
 	var comparison_cards: Array = dialogs[0].find_children("*", "Button", true, false).filter(func(item): return item is CardView)
 	check(comparison_cards.size() == 2 and not dialogs[0].get_ok_button().disabled, "upgrade confirmation shows two real card components with effects")
 	check(comparison_cards.all(func(card): return not card.chosen and not card.has_focus()), "comparison cards are not auto-selected")
-	check(dialogs[0].size.x <= root.size.x and dialogs[0].size.y <= root.size.y, "comparison fits viewport")
+	check(dialogs[0].size.x <= root.size.x and dialogs[0].size.y <= root.size.y, "comparison fits viewport (%s within %s)" % [dialogs[0].size, root.size])
 	dialogs[0].hide()
 	await settle()
 	var item := {"itemDefinitionId": "fire", "presentation": {"name": "Fire imprint", "description": "Apply 1 Scorch."}}

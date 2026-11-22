@@ -124,6 +124,16 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 			content.get_node("Description").visible = (str(choice.get("subjectType","")) == "inscription" or str(model.category) == "modifier_items" or model.get("namedPreparation", false)) and not str(model.summary).is_empty()
 			button.text = label
 			if model.get("namedPreparation", false): button.theme_type_variation = &"PrimaryAction"
+		var unaffordable := bool(model.get("unaffordable", false))
+		button.set_meta("engine_disabled", unaffordable)
+		button.disabled = unaffordable
+		if kind != "card": button.tooltip_text = label
+		if unaffordable:
+			var reason: String = context.translator.text("Insufficient resources")
+			button.tooltip_text = reason
+			if kind == "secondary": button.text += " · " + reason
+			elif kind == "card": entry.get_node("AcquisitionPrice").text += " · " + reason
+			else: entry.get_node("Content/Cost").text += " · " + reason
 	for reference in _entries.keys():
 		if reference not in live:
 			var obsolete = _entries[reference]; obsolete.get_parent().remove_child(obsolete); obsolete.queue_free(); _entries.erase(reference)
