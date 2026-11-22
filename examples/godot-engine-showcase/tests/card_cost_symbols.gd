@@ -59,8 +59,8 @@ func _run() -> void:
 	check(generic.icon.texture == generic.NEUTRAL and generic.find_child("ResourceMnemonic", true, false).text == "Q" and generic.amount_label.text == "0.5", "unknown resources use a neutral symbol plus configured mnemonic")
 	var mnemonic: Label = generic.find_child("ResourceMnemonic", true, false)
 	var mnemonic_width := mnemonic.get_theme_font("font").get_string_size(mnemonic.text, HORIZONTAL_ALIGNMENT_LEFT, -1, mnemonic.get_theme_font_size("font_size")).x
-	check(mnemonic.get_global_rect().end.x - mnemonic_width >= generic.amount_label.get_global_rect().end.x, "unknown-resource mnemonic stays outside the centered numeral field")
-	check(generic.amount_label.get_theme_color("font_color") == generic.INK, "high contrast preserves ink numerals on the printed paper field")
+	check(mnemonic.get_global_rect().end.x - mnemonic_width * mnemonic.get_global_transform().get_scale().x >= generic.amount_label.get_global_rect().end.x - .5, "unknown-resource mnemonic stays outside the centered numeral field (%s / %s)" % [mnemonic.get_global_rect(), generic.amount_label.get_global_rect()])
+	check(generic.amount_label.get_theme_color("font_color") == context.card_style.cost_symbol_number_color and generic.icon.self_modulate == context.card_style.cost_symbol_fill_color, "high contrast preserves the configured contrasting numeral and silhouette")
 	context.set_resource_styles({"custom": {"cost_icon": "res://does-not-exist.svg"}})
 	card.configure(model)
 	check(card.find_child("Cost", true, false).get_child(0).icon.texture == generic.NEUTRAL, "missing artwork falls back without losing the published amount")
@@ -76,7 +76,7 @@ func _run() -> void:
 	model.erase("costOptions")
 	model.costs = [{"resourceId": "energy", "symbol": "E", "amount": 1}]
 	card.configure(model)
-	check(card.find_child("Cost", true, false).get_child(0) is PanelContainer, "production profile keeps its existing cost presentation")
+	check(card.find_child("Cost", true, false).get_child(0).amount_label.text == "1", "production profile shares the canonical resource silhouette and published numeral")
 	card.queue_free()
 	await settle()
 	root.get_node("GameAudio").shutdown()

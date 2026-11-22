@@ -105,6 +105,7 @@ func configure(data: Dictionary) -> void:
 		rune_names.append(str(rune.get("name", "")))
 		rune_symbols.append(str(rune.get("symbol", "◇")))
 	var marker: Label = get_node("%UpgradeMarker")
+	marker.visible = bool(data.get("upgraded", false)) or not rune_symbols.is_empty()
 	marker.text = "↑" if rune_symbols.is_empty() else "".join(rune_symbols.slice(0, 3))
 	marker.tooltip_text = " · ".join(rune_names)
 	_cost_zone(data)

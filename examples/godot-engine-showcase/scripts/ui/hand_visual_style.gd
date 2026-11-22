@@ -3,11 +3,16 @@ class_name HandVisualStyle
 extends Resource
 ## Presentation only; never a pile capacity or a rule of gameplay.
 @export var gap := 12.0
-@export var minimum_step := 124.0
-@export var maximum_angle_degrees := 4.0
-@export var minimum_fan_angle_degrees := 2.0
-@export var preferred_step_ratio := .92
-@export var arc_height := 8.0
+@export var minimum_step := 92.0
+@export var maximum_angle_degrees := 8.0
+@export var minimum_fan_angle_degrees := 4.0
+@export var preferred_step_ratio := .86
+@export var arc_height := 14.0
+@export var dense_hand_threshold := 9
+@export var dense_minimum_step := 124.0
+@export var dense_angle_degrees := 4.0
+@export var dense_preferred_step_ratio := .92
+@export var dense_arc_height := 8.0
 @export var lift := 32.0
 @export var transition_seconds := .13
 @export var pointer_hysteresis := 4.0

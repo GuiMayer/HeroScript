@@ -118,6 +118,9 @@ func _layout() -> void:
 	_hero.get_node("JourneySigil").visible = not compact
 	_hero.get_node("SettingHint").visible = not compact
 	_hero.get_node("Eyebrow").visible = not compact
+	get_node("%Footer").visible = not compact
+	get_node("%Masthead").custom_minimum_size.y = 48 if compact else 86
+	get_node("%MenuComposition").add_theme_constant_override("separation", 12 if compact else 24)
 	get_node("%Launch").add_theme_constant_override("separation", 8 if compact else 12)
 
 func apply_visual_profile(_profile) -> void:

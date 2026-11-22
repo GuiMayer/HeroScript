@@ -22,6 +22,9 @@ theme_override_constants/separation = 14
 layout_mode = 2
 [node name="ActivitySummary" parent="ActivityColumns/ActivityWorkspace" instance=ExtResource("Summary")]
 layout_mode = 2
+[node name="FixedFilters" type="VBoxContainer" parent="ActivityColumns/ActivityWorkspace"]
+visible = false
+layout_mode = 2
 [node name="ActionScroll" type="ScrollContainer" parent="ActivityColumns/ActivityWorkspace"]
 layout_mode = 2
 horizontal_scroll_mode = 0

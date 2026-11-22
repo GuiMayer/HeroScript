@@ -16,6 +16,8 @@ var _entries := {}
 var _bound := false
 var _footer: VBoxContainer
 var _secondary: HFlowContainer
+var _filter: OptionButton
+var _filter_host: VBoxContainer
 var _category_index := 0
 func _filter_offers(index: int) -> void:
 	_category_index = index
@@ -23,8 +25,12 @@ func _filter_offers(index: int) -> void:
 		if entry.get_meta("kind") == "secondary": continue
 		var category := str(entry.get_meta("category", ""))
 		entry.visible = index == 0 or (index == 1 and category == "cards") or (index == 2 and category == "modifier_items")
-func mount_footer(footer: VBoxContainer) -> void:
+func mount_footer(footer: VBoxContainer, filters: VBoxContainer) -> void:
 	_footer = footer
+	_filter_host = filters
+	_filter = get_node("ActionPanel/CategoryFilter")
+	_filter.owner = null
+	_filter.reparent(filters)
 	_secondary = get_node("ActionPanel/Secondary")
 	_secondary.owner = null
 	_secondary.reparent(footer)
@@ -47,9 +53,10 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	if key == _key: return
 	_key = key.duplicate(true); action_panel = get_node("ActionPanel")
 	if not is_instance_valid(_secondary): _secondary = action_panel.get_node("Secondary")
+	if not is_instance_valid(_filter): _filter = action_panel.get_node("CategoryFilter")
 	if not _bound:
 		action_panel.get_node("Waiting/RefreshActionsButton").pressed.connect(_recover_actions); _bound = true
-		action_panel.get_node("CategoryFilter").item_selected.connect(_filter_offers)
+		_filter.item_selected.connect(_filter_offers)
 	action_panel.get_node("Waiting/Message").text = context.translator.text("Waiting for the next available action.")
 	action_panel.get_node("Waiting/RefreshActionsButton").text = context.translator.text("REFRESH ACTIONS")
 	action_panel.get_node("SecondaryTitle").text = context.translator.text("OTHER OPTIONS")
@@ -164,8 +171,9 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	action_panel.get_node("SecondaryTitle").visible = secondary_index > 0 and not is_instance_valid(_footer)
 	_secondary.visible = secondary_index > 0
 	if is_instance_valid(_footer): _footer.visible = secondary_index > 0
-	var filter: OptionButton = action_panel.get_node("CategoryFilter")
+	var filter: OptionButton = _filter
 	filter.visible = card_count > 0 and rune_count > 0
+	if is_instance_valid(_filter_host): _filter_host.visible = filter.visible
 	filter.clear()
 	filter.add_item(context.translator.text("All") + "  (%d)" % (card_count + rune_count))
 	filter.add_item(context.translator.text("Cards") + "  (%d)" % card_count)
@@ -177,6 +185,7 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 		_collect_choices(action_panel.get_node("Primary")); _collect_choices(_secondary)
 	context.styles.apply_view_preferences(self)
 	if is_instance_valid(_footer): context.styles.apply_view_preferences(_footer)
+	if is_instance_valid(_filter_host): context.styles.apply_view_preferences(_filter_host)
 func _decompile_pressed(button: Button) -> void:
 	_confirm_ref(str(button.get_meta("decompile_reference", "")))
 func _collect_choices(node: Node) -> void:

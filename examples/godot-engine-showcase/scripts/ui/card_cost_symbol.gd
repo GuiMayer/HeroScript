@@ -23,8 +23,18 @@ func configure(cost: Dictionary, appearance: Dictionary, context: ContextType, p
     amount_label.add_theme_font_size_override("font_size", policy.cost_symbol_font_size)
     amount_label.add_theme_color_override("font_color", policy.cost_symbol_number_color)
     tooltip_text = "%s: %s" % [cost.get("name", cost.get("resourceId", "")), amount_label.text]
-    mnemonic.visible = path.is_empty()
+    mnemonic.visible = icon.texture == NEUTRAL
     mnemonic.text = str(cost.get("symbol", appearance.get("symbol", "•")))
-    mnemonic.add_theme_color_override("font_color", policy.cost_symbol_number_color)
+    # Keep a custom-resource abbreviation outside the numbered silhouette.
+    # The complete resource name remains available in the tooltip.
+    var mnemonic_size := roundi(13.0 * context.text_scale)
+    var mnemonic_width := ceilf(mnemonic.get_theme_font("font").get_string_size(mnemonic.text, HORIZONTAL_ALIGNMENT_LEFT, -1, mnemonic_size).x) + 4.0
+    if mnemonic.visible: custom_minimum_size.x += mnemonic_width
+    add_theme_constant_override("margin_right", int(mnemonic_width) if mnemonic.visible else 0)
+    mnemonic.offset_left = 2.0
+    mnemonic.offset_right = mnemonic_width
+    mnemonic.add_theme_color_override("font_color", context.styles.INK)
+    mnemonic.add_theme_font_size_override("font_size", mnemonic_size)
+    mnemonic.set_meta("base_font_size", 13.0)
 func reconcile_from(other) -> void:
     preload("res://scripts/ui/view_reconciler.gd").patch_contents(self, other)
