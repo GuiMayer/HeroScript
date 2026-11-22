@@ -114,10 +114,7 @@ func configure(data: Dictionary) -> void:
 	art_frame.add_theme_stylebox_override("panel", art_style)
 	var art = get_node("%CardArtwork")
 	art.rebind_context(visual_context); art.setup("cards", str(data.get("definitionId", "")))
-	var placeholder: bool = art.is_placeholder and bool(data.get("artPlaceholder", true))
-	var name_text: String = str(data.get("name", "")).trim_suffix(" +").to_upper()
-	get_node("%ArtPlaceholderName").visible = placeholder
-	get_node("%ArtPlaceholderName").text = name_text
+	get_node("%ArtPlaceholderName").visible = false
 	get_node("%CardType").text = str(data.get("cardType", str(data.get("tone", "skill")).to_upper()))
 	get_node("%CardType").add_theme_color_override("font_color", tone.darkened(.15))
 	get_node("%Rarity").text = str(data.get("rarity", "")); get_node("%Rarity").visible = not str(data.get("rarity", "")).is_empty()
@@ -131,7 +128,7 @@ func configure(data: Dictionary) -> void:
 		line.add_theme_color_override("font_color", visual_context.styles.BLOOD if requirement.get("passed") == false else visual_context.styles.INK)
 		requirements.add_child(line)
 	requirements.visible = requirements.get_child_count() > 0
-	get_node("%EffectsTitle").text = visual_context.translator.text("EFFECTS")
+	get_node("%EffectsTitle").hide()
 	get_node("%EffectsTitle").add_theme_color_override("font_color", visual_context.styles.MUTED.darkened(.05))
 	var rules = get_node("%Rules"); rules.visual_context = visual_context
 	var rows: Array = data.get("effectRows", [])

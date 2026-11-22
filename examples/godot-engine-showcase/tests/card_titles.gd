@@ -31,7 +31,7 @@ func run() -> void:
 				if reference == Vector2.ZERO: reference = metrics
 				var label := "%s/%.1f/%s" % [language, scale, value.left(25)]
 				check(metrics.is_equal_approx(reference) and is_equal_approx(slot.size.y, ceilf(context.card_style.title_line_height * scale)), "fixed title slot and art position: " + label)
-				check(context.card_style.title_line_height == 24.0 and absf(card.find_child("CardHeader", true, false).size.y - 24.0 * scale) <= 1.0, "original 24-unit header retained: " + label)
+				check(context.card_style.title_line_height >= 40.0 and absf(card.find_child("CardHeader", true, false).size.y - context.card_style.title_line_height * scale) <= 1.0, "readable fixed header retained: " + label)
 				var minimum: int = context.card_style.title_min_font_size if title.max_lines_visible == 1 else context.card_style.title_min_two_line_font_size
 				check(size_used >= roundi(minimum * scale) and size_used <= roundi(context.card_style.title_font_size * scale), "font bounds for chosen line count: " + label)
 				check(title.max_lines_visible in [1, 2] and title.size.y <= slot.size.y + .1, "at most two lines in the same slot: " + label)

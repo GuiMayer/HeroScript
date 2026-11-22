@@ -19,6 +19,7 @@ func configure(value: String, context, policy: CardVisualStyle) -> void:
 	clip_contents = true
 	label = get_node("CardName")
 	label.text = value.replace("\n", " ").replace("\r", " ")
+	label.tooltip_text = label.text
 	label.add_theme_color_override("font_color", context.styles.INK)
 	if context.profile.title_font: label.add_theme_font_override("font", context.profile.title_font)
 	_fit()

@@ -22,6 +22,8 @@ func _subscribe() -> void:
 func _fit() -> void:
 	if content == null or not is_inside_tree(): return
 	var natural := content.get_combined_minimum_size()
+	var width := clampf(natural.x, 30.0, minf(110.0, custom_minimum_size.y * 2.8))
+	if not is_equal_approx(custom_minimum_size.x, width): custom_minimum_size.x = width
 	content.size = natural
 	var factor := minf(1.0, minf(size.x / maxf(natural.x, 1.0), size.y / maxf(natural.y, 1.0)))
 	content.scale = Vector2.ONE * factor
