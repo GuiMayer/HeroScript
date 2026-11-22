@@ -41,6 +41,7 @@ func project(facts: Dictionary) -> Dictionary:
 		var description := str(source.get("descriptionKey", ""))
 		badges.append({"kind": "contribution", "label": _i18n.text(label), "symbol": "+", "sources": [_i18n.text(description)] if not description.is_empty() else []})
 	model["changeBadges"] = badges
+	model["runes"] = preload("res://scripts/presentation/rune_presenter.gd").equipped(facts, _i18n)
 	model["upgraded"] = not seen.is_empty()
 	for influence in facts.get("influences", []):
 		var text: String = _i18n.content_name(str(influence.get("channel", ""))) + " · " + _i18n.content_name(str(influence.get("bucket", ""))) + ": "

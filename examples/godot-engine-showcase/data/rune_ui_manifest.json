@@ -1,0 +1,10 @@
+{
+  "obor_overwrite_ember": {"name": "Brasa", "english": "Ember", "symbol": "◆"},
+  "obor_overwrite_frost": {"name": "Geada", "english": "Frost", "symbol": "❄"},
+  "obor_overwrite_frost_magma": {"name": "Geada Reescrita", "english": "Frost rewrite", "symbol": "❄"},
+  "obor_overwrite_fragment": {"name": "Fragmentação", "english": "Fragment", "symbol": "⋔"},
+  "obor_overwrite_rupture": {"name": "Ruptura", "english": "Rupture", "symbol": "✦"},
+  "obor_overwrite_overflow": {"name": "Transbordo", "english": "Overflow", "symbol": "↗"},
+  "obor_overwrite_resonance": {"name": "Ressonância", "english": "Resonance", "symbol": "◇"},
+  "obor_overwrite_catalyst": {"name": "Catalisador", "english": "Catalyst", "symbol": "✧"}
+}

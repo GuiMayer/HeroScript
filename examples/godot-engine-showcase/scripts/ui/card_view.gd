@@ -99,6 +99,14 @@ func configure(data: Dictionary) -> void:
 		get_node("%Art").custom_minimum_size.y = visual_style.art_height
 	get_node("%CardTitle").configure(str(data.get("name", "")), visual_context, visual_style)
 	get_node("%UpgradeMarker").visible = bool(data.get("upgraded", false))
+	var rune_names: Array = []
+	var rune_symbols: Array = []
+	for rune in data.get("runes", []):
+		rune_names.append(str(rune.get("name", "")))
+		rune_symbols.append(str(rune.get("symbol", "◇")))
+	var marker: Label = get_node("%UpgradeMarker")
+	marker.text = "↑" if rune_symbols.is_empty() else "".join(rune_symbols.slice(0, 3))
+	marker.tooltip_text = " · ".join(rune_names)
 	_cost_zone(data)
 	var art_frame = get_node("%Art")
 	var art_style: StyleBoxFlat = art_frame.get_theme_stylebox("panel").duplicate()
@@ -136,6 +144,7 @@ func configure(data: Dictionary) -> void:
 	get_node("%Behaviors").text = " · ".join(data.get("behaviors", [])); get_node("%Behaviors").visible = not data.get("behaviors", []).is_empty()
 	_change_badges(data.get("changeBadges", []))
 	var tooltip: Array[String] = [str(data.get("name", "")), _cost_accessible_text(data), str(data.get("summary", ""))]
+	if not rune_names.is_empty(): tooltip.append(" · ".join(rune_names))
 	for badge in data.get("changeBadges", []):
 		var sources: Array = badge.get("sources", [])
 		tooltip.append(str(badge.get("label", "")) + (": " + ", ".join(sources) if not sources.is_empty() else ""))
