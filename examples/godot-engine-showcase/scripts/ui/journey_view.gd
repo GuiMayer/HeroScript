@@ -58,6 +58,7 @@ func _bind_nodes() -> void:
 	_workspace.get_node("EncounterAttempt").adjust_requested.connect(func(): intent_requested.emit("loadout",[]))
 	_action_scroll = _workspace.get_node("ActionScroll")
 	action_panel = _workspace.get_node("ActionScroll/ActionPanel"); _ending = get_node("ActivityEnding")
+	action_panel.mount_footer(_workspace.get_node("FixedFooter"))
 	action_panel.intent_requested.connect(func(action,arguments): intent_requested.emit(action,arguments))
 	_header.get_node("Row/Verify").pressed.connect(_verify); _header.get_node("Row/Map").pressed.connect(_map)
 	_header.get_node("Row/Loadout").pressed.connect(func(): intent_requested.emit("loadout",[]))

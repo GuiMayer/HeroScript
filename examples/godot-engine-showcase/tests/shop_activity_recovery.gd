@@ -44,6 +44,12 @@ func _run() -> void:
 	check(router.current_screen == "activity" and session.run.resources.gold.current == 17, "failed purchase leaves the shop and balance intact")
 	screen = router.host.get_child(0)
 	var complete: Button = screen.view.choice_buttons.filter(func(b): return b.text == "COMPLETE STAGE")[0]
+	check(complete.get_parent().get_parent().name == "FixedFooter", "completion is pinned outside the scrolling offers")
+	if DisplayServer.get_name() != "headless":
+		for arg in OS.get_cmdline_user_args():
+			if arg.begins_with("--capture="):
+				await RenderingServer.frame_post_draw
+				check(root.get_texture().get_image().save_png(arg.trim_prefix("--capture=")) == OK, "captured pinned shop footer")
 	check(not complete.disabled, "completion is usable after rejection")
 	complete.pressed.emit(); await settle()
 	check(gateway.writes == ["BUY_SHOP_ITEM", "RESOLVE_NODE"] and "bazaar" in session.run.map.resolvedNodeIds and router.current_screen == "map", "completion commits once and returns to the map")

@@ -14,6 +14,20 @@ var animate_card_entry := false
 var _key: Array = []
 var _entries := {}
 var _bound := false
+var _footer: VBoxContainer
+var _secondary: HFlowContainer
+var _category_index := 0
+func _filter_offers(index: int) -> void:
+	_category_index = index
+	for entry in _entries.values():
+		if entry.get_meta("kind") == "secondary": continue
+		var category := str(entry.get_meta("category", ""))
+		entry.visible = index == 0 or (index == 1 and category == "cards") or (index == 2 and category == "modifier_items")
+func mount_footer(footer: VBoxContainer) -> void:
+	_footer = footer
+	_secondary = get_node("ActionPanel/Secondary")
+	_secondary.owner = null
+	_secondary.reparent(footer)
 static func create() -> ActivityOptionsView:
 	return (load("res://scenes/ui/components/activity_options.tscn") as PackedScene).instantiate()
 func _ready() -> void:
@@ -32,8 +46,10 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	var key: Array = [display_run, choices, context.presentation_key(), presenter.presentation_key()]
 	if key == _key: return
 	_key = key.duplicate(true); action_panel = get_node("ActionPanel")
+	if not is_instance_valid(_secondary): _secondary = action_panel.get_node("Secondary")
 	if not _bound:
 		action_panel.get_node("Waiting/RefreshActionsButton").pressed.connect(_recover_actions); _bound = true
+		action_panel.get_node("CategoryFilter").item_selected.connect(_filter_offers)
 	action_panel.get_node("Waiting/Message").text = context.translator.text("Waiting for the next available action.")
 	action_panel.get_node("Waiting/RefreshActionsButton").text = context.translator.text("REFRESH ACTIONS")
 	action_panel.get_node("SecondaryTitle").text = context.translator.text("OTHER OPTIONS")
@@ -42,6 +58,8 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	choice_buttons.clear(); var live: Array = []; var primary_index := 0; var secondary_index := 0
 	if choices.is_empty(): choice_buttons.append(action_panel.get_node("Waiting/RefreshActionsButton"))
 	var decompile_choices := {}
+	var card_count := 0
+	var rune_count := 0
 	for choice in choices:
 		if str(choice.get("type", "")) == "DECOMPOSE_CARD_REWARD":
 			var key_id := JSON.stringify([choice.get("payload", {}).get("selectionInstanceId"), choice.get("subjectId")])
@@ -73,13 +91,19 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 			button.name = "Choice_" + reference; button.set_meta("activity_choice",true)
 			button.pressed.connect(func(): _confirm_ref(reference))
 			entry.name = "Offer_" + reference if not secondary else "Choice_"+reference
-			var parent = action_panel.get_node("Secondary" if secondary else "Primary"); parent.add_child(entry)
+			var parent = _secondary if secondary else action_panel.get_node("Primary"); parent.add_child(entry)
 		live.append(reference)
+		entry.set_meta("category", str(model.category))
+		if not secondary and type == "BUY_SHOP_ITEM":
+			if str(model.category) == "cards": card_count += 1
+			elif str(model.category) == "modifier_items": rune_count += 1
 		entry.get_parent().move_child(entry,secondary_index if secondary else primary_index)
 		if secondary: secondary_index += 1
 		else: primary_index += 1
 		var button: Button = entry.get_meta("choice_button")
-		if secondary: button.text = label + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
+		if secondary:
+			button.text = label + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
+			button.theme_type_variation = &"PrimaryAction" if type == "RESOLVE_NODE" else &"SecondaryAction"
 		elif kind == "card":
 			model["availability"] = label; var price := str(model.get("acquisitionPrice",model.cost))
 			model["cost"] = ""; model["costsKnown"] = model.has("presentationFacts"); model["costUnknownLabel"] = context.translator.text("Cost unavailable")
@@ -137,11 +161,22 @@ func apply_projection(run: Dictionary, choices: Array, projection, context) -> v
 	for reference in _entries.keys():
 		if reference not in live:
 			var obsolete = _entries[reference]; obsolete.get_parent().remove_child(obsolete); obsolete.queue_free(); _entries.erase(reference)
-	action_panel.get_node("SecondaryTitle").visible = secondary_index > 0
-	action_panel.get_node("Secondary").visible = secondary_index > 0
+	action_panel.get_node("SecondaryTitle").visible = secondary_index > 0 and not is_instance_valid(_footer)
+	_secondary.visible = secondary_index > 0
+	if is_instance_valid(_footer): _footer.visible = secondary_index > 0
+	var filter: OptionButton = action_panel.get_node("CategoryFilter")
+	filter.visible = card_count > 0 and rune_count > 0
+	filter.clear()
+	filter.add_item(context.translator.text("All") + "  (%d)" % (card_count + rune_count))
+	filter.add_item(context.translator.text("Cards") + "  (%d)" % card_count)
+	filter.add_item(context.translator.text("Runes") + "  (%d)" % rune_count)
+	if not filter.visible: _category_index = 0
+	filter.select(_category_index)
+	_filter_offers(_category_index)
 	if not choices.is_empty():
-		_collect_choices(action_panel.get_node("Primary")); _collect_choices(action_panel.get_node("Secondary"))
+		_collect_choices(action_panel.get_node("Primary")); _collect_choices(_secondary)
 	context.styles.apply_view_preferences(self)
+	if is_instance_valid(_footer): context.styles.apply_view_preferences(_footer)
 func _decompile_pressed(button: Button) -> void:
 	_confirm_ref(str(button.get_meta("decompile_reference", "")))
 func _collect_choices(node: Node) -> void:

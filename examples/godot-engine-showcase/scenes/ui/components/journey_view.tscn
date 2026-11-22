@@ -29,6 +29,9 @@ size_flags_vertical = 3
 [node name="ActionPanel" parent="ActivityColumns/ActivityWorkspace/ActionScroll" instance=ExtResource("Options")]
 layout_mode = 2
 size_flags_horizontal = 3
+[node name="FixedFooter" type="VBoxContainer" parent="ActivityColumns/ActivityWorkspace"]
+layout_mode = 2
+theme_override_constants/separation = 6
 [node name="ActivityEnding" parent="." instance=ExtResource("Ending")]
 visible = false
 layout_mode = 2
