@@ -137,7 +137,8 @@ internal sealed class RunOfferGenerator(
             var offer = CardOfferResolver.Resolve(
                 poolResult.Value,
                 System.Math.Max(1, definition.OfferCount),
-                state.Determinism, eligibility: state.Eligibility);
+                state.Determinism, eligibility: state.Eligibility,
+                actorDefinitionId: state.PlayerEntity?.DefinitionId);
             if (offer.IsFailure)
                 return Result<ShopOfferGeneration>.Failure(offer.Error);
             return Result<ShopOfferGeneration>.Success(new(
