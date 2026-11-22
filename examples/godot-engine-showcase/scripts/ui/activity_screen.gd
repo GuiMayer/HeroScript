@@ -4,6 +4,7 @@ const JourneyView = preload("res://scripts/ui/journey_view.gd")
 const ScreenContext = preload("res://scripts/ui/context/screen_context.gd")
 var view: JourneyView
 var workshop: Control
+var _workshop_preview_serial := 0
 var controller
 var _router
 var _screen_context
@@ -228,8 +229,11 @@ func _workshop_execute(reference: String) -> void:
 func _workshop_preview(reference: String) -> void:
 	var choice: Dictionary = controller.choice_for(reference)
 	if choice.is_empty() or GameSession.busy or not GameSession.synchronized: return
+	_workshop_preview_serial += 1
+	var ticket := _workshop_preview_serial
+	var version := [GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.run.get("step"), GameSession.run.get("contentRevision")]
 	var assessment: Dictionary = await controller.preview_transformation(choice)
-	if not is_inside_tree(): return
+	if not is_inside_tree() or ticket != _workshop_preview_serial or version != [GameSession.run.get("runId"), GameSession.run.get("sequence"), GameSession.run.get("step"), GameSession.run.get("contentRevision")]: return
 	var models: Array = presenter.transformation_models(assessment)
 	if not bool(assessment.get("isCompatible", false)) or models.size() != 2:
 		screen_context.show_toast(I18n.text("Comparison unavailable. Check the connection and try again.")); return

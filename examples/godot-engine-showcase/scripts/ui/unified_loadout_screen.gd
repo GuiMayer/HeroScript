@@ -10,6 +10,7 @@ var overview_view
 var supports_view
 var relics_view
 var _pending_item := ""
+var _rune_preview_ticket := 0
 var _clear_dialog: ConfirmationDialog
 var _inscriptions_empty: Label
 @export var initial_tab := "overview"
@@ -45,7 +46,7 @@ func _ready() -> void:
 	deck_view = shell.content.get_node("Deck"); deck_view.mount(context); shell.install("deck", deck_view)
 	deck_view.move_requested.connect(controller.move_card)
 	deck_view.composition_requested.connect(controller.edit_composition)
-	deck_view.modifier_requested.connect(controller.apply_modifier)
+	deck_view.modifier_requested.connect(_preview_rune)
 	deck_view.clear_requested.connect(func():
 		var confirm := (preload("res://scenes/ui/overlays/confirmation_dialog.tscn").instantiate() as ConfirmationDialog); confirm.dialog_text = I18n.text("Clear all compartment allocations? Changes are saved automatically.")
 		confirm.confirmed.connect(func(): controller.move_card("", "", true); confirm.queue_free())
@@ -58,9 +59,33 @@ func _ready() -> void:
 	controller.changed.connect(_render)
 	_select_tab(initial_tab); _render(); controller.refresh()
 func _select_tab(id: String) -> void:
+	_rune_preview_ticket += 1
 	shell.select(id); _render()
 	if id in ["deck", "overview"]: controller.ensure_deck()
 	if id == "companions": controller.ensure_support()
+
+func _preview_rune(reference: String) -> void:
+	if not controller.editable(): return
+	var matches: Array = session.activity_choices().filter(func(choice): return str(choice.get("type", "")) == "APPLY_CARD_MODIFIER_ITEM" and preload("res://scripts/presentation/activity_presenter.gd").option_reference(choice) == reference)
+	if matches.size() != 1: return
+	_rune_preview_ticket += 1
+	var ticket := _rune_preview_ticket
+	var version: Array = controller.version()
+	var assessment: Dictionary = await session.preview_transformation(matches[0])
+	if not is_inside_tree() or ticket != _rune_preview_ticket or not controller.editable() or version != controller.version() or not assessment.get("isCompatible", false): return
+	var dialog: ConfirmationDialog = preload("res://scenes/ui/overlays/transformation_confirmation.tscn").instantiate()
+	var context = deck_view.visual_context
+	dialog.theme = context.theme; dialog.title = I18n.text("Bind rune"); dialog.ok_button_text = I18n.text("Bind rune")
+	var content = dialog.get_node("Content"); content.show(); content.get_node("Description").text = I18n.text("This binding is permanent.")
+	for side in ["before", "after"]:
+		var facts = assessment.get(side)
+		if not facts is Dictionary or not facts.has("identity"): dialog.free(); return
+		var card = content.get_node("Scroll/Comparison/" + side.capitalize() + "/Card")
+		card.visual_context = context; card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(context.translator, deck_view.appearance).project(facts))
+	dialog.confirmed.connect(func():
+		if ticket == _rune_preview_ticket and version == controller.version(): controller.apply_modifier(reference))
+	dialog.visibility_changed.connect(func(): if not dialog.visible: dialog.queue_free())
+	add_child(dialog); dialog.popup_centered_clamped(Vector2i(700, 680), .92)
 func _select_item(id: String) -> void:
 	if controller.inscriptions == null: return
 	_pending_item = id; controller.inscriptions.select_item(id); _render()

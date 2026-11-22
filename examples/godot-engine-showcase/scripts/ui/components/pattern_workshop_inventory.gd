@@ -15,27 +15,33 @@ var _editable := true
 var _item_index := -1
 var _page := 0
 var _rows: Array = []
+var _generation := 0
+const RuneDrag = preload("res://scripts/ui/components/rune_drag.gd")
 
 func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: Dictionary, context, editable := true) -> void:
 	_context = context; theme = context.theme; _editable = editable
+	_generation += 1
 	_snapshot = snapshot.duplicate(true); _choices = choices.duplicate(true)
 	_facts = facts.duplicate(true); _appearance = appearance.duplicate(true)
 	if not _bound:
 		get_node("ItemsColumn/Items").item_selected.connect(_select_item)
+		get_node("ItemsColumn/Items").set_drag_forwarding(_start_drag, Callable(), Callable())
 		get_node("CardsColumn/Preview").pressed.connect(func():
 			if not _reference.is_empty(): choice_requested.emit(_reference))
 		get_node("CardsColumn/Paging/Previous").pressed.connect(func(): _page -= 1; _reference = ""; _render_cards())
 		get_node("CardsColumn/Paging/Next").pressed.connect(func(): _page += 1; _reference = ""; _render_cards())
 		for i in 8:
 			var slot_index := i
-			get_node("CardsColumn/Cards/Slot%d/Card" % (i + 1)).pressed.connect(func(): _select_card(_page * 8 + slot_index))
+			var target: CardView = get_node("CardsColumn/Cards/Slot%d/Card" % (i + 1))
+			target.pressed.connect(func(): _select_card(_page * 8 + slot_index))
+			target.set_drag_forwarding(Callable(), func(_at, data): return _accept_drag(_page * 8 + slot_index, data), func(_at, data): _drop_rune(_page * 8 + slot_index, data))
 		_bound = true
 	get_node("ItemsColumn/Title").text = context.translator.text("Modifier items")
 	get_node("CardsColumn/Title").text = context.translator.text("Your cards")
 	get_node("CardsColumn/Preview").text = context.translator.text("Compare and apply")
 	get_node("CardsColumn/Paging/Previous").text = context.translator.text("Previous")
 	get_node("CardsColumn/Paging/Next").text = context.translator.text("Next")
-	get_node("ItemsColumn/Description").text = context.translator.text("Select an item, then a card.") if not snapshot.get("items", []).is_empty() else context.translator.text("No modifier items owned.")
+	get_node("ItemsColumn/Description").text = context.translator.text("Drag a rune onto a card.") if not snapshot.get("items", []).is_empty() else context.translator.text("No modifier items owned.")
 	var list: ItemList = get_node("ItemsColumn/Items"); list.clear()
 	for item in _snapshot.get("items", []):
 		var definition: Dictionary = item.get("definition", {})
@@ -43,10 +49,29 @@ func configure(snapshot: Dictionary, choices: Array, facts: Array, appearance: D
 		var label: String = context.translator.content_name(id, str(definition.get("presentation", {}).get("name", id)))
 		var state := str(item.get("instance", {}).get("state", ""))
 		if state != "Available": label += " · " + context.translator.text("Applied" if state == "Bound" else "Unavailable")
-		var index := list.add_item(label)
+		var index := list.add_item(label, load("res://assets/ui/rune_token.svg") if ResourceLoader.exists("res://assets/ui/rune_token.svg") else null)
 		list.set_item_tooltip(index, preload("res://scripts/presentation/activity_presenter.gd").modifier_description(definition, context.translator))
 	_item_index = -1; _page = 0; _reference = ""; selected_pattern_name = ""; selected_card_name = ""
 	_rebuild_cards()
+
+func _start_drag(at: Vector2) -> Variant:
+	var list: ItemList = get_node("ItemsColumn/Items")
+	var index := list.get_item_at_position(at, true)
+	if not _editable or index < 0 or index >= _snapshot.get("items", []).size(): return null
+	var item: Dictionary = _snapshot.items[index]
+	if str(item.get("instance", {}).get("state", "")) != "Available": return null
+	var old_page := _page
+	list.select(index); _select_item(index); _page = old_page; _render_cards()
+	list.set_drag_preview(RuneDrag.preview(selected_pattern_name, theme))
+	return RuneDrag.payload(get_instance_id(), _generation, _snapshot, item)
+
+func _accept_drag(index: int, data: Variant) -> bool:
+	return _editable and _item_index >= 0 and _item_index < _snapshot.get("items", []).size() and index >= 0 and index < _rows.size() and _rows[index].valid and RuneDrag.matches(data, get_instance_id(), _generation, _snapshot, _snapshot.items[_item_index])
+
+func _drop_rune(index: int, data: Variant) -> void:
+	if not _accept_drag(index, data): return
+	_select_card(index)
+	if not _reference.is_empty(): choice_requested.emit(_reference)
 
 func _select_item(index: int) -> void:
 	if index < 0 or index >= _snapshot.get("items", []).size(): return
@@ -76,7 +101,7 @@ func _rebuild_cards() -> void:
 
 func _render_cards() -> void:
 	_page = clampi(_page, 0, maxi(0, ceili(float(_rows.size()) / 8.0) - 1))
-	get_node("CardsColumn/Hint").text = _context.translator.text("Select an item, then a card.") if _item_index < 0 else _context.translator.text("Select a card to preview the change.")
+	get_node("CardsColumn/Hint").text = _context.translator.text("Drag a rune onto a card.") if _item_index < 0 else _context.translator.text("Drop on a compatible card to review the change.")
 	get_node("CardsColumn/Preview").disabled = _reference.is_empty() or not _editable
 	for i in 8:
 		var slot = get_node("CardsColumn/Cards/Slot%d" % (i + 1))

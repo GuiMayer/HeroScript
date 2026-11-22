@@ -1,4 +1,9 @@
 {
+  "RUNES": "RUNAS",
+  "Drag a rune onto a card.": "Arraste uma runa sobre uma carta.",
+  "Drop on a compatible card to review the change.": "Solte em uma carta compatível para conferir a mudança.",
+  "Bind rune": "Gravar runa",
+  "This binding is permanent.": "O vínculo com esta carta é permanente.",
   "Action resolved": "Ação resolvida",
   "Turn started": "Turno iniciado",
   "Turn ended": "Turno encerrado",

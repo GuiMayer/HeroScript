@@ -179,11 +179,12 @@ func show_comparison(reference: String, models: Array) -> void:
 	_pending_apply = reference
 	var dialog: ConfirmationDialog = get_node("Compare")
 	dialog.title = context.translator.text("Confirm choice")
-	dialog.ok_button_text = context.translator.text("Apply card rune" if _is_alisyum() else "Apply pattern")
+	dialog.ok_button_text = context.translator.text("Bind rune" if _is_alisyum() else "Apply pattern")
 	dialog.cancel_button_text = context.translator.text("CANCEL")
 	var content = dialog.get_node("Content"); content.show()
 	var inventory = get_node("ContentScroll/Content/Inventory")
 	content.get_node("Description").text = context.translator.text("Pattern: %s · Card: %s\nReview the changes before confirming.") % [inventory.selected_pattern_name, inventory.selected_card_name]
+	content.get_node("Description").text += "\n" + context.translator.text("This binding is permanent.")
 	var changes: Array[String] = []
 	if str(models[0].get("summary", "")) != str(models[1].get("summary", "")): changes.append(context.translator.text("effects"))
 	if models[0].get("costs", []) != models[1].get("costs", []): changes.append(context.translator.text("costs"))
