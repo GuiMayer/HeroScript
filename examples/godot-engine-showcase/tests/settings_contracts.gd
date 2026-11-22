@@ -21,7 +21,7 @@ func _run() -> void:
 	var prefs := FakePreferences.new()
 	var translator := Translator.new()
 	var controller = load("res://scripts/ui/controllers/settings_controller.gd").new(prefs, translator, Session.new())
-	check(controller.set_option("text_scale", 9.0) and prefs.text_scale == 1.2 and prefs.saves == 0, "schema owns validation; view does not persist")
+	check(controller.set_option("text_scale", 9.0) and prefs.text_scale == 2.0 and prefs.saves == 0, "schema owns validation; view does not persist")
 	check(not controller.set_option("hand_layout_mode", "invented") and prefs.hand_layout_mode == "adaptive", "unsupported option rejected")
 	check(not controller.set_option("high_contrast", "yes") and not prefs.high_contrast, "wrong boolean type rejected")
 	check(not controller.set_option("unknown", 1), "schema rejects unconfigured preference")

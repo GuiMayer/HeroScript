@@ -218,7 +218,7 @@ func save(notify := true) -> void:
 	if lock_aspect_16_9 and not is_16_9(window_resolution): window_resolution = Vector2i(1280, 720)
 	_capture_monitor()
 	var config := ConfigFile.new()
-	config.set_value("video", "text_scale", clampf(text_scale, .9, 1.2))
+	config.set_value("video", "text_scale", clampf(text_scale, .9, 2.0))
 	config.set_value("audio", "master", master_volume)
 	config.set_value("audio", "music", music_volume)
 	config.set_value("audio", "sfx", sfx_volume)

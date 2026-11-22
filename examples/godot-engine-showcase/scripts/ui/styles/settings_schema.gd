@@ -20,7 +20,7 @@ const OPTIONS := {
 	"sfx_volume": {"min": 0.0, "max": 1.0, "step": .01, "control": "SfxVolumeSlider"},
 	"fullscreen": {"type": "bool"},
 	"lock_aspect_16_9": {"type": "bool"},
-	"text_scale": {"min": .9, "max": 1.2, "step": .05, "control": "TextScaleSlider"},
+	"text_scale": {"min": .9, "max": 2.0, "step": .05, "control": "TextScaleSlider"},
 	"high_contrast": {"type": "bool"},
 	"reveal_text_gradually": {"type": "bool"},
 	"reduced_motion": {"type": "bool"}

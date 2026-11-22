@@ -3,6 +3,7 @@ extends SceneTree
 ## the baseline authority. Offscreen viewports also work on smaller monitors.
 var failures := 0
 var output := ""
+var scale_factor := 1.0
 var records: Array = []
 func _init() -> void: call_deferred("_run")
 func check(ok: bool, label: String) -> void:
@@ -11,6 +12,7 @@ func check(ok: bool, label: String) -> void:
 func _run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture="): output = arg.trim_prefix("--capture=")
+		if arg.begins_with("--scale="): scale_factor = float(arg.trim_prefix("--scale="))
 	if not output.is_empty(): DirAccess.make_dir_recursive_absolute(output)
 	for dimensions in [Vector2i(960,540),Vector2i(1280,720),Vector2i(1280,800),Vector2i(1440,900),Vector2i(1920,1080),Vector2i(2560,1080)]:
 		var viewport := SubViewport.new(); viewport.size = dimensions; viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -18,7 +20,7 @@ func _run() -> void:
 		var bg := ColorRect.new(); bg.color = Color.WHITE; viewport.add_child(bg); bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		var menu = preload("res://scenes/ui/screens/main_menu.tscn").instantiate(); viewport.add_child(menu); menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		var translator = root.get_node("I18n"); translator.set_locale("pt_BR")
-		var context = preload("res://scripts/ui/visual_context.gd").new(translator,{},preload("res://data/themes/ivory_theme.tres"))
+		var context = preload("res://scripts/ui/visual_context.gd").new(translator,{"text_scale":scale_factor},preload("res://data/themes/ivory_theme.tres"))
 		menu.mount(context)
 		menu.apply_model({"settingName":"Alisyum", "description":"", "selectedSettingId":"alisyum", "settings":[{"settingId":"alisyum","displayName":"Alisyum"},{"settingId":"prototype-test","displayName":"MVP"}], "available":true,"connecting":false,"pending":false})
 		for _i in 8: await process_frame

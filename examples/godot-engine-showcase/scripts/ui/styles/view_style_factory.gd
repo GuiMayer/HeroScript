@@ -119,7 +119,7 @@ func _printed_controls(result: Theme, contrast: bool) -> void:
 		result.set_color("font_hover_color", type, INK)
 		result.set_color("font_focus_color", type, INK)
 		result.set_color("font_pressed_color", type, GOLD)
-		result.set_color("font_disabled_color", type, color("text.disabled"))
+		result.set_color("font_disabled_color", type, color("text.high_contrast_disabled" if contrast else "text.disabled"))
 		result.set_color("font_outline_color", type, PANEL)
 		result.set_constant("outline_size", type, 0)
 	result.set_color("font_shadow_color", "Label", Color.TRANSPARENT)
@@ -195,14 +195,15 @@ func _printed_controls(result: Theme, contrast: bool) -> void:
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var fill := {"normal": color("surface.primary_action"), "hover": color("surface.primary_hover"),
 			"pressed": color("surface.primary_pressed"), "disabled": color("surface.disabled"), "focus": Color.TRANSPARENT}
-		var style := box(fill[state], 2, color("stroke.focus") if state == "focus" else color("stroke.control"), 2 if state == "focus" else 1)
+		if contrast and state in ["normal", "hover"]: fill[state] = color("accent.warm")
+		var style := box(fill[state], 2, color("stroke.focus") if state == "focus" else color("stroke.control"), 3 if state == "focus" else 2 if contrast else 1)
 		if state == "focus": style.set_expand_margin_all(2.0)
 		style.content_margin_left = 10; style.content_margin_right = 10
 		style.content_margin_top = 6; style.content_margin_bottom = 6
 		result.set_stylebox(state, "PrimaryAction", style)
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		result.set_color(state, "PrimaryAction", color("text.inverse"))
-	result.set_color("font_disabled_color", "PrimaryAction", color("text.disabled"))
+	result.set_color("font_disabled_color", "PrimaryAction", color("text.high_contrast_disabled" if contrast else "text.disabled"))
 	result.set_type_variation("MenuLink", "Button")
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var style := box(PANEL_LIGHT if state == "hover" else Color.TRANSPARENT, 0, GOLD if state == "focus" else Color.TRANSPARENT, 2 if state == "focus" else 0)

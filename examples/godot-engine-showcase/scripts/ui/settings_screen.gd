@@ -198,7 +198,7 @@ func _populate_resolutions() -> void:
 	resolution_selector.select(resolutions.find(controller.read("window_resolution")))
 	resolution_selector.disabled = false
 func _build_accessibility_page() -> void:
-	_slider_control(controller.read("text_scale"), .9, 1.2, .05, _format_percent,
+	_slider_control(controller.read("text_scale"), .9, 2.0, .05, _format_percent,
 		func(value): controller.set_option("text_scale", value, false), "TextScaleSlider")
 	for spec in [["high_contrast", "HighContrastToggle"], ["reduced_motion", "ReducedMotionToggle"], ["reveal_text_gradually", "RevealTextGraduallyToggle"]]:
 		var key: String = spec[0]
