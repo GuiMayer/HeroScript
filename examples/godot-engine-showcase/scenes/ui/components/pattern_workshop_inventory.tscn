@@ -1,19 +1,46 @@
 [gd_scene format=3]
 [ext_resource type="Script" path="res://scripts/ui/components/pattern_workshop_inventory.gd" id="Script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/card_view.tscn" id="Card"]
+[sub_resource type="StyleBoxFlat" id="RuneTray"]
+bg_color = Color(0.13, 0.14, 0.15, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.66, 0.43, 0.23, 1)
+content_margin_left = 12.0
+content_margin_right = 12.0
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+[sub_resource type="StyleBoxFlat" id="RuneSelection"]
+bg_color = Color(0.35, 0.23, 0.13, 1)
+border_width_bottom = 2
+border_color = Color(0.87, 0.62, 0.34, 1)
 [node name="PatternWorkshopInventory" type="HBoxContainer"]
 script = ExtResource("Script")
 theme_override_constants/separation = 16
 [node name="ItemsColumn" type="VBoxContainer" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(276, 0)
 [node name="Title" type="Label" parent="ItemsColumn"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
 [node name="Items" type="ItemList" parent="ItemsColumn"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 200)
-size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 355)
+size_flags_vertical = 0
+max_columns = 2
+icon_mode = 0
+fixed_icon_size = Vector2i(58, 58)
+fixed_column_width = 108
+max_text_lines = 2
+theme_override_styles/panel = SubResource("RuneTray")
+theme_override_styles/selected = SubResource("RuneSelection")
+theme_override_colors/font_color = Color(0.94, 0.9, 0.82, 1)
+theme_override_colors/font_selected_color = Color(1, 0.9, 0.72, 1)
+theme_override_constants/v_separation = 12
+theme_override_constants/h_separation = 7
+theme_override_font_sizes/font_size = 14
 [node name="Description" type="Label" parent="ItemsColumn"]
 layout_mode = 2
 autowrap_mode = 3
@@ -122,7 +149,8 @@ horizontal_alignment = 1
 layout_mode = 2
 [node name="Preview" type="Button" parent="CardsColumn"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(280, 48)
+size_flags_horizontal = 8
 theme_type_variation = &"PrimaryAction"
 disabled = true
 [node name="Reason" type="PopupPanel" parent="."]

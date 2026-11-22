@@ -10,7 +10,7 @@ mouse_filter = 2
 script = ExtResource("Art")
 [node name="Select" type="Button" parent="."]
 layout_mode = 2
-custom_minimum_size = Vector2(0,48)
+custom_minimum_size = Vector2(0,64)
 theme_type_variation = &"SecondaryAction"
 [node name="Description" type="Label" parent="."]
 layout_mode = 2
