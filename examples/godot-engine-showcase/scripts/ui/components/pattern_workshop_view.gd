@@ -190,7 +190,9 @@ func show_comparison(reference: String, models: Array) -> void:
 	content.get_node("Description").text = context.translator.text("Pattern: %s · Card: %s\nReview the changes before confirming.") % [inventory.selected_pattern_name, inventory.selected_card_name]
 	content.get_node("Description").text += "\n" + context.translator.text("This binding is permanent.")
 	var changes: Array[String] = []
-	if str(models[0].get("summary", "")) != str(models[1].get("summary", "")): changes.append(context.translator.text("effects"))
+	if str(models[0].get("summary", "")) != str(models[1].get("summary", "")):
+		changes.append(context.translator.text("effects"))
+		content.get_node("Description").text += "\n" + context.translator.text("Before") + ": " + str(models[0].get("summary", "")) + "\n" + context.translator.text("After") + ": " + str(models[1].get("summary", ""))
 	if models[0].get("costs", []) != models[1].get("costs", []): changes.append(context.translator.text("costs"))
 	if not changes.is_empty(): content.get_node("Description").text += "\n" + (context.translator.text("Changes shown: %s") % ", ".join(changes))
 	for i in 2:

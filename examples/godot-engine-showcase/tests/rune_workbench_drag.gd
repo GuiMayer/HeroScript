@@ -8,10 +8,12 @@ func check(ok: bool, label: String) -> void:
 	print("[PASS] " if ok else "[FAIL] ", label)
 	if not ok: failures += 1
 func move_mouse(position: Vector2, pressed := false) -> void:
+	if DisplayServer.get_name() != "headless": root.warp_mouse(position)
 	var event := InputEventMouseMotion.new(); event.position = position; event.global_position = position; event.relative = position - last_position
 	event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0; last_position = position
 	Input.parse_input_event(event)
 func button_down(position: Vector2, pressed: bool) -> void:
+	if DisplayServer.get_name() != "headless": root.warp_mouse(position)
 	var event := InputEventMouseButton.new(); event.position = position; event.global_position = position; event.button_index = MOUSE_BUTTON_LEFT; event.pressed = pressed
 	Input.parse_input_event(event)
 func frames(count := 5) -> void:
@@ -21,9 +23,11 @@ func capture(name: String) -> void:
 	await RenderingServer.frame_post_draw
 	check(root.get_texture().get_image().save_png(output.path_join(name + ".png")) == OK, "captured " + name)
 func _run() -> void:
+	var resolution := Vector2i(1440, 900)
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture="): output = arg.trim_prefix("--capture="); DirAccess.make_dir_recursive_absolute(output)
-	root.content_scale_size = Vector2i(1440, 900); root.size = Vector2i(1440, 900)
+		if arg == "--compact": resolution = Vector2i(960, 540)
+	root.content_scale_size = resolution; root.size = resolution
 	var context = preload("res://scripts/ui/visual_context.gd").new()
 	var background := ColorRect.new(); background.color = Color("f7f3e9"); root.add_child(background); background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var shell := MarginContainer.new(); root.add_child(shell); shell.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -60,6 +64,7 @@ func _run() -> void:
 			var shown_card: CardView = content.get_node("Scroll/Comparison/" + side + "/Card")
 			shown_card.visual_context = context; shown_card.configure(preload("res://scripts/presentation/card_facts_presenter.gd").new(context.translator, {}).project(fact if side == "Before" else after))
 		dialog.popup_centered_clamped(Vector2i(700, 680), .92); await frames(10); await capture("04-forge-comparison")
+		check(dialog.size.x <= resolution.x and dialog.size.y <= resolution.y, "comparison fits the viewport")
 		dialog.queue_free()
 		await frames(10)
 		var incompatible: CardView = workbench.get_node("CardsColumn/Cards/Slot2/Card")

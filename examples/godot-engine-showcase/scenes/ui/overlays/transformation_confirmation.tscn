@@ -7,16 +7,17 @@ visible = false
 theme_override_constants/separation = 12
 [node name="Description" type="Label" parent="Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(600,0)
+custom_minimum_size = Vector2(540,0)
 size_flags_horizontal = 3
 theme_type_variation = &"Caption"
 theme_override_font_sizes/font_size = 16
 autowrap_mode = 3
 [node name="Scroll" type="ScrollContainer" parent="Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(600,460)
+custom_minimum_size = Vector2(540,180)
 size_flags_vertical = 3
-horizontal_scroll_mode = 0
+horizontal_scroll_mode = 1
+follow_focus = true
 [node name="Comparison" type="HBoxContainer" parent="Content/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
