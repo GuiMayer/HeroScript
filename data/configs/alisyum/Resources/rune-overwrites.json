@@ -1,4 +1,240 @@
 {
+  "obor_overwrite_catalyst": {
+    "upgradeId": "obor_overwrite_catalyst",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "alisyum_basic_strike",
+      "pyro_cinder_spark"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "rune.catalyst",
+        "operation": "Add",
+        "component": {
+          "type": "response",
+          "componentId": "rune.catalyst",
+          "order": 55,
+          "response": {
+            "schemaVersion": 1,
+            "responseId": "obor.catalyst",
+            "observe": {
+              "kinds": {
+                "include": [
+                  "resource.change.resolved"
+                ]
+              },
+              "source": {
+                "matchesOwner": true
+              },
+              "subject": {
+                "matchesOwner": true
+              },
+              "resource": {
+                "resourceIds": [
+                  "block"
+                ],
+                "direction": "Increase",
+                "field": "Current"
+              },
+              "requiredTags": [
+                "rune.resonance"
+              ]
+            },
+            "bindings": {
+              "owner": {
+                "kind": "ObserverOwner"
+              },
+              "source": {
+                "kind": "Owner"
+              },
+              "target": {
+                "kind": "Owner"
+              },
+              "missing": "Skip"
+            },
+            "availability": {
+              "snapshot": "AfterOccurrence",
+              "kind": "CardZones",
+              "zoneIds": [
+                "hand"
+              ],
+              "requireLivingOwner": true,
+              "revalidateOwner": true,
+              "requireRegistrationStillActive": true
+            },
+            "frequency": {
+              "scope": "RootAction",
+              "maximum": 1
+            },
+            "order": {
+              "priority": 0
+            },
+            "propagation": "RecordOnly",
+            "effects": [
+              {
+                "effectId": "obor.catalyst.draw",
+                "type": "CARD_ZONE_FLOW",
+                "target": "SELF",
+                "cardZoneFlowId": "effect.draw",
+                "cardCount": 1
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "obor_overwrite_rupture": {
+    "upgradeId": "obor_overwrite_rupture",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "pyro_magma_slash"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "burn",
+        "operation": "Replace",
+        "component": {
+          "type": "effect",
+          "componentId": "burn",
+          "order": 30,
+          "effect": {
+            "effectId": "obor.rupture",
+            "type": "CONDENSE_STACKS",
+            "target": "TARGET",
+            "condensationRecipeId": "alisyum_detonate_burn",
+            "targetLoss": {
+              "policy": "Skip"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "obor_overwrite_overflow": {
+    "upgradeId": "obor_overwrite_overflow",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "alisyum_basic_strike",
+      "pyro_magma_slash"
+    ],
+    "patches": [
+      {
+        "type": "effect_continuation",
+        "componentId": "main",
+        "continuation": {
+          "maximumHops": 1,
+          "selector": "LOWEST_RESOURCE_ENEMY",
+          "selectionResourceId": "health",
+          "overflowPipelineId": "w1_overflow",
+          "overflowChannel": "w1_overflow",
+          "overflowStageIds": [
+            "w1_remainder"
+          ],
+          "impactStageIds": [
+            "w1_target"
+          ]
+        }
+      }
+    ]
+  },
+  "obor_overwrite_resonance": {
+    "upgradeId": "obor_overwrite_resonance",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "alisyum_basic_guard",
+      "pyro_ash_carapace"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "rune.resonance",
+        "operation": "Add",
+        "component": {
+          "type": "response",
+          "componentId": "rune.resonance",
+          "order": 55,
+          "response": {
+            "schemaVersion": 1,
+            "responseId": "obor.resonance",
+            "observe": {
+              "kinds": {
+                "include": [
+                  "status.applied",
+                  "status.reapplied"
+                ]
+              },
+              "source": {
+                "matchesOwner": true
+              },
+              "subject": {
+                "relationshipToOwner": "Enemy"
+              },
+              "requiredTags": [
+                "residual"
+              ]
+            },
+            "bindings": {
+              "owner": {
+                "kind": "ObserverOwner"
+              },
+              "source": {
+                "kind": "Owner"
+              },
+              "target": {
+                "kind": "Owner"
+              },
+              "missing": "Skip"
+            },
+            "availability": {
+              "snapshot": "AfterOccurrence",
+              "kind": "CardZones",
+              "zoneIds": [
+                "hand"
+              ],
+              "requireLivingOwner": true,
+              "revalidateOwner": true,
+              "requireRegistrationStillActive": true
+            },
+            "frequency": {
+              "scope": "RootAction",
+              "maximum": 1
+            },
+            "order": {
+              "priority": 0
+            },
+            "propagation": "AllowResponses",
+            "effects": [
+              {
+                "effectId": "obor.resonance.block",
+                "type": "MODIFY_RESOURCE",
+                "target": "SELF",
+                "targetResource": "block",
+                "operation": "ADD",
+                "flatValue": 2,
+                "calculationPipelineId": "alisyum_direct_amount",
+                "tags": [
+                  "block",
+                  "defense",
+                  "rune.resonance"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
   "obor_overwrite_ember": {
     "upgradeId": "obor_overwrite_ember",
     "category": "Affinity",

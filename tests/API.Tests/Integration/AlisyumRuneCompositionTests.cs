@@ -46,5 +46,18 @@ public sealed class AlisyumRuneCompositionTests
         var rewritten = resolver.Resolve(compiler.Compile(magma.DefinitionId, runtime).Value, Apply(magma, "frost_magma")).Value;
         Assert.DoesNotContain(rewritten.All<CardEffectComponentDefinition>(), x => x.Effect.StatusId == "alisyum_burn");
         Assert.Contains(rewritten.All<CardEffectComponentDefinition>(), x => x.Effect.StatusId == "alisyum_frostbite");
+        var rupture = resolver.Resolve(compiler.Compile(magma.DefinitionId, runtime).Value, Apply(magma, "rupture")).Value;
+        Assert.Contains(rupture.All<CardEffectComponentDefinition>(), x => x.Effect.CondensationRecipeId == "alisyum_detonate_burn");
+        Assert.DoesNotContain(rupture.All<CardEffectComponentDefinition>(), x => x.Effect.StatusId == "alisyum_burn");
+        var overflow = resolver.Resolve(compiled, Apply(Apply(strike, "fragment"), "overflow")).Value;
+        Assert.Equal(1, overflow.All<CardEffectComponentDefinition>().Single(x => x.ComponentId == "main").Effect.Continuation!.MaximumHops);
+        var guard = new CardInstanceState { CardInstanceId = Guid.NewGuid(), DefinitionId = "alisyum_basic_guard" };
+        var resonance = resolver.Resolve(compiler.Compile(guard.DefinitionId, runtime).Value, Apply(guard, "resonance")).Value;
+        var observer = Assert.Single(resonance.Components.OfType<Core.GameplayEvents.Responses.CardResponseComponentDefinition>()).Response!;
+        Assert.Equal("hand", Assert.Single(observer.Availability.ZoneIds));
+        Assert.Equal(Core.GameplayEvents.Responses.ResponseFrequencyScope.RootAction, observer.Frequency.Scope);
+        Assert.Equal(Core.GameplayEvents.Responses.ResponsePropagation.AllowResponses, observer.Propagation);
+        var catalyst = resolver.Resolve(compiled, Apply(strike, "catalyst")).Value;
+        Assert.Contains(catalyst.Components.OfType<Core.GameplayEvents.Responses.CardResponseComponentDefinition>(), x => x.Response!.Observe.RequiredTags.Contains("rune.resonance"));
     }
 }

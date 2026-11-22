@@ -1,4 +1,44 @@
 {
+  "obor_overwrite_catalyst_item": {
+    "itemDefinitionId": "obor_overwrite_catalyst_item",
+    "upgradeId": "obor_overwrite_catalyst",
+    "use": "Bind",
+    "presentation": {
+      "name": "Catalisador",
+      "description": "Enquanto estiver na mão, o Block de uma Ressonância compra 1 carta, uma vez por ação.",
+      "artId": "flurry"
+    }
+  },
+  "obor_overwrite_rupture_item": {
+    "itemDefinitionId": "obor_overwrite_rupture_item",
+    "upgradeId": "obor_overwrite_rupture",
+    "use": "Bind",
+    "presentation": {
+      "name": "Ruptura",
+      "description": "Substitui a aplicação de Queimadura do Corte de Magma pela detonação dos stacks já presentes.",
+      "artId": "burn"
+    }
+  },
+  "obor_overwrite_overflow_item": {
+    "itemDefinitionId": "obor_overwrite_overflow_item",
+    "upgradeId": "obor_overwrite_overflow",
+    "use": "Bind",
+    "presentation": {
+      "name": "Transbordo",
+      "description": "Transfere o excedente de um abate causal para outro inimigo, uma vez por impacto.",
+      "artId": "flurry"
+    }
+  },
+  "obor_overwrite_resonance_item": {
+    "itemDefinitionId": "obor_overwrite_resonance_item",
+    "upgradeId": "obor_overwrite_resonance",
+    "use": "Bind",
+    "presentation": {
+      "name": "Ressonância",
+      "description": "Enquanto esta carta estiver na mão, aplicar um residual a um inimigo concede 2 Block, uma vez por ação.",
+      "artId": "guard"
+    }
+  },
   "obor_overwrite_ember_item": {
     "itemDefinitionId": "obor_overwrite_ember_item",
     "upgradeId": "obor_overwrite_ember",
