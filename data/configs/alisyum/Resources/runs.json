@@ -44,11 +44,35 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_0",
           "encounter_1"
         ],
         "metadata": {
           "displayName": "Altar de Runa",
           "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "chapter_rune_0",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Primeira Gravura",
+          "description": "Escolha uma runa gratuita e grave-a diretamente em uma carta."
         }
       },
       {
@@ -110,11 +134,39 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_1",
           "encounter_2_patrol",
           "encounter_2_elite"
         ],
         "metadata": {
           "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "chapter_rune_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_rupture_item",
+              "obor_overwrite_frost_magma_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Gravura de Ressonância",
+          "description": "Inscreva uma segunda peça e descubra uma cadeia de efeitos."
         }
       },
       {
@@ -363,7 +415,13 @@
               "obor_rune_pierce_item",
               "obor_rune_keen_item",
               "obor_rune_ember_item",
-              "obor_rune_leech_item"
+              "obor_rune_leech_item",
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item"
             ],
             "allowRemoval": false,
             "allowReplacement": false,
@@ -578,11 +636,35 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_0",
           "encounter_1"
         ],
         "metadata": {
           "displayName": "Altar de Runa",
           "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "chapter_rune_0",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Primeira Gravura",
+          "description": "Escolha uma runa gratuita e grave-a diretamente em uma carta."
         }
       },
       {
@@ -643,11 +725,39 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_1",
           "encounter_2_patrol",
           "encounter_2_elite"
         ],
         "metadata": {
           "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "chapter_rune_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_rupture_item",
+              "obor_overwrite_frost_magma_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Gravura de Ressonância",
+          "description": "Inscreva uma segunda peça e descubra uma cadeia de efeitos."
         }
       },
       {
@@ -896,7 +1006,13 @@
               "obor_rune_pierce_item",
               "obor_rune_keen_item",
               "obor_rune_ember_item",
-              "obor_rune_leech_item"
+              "obor_rune_leech_item",
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item"
             ],
             "allowRemoval": false,
             "allowReplacement": false,
@@ -1110,11 +1226,35 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_0",
           "encounter_1"
         ],
         "metadata": {
           "displayName": "Altar de Runa",
           "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "chapter_rune_0",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Primeira Gravura",
+          "description": "Escolha uma runa gratuita e grave-a diretamente em uma carta."
         }
       },
       {
@@ -1176,11 +1316,39 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_1",
           "encounter_2_patrol",
           "encounter_2_elite"
         ],
         "metadata": {
           "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "chapter_rune_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_rupture_item",
+              "obor_overwrite_frost_magma_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Gravura de Ressonância",
+          "description": "Inscreva uma segunda peça e descubra uma cadeia de efeitos."
         }
       },
       {
@@ -1428,7 +1596,13 @@
               "obor_rune_pierce_item",
               "obor_rune_keen_item",
               "obor_rune_ember_item",
-              "obor_rune_leech_item"
+              "obor_rune_leech_item",
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item"
             ],
             "allowRemoval": false,
             "allowReplacement": false,
@@ -1642,11 +1816,35 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_0",
           "encounter_1"
         ],
         "metadata": {
           "displayName": "Altar de Runa",
           "description": "Equipe seu Mod de Identidade inicial e suas peças de equipamento."
+        }
+      },
+      {
+        "nodeId": "chapter_rune_0",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_1"
+        ],
+        "metadata": {
+          "displayName": "Primeira Gravura",
+          "description": "Escolha uma runa gratuita e grave-a diretamente em uma carta."
         }
       },
       {
@@ -1708,11 +1906,39 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "chapter_rune_1",
           "encounter_2_patrol",
           "encounter_2_elite"
         ],
         "metadata": {
           "displayName": "Espólios Iniciais"
+        }
+      },
+      {
+        "nodeId": "chapter_rune_1",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [],
+            "modifierItemIds": [
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_rupture_item",
+              "obor_overwrite_frost_magma_item"
+            ],
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "encounter_2_patrol",
+          "encounter_2_elite"
+        ],
+        "metadata": {
+          "displayName": "Gravura de Ressonância",
+          "description": "Inscreva uma segunda peça e descubra uma cadeia de efeitos."
         }
       },
       {
@@ -1960,7 +2186,13 @@
               "obor_rune_pierce_item",
               "obor_rune_keen_item",
               "obor_rune_ember_item",
-              "obor_rune_leech_item"
+              "obor_rune_leech_item",
+              "obor_overwrite_ember_item",
+              "obor_overwrite_frost_item",
+              "obor_overwrite_fragment_item",
+              "obor_overwrite_overflow_item",
+              "obor_overwrite_resonance_item",
+              "obor_overwrite_catalyst_item"
             ],
             "allowRemoval": false,
             "allowReplacement": false,

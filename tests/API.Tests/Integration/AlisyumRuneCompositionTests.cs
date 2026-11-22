@@ -13,6 +13,47 @@ namespace API.Tests.Integration;
 public sealed class AlisyumRuneCompositionTests
 {
     [Fact]
+    public async Task InitialForgeOffersAndBindsOneRuneBeforeFirstCombat()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var game = new GameEngineClientSimulator(client);
+        var runId = await game.StartRunAsync("alisyum", "alisyum_chapter_1", "player", 1842, "alisyum_campaign");
+        var reads = factory.Services.GetRequiredService<IRunQueryService>();
+        async Task Submit(string type, object payload)
+        {
+            var run = reads.GetRun(runId).Value;
+            using var response = await client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new { commandId = Guid.NewGuid(), type, expectedSequence = run.Sequence, expectedStep = run.Determinism.Step, payload });
+            Assert.True(response.IsSuccessStatusCode, $"{type}: {await response.Content.ReadAsStringAsync()}");
+        }
+        await Submit("START_DIALOGUE", new { dialogueId = "alisyum_opening_pyro" });
+        var dialogue = reads.GetRun(runId).Value.Dialogues.Single();
+        await Submit("CHOOSE_DIALOGUE_OPTION", new { dialogueInstanceId = dialogue.DialogueInstanceId, nodeId = dialogue.CurrentNodeId, choiceId = "continue" });
+        await Submit("RESOLVE_NODE", new { currentNodeId = "chapter_opening" });
+        await Submit("ADVANCE_NODE", new { targetNodeId = "chapter_prepare_0" });
+        await Submit("CREATE_PREPARATION", new { preparationId = "alisyum_preparation" });
+        var preparation = reads.GetRun(runId).Value.Preparations.Single();
+        await Submit("APPLY_PREPARATION_OPTION", new { preparationInstanceId = preparation.PreparationInstanceId, optionId = "ready" });
+        await Submit("RESOLVE_NODE", new { currentNodeId = "chapter_prepare_0" });
+        await Submit("ADVANCE_NODE", new { targetNodeId = "chapter_rune_0" });
+        await Submit("ACQUIRE_CARD_MODIFIER_ITEM", new { itemDefinitionId = "obor_overwrite_fragment_item" });
+        var owned = reads.GetRun(runId).Value;
+        var item = Assert.Single(owned.CardModifierItems!.Items);
+        var card = owned.Deck.Topology.Instances.Values.First(x => x.DefinitionId == "alisyum_basic_strike");
+        var preview = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{runId}/card-modifier-items/{item.ItemInstanceId}/preview/{card.CardInstanceId}");
+        Assert.True(preview.GetProperty("after").GetProperty("permanentChanges").GetArrayLength() > 0);
+        await Submit("APPLY_CARD_MODIFIER_ITEM", new { itemInstanceId = item.ItemInstanceId, cardInstanceId = card.CardInstanceId });
+        var bound = reads.GetRun(runId).Value;
+        Assert.Equal(CardModifierItemState.Bound, Assert.Single(bound.CardModifierItems!.Items).State);
+        Assert.Single(bound.Deck.GetCard(card.CardInstanceId)!.Upgrades);
+        await Submit("RESOLVE_NODE", new { currentNodeId = "chapter_rune_0" });
+        await Submit("ADVANCE_NODE", new { targetNodeId = "encounter_1" });
+        Assert.Equal("encounter_1", reads.GetRun(runId).Value.CurrentNodeId);
+        var replay = await factory.Services.GetRequiredService<Core.Run.Replay.IRunReplayService>().VerifyAsync(runId);
+        Assert.True(replay.IsValid, string.Join("; ", replay.Errors));
+    }
+
+    [Fact]
     public async Task PublishedRunesComposeIndividualCardsWithoutReplacingTheirBudget()
     {
         using var factory = new TestWebApplicationFactory();

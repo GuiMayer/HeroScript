@@ -5,6 +5,66 @@
     "offerCount": 5,
     "items": [
       {
+        "itemId": "rune.overwrite.ember",
+        "modifierItemDefinitionId": "obor_overwrite_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.frost",
+        "modifierItemDefinitionId": "obor_overwrite_frost_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.fragment",
+        "modifierItemDefinitionId": "obor_overwrite_fragment_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.resonance",
+        "modifierItemDefinitionId": "obor_overwrite_resonance_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.catalyst",
+        "modifierItemDefinitionId": "obor_overwrite_catalyst_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.overflow",
+        "modifierItemDefinitionId": "obor_overwrite_overflow_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
         "itemId": "rune.echo",
         "modifierItemDefinitionId": "obor_rune_echo_item",
         "costs": [
@@ -98,6 +158,66 @@
     "cardPoolId": "alisyum_rewards_pyro",
     "offerCount": 5,
     "items": [
+      {
+        "itemId": "rune.overwrite.ember",
+        "modifierItemDefinitionId": "obor_overwrite_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.frost",
+        "modifierItemDefinitionId": "obor_overwrite_frost_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.fragment",
+        "modifierItemDefinitionId": "obor_overwrite_fragment_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.resonance",
+        "modifierItemDefinitionId": "obor_overwrite_resonance_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.catalyst",
+        "modifierItemDefinitionId": "obor_overwrite_catalyst_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.overflow",
+        "modifierItemDefinitionId": "obor_overwrite_overflow_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
       {
         "itemId": "rune.echo",
         "modifierItemDefinitionId": "obor_rune_echo_item",
@@ -193,6 +313,66 @@
     "offerCount": 5,
     "items": [
       {
+        "itemId": "rune.overwrite.ember",
+        "modifierItemDefinitionId": "obor_overwrite_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.frost",
+        "modifierItemDefinitionId": "obor_overwrite_frost_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.fragment",
+        "modifierItemDefinitionId": "obor_overwrite_fragment_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.resonance",
+        "modifierItemDefinitionId": "obor_overwrite_resonance_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.catalyst",
+        "modifierItemDefinitionId": "obor_overwrite_catalyst_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.overflow",
+        "modifierItemDefinitionId": "obor_overwrite_overflow_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
         "itemId": "rune.echo",
         "modifierItemDefinitionId": "obor_rune_echo_item",
         "costs": [
@@ -287,6 +467,66 @@
     "offerCount": 5,
     "items": [
       {
+        "itemId": "rune.overwrite.ember",
+        "modifierItemDefinitionId": "obor_overwrite_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.frost",
+        "modifierItemDefinitionId": "obor_overwrite_frost_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.fragment",
+        "modifierItemDefinitionId": "obor_overwrite_fragment_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.resonance",
+        "modifierItemDefinitionId": "obor_overwrite_resonance_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.catalyst",
+        "modifierItemDefinitionId": "obor_overwrite_catalyst_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.overflow",
+        "modifierItemDefinitionId": "obor_overwrite_overflow_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
         "itemId": "rune.echo",
         "modifierItemDefinitionId": "obor_rune_echo_item",
         "costs": [
@@ -380,6 +620,66 @@
     "cardPoolId": "alisyum_rewards_renegado",
     "offerCount": 5,
     "items": [
+      {
+        "itemId": "rune.overwrite.ember",
+        "modifierItemDefinitionId": "obor_overwrite_ember_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.frost",
+        "modifierItemDefinitionId": "obor_overwrite_frost_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 25
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.fragment",
+        "modifierItemDefinitionId": "obor_overwrite_fragment_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.resonance",
+        "modifierItemDefinitionId": "obor_overwrite_resonance_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.catalyst",
+        "modifierItemDefinitionId": "obor_overwrite_catalyst_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 35
+          }
+        ]
+      },
+      {
+        "itemId": "rune.overwrite.overflow",
+        "modifierItemDefinitionId": "obor_overwrite_overflow_item",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 30
+          }
+        ]
+      },
       {
         "itemId": "rune.echo",
         "modifierItemDefinitionId": "obor_rune_echo_item",
