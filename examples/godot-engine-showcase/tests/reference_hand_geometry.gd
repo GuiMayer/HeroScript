@@ -26,6 +26,7 @@ func _run() -> void:
 		var model: Dictionary = layout.calculate(count, 1800., Vector2(248, 360), style, "adaptive")
 		heights.append(model.height)
 		check(model.rotations.size() == count and model.hitRects.size() == count, "one geometry per instance: %s" % count)
+		if count >= 2: check(model.step >= minf(124.0, 248.0) and absf(model.rotations[0]) <= deg_to_rad(4.0), "wide readable strip and shallow fan: %s" % count)
 		if count >= 2: check(model.rotations[0] < 0 and model.rotations[-1] > 0 and is_equal_approx(-model.rotations[0], model.rotations[-1]), "fan remains symmetric even with ample space: %s" % count)
 		if count == 1: check(model.rotations[0] == 0, "single card is upright")
 		var reading: Dictionary = layout.calculate(count, 1000., Vector2(248, 360), style, "reading")
